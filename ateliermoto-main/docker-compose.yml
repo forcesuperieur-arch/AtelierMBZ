@@ -1,0 +1,47 @@
+services:
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: atelier-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./frontend:/app/static
+    environment:
+      - DATABASE_URL=postgresql://atelier:atelier@db:5432/atelier_moto
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # Base de données PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: atelier-db
+    environment:
+      - POSTGRES_USER=atelier
+      - POSTGRES_PASSWORD=atelier
+      - POSTGRES_DB=atelier_moto
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Reverse proxy Caddy
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

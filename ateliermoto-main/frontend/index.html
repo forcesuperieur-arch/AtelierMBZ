@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier Moto Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --orange: #FFD200; --orange2: #FFC400; --dark: #1A1A1A; --dark2: #232323;
+  --dark3: #2D2D2D; --dark4: #383838; --gray: #888; --gray2: #bbb;
+  --green: #22C55E; --amber: #F59E0B; --red: #EF4444; --blue: #3B82F6;
+  --purple: #8B5CF6; --teal: #14B8A6;
+}
+body { font-family: 'Barlow', sans-serif; background: #111; color: #f0f0f0; min-height: 100vh; overflow-x: hidden; }
+.app { display: flex; height: 100vh; min-height: 600px; }
+.skip-link { position:absolute; left:8px; top:-44px; background:var(--orange); color:#111; padding:8px 12px; border-radius:6px; font-weight:700; z-index:2000; text-decoration:none; }
+.skip-link:focus { top:8px; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+
+/* LOGIN */
+.login-screen { display: flex; align-items: center; justify-content: center; height: 100vh; width: 100%; background: #111; }
+.login-box { background: var(--dark2); border: 1px solid #333; border-radius: 12px; padding: 32px; width: 340px; text-align: center; }
+.login-box h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; margin-bottom: 20px; color: var(--orange); }
+.login-box input { width: 100%; background: #1e1e1e; border: 1px solid #444; border-radius: 6px; padding: 10px 14px; color: #eee; font-family: 'Barlow', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; }
+.login-box input:focus { border-color: var(--orange); }
+.login-box button { width: 100%; background: var(--orange); color: white; border: none; border-radius: 6px; padding: 10px; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; }
+.login-box button:hover { background: var(--orange2); }
+.login-error { color: var(--red); font-size: 12px; margin-top: 8px; min-height: 18px; }
+
+/* SIDEBAR */
+.sidebar { width: 64px; background: var(--dark2); border-right: 1px solid #333; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 4px; z-index: 10; flex-shrink: 0; }
+.sidebar .logo { width: 40px; height: 40px; background: var(--orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 20px; font-weight: 700; color: white; cursor: pointer; }
+.nav-btn { width: 44px; height: 44px; border-radius: 8px; border: none; background: transparent; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; font-size: 18px; position: relative; }
+.nav-btn:hover { background: #333; color: #ddd; }
+.nav-btn.active { background: rgba(255,210,0,0.18); color: var(--orange); }
+.nav-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.nav-btn .tooltip { position: absolute; left: 54px; background: #333; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .1s; z-index: 100; }
+.nav-btn:hover .tooltip { opacity: 1; }
+.sidebar-spacer { flex: 1; }
+.meca-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer; border: 2px solid transparent; transition: border-color .15s; color: white; }
+.meca-avatar:hover { border-color: var(--purple); }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: 52px; background: var(--dark2); border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0; }
+.mobile-menu-btn { display:none; }
+.topbar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .5px; color: #eee; }
+.topbar-spacer { flex: 1; }
+.live-dot { width: 8px; height: 8px; background: var(--red); border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+.btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 13px; transition: all .15s; }
+.btn-primary { background: var(--orange); color: #111; }
+.btn-primary:hover { background: var(--orange2); }
+.btn-ghost { background: transparent; color: #aaa; border: 1px solid #444; }
+.btn-ghost:hover { border-color: #888; color: #eee; }
+.btn:focus-visible, .form-input:focus-visible, .form-select:focus-visible, .tab:focus-visible, .meca-avatar:focus-visible, a:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+.inline-error { font-size: 12px; color: var(--red); margin-top: 4px; min-height: 14px; }
+.content { flex: 1; overflow-y: auto; padding: 20px; }
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge.green { background: rgba(34,197,94,.15); color: var(--green); }
+.badge.amber { background: rgba(245,158,11,.15); color: var(--amber); }
+.badge.red { background: rgba(239,68,68,.15); color: var(--red); }
+.badge.blue { background: rgba(59,130,246,.15); color: var(--blue); }
+.badge.orange { background: rgba(255,210,0,.18); color: var(--orange2); }
+.badge.purple { background: rgba(139,92,246,.15); color: var(--purple); }
+
+/* PAGE */
+.page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.page-title { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: #f0f0f0; }
+.page-sub { font-size: 13px; color: #777; margin-top: 2px; }
+
+/* GRID */
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+
+/* STAT CARD */
+.stat-card { background: var(--dark3); border: 1px solid #333; border-radius: 10px; padding: 16px; }
+.stat-label { font-size: 11px; color: #666; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 700; color: #f0f0f0; line-height: 1; }
+.stat-delta { font-size: 12px; margin-top: 4px; }
+.stat-bar { height: 3px; border-radius: 2px; margin-top: 10px; background: #333; overflow: hidden; }
+.stat-bar-fill { height: 100%; border-radius: 2px; transition: width .6s; }
+
+/* CARD */
+.card { background: var(--dark3); border: 1px solid #333; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 14px; font-weight: 600; color: #ddd; }
+
+/* PONT CARDS */
+.pont-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.pont-card { border-radius: 10px; border: 1px solid; padding: 14px; }
+.pont-card.libre { background: rgba(34,197,94,.07); border-color: rgba(34,197,94,.25); }
+.pont-card.occupe { background: rgba(255,210,0,.07); border-color: rgba(255,210,0,.3); }
+.pont-card.maintenance { background: rgba(245,158,11,.07); border-color: rgba(245,158,11,.25); }
+.pont-num { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; line-height: 1; }
+.pont-name { font-size: 12px; color: #888; }
+.pont-moto { font-size: 13px; font-weight: 600; color: #ddd; margin-top: 4px; }
+.pont-meca { font-size: 11px; color: #888; }
+.pont-progress { height: 3px; background: #333; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.pont-progress-fill { height: 100%; border-radius: 2px; transition: width 1s; }
+.pont-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 12px; color: #666; font-size: 11px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; border-bottom: 1px solid #333; }
+td { padding: 10px 12px; border-bottom: 1px solid #2a2a2a; vertical-align: middle; color: #ccc; }
+tr:hover td { background: rgba(255,255,255,.03); }
+.moto-cell { display: flex; align-items: center; gap: 10px; }
+.moto-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+/* PLANNING */
+.planning-header { display: grid; grid-template-columns: 80px repeat(7,1fr); border-bottom: 1px solid #333; }
+.planning-day { padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #888; }
+.planning-day.today { color: var(--orange); }
+.planning-body { display: grid; grid-template-columns: 80px repeat(7,1fr); position: relative; }
+.time-label { padding: 0 8px; font-size: 11px; color: #555; text-align: right; line-height: 8px; }
+.planning-cell { border-left: 1px solid #2a2a2a; height: 8px; position: relative; cursor: pointer; transition: background .15s; overflow: visible; }
+.planning-cell:hover { background: rgba(255,255,255,.04) !important; }
+.planning-cell.drag-over { background: rgba(255,210,0,.12) !important; outline: 2px dashed var(--orange); outline-offset: -2px; }
+.planning-cell.is-closed { background: rgba(239,68,68,.2) !important; cursor: not-allowed; }
+.planning-cell.is-busy { background: rgba(59,130,246,.12) !important; }
+.planning-cell.has-conflict { background: rgba(239,68,68,.08) !important; }
+.planning-cell.has-conflict::after { content:''; position:absolute; top:0; right:0; width:6px; height:100%; background:var(--red); opacity:.75; pointer-events:none; }
+.rdv-block { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 2px 5px; font-size: 10px; font-weight: 600; overflow: hidden; cursor: grab; z-index: 2; user-select: none; -webkit-user-select: none; transition: opacity .15s, transform .1s; }
+.rdv-block:hover { opacity: 1 !important; transform: scale(1.02); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.rdv-block:active { cursor: grabbing; }
+.rdv-block.conflict { outline: 2px solid rgba(239,68,68,.95); box-shadow: 0 0 0 2px rgba(239,68,68,.25), 0 2px 8px rgba(0,0,0,.4); }
+.planning-conflict-summary { margin-bottom:10px; display:flex; align-items:center; gap:8px; font-size:12px; color:#fca5a5; }
+.planning-conflict-dot { width:8px; height:8px; border-radius:50%; background:var(--red); display:inline-block; }
+.planning-now-line { position:absolute; left:0; right:0; height:2px; background:#ef4444; z-index:12; pointer-events:none; box-shadow:0 0 0 1px rgba(239,68,68,.15); }
+.planning-now-line::before { content:''; position:absolute; left:0; top:-5px; width:12px; height:12px; border-radius:50%; background:#ef4444; }
+.planning-now-time { position:absolute; left:16px; top:-10px; font-size:10px; font-weight:700; color:#fecaca; background:rgba(17,17,17,.8); padding:1px 6px; border-radius:10px; }
+
+/* RECEPTION & TRAVAUX SUPP */
+.badge.teal { background: rgba(20,184,166,.15); color: var(--teal); }
+.notif-badge { position:absolute;top:2px;right:2px;background:var(--red);color:white;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center; }
+@keyframes pulse-badge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.3); } }
+.reception-check-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:8px; }
+.reception-check-item { display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252525;border:1px solid #333;border-radius:6px;font-size:13px;color:#ccc;cursor:pointer; }
+.reception-check-item input[type="checkbox"] { accent-color:var(--orange);width:16px;height:16px; }
+.travaux-supp-card { background:var(--dark3);border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid var(--amber); }
+.travaux-supp-card.critique { border-left-color:var(--red); }
+
+/* MECA CARD */
+.meca-card { background: var(--dark3); border: 1px solid #333; border-radius: 10px; padding: 14px; }
+.meca-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.meca-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+.meca-info { flex: 1; }
+.meca-name { font-size: 14px; font-weight: 600; color: #eee; }
+.meca-role { font-size: 11px; color: #777; }
+.manager-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+.manager-kpi { background: #1f1f22; border:1px solid #333; border-radius:8px; padding:10px 12px; }
+.manager-kpi-label { font-size:10px; color:#777; text-transform:uppercase; letter-spacing:.5px; }
+.manager-kpi-value { font-size:20px; font-weight:700; color:#eee; margin-top:2px; }
+.manager-kpi-sub { font-size:11px; color:#999; margin-top:2px; }
+
+/* OR CARD */
+.or-card { background: var(--dark3); border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.or-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.or-num { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--orange); }
+.or-steps { display: flex; align-items: center; gap: 0; margin-top: 10px; }
+.or-step { flex: 1; text-align: center; font-size: 10px; color: #666; position: relative; }
+.or-step.done { color: var(--green); }
+.or-step.active { color: var(--orange); }
+.or-step::before { content: ''; position: absolute; top: -10px; left: -50%; right: 50%; height: 2px; background: #333; }
+.or-step:first-child::before { display: none; }
+.or-step.done::before { background: var(--green); }
+.or-step.active::before { background: var(--orange); }
+.or-dot { width: 8px; height: 8px; border-radius: 50%; background: #444; margin: 0 auto 4px; }
+.or-step.done .or-dot { background: var(--green); }
+.or-step.active .or-dot { background: var(--orange); box-shadow: 0 0 6px rgba(255,210,0,.6); }
+
+/* TIMELINE */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:#2d2d2d; }
+.tl-item { position: relative; margin-bottom: 14px; }
+.tl-dot { position: absolute; left: -24px; width: 14px; height: 14px; border-radius: 50%; background: #333; border: 2px solid #555; top: 2px; }
+.tl-dot.done { background: var(--green); border-color: var(--green); }
+.tl-dot.active { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 8px rgba(255,210,0,.5); }
+.tl-content { background: #2a2a2a; border-radius: 6px; padding: 8px 12px; }
+.tl-title { font-size: 12px; font-weight: 600; color: #ddd; }
+.tl-meta { font-size: 11px; color: #666; margin-top: 2px; }
+
+/* ESPACE MECA - Mobile-first */
+.meca-space-header { display:flex; align-items:center; gap:12px; padding:12px 0; margin-bottom:8px; }
+.meca-av-big { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; flex-shrink:0; }
+.meca-greeting { font-size:18px; font-weight:700; color:#eee; }
+.meca-sub { font-size:13px; color:#888; }
+.meca-active-panel { background:linear-gradient(135deg,#1a1a22,#1e1e28); border:2px solid var(--orange); border-radius:16px; margin-bottom:16px; overflow:hidden; }
+.meca-chrono { background:#0f0f14; padding:20px 16px; text-align:center; }
+.meca-chrono-time { font-family:'Barlow Condensed',sans-serif; font-size:56px; font-weight:700; color:#fcd34d; letter-spacing:2px; line-height:1; }
+.meca-chrono-eta { font-size:14px; color:#9ca3af; margin-top:6px; }
+.meca-chrono-bar { height:6px; background:#2a2a35; border-radius:3px; margin-top:12px; overflow:hidden; }
+.meca-chrono-fill { height:100%; background:#22c55e; border-radius:3px; transition:width .5s ease; }
+.meca-info-block { padding:14px 16px; border-bottom:1px solid #2a2a35; }
+.meca-info-vehicle { font-size:18px; font-weight:700; color:#eee; }
+.meca-info-client { font-size:14px; color:#aaa; margin-top:2px; }
+.meca-info-type { font-size:13px; color:var(--orange); margin-top:4px; font-weight:600; }
+.meca-info-notes { font-size:12px; color:#777; margin-top:6px; font-style:italic; }
+.meca-checkup-block { border-bottom:1px solid #2a2a35; }
+.meca-checkup-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; cursor:pointer; font-size:14px; font-weight:600; color:#d1d5db; -webkit-tap-highlight-color:transparent; }
+.meca-checkup-header:active { background:rgba(255,255,255,.03); }
+.meca-checkup-arrow { font-size:12px; color:#666; transition:transform .2s; }
+.meca-checkup-body { padding:0 16px 14px; }
+.meca-check-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1f1f28; }
+.meca-check-item:last-of-type { border-bottom:none; }
+.meca-check-label { font-size:14px; color:#ccc; }
+.meca-check-btns { display:flex; gap:6px; }
+.meca-check-btn { border:1px solid #444; background:#252530; color:#aaa; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; min-width:52px; text-align:center; -webkit-tap-highlight-color:transparent; transition:all .15s; }
+.meca-check-btn.ok { background:rgba(34,197,94,.2); border-color:rgba(34,197,94,.5); color:#86efac; }
+.meca-check-btn.nok { background:rgba(239,68,68,.2); border-color:rgba(239,68,68,.5); color:#fca5a5; }
+.meca-check-btn:active { transform:scale(.95); }
+.meca-notes-input { width:100%; background:#1a1a22; border:1px solid #333; border-radius:8px; padding:10px; color:#ddd; font-size:14px; resize:vertical; box-sizing:border-box; font-family:inherit; }
+.meca-actions { display:flex; flex-direction:column; gap:8px; padding:14px 16px; }
+.meca-big-btn { border:none; border-radius:12px; padding:14px; font-size:16px; font-weight:700; cursor:pointer; text-align:center; -webkit-tap-highlight-color:transparent; min-height:48px; transition:transform .1s; }
+.meca-big-btn.start { background:var(--green); color:white; border-radius:10px; padding:10px 16px; font-size:14px; white-space:nowrap; flex-shrink:0; }
+.meca-big-btn.success { background:var(--green); color:white; font-size:18px; }
+.meca-big-btn.warning { background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.3); }
+.meca-big-btn.ghost { background:rgba(255,255,255,.06); color:#d1d5db; border:1px solid #3a3a44; }
+.meca-big-btn:active { transform:scale(.97); }
+.meca-section-title { font-size:13px; color:#777; text-transform:uppercase; letter-spacing:.8px; font-weight:700; padding:12px 0 6px; }
+.meca-rdv-card { background:#1e1e25; border:1px solid #333; border-radius:12px; padding:14px; display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.meca-rdv-card.done { opacity:.65; }
+.meca-card-time { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:700; color:var(--orange); min-width:56px; }
+.meca-card-body { flex:1; min-width:0; }
+.meca-card-vehicle { font-size:15px; font-weight:600; color:#eee; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.meca-card-client { font-size:13px; color:#aaa; }
+.meca-card-type { font-size:12px; color:#666; margin-top:2px; }
+.meca-card-actions { display:flex; gap:6px; flex-shrink:0; }
+.meca-sm-btn { background:rgba(255,255,255,.06); border:1px solid #444; border-radius:6px; padding:6px 10px; color:#aaa; font-size:12px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.meca-sm-btn:active { opacity:.8; }
+.suivi-alert-strip { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.suivi-alert-strip .chip { border:1px solid #3a3a3f; border-radius:999px; padding:5px 10px; font-size:11px; color:#d1d5db; background:#1e1e24; }
+.suivi-alert-strip .chip.red { border-color:rgba(239,68,68,.45); color:#fca5a5; background:rgba(239,68,68,.12); }
+.suivi-alert-strip .chip.orange { border-color:rgba(245,158,11,.45); color:#fcd34d; background:rgba(245,158,11,.12); }
+.suivi-alert-list { width:100%; background:#1b1b21; border:1px solid #34343f; border-radius:8px; padding:8px 10px; font-size:12px; color:#d1d5db; }
+.suivi-alert-list strong { color:#fca5a5; }
+
+/* FORM */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 600; color: #888; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; display: block; }
+.form-input { width: 100%; background: #1e1e1e; border: 1px solid #444; border-radius: 6px; padding: 8px 12px; color: #eee; font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; }
+.form-input:focus { border-color: var(--orange); }
+.form-select { width: 100%; background: #1e1e1e; border: 1px solid #444; border-radius: 6px; padding: 8px 12px; color: #eee; font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; cursor: pointer; }
+.form-select option { background: #1e1e1e; }
+.dispo-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+.dispo-slot { border: 1px solid #444; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; color: #aaa; transition: all .15s; }
+.dispo-slot.available { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.05); }
+.dispo-slot.available:hover { background: rgba(34,197,94,.12); }
+.dispo-slot.full { border-color: #333; color: #555; cursor: not-allowed; }
+.dispo-slot.selected { border-color: var(--orange); background: rgba(255,210,0,.12); color: var(--orange2); }
+
+/* RDV wizard integre */
+.steps { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:24px; }
+.step-item { display:flex; flex-direction:column; align-items:center; }
+.step-dot { width:36px; height:36px; border-radius:50%; border:2px solid #444; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#666; transition:all .2s; flex-shrink:0; }
+.step-dot.active { border-color:var(--orange); color:var(--orange); background:rgba(255,210,0,.1); }
+.step-dot.done { border-color:var(--green); color:white; background:var(--green); }
+.step-line { flex:1; height:2px; background:#333; max-width:60px; }
+.step-line.done { background:var(--green); }
+.wizard-step { display:none; }
+.wizard-step.active { display:block; }
+.f-group { margin-bottom:14px; }
+.f-row { display:flex; gap:12px; }
+.f-row > * { flex:1; }
+.f-label { font-size:12px; font-weight:600; color:#888; letter-spacing:.5px; text-transform:uppercase; margin-bottom:5px; display:block; }
+.f-input { width:100%; background:#111; border:1px solid #444; border-radius:8px; padding:10px 14px; color:#eee; font-family:'Barlow', sans-serif; font-size:14px; outline:none; }
+.f-input:focus { border-color:var(--orange); }
+.veh-result { background:#252525; border:1px solid #333; border-radius:10px; padding:16px; margin-top:16px; display:none; }
+.veh-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.veh-item label { font-size:11px; color:#777; text-transform:uppercase; }
+.veh-item .val { font-size:14px; color:#eee; font-weight:600; margin-top:2px; }
+.presta-card { background:#252525; border:1px solid #333; border-radius:10px; padding:14px; margin-bottom:8px; cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:12px; }
+.presta-card.selected { border-color:var(--orange); background:rgba(255,210,0,.08); }
+.presta-check { width:24px; height:24px; border-radius:50%; border:2px solid #555; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#111; }
+.presta-card.selected .presta-check { border-color:var(--orange); background:var(--orange); }
+.presta-info { flex:1; }
+.presta-name { font-size:14px; font-weight:600; color:#eee; }
+.presta-detail { font-size:12px; color:#888; margin-top:2px; }
+.presta-price { font-size:16px; font-weight:700; color:var(--orange); }
+.duration-block,.recap { background:#1f1f1f; border:1px solid #333; border-radius:10px; padding:12px; margin-top:12px; }
+.recap-row,.recap-total { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #333; font-size:13px; color:#ccc; }
+.recap-total { border-bottom:none; font-weight:700; color:#eee; }
+.btn-row { display:flex; justify-content:space-between; gap:8px; margin-top:14px; }
+.week-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.week-grid { display:grid; grid-template-columns:repeat(5,minmax(140px,1fr)); gap:8px; min-width:760px; }
+.week-grid-wrapper { overflow-x:auto; }
+.week-day { background:#1a1a1a; border-radius:10px; border:1px solid #333; overflow:hidden; }
+.week-day.today { border-color:var(--orange); }
+.week-day-header { padding:10px 8px; text-align:center; border-bottom:1px solid #333; }
+.week-day-name { font-family:'Barlow Condensed', sans-serif; font-size:14px; font-weight:600; color:#aaa; text-transform:uppercase; }
+.week-day-date { font-size:20px; font-weight:700; color:#eee; margin-top:2px; }
+.week-day-slots { padding:6px; display:flex; flex-direction:column; gap:4px; max-height:340px; overflow-y:auto; }
+.wslot { border:1px solid #444; border-radius:6px; padding:6px 4px; text-align:center; cursor:pointer; font-size:13px; font-weight:600; color:#aaa; }
+.wslot.available { border-color:rgba(34,197,94,.35); color:var(--green); background:rgba(34,197,94,.04); }
+.wslot.full { border-color:#2a2a2a; color:#444; cursor:not-allowed; background:#161616; }
+.wslot.selected { border-color:var(--orange); background:rgba(255,210,0,.15); color:var(--orange); }
+.wslot-places { font-size:9px; color:#555; margin-top:1px; }
+.assign-info { background:rgba(34,197,94,.06); border:1px solid rgba(34,197,94,.2); border-radius:8px; padding:12px; margin-top:12px; display:none; }
+.success-details { background:#252525; border-radius:10px; padding:16px; margin:20px 0; text-align:left; }
+.success-details .sd-row { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; color:#ccc; border-bottom:1px solid #333; }
+.loading-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #333; margin-bottom: 16px; }
+.tab { padding: 8px 16px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+.tab:hover { color: #aaa; }
+.tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* SECTION */
+.section { display: none; }
+.section.active { display: block; }
+
+/* RESPONSIVE */
+@media (max-width: 700px) {
+  .grid-4 { grid-template-columns: repeat(2,1fr); }
+  .pont-grid { grid-template-columns: repeat(2,1fr); }
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .mobile-menu-btn { display:inline-flex; min-width:44px; min-height:44px; font-size:18px; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-title { font-size: 16px; }
+  #btn-nouveau-rdv { padding: 7px 10px; font-size: 12px; }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+    z-index: 30;
+    width: 72px;
+    background: var(--dark2);
+  }
+  .app.sidebar-open .sidebar { transform: translateX(0); }
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 20;
+    display: none;
+  }
+  .app.sidebar-open .sidebar-overlay { display: block; }
+  .content { padding: 12px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dispo-grid { grid-template-columns: repeat(3, 1fr); }
+  .reception-check-grid { grid-template-columns: 1fr; }
+  .dispo-slot, .nav-btn, .btn, .tab { min-height: 44px; }
+  .f-row { flex-direction:column; gap:0; }
+  .week-grid { grid-template-columns:repeat(5,minmax(120px,1fr)); min-width:640px; }
+  .planning-header { grid-template-columns: 64px repeat(7,minmax(92px,1fr)); min-width: 740px; }
+  .planning-body { grid-template-columns: 64px repeat(7,minmax(92px,1fr)); min-width: 740px; }
+  #clients-stats-cards { grid-template-columns: repeat(2,1fr) !important; }
+  .manager-kpis { grid-template-columns:repeat(2,1fr); }
+}
+
+/* Desktop enhancements for meca */
+@media (min-width: 768px) {
+  .meca-chrono-time { font-size:72px; }
+  .meca-actions { flex-direction:row; }
+  .meca-actions .meca-big-btn { flex:1; }
+  .meca-check-btn { padding:8px 20px; }
+}
+@media print {
+  .sidebar, .topbar, .btn, .sidebar-overlay, .skip-link { display: none !important; }
+  .app, .main, .content { display:block !important; height:auto !important; overflow:visible !important; }
+  body { background:#fff; color:#111; }
+  .card, .stat-card, .or-card, .pont-card { border:1px solid #bbb; background:#fff; color:#111; box-shadow:none; }
+}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <h2>Atelier Moto Pro</h2>
+    <input type="text" id="login-user" placeholder="Nom d'utilisateur" autofocus>
+    <input type="password" id="login-pass" placeholder="Mot de passe" onkeypress="if(event.key==='Enter') doLogin()">
+    <button onclick="doLogin()">Connexion</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-container" class="app" style="display:none">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="app-sidebar" aria-label="Navigation principale">
+    <button class="logo" onclick="showSection('dashboard')" aria-label="Aller a l'accueil autorise">M</button>
+    <button class="nav-btn active" id="nav-dashboard" onclick="showSection('dashboard')" aria-label="Dashboard">
+      <span>&#128202;</span><span class="tooltip">Dashboard</span>
+    </button>
+    <button class="nav-btn" id="nav-rdv" onclick="showSection('rdv')" aria-label="Prise de RDV">
+      <span>&#128197;</span><span class="tooltip">Prise de RDV</span>
+    </button>
+    <button class="nav-btn" id="nav-planning" onclick="showSection('planning')" aria-label="Planning">
+      <span>&#128467;</span><span class="tooltip">Planning</span>
+    </button>
+    <button class="nav-btn" id="nav-ponts" onclick="showSection('ponts')" aria-label="Ponts et mecaniciens">
+      <span>&#128295;</span><span class="tooltip">Ponts & Mecaniciens</span>
+    </button>
+    <button class="nav-btn" id="nav-or" onclick="showSection('or')" style="position:relative" aria-label="Ordres de reparation">
+      <span>&#128203;</span><span class="tooltip">Ordres de Reparation</span>
+      <span id="travaux-supp-badge" class="notif-badge" style="display:none">0</span>
+    </button>
+    <button class="nav-btn" id="nav-suivi" onclick="showSection('suivi')" aria-label="Suivi live">
+      <span>&#128225;</span><span class="tooltip">Suivi Live</span>
+    </button>
+    <button class="nav-btn" id="nav-clients" onclick="showSection('clients')" aria-label="Clients">
+      <span>&#128101;</span><span class="tooltip">Clients</span>
+    </button>
+    <a href="/factures.html" class="nav-btn" id="nav-factures" style="text-decoration:none" title="Factures">
+      <span>&#128179;</span><span class="tooltip">Factures</span>
+    </a>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-btn" id="nav-admin" onclick="showSection('admin')" style="display:none" title="Administration" aria-label="Administration">
+      <span>&#9881;</span><span class="tooltip">Administration</span>
+    </button>
+    <div class="meca-avatar" id="user-avatar" onclick="showSection('espace-meca')" title="Espace Mecanicien" role="button" tabindex="0" aria-label="Espace mecanicien">U</div>
+    <button class="nav-btn" onclick="logout()" style="margin-top:8px;font-size:14px;color:#666" title="Deconnexion" aria-label="Deconnexion">
+      <span>&#9211;</span>
+    </button>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="btn btn-ghost mobile-menu-btn" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Ouvrir le menu" aria-expanded="false">&#9776;</button>
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <div class="topbar-spacer"></div>
+      <div class="live-dot"></div>
+      <span style="font-size:12px;color:#888">LIVE</span>
+      <button class="btn btn-primary" id="btn-nouveau-rdv" onclick="showSection('rdv')">+ Nouveau RDV</button>
+    </div>
+
+    <main class="content" id="main-content" tabindex="-1">
+      <div id="app-live-region" class="sr-only" aria-live="polite"></div>
+
+      <!-- ===== DASHBOARD ===== -->
+      <div id="s-dashboard" class="section active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Vue d'ensemble</div>
+            <div class="page-sub" id="dashboard-date"></div>
+          </div>
+        </div>
+        <div class="grid-4" id="dashboard-stats"></div>
+        <div class="card-title" style="margin-bottom:12px;color:#aaa;font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase">Ponts - Etat en temps reel</div>
+        <div class="pont-grid" id="dashboard-ponts"></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">RDV du jour</div>
+            <span class="badge blue" id="dashboard-rdv-count">0 rendez-vous</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Heure</th><th>Moto</th><th>Client</th><th>Operation</th><th>Duree</th><th>Pont</th><th>Mecanicien</th><th>Statut</th><th>Actions</th></tr></thead>
+              <tbody id="dashboard-rdv-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PRISE DE RDV ===== -->
+      <div id="s-rdv" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Prise de RDV</div><div class="page-sub">Parcours integre (identique public) + recherche client interne</div></div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-header"><div class="card-title">Client existant (base interne)</div></div>
+          <div class="form-group">
+            <label class="form-label">Lieu du RDV (atelier)</label>
+            <select class="form-select" id="rdv-atelier-select" onchange="onRdvAtelierChange(this.value)"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recherche client</label>
+            <input class="form-input" id="rdv-client-search" placeholder="Nom, prenom, telephone ou email..." oninput="searchClientRdvEmbed(this.value)">
+            <div id="rdv-client-search-results" style="margin-top:6px;max-height:150px;overflow-y:auto"></div>
+          </div>
+          <div style="font-size:12px;color:#888">Selectionnez un client pour pre-remplir l'etape Validation.</div>
+        </div>
+
+        <div class="card" id="rdvw-root">
+          <div class="steps" style="margin-bottom:20px">
+            <div class="step-item"><div class="step-dot active" id="sd-1">1</div><div class="step-label">Vehicule</div></div>
+            <div class="step-line" id="sl-1"></div>
+            <div class="step-item"><div class="step-dot" id="sd-2">2</div><div class="step-label">Service</div></div>
+            <div class="step-line" id="sl-2"></div>
+            <div class="step-item"><div class="step-dot" id="sd-3">3</div><div class="step-label">Creneau</div></div>
+            <div class="step-line" id="sl-3"></div>
+            <div class="step-item"><div class="step-dot" id="sd-4">4</div><div class="step-label">Validation</div></div>
+          </div>
+
+          <div id="step-1" class="wizard-step active">
+            <div class="f-group"><label class="f-label">Immatriculation / VIN</label><input class="f-input" id="pub-plaque" placeholder="Ex: AB-123-CD ou VIN"></div>
+            <button class="btn btn-primary" id="btn-search" onclick="rechercherVehicule()">Rechercher mon vehicule</button>
+            <div id="pub-veh-result" class="veh-result">
+              <div class="veh-grid">
+                <div class="veh-item"><label>Marque</label><div class="val" id="pub-v-marque">-</div></div>
+                <div class="veh-item"><label>Modele</label><div class="val" id="pub-v-modele">-</div></div>
+                <div class="veh-item"><label>Annee</label><div class="val" id="pub-v-annee">-</div></div>
+                <div class="veh-item"><label>Cylindree</label><div class="val" id="pub-v-cylindree">-</div></div>
+                <div class="veh-item"><label>Type</label><div class="val" id="pub-v-type">-</div></div>
+                <div class="veh-item"><label>Plaque</label><div class="val" id="pub-v-plaque">-</div></div>
+              </div>
+              <div id="pub-v-type-missing" style="display:none;margin-top:10px">
+                <label class="f-label">Type de moto *</label>
+                <select class="f-input" id="pub-v-type-select" onchange="onTypeMotoFoundSelect(this.value)">
+                  <option value="">-- Selectionnez --</option>
+                  <option value="Roadster">Roadster / Naked</option><option value="Sportive">Sportive / Supersport</option><option value="Trail">Trail / Adventure</option><option value="Cruiser">Custom / Cruiser</option><option value="Scooter">Scooter</option><option value="Cross/Enduro">Cross / Enduro</option><option value="Touring">Touring / GT</option><option value="Supermotard">Supermotard</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" style="margin-top:10px" onclick="continuerVehiculeFound()">Continuer</button>
+            </div>
+            <div id="pub-veh-notfound" style="display:none;margin-top:12px">
+              <div class="f-row"><div class="f-group"><label class="f-label">Marque *</label><input class="f-input" id="pub-man-marque"></div><div class="f-group"><label class="f-label">Modele *</label><input class="f-input" id="pub-man-modele"></div></div>
+              <div class="f-row"><div class="f-group"><label class="f-label">Annee *</label><input class="f-input" id="pub-man-annee" type="number"></div><div class="f-group"><label class="f-label">Cylindree</label><input class="f-input" id="pub-man-cylindree"></div></div>
+              <div class="f-group"><label class="f-label">Type de moto *</label><select class="f-input" id="pub-moto-type-manual"><option value="">-- Selectionnez --</option><option value="Roadster">Roadster</option><option value="Sportive">Sportive</option><option value="Trail">Trail</option><option value="Cruiser">Cruiser</option><option value="Scooter">Scooter</option><option value="Cross/Enduro">Cross/Enduro</option><option value="Touring">Touring</option><option value="Supermotard">Supermotard</option></select></div>
+              <button class="btn btn-primary" onclick="validerVehiculeManuel()">Continuer</button>
+            </div>
+          </div>
+
+          <div id="step-2" class="wizard-step">
+            <div id="pub-prestations"></div>
+            <div id="pub-duration" class="duration-block"><div class="dur-label">Duree estimee :</div><div class="dur-value" id="pub-dur-value">-</div><div class="dur-note" id="pub-dur-note"></div></div>
+            <div id="pub-recap" class="recap" style="display:none"><div id="pub-recap-lines"></div><div class="recap-total"><span>Total estime</span><span id="pub-recap-total">0 EUR</span></div></div>
+            <div class="btn-row"><button class="btn btn-ghost" onclick="goStep(1)">Retour</button><button class="btn btn-primary" id="pub-btn-step3" disabled onclick="goStep(3)">Continuer</button></div>
+          </div>
+
+          <div id="step-3" class="wizard-step">
+            <div class="week-nav"><button class="btn btn-ghost" onclick="changeWeek(-1)">Precedente</button><div class="week-label" id="pub-week-label">Semaine</div><button class="btn btn-ghost" onclick="changeWeek(1)">Suivante</button></div>
+            <div class="week-grid-wrapper"><div class="week-grid" id="pub-week-grid"></div></div>
+            <div id="pub-selected-slot" style="display:none;margin-top:12px"><div class="recap"><div class="recap-row"><span>Creneau selectionne</span><span id="pub-slot-label">-</span></div></div></div>
+            <div id="pub-assign" class="assign-info"><div class="assign-row">Pont : <strong id="pub-assign-pont">-</strong></div><div class="assign-row">Mecanicien : <strong id="pub-assign-meca">-</strong></div></div>
+            <div class="btn-row"><button class="btn btn-ghost" onclick="goStep(2)">Retour</button><button class="btn btn-primary" id="pub-btn-step4" disabled onclick="goStep(4)">Continuer</button></div>
+          </div>
+
+          <div id="step-4" class="wizard-step">
+            <div class="recap" style="margin-bottom:12px">
+              <div class="recap-row"><span>Vehicule</span><span id="pub-final-veh">-</span></div>
+              <div class="recap-row"><span>Prestations</span><span id="pub-final-presta">-</span></div>
+              <div class="recap-row"><span>Date & Heure</span><span id="pub-final-date">-</span></div>
+              <div class="recap-row"><span>Pont / Mecanicien</span><span id="pub-final-pont">-</span></div>
+              <div class="recap-row"><span>Duree</span><span id="pub-final-duree">-</span></div>
+              <div class="recap-total"><span>Total</span><span id="pub-final-total">0 EUR</span></div>
+            </div>
+            <div class="f-row"><div class="f-group"><label class="f-label">Prenom *</label><input class="f-input" id="pub-prenom"></div><div class="f-group"><label class="f-label">Nom *</label><input class="f-input" id="pub-nom"></div></div>
+            <div class="f-row"><div class="f-group"><label class="f-label">Telephone *</label><input class="f-input" id="pub-tel"></div><div class="f-group"><label class="f-label">Email</label><input class="f-input" id="pub-email"></div></div>
+            <div class="f-group"><label class="f-label">Remarques</label><textarea class="f-input" id="pub-comment" rows="2"></textarea></div>
+            <div class="btn-row"><button class="btn btn-ghost" onclick="goStep(3)">Retour</button><button class="btn btn-primary" id="btn-confirm" onclick="confirmerRDV()">Confirmer le RDV + Generer OR</button></div>
+          </div>
+
+          <div id="step-success" class="wizard-step">
+            <div style="text-align:center;padding:20px">
+              <div style="font-size:26px;color:#22C55E;font-weight:700">RDV confirme</div>
+              <div style="margin-top:8px;color:#aaa">Numero <span id="pub-rdv-num">#RDV-0000</span></div>
+              <div class="success-details" id="pub-success-details"></div>
+              <button class="btn btn-primary" onclick="loadRdvForm()">Nouveau RDV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PLANNING ===== -->
+      <div id="s-planning" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Planning Atelier</div><div class="page-sub" id="planning-sub"></div></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <select class="form-select" id="planning-atelier-select" onchange="onPlanningAtelierChange(this.value)" style="min-width:220px"></select>
+            <button class="btn btn-ghost" onclick="planningPrev()">&#9664;</button>
+            <span style="font-size:13px;color:#aaa" id="planning-week-label">Semaine</span>
+            <button class="btn btn-ghost" onclick="planningNext()">&#9654;</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap" id="planning-meca-filters"></div>
+        <div class="card" style="padding:0;overflow:visible">
+          <div class="planning-header" id="planning-header"></div>
+          <div class="planning-body" id="planning-grid" style="overflow-y:auto;max-height:calc(100vh - 260px)"></div>
+        </div>
+      </div>
+
+      <!-- ===== PONTS & MECAS ===== -->
+      <div id="s-ponts" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Gestion Ponts & Mecaniciens</div><div class="page-sub">Configuration et disponibilite</div></div>
+        </div>
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab(this,'tab-ponts')">&#128295; Ponts (<span id="ponts-count">0</span>)</div>
+          <div class="tab" onclick="switchTab(this,'tab-mecas')">&#128100; Mecaniciens (<span id="mecas-count">0</span>)</div>
+          <div class="tab" onclick="switchTab(this,'tab-temps')">&#9201; Temps par type</div>
+          <div class="tab" onclick="switchTab(this,'tab-absences')">&#128197; Absences (<span id="absences-count">0</span>)</div>
+        </div>
+        <div class="manager-kpis" id="ponts-manager-kpis"></div>
+        <div id="tab-ponts" class="tab-content">
+          <div class="grid-3" id="ponts-grid"></div>
+        </div>
+        <div id="tab-mecas" class="tab-content" style="display:none">
+          <div class="grid-2" id="mecas-grid"></div>
+        </div>
+        <div id="tab-temps" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Temps d'intervention par type de moto & operation</div></div>
+            <div class="table-wrap"><table id="temps-table"></table></div>
+          </div>
+        </div>
+        <div id="tab-absences" class="tab-content" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-size:14px;font-weight:600;color:#ddd">Absences planifiees</div>
+            <button class="btn btn-primary" onclick="ouvrirModalAbsence()">+ Ajouter une absence</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Mecanicien</th><th>Date debut</th><th>Date fin</th><th>Motif</th><th>Notes</th><th>Actions</th></tr></thead>
+              <tbody id="absences-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ORDRES DE REPARATION ===== -->
+      <div id="s-or" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Ordres de Reparation</div><div class="page-sub">Generes automatiquement a la confirmation RDV</div></div>
+          <div style="display:flex;gap:8px;margin-left:auto">
+            <span class="badge orange" id="or-ouverts">0 ouverts</span>
+            <span class="badge green" id="or-termines">0 termines</span>
+          </div>
+        </div>
+        <div id="travaux-supp-panel" style="display:none;margin-bottom:16px"></div>
+        <div id="or-list"></div>
+      </div>
+
+      <!-- ===== SUIVI LIVE ===== -->
+      <div id="s-suivi" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Suivi Live des Interventions</div><div class="page-sub">Mise a jour en temps reel par mecanicien</div></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+            <div class="live-dot"></div><span style="font-size:12px;color:#888">Live</span>
+          </div>
+        </div>
+        <div id="suivi-alert-strip" class="suivi-alert-strip"></div>
+        <div class="grid-3" id="suivi-grid"></div>
+      </div>
+
+      <!-- ===== CLIENTS ===== -->
+      <div id="s-clients" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Gestion Clients</div><div class="page-sub">Base clients et historique atelier</div></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <input class="form-input" style="width:250px" placeholder="Rechercher un client..." id="clients-search" oninput="rechercherClients(this.value)">
+            <span class="badge blue" id="clients-total-count">0 clients</span>
+            <button class="btn btn-primary" style="font-size:13px;white-space:nowrap" onclick="ouvrirNouveauClient()">+ Nouveau client</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" id="clients-stats-cards">
+          <div class="card" style="padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--orange)" id="stat-total-clients">-</div>
+            <div style="font-size:10px;color:#666;text-transform:uppercase">Clients</div>
+          </div>
+          <div class="card" style="padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--green)" id="stat-clients-avec-rdv">-</div>
+            <div style="font-size:10px;color:#666;text-transform:uppercase">Avec RDV</div>
+          </div>
+          <div class="card" style="padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--teal,#14b8a6)" id="stat-total-vehicules">-</div>
+            <div style="font-size:10px;color:#666;text-transform:uppercase">Vehicules</div>
+          </div>
+          <div class="card" style="padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--purple,#8b5cf6)" id="stat-ca-clients">-</div>
+            <div style="font-size:10px;color:#666;text-transform:uppercase">CA Total</div>
+          </div>
+        </div>
+        <div class="grid-2" style="align-items:start">
+          <div>
+            <div class="card" style="max-height:calc(100vh - 280px);overflow-y:auto;padding:8px">
+              <div id="clients-list"><div style="color:#666;padding:20px;text-align:center">Chargement...</div></div>
+            </div>
+            <div id="clients-pagination" style="display:flex;justify-content:center;gap:8px;padding:12px"></div>
+          </div>
+          <div id="client-detail-panel" style="display:none">
+            <div class="card" id="client-detail-info"></div>
+            <div class="card" style="margin-top:12px" id="client-detail-vehicules"></div>
+            <div class="card" style="margin-top:12px" id="client-detail-historique"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ESPACE MECANICIEN ===== -->
+      <div id="s-espace-meca" class="section">
+        <div class="meca-space-header" id="espace-meca-header"></div>
+        <div id="meca-rdv-list"></div>
+      </div>
+
+      <!-- ===== ADMIN ===== -->
+      <div id="s-admin" class="section">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Administration</div>
+            <div class="page-sub">Gestion multi-ateliers et configuration atelier</div>
+          </div>
+        </div>
+        <div class="tabs" style="margin-bottom:12px">
+          <div class="tab active" id="admin-tab-ateliers" onclick="switchAdminTab('ateliers')">Ateliers & comptes</div>
+          <div class="tab" id="admin-tab-workshop" onclick="switchAdminTab('workshop')">Ponts & techniciens</div>
+          <div class="tab" id="admin-tab-config" onclick="switchAdminTab('config')">Configuration</div>
+          <div class="tab" id="admin-tab-horaires" onclick="switchAdminTab('horaires')">Horaires</div>
+          <div class="tab" id="admin-tab-prestations" onclick="switchAdminTab('prestations')">Prestations</div>
+          <div class="tab" id="admin-tab-equipements" onclick="switchAdminTab('equipements')">Equipements ponts</div>
+          <div class="tab" id="admin-tab-roles" onclick="switchAdminTab('roles')">Roles & droits</div>
+        </div>
+
+        <div id="admin-panel-ateliers" class="tab-content">
+          <div class="card" style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;color:#eee">Ateliers</div>
+                <div style="font-size:12px;color:#888">Liste et administration des ateliers</div>
+              </div>
+              <button id="btn-admin-new-atelier" class="btn btn-primary" style="display:none" onclick="ouvrirNouveauAtelier()">Nouvel atelier</button>
+            </div>
+          </div>
+          <div class="card" style="padding:0">
+            <div id="admin-ateliers-list" style="padding:14px;color:#888">Chargement...</div>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <div class="card-header">
+              <div>
+                <div style="font-weight:700;color:#eee">Comptes atelier</div>
+                <div style="font-size:12px;color:#888">Creation de login par atelier</div>
+              </div>
+              <button id="btn-admin-new-user" class="btn btn-primary" onclick="ouvrirNouvelUtilisateurAtelier()">Nouveau login</button>
+            </div>
+            <div id="admin-users-list" style="padding:4px 0;color:#888">Selectionnez un atelier.</div>
+          </div>
+        </div>
+
+        <div id="admin-panel-workshop" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div style="font-weight:700;color:#eee">Ponts atelier</div>
+                <div style="font-size:12px;color:#888">Creation, modification et desactivation</div>
+              </div>
+              <button class="btn btn-primary" onclick="openAdminPontModal()">+ Ajouter pont</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nom</th><th>Type</th><th>Capacite</th><th>Technicien assigne</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="admin-workshop-ponts-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-header">
+              <div>
+                <div style="font-weight:700;color:#eee">Techniciens atelier</div>
+                <div style="font-size:12px;color:#888">Visible si login mecanicien actif</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nom</th><th>Prenom</th><th>Specialites</th><th>Couleur</th><th>Login</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="admin-workshop-mecas-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-panel-config" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-title">Configuration Atelier</div>
+            <form onsubmit="saveAdminConfig(event)">
+              <div class="form-grid">
+                <div class="form-group"><label class="form-label">Taux standard (EUR/h)</label><input type="number" step="0.01" id="cfg-taux-std" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Taux complexe (EUR/h)</label><input type="number" step="0.01" id="cfg-taux-cpx" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Taux expert (EUR/h)</label><input type="number" step="0.01" id="cfg-taux-exp" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Forfait MO minimum (EUR)</label><input type="number" step="0.01" id="cfg-forfait-min" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Marge pieces standard (%)</label><input type="number" step="0.01" id="cfg-marge-std" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Marge consommable (%)</label><input type="number" step="0.01" id="cfg-marge-conso" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Marge pneumatique (%)</label><input type="number" step="0.01" id="cfg-marge-pneu" class="form-input"></div>
+                <div class="form-group"><label class="form-label">TVA main d'oeuvre (%)</label><input type="number" step="0.01" id="cfg-tva-mo" class="form-input"></div>
+                <div class="form-group"><label class="form-label">TVA pieces (%)</label><input type="number" step="0.01" id="cfg-tva-pieces" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Validite devis (jours)</label><input type="number" id="cfg-validite" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Accompte (%)</label><input type="number" step="0.01" id="cfg-accompte" class="form-input"></div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-top:12px" type="submit">Enregistrer la configuration</button>
+            </form>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-title">Types de moto actifs</div>
+            <p style="font-size:13px;color:#9ca3af;margin-bottom:12px">Activez ou désactivez les types de moto disponibles pour cet atelier.</p>
+            <div id="admin-categories-moto-list" style="color:#888">Chargement...</div>
+          </div>
+        </div>
+
+        <div id="admin-panel-horaires" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-title">Horaires atelier</div>
+            <div id="admin-horaires-content" style="color:#888">Chargement...</div>
+          </div>
+        </div>
+
+        <div id="admin-panel-prestations" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Prestations & tarifs</div>
+              <button class="btn btn-primary" onclick="openAdminPrestationModal()">+ Ajouter</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Code</th><th>Nom</th><th>Categorie</th><th>Type</th><th>Prix TTC</th><th>Temps</th><th>Actif</th><th>Actions</th></tr></thead>
+                <tbody id="admin-prestations-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-panel-equipements" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Equipements ponts</div>
+              <button class="btn btn-primary" onclick="openAdminEquipementModal()">+ Ajouter</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Pont</th><th>Equipement</th><th>Description</th><th>Present</th><th>Actions</th></tr></thead>
+                <tbody id="admin-equipements-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-panel-roles" class="tab-content" style="display:none">
+          <div class="card">
+            <div class="card-title">Roles & permissions</div>
+            <div id="admin-roles-content" style="color:#888">Chargement...</div>
+          </div>
+        </div>
+      </div>
+
+    </main><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script src="/static/utils.js"></script>
+<script src="/static/api.js"></script>
+<script src="/static/app.js"></script>
+<script>
+// Set today's date on dashboard
+var now = new Date();
+var jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+var mois = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+var dateEl = document.getElementById('dashboard-date');
+if (dateEl) dateEl.textContent = jours[now.getDay()] + ' ' + now.getDate() + ' ' + mois[now.getMonth()] + ' ' + now.getFullYear();
+
+// Set default RDV date to today
+var rdvDate = document.getElementById('rdv-date');
+if (rdvDate) rdvDate.value = now.toISOString().split('T')[0];
+</script>
+</body>
+</html>
