@@ -539,198 +539,32 @@ function refreshCurrentSection() {
 
 // ===== FACTURATION =====
 function ouvrirFacturation(rdvId) {
-    if (!canUseBilling()) {
-        showAlert('Facturation desactivee pour le role service client', 'warning');
-        return;
-    }
-    apiGet('/api/rendez-vous/' + rdvId + '/preview-facture').then(function(r) { return r.json(); }).then(function(data) {
-        var html = '<div style="background:#1e1e1e;border-radius:8px;padding:16px">';
-
-        // Recap MO
-        var heures = (data.temps_facture_minutes / 60).toFixed(2);
-        html += '<div style="margin-bottom:12px"><div style="color:#9ca3af;font-size:11px;margin-bottom:4px">MAIN D\'OEUVRE</div>';
-        if (data.is_forfait) {
-            // Mode forfait : afficher le prix fixe convenu
-            html += '<div style="display:flex;justify-content:space-between;color:#e5e7eb">';
-            html += '<span>Forfait - ' + (data.forfait_designation || data.type_intervention) + '</span>';
-            html += '<span style="font-weight:bold">' + data.total_mo_ht.toFixed(2) + ' EUR HT</span></div>';
-        } else {
-            // Mode horaire : affichage classique
-            html += '<div style="display:flex;justify-content:space-between;color:#e5e7eb">';
-            html += '<span>' + data.temps_facture_minutes + ' min (' + heures + 'h) x ' + data.taux_horaire.toFixed(2) + ' EUR/h</span>';
-            html += '<span style="font-weight:bold">' + data.total_mo_ht.toFixed(2) + ' EUR HT</span></div>';
-        }
-        html += '</div>';
-
-        // Recap Pieces
-        if (data.pieces && data.pieces.length > 0) {
-            html += '<div style="margin-bottom:12px"><div style="color:#9ca3af;font-size:11px;margin-bottom:4px">PIECES</div>';
-            data.pieces.forEach(function(p) {
-                html += '<div style="display:flex;justify-content:space-between;color:#e5e7eb;font-size:13px">';
-                html += '<span>' + escapeHtml(p.nom) + (p.reference ? ' (' + p.reference + ')' : '') + ' x' + p.quantite + '</span>';
-                html += '<span>' + p.total_ht.toFixed(2) + ' EUR HT</span></div>';
-            });
-            html += '<div style="display:flex;justify-content:space-between;color:#e5e7eb;font-weight:bold;margin-top:4px;border-top:1px solid #333;padding-top:4px">';
-            html += '<span>Total pieces</span><span>' + data.total_pieces_ht.toFixed(2) + ' EUR HT</span></div></div>';
-        }
-
-        // Separator
-        html += '<div style="border-top:1px solid #444;margin:12px 0"></div>';
-
-        // Remise
-        html += '<div class="form-group" style="margin-bottom:12px"><label class="form-label" style="color:#9ca3af">Remise (%)</label>';
-        html += '<input type="number" class="form-input" id="facture-remise" value="0" min="0" max="100" step="0.5" onchange="recalcFacturePreview()" oninput="recalcFacturePreview()" style="width:100px"></div>';
-
-        // Totaux
-        html += '<div id="facture-totaux">';
-        html += renderFactureTotaux(data, 0);
-        html += '</div>';
-
-        // Notes
-        html += '<div class="form-group" style="margin-top:12px"><label class="form-label" style="color:#9ca3af">Notes (optionnel)</label>';
-        html += '<textarea class="form-input" id="facture-notes" rows="2" placeholder="Notes internes..."></textarea></div>';
-
-        html += '</div>';
-        html += '<div style="display:flex;gap:8px;margin-top:16px">';
-        html += '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button>';
-        html += '<button class="btn btn-primary" style="flex:1;background:#8B5CF6" onclick="confirmerFacturation(' + rdvId + ')">Generer la facture</button>';
-        html += '</div>';
-
-        // Stocker en mémoire pour recalc
-        window._facturePreview = data;
-
-        showModal('Facturer - ' + (data.type_intervention || 'RDV #' + rdvId), html, '550px');
-    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+    return window.BillingModule.ouvrirFacturation(rdvId);
 }
 
 function renderFactureTotaux(data, remisePct) {
-    var remise = data.total_ht * (remisePct / 100);
-    var totalHtRemise = data.total_ht - remise;
-    var ratio = data.total_ht > 0 ? totalHtRemise / data.total_ht : 1;
-    var tvaMo = data.tva_mo * ratio;
-    var tvaPieces = data.tva_pieces * ratio;
-    var totalTtc = totalHtRemise + tvaMo + tvaPieces;
-
-    var html = '<div style="background:#111;border-radius:6px;padding:12px">';
-    html += '<div style="display:flex;justify-content:space-between;color:#9ca3af;font-size:13px"><span>Total HT</span><span>' + data.total_ht.toFixed(2) + ' EUR</span></div>';
-    if (remise > 0) {
-        html += '<div style="display:flex;justify-content:space-between;color:#22C55E;font-size:13px"><span>Remise (' + remisePct.toFixed(1) + '%)</span><span>-' + remise.toFixed(2) + ' EUR</span></div>';
-        html += '<div style="display:flex;justify-content:space-between;color:#e5e7eb;font-size:13px;font-weight:bold"><span>Total HT remise</span><span>' + totalHtRemise.toFixed(2) + ' EUR</span></div>';
-    }
-    html += '<div style="display:flex;justify-content:space-between;color:#9ca3af;font-size:12px"><span>TVA MO (' + data.tva_mo_taux + '%)</span><span>' + tvaMo.toFixed(2) + ' EUR</span></div>';
-    if (data.tva_pieces > 0) {
-        html += '<div style="display:flex;justify-content:space-between;color:#9ca3af;font-size:12px"><span>TVA Pieces (' + data.tva_pieces_taux + '%)</span><span>' + tvaPieces.toFixed(2) + ' EUR</span></div>';
-    }
-    html += '<div style="display:flex;justify-content:space-between;color:#E8480A;font-size:16px;font-weight:bold;margin-top:8px;border-top:1px solid #333;padding-top:8px"><span>TOTAL TTC</span><span>' + totalTtc.toFixed(2) + ' EUR</span></div>';
-    html += '</div>';
-    return html;
+    return window.BillingModule.renderFactureTotaux(data, remisePct);
 }
 
 function recalcFacturePreview() {
-    var remise = parseFloat(document.getElementById('facture-remise').value) || 0;
-    document.getElementById('facture-totaux').innerHTML = renderFactureTotaux(window._facturePreview, remise);
+    return window.BillingModule.recalcFacturePreview();
 }
 
 function confirmerFacturation(rdvId) {
-    if (!canUseBilling()) {
-        showAlert('Facturation desactivee pour le role service client', 'warning');
-        return;
-    }
-    var remise = parseFloat(document.getElementById('facture-remise').value) || 0;
-    var notes = document.getElementById('facture-notes').value;
-    apiPost('/api/rendez-vous/' + rdvId + '/facturer', {
-        remise_pourcentage: remise,
-        notes: notes || null
-    }).then(function(r) { return r.json(); }).then(function(data) {
-        closeModal();
-        showAlert('Facture ' + data.numero_facture + ' creee - ' + data.total_ttc.toFixed(2) + ' EUR TTC');
-        refreshCurrentSection();
-    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+    return window.BillingModule.confirmerFacturation(rdvId);
 }
 
 // ===== ENCAISSEMENT =====
 function ouvrirEncaissement(rdvId) {
-    if (!canUseBilling()) {
-        showAlert('Encaissement desactive pour le role service client', 'warning');
-        return;
-    }
-    apiGet('/api/factures/par-rdv/' + rdvId).then(function(r) { return r.json(); }).then(function(facture) {
-        var html = '<div style="background:#1e1e1e;border-radius:8px;padding:16px">';
-
-        // Info facture
-        html += '<div style="display:flex;justify-content:space-between;margin-bottom:16px">';
-        html += '<div><div style="color:#9ca3af;font-size:11px">FACTURE</div><div style="color:#e5e7eb;font-size:16px;font-weight:bold">' + facture.numero_facture + '</div></div>';
-        html += '<div style="text-align:right"><div style="color:#9ca3af;font-size:11px">TOTAL TTC</div><div style="color:#E8480A;font-size:16px;font-weight:bold">' + facture.total_ttc.toFixed(2) + ' EUR</div></div>';
-        html += '</div>';
-
-        // Etat paiement
-        if (facture.montant_paye > 0) {
-            html += '<div style="background:#111;border-radius:6px;padding:10px;margin-bottom:12px">';
-            html += '<div style="display:flex;justify-content:space-between;color:#22C55E;font-size:13px"><span>Deja paye</span><span>' + facture.montant_paye.toFixed(2) + ' EUR</span></div>';
-            html += '<div style="display:flex;justify-content:space-between;color:#EF4444;font-size:14px;font-weight:bold;margin-top:4px"><span>Reste a payer</span><span>' + facture.montant_restant.toFixed(2) + ' EUR</span></div>';
-            html += '</div>';
-        }
-
-        // Mode paiement
-        html += '<div class="form-group"><label class="form-label" style="color:#9ca3af">Mode de paiement</label>';
-        html += '<select class="form-select" id="enc-mode" onchange="toggleEncReference()">';
-        html += '<option value="cb">Carte bancaire</option>';
-        html += '<option value="especes">Especes</option>';
-        html += '<option value="cheque">Cheque</option>';
-        html += '<option value="virement">Virement bancaire</option>';
-        html += '<option value="differe">Paiement differe</option>';
-        html += '</select></div>';
-
-        // Montant
-        html += '<div class="form-group"><label class="form-label" style="color:#9ca3af">Montant</label>';
-        html += '<input type="number" class="form-input" id="enc-montant" value="' + facture.montant_restant.toFixed(2) + '" min="0.01" max="' + facture.montant_restant.toFixed(2) + '" step="0.01"></div>';
-
-        // Reference (conditionnelle)
-        html += '<div class="form-group" id="enc-ref-group" style="display:none"><label class="form-label" style="color:#9ca3af">Reference (n cheque / ref virement)</label>';
-        html += '<input type="text" class="form-input" id="enc-reference" placeholder="N° cheque ou reference virement"></div>';
-
-        // Notes
-        html += '<div class="form-group"><label class="form-label" style="color:#9ca3af">Notes (optionnel)</label>';
-        html += '<input type="text" class="form-input" id="enc-notes" placeholder="Notes..."></div>';
-
-        html += '</div>';
-        html += '<div style="display:flex;gap:8px;margin-top:16px">';
-        html += '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button>';
-        html += '<button class="btn btn-primary" style="flex:1;background:var(--green)" onclick="confirmerEncaissement(' + facture.id + ')">Enregistrer le paiement</button>';
-        html += '</div>';
-
-        showModal('Encaisser - ' + facture.numero_facture, html, '500px');
-    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+    return window.BillingModule.ouvrirEncaissement(rdvId);
 }
 
 function toggleEncReference() {
-    var mode = document.getElementById('enc-mode').value;
-    document.getElementById('enc-ref-group').style.display = (mode === 'cheque' || mode === 'virement') ? 'block' : 'none';
+    return window.BillingModule.toggleEncReference();
 }
 
 function confirmerEncaissement(factureId) {
-    if (!canUseBilling()) {
-        showAlert('Encaissement desactive pour le role service client', 'warning');
-        return;
-    }
-    var montant = parseFloat(document.getElementById('enc-montant').value);
-    var mode = document.getElementById('enc-mode').value;
-    var reference = document.getElementById('enc-reference') ? document.getElementById('enc-reference').value : '';
-    var notes = document.getElementById('enc-notes').value;
-
-    if (!montant || montant <= 0) { showAlert('Montant invalide', 'error'); return; }
-
-    apiPost('/api/factures/' + factureId + '/encaisser', {
-        montant: montant,
-        mode_paiement: mode,
-        reference: reference || null,
-        notes: notes || null
-    }).then(function(r) { return r.json(); }).then(function(data) {
-        closeModal();
-        var msg = data.statut === 'payee' ? 'Paiement enregistre - Facture soldee' : 'Paiement enregistre - Reste: ' + data.montant_restant.toFixed(2) + ' EUR';
-        showAlert(msg);
-        refreshCurrentSection();
-    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+    return window.BillingModule.confirmerEncaissement(factureId);
 }
 
 // Boutons d'action selon le statut
@@ -2953,347 +2787,67 @@ function supprimerAbsence(id) {
 }
 
 // ===== GESTION CLIENTS =====
-var _clientSearchTimer = null;
-
 function rechercherClients(val) {
-    if (_clientSearchTimer) clearTimeout(_clientSearchTimer);
-    _clientSearchTimer = setTimeout(function() { loadClients(val, 1); }, 300);
+    return window.ClientsModule.rechercherClients(val);
 }
 
 function loadClients(search, page) {
-    page = page || 1;
-    APP._clientsPage = page;
-    var url = '/api/clients?page=' + page + '&limit=50';
-    if (search) url += '&search=' + encodeURIComponent(search);
-    var container = document.getElementById('clients-list');
-    setLoadingState(container, true, 'Chargement des clients...');
-    apiGet(url).then(function(r) { return r.json(); }).then(function(data) {
-        var clients = data.items || data;
-        var total = data.total || clients.length;
-        var pages = data.pages || 1;
-        var countEl = document.getElementById('clients-total-count');
-        if (countEl) countEl.textContent = total + ' clients';
-        if (!clients.length) {
-            container.innerHTML = '<div style="color:#666;padding:20px;text-align:center">Aucun client trouve</div>';
-            renderClientsPagination(0, 0);
-            updateLiveRegion('Aucun client trouve');
-            return;
-        }
-        var html = '';
-        clients.forEach(function(c) {
-            html += '<div style="background:#252525;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--orange)\'" onmouseout="this.style.borderColor=\'#333\'" onclick="showClientDetail(' + c.id + ')">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center">' +
-                    '<div><div style="font-weight:600;color:#eee">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div>' +
-                    '<div style="font-size:12px;color:#888">' + (escapeHtml(c.telephone) || '-') + (escapeHtml(c.email) ? ' | ' + c.email : '') + '</div></div>' +
-                    '<div style="text-align:right"><span class="badge blue">' + (c.nb_rdv || 0) + ' RDV</span>' +
-                    '<span class="badge" style="background:rgba(20,184,166,0.15);color:#14b8a6;margin-left:4px">' + (c.nb_vehicules || 0) + ' moto' + ((c.nb_vehicules || 0) > 1 ? 's' : '') + '</span>' +
-                    (c.dernier_rdv ? '<div style="font-size:11px;color:#666;margin-top:4px">' + new Date(c.dernier_rdv).toLocaleDateString('fr-FR') + '</div>' : '') +
-                    '</div></div></div>';
-        });
-        container.innerHTML = html;
-        renderClientsPagination(page, pages);
-        updateLiveRegion(clients.length + ' clients affiches');
-    }).catch(function() {
-        var container = document.getElementById('clients-list');
-        if (container) container.innerHTML = '<div style="color:#666;padding:20px">Erreur chargement</div>';
-    });
-    loadClientsStats();
+    return window.ClientsModule.loadClients(search, page);
 }
 
 function loadClientsStats() {
-    apiGet('/api/clients/stats').then(function(r) { return r.json(); }).then(function(stats) {
-        var el;
-        el = document.getElementById('stat-total-clients');
-        if (el) el.textContent = stats.total || 0;
-        el = document.getElementById('stat-clients-avec-rdv');
-        if (el) el.textContent = stats.avec_rdv || 0;
-        el = document.getElementById('stat-total-vehicules');
-        if (el) el.textContent = stats.vehicules || 0;
-        el = document.getElementById('stat-ca-clients');
-        if (el) el.textContent = stats.ca_total ? Math.round(stats.ca_total) + '\u20AC' : '0\u20AC';
-    }).catch(function() {});
+    return window.ClientsModule.loadClientsStats();
 }
 
 function renderClientsPagination(currentPage, totalPages) {
-    var container = document.getElementById('clients-pagination');
-    if (!container || totalPages <= 1) { if (container) container.innerHTML = ''; return; }
-    var html = '';
-    if (currentPage > 1) {
-        html += '<button class="btn btn-ghost" style="font-size:12px" onclick="loadClients(document.getElementById(\'clients-search\').value,' + (currentPage - 1) + ')">\u00AB Prec</button>';
-    }
-    var start = Math.max(1, currentPage - 2);
-    var end = Math.min(totalPages, currentPage + 2);
-    for (var i = start; i <= end; i++) {
-        var active = (i === currentPage) ? 'background:var(--orange);color:white;' : '';
-        html += '<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;' + active + '" onclick="loadClients(document.getElementById(\'clients-search\').value,' + i + ')">' + i + '</button>';
-    }
-    if (currentPage < totalPages) {
-        html += '<button class="btn btn-ghost" style="font-size:12px" onclick="loadClients(document.getElementById(\'clients-search\').value,' + (currentPage + 1) + ')">Suiv \u00BB</button>';
-    }
-    container.innerHTML = html;
+    return window.ClientsModule.renderClientsPagination(currentPage, totalPages);
 }
 
 function ouvrirNouveauClient() {
-    var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Nom *</label><input id="new-client-nom" class="form-input" placeholder="Nom de famille"></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Prenom *</label><input id="new-client-prenom" class="form-input" placeholder="Prenom"></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Telephone *</label><input id="new-client-tel" class="form-input" placeholder="06 12 34 56 78"></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Email</label><input id="new-client-email" class="form-input" placeholder="email@exemple.com"></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Adresse</label><input id="new-client-adresse" class="form-input" placeholder="Adresse complete"></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Notes</label><textarea id="new-client-notes" class="form-input" rows="2" placeholder="Notes internes..."></textarea></div>' +
-        '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="creerNouveauClient()">Creer le client</button>';
-    showModal('Nouveau client', html, '450px');
+    return window.ClientsModule.ouvrirNouveauClient();
 }
 
 function creerNouveauClient() {
-    var nom = document.getElementById('new-client-nom').value.trim();
-    var prenom = document.getElementById('new-client-prenom').value.trim();
-    var tel = document.getElementById('new-client-tel').value.trim();
-    if (!nom || !prenom || !tel) { alert('Nom, prenom et telephone sont obligatoires'); return; }
-    apiPost('/api/clients', {
-        nom: nom, prenom: prenom, telephone: tel,
-        email: document.getElementById('new-client-email').value.trim() || null,
-        adresse: document.getElementById('new-client-adresse').value.trim() || null,
-        notes: document.getElementById('new-client-notes').value.trim() || null
-    }).then(function(r) { return r.json(); }).then(function(data) {
-        closeModal();
-        showNotificationToast('Client cree');
-        loadClients(null, 1);
-        if (data.id) showClientDetail(data.id);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.ClientsModule.creerNouveauClient();
 }
 
 function supprimerVehicule(vehiculeId, clientId) {
-    openConfirmDialog('Supprimer ce vehicule ?', function() {
-        apiDelete('/api/vehicules/' + vehiculeId).then(function(r) { return r.json(); }).then(function() {
-            showNotificationToast('Vehicule supprime');
-            showClientDetail(clientId);
-            loadClientsStats();
-        }).catch(function(e) { alert('Erreur: ' + e.message); });
-    });
+    return window.ClientsModule.supprimerVehicule(vehiculeId, clientId);
 }
 
 function showClientDetail(clientId) {
-    apiGet('/api/clients/' + clientId).then(function(r) { return r.json(); }).then(function(c) {
-        var panel = document.getElementById('client-detail-panel');
-        panel.style.display = 'block';
-        APP._currentClientId = clientId;
-
-        // Info card
-        var infoEl = document.getElementById('client-detail-info');
-        var nbRdv = (c.historique || []).length;
-        // CA total from backend
-        var totalCA = c.ca_total || 0;
-        infoEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">' +
-            '<div><div style="font-size:18px;font-weight:700;color:#eee">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div>' +
-            '<div style="font-size:13px;color:#888;margin-top:4px">' + (escapeHtml(c.telephone) || '-') + '</div>' +
-            (escapeHtml(c.email) ? '<div style="font-size:13px;color:#888">' + c.email + '</div>' : '') +
-            (escapeHtml(c.adresse) ? '<div style="font-size:12px;color:#666;margin-top:4px">' + c.adresse + '</div>' : '') +
-            '</div>' +
-            '<button class="btn btn-ghost" style="font-size:12px" onclick="ouvrirModalEditClient(' + c.id + ')">Modifier</button>' +
-            '</div>' +
-            '<div style="display:flex;gap:12px;margin-bottom:8px">' +
-            '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--orange)">' + nbRdv + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Visites</div></div>' +
-            '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)">' + (totalCA > 0 ? Math.round(totalCA) + '\u20AC' : '-') + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">CA total</div></div>' +
-            '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--teal)">' + (c.vehicules || []).length + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Motos</div></div>' +
-            '</div>' +
-            (escapeHtml(c.notes) ? '<div style="font-size:12px;color:#888;background:#1e1e1e;padding:8px 12px;border-radius:6px;margin-top:8px">' + c.notes + '</div>' : '');
-
-        // Vehicules
-        var vehEl = document.getElementById('client-detail-vehicules');
-        var vehicules = c.vehicules || [];
-        var vHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="card-title">Vehicules (' + vehicules.length + ')</div>' +
-            '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--green)" onclick="ouvrirAjouterVehicule(' + c.id + ')">+ Ajouter</button></div>';
-        if (vehicules.length) {
-            vehicules.forEach(function(v) {
-                vHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2a2a2a">' +
-                    '<div style="font-size:20px">&#127949;</div>' +
-                    '<div style="flex:1"><div style="font-weight:600;color:#eee">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-                    '<div style="font-size:12px;color:#888">' + (escapeHtml(v.plaque) || '') + (escapeHtml(v.annee) ? ' | ' + v.annee : '') + (escapeHtml(v.cylindree) ? ' | ' + v.cylindree : '') + (escapeHtml(v.type_moto) ? ' | ' + v.type_moto : '') + '</div></div>' +
-                    '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--teal)" onclick="ouvrirModalEditVehicule(' + v.id + ')">\u270E</button>' +
-                    '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="supprimerVehicule(' + v.id + ',' + c.id + ')">\u2716</button>' +
-                    '</div>';
-            });
-        } else {
-            vHtml += '<div style="color:#666;font-size:13px">Aucun vehicule enregistre</div>';
-        }
-        vehEl.innerHTML = vHtml;
-
-        // Historique
-        var histEl = document.getElementById('client-detail-historique');
-        var historique = c.historique || [];
-        var hHtml = '<div class="card-title" style="margin-bottom:10px">Historique atelier (' + historique.length + ')</div>';
-        if (historique.length) {
-            historique.forEach(function(rdv) {
-                var v = rdv.vehicule || {};
-                var meca = rdv.mecanicien;
-                var prix = rdv.prix_final || rdv.prix_estime || null;
-                var tempsEff = rdv.temps_effectif_minutes;
-                var borderColor = rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye' ? 'var(--green)' : (rdv.statut === 'en_cours' ? 'var(--orange)' : ((rdv.statut === 'annule' || rdv.statut === 'non_presente') ? 'var(--red)' : '#444'));
-                hHtml += '<div style="background:#1a1a1e;border-left:3px solid ' + borderColor + ';border-radius:6px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#222\'" onmouseout="this.style.background=\'#1a1a1e\'" onclick="ouvrirDetailHistoriqueRdv(' + rdv.id + ',' + clientId + ')">' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-                        '<div style="display:flex;align-items:center;gap:8px">' +
-                            '<span style="font-weight:700;color:#eee;font-size:13px">' + (rdv.date_rdv || '') + '</span>' +
-                            '<span style="font-size:12px;color:#888">' + formatTime(rdv.heure_rdv) + '</span>' +
-                        '</div>' +
-                        statusBadge(rdv.statut) +
-                    '</div>' +
-                    '<div style="font-size:13px;color:#ccc;margin-bottom:4px">' + (escapeHtml(rdv.type_intervention) || '-') + '</div>' +
-                    '<div style="display:flex;gap:12px;font-size:11px;color:#777;flex-wrap:wrap">' +
-                        '<span>&#127949; ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</span>' +
-                        (meca ? '<span>&#128100; ' + escapeHtml(meca.prenom) + ' ' + escapeHtml(meca.nom) + '</span>' : '') +
-                        (rdv.pont ? '<span>&#128295; ' + rdv.pont.nom + '</span>' : '') +
-                        (tempsEff ? '<span>&#9201; ' + tempsEff + ' min</span>' : '') +
-                        (prix ? '<span>&#128182; ' + Math.round(prix) + '\u20AC</span>' : '') +
-                        (rdv.kilometrage ? '<span>&#128663; ' + rdv.kilometrage + ' km</span>' : '') +
-                    '</div>' +
-                    (escapeHtml(rdv.commentaire) ? '<div style="font-size:11px;color:#666;margin-top:4px;font-style:italic">' + rdv.commentaire.substring(0, 80) + (rdv.commentaire.length > 80 ? '...' : '') + '</div>' : '') +
-                    (rdv.rapport ? '<div style="margin-top:4px"><span class="badge blue" style="font-size:9px">Rapport technicien</span></div>' : '') +
-                '</div>';
-            });
-        } else {
-            hHtml += '<div style="color:#666;font-size:13px">Aucun historique</div>';
-        }
-        histEl.innerHTML = hHtml;
-    }).catch(function(e) { console.error('Erreur client detail:', e); });
+    return window.ClientsModule.showClientDetail(clientId);
 }
 
 // ===== DETAIL RDV DEPUIS HISTORIQUE CLIENT =====
 function ouvrirDetailHistoriqueRdv(rdvId, clientId) {
-    apiGet('/api/rendez-vous/' + rdvId).then(function(r) { return r.json(); }).then(function(rdv) {
-        var c = rdv.client || {};
-        var v = rdv.vehicule || {};
-        var meca = APP.mecaniciens.find(function(m) { return m.id === rdv.mecanicien_id; });
-        var pont = APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
-
-        var html = '';
-        // Header
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
-            '<div>' + statusBadge(rdv.statut) + '</div>' +
-            '<div style="font-size:12px;color:#888">RDV #' + rdv.id + '</div></div>';
-
-        // Infos generales
-        html += '<div style="background:#16161a;border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
-            '<div><span style="color:#666">Date:</span> <span style="color:#eee">' + (rdv.date_rdv || '-') + '</span></div>' +
-            '<div><span style="color:#666">Heure:</span> <span style="color:#eee">' + formatTime(rdv.heure_rdv) + '</span></div>' +
-            '<div><span style="color:#666">Intervention:</span> <span style="color:#eee">' + (escapeHtml(rdv.type_intervention) || '-') + '</span></div>' +
-            '<div><span style="color:#666">Vehicule:</span> <span style="color:#eee">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</span></div>' +
-            '<div><span style="color:#666">Mecanicien:</span> <span style="color:#eee">' + (meca ? meca.prenom + ' ' + escapeHtml(meca.nom) : '-') + '</span></div>' +
-            '<div><span style="color:#666">Pont:</span> <span style="color:#eee">' + (pont ? pont.nom : '-') + '</span></div>' +
-            '<div><span style="color:#666">Kilometrage:</span> <span style="color:#eee">' + (rdv.kilometrage || '-') + '</span></div>' +
-            '<div><span style="color:#666">Prix:</span> <span style="color:#eee">' + (rdv.prix_estime ? Math.round(rdv.prix_estime) + '\u20AC' : '-') + '</span></div>' +
-            '</div>';
-
-        // Commentaire
-        if (rdv.commentaire) {
-            html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;margin-bottom:4px">Commentaire</div>' +
-                '<div style="background:#16161a;border-radius:6px;padding:10px;font-size:13px;color:#ccc">' + escapeHtml(rdv.commentaire) + '</div></div>';
-        }
-
-        // Temps de travail
-        html += '<div id="hist-rdv-temps" style="margin-bottom:12px"></div>';
-        // Rapport technicien
-        html += '<div id="hist-rdv-rapport"></div>';
-
-        showModal(escapeHtml(rdv.type_intervention) + ' - ' + (rdv.date_rdv || ''), html, '600px');
-
-        // Charger temps de travail
-        apiGet('/api/rendez-vous/' + rdvId + '/temps-travail').then(function(r) { return r.json(); }).then(function(t) {
-            var tEl = document.getElementById('hist-rdv-temps');
-            if (!t.heure_debut_travail && !t.heure_fin_travail) { tEl.innerHTML = ''; return; }
-            var debut = t.heure_debut_travail ? (parseUTCDate(t.heure_debut_travail) || new Date()).toLocaleString('fr-FR') : '-';
-            var fin = t.heure_fin_travail ? (parseUTCDate(t.heure_fin_travail) || new Date()).toLocaleString('fr-FR') : 'En cours...';
-            tEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;margin-bottom:4px">Temps d\'intervention</div>' +
-                '<div style="background:#16161a;border-radius:6px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
-                '<div><span style="color:#666">Debut:</span> <span style="color:#eee">' + debut + '</span></div>' +
-                '<div><span style="color:#666">Fin:</span> <span style="color:#eee">' + fin + '</span></div>' +
-                '<div><span style="color:#666">Temps effectif:</span> <span style="color:var(--green);font-weight:700">' + (t.temps_effectif_minutes ? t.temps_effectif_minutes + ' min' : '-') + '</span></div>' +
-                '<div><span style="color:#666">Statut:</span> <span style="color:' + (t.en_cours ? 'var(--orange)' : 'var(--green)') + '">' + (t.en_cours ? 'En cours' : 'Termine') + '</span></div>' +
-                '</div>';
-        }).catch(function() {});
-
-        // Charger rapport technicien
-        apiGet('/api/rendez-vous/' + rdvId + '/rapport-technicien').then(function(r) { return r.json(); }).then(function(rap) {
-            var rEl = document.getElementById('hist-rdv-rapport');
-            var rHtml = '<div style="font-size:11px;font-weight:600;color:var(--purple);text-transform:uppercase;margin-bottom:4px">Rapport technicien</div>' +
-                '<div style="background:#16161a;border-radius:6px;padding:10px;font-size:13px">';
-            if (escapeHtml(rap.travaux_realises)) rHtml += '<div style="margin-bottom:8px"><span style="color:#666">Travaux realises:</span><div style="color:#ccc;margin-top:2px">' + rap.travaux_realises + '</div></div>';
-            if (escapeHtml(rap.alertes)) rHtml += '<div style="margin-bottom:8px"><span style="color:var(--red)">Alertes:</span><div style="color:#ccc;margin-top:2px">' + rap.alertes + '</div></div>';
-            if (escapeHtml(rap.recommandations)) rHtml += '<div style="margin-bottom:8px"><span style="color:var(--amber)">Recommandations:</span><div style="color:#ccc;margin-top:2px">' + rap.recommandations + '</div></div>';
-            if (rap.pieces_utilisees && rap.pieces_utilisees.length) {
-                rHtml += '<div><span style="color:#666">Pieces utilisees:</span><div style="color:#ccc;margin-top:2px">' + escapeHtml(rap.pieces_utilisees).join(', ') + '</div></div>';
-            }
-            rHtml += '</div>';
-            rEl.innerHTML = rHtml;
-        }).catch(function() {
-            var rEl = document.getElementById('hist-rdv-rapport');
-            if (rEl) rEl.innerHTML = '';
-        });
-    }).catch(function(e) { alert('Erreur chargement RDV: ' + e.message); });
+    return window.ClientsModule.ouvrirDetailHistoriqueRdv(rdvId, clientId);
 }
 
 // ===== AJOUTER VEHICULE A UN CLIENT =====
 function ouvrirAjouterVehicule(clientId) {
-    var html = '<div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Marque *</label><input id="add-veh-marque" class="form-input" placeholder="Ex: Yamaha"></div>' +
-        '<div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Modele *</label><input id="add-veh-modele" class="form-input" placeholder="Ex: MT-07"></div></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Plaque *</label><input id="add-veh-plaque" class="form-input" placeholder="AB-123-CD" style="text-transform:uppercase"></div>' +
-        '<div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Annee</label><input id="add-veh-annee" class="form-input" type="number" placeholder="2024"></div>' +
-        '<div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Cylindree</label><input id="add-veh-cylindree" class="form-input" placeholder="689cc"></div></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Type de moto</label><select id="add-veh-type" class="form-select">' +
-        '<option value="">--</option><option value="Roadster">Roadster</option><option value="Sportive">Sportive</option><option value="Trail">Trail</option><option value="Custom">Custom</option><option value="Scooter">Scooter</option><option value="Enduro">Enduro</option></select></div>' +
-        '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="sauverNouveauVehicule(' + clientId + ')">Ajouter le vehicule</button>';
-    showModal('Ajouter un vehicule', html, '450px');
+    return window.ClientsModule.ouvrirAjouterVehicule(clientId);
 }
 
 function sauverNouveauVehicule(clientId) {
-    var marque = document.getElementById('add-veh-marque').value.trim();
-    var modele = document.getElementById('add-veh-modele').value.trim();
-    var plaque = document.getElementById('add-veh-plaque').value.trim().toUpperCase().replace(/[\s-]/g, '');
-    if (!marque || !modele || !plaque) { alert('Marque, modele et plaque sont obligatoires'); return; }
-    apiPost('/api/clients/' + clientId + '/vehicules', {
-        plaque: plaque,
-        marque: marque,
-        modele: modele,
-        annee: document.getElementById('add-veh-annee').value ? parseInt(document.getElementById('add-veh-annee').value) : null,
-        cylindree: document.getElementById('add-veh-cylindree').value || null,
-        type_moto: document.getElementById('add-veh-type').value || null
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Vehicule ajoute');
-        showClientDetail(clientId);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.ClientsModule.sauverNouveauVehicule(clientId);
 }
 
 function ouvrirModalEditClient(clientId) {
-    apiGet('/api/clients/' + clientId).then(function(r) { return r.json(); }).then(function(c) {
-        var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Nom</label><input id="edit-client-nom" class="form-input" value="' + (escapeHtml(c.nom) || '') + '"></div>' +
-            '<div class="form-group"><label class="form-label" style="color:#ccc">Prenom</label><input id="edit-client-prenom" class="form-input" value="' + (escapeHtml(c.prenom) || '') + '"></div>' +
-            '<div class="form-group"><label class="form-label" style="color:#ccc">Telephone</label><input id="edit-client-tel" class="form-input" value="' + (escapeHtml(c.telephone) || '') + '"></div>' +
-            '<div class="form-group"><label class="form-label" style="color:#ccc">Email</label><input id="edit-client-email" class="form-input" value="' + (escapeHtml(c.email) || '') + '"></div>' +
-            '<div class="form-group"><label class="form-label" style="color:#ccc">Adresse</label><input id="edit-client-adresse" class="form-input" value="' + (escapeHtml(c.adresse) || '') + '"></div>' +
-            '<div class="form-group"><label class="form-label" style="color:#ccc">Notes</label><textarea id="edit-client-notes" class="form-input" rows="2">' + (escapeHtml(c.notes) || '') + '</textarea></div>' +
-            '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="sauverClient(' + clientId + ')">Enregistrer</button>';
-        showModal('Modifier client', html, '450px');
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.ClientsModule.ouvrirModalEditClient(clientId);
 }
 
 function sauverClient(clientId) {
-    var data = {
-        nom: document.getElementById('edit-client-nom').value,
-        prenom: document.getElementById('edit-client-prenom').value,
-        telephone: document.getElementById('edit-client-tel').value,
-        email: document.getElementById('edit-client-email').value || null,
-        adresse: document.getElementById('edit-client-adresse').value || null,
-        notes: document.getElementById('edit-client-notes').value || null
-    };
-    apiPut('/api/clients/' + clientId, data).then(function() {
-        closeModal();
-        if (APP.currentSection === 'clients') {
-            showClientDetail(clientId);
-            loadClients();
-        } else {
-            refreshCurrentSection();
-        }
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.ClientsModule.sauverClient(clientId);
+}
+
+// ===== EDIT VEHICULE MODAL =====
+function ouvrirModalEditVehicule(vehiculeId) {
+    return window.ClientsModule.ouvrirModalEditVehicule(vehiculeId);
+}
+
+function sauverVehicule(vehiculeId) {
+    return window.ClientsModule.sauverVehicule(vehiculeId);
 }
 
 // ===== DETAIL RDV MODAL (receptionnaire) =====
