@@ -2490,129 +2490,19 @@ function confirmerRefuserTravauxSupp(demandeId) {
 
 // ===== SUIVI LIVE =====
 function loadSuiviLive() {
-    var today = new Date().toISOString().split('T')[0];
-    apiGet('/api/rendez-vous?date=' + today).then(function(r) { return r.json(); }).then(function(rdvs) {
-        renderSuiviLive(rdvs);
-    }).catch(function(e) { console.error('Erreur suivi:', e); });
+    return window.SuiviModule.loadSuiviLive();
 }
 
 function renderSuiviLive(rdvs) {
-    var container = document.getElementById('suivi-grid');
-    var alertStrip = document.getElementById('suivi-alert-strip');
-    var byMeca = {};
-    var now = new Date();
-    var delayCount = 0;
-    var soonCount = 0;
-    var enCoursCount = 0;
-    var delayItems = [];
+    return window.SuiviModule.renderSuiviLive(rdvs);
+}
 
-    function getRdvProgressInfo(rdv) {
-        var estimated = getRdvDurationMinutes(rdv);
-        var elapsedMin = 0;
-        if (rdv.heure_debut_travail) {
-            var start = parseUTCDate(rdv.heure_debut_travail);
-            if (!isNaN(start.getTime())) elapsedMin = Math.max(0, Math.floor((now - start) / 60000));
-        }
-        var progress = estimated > 0 ? Math.round((elapsedMin / estimated) * 100) : 0;
-        if (rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye') progress = 100;
-        var overrun = rdv.statut === 'en_cours' && elapsedMin > estimated;
-        return {
-            estimated: estimated,
-            elapsedMin: elapsedMin,
-            progress: Math.max(0, Math.min(130, progress)),
-            overrun: overrun,
-            remaining: Math.max(0, estimated - elapsedMin)
-        };
-    }
+function getRdvProgressInfo(rdv, now) {
+    return window.SuiviModule.getRdvProgressInfo(rdv, now);
+}
 
-    function getRdvDelayInfo(rdv) {
-        var s = rdv.statut;
-        var startMin = timeToMinutes(formatTime(rdv.heure_rdv || ''));
-        var nowMin = now.getHours() * 60 + now.getMinutes();
-        var started = !!rdv.heure_debut_travail || s === 'en_cours' || s === 'termine' || s === 'facture' || s === 'paye';
-        if (startMin >= 0 && !started) {
-            if (nowMin > startMin + 10) return { level: 'delay', minutes: nowMin - startMin };
-            if (nowMin >= startMin - 10 && nowMin <= startMin + 10) return { level: 'soon', minutes: Math.abs(startMin - nowMin) };
-        }
-        return null;
-    }
-
-    rdvs.forEach(function(rdv) {
-        var mid = rdv.mecanicien_id || 0;
-        if (!byMeca[mid]) byMeca[mid] = [];
-        byMeca[mid].push(rdv);
-
-        var d = getRdvDelayInfo(rdv);
-        if (d && d.level === 'delay') {
-            delayCount += 1;
-            var c = rdv.client || {};
-            var v = rdv.vehicule || {};
-            delayItems.push(formatTime(rdv.heure_rdv) + ' - ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + ' (' + (escapeHtml(c.nom) || 'Client') + ') +' + d.minutes + 'm');
-        } else if (d && d.level === 'soon') {
-            soonCount += 1;
-        }
-        if (rdv.statut === 'en_cours') enCoursCount += 1;
-    });
-
-    if (alertStrip) {
-        var stripHtml = '<span class="chip">En cours: ' + enCoursCount + '</span>' +
-            '<span class="chip orange">Demarrages imminents: ' + soonCount + '</span>' +
-            '<span class="chip red">Retards: ' + delayCount + '</span>';
-        if (delayItems.length) {
-            stripHtml += '<div class="suivi-alert-list"><strong>Alertes retard RDV:</strong><br>' + delayItems.slice(0, 4).join('<br>') + (delayItems.length > 4 ? '<br>... +' + (delayItems.length - 4) + ' autre(s)' : '') + '</div>';
-        }
-        alertStrip.innerHTML = stripHtml;
-    }
-
-    var html = '';
-
-    if (byMeca[0] && byMeca[0].length > 0) {
-        html += '<div class="card"><div class="meca-header" style="margin-bottom:10px"><div class="meca-av" style="background:rgba(245,158,11,.15);color:var(--amber);width:36px;height:36px;font-size:13px">?</div><div class="meca-info"><div class="meca-name">Non assigne</div><div class="meca-role">' + byMeca[0].length + ' RDV(s)</div></div><span class="badge amber">A assigner</span></div><div class="timeline">';
-        byMeca[0].sort(function(a, b) { return (a.heure_rdv || '').localeCompare(b.heure_rdv || ''); });
-        byMeca[0].forEach(function(rdv) {
-            var dotCls = rdv.statut === 'termine' ? 'done' : (rdv.statut === 'en_cours' ? 'active' : '');
-            html += '<div class="tl-item"><div class="tl-dot ' + dotCls + '"></div><div class="tl-content"><div style="display:flex;justify-content:space-between;align-items:center"><div class="tl-title">' + (escapeHtml(rdv.type_intervention) || '') + '</div>' + actionButtons(rdv, true) + '</div><div class="tl-meta">' + formatTime(rdv.heure_rdv) + ' - ' + statusBadge(rdv.statut) + '</div></div></div>';
-        });
-        html += '</div></div>';
-    }
-
-    Object.keys(byMeca).forEach(function(mecaId) {
-        if (parseInt(mecaId) === 0) return;
-        var mecaRdvs = byMeca[mecaId];
-        var meca = APP.mecaniciens.find(function(m) { return m.id === parseInt(mecaId); });
-        if (!meca) return;
-        var color = meca.couleur || '#3b82f6';
-        var initials = getMecaInitials(meca);
-        var currentRdv = mecaRdvs.find(function(r) { return r.statut === 'en_cours'; });
-        var pont = currentRdv ? APP.ponts.find(function(p) { return p.id === currentRdv.pont_id; }) : null;
-        var currentVeh = currentRdv && currentRdv.vehicule ? (currentRdv.vehicule.marque || '') + ' ' + (currentRdv.vehicule.modele || '') : '';
-        var roleText = (pont ? pont.nom : '') + (currentVeh ? ' • ' + currentVeh : '');
-
-        html += '<div class="card"><div class="meca-header" style="margin-bottom:10px"><div class="meca-av" style="background:' + hexToRgba(color, 0.2) + ';color:' + color + ';width:36px;height:36px;font-size:13px">' + initials + '</div><div class="meca-info"><div class="meca-name">' + escapeHtml(meca.prenom).charAt(0) + '. ' + escapeHtml(meca.nom) + '</div><div class="meca-role">' + roleText + '</div></div>' + (currentRdv ? '<span class="badge orange">En cours</span>' : '<span class="badge green">Disponible</span>') + '</div>';
-
-        if (currentRdv) {
-            var info = getRdvProgressInfo(currentRdv);
-            var progressColor = info.overrun ? '#ef4444' : color;
-            var progressLabel = info.overrun ? ('Retard +' + (info.elapsedMin - info.estimated) + ' min') : (info.remaining + ' min restantes');
-            html += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#777;margin-bottom:4px"><span>' + (currentRdv.type_intervention || '') + '</span><span>' + Math.min(100, info.progress) + '%</span></div><div class="pont-progress"><div class="pont-progress-fill" style="width:' + Math.min(100, info.progress) + '%;background:' + progressColor + '"></div></div><div style="font-size:11px;color:' + (info.overrun ? '#fca5a5' : '#9ca3af') + ';margin-top:4px">Temps reel: ' + info.elapsedMin + 'm / estime ' + info.estimated + 'm - ' + progressLabel + '</div></div>';
-        }
-
-        html += '<div class="timeline">';
-        mecaRdvs.sort(function(a, b) { return (a.heure_rdv || '').localeCompare(b.heure_rdv || ''); });
-        mecaRdvs.forEach(function(rdv) {
-            var dotCls = rdv.statut === 'termine' ? 'done' : (rdv.statut === 'en_cours' ? 'active' : '');
-            var v = rdv.vehicule || {};
-            var vName = (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '');
-            var delay = getRdvDelayInfo(rdv);
-            var delayBadge = '';
-            if (delay && delay.level === 'delay') delayBadge = ' <span class="badge red">Retard +' + delay.minutes + 'm</span>';
-            else if (delay && delay.level === 'soon') delayBadge = ' <span class="badge amber">Demarrage imminent</span>';
-            html += '<div class="tl-item"><div class="tl-dot ' + dotCls + '"></div><div class="tl-content"><div style="display:flex;justify-content:space-between;align-items:center"><div class="tl-title">' + (escapeHtml(rdv.type_intervention) || '') + delayBadge + '</div>' + actionButtons(rdv, true) + '</div><div class="tl-meta">' + formatTime(rdv.heure_rdv) + ' • ' + vName.trim() + ' • ' + statusBadge(rdv.statut) + '</div></div></div>';
-        });
-        html += '</div></div>';
-    });
-
-    container.innerHTML = html || '<div style="color:#666;padding:20px">Aucune intervention en cours</div>';
+function getRdvDelayInfo(rdv, now) {
+    return window.SuiviModule.getRdvDelayInfo(rdv, now);
 }
 
 // ===== CHECKUP / RAPPORT TECHNICIEN =====
@@ -2670,120 +2560,31 @@ function cleanupMecaTimer() {
 
 // ===== GESTION ABSENCES =====
 function loadAbsences() {
-    apiGet('/api/absences').then(function(r) { return r.json(); }).then(function(absences) {
-        APP._absences = absences;
-        renderAbsencesTable(absences);
-    }).catch(function() {
-        var container = document.getElementById('absences-table');
-        if (container) container.innerHTML = '<tr><td colspan="6" style="color:#666">Erreur chargement</td></tr>';
-    });
+    return window.AbsencesModule.loadAbsences();
 }
 
 function renderAbsencesTable(absences) {
-    var container = document.getElementById('absences-table');
-    var countEl = document.getElementById('absences-count');
-    if (countEl) countEl.textContent = absences.length;
-    if (!container) return;
-    if (!absences.length) {
-        container.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#666;padding:20px">Aucune absence planifiee</td></tr>';
-        return;
-    }
-    var html = '';
-    absences.forEach(function(a) {
-        var motifMap = { 'conge': { cls: 'green', label: 'Conge' }, 'maladie': { cls: 'red', label: 'Maladie' }, 'formation': { cls: 'blue', label: 'Formation' }, 'autre': { cls: 'amber', label: 'Autre' } };
-        var motif = motifMap[a.motif] || { cls: 'blue', label: a.motif };
-        html += '<tr>' +
-            '<td><b>' + (escapeHtml(a.mecanicien_prenom) || '') + ' ' + (escapeHtml(a.mecanicien_nom) || '') + '</b></td>' +
-            '<td>' + a.date_debut + '</td>' +
-            '<td>' + a.date_fin + '</td>' +
-            '<td><span class="badge ' + motif.cls + '">' + motif.label + '</span></td>' +
-            '<td style="color:#888">' + (escapeHtml(a.notes) || '-') + '</td>' +
-            '<td><div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--teal)" onclick="ouvrirModalEditAbsence(' + a.id + ')">Editer</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="supprimerAbsence(' + a.id + ')">Supprimer</button></div></td>' +
-            '</tr>';
-    });
-    container.innerHTML = html;
+    return window.AbsencesModule.renderAbsencesTable(absences);
 }
 
 function ouvrirModalAbsence() {
-    var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Mecanicien</label><select id="abs-meca" class="form-select">';
-    APP.mecaniciens.forEach(function(m) {
-        if (!isActive(m)) return;
-        html += '<option value="' + m.id + '">' + escapeHtml(m.prenom) + ' ' + escapeHtml(m.nom) + '</option>';
-    });
-    html += '</select></div>' +
-        '<div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Date debut</label><input type="date" id="abs-debut" class="form-input"></div>' +
-        '<div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Date fin</label><input type="date" id="abs-fin" class="form-input"></div></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Motif</label><select id="abs-motif" class="form-select"><option value="conge">Conge</option><option value="maladie">Maladie</option><option value="formation">Formation</option><option value="autre">Autre</option></select></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Notes</label><textarea id="abs-notes" class="form-input" rows="2" placeholder="Optionnel..."></textarea></div>' +
-        '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="sauverAbsence()">Enregistrer l\'absence</button>';
-    showModal('Ajouter une absence', html, '450px');
+    return window.AbsencesModule.ouvrirModalAbsence();
 }
 
 function sauverAbsence() {
-    var data = {
-        mecanicien_id: parseInt(document.getElementById('abs-meca').value),
-        date_debut: document.getElementById('abs-debut').value,
-        date_fin: document.getElementById('abs-fin').value,
-        motif: document.getElementById('abs-motif').value,
-        notes: document.getElementById('abs-notes').value || null
-    };
-    if (!data.date_debut || !data.date_fin) { alert('Dates obligatoires'); return; }
-    apiPost('/api/absences', data).then(function(r) { return r.json(); }).then(function() {
-        closeModal();
-        loadAbsences();
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.AbsencesModule.sauverAbsence();
 }
 
 function ouvrirModalEditAbsence(absenceId) {
-    var abs = (APP._absences || []).find(function(a) { return a.id === absenceId; });
-    if (!abs) {
-        showAlert('Absence introuvable', 'error');
-        return;
-    }
-    var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Mecanicien</label><select id="abs-edit-meca" class="form-select">';
-    APP.mecaniciens.forEach(function(m) {
-        if (!isActive(m)) return;
-        html += '<option value="' + m.id + '"' + (m.id === abs.mecanicien_id ? ' selected' : '') + '>' + escapeHtml(m.prenom) + ' ' + escapeHtml(m.nom) + '</option>';
-    });
-    html += '</select></div>' +
-        '<div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Date debut</label><input type="date" id="abs-edit-debut" class="form-input" value="' + abs.date_debut + '"></div>' +
-        '<div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Date fin</label><input type="date" id="abs-edit-fin" class="form-input" value="' + abs.date_fin + '"></div></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Motif</label><select id="abs-edit-motif" class="form-select">' +
-        '<option value="conge"' + (abs.motif === 'conge' ? ' selected' : '') + '>Conge</option>' +
-        '<option value="maladie"' + (abs.motif === 'maladie' ? ' selected' : '') + '>Maladie</option>' +
-        '<option value="formation"' + (abs.motif === 'formation' ? ' selected' : '') + '>Formation</option>' +
-        '<option value="autre"' + (abs.motif === 'autre' ? ' selected' : '') + '>Autre</option></select></div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Notes</label><textarea id="abs-edit-notes" class="form-input" rows="2" placeholder="Optionnel...">' + (escapeHtml(abs.notes) || '') + '</textarea></div>' +
-        '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="sauverEditAbsence(' + absenceId + ')">Mettre a jour</button>';
-    showModal('Modifier absence', html, '450px');
+    return window.AbsencesModule.ouvrirModalEditAbsence(absenceId);
 }
 
 function sauverEditAbsence(absenceId) {
-    var data = {
-        mecanicien_id: parseInt(document.getElementById('abs-edit-meca').value),
-        date_debut: document.getElementById('abs-edit-debut').value,
-        date_fin: document.getElementById('abs-edit-fin').value,
-        motif: document.getElementById('abs-edit-motif').value,
-        notes: document.getElementById('abs-edit-notes').value || null
-    };
-    if (!data.date_debut || !data.date_fin) {
-        showAlert('Dates obligatoires', 'warning');
-        return;
-    }
-    apiPut('/api/absences/' + absenceId, data).then(function(r) { return r.json(); }).then(function() {
-        closeModal();
-        showNotificationToast('Absence modifiee');
-        loadAbsences();
-        if (APP.currentSection === 'ponts') loadPontsMecas();
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.AbsencesModule.sauverEditAbsence(absenceId);
 }
 
 function supprimerAbsence(id) {
-    openConfirmDialog('Supprimer cette absence ?', function() {
-        apiDelete('/api/absences/' + id).then(function() {
-            loadAbsences();
-        }).catch(function(e) { alert('Erreur: ' + e.message); });
-    });
+    return window.AbsencesModule.supprimerAbsence(id);
 }
 
 // ===== GESTION CLIENTS =====
