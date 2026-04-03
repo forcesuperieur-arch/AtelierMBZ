@@ -516,7 +516,7 @@ function confirmCancelRdv(rdvId) {
 }
 
 function telechargerOR(rdvId) {
-    window.open(window.API_URL + '/api/rendez-vous/' + rdvId + '/ordre-reparation', '_blank');
+    return window.OrModule.telechargerOR(rdvId);
 }
 
 function telechargerFacture(rdvId) {
@@ -2054,172 +2054,44 @@ function renderPlanningGrid(rdvs, monday) {
 }
 
 function timeToMinutes(hhmm) {
-    if (!hhmm || hhmm.indexOf(':') === -1) return -1;
-    var parts = hhmm.split(':');
-    var h = parseInt(parts[0], 10);
-    var m = parseInt(parts[1], 10);
-    if (isNaN(h) || isNaN(m)) return -1;
-    return (h * 60) + m;
+    return window.PlanningUtils.timeToMinutes(hhmm);
 }
 
 // Parse ISO datetime as UTC (server stores UTC without 'Z' suffix)
 function parseUTCDate(isoStr) {
-    if (!isoStr) return null;
-    var s = String(isoStr);
-    if (!s.endsWith('Z') && !s.includes('+')) s += 'Z';
-    var d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
+    return window.PlanningUtils.parseUTCDate(isoStr);
 }
 
 function minutesToTimeLabel(totalMin) {
-    var h = Math.floor(totalMin / 60);
-    var m = totalMin % 60;
-    return (h < 10 ? '0' + h : '' + h) + ':' + (m < 10 ? '0' + m : '' + m);
+    return window.PlanningUtils.minutesToTimeLabel(totalMin);
 }
 
 function getPlanningBounds() {
-    if (!APP._horairesLoaded || !APP._horairesByDay) return { start: '08:00', end: '18:00' };
-    var minOpen = 24 * 60, maxClose = 0, found = false;
-    for (var j = 0; j < 7; j++) {
-        var h = APP._horairesByDay[j];
-        if (!h || !h.is_ouvert) continue;
-        var o = timeToMinutes(adminFmtTime(h.heure_ouverture));
-        var c = timeToMinutes(adminFmtTime(h.heure_fermeture));
-        if (o >= 0 && c > 0) {
-            found = true;
-            if (o < minOpen) minOpen = o;
-            if (c > maxClose) maxClose = c;
-        }
-    }
-    if (!found) return { start: '08:00', end: '18:00' };
-    return { start: minutesToTimeLabel(minOpen), end: minutesToTimeLabel(maxClose) };
+    return window.PlanningUtils.getPlanningBounds();
 }
 
 function buildPlanningSlots(startTime, endTime, stepMin) {
-    var start = timeToMinutes(startTime);
-    var end = timeToMinutes(endTime);
-    var step = Math.max(5, parseInt(stepMin || 15, 10));
-    var out = [];
-    for (var t = start; t < end; t += step) out.push(minutesToTimeLabel(t));
-    return out;
+    return window.PlanningUtils.buildPlanningSlots(startTime, endTime, stepMin);
 }
 
 function markConflictCells(cellMap, dayKey, startMin, endMin) {
-    var step = APP._planningSlotMinutes || 15;
-    var slotStart = Math.floor(startMin / step) * step;
-    var slotEnd = Math.max(slotStart, Math.ceil(endMin / step) * step - step);
-    for (var t = slotStart; t <= slotEnd; t += step) {
-        cellMap[dayKey + '|' + minutesToTimeLabel(t)] = true;
-    }
+    return window.PlanningUtils.markConflictCells(cellMap, dayKey, startMin, endMin);
 }
 
 function buildVisualOverlapGroups(dayList, byId) {
-    for (var i = 0; i < dayList.length; i++) {
-        var current = dayList[i];
-        var cStart = timeToMinutes(formatTime(current.heure_rdv || ''));
-        if (cStart < 0) continue;
-        var cEnd = cStart + getRdvDurationMinutes(current);
-        var overlaps = [];
-        for (var j = 0; j < dayList.length; j++) {
-            var other = dayList[j];
-            var oStart = timeToMinutes(formatTime(other.heure_rdv || ''));
-            if (oStart < 0) continue;
-            var oEnd = oStart + getRdvDurationMinutes(other);
-            if (cStart < oEnd && oStart < cEnd) overlaps.push(other);
-        }
-        overlaps.sort(function(a, b) {
-            var aStart = timeToMinutes(formatTime(a.heure_rdv || ''));
-            var bStart = timeToMinutes(formatTime(b.heure_rdv || ''));
-            if (aStart !== bStart) return aStart - bStart;
-            return (a.id || 0) - (b.id || 0);
-        });
-        var index = 0;
-        for (var k = 0; k < overlaps.length; k++) {
-            if (overlaps[k].id === current.id) { index = k; break; }
-        }
-        byId[current.id] = { index: index, count: overlaps.length || 1 };
-    }
+    return window.PlanningUtils.buildVisualOverlapGroups(dayList, byId);
 }
 
 function renderPlanningNowLine(grid, monday) {
-    if (!grid || !monday) return;
-    var old = grid.querySelector('.planning-now-line');
-    if (old) old.remove();
-    var now = new Date();
-    var today = _rdvDateToStr(now);
-    var mondayDay = new Date(monday);
-    var mondayStr = _rdvDateToStr(mondayDay);
-    var sunday = new Date(mondayDay);
-    sunday.setDate(sunday.getDate() + 6);
-    var sundayStr = _rdvDateToStr(sunday);
-    if (today < mondayStr || today > sundayStr) return;
-
-    var dayOffset = Math.floor((new Date(today) - new Date(mondayStr)) / 86400000);
-    if (dayOffset < 0 || dayOffset > 6) return;
-    var minutes = now.getHours() * 60 + now.getMinutes();
-    var bounds = getPlanningBounds();
-    var startMin = timeToMinutes(bounds.start);
-    var endMin = timeToMinutes(bounds.end);
-    if (minutes < startMin || minutes > endMin) return;
-
-    var bodyStyles = window.getComputedStyle(grid);
-    var cols = bodyStyles.gridTemplateColumns.split(' ').filter(Boolean);
-    if (cols.length < 8) return;
-    var timeColWidth = parseFloat(cols[0]) || 80;
-    var dayColWidth = (grid.clientWidth - timeColWidth) / 7;
-    var y = Math.max(0, Math.round(((minutes - startMin) / APP._planningSlotMinutes) * APP._planningSlotPx));
-    var x = timeColWidth + (dayOffset * dayColWidth);
-
-    var line = document.createElement('div');
-    line.className = 'planning-now-line';
-    line.style.top = y + 'px';
-    line.style.left = x + 'px';
-    line.style.width = dayColWidth + 'px';
-    line.innerHTML = '<span class="planning-now-time">' + formatTime(now.toTimeString()) + '</span>';
-    grid.appendChild(line);
+    return window.PlanningUtils.renderPlanningNowLine(grid, monday);
 }
 
 function getRdvDurationMinutes(rdv) {
-    if (!rdv) return 60;
-    var candidates = [
-        rdv.temps_estime_minutes,
-        rdv.duree_minutes,
-        rdv.temps_estime,
-        rdv.duration_minutes,
-        rdv.duration
-    ];
-    for (var i = 0; i < candidates.length; i++) {
-        var minutes = parseDurationToMinutes(candidates[i]);
-        if (minutes > 0) return Math.max(30, minutes);
-    }
-    return 60;
+    return window.PlanningUtils.getRdvDurationMinutes(rdv);
 }
 
 function parseDurationToMinutes(value) {
-    if (value === null || value === undefined) return 0;
-    if (typeof value === 'number' && isFinite(value)) {
-        if (value <= 0) return 0;
-        // Heuristic: small values are likely hours, larger values are minutes.
-        return value <= 12 ? Math.round(value * 60) : Math.round(value);
-    }
-    var raw = String(value).trim().toLowerCase();
-    if (!raw) return 0;
-    if (/^\d{1,2}:\d{2}$/.test(raw)) {
-        var hm = raw.split(':');
-        return parseInt(hm[0], 10) * 60 + parseInt(hm[1], 10);
-    }
-    var hMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*h/);
-    var mMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*m/);
-    if (hMatch || mMatch) {
-        var h = hMatch ? parseFloat(hMatch[1].replace(',', '.')) : 0;
-        var m = mMatch ? parseFloat(mMatch[1].replace(',', '.')) : 0;
-        return Math.round((h * 60) + m);
-    }
-    var num = parseFloat(raw.replace(',', '.'));
-    if (!isNaN(num) && num > 0) {
-        return num <= 12 ? Math.round(num * 60) : Math.round(num);
-    }
-    return 0;
+    return window.PlanningUtils.parseDurationToMinutes(value);
 }
 
 function getWeekNumber(d) {
@@ -2656,737 +2528,130 @@ function renderTempsTab() {
 
 // ===== ORDRES DE REPARATION =====
 function loadOrdresReparation() {
-    apiGet('/api/rendez-vous').then(function(r) { return r.json(); }).then(function(rdvs) {
-        renderOrdresReparation(rdvs);
-    }).catch(function(e) { console.error('Erreur OR:', e); });
-    pollTravauxSupp();
-    setTimeout(function() { renderTravauxSuppPanel(); }, 500);
+    return window.OrModule.loadOrdresReparation();
 }
 
 function renderOrdresReparation(rdvs) {
-    var container = document.getElementById('or-list');
-    var enCours = rdvs.filter(function(r) { return r.statut !== 'annule' && r.statut !== 'non_presente'; });
-    document.getElementById('or-ouverts').textContent = enCours.filter(function(r) { return r.statut !== 'termine' && r.statut !== 'facture' && r.statut !== 'paye'; }).length + ' ouverts';
-    document.getElementById('or-termines').textContent = enCours.filter(function(r) { return r.statut === 'termine' || r.statut === 'facture' || r.statut === 'paye'; }).length + ' termines';
-
-    enCours.sort(function(a, b) {
-        var order = { 'en_cours': 0, 'reception': 1, 'confirme': 2, 'reserve': 3, 'en_attente': 4, 'termine': 5, 'facture': 6, 'paye': 7, 'non_presente': 8 };
-        return (order[a.statut] || 9) - (order[b.statut] || 9);
-    });
-
-    var etapes = ['Reception', 'Diagnostic', 'Intervention', 'Controle QC', 'Livraison'];
-    var html = '';
-    enCours.slice(0, 30).forEach(function(rdv) {
-        var meca = rdv.mecanicien || APP.mecaniciens.find(function(m) { return m.id === rdv.mecanicien_id; });
-        var mecaNom = meca ? meca.prenom + ' ' + escapeHtml(meca.nom) : '-';
-        var mecaCouleur = meca ? meca.couleur : '#666';
-        var pont = rdv.pont || APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
-        var v = rdv.vehicule || {}; var c = rdv.client || {};
-        var duree = rdv.temps_estime ? Math.round(rdv.temps_estime / 60 * 10) / 10 + 'h' : '-';
-        var isTermine = rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye';
-        var currentIdx = getEtapeIndex(rdv.statut);
-        var dateCreation = rdv.date_rdv || '';
-        var year = dateCreation ? dateCreation.substring(0, 4) : new Date().getFullYear();
-        var orNum = 'OR-' + year + '-' + String(rdv.id).padStart(3, '0');
-
-        // Progress bar 5 etapes
-        var stepsHtml = '<div style="display:flex;gap:4px;margin-top:12px">';
-        etapes.forEach(function(label, i) {
-            var bg, txtCol;
-            if (i < currentIdx) { bg = '#22C55E'; txtCol = '#fff'; }
-            else if (i === currentIdx && !isTermine) { bg = '#E8480A'; txtCol = '#fff'; }
-            else if (isTermine) { bg = '#22C55E'; txtCol = '#fff'; }
-            else { bg = '#2a2a2e'; txtCol = '#666'; }
-            var radius = '';
-            if (i === 0) radius = 'border-radius:6px 0 0 6px;';
-            if (i === etapes.length - 1) radius = 'border-radius:0 6px 6px 0;';
-            stepsHtml += '<div style="flex:1;text-align:center;padding:6px 4px;font-size:10px;font-weight:600;letter-spacing:.3px;background:' + bg + ';color:' + txtCol + ';' + radius + '">' + label + '</div>';
-        });
-        stepsHtml += '</div>';
-
-        // OR Card redesigned
-        html += '<div class="or-card" style="cursor:pointer;' + (isTermine ? 'opacity:.65' : '') + '" onclick="showOrDetail(' + rdv.id + ')">' +
-            '<div class="or-header" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">' +
-                '<div class="or-num" style="font-family:Barlow Condensed,sans-serif;font-size:20px;font-weight:700;letter-spacing:.5px">' + orNum + '</div>' +
-                statusBadge(rdv.statut) +
-                '<div style="margin-left:auto;display:flex;align-items:center;gap:8px">' +
-                    '<span style="font-size:12px;color:#777">' + dateCreation + ' ' + formatTime(rdv.heure_rdv) + '</span>' +
-                    actionButtons(rdv, true, { hideBillingActions: true }) +
-                '</div>' +
-            '</div>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:13px;color:#ccc">' +
-                '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#128690;</span> <b style="color:#fff">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</b> <span style="color:#888">' + (escapeHtml(v.plaque) || '') + '</span></div>' +
-                '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#128100;</span> ' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + (escapeHtml(c.telephone) ? ' <span style="color:#888">- ' + c.telephone + '</span>' : '') + '</div>' +
-                '<div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:' + mecaCouleur + ';display:inline-block"></span> ' + mecaNom + '</div>' +
-                '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px">&#128295;</span> ' + (escapeHtml(rdv.type_intervention) || '-') + ' <span style="color:#888">(' + duree + ')</span></div>' +
-            '</div>' +
-            stepsHtml +
-        '</div>';
-    });
-    container.innerHTML = html || '<div style="color:#666;padding:20px">Aucun OR</div>';
+    return window.OrModule.renderOrdresReparation(rdvs);
 }
 
 function getEtapeIndex(statut) {
-    // 5 etapes: Reception(0), Diagnostic(1), Intervention(2), Controle QC(3), Livraison(4)
-    var map = { 'reserve': 0, 'en_attente': 0, 'confirme': 0, 'reception': 0, 'en_cours': 2, 'termine': 4, 'facture': 4, 'paye': 4, 'non_presente': 4 };
-    return map[statut] !== undefined ? map[statut] : 0;
+    return window.OrModule.getEtapeIndex(statut);
 }
 
 function showOrDetail(rdvId) {
-    apiGet('/api/rendez-vous/' + rdvId).then(function(r) { return r.json(); }).then(function(rdv) {
-        var v = rdv.vehicule || {}; var c = rdv.client || {};
-        var meca = rdv.mecanicien || APP.mecaniciens.find(function(m) { return m.id === rdv.mecanicien_id; });
-        var mecaNom = meca ? meca.prenom + ' ' + escapeHtml(meca.nom) : '-';
-        var pont = rdv.pont || APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
-        var duree = rdv.temps_estime ? Math.round(rdv.temps_estime / 60 * 10) / 10 + 'h' : '-';
-        var year = rdv.date_rdv ? rdv.date_rdv.substring(0, 4) : new Date().getFullYear();
-        var orNum = 'OR-' + year + '-' + String(rdv.id).padStart(3, '0');
-        var currentIdx = getEtapeIndex(rdv.statut);
-        var isTermine = rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye';
-        var etapes = ['Reception', 'Diagnostic', 'Intervention', 'Controle QC', 'Livraison'];
-
-        var stepsHtml = '<div style="display:flex;gap:4px;margin:16px 0">';
-        etapes.forEach(function(label, i) {
-            var bg, txtCol;
-            if (i < currentIdx) { bg = '#22C55E'; txtCol = '#fff'; }
-            else if (i === currentIdx && !isTermine) { bg = '#E8480A'; txtCol = '#fff'; }
-            else if (isTermine) { bg = '#22C55E'; txtCol = '#fff'; }
-            else { bg = '#2a2a2e'; txtCol = '#666'; }
-            var radius = '';
-            if (i === 0) radius = 'border-radius:6px 0 0 6px;';
-            if (i === etapes.length - 1) radius = 'border-radius:0 6px 6px 0;';
-            stepsHtml += '<div style="flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;background:' + bg + ';color:' + txtCol + ';' + radius + '">' + label + '</div>';
-        });
-        stepsHtml += '</div>';
-
-        // OR supplementaires
-        var orSuppHtml = '';
-        if (rdv.ordres_reparation && rdv.ordres_reparation.length > 0) {
-            orSuppHtml = '<div style="margin-top:16px;border-top:1px solid #333;padding-top:12px"><div style="font-weight:600;margin-bottom:8px">Ordres de reparation associes</div>';
-            rdv.ordres_reparation.forEach(function(or) {
-                var badge = or.type_or === 'supplementaire' ? '<span style="background:#F26524;color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;margin-left:6px">Supp.</span>' : '';
-                orSuppHtml += '<div style="padding:8px;background:#1a1a1d;border-radius:8px;margin-bottom:6px">' +
-                    '<div style="font-weight:600">' + (escapeHtml(or.numero_or) || orNum) + badge + '</div>' +
-                    (escapeHtml(or.travaux) ? '<div style="font-size:12px;color:#aaa;margin-top:4px">' + or.travaux + '</div>' : '') +
-                '</div>';
-            });
-            orSuppHtml += '</div>';
-        }
-
-        var overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000';
-        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-        overlay.innerHTML =
-            '<div style="background:#1e1e22;border:1px solid #333;border-radius:16px;padding:28px;width:600px;max-width:90vw;max-height:85vh;overflow-y:auto;color:#eee">' +
-                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
-                    '<div style="font-family:Barlow Condensed,sans-serif;font-size:26px;font-weight:700">' + orNum + '</div>' +
-                    statusBadge(rdv.statut) +
-                    '<button onclick="this.closest(\'.modal-overlay\').remove()" style="background:none;border:none;color:#888;font-size:22px;cursor:pointer">&times;</button>' +
-                '</div>' +
-                stepsHtml +
-                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:14px">' +
-                    '<div style="background:#16161a;border-radius:10px;padding:14px">' +
-                        '<div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:6px;font-weight:600">Vehicule</div>' +
-                        '<div style="font-weight:600">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-                        '<div style="color:#aaa">' + (escapeHtml(v.plaque) || '') + '</div>' +
-                    '</div>' +
-                    '<div style="background:#16161a;border-radius:10px;padding:14px">' +
-                        '<div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:6px;font-weight:600">Client</div>' +
-                        '<div style="font-weight:600">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div>' +
-                        '<div style="color:#aaa">' + (escapeHtml(c.telephone) || '') + '</div>' +
-                    '</div>' +
-                    '<div style="background:#16161a;border-radius:10px;padding:14px">' +
-                        '<div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:6px;font-weight:600">Intervention</div>' +
-                        '<div style="font-weight:600">' + (escapeHtml(rdv.type_intervention) || '-') + '</div>' +
-                        '<div style="color:#aaa">Duree estimee: ' + duree + '</div>' +
-                        '<div style="color:#ffd700;font-weight:600;margin-top:4px">' + (rdv.prix_final || rdv.prix_estime || 0) + ' EUR</div>' +
-                    '</div>' +
-                    '<div style="background:#16161a;border-radius:10px;padding:14px">' +
-                        '<div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:6px;font-weight:600">Assignation</div>' +
-                        '<div style="font-weight:600">' + mecaNom + '</div>' +
-                        '<div style="color:#aaa">' + (pont ? pont.nom : '-') + '</div>' +
-                    '</div>' +
-                '</div>' +
-                (escapeHtml(rdv.notes) ? '<div style="margin-top:14px;padding:12px;background:#16161a;border-radius:10px;font-size:13px;color:#aaa"><span style="font-weight:600;color:#ccc">Notes: </span>' + rdv.notes + '</div>' : '') +
-                orSuppHtml +
-                '<div style="display:flex;gap:8px;margin-top:20px">' +
-                    '<button onclick="telechargerOR(' + rdv.id + ')" style="flex:1;padding:10px;background:#E8480A;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-family:Barlow,sans-serif">Telecharger PDF</button>' +
-                    '<button onclick="this.closest(\'.modal-overlay\').remove();planifierRdvSuite(' + rdv.id + ')" style="flex:1;padding:10px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-family:Barlow,sans-serif">Planifier RDV de suite</button>' +
-                    '<button onclick="this.closest(\'.modal-overlay\').remove()" style="flex:1;padding:10px;background:#333;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-family:Barlow,sans-serif">Fermer</button>' +
-                '</div>' +
-            '</div>';
-        document.body.appendChild(overlay);
-    }).catch(function(e) { console.error('Erreur detail OR:', e); });
+    return window.OrModule.showOrDetail(rdvId);
 }
 
 function planifierRdvSuite(rdvId) {
-    apiGet('/api/rendez-vous/' + rdvId).then(function(r) { return r.json(); }).then(function(rdv) {
-        var v = rdv.vehicule || {}; var c = rdv.client || {};
-        showSection('rdv');
-        setTimeout(function() {
-            var plaqueInput = document.getElementById('rdv-plaque');
-            if (plaqueInput) {
-                plaqueInput.value = v.plaque || '';
-                searchMotoRdv(v.plaque || '');
-            }
-            var commentInput = document.getElementById('rdv-comment');
-            if (commentInput) commentInput.value = 'Suite du RDV #' + rdvId + ' - ';
-            var clientName = document.getElementById('rdv-client-name');
-            if (clientName) clientName.value = (escapeHtml(c.nom) || '') + ' ' + (escapeHtml(c.prenom) || '');
-            var clientTel = document.getElementById('rdv-client-tel');
-            if (clientTel) clientTel.value = c.telephone || '';
-        }, 300);
-    }).catch(function(e) { console.error('Erreur RDV suite:', e); });
+    return window.OrModule.planifierRdvSuite(rdvId);
 }
 
 // ===== RECEPTION VEHICULE =====
-var ETAT_VEHICULE_POINTS = [
-    { key: 'carrosserie_ok', label: 'Carrosserie OK' },
-    { key: 'rayures', label: 'Rayures visibles' },
-    { key: 'bosses', label: 'Bosses / chocs' },
-    { key: 'freins_ok', label: 'Freins (impression)' },
-    { key: 'pneus_av_ok', label: 'Pneu avant OK' },
-    { key: 'pneus_ar_ok', label: 'Pneu arriere OK' },
-    { key: 'eclairage_ok', label: 'Eclairage fonctionne' },
-    { key: 'retros_ok', label: 'Retroviseurs OK' },
-    { key: 'clignotants_ok', label: 'Clignotants OK' },
-    { key: 'compteur_ok', label: 'Tableau de bord OK' },
-    { key: 'fuite_visible', label: 'Fuite visible' },
-    { key: 'accessoires', label: 'Accessoires notes' }
-];
-
-var _receptionSignatureCtx = null;
-var _receptionSignatureDrawing = false;
-var _receptionSignatureHasData = false;
+var ETAT_VEHICULE_POINTS = window.ETAT_VEHICULE_POINTS || [];
 
 function ouvrirReception(rdvId) {
-    apiGet('/api/rendez-vous/' + rdvId).then(function(r) { return r.json(); }).then(function(rdv) {
-        var html = '';
-        var v = rdv.vehicule || {};
-        var c = rdv.client || {};
-
-        html += '<div style="background:#1e1e1e;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:16px;display:flex;gap:16px">'
-            + '<div><div style="font-size:11px;color:#666">Client</div><div style="color:#eee;font-weight:600">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div></div>'
-            + '<div><div style="font-size:11px;color:#666">Vehicule</div><div style="color:#eee;font-weight:600">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div></div>'
-            + '<div><div style="font-size:11px;color:#666">Plaque</div><div style="color:#eee;font-weight:600">' + (escapeHtml(v.plaque) || '') + '</div></div>'
-            + '</div>';
-
-        html += '<div class="form-group"><label class="form-label" style="color:#ccc">Kilometrage *</label>'
-            + '<input type="number" id="reception-km" class="form-input" placeholder="Ex: 15000" value="' + (rdv.kilometrage || '') + '"></div>';
-
-        html += '<div class="form-group"><label class="form-label" style="color:#ccc">Etat du vehicule</label>'
-            + '<div class="reception-check-grid" id="reception-etat-checks">';
-        ETAT_VEHICULE_POINTS.forEach(function(pt) {
-            html += '<label class="reception-check-item"><input type="checkbox" value="' + pt.key + '"> ' + pt.label + '</label>';
-        });
-        html += '</div></div>';
-
-        html += '<div class="form-group"><label class="form-label" style="color:#ccc">Observations</label>'
-            + '<textarea id="reception-obs" class="form-input" rows="3" placeholder="Notes sur l\'etat general..."></textarea></div>';
-
-        html += '<div class="form-group"><label class="form-label" style="color:#ccc">Signature client *</label>'
-            + '<canvas id="reception-signature-canvas" width="400" height="150" style="border:1px solid #444;border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>'
-            + '<button class="btn btn-ghost" style="margin-top:6px;font-size:11px" onclick="clearReceptionSignature()">Effacer signature</button></div>';
-
-        html += '<button class="btn btn-primary" style="width:100%;margin-top:12px;background:var(--teal)" onclick="validerReception(' + rdvId + ')">Valider la reception</button>';
-
-        showModal('Reception - OR-' + String(rdvId).padStart(6, '0'), html, '600px');
-        setTimeout(function() { initReceptionSignaturePad(); }, 100);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.ouvrirReception(rdvId);
 }
 
 function initReceptionSignaturePad() {
-    var canvas = document.getElementById('reception-signature-canvas');
-    if (!canvas) return;
-    var rect = canvas.getBoundingClientRect();
-    var dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    var ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, rect.width, rect.height);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    _receptionSignatureCtx = ctx;
-    _receptionSignatureHasData = false;
-
-    canvas.addEventListener('mousedown', function(e) {
-        _receptionSignatureDrawing = true;
-        var coords = getCanvasCoords(canvas, e);
-        ctx.beginPath(); ctx.moveTo(coords.x, coords.y);
-    });
-    canvas.addEventListener('mousemove', function(e) {
-        if (!_receptionSignatureDrawing) return;
-        var coords = getCanvasCoords(canvas, e);
-        ctx.lineTo(coords.x, coords.y); ctx.stroke();
-        _receptionSignatureHasData = true;
-    });
-    canvas.addEventListener('mouseup', function() { _receptionSignatureDrawing = false; });
-    canvas.addEventListener('mouseout', function() { _receptionSignatureDrawing = false; });
-    canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault(); _receptionSignatureDrawing = true;
-        var coords = getCanvasCoords(canvas, e.touches[0]);
-        ctx.beginPath(); ctx.moveTo(coords.x, coords.y);
-    });
-    canvas.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-        if (!_receptionSignatureDrawing) return;
-        var coords = getCanvasCoords(canvas, e.touches[0]);
-        ctx.lineTo(coords.x, coords.y); ctx.stroke();
-        _receptionSignatureHasData = true;
-    });
-    canvas.addEventListener('touchend', function() { _receptionSignatureDrawing = false; });
+    return window.OrModule.initReceptionSignaturePad();
 }
 
 function getCanvasCoords(canvas, event) {
-    var rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return window.OrModule.getCanvasCoords(canvas, event);
 }
 
 function clearReceptionSignature() {
-    var canvas = document.getElementById('reception-signature-canvas');
-    if (!canvas) return;
-    var rect = canvas.getBoundingClientRect();
-    _receptionSignatureCtx.fillStyle = '#ffffff';
-    _receptionSignatureCtx.fillRect(0, 0, rect.width, rect.height);
-    _receptionSignatureHasData = false;
+    return window.OrModule.clearReceptionSignature();
 }
 
 function getReceptionSignatureBase64() {
-    if (!_receptionSignatureHasData) return null;
-    var canvas = document.getElementById('reception-signature-canvas');
-    return canvas ? canvas.toDataURL('image/png') : null;
+    return window.OrModule.getReceptionSignatureBase64();
 }
 
 function validerReception(rdvId) {
-    var km = document.getElementById('reception-km').value;
-    if (!km) { alert('Kilometrage obligatoire'); return; }
-
-    var etatItems = [];
-    var checkboxes = document.querySelectorAll('#reception-etat-checks input[type="checkbox"]');
-    for (var i = 0; i < checkboxes.length; i++) {
-        if (checkboxes[i].checked) etatItems.push(checkboxes[i].value);
-    }
-    var observations = document.getElementById('reception-obs').value || '';
-    var etatVehicule = JSON.stringify({ points: etatItems, observations: observations });
-
-    var signatureData = getReceptionSignatureBase64();
-    if (!signatureData) { alert('Signature client obligatoire'); return; }
-
-    apiPost('/api/rendez-vous/' + rdvId + '/ordre-reparation/save', {
-        kilometrage: parseInt(km),
-        etat_vehicule: etatVehicule,
-        travaux: observations,
-        signature: signatureData
-    }).then(function(r) {
-        return r.json();
-    }).then(function() {
-        return apiPost('/api/rendez-vous/' + rdvId + '/reception', {});
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Reception validee - OR disponible');
-        refreshCurrentSection();
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.validerReception(rdvId);
 }
 
 // ===== TRAVAUX SUPPLEMENTAIRES =====
 function ouvrirDemandeTravauxSupp(rdvId) {
-    window._tsSelectedPrestations = [];
-    var prestations = APP.prestationsConfig || [];
-    var categories = {};
-    prestations.forEach(function(p) {
-        if (!p.is_active) return;
-        var cat = p.categorie || 'Autre';
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(p);
-    });
-
-    var html = '<div style="margin-bottom:14px;font-size:13px;color:#aaa">Selectionnez les interventions necessaires. Le receptionniste fera le devis.</div>';
-
-    html += '<div style="max-height:45vh;overflow-y:auto;margin-bottom:14px">';
-    Object.keys(categories).sort().forEach(function(cat) {
-        html += '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:10px 0 6px;padding:0 2px">' + escapeHtml(cat) + '</div>';
-        categories[cat].forEach(function(p) {
-            html += '<label id="ts-presta-' + p.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a22;border:1px solid #333;border-radius:8px;margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="toggleTsPrestation(' + p.id + ',\'' + escapeHtml(p.code || '') + '\',\'' + escapeHtml((p.nom || '').replace(/'/g, "")) + '\')">' +
-                '<div id="ts-check-' + p.id + '" style="width:22px;height:22px;border:2px solid #555;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#22c55e"></div>' +
-                '<div style="flex:1;min-width:0"><div style="font-size:14px;color:#eee;font-weight:500">' + escapeHtml(p.nom) + '</div>' +
-                '<div style="font-size:12px;color:#777">' + escapeHtml(p.code || '') + (p.temps_estime_minutes ? ' \u2022 ~' + p.temps_estime_minutes + ' min' : '') + '</div></div>' +
-                '</label>';
-        });
-    });
-    html += '</div>';
-
-    html += '<div class="form-group"><label class="form-label" style="color:#ccc">Notes / Description du probleme</label>'
-        + '<textarea id="travaux-supp-desc" class="form-input" rows="2" placeholder="Decrire ce que vous avez constate..." style="font-size:14px"></textarea></div>';
-
-    html += '<div class="form-group"><label class="form-label" style="color:#ccc">Urgence</label>'
-        + '<div style="display:flex;gap:8px">'
-        + '<button id="ts-urg-normal" class="btn btn-ghost" style="flex:1;padding:10px;font-size:13px;border-color:var(--green);color:var(--green)" onclick="setTsUrgence(\'normal\')">Normal</button>'
-        + '<button id="ts-urg-urgent" class="btn btn-ghost" style="flex:1;padding:10px;font-size:13px" onclick="setTsUrgence(\'urgent\')">Urgent</button>'
-        + '<button id="ts-urg-critique" class="btn btn-ghost" style="flex:1;padding:10px;font-size:13px" onclick="setTsUrgence(\'critique\')">Critique</button>'
-        + '</div></div>';
-
-    html += '<div id="ts-selected-count" style="font-size:13px;color:#888;margin-bottom:8px"></div>';
-    html += '<button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;font-weight:700;margin-top:4px" onclick="envoyerDemandeTravauxSupp(' + rdvId + ')">Envoyer au receptionniste</button>';
-
-    window._tsUrgence = 'normal';
-    showModal('Signaler un probleme - OR #' + rdvId, html, '520px');
-    updateTsSelectedCount();
+    return window.OrModule.ouvrirDemandeTravauxSupp(rdvId);
 }
 
 function toggleTsPrestation(id, code, nom) {
-    if (!window._tsSelectedPrestations) window._tsSelectedPrestations = [];
-    var idx = window._tsSelectedPrestations.findIndex(function(p) { return p.prestation_id === id; });
-    var checkEl = document.getElementById('ts-check-' + id);
-    var labelEl = document.getElementById('ts-presta-' + id);
-    if (idx >= 0) {
-        window._tsSelectedPrestations.splice(idx, 1);
-        if (checkEl) checkEl.textContent = '';
-        if (labelEl) labelEl.style.borderColor = '#333';
-    } else {
-        window._tsSelectedPrestations.push({ prestation_id: id, code: code, nom: nom });
-        if (checkEl) checkEl.textContent = '\u2713';
-        if (labelEl) labelEl.style.borderColor = 'var(--green)';
-    }
-    updateTsSelectedCount();
+    return window.OrModule.toggleTsPrestation(id, code, nom);
 }
 
 function updateTsSelectedCount() {
-    var el = document.getElementById('ts-selected-count');
-    var n = (window._tsSelectedPrestations || []).length;
-    if (el) el.textContent = n > 0 ? n + ' prestation' + (n > 1 ? 's' : '') + ' selectionnee' + (n > 1 ? 's' : '') : '';
+    return window.OrModule.updateTsSelectedCount();
 }
 
 function setTsUrgence(val) {
-    window._tsUrgence = val;
-    ['normal','urgent','critique'].forEach(function(u) {
-        var btn = document.getElementById('ts-urg-' + u);
-        if (!btn) return;
-        if (u === val) {
-            var colors = { normal: 'var(--green)', urgent: 'var(--amber)', critique: 'var(--red)' };
-            btn.style.borderColor = colors[u]; btn.style.color = colors[u];
-        } else {
-            btn.style.borderColor = '#444'; btn.style.color = '#888';
-        }
-    });
+    return window.OrModule.setTsUrgence(val);
 }
 
 function envoyerDemandeTravauxSupp(rdvId) {
-    var selected = window._tsSelectedPrestations || [];
-    var desc = (document.getElementById('travaux-supp-desc') || {}).value || '';
-    if (!selected.length && !desc.trim()) { alert('Selectionnez au moins une prestation ou decrivez le probleme'); return; }
-    var data = {
-        prestations_demandees: selected,
-        description: desc,
-        urgence: window._tsUrgence || 'normal'
-    };
-    apiPost('/api/rendez-vous/' + rdvId + '/travaux-supplementaires', data).then(function(r) {
-        return r.json();
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Demande envoyee au receptionniste');
-        refreshCurrentSection();
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.envoyerDemandeTravauxSupp(rdvId);
 }
 
 // ===== POLLING TRAVAUX SUPP =====
 function pollTravauxSupp() {
-    var role = APP.currentUser ? APP.currentUser.role : '';
-    if (role !== 'admin' && role !== 'receptionnaire') return;
-
-    apiGet('/api/travaux-supplementaires/en-attente').then(function(r) { return r.json(); }).then(function(demandes) {
-        var count = Array.isArray(demandes) ? demandes.length : 0;
-        var badge = document.getElementById('travaux-supp-badge');
-        if (badge) {
-            if (count > 0) {
-                badge.textContent = count;
-                badge.style.display = 'flex';
-                badge.style.animation = 'pulse-badge 1s infinite';
-            } else {
-                badge.style.display = 'none';
-                badge.style.animation = '';
-            }
-        }
-        if (count > APP._lastTravauxSuppCount && APP._lastTravauxSuppCount >= 0) {
-            // Show modal alert for new demandes
-            var newDemandes = demandes.slice(0, count - APP._lastTravauxSuppCount);
-            newDemandes.forEach(function(d) {
-                showTravauxSuppAlert(d);
-            });
-            playAlertSound();
-        }
-        APP._lastTravauxSuppCount = count;
-        APP._pendingTravauxSupp = demandes;
-    }).catch(function(e) {
-        if (e && /403|401/.test(String(e.message || ''))) return;
-    });
+    return window.OrModule.pollTravauxSupp();
 }
 
 function playAlertSound() {
-    try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 800;
-        osc.type = 'sine';
-        gain.gain.value = 0.3;
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-        setTimeout(function() {
-            var osc2 = ctx.createOscillator();
-            var gain2 = ctx.createGain();
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.frequency.value = 1000;
-            osc2.type = 'sine';
-            gain2.gain.value = 0.3;
-            osc2.start();
-            osc2.stop(ctx.currentTime + 0.2);
-        }, 200);
-    } catch(e) {}
+    return window.OrModule.playAlertSound();
 }
 
 function showTravauxSuppAlert(demande) {
-    var d = demande;
-    var c = d.client || {};
-    var v = d.vehicule || {};
-    var prestas = d.prestations_demandees || [];
-    var overlay = document.createElement('div');
-    overlay.className = 'travaux-alert-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:10000;animation:fadeIn .2s;padding:16px';
-
-    var prestaHtml = '';
-    if (prestas.length) {
-        prestaHtml = '<div style="margin-bottom:12px"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:700">Prestations demandees par le technicien</div>';
-        prestas.forEach(function(p) {
-            var presta = (APP.prestationsConfig || []).find(function(x) { return x.id === p.prestation_id; });
-            var prix = presta ? (presta.prix_base_ttc || 0) : 0;
-            var temps = presta ? (presta.temps_estime_minutes || 0) : 0;
-            prestaHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#1a1a22;border:1px solid #333;border-radius:6px;margin-bottom:4px">' +
-                '<div><div style="font-size:13px;color:#eee;font-weight:500">' + escapeHtml(p.nom || '') + '</div>' +
-                '<div style="font-size:11px;color:#777">' + escapeHtml(p.code || '') + (temps ? ' \u2022 ~' + temps + ' min' : '') + '</div></div>' +
-                '<div style="font-size:14px;font-weight:700;color:var(--orange)">' + (prix > 0 ? prix.toFixed(2) + ' \u20AC' : '-') + '</div></div>';
-        });
-        prestaHtml += '</div>';
-    }
-
-    overlay.innerHTML =
-        '<div style="background:#1e1e22;border:2px solid #E8480A;border-radius:16px;padding:24px;width:560px;max-width:95vw;color:#eee;box-shadow:0 20px 60px rgba(232,72,10,.3);max-height:90vh;overflow-y:auto">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
-                '<div style="width:40px;height:40px;border-radius:50%;background:rgba(232,72,10,.15);display:flex;align-items:center;justify-content:center;font-size:20px">&#9888;</div>' +
-                '<div><div style="font-family:Barlow Condensed,sans-serif;font-size:20px;font-weight:700">Demande travaux supplementaires</div>' +
-                '<div style="font-size:12px;color:#888">' + (escapeHtml(d.or_numero) || 'OR #' + d.rendez_vous_id) + '</div></div>' +
-                '<span class="badge ' + (d.urgence === 'critique' ? 'red' : d.urgence === 'urgent' ? 'amber' : 'blue') + '" style="font-size:12px;padding:3px 12px;margin-left:auto">' + (d.urgence || 'normal') + '</span>' +
-            '</div>' +
-            '<div style="display:flex;gap:12px;font-size:13px;color:#aaa;margin-bottom:14px;flex-wrap:wrap">' +
-                '<div>&#128100; ' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div>' +
-                '<div>&#128690; ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-            '</div>' +
-            prestaHtml +
-            (d.description ? '<div style="background:#16161a;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#ddd;line-height:1.5"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700">Notes du technicien</div>' + escapeHtml(d.description) + '</div>' : '') +
-            '<div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:14px">' +
-                '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700">Devis receptionniste</div>' +
-                '<div style="display:flex;gap:10px;margin-bottom:10px">' +
-                    '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:3px">Prix TTC</label>' +
-                    '<input type="number" id="ts-devis-prix-' + d.id + '" class="form-input" step="0.01" placeholder="0.00" style="font-size:16px;padding:10px"></div>' +
-                    '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:3px">Temps (min)</label>' +
-                    '<input type="number" id="ts-devis-temps-' + d.id + '" class="form-input" placeholder="60" style="font-size:16px;padding:10px"></div>' +
-                '</div>' +
-                '<label style="font-size:12px;color:#888;display:block;margin-bottom:3px">Notes pour le client</label>' +
-                '<input type="text" id="travaux-alert-notes-' + d.id + '" class="form-input" placeholder="Explication pour le client..." style="font-size:14px;padding:10px">' +
-            '</div>' +
-            '<div style="display:flex;gap:10px">' +
-                '<button onclick="traiterAlertTravaux(' + d.id + ', \'approuve\', this)" style="flex:1;padding:14px;background:#22C55E;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:Barlow,sans-serif">Faire signer le client</button>' +
-                '<button onclick="traiterAlertTravaux(' + d.id + ', \'refuse\', this)" style="flex:1;padding:14px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:Barlow,sans-serif">Refuser</button>' +
-            '</div>' +
-        '</div>';
-    document.body.appendChild(overlay);
+    return window.OrModule.showTravauxSuppAlert(demande);
 }
 
 function traiterAlertTravaux(demandeId, statut, btn) {
-    var notes = document.getElementById('travaux-alert-notes-' + demandeId);
-    var notesVal = notes ? notes.value : '';
-    var prixEl = document.getElementById('ts-devis-prix-' + demandeId);
-    var tempsEl = document.getElementById('ts-devis-temps-' + demandeId);
-    var prixDevis = prixEl ? parseFloat(prixEl.value) || null : null;
-    var tempsDevis = tempsEl ? parseInt(tempsEl.value) || null : null;
-    btn.disabled = true;
-    btn.textContent = '...';
-    if (statut === 'approuve') {
-        var overlay = btn.closest('.travaux-alert-overlay');
-        if (overlay) overlay.remove();
-        ouvrirSignatureTravauxSupp(demandeId, notesVal, prixDevis, tempsDevis);
-    } else {
-        apiPut('/api/travaux-supplementaires/' + demandeId, { statut: statut, notes_receptionniste: notesVal }).then(function() {
-            var overlay = btn.closest('.travaux-alert-overlay');
-            if (overlay) overlay.remove();
-            showNotificationToast('Demande refusee');
-            pollTravauxSupp();
-            setTimeout(function() { renderTravauxSuppPanel(); }, 500);
-        }).catch(function(e) {
-            btn.disabled = false;
-            btn.textContent = 'Refuser';
-            alert('Erreur: ' + e.message);
-        });
-    }
+    return window.OrModule.traiterAlertTravaux(demandeId, statut, btn);
 }
 
 // ===== SIGNATURE TRAVAUX SUPP =====
-var _tsSignatureCtx = null;
-var _tsSignatureDrawing = false;
-var _tsSignatureHasData = false;
-
 function ouvrirSignatureTravauxSupp(demandeId, notes, prixDevis, tempsDevis) {
-    var html = '<div style="margin-bottom:16px;font-size:13px;color:#aaa">Le client doit signer pour approuver les travaux supplementaires.</div>' +
-        '<div class="form-group"><label class="form-label" style="color:#ccc">Signature client *</label>' +
-        '<canvas id="ts-signature-canvas" width="400" height="150" style="border:1px solid #444;border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>' +
-        '<button class="btn btn-ghost" style="margin-top:6px;font-size:11px" onclick="clearTsSignature()">Effacer signature</button></div>' +
-        '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="confirmerTravauxSuppAvecSignature(' + demandeId + ',' + (prixDevis || 'null') + ',' + (tempsDevis || 'null') + ',\'' + (notes || '').replace(/'/g, "\\'") + '\')">Confirmer et approuver</button>';
-    showModal('Signature client - Travaux supplementaires', html, '480px');
-    setTimeout(function() { initTsSignaturePad(); }, 100);
+    return window.OrModule.ouvrirSignatureTravauxSupp(demandeId, notes, prixDevis, tempsDevis);
 }
 
 function initTsSignaturePad() {
-    var canvas = document.getElementById('ts-signature-canvas');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width; canvas.height = rect.height;
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, rect.width, rect.height);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-    _tsSignatureCtx = ctx; _tsSignatureHasData = false;
-    canvas.addEventListener('mousedown', function(e) { _tsSignatureDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
-    canvas.addEventListener('mousemove', function(e) { if (!_tsSignatureDrawing) return; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); _tsSignatureHasData = true; });
-    canvas.addEventListener('mouseup', function() { _tsSignatureDrawing = false; });
-    canvas.addEventListener('mouseout', function() { _tsSignatureDrawing = false; });
-    canvas.addEventListener('touchstart', function(e) { e.preventDefault(); _tsSignatureDrawing = true; var t = e.touches[0]; var r = canvas.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(t.clientX - r.left, t.clientY - r.top); });
-    canvas.addEventListener('touchmove', function(e) { e.preventDefault(); if (!_tsSignatureDrawing) return; var t = e.touches[0]; var r = canvas.getBoundingClientRect(); ctx.lineTo(t.clientX - r.left, t.clientY - r.top); ctx.stroke(); _tsSignatureHasData = true; });
-    canvas.addEventListener('touchend', function() { _tsSignatureDrawing = false; });
+    return window.OrModule.initTsSignaturePad();
 }
 
 function clearTsSignature() {
-    var canvas = document.getElementById('ts-signature-canvas');
-    if (!canvas || !_tsSignatureCtx) return;
-    var rect = canvas.getBoundingClientRect();
-    _tsSignatureCtx.fillStyle = '#ffffff';
-    _tsSignatureCtx.fillRect(0, 0, rect.width, rect.height);
-    _tsSignatureHasData = false;
+    return window.OrModule.clearTsSignature();
 }
 
 function confirmerTravauxSuppAvecSignature(demandeId, prixDevis, tempsDevis, notes) {
-    if (!_tsSignatureHasData) { alert('Signature client obligatoire'); return; }
-    var canvas = document.getElementById('ts-signature-canvas');
-    var signatureData = canvas ? canvas.toDataURL('image/png') : null;
-
-    apiPut('/api/travaux-supplementaires/' + demandeId, {
-        statut: 'approuve',
-        notes_receptionniste: notes,
-        prix_estime: prixDevis,
-        temps_estime: tempsDevis,
-        signature: signatureData
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Travaux approuves avec signature - OR supplementaire cree');
-        pollTravauxSupp();
-        setTimeout(function() { renderTravauxSuppPanel(); }, 500);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.confirmerTravauxSuppAvecSignature(demandeId, prixDevis, tempsDevis, notes);
 }
 
 function showNotificationToast(message) {
-    showToast(message, 'success');
-    updateLiveRegion(message);
+    return window.OrModule.showNotificationToast(message);
 }
 
 // ===== APPROBATION TRAVAUX SUPP (dans section OR) =====
 function renderTravauxSuppPanel() {
-    var container = document.getElementById('travaux-supp-panel');
-    if (!container) return;
-    var demandes = APP._pendingTravauxSupp || [];
-    if (demandes.length === 0) {
-        container.innerHTML = '';
-        container.style.display = 'none';
-        return;
-    }
-    container.style.display = 'block';
-    var html = '<div style="font-size:14px;font-weight:600;color:var(--orange);margin-bottom:12px">Demandes de travaux en attente (' + demandes.length + ')</div>';
-    demandes.forEach(function(d) {
-        var c = d.client || {};
-        var v = d.vehicule || {};
-        var urgCls = d.urgence === 'critique' ? ' critique' : '';
-        html += '<div class="travaux-supp-card' + urgCls + '">'
-            + '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">'
-            + '<div><span class="badge ' + (escapeHtml(d.urgence) === 'critique' ? 'red' : d.urgence === 'urgent' ? 'amber' : 'blue') + '">' + d.urgence + '</span> '
-            + '<span style="font-size:13px;color:var(--orange);font-weight:600">' + (escapeHtml(d.or_numero) || '') + '</span></div>'
-            + '<span style="font-size:11px;color:#666">' + (d.created_at || '').substring(0, 16).replace('T', ' ') + '</span></div>'
-            + '<div style="font-size:13px;color:#eee;margin-bottom:8px">' + (escapeHtml(d.description) || '') + '</div>'
-            + '<div style="display:flex;gap:12px;font-size:12px;color:#888;margin-bottom:10px">'
-            + '<span>' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</span>'
-            + '<span>' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</span>';
-        if (d.temps_estime) html += '<span>' + d.temps_estime + ' min</span>';
-        if (d.prix_estime) html += '<span>' + d.prix_estime + ' EUR</span>';
-        html += '</div>'
-            + '<div style="display:flex;gap:8px">'
-            + '<button class="btn btn-primary" style="font-size:11px;padding:4px 10px;background:var(--green)" onclick="approuverTravauxSupp(' + d.id + ')">Approuver</button>'
-            + '<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:var(--red)" onclick="refuserTravauxSupp(' + d.id + ')">Refuser</button>'
-            + '</div></div>';
-    });
-    container.innerHTML = html;
+    return window.OrModule.renderTravauxSuppPanel();
 }
 
 function approuverTravauxSupp(demandeId) {
-    var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Notes pour le client (optionnel)</label>' +
-        '<textarea id="travaux-supp-notes" class="form-input" rows="3" placeholder="Notes..."></textarea></div>' +
-        '<div style="display:flex;gap:8px;margin-top:10px">' +
-        '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button>' +
-        '<button class="btn btn-primary" style="flex:1;background:var(--green)" onclick="confirmerApprouverTravauxSupp(' + demandeId + ')">Approuver</button>' +
-        '</div>';
-    showModal('Approuver travaux supplementaires', html, '450px');
+    return window.OrModule.approuverTravauxSupp(demandeId);
 }
 
 function confirmerApprouverTravauxSupp(demandeId) {
-    var notesEl = document.getElementById('travaux-supp-notes');
-    var notes = notesEl ? notesEl.value : '';
-    apiPut('/api/travaux-supplementaires/' + demandeId, { statut: 'approuve', notes_receptionniste: notes || null }).then(function(r) {
-        return r.json();
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Travaux supplementaires approuves - OR supplementaire cree');
-        pollTravauxSupp();
-        setTimeout(function() { renderTravauxSuppPanel(); }, 500);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.confirmerApprouverTravauxSupp(demandeId);
 }
 
 function refuserTravauxSupp(demandeId) {
-    var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Raison du refus</label>' +
-        '<textarea id="travaux-supp-refus" class="form-input" rows="3" placeholder="Saisir une raison..."></textarea></div>' +
-        '<div style="display:flex;gap:8px;margin-top:10px">' +
-        '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button>' +
-        '<button class="btn btn-primary" style="flex:1;background:var(--red)" onclick="confirmerRefuserTravauxSupp(' + demandeId + ')">Refuser</button>' +
-        '</div>';
-    showModal('Refuser travaux supplementaires', html, '450px');
+    return window.OrModule.refuserTravauxSupp(demandeId);
 }
 
 function confirmerRefuserTravauxSupp(demandeId) {
-    var notesEl = document.getElementById('travaux-supp-refus');
-    var notes = notesEl ? notesEl.value : '';
-    if (!notes || !notes.trim()) {
-        showAlert('Veuillez saisir une raison de refus', 'warning');
-        return;
-    }
-    apiPut('/api/travaux-supplementaires/' + demandeId, { statut: 'refuse', notes_receptionniste: notes || null }).then(function(r) {
-        return r.json();
-    }).then(function() {
-        closeModal();
-        showNotificationToast('Demande refusee');
-        pollTravauxSupp();
-        setTimeout(function() { renderTravauxSuppPanel(); }, 500);
-    }).catch(function(e) { alert('Erreur: ' + e.message); });
+    return window.OrModule.confirmerRefuserTravauxSupp(demandeId);
 }
 
 // ===== SUIVI LIVE =====
@@ -3517,362 +2782,56 @@ function renderSuiviLive(rdvs) {
 }
 
 // ===== CHECKUP / RAPPORT TECHNICIEN =====
-var CHECKUP_POINTS = [
-    { key: 'niveau_huile', label: 'Niveau huile' },
-    { key: 'pression_pneus', label: 'Pression pneus' },
-    { key: 'freins_avant', label: 'Freins avant' },
-    { key: 'freins_arriere', label: 'Freins arriere' },
-    { key: 'eclairage', label: 'Eclairage' },
-    { key: 'clignotants', label: 'Clignotants' },
-    { key: 'batterie', label: 'Batterie' },
-    { key: 'chaine_courroie', label: 'Chaine / Courroie' },
-    { key: 'liquide_refroidissement', label: 'Liquide refroidissement' },
-    { key: 'filtre_air', label: 'Filtre a air' }
-];
+var CHECKUP_POINTS = window.CHECKUP_POINTS || [];
 
 function ouvrirCheckup(rdvId) {
-    // Charger rapport existant
-    apiGet('/api/rendez-vous/' + rdvId + '/rapport-technicien').then(function(r) { return r.json(); }).then(function(rapport) {
-        renderCheckupModal(rdvId, rapport);
-    }).catch(function() {
-        renderCheckupModal(rdvId, null);
-    });
+    return window.MecanicienModule.ouvrirCheckup(rdvId);
 }
 
 function renderCheckupModal(rdvId, rapport) {
-    var points = (rapport && rapport.points_controle) ? rapport.points_controle : {};
-    var alertes = (rapport && rapport.alertes) ? rapport.alertes : '';
-    var recommandations = (rapport && rapport.recommandations) ? rapport.recommandations : '';
-    var travaux = (rapport && rapport.travaux_realises) ? rapport.travaux_realises : '';
-
-    // Init checkup points from existing rapport
-    window._checkupPoints = {};
-    CHECKUP_POINTS.forEach(function(pt) {
-        window._checkupPoints[pt.key] = points[pt.key] || 'non_verifie';
-    });
-
-    var html = '<div style="margin-bottom:16px;font-size:12px;color:#888">RDV #' + rdvId + ' - Points de controle</div>';
-
-    // Points de controle
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
-    CHECKUP_POINTS.forEach(function(pt) {
-        var val = points[pt.key] || 'non_verifie';
-        var okSel = val === 'ok' ? 'background:var(--green);color:white;' : '';
-        var nokSel = val === 'nok' ? 'background:var(--red);color:white;' : '';
-        var nvSel = val === 'non_verifie' ? 'background:#444;color:white;' : '';
-        html += '<div style="background:#252525;border:1px solid #333;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">' +
-            '<span style="font-size:13px;color:#ccc">' + pt.label + '</span>' +
-            '<div style="display:flex;gap:4px">' +
-                '<button onclick="setCheckpoint(\'' + pt.key + '\',\'ok\',this)" style="border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:600;' + okSel + '">OK</button>' +
-                '<button onclick="setCheckpoint(\'' + pt.key + '\',\'nok\',this)" style="border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:600;' + nokSel + '">NOK</button>' +
-                '<button onclick="setCheckpoint(\'' + pt.key + '\',\'non_verifie\',this)" style="border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:600;' + nvSel + '">-</button>' +
-            '</div>' +
-        '</div>';
-    });
-    html += '</div>';
-
-    // Alertes
-    html += '<div class="form-group"><label class="form-label" style="color:#ccc">Alertes / Problemes detectes</label>' +
-        '<textarea id="checkup-alertes" class="form-input" rows="2" placeholder="Problemes constates...">' + alertes + '</textarea></div>';
-
-    // Recommandations
-    html += '<div class="form-group"><label class="form-label" style="color:#ccc">Recommandations</label>' +
-        '<textarea id="checkup-recommandations" class="form-input" rows="2" placeholder="Recommandations client...">' + recommandations + '</textarea></div>';
-
-    // Travaux
-    html += '<div class="form-group"><label class="form-label" style="color:#ccc">Travaux effectues</label>' +
-        '<textarea id="checkup-travaux" class="form-input" rows="2" placeholder="Detail des travaux...">' + travaux + '</textarea></div>';
-
-    // Boutons
-    html += '<div style="display:flex;gap:8px;margin-top:16px">' +
-        '<button class="btn btn-primary" style="flex:1" onclick="sauverCheckup(' + rdvId + ',\'en_cours\')">Sauvegarder (en cours)</button>' +
-        '<button class="btn btn-primary" style="flex:1;background:var(--green)" onclick="sauverCheckup(' + rdvId + ',\'termine\')">Terminer le rapport</button>' +
-        '</div>';
-
-    showModal('Rapport Technicien - Checkup', html, '650px');
+    return window.MecanicienModule.renderCheckupModal(rdvId, rapport);
 }
 
 function setCheckpoint(key, value, btn) {
-    // Update visual state
-    var container = btn.parentElement;
-    var buttons = container.querySelectorAll('button');
-    buttons.forEach(function(b) { b.style.background = ''; b.style.color = ''; });
-    if (value === 'ok') { btn.style.background = 'var(--green)'; btn.style.color = 'white'; }
-    else if (value === 'nok') { btn.style.background = 'var(--red)'; btn.style.color = 'white'; }
-    else { btn.style.background = '#444'; btn.style.color = 'white'; }
-
-    // Store in data attribute
-    if (!window._checkupPoints) window._checkupPoints = {};
-    window._checkupPoints[key] = value;
+    return window.MecanicienModule.setCheckpoint(key, value, btn);
 }
 
 function sauverCheckup(rdvId, statut) {
-    var points = window._checkupPoints || {};
-
-    var data = {
-        points_controle: points,
-        alertes: document.getElementById('checkup-alertes') ? document.getElementById('checkup-alertes').value : '',
-        recommandations: document.getElementById('checkup-recommandations') ? document.getElementById('checkup-recommandations').value : '',
-        travaux_realises: document.getElementById('checkup-travaux') ? document.getElementById('checkup-travaux').value : '',
-        statut: statut
-    };
-
-    apiPost('/api/rendez-vous/' + rdvId + '/rapport-technicien', data).then(function(r) { return r.json(); }).then(function() {
-        closeModal();
-        window._checkupPoints = {};
-        alert('Rapport sauvegarde avec succes');
-        refreshCurrentSection();
-    }).catch(function(e) {
-        alert('Erreur sauvegarde: ' + e.message);
-    });
+    return window.MecanicienModule.sauverCheckup(rdvId, statut);
 }
 
 // ===== ESPACE MECANICIEN =====
 
 function loadEspaceMeca() {
-    var today = new Date().toISOString().split('T')[0];
-    apiGet('/api/rendez-vous?date=' + today).then(function(r) { return r.json(); }).then(function(rdvs) {
-        APP._mecaLastRdvs = rdvs || [];
-        var meca = null;
-        if (APP.currentUser) {
-            meca = APP.mecaniciens.find(function(m) { return m.user_id && m.user_id === APP.currentUser.id; }) || null;
-            if (!meca) {
-                var username = (APP.currentUser.username || '').toLowerCase();
-                meca = APP.mecaniciens.find(function(m) {
-                    var full = ((m.prenom || '') + '.' + (m.nom || '')).toLowerCase();
-                    return full === username;
-                }) || null;
-            }
-        }
-        if (!meca && APP.currentUser && APP.currentUser.role !== 'mecanicien') meca = APP.mecaniciens[0] || null;
-        if (!meca) return;
-        APP._currentMeca = meca;
-        var isAdmin = APP.currentUser && (APP.currentUser.role === 'admin' || APP.currentUser.role === 'manager');
-        var mecaRdvs = isAdmin ? rdvs : rdvs.filter(function(r) { return r.mecanicien_id === meca.id; });
-        APP._mecaCheckupData = null;
-        renderEspaceMeca(meca, rdvs);
-    }).catch(function(e) { console.error('Erreur espace meca:', e); });
+    return window.MecanicienModule.loadEspaceMeca();
 }
 
 function renderEspaceMeca(meca, allRdvs) {
-    var color = meca.couleur || '#8b5cf6';
-    var initials = getMecaInitials(meca);
-    var isAdmin = APP.currentUser && (APP.currentUser.role === 'admin' || APP.currentUser.role === 'manager');
-    var mecaRdvs = isAdmin ? allRdvs : allRdvs.filter(function(r) { return r.mecanicien_id === meca.id; });
-    mecaRdvs.sort(function(a, b) { return (a.heure_rdv || '').localeCompare(b.heure_rdv || ''); });
-    var now = new Date();
-    var activeRdv = mecaRdvs.find(function(r) { return r.statut === 'en_cours'; });
-    var aFaire = mecaRdvs.filter(function(r) { return r.statut === 'reserve' || r.statut === 'confirme' || r.statut === 'reception'; });
-    var termines = mecaRdvs.filter(function(r) { return r.statut === 'termine' || r.statut === 'facture' || r.statut === 'paye'; });
-    var enRetard = aFaire.filter(function(r) {
-        var hm = String(r.heure_rdv || '').split(':');
-        if (hm.length < 2) return false;
-        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hm[0], 10) || 0, parseInt(hm[1], 10) || 0, 0, 0);
-        return d.getTime() + 10 * 60 * 1000 < now.getTime();
-    });
-    aFaire.sort(function(a, b) {
-        var aLate = enRetard.indexOf(a) !== -1 ? 1 : 0;
-        var bLate = enRetard.indexOf(b) !== -1 ? 1 : 0;
-        if (aLate !== bLate) return bLate - aLate;
-        return (a.heure_rdv || '').localeCompare(b.heure_rdv || '');
-    });
-    var nextAction = aFaire.length ? aFaire[0] : null;
-
-    var header = document.getElementById('espace-meca-header');
-    if (header) {
-        header.innerHTML = '<div class="meca-av-big" style="background:' + hexToRgba(color, 0.3) + ';color:' + color + '">' + initials + '</div>' +
-            '<div style="flex:1"><div class="meca-greeting">Bonjour ' + escapeHtml(meca.prenom) + '</div>' +
-            '<div class="meca-sub">' + mecaRdvs.length + ' interventions aujourd\'hui • ' + enRetard.length + ' en retard</div></div>';
-    }
-
-    var container = document.getElementById('meca-rdv-list');
-    if (!container) return;
-    var html = '';
-
-    if (!activeRdv && nextAction) {
-        html += '<div class="meca-active-panel" style="border:1px solid rgba(245,158,11,.5);margin-bottom:12px">' +
-            '<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:6px">A FAIRE MAINTENANT</div>' +
-            '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">' +
-            '<div><div style="font-size:16px;font-weight:700;color:#fff">' + formatTime(nextAction.heure_rdv) + ' - ' + escapeHtml((nextAction.vehicule && nextAction.vehicule.marque) || '') + ' ' + escapeHtml((nextAction.vehicule && nextAction.vehicule.modele) || '') + '</div>' +
-            '<div style="font-size:12px;color:#aaa">' + escapeHtml(nextAction.type_intervention || '-') + '</div></div>' +
-            '<button class="meca-big-btn start" onclick="demarrerTravail(' + nextAction.id + ')">▶ DEMARRER</button></div></div>';
-    }
-
-    if (activeRdv) {
-        html += renderMecaActivePanel(activeRdv);
-    }
-
-    if (aFaire.length) {
-        html += '<div class="meca-section-title">\u25B6 A faire (' + aFaire.length + ')</div>';
-        aFaire.forEach(function(rdv) { html += renderMecaCard(rdv, 'todo'); });
-    }
-
-    if (termines.length) {
-        html += '<div class="meca-section-title">\u2705 Termines (' + termines.length + ')</div>';
-        termines.forEach(function(rdv) { html += renderMecaCard(rdv, 'done'); });
-    }
-
-    if (!activeRdv && !aFaire.length && !termines.length) {
-        html = '<div style="text-align:center;padding:40px 16px;color:#666">' +
-            '<div style="font-size:48px;margin-bottom:12px">\uD83C\uDFCD\uFE0F</div>' +
-            '<div style="font-size:16px">Pas d\'intervention aujourd\'hui</div></div>';
-    }
-
-    container.innerHTML = html;
-    if (activeRdv) startMecaLiveTimer(activeRdv);
-    else cleanupMecaTimer();
+    return window.MecanicienModule.renderEspaceMeca(meca, allRdvs);
 }
 
 function renderMecaActivePanel(rdv) {
-    var v = rdv.vehicule || {};
-    var c = rdv.client || {};
-    var pont = APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
-    var rapport = APP._mecaCheckupData;
-    var points = (rapport && rapport.points_controle) ? rapport.points_controle : {};
-
-    window._checkupPoints = {};
-    CHECKUP_POINTS.forEach(function(pt) { window._checkupPoints[pt.key] = points[pt.key] || 'non_verifie'; });
-    var checked = CHECKUP_POINTS.filter(function(pt) { return points[pt.key] && points[pt.key] !== 'non_verifie'; }).length;
-
-    var html = '<div class="meca-active-panel" id="meca-active-panel">';
-
-    // Big chrono
-    html += '<div class="meca-chrono">' +
-        '<div id="meca-live-clock" class="meca-chrono-time">00:00:00</div>' +
-        '<div id="meca-live-eta" class="meca-chrono-eta">Chrono en attente...</div>' +
-        '<div class="meca-chrono-bar"><div id="meca-progress-bar" class="meca-chrono-fill" style="width:0%"></div></div></div>';
-
-    // Vehicle + client info
-    html += '<div class="meca-info-block">' +
-        '<div class="meca-info-vehicle">\uD83C\uDFCD\uFE0F ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-        '<div class="meca-info-client">\uD83D\uDC64 ' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + (pont ? ' \u2022 ' + escapeHtml(pont.nom) : '') + '</div>' +
-        '<div class="meca-info-type">\uD83D\uDD27 ' + (escapeHtml(rdv.type_intervention) || '') + '</div>' +
-        (rdv.notes ? '<div class="meca-info-notes">\uD83D\uDCDD ' + escapeHtml(rdv.notes) + '</div>' : '') + '</div>';
-
-    // Inline checkup (collapsible)
-    html += '<div class="meca-checkup-block">' +
-        '<div class="meca-checkup-header" onclick="toggleMecaCheckup()">' +
-        '<span>\u2611\uFE0F Checkup (' + checked + '/' + CHECKUP_POINTS.length + ')</span>' +
-        '<span id="meca-checkup-arrow" class="meca-checkup-arrow">\u25BC</span></div>' +
-        '<div id="meca-checkup-body" class="meca-checkup-body" style="display:none">';
-
-    CHECKUP_POINTS.forEach(function(pt) {
-        var val = points[pt.key] || 'non_verifie';
-        html += '<div class="meca-check-item">' +
-            '<span class="meca-check-label">' + pt.label + '</span>' +
-            '<div class="meca-check-btns">' +
-            '<button class="meca-check-btn' + (val === 'ok' ? ' ok' : '') + '" onclick="setMecaCheck(\'' + pt.key + '\',\'ok\',this)">OK</button>' +
-            '<button class="meca-check-btn' + (val === 'nok' ? ' nok' : '') + '" onclick="setMecaCheck(\'' + pt.key + '\',\'nok\',this)">NOK</button></div></div>';
-    });
-
-    html += '<div style="margin-top:10px"><textarea id="meca-notes" class="meca-notes-input" rows="2" placeholder="Notes, alertes...">' +
-        escapeHtml((rapport && rapport.alertes) || '') + '</textarea></div></div></div>';
-
-    // Big action buttons
-    html += '<div class="meca-actions">' +
-        '<button class="meca-big-btn warning" onclick="ouvrirDemandeTravauxSupp(' + rdv.id + ')">\u26A0\uFE0F Signaler probleme</button>' +
-        '<button class="meca-big-btn ghost" onclick="telechargerOR(' + rdv.id + ')">\uD83D\uDCC4 Voir OR</button>' +
-        '<button class="meca-big-btn success" onclick="terminerTravail(' + rdv.id + ')">\u2705 TERMINER</button></div>';
-
-    html += '</div>';
-    return html;
+    return window.MecanicienModule.renderMecaActivePanel(rdv);
 }
 
 function renderMecaCard(rdv, type) {
-    var v = rdv.vehicule || {};
-    var c = rdv.client || {};
-    var pont = APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
-    var dur = getRdvDurationMinutes(rdv);
-    var durStr = dur >= 60 ? (Math.round(dur / 6) / 10) + 'h' : dur + 'min';
-
-    var html = '<div class="meca-rdv-card ' + type + '">';
-    html += '<div class="meca-card-time">' + formatTime(rdv.heure_rdv) + '</div>';
-    html += '<div class="meca-card-body">' +
-        '<div class="meca-card-vehicle">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-        '<div class="meca-card-client">' + (escapeHtml(c.prenom) || '').charAt(0) + '. ' + (escapeHtml(c.nom) || '') + (pont ? ' \u2022 ' + escapeHtml(pont.nom) : '') + '</div>' +
-        '<div class="meca-card-type">' + (escapeHtml(rdv.type_intervention) || '') + ' \u2022 ' + durStr + '</div></div>';
-
-    if (type === 'todo') {
-        html += '<button class="meca-big-btn start" onclick="event.stopPropagation();demarrerTravail(' + rdv.id + ')">\u25B6 DEMARRER</button>';
-    } else {
-        html += '<div class="meca-card-actions">' +
-            '<button class="meca-sm-btn" onclick="telechargerOR(' + rdv.id + ')">OR</button>' +
-            '<button class="meca-sm-btn" onclick="ouvrirCheckup(' + rdv.id + ')">Rapport</button></div>';
-    }
-    html += '</div>';
-    return html;
+    return window.MecanicienModule.renderMecaCard(rdv, type);
 }
 
 function toggleMecaCheckup() {
-    var body = document.getElementById('meca-checkup-body');
-    var arrow = document.getElementById('meca-checkup-arrow');
-    if (!body) return;
-    var show = body.style.display === 'none';
-    body.style.display = show ? 'block' : 'none';
-    if (arrow) arrow.textContent = show ? '\u25B2' : '\u25BC';
+    return window.MecanicienModule.toggleMecaCheckup();
 }
 
 function setMecaCheck(key, value, btn) {
-    if (!window._checkupPoints) window._checkupPoints = {};
-    if (window._checkupPoints[key] === value) {
-        window._checkupPoints[key] = 'non_verifie';
-        btn.classList.remove('ok', 'nok');
-    } else {
-        window._checkupPoints[key] = value;
-        var btns = btn.parentElement.querySelectorAll('.meca-check-btn');
-        btns.forEach(function(b) { b.classList.remove('ok', 'nok'); });
-        btn.classList.add(value);
-    }
-    var checked = 0;
-    CHECKUP_POINTS.forEach(function(pt) {
-        if (window._checkupPoints[pt.key] && window._checkupPoints[pt.key] !== 'non_verifie') checked++;
-    });
-    var hdr = document.querySelector('.meca-checkup-header span');
-    if (hdr) hdr.textContent = '\u2611\uFE0F Checkup (' + checked + '/' + CHECKUP_POINTS.length + ')';
+    return window.MecanicienModule.setMecaCheck(key, value, btn);
 }
 
 function startMecaLiveTimer(rdv) {
-    cleanupMecaTimer();
-    function tick() {
-        var clockEl = document.getElementById('meca-live-clock');
-        var etaEl = document.getElementById('meca-live-eta');
-        var barEl = document.getElementById('meca-progress-bar');
-        if (!clockEl) return;
-        var startAt = parseUTCDate(rdv && rdv.heure_debut_travail ? rdv.heure_debut_travail : null);
-        if (!startAt || isNaN(startAt.getTime())) {
-            clockEl.textContent = '00:00:00';
-            if (etaEl) etaEl.textContent = 'En attente de demarrage';
-            return;
-        }
-        var elapsed = Math.max(0, Math.floor((Date.now() - startAt.getTime()) / 1000));
-        var h = Math.floor(elapsed / 3600);
-        var m = Math.floor((elapsed % 3600) / 60);
-        var s = elapsed % 60;
-        clockEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-        var totalMin = getRdvDurationMinutes(rdv);
-        var elapsedMin = Math.floor(elapsed / 60);
-        var remaining = totalMin - elapsedMin;
-        var pct = totalMin > 0 ? Math.min(100, Math.round((elapsedMin / totalMin) * 100)) : 0;
-        if (etaEl) {
-            if (remaining > 0) {
-                etaEl.textContent = '~ ' + remaining + ' min restantes';
-                etaEl.style.color = pct > 80 ? '#fbbf24' : '#9ca3af';
-            } else {
-                etaEl.textContent = 'Depassement +' + Math.abs(remaining) + ' min';
-                etaEl.style.color = '#ef4444';
-            }
-        }
-        if (barEl) {
-            barEl.style.width = Math.min(pct, 100) + '%';
-            barEl.style.background = pct > 100 ? '#ef4444' : (pct > 80 ? '#fbbf24' : '#22c55e');
-        }
-    }
-    tick();
-    APP._mecaLiveTimer = setInterval(tick, 1000);
+    return window.MecanicienModule.startMecaLiveTimer(rdv);
 }
 
 function cleanupMecaTimer() {
-    if (APP._mecaLiveTimer) { clearInterval(APP._mecaLiveTimer); APP._mecaLiveTimer = null; }
+    return window.MecanicienModule.cleanupMecaTimer();
 }
 
 // ===== GESTION ABSENCES =====

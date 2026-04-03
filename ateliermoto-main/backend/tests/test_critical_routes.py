@@ -42,6 +42,39 @@ Base.metadata.create_all(bind=engine)
 client = TestClient(app)
 
 
+def auth_headers_for_role(role: str, username: str):
+    """Create or reuse a user and return Authorization headers for that role."""
+    db = TestingSessionLocal()
+    from auth import get_password_hash
+    from models import User
+
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        user = User(
+            username=username,
+            email=f"{username}@test.local",
+            hashed_password=get_password_hash("testpass"),
+            role=role,
+            atelier_id=1,
+            is_active=1,
+        )
+        db.add(user)
+        db.commit()
+    else:
+        user.role = role
+        user.atelier_id = 1
+        user.is_active = 1
+        db.commit()
+    db.close()
+
+    response = client.post(
+        "/api/auth/login",
+        data={"username": username, "password": "testpass"}
+    )
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
 @pytest.fixture
 def auth_token():
     """Fixture pour obtenir un token d'authentification"""
@@ -339,6 +372,51 @@ class TestCriticalRoutesDevis:
         )
         assert response.status_code == 200
         assert isinstance(response.json(), list)
+
+
+class TestCriticalRdvSecurityAndTransitions:
+    """Tests de sécurité et de machine d'états pour le sprint A."""
+
+    def _create_rdv_as_admin(self):
+        headers = auth_headers_for_role("admin", "admin_rdv_sprint_a")
+        rdv_data = {
+            "client": {"nom": "Sprint", "prenom": "Admin", "telephone": "0612345678"},
+            "vehicule": {"plaque": "SPRINTA1", "marque": "HONDA", "modele": "CB500"},
+            "date_rdv": str(date.today()),
+            "heure_rdv": "11:00:00",
+            "type_intervention": "Révision"
+        }
+        response = client.post("/api/rendez-vous", json=rdv_data, headers=headers)
+        assert response.status_code == 200
+        return response.json()["id"], headers
+
+    def test_delete_rendez_vous_requires_rdv_edit_permission(self):
+        rdv_id, _ = self._create_rdv_as_admin()
+        mecanicien_headers = auth_headers_for_role("mecanicien", "meca_delete_blocked")
+
+        response = client.delete(f"/api/rendez-vous/{rdv_id}", headers=mecanicien_headers)
+
+        assert response.status_code == 403
+
+    def test_demarrer_travail_requires_reception_status(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        response = client.post(f"/api/rendez-vous/{rdv_id}/demarrer-travail", headers=headers)
+
+        assert response.status_code == 400
+        assert "reception" in response.text.lower()
+
+    def test_invalid_status_transition_is_rejected(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        response = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "termine"},
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert "transition" in response.text.lower() or "statut" in response.text.lower()
 
 
 class TestRouteResponseTimes:

@@ -1,5 +1,6 @@
 # Seed functions pour les tables de paramétrabilité
 import json
+from decimal import Decimal, ROUND_HALF_UP
 from models import SessionLocal, TempsIntervention, HoraireAtelier, PontEquipement, InterventionType, CategorieMoto, Pont, Prestation, GrilleTarifaire, ConfigAtelier
 
 def init_temps_interventions(db):
@@ -164,7 +165,7 @@ def init_grille_tarifaire(db):
 
     # Récupérer la config TVA
     config = db.query(ConfigAtelier).first()
-    tva_taux = config.tva_mo_taux if config else 20.0
+    tva_taux = Decimal(str(config.tva_mo_taux if config else 20.0))
 
     # Récupérer toutes les catégories moto
     categories = db.query(CategorieMoto).all()
@@ -192,10 +193,12 @@ def init_grille_tarifaire(db):
     for presta in prestations:
         for cat in categories:
             coef = coefs.get(cat.nom, 1.0)
+            coef_decimal = Decimal(str(coef))
+            prix_base_ttc = Decimal(str(presta.prix_base_ttc or 0))
 
             # Calculer prix et temps ajustés
-            prix_ttc = round(presta.prix_base_ttc * coef, 2)
-            prix_ht = round(prix_ttc / (1 + tva_taux / 100), 2)
+            prix_ttc = (prix_base_ttc * coef_decimal).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            prix_ht = (prix_ttc / (Decimal("1") + (tva_taux / Decimal("100")))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             temps = max(30, round(presta.temps_estime_minutes * coef / 15) * 15)  # arrondi 15min
 
             grille = GrilleTarifaire(

@@ -26,6 +26,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ateliermoto.api")
 
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").strip().lower() in {"1", "true", "yes", "on"}
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").strip().lower()
+if COOKIE_SAMESITE not in {"lax", "strict", "none"}:
+    COOKIE_SAMESITE = "lax"
+
 from models import (
     get_db, init_db, SessionLocal,
     Atelier,
@@ -49,6 +54,14 @@ from seed_parametres import init_parametres
 from statistiques import router as statistiques_router
 from facturation_api import router as facturation_router
 from services.pdf_service import generate_ordre_reparation_pdf, generate_facture_pdf
+from routes.public_booking import (
+    create_rendez_vous_public_handler,
+    get_creneaux_avec_ponts_handler,
+    get_creneaux_disponibles_handler,
+    get_delais_intervention_handler,
+    get_prestations_public_handler,
+    get_vehicule_by_plaque_handler,
+)
 
 app = FastAPI(title="Atelier Moto API Pro", version="2.0.0")
 
@@ -971,8 +984,8 @@ def login(response: Response, request: Request, form_data: OAuth2PasswordRequest
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
@@ -980,8 +993,8 @@ def login(response: Response, request: Request, form_data: OAuth2PasswordRequest
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/api/auth"
     )
@@ -1036,8 +1049,8 @@ def switch_atelier(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
@@ -1092,8 +1105,8 @@ def refresh_access_token(payload: RefreshTokenPayload, request: Request, respons
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/api/auth"
     )
@@ -1106,8 +1119,8 @@ def refresh_access_token(payload: RefreshTokenPayload, request: Request, respons
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
@@ -1725,64 +1738,7 @@ def get_interventions(db: Session = Depends(get_db)):
 @app.get("/api/prestations/public")
 def get_prestations_public(atelier_slug: Optional[str] = "default", db: Session = Depends(get_db)):
     """Liste les prestations actives avec grille tarifaire par type moto (sans auth)"""
-    atelier = db.query(Atelier).filter(Atelier.slug == (atelier_slug or "default").strip().lower(), Atelier.actif == True).first()
-    if not atelier and (atelier_slug or "default").strip().lower() == "default":
-        atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
-        db.add(atelier)
-        db.commit()
-        db.refresh(atelier)
-    if not atelier:
-        raise HTTPException(status_code=404, detail="Atelier non trouvé")
-    atelier_id = atelier.id
-    prestations = db.query(Prestation).filter(
-        Prestation.is_active == 1,
-        Prestation.atelier_id == atelier_id
-    ).order_by(Prestation.categorie, Prestation.nom).all()
-
-    grilles_par_presta = {}
-    try:
-        # Schéma récent: grille liée à categorie_moto_id
-        grilles = db.query(GrilleTarifaire, CategorieMoto.nom).join(
-            CategorieMoto, GrilleTarifaire.categorie_moto_id == CategorieMoto.id
-        ).filter(
-            GrilleTarifaire.is_active == 1,
-            GrilleTarifaire.categorie_moto_id.isnot(None),
-            GrilleTarifaire.atelier_id == atelier_id
-        ).all()
-
-        for g, cat_nom in grilles:
-            if g.prestation_id not in grilles_par_presta:
-                grilles_par_presta[g.prestation_id] = {}
-            grilles_par_presta[g.prestation_id][cat_nom] = {
-                "prix_ttc": g.prix_ttc,
-                "prix_ht": g.prix_ht,
-                "temps_minutes": g.temps_minutes
-            }
-    except OperationalError as e:
-        # Compatibilité anciennes BDD sans colonne categorie_moto_id.
-        # On conserve la liste des prestations sans grille détaillée.
-        logger.warning("Fallback tarifs publics sans categorie_moto_id: %s", e)
-
-    result = []
-    for p in prestations:
-        tarifs = grilles_par_presta.get(p.id, {})
-        result.append({
-            "id": p.id,
-            "code": p.code,
-            "nom": p.nom,
-            "description": p.description,
-            "categorie": p.categorie,
-            "type_tarif": p.type_tarif,
-            "prix_base_ttc": p.prix_promo_ttc if p.is_promo and p.prix_promo_ttc else p.prix_base_ttc,
-            "prix_base_ht": p.prix_base_ht,
-            "temps_estime_minutes": p.temps_estime_minutes,
-            "is_forfait": p.is_forfait,
-            "is_promo": p.is_promo,
-            "prix_promo_ttc": p.prix_promo_ttc,
-            "tarifs": tarifs
-        })
-
-    return result
+    return get_prestations_public_handler(atelier_slug, db)
 
 
 @app.get("/api/config/prestations")
@@ -2052,60 +2008,7 @@ def get_vehicule_by_id(vehicule_id: int, db: Session = Depends(get_db), current_
 @app.get("/api/vehicule/{plaque}")
 async def get_vehicule_by_plaque(plaque: str, db: Session = Depends(get_db)):
     """Récupère les informations d'un véhicule par sa plaque"""
-    plaque_clean = plaque.upper().replace(" ", "").replace("-", "")
-    
-    # Vérifier si le véhicule existe déjà en base
-    vehicule_db = db.query(Vehicule).filter(Vehicule.plaque == plaque_clean).first()
-    if vehicule_db:
-        # Récupérer la catégorie si le véhicule a un modèle
-        categorie_id = None
-        if vehicule_db.modele_id:
-            modele = db.query(ModeleMoto).filter(ModeleMoto.id == vehicule_db.modele_id).first()
-            if modele:
-                categorie_id = modele.categorie_id
-        
-        return {
-            "id": vehicule_db.id,
-            "plaque": vehicule_db.plaque,
-            "marque": vehicule_db.marque,
-            "modele": vehicule_db.modele,
-            "annee": vehicule_db.annee,
-            "cylindree": vehicule_db.cylindree,
-            "type_moto": vehicule_db.type_moto,
-            "categorie_id": categorie_id,
-            "modele_id": vehicule_db.modele_id,
-            "source": "database"
-        }
-    
-    # Essayer l'API Plaque Immatriculation si configurée
-    api_plaque_key = os.getenv("API_PLAQUE_IMMATRICULATION_KEY")
-    if api_plaque_key:
-        api_data = await fetch_api_plaque_immatriculation(plaque_clean)
-        if api_data:
-            # Sauvegarder en base
-            new_vehicule = Vehicule(
-                plaque=api_data["plaque"],
-                marque=api_data["marque"],
-                modele=api_data["modele"],
-                annee=api_data["annee"],
-                cylindree=api_data["cylindree"],
-                type_moto=api_data["type_moto"]
-            )
-            db.add(new_vehicule)
-            db.commit()
-            return api_data
-    
-    # Véhicule non trouvé - retourner un flag pour indiquer qu'il faut le créer
-    return {
-        "plaque": plaque_clean,
-        "marque": None,
-        "modele": None,
-        "annee": None,
-        "cylindree": None,
-        "type_moto": None,
-        "not_found": True,
-        "message": "Véhicule non trouvé. Veuillez renseigner les informations."
-    }
+    return await get_vehicule_by_plaque_handler(plaque, db)
 
 
 @app.post("/api/vehicule")
@@ -3659,163 +3562,7 @@ def create_rendez_vous_public(
     db: Session = Depends(get_db)
 ):
     """Crée un rendez-vous depuis l'interface publique (sans authentification)"""
-    atelier_slug = (rdv_data.atelier_slug or "default").strip().lower()
-    atelier = db.query(Atelier).filter(Atelier.slug == atelier_slug, Atelier.actif == True).first()
-    if not atelier and atelier_slug == "default":
-        atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
-        db.add(atelier)
-        db.commit()
-        db.refresh(atelier)
-    if not atelier:
-        raise HTTPException(status_code=404, detail="Atelier non trouvé")
-    atelier_id = atelier.id
-
-    def _to_minutes(hhmm: str) -> int:
-        h, m = hhmm.split(":")
-        return int(h) * 60 + int(m)
-    
-    # Vérifier si le client existe déjà (par téléphone)
-    client = db.query(Client).filter(
-        Client.telephone == rdv_data.client['telephone'],
-        Client.atelier_id == atelier_id
-    ).first()
-    
-    if not client:
-        # Créer le client
-        client = Client(
-            atelier_id=atelier_id,
-            nom=rdv_data.client['nom'],
-            prenom=rdv_data.client['prenom'],
-            telephone=rdv_data.client['telephone'],
-            email=rdv_data.client.get('email')
-        )
-        db.add(client)
-        db.flush()
-    
-    # Vérifier si le véhicule existe
-    plaque_clean = rdv_data.vehicule['plaque'].upper().replace(" ", "").replace("-", "")
-    vehicule = db.query(Vehicule).filter(
-        Vehicule.plaque == plaque_clean,
-        Vehicule.atelier_id == atelier_id
-    ).first()
-    
-    if not vehicule:
-        # Créer le véhicule
-        vehicule = Vehicule(
-            atelier_id=atelier_id,
-            plaque=plaque_clean,
-            marque=rdv_data.vehicule.get('marque', 'Inconnue'),
-            modele=rdv_data.vehicule.get('modele', 'Inconnu'),
-            annee=rdv_data.vehicule.get('annee'),
-            cylindree=rdv_data.vehicule.get('cylindree'),
-            type_moto=rdv_data.vehicule.get('type_moto'),
-            categorie_id=rdv_data.vehicule.get('categorie_id'),
-            client_id=client.id
-        )
-        db.add(vehicule)
-        db.flush()
-    else:
-        # Mettre a jour type_moto si manquant
-        if not vehicule.type_moto and rdv_data.vehicule.get('type_moto'):
-            vehicule.type_moto = rdv_data.vehicule['type_moto']
-        if not vehicule.client_id:
-            vehicule.client_id = client.id
-    
-    # Parser la date et l'heure
-    try:
-        # Essayer différents formats
-        date_heure_str = rdv_data.date_heure.replace('Z', '+00:00')
-        if ':' in date_heure_str:
-            # Format: 2026-03-24T09:00 ou 2026-03-24T09:00:00
-            date_heure = datetime.fromisoformat(date_heure_str)
-        else:
-            # Format sans heure, utiliser 09:00 par défaut
-            date_heure = datetime.fromisoformat(date_heure_str + 'T09:00:00')
-    except Exception as e:
-        print(f"Erreur parsing date: {e}, valeur reçue: {rdv_data.date_heure}")
-        # Fallback: utiliser la date du jour à 09:00
-        from datetime import datetime as dt
-        date_heure = dt.now().replace(hour=9, minute=0, second=0, microsecond=0)
-
-    # Valider horaires atelier (ouverture + pause midi configurable)
-    horaire = db.query(HoraireAtelier).filter(
-        HoraireAtelier.atelier_id == atelier_id,
-        HoraireAtelier.jour_semaine == date_heure.date().weekday()
-    ).first()
-    if not horaire:
-        horaire = None
-    if horaire and not horaire.is_ouvert:
-        raise HTTPException(status_code=400, detail="Atelier ferme ce jour")
-    if horaire and (not horaire.heure_ouverture or not horaire.heure_fermeture):
-        horaire = None
-    if horaire:
-        slot = date_heure.hour * 60 + date_heure.minute
-        if slot < _to_minutes(horaire.heure_ouverture) or slot >= _to_minutes(horaire.heure_fermeture):
-            raise HTTPException(status_code=400, detail="Creneau en dehors des horaires d'ouverture")
-        if horaire.pause_debut and horaire.pause_fin:
-            if _to_minutes(horaire.pause_debut) <= slot < _to_minutes(horaire.pause_fin):
-                raise HTTPException(status_code=400, detail="Creneau pendant la fermeture midi")
-    
-    # Récupérer les prestations pour avoir les noms et durées
-    prestations = db.query(Prestation).filter(
-        Prestation.id.in_(rdv_data.prestations),
-        Prestation.atelier_id == atelier_id
-    ).all()
-    types_intervention = ", ".join([p.nom for p in prestations])
-
-    # Valeur par défaut si aucune prestation sélectionnée
-    if not types_intervention:
-        types_intervention = "Intervention à définir"
-
-    # Calculer la durée totale estimée (somme des temps des prestations)
-    temps_total = sum(p.temps_estime_minutes or 60 for p in prestations)
-    if temps_total == 0:
-        temps_total = 60  # Durée par défaut: 1h
-    if horaire:
-        close_min = _to_minutes(horaire.heure_fermeture)
-        start_min = date_heure.hour * 60 + date_heure.minute
-        # Split midi autorisé, mais dépassement fermeture interdit.
-        if (start_min + temps_total) > close_min:
-            raise HTTPException(status_code=400, detail="Duree intervention depasse l'heure de fermeture")
-
-    assigned_mecanicien_id = None
-    if rdv_data.pont_id:
-        pont = db.query(Pont).filter(
-            Pont.id == rdv_data.pont_id,
-            Pont.atelier_id == atelier_id,
-            Pont.is_active == 1
-        ).first()
-        if not pont:
-            raise HTTPException(status_code=400, detail="Pont indisponible pour cet atelier")
-        if not pont.mecanicien_id:
-            raise HTTPException(status_code=400, detail="Pont sans technicien assigne")
-        assigned_mecanicien_id = pont.mecanicien_id
-
-    # Créer le rendez-vous
-    rdv = RendezVous(
-        atelier_id=atelier_id,
-        client_id=client.id,
-        vehicule_id=vehicule.id,
-        date_rdv=date_heure.date(),
-        heure_rdv=date_heure.time(),
-        type_intervention=types_intervention,
-        prix_estime=rdv_data.montant_estime,
-        temps_estime=temps_total,
-        statut="reserve",
-        commentaire=rdv_data.commentaires,
-        pont_id=rdv_data.pont_id,
-        mecanicien_id=assigned_mecanicien_id
-    )
-    db.add(rdv)
-    db.commit()
-    db.refresh(rdv)
-    
-    return {
-        "id": rdv.id,
-        "message": "Rendez-vous créé avec succès",
-        "date": rdv.date_rdv.isoformat(),
-        "heure": rdv.heure_rdv.isoformat() if rdv.heure_rdv else None
-    }
+    return create_rendez_vous_public_handler(rdv_data, db)
 
 
 @app.get("/api/creneaux/disponibles")
@@ -3826,108 +3573,7 @@ def get_creneaux_disponibles(
     db: Session = Depends(get_db)
 ):
     """Récupère les créneaux disponibles pour une date donnée avec gestion des absences"""
-    atelier = db.query(Atelier).filter(Atelier.slug == (atelier_slug or "default").strip().lower(), Atelier.actif == True).first()
-    if not atelier and (atelier_slug or "default").strip().lower() == "default":
-        atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
-        db.add(atelier)
-        db.commit()
-        db.refresh(atelier)
-    if not atelier:
-        raise HTTPException(status_code=404, detail="Atelier non trouvé")
-    atelier_id = atelier.id
-    
-    target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    
-    # Récupérer les mécaniciens absents ce jour
-    absences = db.query(Absence).filter(
-        Absence.date_debut <= target_date,
-        Absence.date_fin >= target_date,
-        Absence.atelier_id == atelier_id
-    ).all()
-    mecaniciens_absents = [a.mecanicien_id for a in absences]
-    
-    # Récupérer les ponts disponibles (actifs, avec mécanicien assigné et non absent)
-    query_ponts = db.query(Pont).filter(
-        Pont.is_active == 1,
-        Pont.mecanicien_id.isnot(None),
-        Pont.atelier_id == atelier_id
-    )
-    if mecaniciens_absents:
-        query_ponts = query_ponts.filter(~Pont.mecanicien_id.in_(mecaniciens_absents))
-    ponts_disponibles = query_ponts.count()
-    
-    # Récupérer les RDV existants ce jour
-    rdvs_existants = db.query(RendezVous).filter(
-        RendezVous.date_rdv == target_date,
-        RendezVous.atelier_id == atelier_id,
-        RendezVous.statut.in_(["reserve", "en_attente", "confirme", "reception", "en_cours"])
-    ).all()
-    
-    def _to_minutes(hhmm: str) -> int:
-        h, m = hhmm.split(":")
-        return int(h) * 60 + int(m)
-
-    requested_duration = max(15, int(duree_minutes or 60))
-    step = 15
-    horaire = db.query(HoraireAtelier).filter(
-        HoraireAtelier.atelier_id == atelier_id,
-        HoraireAtelier.jour_semaine == target_date.weekday()
-    ).first()
-    
-    # Générer les créneaux disponibles (pas 15min)
-    creneaux = []
-
-    # Jour fermé → aucun créneau
-    is_closed = horaire and not horaire.is_ouvert
-    if not is_closed:
-        if horaire and horaire.heure_ouverture and horaire.heure_fermeture:
-            open_min = _to_minutes(horaire.heure_ouverture)
-            close_min = _to_minutes(horaire.heure_fermeture)
-        else:
-            open_min = _to_minutes("08:00")
-            close_min = _to_minutes("18:00")
-
-        pause_start = _to_minutes(horaire.pause_debut) if (horaire and horaire.pause_debut) else None
-        pause_end = _to_minutes(horaire.pause_fin) if (horaire and horaire.pause_fin) else None
-
-        for start_min in range(open_min, close_min, step):
-            end_min = start_min + requested_duration
-            if end_min > close_min:
-                continue
-            if pause_start is not None and pause_end is not None and pause_start <= start_min < pause_end:
-                continue
-            ponts_occupes = 0
-            for rdv in rdvs_existants:
-                if not rdv.heure_rdv:
-                    continue
-                rdv_start = rdv.heure_rdv.hour * 60 + rdv.heure_rdv.minute
-                rdv_end = rdv_start + int(rdv.temps_estime or 60)
-                # Split logique sur pause midi
-                if pause_start is not None and pause_end is not None and rdv_start < pause_start and rdv_end > pause_start:
-                    segs = [(rdv_start, pause_start), (pause_end, pause_end + (rdv_end - pause_start))]
-                else:
-                    segs = [(rdv_start, rdv_end)]
-                overlaps = False
-                for s0, s1 in segs:
-                    if start_min < s1 and end_min > s0:
-                        overlaps = True
-                        break
-                if overlaps:
-                    ponts_occupes += 1
-            places_restantes = ponts_disponibles - ponts_occupes
-            creneaux.append({
-                "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
-                "disponible": places_restantes > 0,
-                "places_restantes": max(0, places_restantes),
-                "places_totales": ponts_disponibles
-            })
-    
-    return {
-        "date": date_str,
-        "ponts_disponibles": ponts_disponibles,
-        "mecaniciens_absents": len(mecaniciens_absents),
-        "creneaux": creneaux
-    }
+    return get_creneaux_disponibles_handler(date_str, duree_minutes, atelier_slug, db)
 
 
 @app.get("/api/creneaux/avec-ponts")
@@ -3938,117 +3584,7 @@ def get_creneaux_avec_ponts(
     db: Session = Depends(get_db)
 ):
     """Récupère les créneaux disponibles avec les ponts spécifiques libres, en tenant compte de la durée des RDV"""
-    atelier = db.query(Atelier).filter(Atelier.slug == (atelier_slug or "default").strip().lower(), Atelier.actif == True).first()
-    if not atelier and (atelier_slug or "default").strip().lower() == "default":
-        atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
-        db.add(atelier)
-        db.commit()
-        db.refresh(atelier)
-    if not atelier:
-        raise HTTPException(status_code=404, detail="Atelier non trouvé")
-    atelier_id = atelier.id
-
-    target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
-    # Récupérer les mécaniciens absents ce jour
-    absences = db.query(Absence).filter(
-        Absence.date_debut <= target_date,
-        Absence.date_fin >= target_date,
-        Absence.atelier_id == atelier_id
-    ).all()
-    mecaniciens_absents = [a.mecanicien_id for a in absences]
-
-    # Récupérer tous les ponts disponibles (actifs, avec mécanicien assigné et non absent)
-    query_ponts_ap = db.query(Pont).options(joinedload(Pont.mecanicien)).filter(
-        Pont.is_active == 1,
-        Pont.mecanicien_id.isnot(None),
-        Pont.atelier_id == atelier_id
-    )
-    if mecaniciens_absents:
-        query_ponts_ap = query_ponts_ap.filter(~Pont.mecanicien_id.in_(mecaniciens_absents))
-    ponts_disponibles = query_ponts_ap.all()
-
-    # Récupérer les RDV existants ce jour avec leur durée
-    rdvs_existants = db.query(RendezVous).filter(
-        RendezVous.date_rdv == target_date,
-        RendezVous.atelier_id == atelier_id,
-        RendezVous.statut.in_(["reserve", "en_attente", "confirme", "reception", "en_cours"])
-    ).all()
-
-    # Convertir les RDV en plages horaires (début, fin, pont_id)
-    # Durée par défaut: 60 minutes si temps_estime non défini
-    rdv_plages = []
-    for rdv in rdvs_existants:
-        if rdv.heure_rdv and rdv.pont_id:
-            heure_debut = datetime.combine(target_date, rdv.heure_rdv)
-            rdv_duree_minutes = rdv.temps_estime or 60
-            heure_fin = heure_debut + timedelta(minutes=rdv_duree_minutes)
-            rdv_plages.append({
-                'pont_id': rdv.pont_id,
-                'debut': heure_debut,
-                'fin': heure_fin
-            })
-
-    def _to_minutes(hhmm: str) -> int:
-        h, m = hhmm.split(":")
-        return int(h) * 60 + int(m)
-
-    requested_duration = max(15, int(duree_minutes or 60))
-    step = 15
-    horaire = db.query(HoraireAtelier).filter(
-        HoraireAtelier.atelier_id == atelier_id,
-        HoraireAtelier.jour_semaine == target_date.weekday()
-    ).first()
-
-    # Générer les créneaux avec les ponts disponibles (pas 15min)
-    creneaux = []
-
-    # Jour fermé → aucun créneau
-    is_closed = horaire and not horaire.is_ouvert
-    if not is_closed:
-        if horaire and horaire.heure_ouverture and horaire.heure_fermeture:
-            open_min = _to_minutes(horaire.heure_ouverture)
-            close_min = _to_minutes(horaire.heure_fermeture)
-        else:
-            open_min = _to_minutes("08:00")
-            close_min = _to_minutes("18:00")
-        pause_start = _to_minutes(horaire.pause_debut) if (horaire and horaire.pause_debut) else None
-        pause_end = _to_minutes(horaire.pause_fin) if (horaire and horaire.pause_fin) else None
-
-        for start_min in range(open_min, close_min, step):
-            end_min = start_min + requested_duration
-            if end_min > close_min:
-                continue
-            if pause_start is not None and pause_end is not None and pause_start <= start_min < pause_end:
-                continue
-            heure_str = f"{start_min // 60:02d}:{start_min % 60:02d}"
-            heure_creneau = datetime.combine(target_date, datetime.strptime(heure_str, "%H:%M").time())
-            duree_creneau = requested_duration
-            fin_creneau = heure_creneau + timedelta(minutes=duree_creneau)
-
-            # Trouver les ponts occupés pendant ce créneau (chevauchement)
-            ponts_occupes = set()
-            for plage in rdv_plages:
-                if (heure_creneau < plage['fin'] and fin_creneau > plage['debut']):
-                    ponts_occupes.add(plage['pont_id'])
-
-            ponts_libres = [{
-                "id": p.id,
-                "nom": p.nom,
-                "mecanicien": p.mecanicien.prenom + " " + p.mecanicien.nom if p.mecanicien else None
-            } for p in ponts_disponibles if p.id not in ponts_occupes]
-
-            creneaux.append({
-                "heure": heure_str,
-                "disponible": len(ponts_libres) > 0,
-                "ponts_disponibles": ponts_libres,
-                "nb_ponts_libres": len(ponts_libres)
-            })
-
-    return {
-        "date": date_str,
-        "creneaux": creneaux
-    }
+    return get_creneaux_avec_ponts_handler(date_str, duree_minutes, atelier_slug, db)
 
 
 # ==================== ENDPOINTS GESTION DES TARIFS ====================
@@ -4583,23 +4119,7 @@ def get_delais_intervention(
     db: Session = Depends(get_db)
 ):
     """Récupère les délais d'intervention pour des prestations"""
-    delais = {}
-    
-    if prestation_ids:
-        ids = [int(id) for id in prestation_ids.split(",")]
-        prestations = db.query(Prestation).filter(Prestation.id.in_(ids)).all()
-        
-        for p in prestations:
-            delais[p.id] = {
-                "nom": p.nom,
-                "delai_jours": p.delai_intervention_jours,
-                "temps_minutes": p.temps_estime_minutes
-            }
-    
-    return {
-        "delais_par_prestation": delais,
-        "delai_total_jours": max([d["delai_jours"] for d in delais.values()]) if delais else 1
-    }
+    return get_delais_intervention_handler(prestation_ids, db)
 
 
 # ========== ENDPOINTS SYNTHÈSE TARIFAIRE ==========
@@ -5118,6 +4638,9 @@ def reception_vehicule(
     current_user: User = Depends(get_current_user)
 ):
     """Endpoint reception: passe le RDV en statut 'reception' et cree l'OR initial"""
+    if not user_has_permission(current_user, db, "rdv.edit"):
+        raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
+
     atelier_id = current_user.atelier_id or 1
     rdv = db.query(RendezVous).filter(
         RendezVous.id == rdv_id,
@@ -5125,8 +4648,9 @@ def reception_vehicule(
     ).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouve")
+    if rdv.statut not in {"reserve", "confirme", "reception"}:
+        raise HTTPException(status_code=400, detail="Statut incompatible avec la reception du vehicule")
 
-    rdv.statut = "reception"
     # Creer l'OR initial archive (idempotent)
     year = rdv.date_rdv.year if rdv.date_rdv else datetime.now().year
     numero_or = f"OR-{year}-{str(rdv_id).zfill(3)}"
@@ -5141,9 +4665,14 @@ def reception_vehicule(
             type_or="initial",
         )
         db.add(or_initial)
+
     or_initial.kilometrage = rdv.kilometrage
     or_initial.etat_vehicule = rdv.etat_vehicule
     or_initial.travaux = rdv.commentaire
+    if not or_initial.signature_client:
+        raise HTTPException(status_code=400, detail="Signature client obligatoire avant validation de la reception")
+
+    rdv.statut = "reception"
     db.commit()
     return {"message": "Reception validee et OR cree", "id": rdv_id, "statut": "reception"}
 

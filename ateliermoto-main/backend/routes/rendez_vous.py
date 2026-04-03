@@ -40,6 +40,49 @@ def _user_has_permission(current_user: User, db: Session, permission: str) -> bo
     return False
 
 
+def _user_can_manage_workflow(current_user: User, db: Session, rdv: RendezVous | None = None) -> bool:
+    if _user_has_permission(current_user, db, "rdv.edit"):
+        return True
+    if current_user.role != "mecanicien":
+        return False
+    if rdv is None or not rdv.mecanicien_id:
+        return False
+    mecanicien = db.query(Mecanicien).filter(
+        Mecanicien.id == rdv.mecanicien_id,
+        Mecanicien.atelier_id == _atelier_id_or_403(current_user)
+    ).first()
+    return bool(mecanicien and mecanicien.user_id == current_user.id)
+
+
+_ALLOWED_STATUS_TRANSITIONS = {
+    "reserve": {"confirme", "annule", "non_presente", "reception"},
+    "en_attente": {"confirme", "annule", "non_presente", "reception"},
+    "confirme": {"reception", "annule", "non_presente"},
+    "reception": {"en_cours", "annule"},
+    "en_cours": {"termine"},
+    "termine": {"facture", "paye"},
+    "facture": {"paye"},
+    "paye": set(),
+    "annule": set(),
+    "non_presente": set(),
+}
+
+
+def _assert_valid_status_transition(current_status: str | None, new_status: str | None) -> None:
+    current_value = (current_status or "reserve").strip().lower()
+    next_value = (new_status or "").strip().lower()
+    if not next_value or next_value == current_value:
+        return
+    allowed_targets = _ALLOWED_STATUS_TRANSITIONS.get(current_value)
+    if allowed_targets is None:
+        return
+    if next_value not in allowed_targets:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transition de statut interdite: {current_value} -> {next_value}",
+        )
+
+
 def _rdv_start_end(rdv: RendezVous) -> tuple[datetime, datetime]:
     start_dt = datetime.combine(rdv.date_rdv, rdv.heure_rdv or time(9, 0))
     duration_min = int(rdv.temps_estime or 60)
@@ -280,6 +323,7 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
     previous_status = rdv.statut
 
     if update_data.statut:
+        _assert_valid_status_transition(previous_status, update_data.statut)
         rdv.statut = update_data.statut
     if update_data.kilometrage is not None:
         rdv.kilometrage = update_data.kilometrage
@@ -357,11 +401,13 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
 @router.delete("/api/rendez-vous/{rdv_id}")
 def delete_rendez_vous(rdv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un rendez-vous"""
+    if not _user_has_permission(current_user, db, "rdv.edit"):
+        raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
-    
+
     db.delete(rdv)
     db.commit()
     return {"message": "Rendez-vous supprimé"}
@@ -375,13 +421,24 @@ def demarrer_travail(rdv_id: int, db: Session = Depends(get_db), current_user: U
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
-    
+    if not _user_can_manage_workflow(current_user, db, rdv):
+        raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
+    if rdv.statut != "reception":
+        raise HTTPException(status_code=400, detail="Reception obligatoire avant de demarrer le travail")
+
+    or_initial = db.query(OrdreReparation).filter(
+        OrdreReparation.rendez_vous_id == rdv_id,
+        OrdreReparation.type_or == "initial"
+    ).order_by(OrdreReparation.created_at.desc()).first()
+    if not or_initial or not or_initial.signature_client:
+        raise HTTPException(status_code=400, detail="Ordre de reparation signe obligatoire avant demarrage")
+
     from datetime import datetime
     rdv.heure_debut_travail = datetime.now()
     rdv.heure_fin_travail = None
     rdv.temps_effectif_minutes = None
     rdv.statut = "en_cours"
-    
+
     db.commit()
     db.refresh(rdv)
     return {
@@ -397,19 +454,22 @@ def terminer_travail(rdv_id: int, db: Session = Depends(get_db), current_user: U
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
-    
+    if not _user_can_manage_workflow(current_user, db, rdv):
+        raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
+    if rdv.statut != "en_cours":
+        raise HTTPException(status_code=400, detail="Le rendez-vous doit être en cours avant cloture")
     if not rdv.heure_debut_travail:
         raise HTTPException(status_code=400, detail="Le travail n'a pas été démarré")
-    
+
     from datetime import datetime
     rdv.heure_fin_travail = datetime.now()
-    
+
     # Calcul du temps effectif en minutes
     delta = rdv.heure_fin_travail - rdv.heure_debut_travail
     rdv.temps_effectif_minutes = int(delta.total_seconds() / 60)
     rdv.temps_final = rdv.temps_effectif_minutes  # Pour la facturation
     rdv.statut = "termine"
-    
+
     db.commit()
     db.refresh(rdv)
     return {
@@ -572,12 +632,14 @@ def create_or_update_rapport_technicien(
     """Crée ou met à jour le rapport technicien d'un RDV"""
     import json
     from datetime import datetime
-    
+
     # Vérifier que le RDV existe
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+    if not _user_can_manage_workflow(current_user, db, rdv):
+        raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
     
     # Chercher un rapport existant
     rapport = db.query(RapportTechnicien).filter(RapportTechnicien.rendez_vous_id == rdv_id).first()
