@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Mécanicien - Atelier Moto Pro</title>
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .header-dark text-white { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        .card-shadow { box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden-section { display: none; }
+        
+        /* Styles spécifiques au planning */
+        .planning-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: #dee2e6;
+            border: 1px solid #dee2e6;
+        }
+        .planning-header {
+            background: #ffffff;
+            padding: 12px 8px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        .planning-time {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            font-weight: 500;
+            text-align: center;
+            font-size: 0.875rem;
+            border-right: 1px solid #dee2e6;
+        }
+        .planning-cell {
+            background: #ffffff;
+            min-height: 80px;
+            padding: 4px;
+            position: relative;
+        }
+        .planning-cell:hover {
+            background: #f8f9fa;
+        }
+        .rdv-card {
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid;
+        }
+        .rdv-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        /* Couleurs harmonisées avec le dashboard */
+        .rdv-en_attente { background: #fff3cd; border-left-color: #ffc107; color: #856404; }
+        .rdv-confirme { background: #d4edda; border-left-color: #28a745; color: #155724; }
+        .rdv-en_cours { background: #cce5ff; border-left-color: #007bff; color: #004085; }
+        .rdv-termine { background: #e2e3e5; border-left-color: #6c757d; color: #383d41; }
+        .rdv-facture { background: #d4edda; border-left-color: #28a745; color: #155724; }
+        .rdv-annule { background: #f8d7da; border-left-color: #dc3545; color: #721c24; }
+        
+        .mecanicien-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .timeline-container {
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .current-time-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-top: 2px dashed #ef4444;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .current-time-label {
+            position: absolute;
+            background: #ef4444;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            left: 0;
+            transform: translateY(-50%);
+        }
+        
+        /* Badge "Prendre ce RDV" */
+        .rdv-card .badge-prendre {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #9333ea;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        /* Vue semaine */
+        .semaine-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border: 1px solid #dee2e6;
+        }
+        .semaine-header {
+            background: #ffffff;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .semaine-cell {
+            background: #ffffff;
+            min-height: 60px;
+            padding: 4px;
+            font-size: 0.7rem;
+        }
+        .semaine-rdv {
+            border-radius: 4px;
+            padding: 4px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            color: white;
+            font-weight: 500;
+        }
+        
+        /* NOUVEAUX STYLES - Vue semaine v2 avec ponts */
+        .semaine-grid-v2 {
+            display: grid;
+            grid-template-columns: 100px repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border: 1px solid #dee2e6;
+        }
+        .semaine-corner {
+            background: #f8f9fa;
+            padding: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .semaine-header-jour {
+            background: #ffffff;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .semaine-header-jour.today {
+            background: #dbeafe;
+        }
+        .semaine-header-jour .jour-nom {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .semaine-header-jour .jour-num {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .semaine-pont-label {
+            background: #f8f9fa;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+        }
+        .semaine-cell-v2 {
+            background: #ffffff;
+            padding: 8px;
+            min-height: 80px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .semaine-cell-v2:hover {
+            background: #f8f9fa;
+        }
+        .semaine-cell-v2.today {
+            background: #eff6ff;
+        }
+        .semaine-pont-label.sans-pont {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .semaine-cell-v2.sans-pont-cell {
+            background: #fffbeb;
+        }
+        .semaine-rdv-v2.rdv-sans-pont {
+            border: 2px dashed #f59e0b;
+        }
+        .semaine-cell-v2.busy {
+            background: #fef3c7;
+        }
+        .semaine-rdv-v2 {
+            padding: 4px 6px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+            color: #1f2937;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        /* Couleurs de statut pour vue semaine - harmonisées dashboard */
+        .semaine-rdv-v2.rdv-en_attente { background: #fff3cd; color: #856404; }
+        .semaine-rdv-v2.rdv-confirme { background: #d4edda; color: #155724; }
+        .semaine-rdv-v2.rdv-en_cours { background: #cce5ff; color: #004085; }
+        .semaine-rdv-v2.rdv-termine { background: #e2e3e5; color: #383d41; }
+        .semaine-rdv-v2.rdv-facture { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .semaine-rdv-v2.rdv-annule { background: #f8d7da; color: #721c24; opacity: 0.7; }
+        .semaine-rdv-v2:hover {
+            opacity: 0.9;
+        }
+        .semaine-rdv-v2.conflit {
+            border: 2px solid #ef4444;
+        }
+        .semaine-rdv-v2 .rdv-heure {
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .semaine-rdv-v2 .rdv-nom {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+        .semaine-rdv-v2 .conflit-icon {
+            font-size: 0.7rem;
+        }
+        .semaine-cell-v2 .disponible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #d1d5db;
+            font-size: 0.875rem;
+        }
+        
+        /* Style pour RDV en conflit */
+        .rdv-conflit {
+            animation: pulse-conflit 2s infinite;
+        }
+        @keyframes pulse-conflit {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header - style dashboard -->
+    <header style="background: #1a1a1a; color: white;">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: #ffd700;">
+                        <i class="fas fa-motorcycle text-xl" style="color: #1a1a1a;"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">Atelier Moto Pro</h1>
+                        <p style="color: #9ca3af;" class="text-xs">Planning Mécanicien</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard.html" class="px-4 py-2 rounded-lg inline-flex items-center" style="background: rgba(255,255,255,0.1); color: white;">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                    <span id="current-date" class="text-lg font-semibold"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Vue -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex space-x-2">
+                    <button onclick="setVue('jour')" id="btn-vue-jour" class="px-4 py-2 rounded-lg font-medium" style="background: #ffd700; color: #1a1a1a;">
+                        <i class="fas fa-calendar-day mr-2"></i>Vue Jour
+                    </button>
+                    <button onclick="setVue('semaine')" id="btn-vue-semaine" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium">
+                        <i class="fas fa-calendar-week mr-2"></i>Vue Semaine
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="changeDate(-1)" class="p-2 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <input type="date" id="date-selector" class="px-3 py-2 border rounded-lg" onchange="onDateChange(this.value)">
+                    <button onclick="changeDate(1)" class="p-2 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button onclick="goToToday()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        Aujourd'hui
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu Principal -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Stats rapides -->
+        <div class="grid grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs">RDV Jour</p>
+                        <p class="text-2xl font-bold text-yellow-500" id="stat-total">0</p>
+                    </div>
+                    <i class="fas fa-calendar-check text-3xl text-blue-200"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs">En attente</p>
+                        <p class="text-2xl font-bold text-yellow-600" id="stat-attente">0</p>
+                    </div>
+                    <i class="fas fa-clock text-3xl text-yellow-200"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs">Confirmés</p>
+                        <p class="text-2xl font-bold text-green-600" id="stat-confirme">0</p>
+                    </div>
+                    <i class="fas fa-check-circle text-3xl text-green-200"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs">En cours</p>
+                        <p class="text-2xl font-bold text-yellow-500" id="stat-cours">0</p>
+                    </div>
+                    <i class="fas fa-wrench text-3xl text-blue-200"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl card-shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs">Terminés</p>
+                        <p class="text-2xl font-bold text-gray-600" id="stat-termine">0</p>
+                    </div>
+                    <i class="fas fa-flag-checkered text-3xl text-gray-200"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vue Jour -->
+        <div id="vue-jour" class="bg-white rounded-2xl card-shadow overflow-hidden">
+            <div class="p-4 border-b flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-900">
+                    <i class="fas fa-calendar-day mr-2 text-yellow-500"></i>
+                    Planning du <span id="titre-date-jour"></span>
+                </h2>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-sm">
+                        <span class="w-3 h-3 rounded-full bg-yellow-400"></span><span>En attente</span>
+                        <span class="w-3 h-3 rounded-full bg-green-400"></span><span>Confirmé</span>
+                        <span class="w-3 h-3 rounded-full bg-blue-400"></span><span>En cours</span>
+                        <span class="w-3 h-3 rounded-full bg-gray-400"></span><span>Terminé</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timeline-container" id="planning-container">
+                <!-- Le planning sera généré ici -->
+            </div>
+        </div>
+
+        <!-- Vue Semaine -->
+        <div id="vue-semaine" class="hidden bg-white rounded-2xl card-shadow overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-bold text-gray-900">
+                    <i class="fas fa-calendar-week mr-2 text-yellow-500"></i>
+                    Semaine du <span id="titre-date-semaine"></span>
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <div id="semaine-container" class="min-w-max">
+                    <!-- La grille semaine sera générée ici -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Assignation -->
+    <div id="modal-assign" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Assigner le RDV</h3>
+            <input type="hidden" id="assign-rdv-id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pont / Poste</label>
+                    <select id="assign-pont" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none">
+                        <option value="">-- Non assigné --</option>
+                    </select>
+                </div>
+                
+                <!-- Champ mécanicien caché (assigné automatiquement selon le pont) -->
+                <input type="hidden" id="assign-mecanicien" value="">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
+                    <select id="assign-statut" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none">
+                        <option value="en_attente">En attente</option>
+                        <option value="confirme">Confirmé</option>
+                        <option value="en_cours">En cours</option>
+                        <option value="termine">Terminé</option>
+                        <option value="annule">Annulé</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('modal-assign')" class="flex-1 bg-gray-200 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button onclick="saveAssignation()" class="flex-1 bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-yellow-500">
+                    Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Clôturer RDV -->
+    <div id="modal-cloture" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 overflow-y-auto py-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 my-auto max-h-[85vh] overflow-y-auto">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Clôturer le RDV</h3>
+            <input type="hidden" id="cloture-rdv-id">
+            
+            <!-- Infos client & véhicule -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-semibold text-blue-800 text-sm mb-1"><i class="fas fa-user mr-1"></i>Client</h4>
+                        <div id="cloture-client-nom" class="font-medium text-gray-900">-</div>
+                        <div id="cloture-client-tel" class="text-sm text-gray-600">-</div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-blue-800 text-sm mb-1"><i class="fas fa-motorcycle mr-1"></i>Véhicule</h4>
+                        <div id="cloture-vehicule" class="font-medium text-gray-900">-</div>
+                        <div id="cloture-vehicule-plaque" class="text-sm text-gray-600">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Récapitulatif des travaux -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <h4 class="font-semibold text-gray-800 mb-2"><i class="fas fa-wrench mr-2 text-yellow-500"></i>Détail des travaux</h4>
+                <div id="cloture-detail-travaux" class="text-sm text-gray-600 mb-2">Chargement...</div>
+            </div>
+            
+            <!-- Pièces utilisées -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <h4 class="font-semibold text-gray-800 mb-2"><i class="fas fa-cog mr-2 text-blue-500"></i>Pièces utilisées</h4>
+                <div id="cloture-liste-pieces" class="text-sm">
+                    <div class="text-gray-500">Aucune pièce enregistrée</div>
+                </div>
+                <div class="border-t mt-2 pt-2 flex justify-between font-semibold">
+                    <span>Total pièces :</span>
+                    <span id="cloture-total-pieces">0,00 €</span>
+                </div>
+            </div>
+            
+            <!-- Main d'œuvre -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <h4 class="font-semibold text-gray-800 mb-2"><i class="fas fa-clock mr-2 text-green-500"></i>Main d'œuvre</h4>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div class="text-gray-600">Temps estimé :</div>
+                    <div id="cloture-temps-estime" class="text-right">-</div>
+                    <div class="text-gray-600">Temps effectif :</div>
+                    <div id="cloture-temps-effectif" class="text-right">-</div>
+                    <div class="text-gray-800 font-semibold">Temps facturé :</div>
+                    <div id="cloture-temps-facture" class="text-right font-semibold text-green-600">-</div>
+                </div>
+                <div class="border-t mt-2 pt-2 flex justify-between">
+                    <span class="text-sm text-gray-600">MO (60€/h) :</span>
+                    <span id="cloture-total-mo" class="font-semibold">0,00 €</span>
+                </div>
+                <div id="cloture-info-temps" class="text-xs text-gray-500 mt-1 italic"></div>
+            </div>
+            
+            <!-- Total -->
+            <div class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700">Total HT :</span>
+                    <span id="cloture-total-ht" class="font-semibold">0,00 €</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700">TVA 20% :</span>
+                    <span id="cloture-total-tva" class="font-semibold">0,00 €</span>
+                </div>
+                <div class="flex justify-between items-center text-lg border-t border-yellow-400 pt-2">
+                    <span class="font-bold text-gray-900">Total TTC :</span>
+                    <span id="cloture-total-ttc" class="font-bold text-gray-900">0,00 €</span>
+                </div>
+            </div>
+            
+            <!-- Champs modifiables -->
+            <div class="space-y-4 border-t pt-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Prix final (€)</label>
+                        <input type="number" id="cloture-prix" step="0.01" min="0" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none font-semibold text-lg" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Temps final (min)</label>
+                        <input type="number" id="cloture-temps" step="15" min="0" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none font-semibold text-lg" placeholder="60">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Commentaires</label>
+                    <textarea id="cloture-commentaires" rows="3" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none" placeholder="Travaux réalisés, pièces changées..."></textarea>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('modal-cloture')" class="flex-1 bg-gray-200 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button onclick="saveCloture()" class="flex-1 text-white py-3 rounded-lg font-semibold" style="background: #ffd700; color: #1a1a1a;">
+                    <i class="fas fa-check mr-2"></i>Clôturer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails RDV -->
+    <div id="modal-details" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full mx-4">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Détails du RDV</h3>
+                <button onclick="closeModal('modal-details')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="details-content" class="space-y-3 text-sm"></div>
+            <div class="space-y-3 mt-6">
+                <div class="flex space-x-3">
+                    <button onclick="closeModal('modal-details')" class="flex-1 bg-gray-200 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                        Fermer
+                    </button>
+                    <button onclick="openORModalFromDetails()" class="flex-1 text-white py-3 rounded-lg font-semibold" style="background: #28a745;">
+                        <i class="fas fa-clipboard-check mr-2"></i>OR
+                    </button>
+                    <button onclick="openEditModalFromDetails()" class="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600">
+                        <i class="fas fa-edit mr-2"></i>Modifier
+                    </button>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="openAssignModalFromDetails()" class="flex-1 text-white py-3 rounded-lg font-semibold" style="background: #ffd700; color: #1a1a1a;">
+                        <i class="fas fa-user-cog mr-2"></i>Assigner
+                    </button>
+                    <button onclick="prendreRdvFromDetails()" id="btn-prendre-rdv" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 hidden">
+                        <i class="fas fa-hand-paper mr-2"></i>Prendre
+                    </button>
+                    <button onclick="openClotureModalFromDetails()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                        <i class="fas fa-check-circle mr-2"></i>Clôturer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Édition RDV -->
+    <div id="modal-edit" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Modifier le RDV</h3>
+                <button onclick="closeModal('modal-edit')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <input type="hidden" id="edit-rdv-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                    <input type="date" id="edit-date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Heure</label>
+                    <input type="time" id="edit-heure" step="900" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pont</label>
+                    <select id="edit-pont" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-yellow-400 focus:outline-none">
+                        <option value="">Sélectionner un pont</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('modal-edit')" class="flex-1 bg-gray-200 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button onclick="saveEditRdv()" class="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600">
+                    <i class="fas fa-save mr-2"></i>Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal OR (Ordre de Réparation) -->
+    <div id="modal-or" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 overflow-y-auto py-4">
+        <div class="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-clipboard-check mr-2" style="color: #28a745;"></i>Ordre de Réparation
+                </h3>
+                <button onclick="closeModal('modal-or')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <input type="hidden" id="or-rdv-id">
+            
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- Infos Client -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2"><i class="fas fa-user mr-2"></i>Client</h4>
+                    <div id="or-client-info" class="text-sm"></div>
+                </div>
+                
+                <!-- Infos Véhicule -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2"><i class="fas fa-motorcycle mr-2"></i>Véhicule</h4>
+                    <div id="or-vehicule-info" class="text-sm"></div>
+                </div>
+            </div>
+            
+            <!-- Formulaire OR -->
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Date d'intervention</label>
+                        <input type="text" id="or-date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Type d'intervention</label>
+                        <input type="text" id="or-type" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Kilométrage <span class="text-red-500">*</span></label>
+                    <input type="number" id="or-kilometrage" min="0" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none" placeholder="Ex: 12500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">État du véhicule à l'arrivée <span class="text-red-500">*</span></label>
+                    <textarea id="or-etat" rows="4" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none" placeholder="Décrivez l'état général du véhicule, les éventuels dommages existants, le niveau d'essence, etc."></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Travaux à effectuer</label>
+                    <textarea id="or-travaux" rows="3" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none" placeholder="Liste des travaux demandés ou prévus"></textarea>
+                </div>
+                
+                <!-- Signature -->
+                <div class="border-2 border-gray-300 rounded-lg p-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Signature du client <span class="text-red-500">*</span></label>
+                    <p class="text-xs text-gray-500 mb-2">Le client doit signer pour valider l'état du véhicule et les travaux à effectuer</p>
+                    <canvas id="or-signature" class="w-full border border-gray-300 rounded bg-white cursor-crosshair" height="150"></canvas>
+                    <div class="flex justify-between mt-2">
+                        <button onclick="clearSignature()" class="text-sm text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-eraser mr-1"></i>Effacer
+                        </button>
+                        <span id="or-signature-status" class="text-sm text-red-500">Non signé</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('modal-or')" class="flex-1 bg-gray-200 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-300">
+                    Annuler
+                </button>
+                <button onclick="saveOR()" class="flex-1 text-white py-3 rounded-lg font-semibold" style="background: #28a745;">
+                    <i class="fas fa-save mr-2"></i>Sauvegarder l'OR
+                </button>
+                <button onclick="generateORPDF()" class="flex-1 text-white py-3 rounded-lg font-semibold" style="background: #1a1a1a;">
+                    <i class="fas fa-file-pdf mr-2"></i>Générer PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/planning.js?v=4"></script>
+</body>
+</html>

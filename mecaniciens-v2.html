@@ -1,0 +1,186 @@
+// Calculateur de Devis - Atelier Moto Pro
+// Compatible avec core.js
+
+const API_URL_DEVIS = window.API_URL || window.location.origin;
+let clients = [];
+let vehicules = [];
+let lignes = [];
+
+// Helper pour les requêtes API
+async function apiRequestDevis(url, options = {}) {
+    const token = localStorage.getItem('token');
+    const defaultOptions = {
+        headers: {
+            'Authorization': `Bearer ${token || ''}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    const response = await fetch(`${API_URL_DEVIS}${url}`, {
+        ...defaultOptions,
+        ...options,
+        headers: { ...defaultOptions.headers, ...options.headers }
+    });
+    
+    if (response.status === 401) {
+        localStorage.removeItem('token');
+        alert('Session expirée. Veuillez vous reconnecter.');
+        window.location.href = '/dashboard.html';
+        throw new Error('Session expirée');
+    }
+    
+    if (!response.ok) {
+        throw new Error(`Erreur ${response.status}`);
+    }
+    
+    return response.json();
+}
+
+// Chargement initial
+document.addEventListener('DOMContentLoaded', () => {
+    chargerClients();
+    document.getElementById('clientSelect').addEventListener('change', onClientChange);
+});
+
+// Charger la liste des clients
+async function chargerClients() {
+    try {
+        clients = await apiRequestDevis('/api/clients');
+        const select = document.getElementById('clientSelect');
+        select.innerHTML = '<option value="">-- Choisir un client --</option>';
+        clients.forEach(c => {
+            select.innerHTML += `<option value="${c.id}">${c.prenom} ${c.nom}</option>`;
+        });
+    } catch (e) {
+        console.error('Erreur chargement clients:', e);
+    }
+}
+
+// Quand un client est sélectionné
+async function onClientChange(e) {
+    const clientId = e.target.value;
+    const selectVehicule = document.getElementById('vehiculeSelect');
+    selectVehicule.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
+    
+    if (!clientId) return;
+    
+    try {
+        vehicules = await apiRequestDevis(`/api/clients/${clientId}/vehicules`);
+        vehicules.forEach(v => {
+            selectVehicule.innerHTML += `<option value="${v.id}">${v.marque} ${v.modele} (${escapeHtml(v.plaque) || 'N/A'})</option>`;
+        });
+    } catch (e) {
+        console.error('Erreur chargement véhicules:', e);
+    }
+}
+
+// Ajouter une ligne (prestation ou pièce)
+function ajouterLigne(type) {
+    const ligne = {
+        id: Date.now(),
+        type: type,
+        designation: '',
+        quantite: 1,
+        prix_unitaire_ht: 0
+    };
+    lignes.push(ligne);
+    renderLignes();
+}
+
+// Supprimer une ligne
+function supprimerLigne(id) {
+    lignes = lignes.filter(l => l.id !== id);
+    renderLignes();
+}
+
+// Mettre à jour une ligne
+function updateLigne(id, field, value) {
+    const ligne = lignes.find(l => l.id === id);
+    if (ligne) {
+        ligne[field] = field === 'designation' ? value : parseFloat(value) || 0;
+    }
+}
+
+// Afficher les lignes dans le tableau
+function renderLignes() {
+    const tbody = document.getElementById('lignesBody');
+    tbody.innerHTML = '';
+    
+    lignes.forEach(ligne => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${ligne.type === 'piece' ? '🔧 Pièce' : '👨‍🔧 Prestation'}</td>
+            <td><input type="text" class="form-control" value="${ligne.designation}" onchange="updateLigne(${ligne.id}, 'designation', this.value)" placeholder="Description"></td>
+            <td><input type="number" class="form-control" value="${ligne.quantite}" min="0.1" step="0.1" onchange="updateLigne(${ligne.id}, 'quantite', this.value)" style="width:80px"></td>
+            <td><input type="number" class="form-control" value="${ligne.prix_unitaire_ht}" min="0" step="0.01" onchange="updateLigne(${ligne.id}, 'prix_unitaire_ht', this.value)" style="width:100px"></td>
+            <td><button class="btn btn-danger btn-sm" onclick="supprimerLigne(${ligne.id})">🗑️</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Calculer le devis via API
+async function calculerDevis() {
+    const clientId = document.getElementById('clientSelect').value;
+    const vehiculeId = document.getElementById('vehiculeSelect').value;
+    
+    if (!clientId || !vehiculeId) {
+        alert('Veuillez sélectionner un client et un véhicule');
+        return;
+    }
+    
+    if (lignes.length === 0) {
+        alert('Ajoutez au moins une ligne');
+        return;
+    }
+    
+    // Vérifier que toutes les lignes ont une désignation
+    for (const ligne of lignes) {
+        if (!ligne.designation.trim()) {
+            alert('Toutes les lignes doivent avoir une description');
+            return;
+        }
+    }
+    
+    const payload = {
+        lignes: lignes.map(l => ({
+            type_ligne: l.type === 'piece' ? 'piece' : 'main_oeuvre_libre',
+            description: l.designation,
+            quantite: l.quantite,
+            prix_unitaire_ht: l.prix_unitaire_ht
+        })),
+        remise_pourcentage: 0
+    };
+    
+    try {
+        const data = await apiRequestDevis('/api/devis/calculer', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        afficherResultat(data);
+    } catch (e) {
+        alert('Erreur: ' + e.message);
+    }
+}
+
+// Afficher le résultat du calcul
+function afficherResultat(data) {
+    document.getElementById('resultat').style.display = 'block';
+    document.getElementById('totalHt').textContent = data.total_ht.toFixed(2) + ' €';
+    document.getElementById('tva').textContent = (data.total_ttc - data.total_ht).toFixed(2) + ' €';
+    document.getElementById('totalTtc').textContent = data.total_ttc.toFixed(2) + ' €';
+    
+    // Afficher le détail
+    const detailDiv = document.getElementById('detailLignes');
+    if (detailDiv) {
+        detailDiv.innerHTML = `
+            <div class="alert alert-info">
+                <strong>Main d'œuvre HT:</strong> ${data.total_mo_ht.toFixed(2)} €<br>
+                <strong>Pièces HT:</strong> ${data.total_pieces_ht.toFixed(2)} €<br>
+                ${data.remise_montant > 0 ? `<strong>Remise:</strong> -${data.remise_montant.toFixed(2)} €<br>` : ''}
+                <strong>Total HT:</strong> ${data.total_ht_remise.toFixed(2)} €<br>
+                <strong>Total TTC:</strong> ${data.total_ttc.toFixed(2)} €
+            </div>
+        `;
+    }
+}

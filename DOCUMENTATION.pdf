@@ -1,0 +1,549 @@
+// tarifs.js - Module tarifs (prestations, forfaits, calculateur)
+// Compatible ES5 - pas de fonctions fléchées
+
+let allPrestations = [];
+let allPieces = [];
+let calcPrestations = [];
+let calcPieces = [];
+
+// ========== TARIFS SECTION ==========
+function loadTarifsSection() {
+    loadPrestations();
+    loadForfaits();
+    loadPiecesForCalc();
+}
+
+function showTarifTab(tab) {
+    // Cacher tous les contenus d'onglets
+    const contents = document.querySelectorAll('.tarif-tab-content');
+    for (let i = 0; i < contents.length; i++) {
+        contents[i].classList.add('hidden-section');
+    }
+
+    // Désactiver tous les boutons d'onglet
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    for (let i = 0; i < tabBtns.length; i++) {
+        tabBtns[i].classList.remove('active');
+    }
+
+    // Afficher le contenu demandé
+    const targetContent = document.getElementById('tarif-' + tab + '-content');
+    if (targetContent) targetContent.classList.remove('hidden-section');
+
+    // Activer le bouton correspondant
+    const tabBtn = document.getElementById('tab-' + tab);
+    if (tabBtn) tabBtn.classList.add('active');
+
+    // Charger les données spécifiques
+    if (tab === 'delais') {
+        loadDelais();
+    }
+}
+
+// ========== PRESTATIONS ==========
+function loadPrestations() {
+    const tbody = document.getElementById('prestations-table-body');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center"><div class="loading-spinner inline-block mr-2"></div>Chargement...</td></tr>';
+    }
+
+    apiGet('/api/prestations')
+    .then(function(response) {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(function(prestations) {
+        allPrestations = prestations;
+        renderPrestations(allPrestations);
+        updatePrestationsStats(allPrestations);
+        updateCalcPrestationSelect(allPrestations);
+    })
+    .catch(function(error) {
+        console.error('Erreur loadPrestations:', error);
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Aucune prestation. Cliquez sur "Nouvelle prestation" pour ajouter.</td></tr>';
+        }
+    });
+}
+
+function renderPrestations(prestations) {
+    const tbody = document.getElementById('prestations-table-body');
+    if (!tbody) return;
+
+    if (prestations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Aucune prestation</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = prestations.map(function(p) {
+        const badgeClass = getCategorieBadge(p.categorie);
+        const promoBadge = p.is_promo ? ' <span class="text-xs text-purple-600">PROMO</span>' : '';
+
+        return '<tr class="table-row-hover">' +
+            '<td class="px-4 py-3 font-mono text-sm">' + (p.code || '-') + '</td>' +
+            '<td class="px-4 py-3">' +
+                '<div class="font-medium text-gray-900">' + escapeHtml(p.nom) + '</div>' +
+                (p.description ? '<div class="text-xs text-gray-500">' + p.description.substring(0, 50) + '...</div>' : '') +
+            '</td>' +
+            '<td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs ' + badgeClass + '">' + (p.categorie || '-') + '</span></td>' +
+            '<td class="px-4 py-3">' + (p.temps_formate || '-') + '</td>' +
+            '<td class="px-4 py-3">' + (p.delai_intervention_jours || 0) + 'j</td>' +
+            '<td class="px-4 py-3 font-semibold">' + (p.prix_affichage || p.prix_base_ttc || 0).toFixed(2) + ' EUR' + promoBadge + '</td>' +
+            '<td class="px-4 py-3">' +
+                '<button onclick="editPrestation(' + p.id + ')" class="text-blue-600 hover:text-blue-800 mr-2">Modifier</button>' +
+                '<button onclick="deletePrestation(' + p.id + ')" class="text-red-600 hover:text-red-800">Suppr</button>' +
+            '</td>' +
+        '</tr>';
+    }).join('');
+}
+
+function getCategorieBadge(cat) {
+    const badges = {
+        'entretien': 'badge-green',
+        'reparation': 'badge-orange',
+        'diagnostic': 'badge-blue',
+        'personnalisation': 'badge-purple'
+    };
+    return badges[cat] || 'badge-yellow';
+}
+
+function updatePrestationsStats(prestations) {
+    const statsTotal = document.getElementById('stats-total-prestations');
+    const statsPrixMoyen = document.getElementById('stats-prix-moyen');
+    const statsEnPromo = document.getElementById('stats-en-promo');
+    const statsForfaits = document.getElementById('stats-forfaits-count');
+
+    if (statsTotal) statsTotal.textContent = prestations.length;
+
+    const avgPrice = prestations.length > 0 ?
+        prestations.reduce(function(sum, p) { return sum + (p.prix_base_ttc || 0); }, 0) / prestations.length : 0;
+    if (statsPrixMoyen) statsPrixMoyen.textContent = avgPrice.toFixed(2) + ' EUR';
+
+    if (statsEnPromo) statsEnPromo.textContent = prestations.filter(function(p) { return p.is_promo; }).length;
+    if (statsForfaits) statsForfaits.textContent = prestations.filter(function(p) { return p.is_forfait; }).length;
+}
+
+function filterPrestations() {
+    const searchInput = document.getElementById('prestation-search');
+    const categorieInput = document.getElementById('prestation-categorie-filter');
+    const typeInput = document.getElementById('prestation-type-filter');
+
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const categorie = categorieInput ? categorieInput.value : '';
+    const type = typeInput ? typeInput.value : '';
+
+    let filtered = allPrestations;
+
+    if (search) {
+        filtered = filtered.filter(function(p) {
+            return (p.nom && p.nom.toLowerCase().includes(search)) ||
+                   (p.code && p.code.toLowerCase().includes(search));
+        });
+    }
+
+    if (categorie) {
+        filtered = filtered.filter(function(p) { return p.categorie === categorie; });
+    }
+
+    if (type) {
+        filtered = filtered.filter(function(p) {
+            return p.type_vehicule === type || p.type_vehicule === 'tous';
+        });
+    }
+
+    renderPrestations(filtered);
+}
+
+// ========== MODAL PRESTATION ==========
+function openPrestationModal() {
+    const modalTitle = document.getElementById('prestation-modal-title');
+    const modal = document.getElementById('prestation-modal');
+    const form = document.getElementById('prestation-form');
+
+    if (modalTitle) modalTitle.textContent = 'Nouvelle Prestation';
+    if (form) form.reset();
+
+    const idField = document.getElementById('prestation-id');
+    if (idField) idField.value = '';
+
+    if (modal) modal.classList.remove('hidden-section');
+}
+
+function closePrestationModal() {
+    const modal = document.getElementById('prestation-modal');
+    if (modal) modal.classList.add('hidden-section');
+}
+
+function handlePrestationSubmit(e) {
+    e.preventDefault();
+
+    const idField = document.getElementById('prestation-id');
+    const id = idField ? idField.value : '';
+
+    const data = {
+        code: document.getElementById('prestation-code').value,
+        nom: document.getElementById('prestation-nom').value,
+        description: document.getElementById('prestation-description').value,
+        categorie: document.getElementById('prestation-categorie').value,
+        sous_categorie: document.getElementById('prestation-sous-categorie').value,
+        prix_base_ht: parseFloat(document.getElementById('prestation-prix-ht').value) || 0,
+        prix_base_ttc: parseFloat(document.getElementById('prestation-prix-ttc').value) || 0,
+        temps_estime_minutes: parseInt(document.getElementById('prestation-temps').value) || 30,
+        delai_intervention_jours: parseInt(document.getElementById('prestation-delai').value) || 1,
+        type_vehicule: document.getElementById('prestation-type-vehicule').value,
+        taux_horaire_applique: document.getElementById('prestation-taux').value,
+        is_forfait: document.getElementById('prestation-is-forfait').checked ? 1 : 0,
+        inclut_pieces: document.getElementById('prestation-inclut-pieces').checked ? 1 : 0
+    };
+
+    const url = id ? '/api/prestations/' + id : '/api/prestations';
+    const method = id ? 'PUT' : 'POST';
+
+    fetch(API_URL + url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(function(response) {
+        if (response.ok) {
+            closePrestationModal();
+            loadPrestations();
+        } else {
+            alert('Erreur lors de l\'enregistrement');
+        }
+    })
+    .catch(function(error) {
+        alert('Erreur reseau');
+    });
+}
+
+function editPrestation(id) {
+    const p = allPrestations.find(function(x) { return x.id === id; });
+    if (!p) return;
+
+    const modalTitle = document.getElementById('prestation-modal-title');
+    const modal = document.getElementById('prestation-modal');
+
+    if (modalTitle) modalTitle.textContent = 'Modifier Prestation';
+
+    const idField = document.getElementById('prestation-id');
+    if (idField) idField.value = p.id;
+
+    document.getElementById('prestation-code').value = p.code || '';
+    document.getElementById('prestation-nom').value = p.nom || '';
+    document.getElementById('prestation-description').value = p.description || '';
+    document.getElementById('prestation-categorie').value = p.categorie || '';
+    document.getElementById('prestation-sous-categorie').value = p.sous_categorie || '';
+    document.getElementById('prestation-prix-ht').value = p.prix_base_ht || '';
+    document.getElementById('prestation-prix-ttc').value = p.prix_base_ttc || '';
+    document.getElementById('prestation-temps').value = p.temps_estime_minutes || '';
+    document.getElementById('prestation-delai').value = p.delai_intervention_jours || '';
+    document.getElementById('prestation-type-vehicule').value = p.type_vehicule || 'tous';
+    document.getElementById('prestation-taux').value = p.taux_horaire_applique || 'standard';
+    document.getElementById('prestation-is-forfait').checked = p.is_forfait === 1;
+    document.getElementById('prestation-inclut-pieces').checked = p.inclut_pieces === 1;
+
+    if (modal) modal.classList.remove('hidden-section');
+}
+
+function deletePrestation(id) {
+    if (!confirm('Supprimer cette prestation ?')) return;
+
+    apiDelete('/api/prestations/' + id)
+    .then(function(response) {
+        if (response.ok) {
+            loadPrestations();
+        } else {
+            alert('Erreur lors de la suppression');
+        }
+    })
+    .catch(function(error) {
+        alert('Erreur reseau');
+    });
+}
+
+// ========== FORFAITS ==========
+function loadForfaits() {
+    const container = document.getElementById('forfaits-list');
+    if (!container) return;
+
+    apiGet('/api/tarifs/forfaits-mo')
+    .then(function(response) {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(function(forfaits) {
+        if (forfaits.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">Aucun forfait</p>';
+        } else {
+            container.innerHTML = forfaits.map(function(f) {
+                const promoBadge = f.is_promo ? '<span class="text-xs text-purple-600">PROMO</span>' : '';
+                return '<div class="bg-gray-50 rounded-lg p-4 flex items-center justify-between">' +
+                    '<div>' +
+                        '<div class="font-semibold text-gray-900">' + f.nom + ' <span class="text-xs text-gray-500">(' + f.code + ')</span></div>' +
+                        '<div class="text-sm text-gray-500">' + f.categorie + '</div>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                        '<div class="font-bold text-gray-900">' + (f.prix_affichage || f.prix_forfait_mo_ttc || 0).toFixed(2) + ' EUR</div>' +
+                        promoBadge +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+    })
+    .catch(function(error) {
+        container.innerHTML = '<p class="text-red-500 text-center py-4">Erreur de chargement</p>';
+    });
+}
+
+function openForfaitModal() {
+    alert('Fonctionnalite en cours de developpement');
+}
+
+// ========== DELAIS ==========
+function loadDelais() {
+    const tbody = document.getElementById('delais-table-body');
+    if (!tbody) return;
+
+    apiGet('/api/prestations')
+    .then(function(response) {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(function(prestations) {
+        tbody.innerHTML = prestations.map(function(p) {
+            const complexiteClass = p.taux_horaire_applique === 'expert' ? 'badge-red' :
+                (p.taux_horaire_applique === 'complexe' ? 'badge-orange' : 'badge-green');
+
+            return '<tr class="table-row-hover">' +
+                '<td class="px-4 py-3 font-medium text-gray-900">' + escapeHtml(p.nom) + '</td>' +
+                '<td class="px-4 py-3">' + (p.delai_intervention_jours || 0) + ' jour(s)</td>' +
+                '<td class="px-4 py-3">' + (p.temps_formate || '-') + '</td>' +
+                '<td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs ' + complexiteClass + '">' + (p.taux_horaire_applique || 'standard') + '</span></td>' +
+            '</tr>';
+        }).join('');
+    })
+    .catch(function(error) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Erreur de chargement</td></tr>';
+    });
+}
+
+// ========== CALCULATEUR ==========
+function loadPiecesForCalc() {
+    apiGet('/api/pieces')
+    .then(function(response) {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(function(pieces) {
+        allPieces = pieces;
+        const select = document.getElementById('calc-piece-select');
+        if (select) {
+            select.innerHTML = '<option value="">Selectionner une piece</option>' +
+                pieces.map(function(p) {
+                    return '<option value="' + p.id + '">' + p.reference + ' - ' + escapeHtml(p.nom) + ' (' + (p.prix_vente_ht || 0).toFixed(2) + ' EUR)</option>';
+                }).join('');
+        }
+    })
+    .catch(function(error) {
+        console.error('Erreur chargement pieces:', error);
+    });
+}
+
+function updateCalcPrestationSelect(prestations) {
+    const select = document.getElementById('calc-prestation-select');
+    if (select) {
+        select.innerHTML = '<option value="">+ Ajouter une prestation</option>' +
+            prestations.map(function(p) {
+                return '<option value="' + p.id + '">' + escapeHtml(p.nom) + ' - ' + (p.prix_base_ttc || 0).toFixed(2) + ' EUR</option>';
+            }).join('');
+    }
+}
+
+function addPrestationToCalc() {
+    const select = document.getElementById('calc-prestation-select');
+    if (!select) return;
+
+    const id = parseInt(select.value);
+    if (!id) return;
+
+    const p = allPrestations.find(function(x) { return x.id === id; });
+    if (!p) return;
+
+    calcPrestations.push(Object.assign({}, p, { quantite: 1 }));
+    select.value = '';
+    renderCalcPrestations();
+}
+
+function renderCalcPrestations() {
+    const container = document.getElementById('calc-prestations-list');
+    if (!container) return;
+
+    if (calcPrestations.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = calcPrestations.map(function(p, i) {
+        return '<div class="flex items-center justify-between bg-gray-50 rounded-lg p-2">' +
+            '<span>' + escapeHtml(p.nom) + '</span>' +
+            '<div class="flex items-center space-x-2">' +
+                '<input type="number" value="' + p.quantite + '" min="1" onchange="updatePrestationQty(' + i + ', this.value)" class="w-16 px-2 py-1 rounded border text-center">' +
+                '<span class="font-semibold">' + ((p.prix_base_ttc || 0) * p.quantite).toFixed(2) + ' EUR</span>' +
+                '<button onclick="removePrestationCalc(' + i + ')" class="text-red-600 hover:text-red-800">&times;</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function updatePrestationQty(index, qty) {
+    calcPrestations[index].quantite = parseInt(qty) || 1;
+    renderCalcPrestations();
+}
+
+function removePrestationCalc(index) {
+    calcPrestations.splice(index, 1);
+    renderCalcPrestations();
+}
+
+function addPieceToCalc() {
+    const select = document.getElementById('calc-piece-select');
+    const qtyInput = document.getElementById('calc-piece-qty');
+
+    if (!select) return;
+
+    const id = parseInt(select.value);
+    const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+
+    if (!id) return;
+
+    const p = allPieces.find(function(x) { return x.id === id; });
+    if (!p) return;
+
+    calcPieces.push(Object.assign({}, p, { quantite: qty }));
+    select.value = '';
+    if (qtyInput) qtyInput.value = '1';
+    renderCalcPieces();
+}
+
+function renderCalcPieces() {
+    const container = document.getElementById('calc-pieces-list');
+    if (!container) return;
+
+    if (calcPieces.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = calcPieces.map(function(p, i) {
+        return '<div class="flex items-center justify-between bg-gray-50 rounded-lg p-2">' +
+            '<span>' + escapeHtml(p.nom) + '</span>' +
+            '<div class="flex items-center space-x-2">' +
+                '<span class="text-sm text-gray-500">' + p.quantite + ' x ' + (p.prix_vente_ht || 0).toFixed(2) + ' EUR</span>' +
+                '<span class="font-semibold">' + ((p.prix_vente_ht || 0) * p.quantite).toFixed(2) + ' EUR</span>' +
+                '<button onclick="removePieceCalc(' + i + ')" class="text-red-600 hover:text-red-800">&times;</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function removePieceCalc(index) {
+    calcPieces.splice(index, 1);
+    renderCalcPieces();
+}
+
+function calculerDevis() {
+    const margeInput = document.getElementById('calc-marge');
+    const remiseInput = document.getElementById('calc-remise');
+
+    const marge = parseFloat(margeInput ? margeInput.value : 30) || 30;
+    const remise = parseFloat(remiseInput ? remiseInput.value : 0) || 0;
+
+    const data = {
+        prestations: calcPrestations.map(function(p) {
+            return { prestation_id: p.id, quantite: p.quantite };
+        }),
+        pieces: calcPieces.map(function(p) {
+            return {
+                piece_id: p.id,
+                quantite: p.quantite,
+                prix_achat_ht: p.prix_achat_ht || (p.prix_vente_ht || 0) * 0.7
+            };
+        }),
+        marge_pieces_pourcent: marge,
+        remise_pourcent: remise
+    };
+
+    apiPost('/api/tarifs/calcul-detaille', data)
+    .then(function(response) {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(function(result) {
+        renderCalcResult(result);
+    })
+    .catch(function(error) {
+        const container = document.getElementById('calc-result');
+        if (container) {
+            container.innerHTML = '<p class="text-red-500 text-center py-4">Erreur de calcul</p>';
+        }
+    });
+}
+
+function renderCalcResult(result) {
+    const container = document.getElementById('calc-result');
+    if (!container) return;
+
+    let remiseHtml = '';
+    if (result.totaux && result.totaux.remise_montant > 0) {
+        remiseHtml =
+            '<div class="flex justify-between items-center mb-2 text-sm">' +
+                '<span class="text-gray-500">Remise (' + result.totaux.remise_pourcent + '%)</span>' +
+                '<span class="text-red-600">-' + result.totaux.remise_montant.toFixed(2) + ' EUR</span>' +
+            '</div>' +
+            '<div class="flex justify-between items-center mb-2">' +
+                '<span class="text-gray-700">Total HT remise</span>' +
+                '<span class="font-semibold">' + result.totaux.total_ht_remise.toFixed(2) + ' EUR</span>' +
+            '</div>';
+    }
+
+    container.innerHTML =
+        '<div class="space-y-4">' +
+            '<div class="border-b border-gray-200 pb-4">' +
+                '<h4 class="font-semibold text-gray-700 mb-2">Main d\'oeuvre</h4>' +
+                '<div class="flex justify-between">' +
+                    '<span>Total MO HT</span>' +
+                    '<span class="font-semibold">' + (result.main_oeuvre ? result.main_oeuvre.total_ht : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="border-b border-gray-200 pb-4">' +
+                '<h4 class="font-semibold text-gray-700 mb-2">Pieces</h4>' +
+                '<div class="flex justify-between text-sm">' +
+                    '<span>Cout achat</span>' +
+                    '<span>' + (result.pieces ? result.pieces.total_achat_ht : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+                '<div class="flex justify-between text-sm">' +
+                    '<span>Marge (' + (result.pieces ? result.pieces.marge_pourcent : 0) + '%)</span>' +
+                    '<span class="text-green-600">+' + (result.pieces ? result.pieces.marge_ht : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+                '<div class="flex justify-between font-semibold mt-1">' +
+                    '<span>Total pieces HT</span>' +
+                    '<span>' + (result.pieces ? result.pieces.total_vente_ht : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="bg-yellow-50 rounded-lg p-4">' +
+                '<div class="flex justify-between items-center mb-2">' +
+                    '<span class="text-gray-700">Total HT</span>' +
+                    '<span class="text-xl font-bold">' + (result.totaux ? result.totaux.total_ht : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+                remiseHtml +
+                '<div class="flex justify-between items-center pt-2 border-t border-yellow-200">' +
+                    '<span class="text-lg font-bold text-gray-900">Total TTC</span>' +
+                    '<span class="text-2xl font-bold text-yellow-600">' + (result.totaux ? result.totaux.total_ttc : 0).toFixed(2) + ' EUR</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+}

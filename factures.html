@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Configuration Atelier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --orange: #FFD200; --orange2: #FFC400; --green: #22C55E; --red: #EF4444; --blue: #3B82F6; }
+        body { font-family: 'Barlow', sans-serif; background: #f3f4f6; color: #1f2937; min-height: 100vh; }
+        .layout { display: flex; height: 100vh; }
+
+        /* SIDEBAR */
+        .sidebar { width: 240px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #e5e7eb; }
+        .sidebar-header h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: var(--orange); }
+        .sidebar-header p { font-size: 13px; color: #6b7280; }
+        .sidebar-nav { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .nav-item { display: block; width: 100%; padding: 10px 14px; border: none; background: transparent; text-align: left; font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 500; color: #4b5563; border-radius: 8px; cursor: pointer; transition: all .15s; }
+        .nav-item:hover { background: #f9fafb; color: #1f2937; }
+        .nav-item.active { background: rgba(255,210,0,.08); color: var(--orange); font-weight: 600; }
+        .sidebar-footer { padding: 12px; border-top: 1px solid #e5e7eb; }
+        .sidebar-footer a, .sidebar-footer button { display: block; width: 100%; padding: 8px 14px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; text-align: center; font-family: 'Barlow', sans-serif; font-size: 13px; color: #4b5563; cursor: pointer; text-decoration: none; margin-bottom: 6px; }
+        .sidebar-footer a:hover, .sidebar-footer button:hover { background: #f3f4f6; }
+
+        /* MAIN */
+        .main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+        .page-title { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 20px; }
+
+        /* CARD */
+        .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .card-title { font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f3f4f6; }
+
+        /* FORM */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: #6b7280; letter-spacing: .3px; text-transform: uppercase; margin-bottom: 5px; }
+        .form-input, .form-select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: 'Barlow', sans-serif; font-size: 14px; color: #1f2937; background: white; outline: none; transition: border-color .15s; }
+        .form-input:focus, .form-select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,210,0,.1); }
+        .form-checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+        .form-checkbox input { width: 16px; height: 16px; accent-color: var(--orange); }
+
+        /* BTN */
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 13px; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--orange); color: #111; }
+        .btn-primary:hover { background: var(--orange2); }
+        .btn-success { background: var(--green); color: white; }
+        .btn-danger { background: var(--red); color: white; font-size: 12px; padding: 5px 10px; }
+        .btn-danger:hover { opacity: .85; }
+        .btn-ghost { background: transparent; color: #6b7280; border: 1px solid #d1d5db; }
+        .btn-ghost:hover { background: #f3f4f6; }
+
+        /* TABLE */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 14px; color: #6b7280; font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+        tr:hover td { background: #f9fafb; }
+
+        /* ALERT */
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 500; animation: fadeIn .2s; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TABS */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal { background: white; border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+        .modal-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+
+        .color-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid #e5e7eb; display: inline-block; vertical-align: middle; }
+        .badge-active { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-yes { background: #dcfce7; color: #166534; }
+        .badge-no { background: #fef2f2; color: #991b1b; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>Admin</h1>
+            <p>Configuration Atelier</p>
+        </div>
+        <div class="sidebar-nav">
+            <button class="nav-item active" onclick="switchAdminTab(this,'config')">Configuration</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'horaires')">Horaires</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'prestations')">Prestations</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'equipements')">Equipements Ponts</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'ponts')">Ponts</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'mecaniciens')">Mecaniciens</button>
+            <button class="nav-item" onclick="switchAdminTab(this,'utilisateurs')">Utilisateurs</button>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/">Retour Application</a>
+            <button onclick="logoutAdmin()">Deconnexion</button>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+        <div id="alert-container"></div>
+
+        <!-- CONFIG ATELIER -->
+        <div id="config-tab" class="tab-content active">
+            <div class="page-title">Configuration Atelier</div>
+            <form onsubmit="saveConfig(event)">
+                <div class="card">
+                    <div class="card-title">Taux Horaires Main d'Oeuvre</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label class="form-label">Taux Standard (EUR/h)</label><input type="number" id="cfg-taux-std" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Taux Complexe (EUR/h)</label><input type="number" id="cfg-taux-cpx" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Taux Expert (EUR/h)</label><input type="number" id="cfg-taux-exp" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Forfait MO Minimum (EUR)</label><input type="number" id="cfg-forfait-min" class="form-input" step="0.01"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Marges Pieces Detachees</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label class="form-label">Marge Standard (%)</label><input type="number" id="cfg-marge-std" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Marge Consommable (%)</label><input type="number" id="cfg-marge-conso" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Marge Pneumatique (%)</label><input type="number" id="cfg-marge-pneu" class="form-input" step="0.01"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">TVA & Conditions</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label class="form-label">TVA Main d'Oeuvre (%)</label><input type="number" id="cfg-tva-mo" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">TVA Pieces (%)</label><input type="number" id="cfg-tva-pieces" class="form-input" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Validite Devis (jours)</label><input type="number" id="cfg-validite" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Accompte (%)</label><input type="number" id="cfg-accompte" class="form-input" step="0.01"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer la configuration</button>
+            </form>
+        </div>
+
+        <!-- HORAIRES -->
+        <div id="horaires-tab" class="tab-content">
+            <div class="page-title">Horaires Atelier</div>
+            <div class="card" id="horaires-content"></div>
+        </div>
+
+        <!-- PRESTATIONS -->
+        <div id="prestations-tab" class="tab-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div class="page-title" style="margin-bottom:0">Prestations & Tarifs</div>
+                <button class="btn btn-primary" onclick="showPrestationModal()">+ Ajouter</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table><thead><tr><th>Code</th><th>Nom</th><th>Categorie</th><th>Type tarif</th><th>Prix base TTC</th><th>Temps base</th><th>Actif</th><th>Actions</th></tr></thead>
+                <tbody id="prestations-tbody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- EQUIPEMENTS -->
+        <div id="equipements-tab" class="tab-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div class="page-title" style="margin-bottom:0">Equipements Ponts</div>
+                <button class="btn btn-primary" onclick="showEquipModal()">+ Ajouter</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table><thead><tr><th>Pont</th><th>Equipement</th><th>Description</th><th>Present</th><th>Actions</th></tr></thead>
+                <tbody id="equip-tbody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- PONTS -->
+        <div id="ponts-tab" class="tab-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div class="page-title" style="margin-bottom:0">Ponts</div>
+                <button class="btn btn-primary" onclick="showPontModal()">+ Ajouter un pont</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table><thead><tr><th>ID</th><th>Nom</th><th>Type</th><th>Capacite</th><th>Actif</th><th>Mecanicien</th><th>Actions</th></tr></thead>
+                <tbody id="ponts-tbody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- MECANICIENS -->
+        <div id="mecaniciens-tab" class="tab-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div class="page-title" style="margin-bottom:0">Mecaniciens</div>
+                <button class="btn btn-primary" onclick="showMecaModal()">+ Ajouter un mecanicien</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table><thead><tr><th>ID</th><th>Prenom</th><th>Nom</th><th>Specialites</th><th>Couleur</th><th>Actif</th><th>Actions</th></tr></thead>
+                <tbody id="mecas-tbody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- UTILISATEURS -->
+        <div id="utilisateurs-tab" class="tab-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <div class="page-title" style="margin-bottom:0">Utilisateurs</div>
+                <button class="btn btn-primary" onclick="showUserModal()">+ Ajouter un utilisateur</button>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table><thead><tr><th>ID</th><th>Nom d'utilisateur</th><th>Email</th><th>Role</th><th>Actif</th><th>Actions</th></tr></thead>
+                <tbody id="users-tbody"></tbody></table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modal-container"></div>
+
+<script src="/static/utils.js"></script>
+<script src="/static/api.js"></script>
+<script>
+// ===== DATA CACHE =====
+var ADMIN = { categories: [], interventions: [], ponts: [], mecaniciens: [] };
+
+// ===== NAV =====
+function switchAdminTab(el, tabName) {
+    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+    document.getElementById(tabName + '-tab').classList.add('active');
+    el.classList.add('active');
+
+    if (tabName === 'config') loadConfig();
+    if (tabName === 'horaires') loadHoraires();
+    if (tabName === 'prestations') loadPrestations();
+    if (tabName === 'equipements') loadEquipements();
+    if (tabName === 'ponts') loadPonts();
+    if (tabName === 'mecaniciens') loadMecaniciens();
+    if (tabName === 'utilisateurs') loadUtilisateurs();
+}
+
+function showAlert(msg, type) {
+    type = type || 'success';
+    var div = document.createElement('div');
+    div.className = 'alert alert-' + type;
+    div.textContent = msg;
+    document.getElementById('alert-container').appendChild(div);
+    setTimeout(function() { div.remove(); }, 4000);
+}
+
+function logoutAdmin() {
+    apiPost('/api/auth/logout', {}).finally(function() {
+        clearAuthState();
+        window.location.href = '/';
+    });
+}
+var logout = logoutAdmin;
+
+function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+
+function formatMin(mins) {
+    if (!mins || mins <= 0) return '-';
+    var h = Math.floor(mins / 60); var m = mins % 60;
+    return (h > 0 ? h + 'h' : '') + (m > 0 ? (h > 0 ? '' : '') + m + 'min' : '');
+}
+
+// ===== INIT =====
+window.addEventListener('load', function() {
+    apiGet('/api/auth/me').then(function(r) { return r.json(); }).then(function(me) {
+        setAuthRole(me.role);
+        if (me.role !== 'admin') {
+            window.location.href = '/';
+            return Promise.reject(new Error('Acces refuse'));
+        }
+        return Promise.all([
+        apiGet('/api/motos/categories').then(function(r) { return r.json(); }).catch(function() { return []; }),
+        apiGet('/api/interventions').then(function(r) { return r.json(); }).catch(function() { return []; }),
+        apiGet('/api/ponts').then(function(r) { return r.json(); }).catch(function() { return []; }),
+        apiGet('/api/mecaniciens').then(function(r) { return r.json(); }).catch(function() { return []; }),
+        apiGet('/api/config/atelier').then(function(r) { return r.json(); }).catch(function() { return {}; })
+        ]);
+    }).then(function(results) {
+        ADMIN.categories = results[0];
+        ADMIN.interventions = results[1];
+        ADMIN.ponts = results[2];
+        ADMIN.mecaniciens = results[3];
+        ADMIN.tvaMoTaux = results[4].tva_mo_taux || 20;
+        loadConfig();
+    }).catch(function() {
+        // Redirection deja geree au besoin
+    });
+});
+
+function getCatName(id) { var c = ADMIN.categories.find(function(x) { return x.id === id; }); return c ? c.nom : 'Cat ' + id; }
+function getIntName(id) { var i = ADMIN.interventions.find(function(x) { return x.id === id; }); return i ? i.nom : 'Interv ' + id; }
+function getPontName(id) { var p = ADMIN.ponts.find(function(x) { return x.id === id; }); return p ? p.nom : 'Pont ' + id; }
+
+// ===== CONFIG ATELIER =====
+function loadConfig() {
+    apiGet('/api/config/atelier').then(function(r) { return r.json(); }).then(function(d) {
+        document.getElementById('cfg-taux-std').value = d.taux_horaire_mo_standard;
+        document.getElementById('cfg-taux-cpx').value = d.taux_horaire_mo_complexe;
+        document.getElementById('cfg-taux-exp').value = d.taux_horaire_mo_expert;
+        document.getElementById('cfg-forfait-min').value = d.forfait_mo_minimum;
+        document.getElementById('cfg-marge-std').value = d.marge_pieces_standard;
+        document.getElementById('cfg-marge-conso').value = d.marge_pieces_consommable;
+        document.getElementById('cfg-marge-pneu').value = d.marge_pieces_pneumatique;
+        document.getElementById('cfg-tva-mo').value = d.tva_mo_taux;
+        document.getElementById('cfg-tva-pieces').value = d.tva_pieces_taux;
+        document.getElementById('cfg-validite').value = d.validite_devis_jours;
+        document.getElementById('cfg-accompte').value = d.accompte_pourcentage;
+    }).catch(function(e) { showAlert('Erreur chargement config: ' + e.message, 'error'); });
+}
+
+function saveConfig(e) {
+    e.preventDefault();
+    apiPut('/api/config/atelier', {
+        taux_horaire_mo_standard: parseFloat(document.getElementById('cfg-taux-std').value),
+        taux_horaire_mo_complexe: parseFloat(document.getElementById('cfg-taux-cpx').value),
+        taux_horaire_mo_expert: parseFloat(document.getElementById('cfg-taux-exp').value),
+        forfait_mo_minimum: parseFloat(document.getElementById('cfg-forfait-min').value),
+        marge_pieces_standard: parseFloat(document.getElementById('cfg-marge-std').value),
+        marge_pieces_consommable: parseFloat(document.getElementById('cfg-marge-conso').value),
+        marge_pieces_pneumatique: parseFloat(document.getElementById('cfg-marge-pneu').value),
+        tva_mo_taux: parseFloat(document.getElementById('cfg-tva-mo').value),
+        tva_pieces_taux: parseFloat(document.getElementById('cfg-tva-pieces').value),
+        validite_devis_jours: parseInt(document.getElementById('cfg-validite').value),
+        accompte_pourcentage: parseFloat(document.getElementById('cfg-accompte').value)
+    }).then(function() { showAlert('Configuration enregistree'); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== HORAIRES =====
+var jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+function loadHoraires() {
+    apiGet('/api/config/horaires').then(function(r) { return r.json(); }).then(function(horaires) {
+        var html = '';
+        horaires.forEach(function(h) {
+            html += '<div style="padding:14px 0;border-bottom:1px solid #f3f4f6"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><b style="min-width:90px">' + jours[h.jour_semaine] + '</b>' +
+                '<div class="form-group" style="margin:0"><label class="form-label">Ouverture</label><input type="time" value="' + (escapeHtml(h.heure_ouverture) || '') + '" class="form-input" style="width:130px" id="h-ouv-' + h.jour_semaine + '"></div>' +
+                '<div class="form-group" style="margin:0"><label class="form-label">Fermeture</label><input type="time" value="' + (escapeHtml(h.heure_fermeture) || '') + '" class="form-input" style="width:130px" id="h-fer-' + h.jour_semaine + '"></div>' +
+                '<div class="form-group" style="margin:0"><label class="form-label">Pause debut</label><input type="time" value="' + (escapeHtml(h.pause_debut) || '') + '" class="form-input" style="width:130px" id="h-pd-' + h.jour_semaine + '"></div>' +
+                '<div class="form-group" style="margin:0"><label class="form-label">Pause fin</label><input type="time" value="' + (escapeHtml(h.pause_fin) || '') + '" class="form-input" style="width:130px" id="h-pf-' + h.jour_semaine + '"></div>' +
+                '<label class="form-checkbox"><input type="checkbox" ' + (h.is_ouvert ? 'checked' : '') + ' id="h-ouvert-' + h.jour_semaine + '"> Ouvert</label>' +
+                '<button type="button" class="btn btn-ghost" onclick="saveHoraire(' + h.jour_semaine + ')">Sauver</button>' +
+                '</div></div>';
+        });
+        document.getElementById('horaires-content').innerHTML = html;
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function saveHoraire(jour) {
+    apiPut('/api/config/horaires/' + jour, {
+        heure_ouverture: document.getElementById('h-ouv-' + jour).value || null,
+        heure_fermeture: document.getElementById('h-fer-' + jour).value || null,
+        pause_debut: document.getElementById('h-pd-' + jour).value || null,
+        pause_fin: document.getElementById('h-pf-' + jour).value || null,
+        is_ouvert: document.getElementById('h-ouvert-' + jour).checked ? 1 : 0
+    }).then(function() { showAlert(jours[jour] + ' enregistre'); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== PRESTATIONS =====
+function loadPrestations() {
+    apiGet('/api/config/prestations').then(function(r) { return r.json(); }).then(function(prestas) {
+        ADMIN.prestations = prestas;
+        var html = '';
+        prestas.forEach(function(p) {
+            var actif = p.is_active;
+            var catLabels = { entretien: 'Entretien', reparation: 'Reparation', diagnostic: 'Diagnostic', personnalisation: 'Personnalisation' };
+            var tarifLabels = { forfait: 'Forfait', horaire: 'Taux horaire', devis: 'Sur devis' };
+            html += '<tr' + (actif ? '' : ' style="opacity:0.5"') + '><td><code>' + p.code + '</code></td><td><b>' + escapeHtml(p.nom) + '</b></td><td>' + (catLabels[p.categorie] || p.categorie) + '</td><td>' + (tarifLabels[p.type_tarif] || p.type_tarif) + '</td><td>' + (p.prix_base_ttc || 0).toFixed(2) + ' &euro;</td><td>' + formatMin(p.temps_estime_minutes) + '</td><td><span class="badge-active ' + (actif ? 'badge-yes' : 'badge-no') + '">' + (actif ? 'Actif' : 'Inactif') + '</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="showGrilleModal(' + p.id + ')">Grille prix</button><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="showPrestationModal(' + p.id + ')">Editer</button>' + (actif ? '<button class="btn btn-danger" style="font-size:12px;padding:5px 10px" onclick="togglePrestation(' + p.id + ',0)">Desactiver</button>' : '<button class="btn btn-primary" style="font-size:12px;padding:5px 10px" onclick="togglePrestation(' + p.id + ',1)">Reactiver</button>') + '</td></tr>';
+        });
+        document.getElementById('prestations-tbody').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:20px">Aucune prestation</td></tr>';
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showPrestationModal(id) {
+    var presta = id ? ADMIN.prestations.find(function(p) { return p.id === id; }) : null;
+    var isEdit = !!presta;
+
+    document.getElementById('modal-container').innerHTML =
+        '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">' + (isEdit ? 'Modifier la prestation' : 'Nouvelle prestation') + '</div>' +
+        '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Code</label><input type="text" class="form-input" id="mp-code" value="' + (presta ? presta.code : '') + '" placeholder="VID-STD"' + (isEdit ? ' readonly style="background:#f3f4f6"' : '') + '></div>' +
+        '<div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" id="mp-nom" value="' + (presta ? presta.nom : '') + '" placeholder="Vidange standard"></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="mp-desc" value="' + (presta ? (escapeHtml(presta.description) || '') : '') + '" placeholder="Description de la prestation"></div>' +
+        '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Categorie</label><select class="form-select" id="mp-cat"><option value="entretien"' + (presta && presta.categorie === 'entretien' ? ' selected' : '') + '>Entretien</option><option value="reparation"' + (presta && presta.categorie === 'reparation' ? ' selected' : '') + '>Reparation</option><option value="diagnostic"' + (presta && presta.categorie === 'diagnostic' ? ' selected' : '') + '>Diagnostic</option><option value="personnalisation"' + (presta && presta.categorie === 'personnalisation' ? ' selected' : '') + '>Personnalisation</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Type tarif</label><select class="form-select" id="mp-tarif"><option value="forfait"' + (presta && presta.type_tarif === 'forfait' ? ' selected' : '') + '>Forfait</option><option value="horaire"' + (presta && presta.type_tarif === 'horaire' ? ' selected' : '') + '>Taux horaire</option><option value="devis"' + (presta && presta.type_tarif === 'devis' ? ' selected' : '') + '>Sur devis</option></select></div>' +
+        '</div>' +
+        '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Prix base HT (EUR)</label><input type="number" class="form-input" id="mp-ht" step="0.01" value="' + (presta ? presta.prix_base_ht : '') + '" oninput="calcPrestaTTC()"></div>' +
+        '<div class="form-group"><label class="form-label">Prix base TTC (EUR)</label><input type="number" class="form-input" id="mp-ttc" step="0.01" value="' + (presta ? presta.prix_base_ttc : '') + '" style="background:#f3f4f6" readonly></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Temps estime (minutes)</label><input type="number" class="form-input" id="mp-temps" value="' + (presta ? presta.temps_estime_minutes : '30') + '"></div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="savePrestation(' + (id || 'null') + ')">' + (isEdit ? 'Enregistrer' : 'Ajouter') + '</button></div>' +
+        '</div></div>';
+}
+
+function calcPrestaTTC() {
+    var ht = parseFloat(document.getElementById('mp-ht').value) || 0;
+    var tvaMo = ADMIN.tvaMoTaux || 20;
+    document.getElementById('mp-ttc').value = (ht * (1 + tvaMo / 100)).toFixed(2);
+}
+
+function savePrestation(id) {
+    var code = document.getElementById('mp-code').value.trim();
+    var nom = document.getElementById('mp-nom').value.trim();
+    if (!code || !nom) { showAlert('Code et nom obligatoires', 'error'); return; }
+
+    var ht = parseFloat(document.getElementById('mp-ht').value) || 0;
+    var tvaMo = ADMIN.tvaMoTaux || 20;
+    var ttc = ht * (1 + tvaMo / 100);
+
+    var data = {
+        code: code, nom: nom,
+        description: document.getElementById('mp-desc').value || null,
+        categorie: document.getElementById('mp-cat').value,
+        type_tarif: document.getElementById('mp-tarif').value,
+        prix_base_ht: ht,
+        prix_base_ttc: parseFloat(ttc.toFixed(2)),
+        temps_estime_minutes: parseInt(document.getElementById('mp-temps').value) || 30
+    };
+
+    var promise = id ? apiPut('/api/config/prestations/' + id, data) : apiPost('/api/config/prestations', data);
+    promise.then(function() { closeModal(); showAlert(id ? 'Prestation modifiee' : 'Prestation ajoutee'); loadPrestations(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function togglePrestation(id, newState) {
+    var msg = newState ? 'Reactiver cette prestation ?' : 'Desactiver cette prestation ?';
+    if (!confirm(msg)) return;
+    apiPut('/api/config/prestations/' + id, { is_active: newState })
+        .then(function() { showAlert(newState ? 'Prestation reactivee' : 'Prestation desactivee'); loadPrestations(); })
+        .catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showGrilleModal(prestationId) {
+    var presta = ADMIN.prestations.find(function(p) { return p.id === prestationId; });
+    if (!presta) return;
+    var grille = presta.grille || {};
+
+    var html = '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="width:600px"><div class="modal-title">Grille prix : ' + escapeHtml(presta.nom) + '</div>' +
+        '<p style="font-size:13px;color:#6b7280;margin-bottom:16px">Prix TTC par type de moto. Le HT est calcule depuis la TVA configuree (' + (ADMIN.tvaMoTaux || 20) + '%).</p>' +
+        '<table><thead><tr><th>Type Moto</th><th>Prix TTC (&euro;)</th><th>Temps (min)</th></tr></thead><tbody>';
+
+    ADMIN.categories.forEach(function(cat) {
+        var entry = grille[cat.nom] || {};
+        html += '<tr><td><b>' + escapeHtml(cat.nom) + '</b></td>' +
+            '<td><input type="number" class="form-input" style="width:100px" step="0.01" id="gr-ttc-' + cat.id + '" value="' + (entry.prix_ttc || presta.prix_base_ttc || 0) + '"></td>' +
+            '<td><input type="number" class="form-input" style="width:80px" id="gr-min-' + cat.id + '" value="' + (entry.temps_minutes || presta.temps_estime_minutes || 30) + '"></td></tr>';
+    });
+
+    html += '</tbody></table>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="saveGrille(' + prestationId + ')">Sauver la grille</button></div>' +
+        '</div></div>';
+
+    document.getElementById('modal-container').innerHTML = html;
+}
+
+function saveGrille(prestationId) {
+    var entries = [];
+    var tvaMo = ADMIN.tvaMoTaux || 20;
+
+    ADMIN.categories.forEach(function(cat) {
+        var ttc = parseFloat(document.getElementById('gr-ttc-' + cat.id).value) || 0;
+        var ht = parseFloat((ttc / (1 + tvaMo / 100)).toFixed(2));
+        var mins = parseInt(document.getElementById('gr-min-' + cat.id).value) || 30;
+        entries.push({ categorie_moto_id: cat.id, prix_ttc: ttc, prix_ht: ht, temps_minutes: mins });
+    });
+
+    apiPut('/api/config/prestations/' + prestationId + '/grille', { entries: entries })
+        .then(function() { showAlert('Grille tarifaire enregistree'); loadPrestations(); closeModal(); })
+        .catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== EQUIPEMENTS =====
+function loadEquipements() {
+    apiGet('/api/config/pont-equipements').then(function(r) { return r.json(); }).then(function(equips) {
+        var html = '';
+        equips.forEach(function(eq) {
+            html += '<tr><td>' + getPontName(eq.pont_id) + '</td><td><b>' + eq.nom + '</b></td><td>' + (eq.description || '-') + '</td><td><span class="badge-active ' + (eq.is_present ? 'badge-yes' : 'badge-no') + '">' + (eq.is_present ? 'Oui' : 'Non') + '</span></td><td><button class="btn btn-danger" onclick="deleteEquip(' + eq.id + ')">Supprimer</button></td></tr>';
+        });
+        document.getElementById('equip-tbody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:20px">Aucun equipement</td></tr>';
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showEquipModal() {
+    var pontOpts = '<option value="">Selectionner...</option>';
+    ADMIN.ponts.forEach(function(p) { pontOpts += '<option value="' + p.id + '">' + escapeHtml(p.nom) + '</option>'; });
+
+    document.getElementById('modal-container').innerHTML =
+        '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">Ajouter un equipement</div>' +
+        '<div class="form-group"><label class="form-label">Pont</label><select class="form-select" id="me-pont">' + pontOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Nom equipement</label><input type="text" class="form-input" id="me-nom" placeholder="Elevateur hydraulique"></div>' +
+        '<div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="me-desc" placeholder="Description optionnelle"></div>' +
+        '<label class="form-checkbox"><input type="checkbox" id="me-present" checked> Present</label>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="addEquip()">Ajouter</button></div>' +
+        '</div></div>';
+}
+
+function addEquip() {
+    var pont = document.getElementById('me-pont').value;
+    var nom = document.getElementById('me-nom').value;
+    if (!pont || !nom) { showAlert('Remplir pont et nom', 'error'); return; }
+
+    apiPost('/api/config/pont-equipements', {
+        pont_id: parseInt(pont), nom: nom,
+        description: document.getElementById('me-desc').value || null,
+        is_present: document.getElementById('me-present').checked ? 1 : 0
+    }).then(function() { closeModal(); showAlert('Equipement ajoute'); loadEquipements(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function deleteEquip(id) {
+    if (!confirm('Supprimer cet equipement ?')) return;
+    apiDelete('/api/config/pont-equipements/' + id).then(function() { showAlert('Equipement supprime'); loadEquipements(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== PONTS =====
+function loadPonts() {
+    apiGet('/api/ponts').then(function(r) { return r.json(); }).then(function(ponts) {
+        ADMIN.ponts = ponts;
+        var html = '';
+        ponts.forEach(function(p) {
+            var actif = p.actif !== undefined ? p.actif : p.is_active;
+            var mecaNom = '-';
+            if (p.mecanicien_id) {
+                var m = ADMIN.mecaniciens.find(function(x) { return x.id === p.mecanicien_id; });
+                mecaNom = m ? m.prenom + ' ' + escapeHtml(m.nom) : 'ID ' + p.mecanicien_id;
+            }
+            html += '<tr><td>' + p.id + '</td><td><b>' + escapeHtml(p.nom) + '</b></td><td>' + (escapeHtml(p.type_pont) || '-') + '</td><td>' + (p.capacite_kg || 0) + ' kg</td><td><span class="badge-active ' + (actif ? 'badge-yes' : 'badge-no') + '">' + (actif ? 'Actif' : 'Inactif') + '</span></td><td>' + mecaNom + '</td><td><button class="btn btn-danger" onclick="deletePont(' + p.id + ')">Supprimer</button></td></tr>';
+        });
+        document.getElementById('ponts-tbody').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px">Aucun pont</td></tr>';
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showPontModal() {
+    var mecaOpts = '<option value="">Aucun (auto-assignation)</option>';
+    ADMIN.mecaniciens.forEach(function(m) { mecaOpts += '<option value="' + m.id + '">' + escapeHtml(m.prenom) + ' ' + escapeHtml(m.nom) + '</option>'; });
+
+    document.getElementById('modal-container').innerHTML =
+        '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">Ajouter un pont</div>' +
+        '<div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" id="mp-nom" placeholder="Pont 5"></div>' +
+        '<div class="form-group"><label class="form-label">Type</label><select class="form-select" id="mp-type"><option value="moto">Moto</option><option value="scooter">Scooter</option><option value="quad">Quad</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Capacite (kg)</label><input type="number" class="form-input" id="mp-cap" value="500"></div>' +
+        '<div class="form-group"><label class="form-label">Mecanicien assigne</label><select class="form-select" id="mp-meca">' + mecaOpts + '</select></div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="addPont()">Ajouter</button></div>' +
+        '</div></div>';
+}
+
+function addPont() {
+    var nom = document.getElementById('mp-nom').value;
+    if (!nom) { showAlert('Remplir le nom', 'error'); return; }
+    var mecaId = document.getElementById('mp-meca').value;
+
+    apiPost('/api/ponts', {
+        nom: nom, type_pont: document.getElementById('mp-type').value,
+        capacite_kg: parseInt(document.getElementById('mp-cap').value) || 500,
+        is_active: 1, mecanicien_id: mecaId ? parseInt(mecaId) : null
+    }).then(function() { closeModal(); showAlert('Pont ajoute'); loadPonts(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function deletePont(id) {
+    if (!confirm('Supprimer ce pont ?')) return;
+    apiDelete('/api/ponts/' + id).then(function() { showAlert('Pont supprime'); loadPonts(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== MECANICIENS =====
+function loadMecaniciens() {
+    apiGet('/api/mecaniciens').then(function(r) { return r.json(); }).then(function(mecas) {
+        ADMIN.mecaniciens = mecas;
+        var html = '';
+        mecas.forEach(function(m) {
+            var actif = m.actif !== undefined ? m.actif : m.is_active;
+            var specs = '-';
+            try {
+                var parsed = typeof m.specialites === 'string' ? JSON.parse(m.specialites) : m.specialites;
+                if (Array.isArray(parsed)) specs = parsed.join(', ');
+                else if (typeof parsed === 'string') specs = parsed;
+            } catch(e) { specs = m.specialites || '-'; }
+
+            html += '<tr><td>' + m.id + '</td><td><b>' + escapeHtml(m.prenom) + '</b></td><td>' + escapeHtml(m.nom) + '</td><td>' + specs + '</td><td><div class="color-swatch" style="background:' + (escapeHtml(m.couleur) || '#3b82f6') + '"></div></td><td><span class="badge-active ' + (actif ? 'badge-yes' : 'badge-no') + '">' + (actif ? 'Actif' : 'Inactif') + '</span></td><td><button class="btn btn-danger" onclick="deleteMeca(' + m.id + ')">Supprimer</button></td></tr>';
+        });
+        document.getElementById('mecas-tbody').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px">Aucun mecanicien</td></tr>';
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showMecaModal() {
+    document.getElementById('modal-container').innerHTML =
+        '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">Ajouter un mecanicien</div>' +
+        '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Prenom</label><input type="text" class="form-input" id="mm-prenom" placeholder="Jean"></div>' +
+        '<div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" id="mm-nom" placeholder="Durand"></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Specialites (separees par virgule)</label><input type="text" class="form-input" id="mm-specs" placeholder="BMW, Ducati, Revisions"></div>' +
+        '<div class="form-group"><label class="form-label">Couleur</label><input type="color" id="mm-couleur" value="#3b82f6" style="width:60px;height:36px;padding:2px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer"></div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="addMeca()">Ajouter</button></div>' +
+        '</div></div>';
+}
+
+function addMeca() {
+    var prenom = document.getElementById('mm-prenom').value;
+    var nom = document.getElementById('mm-nom').value;
+    if (!prenom || !nom) { showAlert('Remplir prenom et nom', 'error'); return; }
+
+    apiPost('/api/mecaniciens', {
+        nom: nom, prenom: prenom,
+        specialites: document.getElementById('mm-specs').value || '',
+        couleur: document.getElementById('mm-couleur').value,
+        is_active: 1
+    }).then(function() { closeModal(); showAlert('Mecanicien ajoute'); loadMecaniciens(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function deleteMeca(id) {
+    if (!confirm('Supprimer ce mecanicien ?')) return;
+    apiDelete('/api/mecaniciens/' + id).then(function() { showAlert('Mecanicien supprime'); loadMecaniciens(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+// ===== UTILISATEURS =====
+function loadUtilisateurs() {
+    apiGet('/api/users').then(function(r) { return r.json(); }).then(function(users) {
+        var html = '';
+        var roleLabels = { admin: 'Admin', receptionnaire: 'Receptionnaire', mecanicien: 'Mecanicien' };
+        var roleColors = { admin: '#8B5CF6', receptionnaire: '#3B82F6', mecanicien: '#22C55E' };
+        users.forEach(function(u) {
+            var actif = u.is_active;
+            var roleLabel = roleLabels[u.role] || u.role;
+            var roleColor = roleColors[u.role] || '#6b7280';
+            html += '<tr><td>' + u.id + '</td><td><b>' + escapeHtml(u.username) + '</b></td><td>' + (escapeHtml(u.email) || '-') + '</td>' +
+                '<td><span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + roleColor + '20;color:' + roleColor + '">' + roleLabel + '</span></td>' +
+                '<td><span class="badge-active ' + (actif ? 'badge-yes' : 'badge-no') + '">' + (actif ? 'Actif' : 'Inactif') + '</span></td>' +
+                '<td style="display:flex;gap:4px"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="showEditUserModal(' + u.id + ')">Modifier</button>' +
+                '<button class="btn btn-danger" onclick="deleteUser(' + u.id + ')">Supprimer</button></td></tr>';
+        });
+        document.getElementById('users-tbody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px">Aucun utilisateur</td></tr>';
+    }).catch(function(e) { showAlert('Erreur chargement utilisateurs: ' + e.message, 'error'); });
+}
+
+function showUserModal() {
+    document.getElementById('modal-container').innerHTML =
+        '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">Ajouter un utilisateur</div>' +
+        '<div class="form-group"><label class="form-label">Nom d\'utilisateur</label><input type="text" class="form-input" id="mu-username" placeholder="jean.dupont"></div>' +
+        '<div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="mu-email" placeholder="jean@atelier.fr"></div>' +
+        '<div class="form-group"><label class="form-label">Mot de passe</label><input type="password" class="form-input" id="mu-password" placeholder="Min. 6 caracteres"></div>' +
+        '<div class="form-group"><label class="form-label">Role</label><select class="form-select" id="mu-role"><option value="mecanicien">Mecanicien</option><option value="receptionnaire">Receptionnaire</option><option value="admin">Admin</option></select></div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="addUser()">Ajouter</button></div>' +
+        '</div></div>';
+}
+
+function addUser() {
+    var username = document.getElementById('mu-username').value.trim();
+    var email = document.getElementById('mu-email').value.trim();
+    var password = document.getElementById('mu-password').value;
+    var role = document.getElementById('mu-role').value;
+    if (!username || !password) { showAlert('Remplir nom d\'utilisateur et mot de passe', 'error'); return; }
+    if (password.length < 6) { showAlert('Le mot de passe doit faire min. 6 caracteres', 'error'); return; }
+
+    apiPost('/api/users', {
+        username: username, email: email || null, password: password, role: role
+    }).then(function() { closeModal(); showAlert('Utilisateur cree'); loadUtilisateurs(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function showEditUserModal(userId) {
+    apiGet('/api/users/' + userId).then(function(r) { return r.json(); }).then(function(u) {
+        document.getElementById('modal-container').innerHTML =
+            '<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-title">Modifier l\'utilisateur</div>' +
+            '<div class="form-group"><label class="form-label">Nom d\'utilisateur</label><input type="text" class="form-input" id="mu-username" value="' + escapeHtml(u.username) + '"></div>' +
+            '<div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="mu-email" value="' + (escapeHtml(u.email) || '') + '"></div>' +
+            '<div class="form-group"><label class="form-label">Nouveau mot de passe (laisser vide pour ne pas changer)</label><input type="password" class="form-input" id="mu-password" placeholder="Laisser vide pour conserver"></div>' +
+            '<div class="form-group"><label class="form-label">Role</label><select class="form-select" id="mu-role"><option value="mecanicien"' + (escapeHtml(u.role) === 'mecanicien' ? ' selected' : '') + '>Mecanicien</option><option value="receptionnaire"' + (u.role === 'receptionnaire' ? ' selected' : '') + '>Receptionnaire</option><option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option></select></div>' +
+            '<label class="form-checkbox" style="margin-bottom:16px"><input type="checkbox" id="mu-active" ' + (u.is_active ? 'checked' : '') + '> Actif</label>' +
+            '<div style="display:flex;gap:8px"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Annuler</button><button class="btn btn-primary" style="flex:1" onclick="updateUser(' + userId + ')">Enregistrer</button></div>' +
+            '</div></div>';
+    }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function updateUser(userId) {
+    var data = {
+        username: document.getElementById('mu-username').value.trim(),
+        email: document.getElementById('mu-email').value.trim() || null,
+        role: document.getElementById('mu-role').value,
+        is_active: document.getElementById('mu-active').checked
+    };
+    var pwd = document.getElementById('mu-password').value;
+    if (pwd) data.password = pwd;
+
+    apiPut('/api/users/' + userId, data).then(function() { closeModal(); showAlert('Utilisateur modifie'); loadUtilisateurs(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+
+function deleteUser(userId) {
+    if (!confirm('Supprimer cet utilisateur ?')) return;
+    apiDelete('/api/users/' + userId).then(function() { showAlert('Utilisateur supprime'); loadUtilisateurs(); }).catch(function(e) { showAlert('Erreur: ' + e.message, 'error'); });
+}
+</script>
+</body>
+</html>

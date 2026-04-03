@@ -1,0 +1,1956 @@
+// Configuration
+const API_URL = window.location.origin;
+let currentDate = new Date();
+let currentVue = 'jour'; // Vue par défaut: jour
+let planningData = null;
+let ponts = [];
+let mecaniciens = [];
+let currentUser = null; // Stockera les infos de l'utilisateur connecté
+
+// Heures d'ouverture
+const HEURE_OUVERTURE = 8;  // 8h
+const HEURE_FERMETURE = 19; // 19h
+const INTERVALLE = 30; // minutes
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+    // Vérifier l'authentification
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+
+    // Initialiser la date
+    document.getElementById('date-selector').value = formatDateForInput(currentDate);
+    updateDateDisplay();
+
+    // Initialiser la vue par défaut (jour)
+    setVue('jour');
+
+    // Charger les données
+    loadPlanning();
+    loadPontsEtMecaniciens();
+
+    // Rafraîchir toutes les 2 minutes
+    setInterval(loadPlanning, 120000);
+
+    // Récupérer les infos de l'utilisateur
+    loadCurrentUser();
+});
+
+// ========== UTILISATEUR CONNECTÉ ==========
+
+async function loadCurrentUser() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            currentUser = await response.json();
+            console.log('Utilisateur connecté:', currentUser.username, 'Rôle:', currentUser.role);
+
+            // Si c'est un mécanicien, adapter l'interface
+            if (currentUser.role === 'mecanicien') {
+                adapterInterfaceMecanicien();
+            }
+        }
+    } catch (error) {
+        console.error('Erreur chargement utilisateur:', error);
+    }
+}
+
+function adapterInterfaceMecanicien() {
+    // Masquer les boutons d'ajout de RDV pour les mécaniciens
+    const btnNouveauRdv = document.getElementById('btn-nouveau-rdv');
+    if (btnNouveauRdv) btnNouveauRdv.style.display = 'none';
+
+    // Désactiver le drag & drop
+    console.log('Interface adaptée pour mécanicien (lecture seule)');
+}
+
+// ========== NAVIGATION ==========
+
+function setVue(vue) {
+    currentVue = vue;
+
+    // Mettre à jour les boutons avec couleurs dashboard
+    const btnJour = document.getElementById('btn-vue-jour');
+    const btnSemaine = document.getElementById('btn-vue-semaine');
+
+    if (vue === 'jour') {
+        btnJour.style.background = '#ffd700';
+        btnJour.style.color = '#1a1a1a';
+        btnSemaine.style.background = '';
+        btnSemaine.style.color = '';
+        btnSemaine.className = 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium';
+    } else {
+        btnSemaine.style.background = '#ffd700';
+        btnSemaine.style.color = '#1a1a1a';
+        btnJour.style.background = '';
+        btnJour.style.color = '';
+        btnJour.className = 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium';
+    }
+
+    // Afficher/masquer les vues
+    document.getElementById('vue-jour').classList.toggle('hidden', vue !== 'jour');
+    document.getElementById('vue-semaine').classList.toggle('hidden', vue !== 'semaine');
+
+    // Recharger les données
+    loadPlanning();
+}
+
+function changeDate(delta) {
+    if (currentVue === 'jour') {
+        currentDate.setDate(currentDate.getDate() + delta);
+    } else {
+        currentDate.setDate(currentDate.getDate() + (delta * 7));
+    }
+    document.getElementById('date-selector').value = formatDateForInput(currentDate);
+    updateDateDisplay();
+    loadPlanning();
+}
+
+function goToToday() {
+    currentDate = new Date();
+    document.getElementById('date-selector').value = formatDateForInput(currentDate);
+    updateDateDisplay();
+    loadPlanning();
+}
+
+function onDateChange(dateStr) {
+    currentDate = new Date(dateStr);
+    updateDateDisplay();
+    loadPlanning();
+}
+
+function updateDateDisplay() {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-date').textContent = currentDate.toLocaleDateString('fr-FR', options);
+}
+
+// ========== CHARGEMENT DES DONNÉES ==========
+
+async function loadPontsEtMecaniciens() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+
+        // Nettoyer le token (enlever espaces et guillemets)
+        const cleanToken = token.trim().replace(/^["']|["']$/g, '');
+
+        // Charger les ponts
+        const pontsRes = await fetch(`${API_URL}/api/ponts`, {
+            headers: { 'Authorization': `Bearer ${cleanToken}` }
+        });
+        if (pontsRes.status === 401) {
+            console.error('401 sur /api/ponts');
+            handleAuthError();
+            return;
+        }
+        if (pontsRes.ok) {
+            ponts = await pontsRes.json();
+        } else {
+            console.error('Erreur ponts:', pontsRes.status, await pontsRes.text());
+        }
+
+        // Charger les mécaniciens
+        const mecanoRes = await fetch(`${API_URL}/api/mecaniciens`, {
+            headers: { 'Authorization': `Bearer ${cleanToken}` }
+        });
+        if (mecanoRes.status === 401) {
+            console.error('401 sur /api/mecaniciens');
+            handleAuthError();
+            return;
+        }
+        if (mecanoRes.ok) {
+            mecaniciens = await mecanoRes.json();
+        } else {
+            console.error('Erreur mecaniciens:', mecanoRes.status, await mecanoRes.text());
+        }
+
+        // Remplir les selects du modal
+        fillSelects();
+    } catch (error) {
+        console.error('Erreur chargement ponts/mécaniciens:', error);
+    }
+}
+
+function handleAuthError() {
+    console.error('Token invalide ou expiré');
+    localStorage.removeItem('token');
+    window.location.href = '/';
+}
+
+function fillSelects() {
+    const pontSelect = document.getElementById('assign-pont');
+    const mecanoSelect = document.getElementById('assign-mecanicien');
+
+    // Garder l'option vide
+    pontSelect.innerHTML = '<option value="">-- Non assigné --</option>';
+    mecanoSelect.innerHTML = '<option value="">-- Non assigné --</option>';
+
+    ponts.forEach(pont => {
+        const option = document.createElement('option');
+        option.value = pont.id;
+        option.textContent = pont.nom;
+        pontSelect.appendChild(option);
+    });
+
+    mecaniciens.forEach(mecano => {
+        const option = document.createElement('option');
+        option.value = mecano.id;
+        option.textContent = `${mecano.prenom} ${mecano.nom}`;
+        mecanoSelect.appendChild(option);
+    });
+}
+
+async function loadPlanning() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+
+        // Nettoyer le token
+        const cleanToken = token.trim().replace(/^["']|["']$/g, '');
+        const dateStr = formatDateForInput(currentDate);
+
+        if (currentVue === 'jour') {
+            const response = await fetch(`${API_URL}/api/planning?date=${dateStr}`, {
+                headers: { 'Authorization': `Bearer ${cleanToken}` }
+            });
+
+            if (response.status === 401) {
+                console.error('401 sur /api/planning');
+                handleAuthError();
+                return;
+            }
+            if (response.ok) {
+                const newData = await response.json();
+                console.log('Planning jour chargé:', newData.rendez_vous.length, 'RDV');
+                console.log('Premier RDV pont_id:', newData.rendez_vous[0]?.pont_id);
+                planningData = newData;
+                renderPlanningJour();
+                updateStats();
+            } else {
+                console.error('Erreur planning:', response.status, await response.text());
+            }
+        } else {
+            // Charger d'abord les ponts si pas déjà chargés
+            if (ponts.length === 0) {
+                await loadPontsEtMecaniciens();
+            }
+
+            const response = await fetch(`${API_URL}/api/planning/semaine?date_debut=${dateStr}`, {
+                headers: { 'Authorization': `Bearer ${cleanToken}` }
+            });
+
+            if (response.status === 401) {
+                console.error('401 sur /api/planning/semaine');
+                handleAuthError();
+                return;
+            }
+            if (response.ok) {
+                planningData = await response.json();
+                renderPlanningSemaine();
+                updateStats();
+            } else {
+                console.error('Erreur planning semaine:', response.status, await response.text());
+            }
+        }
+    } catch (error) {
+        console.error('Erreur chargement planning:', error);
+    }
+}
+
+// ========== RENDU VUE JOUR ==========
+
+function renderPlanningJour() {
+    const container = document.getElementById('planning-container');
+    const titreDate = document.getElementById('titre-date-jour');
+
+    titreDate.textContent = new Date(planningData.date).toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long'
+    });
+
+    // Créer la grille
+    const pontsList = planningData.ponts;
+    const rdvs = planningData.rendez_vous;
+
+    // Calculer les positions des RDV (pour éviter les doublons sur plusieurs lignes)
+    const rdvPositions = calculerPositionsRDV(rdvs);
+
+    let html = '<div class="planning-grid" style="grid-template-columns: 80px repeat(' + pontsList.length + ', minmax(200px, 1fr)); position: relative;">';
+
+    // Header
+    html += '<div class="planning-header">Heure</div>';
+    pontsList.forEach(pont => {
+        html += `<div class="planning-header">${pont.nom}</div>`;
+    });
+
+    // Lignes par tranche horaire
+    for (let h = HEURE_OUVERTURE; h < HEURE_FERMETURE; h++) {
+        for (let m = 0; m < 60; m += INTERVALLE) {
+            const heureStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            html += `<div class="planning-time">${heureStr}</div>`;
+
+            pontsList.forEach(pont => {
+                html += `<div class="planning-cell" data-heure="${heureStr}" data-pont="${pont.id}"></div>`;
+            });
+        }
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Ajouter les RDV en position absolue par-dessus la grille
+    const grid = container.querySelector('.planning-grid');
+    rdvPositions.forEach(rdvPos => {
+        const rdvElement = createRdvElement(rdvPos);
+        grid.appendChild(rdvElement);
+    });
+
+    // Ajouter la ligne de l'heure actuelle si on est sur aujourd'hui
+    addCurrentTimeLine();
+
+    // Activer le drag & drop après un court délai pour s'assurer que le DOM est prêt
+    setTimeout(enableDragAndDrop, 100);
+}
+
+function calculerPositionsRDV(rdvs) {
+    const rowHeight = 80; // hauteur d'une cellule en pixels
+    const headerHeight = 40; // hauteur du header
+    const minuteHeight = rowHeight / 30; // pixels par minute
+
+    return rdvs.map(rdv => {
+        const [heures, minutes] = rdv.heure_rdv.split(':').map(Number);
+        const dureeMinutes = rdv.temps_estime || 60;
+
+        // Calculer la position verticale (début)
+        const totalMinutes = (heures - HEURE_OUVERTURE) * 60 + minutes;
+        const topPosition = headerHeight + (totalMinutes * minuteHeight);
+
+        // Calculer la hauteur selon la durée
+        const height = dureeMinutes * minuteHeight;
+
+        // Trouver l'index de la colonne du pont
+        // Si pas de pont assigné, on met dans la première colonne de pont (index 0 + 1 = 1)
+        let columnIndex = 1;
+        if (rdv.pont_id) {
+            const pontIndex = planningData.ponts.findIndex(p => p.id === rdv.pont_id);
+            if (pontIndex >= 0) {
+                columnIndex = pontIndex + 1; // +1 car colonne 0 = heures
+            }
+        }
+
+        return {
+            ...rdv,
+            top: topPosition,
+            height: height,
+            column: columnIndex
+        };
+    });
+}
+
+function createRdvElement(rdvPos) {
+    const div = document.createElement('div');
+
+    // Détecter si ce RDV est en conflit avec un autre sur le même pont
+    const aConflit = detecterConflitPourRDV(rdvPos);
+
+    // Couleur du mécanicien
+    const mecanoColor = rdvPos.mecanicien ? rdvPos.mecanicien.couleur : '#9ca3af';
+
+    // Classe de base + statut + conflit si nécessaire
+    div.className = `rdv-card rdv-${rdvPos.statut} ${aConflit ? 'rdv-conflit' : ''}`;
+
+    // Styles de positionnement uniquement (pas de background/border qui écrasent les classes)
+    div.style.position = 'absolute';
+    div.style.top = `${rdvPos.top}px`;
+    div.style.left = `calc(80px + (${rdvPos.column} - 1) * ((100% - 80px) / ${planningData.ponts.length}))`;
+    div.style.width = `calc((100% - 80px) / ${planningData.ponts.length} - 8px)`;
+    div.style.height = `${rdvPos.height - 4}px`;
+    div.style.margin = '2px 4px';
+    div.style.zIndex = '10';
+    div.style.overflow = 'hidden';
+    div.style.cursor = 'pointer';
+
+    // Border-left avec couleur du mécanicien (en plus de la couleur de statut)
+    div.style.borderLeftWidth = '4px';
+    div.style.borderLeftStyle = 'solid';
+    div.style.borderLeftColor = mecanoColor;
+
+    // Style de conflit
+    if (aConflit) {
+        div.style.border = '2px solid #ef4444';
+        div.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.4)';
+    }
+
+    const mecanoNom = rdvPos.mecanicien ? `${rdvPos.mecanicien.prenom} ${rdvPos.mecanicien.nom.charAt(0)}.` : 'Non assigné';
+
+    // Vérifier si l'OR est signé (kilometrage et etat_vehicule remplis)
+    const orSigne = rdvPos.kilometrage && rdvPos.etat_vehicule;
+
+    div.innerHTML = `
+        <div class="font-semibold text-gray-800 text-xs">
+            ${rdvPos.heure_rdv} (${rdvPos.temps_estime || 60}min)
+            ${aConflit ? '<span style="color: #ef4444; margin-left: 4px;">⚠️</span>' : ''}
+            ${orSigne ? '<span style="color: #28a745; margin-left: 4px;" title="OR signé">📋</span>' : ''}
+        </div>
+        <div class="text-gray-700 truncate text-sm">${rdvPos.client.prenom} ${rdvPos.client.nom}</div>
+        <div class="text-gray-600 text-xs truncate">${rdvPos.vehicule.marque} ${rdvPos.vehicule.modele}</div>
+        <div class="mt-1 flex items-center justify-between">
+            <span class="text-xs text-gray-500 truncate flex-1">${rdvPos.type_intervention}</span>
+            <span class="mecanicien-badge ml-1 text-xs" style="background: ${rdvPos.mecanicien ? rdvPos.mecanicien.couleur : '#9ca3af'}">${mecanoNom}</span>
+        </div>
+    `;
+
+    div.onclick = () => openDetailsModal(rdvPos.id);
+
+    return div;
+}
+
+// Fonction pour détecter si un RDV spécifique est en conflit
+function detecterConflitPourRDV(rdv) {
+    if (!rdv.pont_id) return false;
+
+    const autresRdvs = planningData.rendez_vous.filter(r =>
+        r.id !== rdv.id && r.pont_id === rdv.pont_id
+    );
+
+    const [h1, m1] = rdv.heure_rdv.split(':').map(Number);
+    const debut1 = h1 * 60 + m1;
+    const fin1 = debut1 + (rdv.temps_estime || 60);
+
+    return autresRdvs.some(autre => {
+        const [h2, m2] = autre.heure_rdv.split(':').map(Number);
+        const debut2 = h2 * 60 + m2;
+        const fin2 = debut2 + (autre.temps_estime || 60);
+        return debut1 < fin2 && fin1 > debut2;
+    });
+}
+
+function renderRdvCard(rdv) {
+    const statutClass = `rdv-${rdv.statut}`;
+    const mecanoColor = rdv.mecanicien ? rdv.mecanicien.couleur : '#9ca3af';
+    const mecanoNom = rdv.mecanicien ? `${rdv.mecanicien.prenom} ${rdv.mecanicien.nom.charAt(0)}.` : 'Non assigné';
+
+    // Ne pas rendre draggable pour les mécaniciens (lecture seule)
+    const isMecanicien = currentUser && currentUser.role === 'mecanicien';
+    const draggableAttr = isMecanicien ? '' : 'draggable="true"';
+    const dragEvents = isMecanicien ? '' : `ondragstart="handleDragStart(event, ${rdv.id})" ondragend="handleDragEnd(event)"`;
+
+    return `
+        <div class="rdv-card ${statutClass}" ${draggableAttr} data-rdv-id="${rdv.id}" ${dragEvents} onclick="openDetailsModal(${rdv.id})" style="border-left-color: ${mecanoColor}; cursor: pointer;">
+            <div class="font-semibold text-gray-800">${rdv.heure_rdv}</div>
+            <div class="text-gray-700 truncate">${rdv.client.prenom} ${rdv.client.nom}</div>
+            <div class="text-gray-600 text-xs truncate">${rdv.vehicule.marque} ${rdv.vehicule.modele}</div>
+            <div class="mt-1 flex items-center justify-between">
+                <span class="text-xs text-gray-500 truncate flex-1">${rdv.type_intervention || 'Intervention non spécifiée'}</span>
+                <span class="mecanicien-badge ml-1" style="background: ${mecanoColor}">${mecanoNom}</span>
+            </div>
+        </div>
+    `;
+}
+
+function addCurrentTimeLine() {
+    const today = new Date().toISOString().split('T')[0];
+    if (planningData.date !== today) return;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+
+    if (currentHour < HEURE_OUVERTURE || currentHour >= HEURE_FERMETURE) return;
+
+    // Calculer la position
+    const totalMinutes = (currentHour - HEURE_OUVERTURE) * 60 + currentMin;
+    const rowHeight = 80; // hauteur d'une cellule
+    const rowIndex = Math.floor(totalMinutes / INTERVALLE);
+    const offsetInRow = (totalMinutes % INTERVALLE) / INTERVALLE * rowHeight;
+    const topPosition = rowIndex * rowHeight + offsetInRow + 40; // +40 pour le header
+
+    // Ajouter la ligne
+    const container = document.getElementById('planning-container');
+    const line = document.createElement('div');
+    line.className = 'current-time-line';
+    line.style.top = `${topPosition}px`;
+    line.innerHTML = `<span class="current-time-label">${currentHour}:${currentMin.toString().padStart(2, '0')}</span>`;
+    container.style.position = 'relative';
+    container.appendChild(line);
+}
+
+// ========== RENDU VUE SEMAINE ==========
+
+function renderPlanningSemaine() {
+    const container = document.getElementById('semaine-container');
+    const titreDate = document.getElementById('titre-date-semaine');
+
+    const debut = new Date(planningData.date_debut);
+    const fin = new Date(planningData.date_fin);
+    titreDate.textContent = `${debut.toLocaleDateString('fr-FR')} au ${fin.toLocaleDateString('fr-FR')}`;
+
+    const joursNoms = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const jours = planningData.jours;
+    const jourKeys = Object.keys(jours).sort();
+
+    // Utiliser les ponts déjà chargés (depuis loadPontsEtMecaniciens)
+    // ou ceux dans planningData s'ils existent
+    const pontsList = planningData.ponts && planningData.ponts.length > 0
+        ? planningData.ponts
+        : (ponts && ponts.length > 0 ? ponts : []);
+
+    // Si pas de ponts, afficher un message
+    if (pontsList.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-gray-500">Aucun pont configuré. <a href="/config.html" class="text-blue-600 underline">Configurer les ponts</a></div>';
+        return;
+    }
+
+    // Nouvelle structure : ponts en lignes, jours en colonnes
+    let html = '<div class="semaine-grid-v2">';
+
+    // Header : coin vide + jours
+    html += '<div class="semaine-corner"></div>';
+    jourKeys.forEach(key => {
+        const date = new Date(key);
+        const jourNom = joursNoms[date.getDay()];
+        const jourNum = date.getDate();
+        const isToday = key === new Date().toISOString().split('T')[0];
+
+        html += `
+            <div class="semaine-header-jour ${isToday ? 'today' : ''}">
+                <span class="jour-nom">${jourNom}</span>
+                <span class="jour-num">${jourNum}</span>
+            </div>
+        `;
+    });
+
+    // Fonction helper pour générer les cellules d'un pont
+    function genererCellulesPont(pontId, pontNom, isSansPont = false) {
+        // Label du pont
+        html += `<div class="semaine-pont-label ${isSansPont ? 'sans-pont' : ''}">${pontNom}</div>`;
+
+        // Une cellule par jour pour ce pont
+        jourKeys.forEach(key => {
+            const rdvsJour = jours[key] || [];
+            // Filtrer : si pontId est null, on prend les RDV sans pont
+            // sinon on prend les RDV avec ce pont_id
+            const rdvsPont = pontId === null
+                ? rdvsJour.filter(r => !r.pont_id)
+                : rdvsJour.filter(r => r.pont_id === pontId);
+
+            // Détecter les conflits pour ce jour (uniquement si pont assigné)
+            const conflits = [];
+            if (pontId !== null) {
+                for (let i = 0; i < rdvsPont.length; i++) {
+                    for (let j = i + 1; j < rdvsPont.length; j++) {
+                        const rdv1 = rdvsPont[i];
+                        const rdv2 = rdvsPont[j];
+                        const [h1, m1] = rdv1.heure_rdv.split(':').map(Number);
+                        const [h2, m2] = rdv2.heure_rdv.split(':').map(Number);
+                        const debut1 = h1 * 60 + m1;
+                        const fin1 = debut1 + (rdv1.temps_estime || 60);
+                        const debut2 = h2 * 60 + m2;
+                        const fin2 = debut2 + (rdv2.temps_estime || 60);
+                        if (debut1 < fin2 && fin1 > debut2) {
+                            conflits.push(rdv1.id, rdv2.id);
+                        }
+                    }
+                }
+            }
+
+            const isToday = key === new Date().toISOString().split('T')[0];
+            const hasManyRdvs = rdvsPont.length > 2;
+
+            html += `<div class="semaine-cell-v2 ${isToday ? 'today' : ''} ${hasManyRdvs ? 'busy' : ''} ${isSansPont ? 'sans-pont-cell' : ''}" data-date="${key}" data-pont="${pontId || ''}" onclick="goToDate('${key}')">`;
+
+            if (rdvsPont.length === 0) {
+                html += '<span class="disponible">-</span>';
+            } else {
+                rdvsPont.forEach(rdv => {
+                    const hasConflit = conflits.includes(rdv.id);
+                    const mecanoColor = rdv.mecanicien ? rdv.mecanicien.couleur : '#9ca3af';
+
+                    // Ne pas rendre draggable pour les mécaniciens (lecture seule)
+                const isMecanicienSemaine = currentUser && currentUser.role === 'mecanicien';
+                const draggableAttrSemaine = isMecanicienSemaine ? '' : 'draggable="true"';
+                const dragEventsSemaine = isMecanicienSemaine ? '' : `ondragstart="handleDragStartSemaine(event, ${rdv.id})" ondragend="handleDragEndSemaine(event)"`;
+                const cursorStyle = isMecanicienSemaine ? 'cursor: pointer;' : 'cursor: move;';
+
+                html += `
+                        <div class="semaine-rdv-v2 rdv-${rdv.statut} ${hasConflit ? 'conflit' : ''} ${isSansPont ? 'rdv-sans-pont' : ''}"
+                             ${draggableAttrSemaine}
+                             data-rdv-id="${rdv.id}"
+                             ${dragEventsSemaine}
+                             style="border-left: 3px solid ${mecanoColor}; ${cursorStyle}"
+                             onclick="event.stopPropagation(); openDetailsModal(${rdv.id})">
+                            <span class="rdv-heure">${rdv.heure_rdv}</span>
+                            <span class="rdv-nom">${rdv.client.nom}</span>
+                            ${hasConflit ? '<span class="conflit-icon">⚠️</span>' : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+        });
+    }
+
+    // D'abord afficher les RDV sans pont (si il y en a)
+    const aDesRdvsSansPont = jourKeys.some(key => {
+        const rdvsJour = jours[key] || [];
+        return rdvsJour.some(r => !r.pont_id);
+    });
+
+    if (aDesRdvsSansPont) {
+        genererCellulesPont(null, '⚠️ Sans pont', true);
+    }
+
+    // Puis les ponts configurés
+    pontsList.forEach(pont => {
+        genererCellulesPont(pont.id, pont.nom);
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Activer le drag & drop sur la vue semaine
+    setTimeout(enableDragAndDropSemaine, 100);
+}
+
+function enableDragAndDropSemaine() {
+    // Ne pas activer le drag & drop pour les mécaniciens (lecture seule)
+    if (currentUser && currentUser.role === 'mecanicien') {
+        console.log('Drag & drop semaine désactivé pour les mécaniciens');
+        return;
+    }
+
+    const cells = document.querySelectorAll('.semaine-cell-v2');
+    console.log('Enable drag & drop semaine sur', cells.length, 'cellules');
+    cells.forEach(cell => {
+        cell.addEventListener('dragover', handleDragOverSemaine);
+        cell.addEventListener('dragleave', handleDragLeaveSemaine);
+        cell.addEventListener('drop', handleDropSemaine);
+    });
+}
+
+let draggedRdvIdSemaine = null;
+
+function handleDragStartSemaine(e, rdvId) {
+    draggedRdvIdSemaine = rdvId;
+    e.target.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', rdvId);
+    console.log('Drag start semaine:', rdvId);
+}
+
+function handleDragEndSemaine(e) {
+    e.target.style.opacity = '1';
+    draggedRdvIdSemaine = null;
+    document.querySelectorAll('.semaine-cell-v2').forEach(el => {
+        el.style.background = '';
+        el.style.border = '';
+    });
+}
+
+function handleDragOverSemaine(e) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#dbeafe';
+    e.currentTarget.style.border = '2px dashed #3b82f6';
+}
+
+function handleDragLeaveSemaine(e) {
+    e.currentTarget.style.background = '';
+    e.currentTarget.style.border = '';
+}
+
+async function handleDropSemaine(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.background = '';
+    e.currentTarget.style.border = '';
+
+    if (!draggedRdvIdSemaine) return;
+
+    const cell = e.currentTarget;
+    const newDate = cell.dataset.date;
+    const newPontId = cell.dataset.pont;
+
+    if (!newDate) {
+        console.log('Missing date data');
+        return;
+    }
+
+    // Trouver le RDV dans tous les jours
+    let rdv = null;
+    const jours = planningData.jours;
+    for (const jourKey of Object.keys(jours)) {
+        const found = jours[jourKey].find(r => r.id === draggedRdvIdSemaine);
+        if (found) {
+            rdv = found;
+            break;
+        }
+    }
+
+    if (!rdv) {
+        console.log('RDV not found:', draggedRdvIdSemaine);
+        return;
+    }
+
+    // Confirmer le déplacement
+    const dateObj = new Date(newDate);
+    const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
+    const confirmMsg = `Déplacer le RDV de ${rdv.client.nom} vers le ${dateStr} ?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const updateData = {
+            date_rdv: newDate
+        };
+        if (newPontId) {
+            updateData.pont_id = parseInt(newPontId);
+        }
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${draggedRdvIdSemaine}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            showToast('RDV déplacé avec succès');
+            setTimeout(() => loadPlanning(), 500);
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + (error.detail || 'Impossible de déplacer le RDV'));
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+function goToDate(dateStr) {
+    currentDate = new Date(dateStr);
+    document.getElementById('date-selector').value = formatDateForInput(currentDate);
+    updateDateDisplay();
+    setVue('jour');
+}
+
+// ========== STATS ==========
+
+function updateStats() {
+    if (!planningData) return;
+
+    // Récupérer les RDV selon la vue
+    let rdvs = [];
+    if (currentVue === 'jour') {
+        rdvs = planningData.rendez_vous || [];
+    } else {
+        // Vue semaine : aplatir tous les jours
+        Object.values(planningData.jours || {}).forEach(jourRdvs => {
+            rdvs = rdvs.concat(jourRdvs);
+        });
+    }
+
+    document.getElementById('stat-total').textContent = rdvs.length;
+    document.getElementById('stat-attente').textContent = rdvs.filter(r => r.statut === 'en_attente').length;
+    document.getElementById('stat-confirme').textContent = rdvs.filter(r => r.statut === 'confirme').length;
+    document.getElementById('stat-cours').textContent = rdvs.filter(r => r.statut === 'en_cours').length;
+    document.getElementById('stat-termine').textContent = rdvs.filter(r => r.statut === 'termine').length;
+
+    // Mettre à jour l'alerte de conflits
+    updateConflitAlert();
+}
+
+function updateConflitAlert() {
+    // Récupérer tous les RDV selon la vue active
+    let rdvs = [];
+    if (currentVue === 'jour') {
+        rdvs = planningData.rendez_vous || [];
+    } else {
+        // Vue semaine : aplatir tous les jours
+        Object.values(planningData.jours || {}).forEach(jourRdvs => {
+            rdvs = rdvs.concat(jourRdvs);
+        });
+    }
+
+    let nbConflits = 0;
+
+    // Compter les conflits (uniquement pour les RDV du même jour)
+    const rdvsParJour = {};
+    rdvs.forEach(rdv => {
+        const date = rdv.date_rdv || planningData.date;
+        if (!rdvsParJour[date]) rdvsParJour[date] = [];
+        rdvsParJour[date].push(rdv);
+    });
+
+    Object.values(rdvsParJour).forEach(rdvsJour => {
+        for (let i = 0; i < rdvsJour.length; i++) {
+            for (let j = i + 1; j < rdvsJour.length; j++) {
+                const rdv1 = rdvsJour[i];
+                const rdv2 = rdvsJour[j];
+
+                if (rdv1.pont_id && rdv2.pont_id && rdv1.pont_id === rdv2.pont_id) {
+                    const [h1, m1] = rdv1.heure_rdv.split(':').map(Number);
+                    const [h2, m2] = rdv2.heure_rdv.split(':').map(Number);
+                    const debut1 = h1 * 60 + m1;
+                    const fin1 = debut1 + (rdv1.temps_estime || 60);
+                    const debut2 = h2 * 60 + m2;
+                    const fin2 = debut2 + (rdv2.temps_estime || 60);
+
+                    if (debut1 < fin2 && fin1 > debut2) {
+                        nbConflits++;
+                    }
+                }
+            }
+        }
+    });
+
+    // Mettre à jour ou créer l'alerte
+    let alertEl = document.getElementById('conflit-alert');
+    if (!alertEl) {
+        alertEl = document.createElement('div');
+        alertEl.id = 'conflit-alert';
+        alertEl.className = 'hidden';
+        const header = document.querySelector('header .container > div');
+        if (header) {
+            header.insertBefore(alertEl, header.children[1]);
+        }
+    }
+
+    if (nbConflits > 0) {
+        alertEl.className = 'bg-red-100 border border-red-400 text-red-700 px-3 py-1 rounded text-sm font-semibold';
+        alertEl.innerHTML = `⚠️ ${nbConflits} conflit(s) de planning`;
+    } else {
+        alertEl.className = 'hidden';
+    }
+}
+
+// ========== MODALS ==========
+
+let currentRdvId = null;
+
+function openDetailsModal(rdvId) {
+    currentRdvId = rdvId;
+
+    // Trouver le RDV dans les données
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (!rdv) return;
+
+    const statutLabels = {
+        'en_attente': 'En attente',
+        'confirme': 'Confirmé',
+        'en_cours': 'En cours',
+        'termine': 'Terminé',
+        'facture': 'Facturé',
+        'annule': 'Annulé'
+    };
+
+    const statutColors = {
+        'en_attente': 'bg-yellow-100 text-yellow-800',
+        'confirme': 'bg-green-100 text-green-800',
+        'en_cours': 'bg-blue-100 text-blue-800',
+        'termine': 'bg-gray-100 text-gray-800',
+        'facture': 'bg-green-100 text-green-800 border border-green-500',
+        'annule': 'bg-red-100 text-red-800'
+    };
+
+    const mecanoInfo = rdv.mecanicien
+        ? `<span class="mecanicien-badge" style="background: ${rdv.mecanicien.couleur}">${rdv.mecanicien.prenom} ${rdv.mecanicien.nom}</span>`
+        : '<span class="text-gray-500">Non assigné</span>';
+
+    const pontInfo = rdv.pont
+        ? `<span class="font-semibold text-blue-600">${rdv.pont.nom}</span>`
+        : '<span class="text-gray-500">Non assigné</span>';
+
+    document.getElementById('details-content').innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+            <div><strong>Client:</strong> ${rdv.client.prenom} ${rdv.client.nom}</div>
+            <div><strong>Téléphone:</strong> ${rdv.client.telephone}</div>
+            <div><strong>Véhicule:</strong> ${rdv.vehicule.marque} ${rdv.vehicule.modele}</div>
+            <div><strong>Plaque:</strong> ${rdv.vehicule.plaque}</div>
+            <div><strong>Date:</strong> ${new Date(rdv.date_rdv).toLocaleDateString('fr-FR')}</div>
+            <div><strong>Heure:</strong> ${rdv.heure_rdv}</div>
+            <div><strong>Intervention:</strong> ${rdv.type_intervention}</div>
+            <div><strong>Prix estimé:</strong> ${rdv.prix_estime ? rdv.prix_estime + '€' : 'Non défini'}</div>
+        </div>
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span><strong>Pont:</strong> ${pontInfo}</span>
+                <span><strong>Mécanicien:</strong> ${mecanoInfo}</span>
+            </div>
+            <div class="mt-2">
+                <strong>Statut:</strong>
+                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statutColors[rdv.statut]}">
+                    ${statutLabels[rdv.statut]}
+                </span>
+            </div>
+        </div>
+    `;
+
+    // Afficher/masquer le bouton "Prendre ce RDV"
+    const btnPrendre = document.getElementById('btn-prendre-rdv');
+    if (btnPrendre) {
+        if (!rdv.mecanicien && rdv.statut === 'en_attente') {
+            btnPrendre.classList.remove('hidden');
+        } else {
+            btnPrendre.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('modal-details').classList.remove('hidden');
+}
+
+function openAssignModalFromDetails() {
+    closeModal('modal-details');
+    openAssignModal(currentRdvId);
+}
+
+function openClotureModalFromDetails() {
+    closeModal('modal-details');
+    openClotureModal(currentRdvId);
+}
+
+function prendreRdvFromDetails() {
+    closeModal('modal-details');
+    prendreRdv(currentRdvId);
+}
+
+function openEditModalFromDetails() {
+    closeModal('modal-details');
+    openEditModal(currentRdvId);
+}
+
+function openEditModal(rdvId) {
+    currentRdvId = rdvId;
+    document.getElementById('edit-rdv-id').value = rdvId;
+
+    // Trouver le RDV
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (!rdv) return;
+
+    // Remplir les champs
+    document.getElementById('edit-date').value = rdv.date_rdv;
+    document.getElementById('edit-heure').value = rdv.heure_rdv;
+
+    // Remplir la liste des ponts
+    const pontSelect = document.getElementById('edit-pont');
+    pontSelect.innerHTML = '<option value="">Sélectionner un pont</option>';
+    if (planningData.ponts) {
+        planningData.ponts.forEach(pont => {
+            const selected = rdv.pont_id === pont.id ? 'selected' : '';
+            pontSelect.innerHTML += `<option value="${pont.id}" ${selected}>${pont.nom}</option>`;
+        });
+    }
+
+    document.getElementById('modal-edit').classList.remove('hidden');
+}
+
+async function saveEditRdv() {
+    const rdvId = parseInt(document.getElementById('edit-rdv-id').value);
+    const newDate = document.getElementById('edit-date').value;
+    const newHeure = document.getElementById('edit-heure').value;
+    const newPontId = document.getElementById('edit-pont').value;
+
+    if (!newDate || !newHeure) {
+        alert('Veuillez remplir la date et l\'heure');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        const updateData = {
+            date_rdv: newDate,
+            heure_rdv: newHeure
+        };
+        if (newPontId) {
+            updateData.pont_id = parseInt(newPontId);
+        }
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            showToast('RDV modifié avec succès');
+            closeModal('modal-edit');
+            loadPlanning();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + (error.detail || 'Impossible de modifier le RDV'));
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+async function openClotureModal(rdvId) {
+    currentRdvId = rdvId;
+    document.getElementById('cloture-rdv-id').value = rdvId;
+
+    // Trouver le RDV
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (rdv) {
+        // Si les données client/vehicule manquent, les récupérer via l'API
+        if (!rdv.client || !rdv.vehicule) {
+            try {
+                const rdvResponse = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (rdvResponse.ok) {
+                    const fullRdv = await rdvResponse.json();
+                    rdv = { ...rdv, ...fullRdv };
+                }
+            } catch (e) {
+                console.log('Impossible de charger les détails complets du RDV');
+            }
+        }
+
+        // === INFOS CLIENT & VÉHICULE ===
+        document.getElementById('cloture-client-nom').textContent =
+            (rdv.client?.prenom || '') + ' ' + (rdv.client?.nom || '');
+        document.getElementById('cloture-client-tel').textContent =
+            rdv.client?.telephone || '-';
+        document.getElementById('cloture-vehicule').textContent =
+            (rdv.vehicule?.marque || '') + ' ' + (rdv.vehicule?.modele || '');
+        document.getElementById('cloture-vehicule-plaque').textContent =
+            rdv.vehicule?.plaque || '-';
+
+        // Récupérer le rapport technicien pour pré-remplir avec les données réelles
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}/rapport-technicien`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const rapport = await response.json();
+
+                // === AFFICHER LE DÉTAIL DES TRAVAUX ===
+                document.getElementById('cloture-detail-travaux').textContent =
+                    rapport.travaux_realises || 'Aucun travail enregistré';
+
+                // === PIÈCES UTILISÉES ===
+                let prixPieces = 0;
+                const piecesContainer = document.getElementById('cloture-liste-pieces');
+                if (rapport.pieces_utilisees && rapport.pieces_utilisees.length > 0) {
+                    piecesContainer.innerHTML = rapport.pieces_utilisees.map(p => {
+                        const total = (p.prix || 0) * (p.quantite || 1);
+                        prixPieces += total;
+                        return `<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
+                            <span>${p.nom} × ${p.quantite || 1}</span>
+                            <span>${total.toFixed(2)} €</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    piecesContainer.innerHTML = '<div class="text-gray-500 italic">Aucune pièce utilisée</div>';
+                }
+                document.getElementById('cloture-total-pieces').textContent = prixPieces.toFixed(2) + ' €';
+
+                // === TEMPS DE TRAVAIL ===
+                const tempsResponse = await fetch(`${API_URL}/api/rendez-vous/${rdvId}/temps-travail`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                let tempsEffectif = null;
+                if (tempsResponse.ok) {
+                    const tempsData = await tempsResponse.json();
+                    tempsEffectif = tempsData.temps_effectif_minutes;
+                }
+
+                const tempsEstime = rdv.temps_estime || 0;
+                const tempsFinal = Math.max(tempsEffectif || 0, tempsEstime);
+
+                // Fonction pour formater en h et m
+                function formatHeuresMinutes(minutes) {
+                    if (!minutes || minutes <= 0) return '0 min';
+                    const h = Math.floor(minutes / 60);
+                    const m = minutes % 60;
+                    if (h > 0 && m > 0) return `${h}h ${m}min`;
+                    if (h > 0) return `${h}h`;
+                    return `${m}min`;
+                }
+
+                // Afficher les détails temps
+                document.getElementById('cloture-temps-estime').textContent = formatHeuresMinutes(tempsEstime);
+                document.getElementById('cloture-temps-effectif').textContent = formatHeuresMinutes(tempsEffectif);
+                document.getElementById('cloture-temps-facture').textContent = formatHeuresMinutes(tempsFinal);
+
+                // Explication
+                const infoTemps = document.getElementById('cloture-info-temps');
+                if (tempsEffectif && tempsEffectif > tempsEstime) {
+                    infoTemps.textContent = `Dépassement de ${tempsEffectif - tempsEstime} min facturé`;
+                    infoTemps.className = 'text-xs text-orange-600 mt-1 font-semibold';
+                } else if (tempsEffectif && tempsEffectif < tempsEstime) {
+                    infoTemps.textContent = `Minimum facturé (temps effectif : ${tempsEffectif} min)`;
+                    infoTemps.className = 'text-xs text-blue-600 mt-1 font-semibold';
+                } else {
+                    infoTemps.textContent = 'Temps conforme à l\'estimation';
+                    infoTemps.className = 'text-xs text-green-600 mt-1';
+                }
+
+                // Calcul MO
+                const tarifHoraire = 60;
+                const prixMO = (tempsFinal / 60) * tarifHoraire;
+                document.getElementById('cloture-total-mo').textContent = prixMO.toFixed(2) + ' €';
+
+                // === TOTAUX ===
+                const totalHT = prixPieces + prixMO;
+                const tva = totalHT * 0.20;
+                const totalTTC = totalHT + tva;
+
+                document.getElementById('cloture-total-ht').textContent = totalHT.toFixed(2) + ' €';
+                document.getElementById('cloture-total-tva').textContent = tva.toFixed(2) + ' €';
+                document.getElementById('cloture-total-ttc').textContent = totalTTC.toFixed(2) + ' €';
+
+                // === CHAMPS MODIFIABLES ===
+                document.getElementById('cloture-prix').value = totalTTC.toFixed(2);
+                document.getElementById('cloture-temps').value = tempsFinal;
+
+                // Commentaires
+                let commentaires = rdv.commentaire || '';
+                if (rapport.travaux_realises) {
+                    commentaires = rapport.travaux_realises + (commentaires ? '\n\nNote: ' + commentaires : '');
+                }
+                document.getElementById('cloture-commentaires').value = commentaires;
+
+            } else {
+                // Fallback sur les valeurs estimées
+                document.getElementById('cloture-prix').value = rdv.prix_estime || '';
+                document.getElementById('cloture-temps').value = rdv.temps_estime || '';
+                document.getElementById('cloture-commentaires').value = rdv.commentaire || '';
+            }
+        } catch (error) {
+            console.error('Erreur chargement rapport:', error);
+            document.getElementById('cloture-prix').value = rdv.prix_estime || '';
+            document.getElementById('cloture-temps').value = rdv.temps_estime || '';
+            document.getElementById('cloture-commentaires').value = rdv.commentaire || '';
+        }
+    }
+
+    document.getElementById('modal-cloture').classList.remove('hidden');
+}
+
+async function saveCloture() {
+    const rdvId = parseInt(document.getElementById('cloture-rdv-id').value);
+    const prixFinal = parseFloat(document.getElementById('cloture-prix').value);
+    const tempsFinal = parseInt(document.getElementById('cloture-temps').value);
+    const commentaires = document.getElementById('cloture-commentaires').value;
+
+    if (!prixFinal || prixFinal <= 0) {
+        alert('Veuillez saisir un prix final valide');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+        const cleanToken = token.trim().replace(/^[\"']|[\"']$/g, '');
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${cleanToken}`
+            },
+            body: JSON.stringify({
+                prix_final: prixFinal,
+                temps_final: tempsFinal,
+                commentaire: commentaires,
+                statut: 'facture'
+            })
+        });
+
+        if (response.status === 401) {
+            handleAuthError();
+            return;
+        }
+
+        if (response.ok) {
+            closeModal('modal-cloture');
+            // Générer la facture
+            genererFacture(rdvId);
+            // Recharger le planning
+            planningData = null;
+            setTimeout(() => loadPlanning(), 500);
+        } else {
+            const errorText = await response.text();
+            alert('Erreur lors de la clôture: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+function genererFacture(rdvId) {
+    // Ouvrir le PDF de la facture
+    window.open(`${API_URL}/api/rendez-vous/${rdvId}/facture`, '_blank');
+}
+
+function openAssignModal(rdvId) {
+    currentRdvId = rdvId;
+    document.getElementById('assign-rdv-id').value = rdvId;
+
+    // Trouver le RDV
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (rdv) {
+        document.getElementById('assign-pont').value = rdv.pont_id || '';
+        document.getElementById('assign-mecanicien').value = rdv.mecanicien_id || '';
+        document.getElementById('assign-statut').value = rdv.statut;
+    }
+
+    // Ajouter l'écouteur pour mise à jour auto du mécanicien quand on change de pont
+    const pontSelect = document.getElementById('assign-pont');
+    pontSelect.onchange = function() {
+        const selectedPontId = parseInt(this.value);
+        const pont = ponts.find(p => p.id === selectedPontId);
+        if (pont && pont.mecanicien_id) {
+            document.getElementById('assign-mecanicien').value = pont.mecanicien_id;
+        }
+    };
+
+    document.getElementById('modal-assign').classList.remove('hidden');
+}
+
+async function saveAssignation() {
+    const rdvId = parseInt(document.getElementById('assign-rdv-id').value);
+    const pontId = document.getElementById('assign-pont').value;
+    const mecanoId = document.getElementById('assign-mecanicien').value;
+    const statut = document.getElementById('assign-statut').value;
+
+    console.log('Save assignation:', { rdvId, pontId, mecanoId, statut });
+
+    // Trouver le RDV courant
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (!rdv) {
+        alert('RDV non trouvé');
+        return;
+    }
+
+    // Vérifier les conflits si un pont est assigné
+    if (pontId) {
+        const conflit = verifierConflit(rdv, parseInt(pontId));
+        if (conflit) {
+            if (!confirm(`⚠️ Conflit détecté !\n\nUn autre RDV est déjà prévu sur ce pont à cette heure :\n${conflit.client.prenom} ${conflit.client.nom} - ${conflit.heure_rdv}\n\nVoulez-vous quand même assigner ce pont ?`)) {
+                return;
+            }
+        }
+    }
+
+    // Vérifier si le mécanicien est absent ce jour-là
+    if (mecanoId) {
+        try {
+            const token = localStorage.getItem('token');
+            const absencesResponse = await fetch(`${API_URL}/api/absences?date=${rdv.date_rdv}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (absencesResponse.ok) {
+                const absences = await absencesResponse.json();
+                const isAbsent = absences.some(a => a.mecanicien_id === parseInt(mecanoId));
+                if (isAbsent) {
+                    alert('⚠️ Ce mécanicien est absent ce jour-là. Veuillez choisir un autre mécanicien.');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Erreur vérification absences:', error);
+        }
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+        const cleanToken = token.trim().replace(/^[\"']|[\"']$/g, '');
+
+        const body = {
+            pont_id: pontId ? parseInt(pontId) : null,
+            mecanicien_id: mecanoId ? parseInt(mecanoId) : null,
+            statut: statut
+        };
+        console.log('Envoi PUT:', body);
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${cleanToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        console.log('Response status:', response.status);
+
+        if (response.status === 401) {
+            handleAuthError();
+            return;
+        }
+        if (response.ok) {
+            closeModal('modal-assign');
+            // Forcer le rechargement des données
+            console.log('Assignation OK, rechargement...');
+            planningData = null;
+            setTimeout(() => {
+                loadPlanning();
+                console.log('Rechargement terminé');
+            }, 500);
+        } else {
+            const errorText = await response.text();
+            console.error('Erreur sauvegarde:', errorText);
+            alert('Erreur lors de la sauvegarde: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+function verifierConflit(rdv, pontId) {
+    // Récupérer tous les RDV du même jour (sauf le RDV actuel)
+    let autresRdvs = [];
+    if (currentVue === 'jour') {
+        autresRdvs = planningData.rendez_vous.filter(r => r.id !== rdv.id);
+    } else {
+        // Pour la vue semaine, chercher dans le jour du RDV
+        const dateRdv = rdv.date_rdv;
+        if (planningData.jours && planningData.jours[dateRdv]) {
+            autresRdvs = planningData.jours[dateRdv].filter(r => r.id !== rdv.id);
+        }
+    }
+
+    // Calculer les plages horaires du RDV actuel
+    const [heures, minutes] = rdv.heure_rdv.split(':').map(Number);
+    const duree = rdv.temps_estime || 60;
+    const debutRdv = heures * 60 + minutes;
+    const finRdv = debutRdv + duree;
+
+    // Vérifier les chevauchements
+    for (const autreRdv of autresRdvs) {
+        if (autreRdv.pont_id !== pontId) continue;
+
+        const [autreHeures, autreMinutes] = autreRdv.heure_rdv.split(':').map(Number);
+        const autreDuree = autreRdv.temps_estime || 60;
+        const debutAutre = autreHeures * 60 + autreMinutes;
+        const finAutre = debutAutre + autreDuree;
+
+        // Vérifier le chevauchement
+        if (debutRdv < finAutre && finRdv > debutAutre) {
+            return autreRdv;
+        }
+    }
+
+    return null;
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+// ========== OR (ORDRE DE RÉPARATION) ==========
+
+let orSignatureCanvas = null;
+let orSignatureCtx = null;
+let isDrawing = false;
+let orRdvData = null;
+
+function openORModalFromDetails() {
+    closeModal('modal-details');
+    openORModal(currentRdvId);
+}
+
+async function openORModal(rdvId) {
+    currentRdvId = rdvId;
+    document.getElementById('or-rdv-id').value = rdvId;
+
+    // Trouver le RDV
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === rdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === rdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (!rdv) return;
+
+    // Si les données sont incomplètes, récupérer via l'API
+    if (!rdv.type_intervention || !rdv.client || !rdv.vehicule) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const fullRdv = await response.json();
+                rdv = { ...rdv, ...fullRdv };
+            }
+        } catch (e) {
+            console.log('Impossible de charger les détails complets');
+        }
+    }
+
+    orRdvData = rdv;
+
+    // Remplir les infos
+    document.getElementById('or-client-info').innerHTML = `
+        <p><strong>${rdv.client.prenom} ${rdv.client.nom}</strong></p>
+        <p>Tél: ${rdv.client.telephone || '-'}</p>
+        ${rdv.client.email ? `<p>Email: ${rdv.client.email}</p>` : ''}
+    `;
+
+    document.getElementById('or-vehicule-info').innerHTML = `
+        <p><strong>${rdv.vehicule.marque} ${rdv.vehicule.modele}</strong></p>
+        <p>Plaque: ${rdv.vehicule.plaque}</p>
+        ${rdv.vehicule.annee ? `<p>Année: ${rdv.vehicule.annee}</p>` : ''}
+    `;
+
+    document.getElementById('or-date').value = new Date(rdv.date_rdv).toLocaleDateString('fr-FR');
+    document.getElementById('or-type').value = rdv.type_intervention || '-';
+
+    // Pré-remplir si déjà existant
+    document.getElementById('or-kilometrage').value = rdv.kilometrage || '';
+    document.getElementById('or-etat').value = rdv.etat_vehicule || '';
+    document.getElementById('or-travaux').value = rdv.commentaire || '';
+
+    // Montrer le modal d'abord (le canvas doit être visible pour avoir une taille)
+    document.getElementById('modal-or').classList.remove('hidden');
+
+    // Initialiser le canvas de signature après un petit délai pour que le DOM soit rendu
+    setTimeout(() => {
+        initSignatureCanvas();
+        // Charger la signature existante si elle existe
+        loadExistingSignature(rdvId);
+        updateSignatureStatus();
+    }, 100);
+}
+
+async function loadExistingSignature(rdvId) {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const cleanToken = token.trim().replace(/^[\"']|[\"']$/g, '');
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}/signature`, {
+            headers: { 'Authorization': `Bearer ${cleanToken}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.signature && orSignatureCtx) {
+                const img = new Image();
+                img.onload = function() {
+                    orSignatureCtx.drawImage(img, 0, 0);
+                    updateSignatureStatus();
+                };
+                img.src = data.signature;
+            }
+        }
+    } catch (error) {
+        // Pas de signature existante, c'est normal
+        console.log('Pas de signature existante');
+    }
+}
+
+function initSignatureCanvas() {
+    const canvas = document.getElementById('or-signature');
+    if (!canvas) return;
+
+    orSignatureCanvas = canvas;
+    orSignatureCtx = canvas.getContext('2d');
+
+    // Configurer la taille interne du canvas pour correspondre à sa taille affichée
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // Configurer le style
+    orSignatureCtx.strokeStyle = '#000';
+    orSignatureCtx.lineWidth = 2;
+    orSignatureCtx.lineCap = 'round';
+
+    // Events souris
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Events touch (mobile)
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+function getCanvasCoordinates(e) {
+    const rect = orSignatureCanvas.getBoundingClientRect();
+    const scaleX = orSignatureCanvas.width / rect.width;
+    const scaleY = orSignatureCanvas.height / rect.height;
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const coords = getCanvasCoordinates(e);
+    orSignatureCtx.beginPath();
+    orSignatureCtx.moveTo(coords.x, coords.y);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const coords = getCanvasCoordinates(e);
+    orSignatureCtx.lineTo(coords.x, coords.y);
+    orSignatureCtx.stroke();
+    updateSignatureStatus();
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = orSignatureCanvas.getBoundingClientRect();
+    const scaleX = orSignatureCanvas.width / rect.width;
+    const scaleY = orSignatureCanvas.height / rect.height;
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+
+    if (e.type === 'touchstart') {
+        isDrawing = true;
+        orSignatureCtx.beginPath();
+        orSignatureCtx.moveTo(x, y);
+    } else if (e.type === 'touchmove' && isDrawing) {
+        orSignatureCtx.lineTo(x, y);
+        orSignatureCtx.stroke();
+        updateSignatureStatus();
+    }
+}
+
+function clearSignature() {
+    if (!orSignatureCtx || !orSignatureCanvas) return;
+    orSignatureCtx.clearRect(0, 0, orSignatureCanvas.width, orSignatureCanvas.height);
+    updateSignatureStatus();
+}
+
+function updateSignatureStatus() {
+    const statusEl = document.getElementById('or-signature-status');
+    if (!statusEl || !orSignatureCanvas || !orSignatureCtx) return;
+
+    // Vérifier que le canvas a une taille valide
+    if (orSignatureCanvas.width === 0 || orSignatureCanvas.height === 0) return;
+
+    // Vérifier si le canvas est vide
+    try {
+        const pixelBuffer = orSignatureCtx.getImageData(0, 0, orSignatureCanvas.width, orSignatureCanvas.height).data;
+        const hasSignature = pixelBuffer.some(channel => channel !== 0);
+
+        if (hasSignature) {
+            statusEl.textContent = 'Signé';
+            statusEl.className = 'text-sm text-green-500';
+        } else {
+            statusEl.textContent = 'Non signé';
+            statusEl.className = 'text-sm text-red-500';
+        }
+    } catch (e) {
+        // Canvas pas encore prêt
+        statusEl.textContent = 'Non signé';
+        statusEl.className = 'text-sm text-red-500';
+    }
+}
+
+async function saveOR() {
+    const rdvId = parseInt(document.getElementById('or-rdv-id').value);
+    const kilometrage = parseInt(document.getElementById('or-kilometrage').value);
+    const etat = document.getElementById('or-etat').value.trim();
+    const travaux = document.getElementById('or-travaux').value.trim();
+
+    // Validation
+    if (!kilometrage || kilometrage < 0) {
+        alert('Veuillez saisir un kilométrage valide');
+        return;
+    }
+    if (!etat) {
+        alert('Veuillez décrire l\'état du véhicule');
+        return;
+    }
+
+    // Vérifier la signature
+    const pixelBuffer = orSignatureCtx.getImageData(0, 0, orSignatureCanvas.width, orSignatureCanvas.height).data;
+    const hasSignature = pixelBuffer.some(channel => channel !== 0);
+    if (!hasSignature) {
+        alert('Veuillez faire signer le client');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+        const cleanToken = token.trim().replace(/^[\"']|[\"']$/g, '');
+
+        // Sauvegarder l'OR (données + signature)
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}/ordre-reparation/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${cleanToken}`
+            },
+            body: JSON.stringify({
+                kilometrage: kilometrage,
+                etat_vehicule: etat,
+                travaux: travaux,
+                signature: orSignatureCanvas.toDataURL('image/png')
+            })
+        });
+
+        if (response.status === 401) {
+            handleAuthError();
+            return;
+        }
+
+        if (response.ok) {
+            alert('Ordre de réparation sauvegardé avec succès !');
+            closeModal('modal-or');
+            // Recharger le planning pour voir le badge OR
+            planningData = null;
+            setTimeout(() => loadPlanning(), 500);
+        } else {
+            const errorText = await response.text();
+            alert('Erreur lors de la sauvegarde: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+function generateORPDF() {
+    const rdvId = parseInt(document.getElementById('or-rdv-id').value);
+    if (!rdvId) return;
+
+    // Ouvrir le PDF généré par le backend
+    window.open(`${API_URL}/api/rendez-vous/${rdvId}/ordre-reparation`, '_blank');
+}
+
+// Ancienne fonction (gardée pour compatibilité)
+function genererOR() {
+    if (!currentRdvId) return;
+    window.open(`${API_URL}/api/rendez-vous/${currentRdvId}/ordre-reparation`, '_blank');
+}
+
+// ========== DRAG & DROP ==========
+
+let draggedRdvId = null;
+
+function enableDragAndDrop() {
+    // Ne pas activer le drag & drop pour les mécaniciens (lecture seule)
+    if (currentUser && currentUser.role === 'mecanicien') {
+        console.log('Drag & drop désactivé pour les mécaniciens');
+        return;
+    }
+
+    // Les cellules du planning
+    const cells = document.querySelectorAll('.planning-cell');
+    console.log('Enable drag & drop sur', cells.length, 'cellules');
+    cells.forEach(cell => {
+        cell.addEventListener('dragover', handleDragOver);
+        cell.addEventListener('dragleave', handleDragLeave);
+        cell.addEventListener('drop', handleDrop);
+    });
+}
+
+function handleDragStart(e, rdvId) {
+    draggedRdvId = rdvId;
+    e.target.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', rdvId);
+    console.log('Drag start:', rdvId);
+}
+
+function handleDragEnd(e) {
+    e.target.style.opacity = '1';
+    draggedRdvId = null;
+    document.querySelectorAll('.planning-cell').forEach(el => {
+        el.style.background = '';
+        el.style.border = '';
+    });
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#dbeafe';
+    e.currentTarget.style.border = '2px dashed #3b82f6';
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.style.background = '';
+    e.currentTarget.style.border = '';
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.style.background = '';
+    e.currentTarget.style.border = '';
+
+    if (!draggedRdvId) return;
+
+    const cell = e.currentTarget;
+    const newHeure = cell.dataset.heure;
+    const newPontId = cell.dataset.pont;
+
+    if (!newHeure || !newPontId) {
+        console.log('Missing data:', { newHeure, newPontId });
+        return;
+    }
+
+    // Trouver le RDV
+    let rdv = null;
+    if (currentVue === 'jour') {
+        rdv = planningData.rendez_vous.find(r => r.id === draggedRdvId);
+    } else {
+        Object.values(planningData.jours).forEach(jourRdvs => {
+            const found = jourRdvs.find(r => r.id === draggedRdvId);
+            if (found) rdv = found;
+        });
+    }
+
+    if (!rdv) {
+        console.log('RDV not found:', draggedRdvId);
+        return;
+    }
+
+    // Confirmer le déplacement
+    const confirmMsg = `Déplacer le RDV de ${rdv.heure_rdv} à ${newHeure} ?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/rendez-vous/${draggedRdvId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                heure_rdv: newHeure,
+                pont_id: parseInt(newPontId)
+            })
+        });
+
+        if (response.ok) {
+            showToast('RDV déplacé avec succès');
+            // Recharger le planning après un court délai
+            setTimeout(() => {
+                loadPlanning();
+            }, 500);
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + (error.detail || 'Impossible de déplacer le RDV'));
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+// ========== PRENDRE UN RDV (S'ASSIGNER) ==========
+
+async function prendreRdv(rdvId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Vous devez être connecté');
+        return;
+    }
+
+    try {
+        // Récupérer l'info de l'utilisateur connecté
+        const meResponse = await fetch(`${API_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!meResponse.ok) {
+            alert('Impossible de récupérer vos informations');
+            return;
+        }
+
+        const user = await meResponse.json();
+
+        // Vérifier que c'est un mécanicien
+        if (user.role !== 'mecanicien' && user.role !== 'admin') {
+            alert('Seuls les mécaniciens peuvent prendre des RDV');
+            return;
+        }
+
+        // Trouver le mécanicien correspondant à l'utilisateur
+        const mecanoResponse = await fetch(`${API_URL}/api/mecaniciens`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!mecanoResponse.ok) {
+            alert('Impossible de récupérer la liste des mécaniciens');
+            return;
+        }
+
+        const mecaniciens = await mecanoResponse.json();
+        const mecano = mecaniciens.find(m => m.nom === user.username || m.utilisateur_id === user.id);
+
+        if (!mecano) {
+            alert('Votre compte mécanicien n\'est pas trouvé');
+            return;
+        }
+
+        // Vérifier si le mécanicien est absent aujourd'hui
+        const today = new Date().toISOString().split('T')[0];
+        const absencesResponse = await fetch(`${API_URL}/api/absences?date=${today}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (absencesResponse.ok) {
+            const absences = await absencesResponse.json();
+            const isAbsent = absences.some(a => a.mecanicien_id === mecano.id);
+            if (isAbsent) {
+                alert('Vous êtes marqué comme absent aujourd\'hui. Vous ne pouvez pas prendre de RDV.');
+                return;
+            }
+        }
+
+        // Récupérer le pont assigné à ce mécanicien
+        const pontsResponse = await fetch(`${API_URL}/api/ponts`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        let pontId = null;
+        if (pontsResponse.ok) {
+            const pontsList = await pontsResponse.json();
+            const pontMecano = pontsList.find(p => p.mecanicien_id === mecano.id);
+            if (pontMecano) {
+                pontId = pontMecano.id;
+                console.log('Pont assigné au mécanicien:', pontMecano.nom);
+            }
+        }
+
+        // Assigner le RDV
+        const updateData = {
+            mecanicien_id: mecano.id,
+            statut: 'confirme'
+        };
+
+        // Si un pont est assigné au mécanicien, l'assigner aussi
+        if (pontId) {
+            updateData.pont_id = pontId;
+        }
+
+        const response = await fetch(`${API_URL}/api/rendez-vous/${rdvId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            showToast('RDV pris avec succès !');
+            loadPlanning();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + (error.detail || 'Impossible de prendre le RDV'));
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+// ========== UTILITAIRES ==========
+
+function formatDateForInput(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function showToast(message) {
+    // Créer un toast simple
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}

@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prendre Rendez-vous | Atelier Moto Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --orange: #FFD200; --orange2: #FFC400; --green: #22C55E; --red: #EF4444; --blue: #3B82F6; --amber: #F59E0B; }
+body { font-family: 'Barlow', sans-serif; background: #111; color: #f0f0f0; min-height: 100vh; }
+
+.header { background: #1a1a1a; border-bottom: 1px solid #333; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header-logo { display: flex; align-items: center; gap: 12px; }
+.header-logo .icon { width: 40px; height: 40px; background: var(--orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white; }
+.header-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; }
+.header-sub { font-size: 12px; color: #888; }
+.header a { color: var(--orange); font-size: 13px; text-decoration: none; }
+.header a:hover { color: var(--orange2); }
+
+.container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+
+/* Steps indicator */
+.steps { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 32px; }
+.step-dot { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #666; transition: all .2s; flex-shrink: 0; }
+.step-dot.active { border-color: var(--orange); color: var(--orange); background: rgba(255,210,0,.1); }
+.step-dot.done { border-color: var(--green); color: white; background: var(--green); }
+.step-line { flex: 1; height: 2px; background: #333; max-width: 60px; }
+.step-line.done { background: var(--green); }
+.step-label { font-size: 10px; color: #666; text-align: center; margin-top: 4px; }
+.step-item { display: flex; flex-direction: column; align-items: center; }
+
+/* Card */
+.wiz-card { background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+.wiz-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: #eee; margin-bottom: 4px; }
+.wiz-sub { font-size: 13px; color: #888; margin-bottom: 20px; }
+.atelier-info {
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.atelier-name { font-weight: 700; color: #eee; font-size: 15px; }
+.atelier-meta { font-size: 12px; color: #999; margin-top: 3px; }
+
+/* Form */
+.f-group { margin-bottom: 14px; }
+.f-label { font-size: 12px; font-weight: 600; color: #888; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; display: block; }
+.f-input { width: 100%; background: #111; border: 1px solid #444; border-radius: 8px; padding: 10px 14px; color: #eee; font-family: 'Barlow', sans-serif; font-size: 14px; outline: none; }
+.f-input:focus { border-color: var(--orange); }
+select.f-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+.f-row { display: flex; gap: 12px; }
+.f-row > * { flex: 1; }
+
+/* Buttons */
+.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14px; transition: all .15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-orange { background: var(--orange); color: #111; width: 100%; }
+.btn-orange:hover { background: var(--orange2); }
+.btn-orange:disabled { opacity: .4; cursor: not-allowed; }
+.btn-back { background: transparent; color: #aaa; border: 1px solid #444; }
+.btn-back:hover { border-color: #888; color: #eee; }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; }
+.btn-row > * { flex: 1; }
+
+/* Vehicle result */
+.veh-result { background: #252525; border: 1px solid #333; border-radius: 10px; padding: 16px; margin-top: 16px; display: none; }
+.veh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.veh-item { background: #1a1a1a; border-radius: 8px; padding: 10px; }
+.veh-item label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .5px; }
+.veh-item .val { font-size: 16px; font-weight: 600; color: #eee; }
+
+/* Prestations */
+.presta-card { background: #252525; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 12px; }
+.presta-card:hover { border-color: #555; }
+.presta-card.selected { border-color: var(--orange); background: rgba(255,210,0,.08); }
+.presta-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #555; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; color: transparent; }
+.presta-card.selected .presta-check { border-color: var(--orange); background: var(--orange); color: #111; }
+.presta-info { flex: 1; }
+.presta-name { font-weight: 600; color: #eee; font-size: 14px; }
+.presta-detail { font-size: 12px; color: #888; margin-top: 2px; }
+.presta-price { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--orange); }
+
+/* Duration info */
+.duration-block { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.25); border-radius: 8px; padding: 12px; margin-top: 14px; display: none; }
+.duration-block .dur-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.duration-block .dur-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: var(--blue); }
+.duration-block .dur-note { font-size: 11px; color: #666; margin-top: 4px; }
+
+/* Recap */
+.recap { background: rgba(255,210,0,.06); border: 1px solid rgba(255,210,0,.2); border-radius: 10px; padding: 14px; margin-top: 16px; }
+.recap-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: #ccc; }
+.recap-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; padding-top: 8px; margin-top: 8px; border-top: 1px solid rgba(255,210,0,.2); color: var(--orange); }
+
+/* Slots */
+.slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.slot { border: 1px solid #444; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 14px; font-weight: 600; color: #aaa; transition: all .15s; }
+.slot.available { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.05); }
+.slot.available:hover { background: rgba(34,197,94,.12); }
+.slot.full { border-color: #333; color: #555; cursor: not-allowed; }
+.slot.selected { border-color: var(--orange); background: rgba(255,210,0,.15); color: var(--orange); }
+.slot-places { font-size: 10px; color: #666; margin-top: 2px; }
+
+/* Assignment info */
+.assign-info { background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.2); border-radius: 8px; padding: 12px; margin-top: 12px; display: none; }
+.assign-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; margin-bottom: 4px; }
+.assign-row:last-child { margin-bottom: 0; }
+.assign-icon { font-size: 16px; }
+
+/* Success */
+.success-card { text-align: center; padding: 40px 24px; }
+.success-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; color: var(--green); }
+.success-details { background: #252525; border-radius: 10px; padding: 16px; margin: 20px 0; text-align: left; }
+.success-details .sd-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: #ccc; border-bottom: 1px solid #333; }
+.success-details .sd-row:last-child { border-bottom: none; }
+
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+
+.loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #555; border-top-color: var(--orange); border-radius: 50%; animation: spin .6s linear infinite; margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Week view */
+.week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; }
+.week-label { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 600; color: #ccc; text-align: center; }
+.week-grid-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+.week-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; min-width: 500px; }
+.week-day { background: #1a1a1a; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
+.week-day.today { border-color: var(--orange); }
+.week-day-header { padding: 10px 8px; text-align: center; border-bottom: 1px solid #333; }
+.week-day-name { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; color: #aaa; text-transform: uppercase; }
+.week-day-date { font-size: 20px; font-weight: 700; color: #eee; margin-top: 2px; }
+.week-day.today .week-day-date { color: var(--orange); }
+.week-day.past .week-day-header { opacity: .4; }
+.week-day.past .wslot { opacity: .3; pointer-events: none; }
+.week-day-slots { padding: 6px; display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; }
+.wslot { border: 1px solid #444; border-radius: 6px; padding: 6px 4px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; color: #aaa; transition: all .15s; }
+.wslot.available { border-color: rgba(34,197,94,.35); color: var(--green); background: rgba(34,197,94,.04); }
+.wslot.available:hover { background: rgba(34,197,94,.12); }
+.wslot.full { border-color: #2a2a2a; color: #444; cursor: not-allowed; background: #161616; }
+.wslot.selected { border-color: var(--orange); background: rgba(255,210,0,.15); color: var(--orange); }
+.wslot-places { font-size: 9px; color: #555; margin-top: 1px; }
+
+@media (max-width: 500px) {
+  .veh-grid { grid-template-columns: 1fr; }
+  .slots-grid { grid-template-columns: repeat(3, 1fr); }
+  .f-row { flex-direction: column; gap: 0; }
+  .week-grid { min-width: 420px; gap: 4px; }
+  .wslot { font-size: 12px; padding: 5px 2px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <div class="icon">M</div>
+    <div>
+      <div class="header-title">Atelier Moto Pro</div>
+      <div class="header-sub">Prise de rendez-vous en ligne</div>
+    </div>
+  </div>
+  <a href="/">Espace pro &rarr;</a>
+</div>
+
+<div class="container">
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <div class="step-item"><div class="step-dot active" id="sd-1">1</div><div class="step-label">Vehicule</div></div>
+    <div class="step-line" id="sl-1"></div>
+    <div class="step-item"><div class="step-dot" id="sd-2">2</div><div class="step-label">Service</div></div>
+    <div class="step-line" id="sl-2"></div>
+    <div class="step-item"><div class="step-dot" id="sd-3">3</div><div class="step-label">Creneau</div></div>
+    <div class="step-line" id="sl-3"></div>
+    <div class="step-item"><div class="step-dot" id="sd-4">4</div><div class="step-label">Validation</div></div>
+  </div>
+
+  <!-- STEP 1: VEHICULE -->
+  <div id="step-1" class="wizard-step active">
+    <div class="wiz-card">
+      <div class="wiz-title">Identification moto</div>
+      <div class="wiz-sub">Entrez votre plaque d'immatriculation ou VIN</div>
+      <div class="atelier-info">
+        <label class="f-label">Atelier</label>
+        <select class="f-input" id="pub-atelier-select" onchange="onAtelierChange(this.value)"></select>
+        <div class="atelier-meta" id="pub-atelier-meta"></div>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Immatriculation / VIN</label>
+        <input class="f-input" id="pub-plaque" placeholder="Ex: AB-123-CD ou VIN" style="text-transform:uppercase;font-size:18px;text-align:center;letter-spacing:2px" maxlength="20">
+      </div>
+      <button class="btn btn-orange" id="btn-search" onclick="rechercherVehicule()">Rechercher mon vehicule</button>
+
+      <div id="pub-veh-result" class="veh-result">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:24px">&#127949;</span>
+          <span style="font-weight:600;color:var(--green)">Vehicule trouve !</span>
+        </div>
+        <div class="veh-grid">
+          <div class="veh-item"><label>Marque</label><div class="val" id="pub-v-marque">-</div></div>
+          <div class="veh-item"><label>Modele</label><div class="val" id="pub-v-modele">-</div></div>
+          <div class="veh-item"><label>Annee</label><div class="val" id="pub-v-annee">-</div></div>
+          <div class="veh-item"><label>Cylindree</label><div class="val" id="pub-v-cylindree">-</div></div>
+          <div class="veh-item"><label>Type</label><div class="val" id="pub-v-type">-</div></div>
+          <div class="veh-item"><label>Plaque</label><div class="val" id="pub-v-plaque">-</div></div>
+        </div>
+        <div id="pub-v-type-missing" style="display:none;margin-top:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px">
+          <label style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Type de moto manquant - obligatoire *</label>
+          <select class="f-input" id="pub-v-type-select" onchange="onTypeMotoFoundSelect(this.value)">
+            <option value="">-- Selectionnez --</option>
+            <option value="Roadster">Roadster / Naked</option>
+            <option value="Sportive">Sportive / Supersport</option>
+            <option value="Trail">Trail / Adventure</option>
+            <option value="Cruiser">Custom / Cruiser</option>
+            <option value="Scooter">Scooter</option>
+            <option value="Cross/Enduro">Cross / Enduro</option>
+            <option value="Touring">Touring / GT</option>
+            <option value="Supermotard">Supermotard</option>
+          </select>
+        </div>
+        <button class="btn btn-orange" style="margin-top:16px" onclick="continuerVehiculeFound()">Continuer &rarr;</button>
+      </div>
+
+      <div id="pub-veh-notfound" style="display:none;margin-top:16px">
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px;color:var(--red);font-size:13px;margin-bottom:14px">
+          Vehicule non trouve. Veuillez renseigner les informations de votre moto.
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:10px">INFORMATIONS VEHICULE OBLIGATOIRES</div>
+        <div class="f-row">
+          <div class="f-group"><label class="f-label">Marque *</label><input class="f-input" id="pub-man-marque" placeholder="Ex: Yamaha" required></div>
+          <div class="f-group"><label class="f-label">Modele *</label><input class="f-input" id="pub-man-modele" placeholder="Ex: MT-07" required></div>
+        </div>
+        <div class="f-row">
+          <div class="f-group"><label class="f-label">Annee *</label><input class="f-input" id="pub-man-annee" type="number" placeholder="2024" min="1970" max="2030" required></div>
+          <div class="f-group"><label class="f-label">Cylindree</label><input class="f-input" id="pub-man-cylindree" placeholder="Ex: 689cc"></div>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Type de moto *</label>
+          <select class="f-input" id="pub-moto-type-manual">
+            <option value="">-- Selectionnez --</option>
+            <option value="Roadster">Roadster / Naked</option>
+            <option value="Sportive">Sportive / Supersport</option>
+            <option value="Trail">Trail / Adventure</option>
+            <option value="Cruiser">Custom / Cruiser</option>
+            <option value="Scooter">Scooter</option>
+            <option value="Cross/Enduro">Cross / Enduro</option>
+            <option value="Touring">Touring / GT</option>
+            <option value="Supermotard">Supermotard</option>
+          </select>
+        </div>
+        <button class="btn btn-orange" style="margin-top:8px" onclick="validerVehiculeManuel()">Continuer &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: PRESTATIONS -->
+  <div id="step-2" class="wizard-step">
+    <div class="wiz-card">
+      <div class="wiz-title">Choisissez vos prestations</div>
+      <div class="wiz-sub">Selectionnez une ou plusieurs interventions</div>
+      <div id="pub-prestations"></div>
+
+      <div id="pub-duration" class="duration-block">
+        <div class="dur-label">Duree estimee pour votre type de moto :</div>
+        <div class="dur-value" id="pub-dur-value">-</div>
+        <div class="dur-note" id="pub-dur-note"></div>
+      </div>
+
+      <div id="pub-recap" class="recap" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">RECAPITULATIF</div>
+        <div id="pub-recap-lines"></div>
+        <div class="recap-total"><span>Total estime</span><span id="pub-recap-total">0 EUR</span></div>
+        <div style="font-size:11px;color:#666;margin-top:6px">* Prix indicatifs</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goStep(1)">&larr; Retour</button>
+        <button class="btn btn-orange" id="pub-btn-step3" disabled onclick="goStep(3)">Continuer &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: DATE/HEURE - Vue Semaine -->
+  <div id="step-3" class="wizard-step">
+    <div class="wiz-card" style="max-width:100%;padding:20px 16px">
+      <div class="wiz-title">Choisissez un creneau</div>
+      <div class="wiz-sub">Selectionnez le jour et l'heure qui vous conviennent</div>
+
+      <!-- Week navigation -->
+      <div class="week-nav">
+        <button class="btn btn-back" style="width:auto;padding:8px 14px" onclick="changeWeek(-1)">&larr; Precedente</button>
+        <div class="week-label" id="pub-week-label">Semaine du ...</div>
+        <button class="btn btn-back" style="width:auto;padding:8px 14px" onclick="changeWeek(1)">Suivante &rarr;</button>
+      </div>
+
+      <!-- Week grid -->
+      <div class="week-grid-wrapper">
+        <div class="week-grid" id="pub-week-grid">
+          <div style="text-align:center;padding:40px;color:#666"><span class="loading-spinner"></span> Chargement...</div>
+        </div>
+      </div>
+
+      <div id="pub-selected-slot" style="display:none;margin-top:12px;background:rgba(255,210,0,.1);border:1px solid rgba(255,210,0,.3);border-radius:8px;padding:10px">
+        <div style="font-size:12px;color:#888">Creneau selectionne :</div>
+        <div style="font-size:20px;font-weight:700;color:var(--orange);font-family:'Barlow Condensed',sans-serif" id="pub-slot-label">-</div>
+      </div>
+
+      <div id="pub-assign" class="assign-info">
+        <div class="assign-row"><span class="assign-icon">&#128295;</span> <span>Pont : <strong id="pub-assign-pont">-</strong></span></div>
+        <div class="assign-row"><span class="assign-icon">&#128104;&#8205;&#128295;</span> <span>Mecanicien : <strong id="pub-assign-meca">-</strong></span></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goStep(2)">&larr; Retour</button>
+        <button class="btn btn-orange" id="pub-btn-step4" disabled onclick="goStep(4)">Continuer &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: CONFIRMATION -->
+  <div id="step-4" class="wizard-step">
+    <div class="wiz-card">
+      <div class="wiz-title">Vos coordonnees</div>
+      <div class="wiz-sub">Finalisez votre prise de rendez-vous</div>
+
+      <div class="recap" style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px">RECAPITULATIF</div>
+        <div class="recap-row"><span>Vehicule</span><span id="pub-final-veh">-</span></div>
+        <div class="recap-row"><span>Prestations</span><span id="pub-final-presta">-</span></div>
+        <div class="recap-row"><span>Date & Heure</span><span id="pub-final-date">-</span></div>
+        <div class="recap-row"><span>Pont / Mecanicien</span><span id="pub-final-pont">-</span></div>
+        <div class="recap-row"><span>Duree estimee</span><span id="pub-final-duree">-</span></div>
+        <div class="recap-total"><span>Total estime</span><span id="pub-final-total">0 EUR</span></div>
+      </div>
+
+      <div class="f-row">
+        <div class="f-group"><label class="f-label">Prenom *</label><input class="f-input" id="pub-prenom" required></div>
+        <div class="f-group"><label class="f-label">Nom *</label><input class="f-input" id="pub-nom" required></div>
+      </div>
+      <div class="f-group"><label class="f-label">Telephone *</label><input class="f-input" id="pub-tel" placeholder="06 12 34 56 78" required></div>
+      <div class="f-group"><label class="f-label">Email</label><input class="f-input" id="pub-email" type="email" placeholder="votre@email.com"></div>
+      <div class="f-group"><label class="f-label">Symptomes / Remarques</label><textarea class="f-input" id="pub-comment" rows="2" placeholder="Symptomes, demandes particulieres..."></textarea></div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goStep(3)">&larr; Retour</button>
+        <button class="btn btn-orange" id="btn-confirm" onclick="confirmerRDV()">Confirmer le RDV + Generer OR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="step-success" class="wizard-step">
+    <div class="wiz-card success-card">
+      <div class="success-icon">&#10003;</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--green);margin-bottom:8px">RDV confirme !</div>
+      <div style="font-size:14px;color:#888;margin-bottom:20px">Votre rendez-vous a ete enregistre avec succes.</div>
+      <div style="background:#252525;border-radius:8px;padding:16px;margin-bottom:20px">
+        <div style="font-size:12px;color:#888">Numero de rendez-vous</div>
+        <div style="font-size:28px;font-weight:700;color:var(--orange);font-family:'Barlow Condensed',sans-serif" id="pub-rdv-num">#RDV-0000</div>
+      </div>
+      <div class="success-details" id="pub-success-details"></div>
+      <div style="font-size:12px;color:#888;margin-bottom:16px">Presentez-vous a l'heure convenue avec votre moto.</div>
+      <button class="btn btn-orange" onclick="location.reload()">Nouveau rendez-vous</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+if (typeof escapeHtml !== 'function') {
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+}
+
+// ===== STATE =====
+var RDV = {
+    step: 1,
+    vehicule: null,
+    motoType: 'Roadster',
+    interventions: [],
+    selected: [],
+    selectedDate: null,
+    selectedHeure: null,
+    selectedPont: null,
+    selectedMeca: null,
+    totalPrix: 0,
+    totalTemps: 0,
+    delaiInterventionJours: 1
+};
+
+var API = window.location.origin;
+var ATELIER_SLUG = (function() {
+    try {
+        var p = new URLSearchParams(window.location.search);
+        var slug = (p.get('atelier') || p.get('atelier_slug') || 'default').trim().toLowerCase();
+        return slug || 'default';
+    } catch (e) {
+        return 'default';
+    }
+})();
+var PUBLIC_ATELIERS = [];
+
+function renderAtelierSelect() {
+    var select = document.getElementById('pub-atelier-select');
+    var meta = document.getElementById('pub-atelier-meta');
+    if (!select) return;
+    if (!PUBLIC_ATELIERS.length) {
+        select.innerHTML = '<option value="default">Atelier par defaut</option>';
+        ATELIER_SLUG = 'default';
+        if (meta) meta.textContent = '';
+        return;
+    }
+
+    var html = '';
+    PUBLIC_ATELIERS.forEach(function(a) {
+        html += '<option value="' + escapeHtml(a.slug) + '">' + escapeHtml(a.nom) + '</option>';
+    });
+    select.innerHTML = html;
+
+    var exists = PUBLIC_ATELIERS.some(function(a) { return a.slug === ATELIER_SLUG; });
+    if (!exists) ATELIER_SLUG = PUBLIC_ATELIERS[0].slug;
+    select.value = ATELIER_SLUG;
+    updateAtelierMeta();
+}
+
+function updateAtelierMeta() {
+    var meta = document.getElementById('pub-atelier-meta');
+    if (!meta) return;
+    var a = PUBLIC_ATELIERS.find(function(x) { return x.slug === ATELIER_SLUG; });
+    if (!a) { meta.textContent = ''; return; }
+    var parts = [];
+    if (a.ville) parts.push(a.ville);
+    if (a.telephone) parts.push(a.telephone);
+    meta.textContent = parts.join(' • ');
+}
+
+function onAtelierChange(slug) {
+    if (!slug) return;
+    ATELIER_SLUG = String(slug).trim().toLowerCase();
+    updateAtelierMeta();
+    RDV.interventions = [];
+    RDV.selected = [];
+    RDV.totalPrix = 0;
+    RDV.totalTemps = 0;
+    WEEK_DATA = {};
+    if (RDV.step >= 2) chargerPrestations();
+    if (RDV.step >= 3) chargerSemaine();
+    var p = new URLSearchParams(window.location.search);
+    p.set('atelier', ATELIER_SLUG);
+    history.replaceState(null, '', window.location.pathname + '?' + p.toString());
+}
+
+function chargerAteliersPublics() {
+    return fetch(API + '/api/ateliers/public')
+        .then(function(r) {
+            if (!r.ok) throw new Error('ateliers-public-' + r.status);
+            return r.json();
+        })
+        .then(function(items) {
+            PUBLIC_ATELIERS = Array.isArray(items) ? items : [];
+            renderAtelierSelect();
+        })
+        .catch(function() {
+            PUBLIC_ATELIERS = [];
+            renderAtelierSelect();
+        });
+}
+
+// ===== NAVIGATION =====
+function goStep(n) {
+    RDV.step = n;
+    var steps = document.querySelectorAll('.wizard-step');
+    for (var i = 0; i < steps.length; i++) steps[i].classList.remove('active');
+    var target = document.getElementById('step-' + n);
+    if (target) target.classList.add('active');
+
+    // Update indicators
+    for (var s = 1; s <= 4; s++) {
+        var dot = document.getElementById('sd-' + s);
+        var line = document.getElementById('sl-' + s);
+        dot.className = 'step-dot' + (s < n ? ' done' : (s === n ? ' active' : ''));
+        dot.textContent = s < n ? '\u2713' : s;
+        if (line) line.className = 'step-line' + (s < n ? ' done' : '');
+    }
+
+    if (n === 2) chargerPrestations();
+    if (n === 3) {
+        chargerDelaiIntervention().then(function() {
+            chargerSemaine();
+        }).catch(function() {
+            chargerSemaine();
+        });
+    }
+    if (n === 4) afficherRecap();
+    window.scrollTo(0, 0);
+}
+
+// ===== STEP 1: VEHICULE =====
+function rechercherVehicule() {
+    var plaque = document.getElementById('pub-plaque').value.replace(/[\s-]/g, '').toUpperCase();
+    if (plaque.length < 3) { alert('Entrez une plaque valide'); return; }
+
+    var btn = document.getElementById('btn-search');
+    btn.innerHTML = '<span class="loading-spinner"></span> Recherche...';
+    btn.disabled = true;
+
+    fetch(API + '/api/vehicule/' + encodeURIComponent(plaque)).then(function(r) { return r.json(); }).then(function(data) {
+        btn.textContent = 'Rechercher mon vehicule';
+        btn.disabled = false;
+        if (data && !data.not_found) {
+            RDV.vehicule = data;
+            RDV.motoType = data.type_moto || '';
+            document.getElementById('pub-v-marque').textContent = data.marque || '-';
+            document.getElementById('pub-v-modele').textContent = data.modele || '-';
+            document.getElementById('pub-v-annee').textContent = data.annee || '-';
+            document.getElementById('pub-v-cylindree').textContent = (data.cylindree || '-') + (data.cylindree ? '' : '');
+            document.getElementById('pub-v-type').textContent = data.type_moto || 'Non defini';
+            document.getElementById('pub-v-plaque').textContent = data.plaque || plaque;
+            // Show type selector if type_moto is missing
+            document.getElementById('pub-v-type-missing').style.display = data.type_moto ? 'none' : 'block';
+            if (data.type_moto) {
+                document.getElementById('pub-v-type').style.color = '#eee';
+            } else {
+                document.getElementById('pub-v-type').style.color = 'var(--red)';
+            }
+            document.getElementById('pub-veh-result').style.display = 'block';
+            document.getElementById('pub-veh-notfound').style.display = 'none';
+        } else {
+            RDV.vehicule = { plaque: plaque };
+            RDV.motoType = 'Roadster';
+            document.getElementById('pub-veh-result').style.display = 'none';
+            document.getElementById('pub-veh-notfound').style.display = 'block';
+        }
+    }).catch(function() {
+        btn.textContent = 'Rechercher mon vehicule';
+        btn.disabled = false;
+        RDV.vehicule = { plaque: plaque };
+        document.getElementById('pub-veh-result').style.display = 'none';
+        document.getElementById('pub-veh-notfound').style.display = 'block';
+    });
+}
+
+function validerVehiculeManuel() {
+    var marque = document.getElementById('pub-man-marque').value.trim();
+    var modele = document.getElementById('pub-man-modele').value.trim();
+    var annee = document.getElementById('pub-man-annee').value.trim();
+    var cylindree = document.getElementById('pub-man-cylindree').value.trim();
+    var typeSelect = document.getElementById('pub-moto-type-manual');
+    var typeMoto = typeSelect.value;
+
+    if (!marque) { alert('La marque est obligatoire'); document.getElementById('pub-man-marque').focus(); return; }
+    if (!modele) { alert('Le modele est obligatoire'); document.getElementById('pub-man-modele').focus(); return; }
+    if (!annee) { alert("L'annee est obligatoire"); document.getElementById('pub-man-annee').focus(); return; }
+    if (!typeMoto) { alert('Le type de moto est obligatoire'); typeSelect.focus(); return; }
+
+    var plaque = document.getElementById('pub-plaque').value.replace(/[\s-]/g, '').toUpperCase();
+    RDV.vehicule = {
+        plaque: plaque || 'XX-000-XX',
+        marque: marque.toUpperCase(),
+        modele: modele,
+        annee: parseInt(annee),
+        cylindree: cylindree || null,
+        type_moto: typeMoto
+    };
+    RDV.motoType = typeMoto;
+    goStep(2);
+}
+
+function onTypeMotoFoundSelect(val) {
+    if (val) {
+        RDV.motoType = val;
+        RDV.vehicule.type_moto = val;
+        document.getElementById('pub-v-type').textContent = val;
+        document.getElementById('pub-v-type').style.color = '#eee';
+    }
+}
+
+function continuerVehiculeFound() {
+    if (!RDV.motoType) {
+        alert('Veuillez selectionner le type de moto');
+        document.getElementById('pub-v-type-select').focus();
+        return;
+    }
+    goStep(2);
+}
+
+// ===== STEP 2: PRESTATIONS =====
+function getPrestaTarif(it) {
+    // Retourne { prix_ttc, temps_minutes } pour le type moto selectionne
+    var t = it.tarifs && it.tarifs[RDV.motoType];
+    if (t) return { prix_ttc: t.prix_ttc, temps_minutes: t.temps_minutes };
+    return { prix_ttc: it.prix_base_ttc || 0, temps_minutes: it.temps_estime_minutes || 30 };
+}
+
+function chargerPrestations() {
+    if (RDV.vehicule && !RDV.vehicule.marque) {
+        var sel = document.getElementById('pub-moto-type-manual');
+        if (sel) RDV.motoType = sel.value;
+    }
+
+    if (RDV.interventions.length > 0) { renderPrestations(); return; }
+
+    function normalizePrestations(data) {
+        if (!Array.isArray(data)) return [];
+        return data.map(function(it) {
+            return {
+                id: it.id,
+                nom: it.nom,
+                description: it.description || '',
+                prix_base_ttc: it.prix_base_ttc != null ? it.prix_base_ttc : (it.prix_base || 0),
+                temps_estime_minutes: it.temps_estime_minutes != null ? it.temps_estime_minutes : (it.temps_estime || 30),
+                delai_intervention_jours: it.delai_intervention_jours != null ? it.delai_intervention_jours : 1,
+                tarifs: it.grille || it.tarifs || {}
+            };
+        }).filter(function(it) { return !!it.id; });
+    }
+
+    fetch(API + '/api/prestations/public?atelier_slug=' + encodeURIComponent(ATELIER_SLUG))
+        .then(function(r) {
+            if (!r.ok) throw new Error('prestations-public-' + r.status);
+            return r.json();
+        })
+        .then(function(publicData) {
+            RDV.interventions = normalizePrestations(publicData);
+            renderPrestations();
+        })
+        .catch(function() {
+            document.getElementById('pub-prestations').innerHTML = '<div style="color:#666">Erreur chargement des prestations</div>';
+        });
+}
+
+function chargerDelaiIntervention() {
+    if (!RDV.selected || RDV.selected.length === 0) {
+        RDV.delaiInterventionJours = 1;
+        return Promise.resolve();
+    }
+
+    var ids = RDV.selected.join(',');
+    return fetch(API + '/api/tarifs/delais?prestation_ids=' + encodeURIComponent(ids) + '&atelier_slug=' + encodeURIComponent(ATELIER_SLUG))
+        .then(function(r) {
+            if (!r.ok) throw new Error('delais-' + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            var delai = parseInt(data.delai_total_jours, 10);
+            RDV.delaiInterventionJours = Number.isFinite(delai) && delai > 0 ? delai : 1;
+        });
+}
+
+function renderPrestations() {
+    var container = document.getElementById('pub-prestations');
+    var html = '';
+
+    RDV.interventions.forEach(function(it) {
+        var isSelected = RDV.selected.indexOf(it.id) !== -1;
+        var tarif = getPrestaTarif(it);
+        var mins = tarif.temps_minutes;
+        var h = Math.floor(mins / 60); var m = mins % 60;
+        var duree = (h > 0 ? h + 'h' : '') + (m > 0 ? (h > 0 ? '' : '') + m + 'min' : '');
+        var prixDisplay = tarif.prix_ttc % 1 === 0 ? tarif.prix_ttc : tarif.prix_ttc.toFixed(2);
+        html += '<div class="presta-card' + (isSelected ? ' selected' : '') + '" onclick="togglePresta(' + it.id + ')">' +
+            '<div class="presta-check">' + (isSelected ? '\u2713' : '') + '</div>' +
+            '<div class="presta-info"><div class="presta-name">' + escapeHtml(it.nom) + '</div><div class="presta-detail">' + (escapeHtml(it.description) || '') + ' &middot; ' + duree + '</div></div>' +
+            '<div class="presta-price">' + prixDisplay + ' &euro;</div>' +
+            '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function togglePresta(id) {
+    var idx = RDV.selected.indexOf(id);
+    if (idx === -1) RDV.selected.push(id);
+    else RDV.selected.splice(idx, 1);
+
+    renderPrestations();
+    updateRecap();
+
+    var btn = document.getElementById('pub-btn-step3');
+    btn.disabled = RDV.selected.length === 0;
+}
+
+function updateRecap() {
+    var recap = document.getElementById('pub-recap');
+    var lines = document.getElementById('pub-recap-lines');
+    var total = document.getElementById('pub-recap-total');
+    var durBlock = document.getElementById('pub-duration');
+    if (RDV.selected.length === 0) { recap.style.display = 'none'; durBlock.style.display = 'none'; return; }
+    recap.style.display = 'block';
+    var html = '';
+    var prix = 0; var temps = 0;
+
+    RDV.selected.forEach(function(id) {
+        var it = RDV.interventions.find(function(i) { return i.id === id; });
+        if (it) {
+            var tarif = getPrestaTarif(it);
+            html += '<div class="recap-row"><span>' + escapeHtml(it.nom) + '</span><span>' + tarif.prix_ttc.toFixed(2) + ' &euro;</span></div>';
+            prix += tarif.prix_ttc;
+            temps += tarif.temps_minutes;
+        }
+    });
+    var h = Math.floor(temps / 60); var m = temps % 60;
+    var dureeStr = (h > 0 ? h + 'h' : '') + (m > 0 ? m + 'min' : '');
+    html += '<div class="recap-row" style="color:#888"><span>Duree estimee</span><span>' + dureeStr + '</span></div>';
+    lines.innerHTML = html;
+    total.textContent = prix.toFixed(2) + ' \u20AC';
+    RDV.totalPrix = prix;
+    RDV.totalTemps = temps;
+
+    durBlock.style.display = 'block';
+    document.getElementById('pub-dur-value').textContent = dureeStr;
+    document.getElementById('pub-dur-note').textContent = RDV.motoType ? 'Tarif ' + RDV.motoType : '';
+}
+
+// ===== STEP 3: VUE SEMAINE =====
+var WEEK_OFFSET = 0; // 0 = cette semaine, 1 = prochaine, etc.
+var WEEK_DATA = {}; // cache: { 'YYYY-MM-DD': { creneaux: [...] } }
+var JOURS_COURTS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+var JOURS_LONGS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+var MOIS = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+
+function getWeekDays(offset) {
+    var now = new Date();
+    var delaiJours = Math.max(1, parseInt(RDV.delaiInterventionJours || 1, 10));
+    var earliestDate = new Date(now);
+    earliestDate.setDate(now.getDate() + (delaiJours - 1));
+    earliestDate.setHours(0, 0, 0, 0);
+
+    // Go to Monday of current week
+    var day = earliestDate.getDay(); // 0=dim
+    var diff = (day === 0 ? -6 : 1 - day); // offset to Monday
+    var monday = new Date(earliestDate);
+    monday.setDate(earliestDate.getDate() + diff + (offset * 7));
+    monday.setHours(0,0,0,0);
+
+    var days = [];
+    for (var i = 0; i < 5; i++) { // Lun-Ven
+        var d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        days.push(d);
+    }
+    return days;
+}
+
+function dateToStr(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+}
+
+function changeWeek(dir) {
+    WEEK_OFFSET += dir;
+    // Prevent navigating to past weeks
+    if (WEEK_OFFSET < 0) WEEK_OFFSET = 0;
+    chargerSemaine();
+}
+
+function chargerSemaine() {
+    var days = getWeekDays(WEEK_OFFSET);
+    var monday = days[0];
+    var friday = days[4];
+
+    // Update label
+    document.getElementById('pub-week-label').textContent =
+        'Semaine du ' + monday.getDate() + ' ' + MOIS[monday.getMonth()] + ' au ' + friday.getDate() + ' ' + MOIS[friday.getMonth()] + ' ' + friday.getFullYear();
+
+    // Reset selection UI
+    document.getElementById('pub-selected-slot').style.display = 'none';
+    document.getElementById('pub-assign').style.display = 'none';
+    document.getElementById('pub-btn-step4').disabled = true;
+
+    // Show loading grid
+    var grid = document.getElementById('pub-week-grid');
+    var now = new Date();
+    var delaiJours = Math.max(1, parseInt(RDV.delaiInterventionJours || 1, 10));
+    var earliestDate = new Date(now);
+    earliestDate.setDate(now.getDate() + (delaiJours - 1));
+    earliestDate.setHours(0, 0, 0, 0);
+    var earliestStr = dateToStr(earliestDate);
+    var todayStr = dateToStr(now);
+
+    // Build skeleton with headers
+    var html = '';
+    days.forEach(function(d) {
+        var ds = dateToStr(d);
+        var isPast = ds < earliestStr;
+        var isToday = ds === todayStr;
+        html += '<div class="week-day' + (isToday ? ' today' : '') + (isPast ? ' past' : '') + '" id="wd-' + ds + '">';
+        html += '<div class="week-day-header">';
+        html += '<div class="week-day-name">' + JOURS_COURTS[d.getDay()] + '</div>';
+        html += '<div class="week-day-date">' + d.getDate() + ' ' + MOIS[d.getMonth()] + '</div>';
+        html += '</div>';
+        html += '<div class="week-day-slots" id="ws-' + ds + '">';
+        if (isPast) {
+            html += '<div style="text-align:center;padding:12px;color:#444;font-size:11px">Passe</div>';
+        } else {
+            html += '<div style="text-align:center;padding:12px;color:#555;font-size:11px"><span class="loading-spinner"></span></div>';
+        }
+        html += '</div></div>';
+    });
+    grid.innerHTML = html;
+
+    // Load each day
+    days.forEach(function(d) {
+        var ds = dateToStr(d);
+        if (ds < earliestStr) return; // skip dates before intervention delay
+        chargerJour(ds);
+    });
+}
+
+function chargerJour(dateStr) {
+    // Check cache first
+    if (WEEK_DATA[dateStr]) {
+        renderJour(dateStr, WEEK_DATA[dateStr]);
+        return;
+    }
+
+    var duree = Math.max(30, parseInt(RDV.totalTemps || 60, 10));
+    fetch(API + '/api/creneaux/avec-ponts?date_str=' + dateStr + '&duree_minutes=' + encodeURIComponent(duree) + '&atelier_slug=' + encodeURIComponent(ATELIER_SLUG)).then(function(r) { return r.json(); }).then(function(data) {
+        WEEK_DATA[dateStr] = data;
+        renderJour(dateStr, data);
+    }).catch(function() {
+        var container = document.getElementById('ws-' + dateStr);
+        if (container) container.innerHTML = '<div style="text-align:center;padding:12px;color:#555;font-size:11px">Erreur</div>';
+    });
+}
+
+function renderJour(dateStr, data) {
+    var container = document.getElementById('ws-' + dateStr);
+    if (!container) return;
+    var creneaux = data.creneaux || [];
+
+    if (creneaux.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:12px;color:#444;font-size:11px">Ferme</div>';
+        return;
+    }
+
+    // Filter out past slots for today
+    var todayStr = dateToStr(new Date());
+    var isToday = (dateStr === todayStr);
+    var nowH = new Date().getHours();
+    var nowM = new Date().getMinutes();
+
+    var html = '';
+    var hasAny = false;
+    creneaux.forEach(function(c) {
+        // Skip past slots on today
+        if (isToday) {
+            var parts = c.heure.split(':');
+            var slotH = parseInt(parts[0]);
+            var slotM = parseInt(parts[1]);
+            if (slotH < nowH || (slotH === nowH && slotM <= nowM)) {
+                return; // skip this slot
+            }
+        }
+        hasAny = true;
+        var nbLibres = c.nb_ponts_libres || 0;
+        var isSelected = (RDV.selectedDate === dateStr && RDV.selectedHeure === c.heure);
+        if (c.disponible) {
+            html += '<div class="wslot available' + (isSelected ? ' selected' : '') + '" onclick="selectWeekSlot(this,\'' + dateStr + '\',\'' + c.heure + '\')">' + c.heure + '<div class="wslot-places">' + nbLibres + ' pont(s)</div></div>';
+        } else {
+            html += '<div class="wslot full">' + c.heure + '<div class="wslot-places">Complet</div></div>';
+        }
+    });
+    container.innerHTML = hasAny ? html : '<div style="text-align:center;padding:12px;color:#444;font-size:11px">Plus de creneaux</div>';
+}
+
+function selectWeekSlot(el, dateStr, heure) {
+    // Deselect all
+    var allSlots = document.querySelectorAll('.wslot');
+    for (var i = 0; i < allSlots.length; i++) allSlots[i].classList.remove('selected');
+    el.classList.add('selected');
+
+    RDV.selectedDate = dateStr;
+    RDV.selectedHeure = heure;
+
+    document.getElementById('pub-selected-slot').style.display = 'block';
+    document.getElementById('pub-slot-label').textContent = formatDate(dateStr) + ' a ' + heure;
+    document.getElementById('pub-btn-step4').disabled = false;
+
+    // Show auto-assigned pont and mechanic
+    var assignDiv = document.getElementById('pub-assign');
+    RDV.selectedPont = null;
+    RDV.selectedMeca = null;
+
+    var dayData = WEEK_DATA[dateStr];
+    if (dayData && dayData.creneaux) {
+        var creneau = dayData.creneaux.find(function(c) { return c.heure === heure; });
+        if (creneau && creneau.ponts_disponibles && creneau.ponts_disponibles.length > 0) {
+            var pont = creneau.ponts_disponibles[0];
+            RDV.selectedPont = pont;
+            RDV.selectedMeca = pont.mecanicien;
+            document.getElementById('pub-assign-pont').textContent = pont.nom;
+            document.getElementById('pub-assign-meca').textContent = pont.mecanicien || 'Auto-assigne';
+            assignDiv.style.display = 'block';
+            return;
+        }
+    }
+    assignDiv.style.display = 'none';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    var parts = dateStr.split('-');
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    return JOURS_LONGS[d.getDay()] + ' ' + parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+// ===== STEP 4: CONFIRMATION =====
+function afficherRecap() {
+    var v = RDV.vehicule || {};
+    document.getElementById('pub-final-veh').textContent = (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + (escapeHtml(v.plaque) ? ' (' + v.plaque + ')' : '');
+
+    var prestaNames = [];
+    RDV.selected.forEach(function(id) {
+        var it = RDV.interventions.find(function(i) { return i.id === id; });
+        if (it) prestaNames.push(it.nom);
+    });
+    document.getElementById('pub-final-presta').textContent = prestaNames.join(', ');
+    document.getElementById('pub-final-date').textContent = formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure;
+
+    var pontName = RDV.selectedPont ? RDV.selectedPont.nom : '-';
+    var mecaName = RDV.selectedMeca || '-';
+    document.getElementById('pub-final-pont').textContent = pontName + ' / ' + mecaName;
+
+    var h = Math.floor(RDV.totalTemps / 60); var m = RDV.totalTemps % 60;
+    document.getElementById('pub-final-duree').textContent = (h > 0 ? h + 'h' : '') + (m > 0 ? m + 'min' : '');
+    document.getElementById('pub-final-total').textContent = RDV.totalPrix + ' \u20AC';
+}
+
+function confirmerRDV() {
+    var prenom = document.getElementById('pub-prenom').value.trim();
+    var nom = document.getElementById('pub-nom').value.trim();
+    var tel = document.getElementById('pub-tel').value.trim();
+    var email = document.getElementById('pub-email').value.trim();
+    var comment = document.getElementById('pub-comment').value.trim();
+
+    if (!prenom || !nom || !tel) { alert('Prenom, nom et telephone obligatoires'); return; }
+
+    var btn = document.getElementById('btn-confirm');
+    btn.innerHTML = '<span class="loading-spinner"></span> Confirmation...';
+    btn.disabled = true;
+
+    var v = RDV.vehicule || {};
+    var body = {
+        client: { nom: nom, prenom: prenom, telephone: tel, email: email || null },
+        vehicule: { plaque: v.plaque || 'XX-000-XX', marque: v.marque || null, modele: v.modele || null, annee: v.annee || null, cylindree: v.cylindree || null, type_moto: RDV.motoType || v.type_moto || null, categorie_id: null },
+        prestations: RDV.selected,
+        date_heure: RDV.selectedDate + 'T' + RDV.selectedHeure + ':00',
+        montant_estime: RDV.totalPrix || 0,
+        commentaires: comment || null,
+        pont_id: RDV.selectedPont ? RDV.selectedPont.id : null,
+        atelier_slug: ATELIER_SLUG
+    };
+
+    fetch(API + '/api/rendez-vous/public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(function(r) {
+        if (!r.ok) throw new Error('Erreur ' + r.status);
+        return r.json();
+    }).then(function(data) {
+        document.getElementById('pub-rdv-num').textContent = '#RDV-' + String(data.id).padStart(4, '0');
+
+        // Success details
+        var detailsHtml = '';
+        detailsHtml += '<div class="sd-row"><span>Vehicule</span><span>' + ((escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '')).trim() + '</span></div>';
+        detailsHtml += '<div class="sd-row"><span>Date</span><span>' + formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure + '</span></div>';
+        if (RDV.selectedPont) detailsHtml += '<div class="sd-row"><span>Pont</span><span>' + RDV.selectedPont.nom + '</span></div>';
+        if (RDV.selectedMeca) detailsHtml += '<div class="sd-row"><span>Mecanicien</span><span>' + RDV.selectedMeca + '</span></div>';
+        document.getElementById('pub-success-details').innerHTML = detailsHtml;
+
+        // Show success
+        var steps = document.querySelectorAll('.wizard-step');
+        for (var i = 0; i < steps.length; i++) steps[i].classList.remove('active');
+        document.getElementById('step-success').classList.add('active');
+        // All dots done
+        for (var s = 1; s <= 4; s++) {
+            var dot = document.getElementById('sd-' + s);
+            dot.className = 'step-dot done';
+            dot.textContent = '\u2713';
+            var line = document.getElementById('sl-' + s);
+            if (line) line.className = 'step-line done';
+        }
+    }).catch(function(e) {
+        btn.textContent = 'Confirmer le RDV + Generer OR';
+        btn.disabled = false;
+        alert('Erreur lors de la creation du RDV: ' + e.message);
+    });
+}
+
+window.addEventListener('message', function(event) {
+    if (!event || event.origin !== window.location.origin) return;
+    var data = event.data || {};
+    if (data.type !== 'ateliermoto-rdv-prefill-client' || !data.payload) return;
+    var p = data.payload;
+    var inPrenom = document.getElementById('pub-prenom');
+    var inNom = document.getElementById('pub-nom');
+    var inTel = document.getElementById('pub-tel');
+    var inEmail = document.getElementById('pub-email');
+    if (inPrenom) inPrenom.value = p.prenom || '';
+    if (inNom) inNom.value = p.nom || '';
+    if (inTel) inTel.value = p.telephone || '';
+    if (inEmail) inEmail.value = p.email || '';
+});
+
+// Init: set week offset so we start on current or next week
+(function() {
+    chargerAteliersPublics();
+    var now = new Date();
+    // If it's Saturday or Sunday, start on next week
+    if (now.getDay() === 0 || now.getDay() === 6) {
+        WEEK_OFFSET = 1;
+    }
+})();
+</script>
+</body>
+</html>

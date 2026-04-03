@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Atelier Moto Pro</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="/static/theme.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        },
+                        brand: {
+                            yellow: '#ffd700',
+                            dark: '#1a1a1a',
+                            gray: '#9ca3af',
+                        },
+                        dark: {
+                            900: '#1a1a1a',
+                            800: '#2d2d2d',
+                            700: '#404040',
+                            600: '#525252',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Animated gradient background - Atelier Moto colors */
+        .animated-bg {
+            background: linear-gradient(-45deg, #1a1a1a, #2d2d2d, #1a1a1a, #0f0f0f);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Glass morphism pattern overlay */
+        .pattern-overlay {
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233b82f6' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        /* Glass card effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        }
+        
+        /* Input focus effects */
+        .input-wrapper {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .input-wrapper:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(37, 99, 235, 0.3);
+        }
+        
+        .input-wrapper:focus-within i {
+            color: #2563eb;
+            transform: scale(1.1);
+        }
+        
+        .input-wrapper i {
+            transition: all 0.3s ease;
+        }
+        
+        /* Custom input styling */
+        .custom-input {
+            transition: all 0.3s ease;
+        }
+        
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Button hover effects */
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.5);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        /* Demo account cards */
+        .demo-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(59, 130, 246, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .demo-card:hover::before {
+            opacity: 1;
+        }
+        
+        .demo-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
+            border-color: #3b82f6;
+        }
+        
+        /* Feature cards on left side */
+        .feature-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-card:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast notifications */
+        .toast {
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        /* Checkbox custom styling */
+        .custom-checkbox {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .custom-checkbox:checked {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        
+        .custom-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* Floating particles animation */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.3);
+            animation: particleFloat 20s infinite ease-in-out;
+        }
+        
+        @keyframes particleFloat {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.5;
+            }
+            90% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+        
+        /* Logo glow effect */
+        .logo-glow {
+            box-shadow: 0 0 40px rgba(37, 99, 235, 0.4);
+        }
+        
+        /* Password strength indicator */
+        .strength-bar {
+            height: 3px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Error shake animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="animated-bg pattern-overlay min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    
+    <!-- Floating particles -->
+    <div class="particle w-2 h-2" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="particle w-3 h-3" style="left: 20%; animation-delay: 2s;"></div>
+    <div class="particle w-2 h-2" style="left: 30%; animation-delay: 4s;"></div>
+    <div class="particle w-4 h-4" style="left: 50%; animation-delay: 1s;"></div>
+    <div class="particle w-2 h-2" style="left: 70%; animation-delay: 3s;"></div>
+    <div class="particle w-3 h-3" style="left: 85%; animation-delay: 5s;"></div>
+    <div class="particle w-2 h-2" style="left: 90%; animation-delay: 2.5s;"></div>
+    
+    <div class="w-full max-w-5xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
+        
+        <!-- Left Side - Branding -->
+        <div class="text-white space-y-6 hidden lg:block animate-slide-up">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center logo-glow animate-float" style="background: linear-gradient(135deg, #ffd700, #e6c200);">
+                    <i class="fas fa-motorcycle text-3xl" style="color: #1a1a1a;"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">Atelier Moto Pro</h1>
+                    <p class="text-gray-400 text-sm">Gestion complète de votre atelier</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="feature-card flex items-start gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(255, 215, 0, 0.2);">
+                        <i class="fas fa-calendar-check" style="color: #ffd700;"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-1">Gestion des rendez-vous</h3>
+                        <p class="text-sm text-gray-400">Planifiez et suivez tous vos rendez-vous en temps réel</p>
+                    </div>
+                </div>
+                
+                <div class="feature-card flex items-start gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-users text-green-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-1">Fiches clients</h3>
+                        <p class="text-sm text-gray-400">Historique complet et gestion des véhicules</p>
+                    </div>
+                </div>
+                
+                <div class="feature-card flex items-start gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-boxes text-purple-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-1">Gestion de stock</h3>
+                        <p class="text-sm text-gray-400">Suivi des pièces et commandes fournisseurs</p>
+                    </div>
+                </div>
+                
+                <div class="feature-card flex items-start gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm cursor-pointer">
+                    <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-chart-line text-orange-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-1">Statistiques</h3>
+                        <p class="text-sm text-gray-400">Analysez votre activité et votre chiffre d'affaires</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Login Form -->
+        <div class="glass-card rounded-3xl p-8 lg:p-10 animate-fade-in" style="animation-delay: 0.1s;">
+            <!-- Mobile Logo -->
+            <div class="flex items-center gap-3 mb-8 lg:hidden">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center logo-glow" style="background: linear-gradient(135deg, #ffd700, #e6c200);">
+                    <i class="fas fa-motorcycle text-xl" style="color: #1a1a1a;"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">Atelier Moto Pro</h1>
+                    <p class="text-sm text-gray-500">Gestion des rendez-vous</p>
+                </div>
+            </div>
+            
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Bienvenue 👋</h2>
+                <p class="text-gray-500 text-sm">Connectez-vous pour accéder à votre espace</p>
+            </div>
+            
+            <form id="login-form" class="space-y-5">
+                <!-- Username -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Identifiant</label>
+                    <div class="input-wrapper relative">
+                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username"
+                            required
+                            class="custom-input w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white"
+                            placeholder="Votre identifiant"
+                            autocomplete="username"
+                        >
+                    </div>
+                </div>
+                
+                <!-- Password -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <div class="input-wrapper relative">
+                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password"
+                            required
+                            class="custom-input w-full pl-11 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white"
+                            placeholder="Votre mot de passe"
+                            autocomplete="current-password"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggle-password"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                        >
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Remember Me & Forgot Password -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="remember" class="custom-checkbox">
+                        <span class="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Se souvenir de moi</span>
+                    </label>
+                    <a href="#" class="text-sm font-medium hover:underline transition-all" style="color: #d97706;">
+                        Mot de passe oublié ?
+                    </a>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" id="login-btn" class="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2" style="background: #ffd700; color: #1a1a1a;">
+                    <span id="btn-text">Se connecter</span>
+                    <div id="btn-loader" class="spinner hidden"></div>
+                </button>
+            </form>
+            
+            <!-- Divider -->
+            <div class="relative my-8">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200"></div>
+                </div>
+                <div class="relative flex justify-center text-xs">
+                    <span class="px-4 bg-white text-gray-400">Comptes de démonstration</span>
+                </div>
+            </div>
+            
+            <!-- Demo Accounts -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="fillCredentials('admin', 'admin123')" class="demo-card p-4 rounded-xl bg-gray-50 border border-gray-200 text-left">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(255, 215, 0, 0.2);">
+                            <i class="fas fa-shield-alt text-xs" style="color: #d97706;"></i>
+                        </div>
+                        <span class="font-semibold text-sm text-gray-700">Administrateur</span>
+                    </div>
+                    <p class="text-xs text-gray-500">admin / admin123</p>
+                </button>
+                <button onclick="fillCredentials('reception', 'reception123')" class="demo-card p-4 rounded-xl bg-gray-50 border border-gray-200 text-left">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i class="fas fa-user text-green-600 text-xs"></i>
+                        </div>
+                        <span class="font-semibold text-sm text-gray-700">Réception</span>
+                    </div>
+                    <p class="text-xs text-gray-500">reception / reception123</p>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+    
+    <script>
+        const API_URL = '';
+        
+        // Toggle password visibility
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const input = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+        
+        // Fill credentials helper
+        function fillCredentials(username, password) {
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            usernameInput.value = username;
+            passwordInput.value = password;
+            
+            // Add visual feedback
+            usernameInput.parentElement.classList.add('shake');
+            setTimeout(() => usernameInput.parentElement.classList.remove('shake'), 500);
+            
+            usernameInput.focus();
+            showToast('Identifiants remplis', 'info');
+        }
+        
+        // Toast notification system
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-yellow-500',
+                warning: 'bg-orange-500'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                info: 'fa-info-circle',
+                warning: 'fa-exclamation-circle'
+            };
+            
+            toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[300px]`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type]}"></i>
+                <span class="font-medium text-sm">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+            
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+        
+        // Handle login
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('login-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showToast('Veuillez remplir tous les champs', 'warning');
+                return;
+            }
+            
+            // Show loading
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Store token
+                    localStorage.setItem('token', data.access_token);
+                    if (document.getElementById('remember').checked) {
+                        localStorage.setItem('remember', 'true');
+                    }
+                    
+                    showToast('Connexion réussie ! Redirection...', 'success');
+                    
+                    // Redirect based on role
+                    setTimeout(() => {
+                        if (data.role === 'mecanicien') {
+                            window.location.href = '/technicien.html';
+                        } else {
+                            window.location.href = '/dashboard.html';
+                        }
+                    }, 800);
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || 'Identifiants incorrects', 'error');
+                    
+                    // Shake animation on error
+                    const form = document.getElementById('login-form');
+                    form.classList.add('shake');
+                    setTimeout(() => form.classList.remove('shake'), 500);
+                }
+            } catch (error) {
+                showToast('Erreur de connexion au serveur', 'error');
+            } finally {
+                btn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+            }
+        });
+        
+        // Check for remembered user and redirect based on role
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (response.ok) {
+                        const user = await response.json();
+                        if (user.role === 'mecanicien') {
+                            window.location.href = '/technicien.html';
+                        } else {
+                            window.location.href = '/dashboard.html';
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error checking user:', e);
+                }
+            }
+            
+            // Focus username on load
+            document.getElementById('username').focus();
+        });
+        
+        // Input animations
+        document.querySelectorAll('.custom-input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('focused');
+            });
+        });
+    </script>
+</body>
+</html>

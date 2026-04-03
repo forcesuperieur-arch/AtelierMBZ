@@ -1,0 +1,7 @@
+# Requirements pour les tests
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==20.1.0

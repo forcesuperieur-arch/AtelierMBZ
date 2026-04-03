@@ -1,0 +1,593 @@
+/**
+ * Gestion de la base de données moto (catégories et modèles)
+ * Atelier Moto Pro
+ */
+
+const API_URL = window.location.origin;
+
+// ========== CATÉGORIES ==========
+
+/**
+ * Charge toutes les catégories de moto
+ * @returns {Promise<Array>} Liste des catégories
+ */
+async function loadCategoriesMoto() {
+    try {
+        const response = await fetch(`${API_URL}/api/motos/categories`);
+        if (!response.ok) throw new Error('Erreur chargement catégories');
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur loadCategoriesMoto:', error);
+        return [];
+    }
+}
+
+/**
+ * Affiche les catégories dans un élément select
+ * @param {string} selectId - ID du select
+ * @param {Array} categories - Liste des catégories
+ */
+function populateCategoriesSelect(selectId, categories, addEmpty = true) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    if (addEmpty) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'Toutes les catégories';
+        select.appendChild(emptyOption);
+    }
+
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = `${cat.nom} (${cat.nb_modeles} modèles)`;
+        option.dataset.description = cat.description || '';
+        select.appendChild(option);
+    });
+}
+
+// ========== MODÈLES ==========
+
+/**
+ * Charge les modèles de moto avec filtres optionnels
+ * @param {Object} filters - Filtres (categorie, marque, search)
+ * @returns {Promise<Array>} Liste des modèles
+ */
+async function loadModelesMoto(filters = {}) {
+    try {
+        let url = `${API_URL}/api/motos/modeles`;
+        const params = new URLSearchParams();
+
+        if (filters.categorie) params.append('categorie', filters.categorie);
+        if (filters.marque) params.append('marque', filters.marque);
+        if (filters.search) params.append('search', filters.search);
+
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erreur chargement modèles');
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur loadModelesMoto:', error);
+        return [];
+    }
+}
+
+/**
+ * Charge le détail d'un modèle
+ * @param {number} modeleId - ID du modèle
+ * @returns {Promise<Object>} Détails du modèle
+ */
+async function loadModeleDetail(modeleId) {
+    try {
+        const response = await fetch(`${API_URL}/api/motos/modeles/${modeleId}`);
+        if (!response.ok) throw new Error('Erreur chargement détail modèle');
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur loadModeleDetail:', error);
+        return null;
+    }
+}
+
+/**
+ * Affiche les modèles dans une liste/table
+ * @param {string} containerId - ID du conteneur
+ * @param {Array} modeles - Liste des modèles
+ */
+function displayModelesMoto(containerId, modeles) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (modeles.length === 0) {
+        container.innerHTML = '<p class="text-muted">Aucun modèle trouvé</p>';
+        return;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Marque</th>
+                        <th>Modèle</th>
+                        <th>Catégorie</th>
+                        <th>Cylindrée</th>
+                        <th>Années</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    modeles.forEach(m => {
+        html += `
+            <tr data-modele-id="${m.id}" style="cursor: pointer;">
+                <td><strong>${m.marque}</strong></td>
+                <td>${m.modele}</td>
+                <td><span class="badge bg-secondary">${m.categorie_nom}</span></td>
+                <td>${m.cylindree_display}</td>
+                <td>${m.annees_display}</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+
+    // Ajouter les événements de clic
+    container.querySelectorAll('tr[data-modele-id]').forEach(row => {
+        row.addEventListener('click', () => {
+            const modeleId = row.dataset.modeleId;
+            showModeleDetail(modeleId);
+        });
+    });
+}
+
+/**
+ * Affiche les modèles en grille de cartes
+ * @param {string} containerId - ID du conteneur
+ * @param {Array} modeles - Liste des modèles
+ */
+function displayModelesCards(containerId, modeles) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (modeles.length === 0) {
+        container.innerHTML = '<p class="text-muted">Aucun modèle trouvé</p>';
+        return;
+    }
+
+    let html = '<div class="row">';
+
+    modeles.forEach(m => {
+        html += `
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 modele-card" data-modele-id="${m.id}" style="cursor: pointer;">
+                    <div class="card-body">
+                        <h5 class="card-title">${m.marque} ${m.modele}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">${m.categorie_nom}</h6>
+                        <p class="card-text">
+                            <span class="badge bg-info">${m.cylindree_display}</span>
+                            <span class="badge bg-light text-dark">${m.annees_display}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Ajouter les événements de clic
+    container.querySelectorAll('.modele-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const modeleId = card.dataset.modeleId;
+            showModeleDetail(modeleId);
+        });
+    });
+}
+
+// ========== MARQUES ==========
+
+/**
+ * Charge la liste des marques distinctes
+ * @returns {Promise<Array>} Liste des marques
+ */
+async function loadMarquesMoto() {
+    try {
+        const response = await fetch(`${API_URL}/api/motos/marques`);
+        if (!response.ok) throw new Error('Erreur chargement marques');
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur loadMarquesMoto:', error);
+        return [];
+    }
+}
+
+/**
+ * Affiche les marques dans un select
+ * @param {string} selectId - ID du select
+ * @param {Array} marques - Liste des marques
+ */
+function populateMarquesSelect(selectId, marques, addEmpty = true) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    if (addEmpty) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'Toutes les marques';
+        select.appendChild(emptyOption);
+    }
+
+    marques.forEach(marque => {
+        const option = document.createElement('option');
+        option.value = marque;
+        option.textContent = marque;
+        select.appendChild(option);
+    });
+}
+
+// ========== ADMIN - CRÉATION/MODIFICATION ==========
+
+/**
+ * Crée une nouvelle catégorie (admin)
+ * @param {Object} categorieData - Données de la catégorie
+ * @returns {Promise<Object>} Résultat de la création
+ */
+async function createCategorieMoto(categorieData) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/motos/categories`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(categorieData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erreur création catégorie');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur createCategorieMoto:', error);
+        throw error;
+    }
+}
+
+/**
+ * Crée un nouveau modèle (admin)
+ * @param {Object} modeleData - Données du modèle
+ * @returns {Promise<Object>} Résultat de la création
+ */
+async function createModeleMoto(modeleData) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/motos/modeles`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(modeleData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erreur création modèle');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur createModeleMoto:', error);
+        throw error;
+    }
+}
+
+/**
+ * Met à jour un modèle (admin)
+ * @param {number} modeleId - ID du modèle
+ * @param {Object} modeleData - Données à mettre à jour
+ * @returns {Promise<Object>} Résultat de la mise à jour
+ */
+async function updateModeleMoto(modeleId, modeleData) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/motos/modeles/${modeleId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(modeleData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erreur mise à jour modèle');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur updateModeleMoto:', error);
+        throw error;
+    }
+}
+
+/**
+ * Supprime un modèle (admin)
+ * @param {number} modeleId - ID du modèle
+ * @returns {Promise<Object>} Résultat de la suppression
+ */
+async function deleteModeleMoto(modeleId) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/motos/modeles/${modeleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erreur suppression modèle');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur deleteModeleMoto:', error);
+        throw error;
+    }
+}
+
+// ========== STATISTIQUES ==========
+
+/**
+ * Charge les statistiques de la base moto
+ * @returns {Promise<Object>} Statistiques
+ */
+async function loadStatsMoto() {
+    try {
+        const response = await fetch(`${API_URL}/api/motos/stats`);
+        if (!response.ok) throw new Error('Erreur chargement stats');
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur loadStatsMoto:', error);
+        return null;
+    }
+}
+
+// ========== INTERFACE UTILISATEUR ==========
+
+/**
+ * Affiche le détail d'un modèle dans un modal
+ * @param {number} modeleId - ID du modèle
+ */
+async function showModeleDetail(modeleId) {
+    const modele = await loadModeleDetail(modeleId);
+    if (!modele) {
+        alert('Modèle non trouvé');
+        return;
+    }
+
+    // Créer ou récupérer le modal
+    let modal = document.getElementById('modeleDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modeleDetailModal';
+        modal.className = 'modal fade';
+        modal.tabIndex = '-1';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">${modele.marque} ${modele.modele}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6"><strong>Catégorie:</strong></div>
+                        <div class="col-6">${modele.categorie_nom}</div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6"><strong>Cylindrée:</strong></div>
+                        <div class="col-6">${modele.cylindree_display}</div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6"><strong>Années:</strong></div>
+                        <div class="col-6">${modele.annees_display}</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+/**
+ * Initialise la page de base moto
+ */
+async function initBaseMotoPage() {
+    // Charger les catégories
+    const categories = await loadCategoriesMoto();
+    populateCategoriesSelect('categorieFilter', categories);
+    populateCategoriesSelect('categorieSelect', categories, false);
+
+    // Charger les marques
+    const marques = await loadMarquesMoto();
+    populateMarquesSelect('marqueFilter', marques);
+    populateMarquesSelect('marqueSelect', marques, false);
+
+    // Charger tous les modèles
+    const modeles = await loadModelesMoto();
+    displayModelesCards('modelesContainer', modeles);
+
+    // Charger les stats
+    const stats = await loadStatsMoto();
+    if (stats) {
+        displayStatsMoto(stats);
+    }
+
+    // Ajouter les écouteurs d'événements
+    setupEventListeners();
+}
+
+/**
+ * Affiche les statistiques
+ * @param {Object} stats - Statistiques
+ */
+function displayStatsMoto(stats) {
+    const statsContainer = document.getElementById('statsContainer');
+    if (!statsContainer) return;
+
+    statsContainer.innerHTML = `
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>${stats.total_modeles}</h3>
+                        <p class="text-muted">Modèles</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>${stats.total_categories}</h3>
+                        <p class="text-muted">Catégories</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>${stats.modeles_par_marque.length}</h3>
+                        <p class="text-muted">Marques</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>${Math.round(stats.total_modeles / stats.total_categories)}</h3>
+                        <p class="text-muted">Modèles/cat.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Configure les écouteurs d'événements
+ */
+function setupEventListeners() {
+    // Filtre par catégorie
+    const categorieFilter = document.getElementById('categorieFilter');
+    if (categorieFilter) {
+        categorieFilter.addEventListener('change', async () => {
+            const filters = {
+                categorie: categorieFilter.value,
+                marque: document.getElementById('marqueFilter')?.value
+            };
+            const modeles = await loadModelesMoto(filters);
+            displayModelesCards('modelesContainer', modeles);
+        });
+    }
+
+    // Filtre par marque
+    const marqueFilter = document.getElementById('marqueFilter');
+    if (marqueFilter) {
+        marqueFilter.addEventListener('change', async () => {
+            const filters = {
+                categorie: document.getElementById('categorieFilter')?.value,
+                marque: marqueFilter.value
+            };
+            const modeles = await loadModelesMoto(filters);
+            displayModelesCards('modelesContainer', modeles);
+        });
+    }
+
+    // Recherche
+    const searchInput = document.getElementById('searchModele');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(async () => {
+                const filters = { search: searchInput.value };
+                const modeles = await loadModelesMoto(filters);
+                displayModelesCards('modelesContainer', modeles);
+            }, 300);
+        });
+    }
+
+    // Formulaire d'ajout de modèle
+    const addModeleForm = document.getElementById('addModeleForm');
+    if (addModeleForm) {
+        addModeleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const modeleData = {
+                marque: document.getElementById('marqueSelect').value,
+                modele: document.getElementById('modeleInput').value,
+                categorie_id: parseInt(document.getElementById('categorieSelect').value),
+                cylindree_min: parseInt(document.getElementById('cylindreeMin').value) || null,
+                cylindree_max: parseInt(document.getElementById('cylindreeMax').value) || null,
+                annee_debut: parseInt(document.getElementById('anneeDebut').value) || null,
+                annee_fin: parseInt(document.getElementById('anneeFin').value) || null
+            };
+
+            try {
+                await createModeleMoto(modeleData);
+                alert('Modèle créé avec succès !');
+                addModeleForm.reset();
+                // Recharger les modèles
+                const modeles = await loadModelesMoto();
+                displayModelesCards('modelesContainer', modeles);
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        });
+    }
+}
+
+// Exporter les fonctions pour utilisation externe
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        loadCategoriesMoto,
+        loadModelesMoto,
+        loadModeleDetail,
+        loadMarquesMoto,
+        loadStatsMoto,
+        createCategorieMoto,
+        createModeleMoto,
+        updateModeleMoto,
+        deleteModeleMoto,
+        populateCategoriesSelect,
+        populateMarquesSelect,
+        displayModelesMoto,
+        displayModelesCards,
+        initBaseMotoPage
+    };
+}
