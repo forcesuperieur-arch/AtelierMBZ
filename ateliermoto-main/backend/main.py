@@ -8,7 +8,6 @@ from datetime import datetime, date, time, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_
 from sqlalchemy.exc import OperationalError
-import httpx
 import os
 import time as time_module
 import logging
@@ -35,7 +34,7 @@ from models import (
     Client, Vehicule, RendezVous, User,
     Pont, Mecanicien, Absence, PieceDetachee, Fournisseur,
     CommandeFournisseur, LigneCommandeFournisseur, PieceUtilisee,
-    ConfigAtelier, ForfaitMO, Devis, LigneDevis,
+    ConfigAtelier, ForfaitMO,
     Prestation, GrilleTarifaire, CalculTarif, GrilleTarifs,
     CategorieMoto, ModeleMoto, AtelierCategorieMoto, RapportTechnicien,
     TempsIntervention, HoraireAtelier, PontEquipement,
@@ -56,7 +55,6 @@ from routes.public_booking import (
     get_creneaux_disponibles_handler,
     get_delais_intervention_handler,
     get_prestations_public_handler,
-    get_vehicule_by_plaque_handler,
 )
 
 app = FastAPI(title="Atelier Moto API Pro", version="2.0.0")
@@ -217,53 +215,10 @@ from schemas.inventory import (
 
 # ========== MODÈLES PYDANTIC POUR FORFAITS MO ==========
 
-class ConfigAtelierUpdate(BaseModel):
-    taux_horaire_mo_standard: Optional[float] = None
-    taux_horaire_mo_complexe: Optional[float] = None
-    taux_horaire_mo_expert: Optional[float] = None
-    marge_pieces_standard: Optional[float] = None
-    marge_pieces_consommable: Optional[float] = None
-    marge_pieces_pneumatique: Optional[float] = None
-    forfait_mo_minimum: Optional[float] = None
-    tva_mo_taux: Optional[float] = None
-    tva_pieces_taux: Optional[float] = None
-    validite_devis_jours: Optional[int] = None
-    accompte_pourcentage: Optional[float] = None
-
-
 from schemas.forfaits_mo import ForfaitMOCreate, ForfaitMOUpdate
 
 
-class LigneDevisCreate(BaseModel):
-    type_ligne: str  # forfait_mo, piece, main_oeuvre_libre
-    forfait_mo_id: Optional[int] = None
-    piece_id: Optional[int] = None
-    designation: str
-    description_detail: Optional[str] = None
-    quantite: int = 1
-    prix_unitaire_ht: float
-    taux_tva: Optional[float] = 20.0
-
-
-class DevisCreate(BaseModel):
-    client_id: int
-    vehicule_id: Optional[int] = None
-    kilometrage: Optional[int] = None
-    notes_client: Optional[str] = None
-    notes_internes: Optional[str] = None
-    lignes: List[LigneDevisCreate]
-    remise_pourcentage: Optional[float] = 0.0
-
-
-class DevisUpdate(BaseModel):
-    statut: Optional[str] = None
-    notes_client: Optional[str] = None
-    notes_internes: Optional[str] = None
-
-
-class CalculDevisRequest(BaseModel):
-    lignes: List[LigneDevisCreate]
-    remise_pourcentage: Optional[float] = 0.0
+# Les schémas et routes devis sont désormais centralisés dans `routes.devis`.
 
 
 # Initialisation au démarrage
@@ -934,114 +889,8 @@ from routes.workshop import router as workshop_router
 app.include_router(workshop_router)
 
 # ========== VÉHICULES ==========
-
-async def fetch_api_plaque_immatriculation(plaque: str) -> dict:
-    """Appelle l'API apiplaqueimmatriculation.com pour récupérer les infos d'une plaque"""
-    api_key = os.getenv("API_PLAQUE_IMMATRICULATION_KEY")
-    if not api_key:
-        return None
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"https://api.apiplaqueimmatriculation.com/plaque?immatriculation={plaque}&token={api_key}&pays=FR",
-                headers={"Accept": "application/json"},
-                timeout=10.0
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                # Vérifier si la réponse contient des données
-                if data and len(data) > 0:
-                    vehicule = data[0] if isinstance(data, list) else data
-                    # Mapper les données vers notre format
-                    return {
-                        "plaque": plaque,
-                        "marque": vehicule.get("marque", "Inconnu"),
-                        "modele": vehicule.get("modele", "Inconnu"),
-                        "annee": vehicule.get("annee") or 2020,
-                        "cylindree": vehicule.get("cylindree") or f"{vehicule.get('puissance_fiscale', 7)} CV",
-                        "type_moto": vehicule.get("carburant", "Essence"),
-                        "source": "api-plaque-immatriculation"
-                    }
-                return None
-            elif response.status_code == 404:
-                return None  # Véhicule non trouvé
-            else:
-                print(f"Erreur API Plaque Immatriculation: {response.status_code}")
-                return None
-    except Exception as e:
-        print(f"Exception API Plaque Immatriculation: {e}")
-        return None
-
-
-@app.get("/api/vehicules/{vehicule_id}")
-def get_vehicule_by_id(vehicule_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Récupère un véhicule par son ID"""
-    vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id).first()
-    if not vehicule:
-        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
-    return {
-        "id": vehicule.id,
-        "plaque": vehicule.plaque,
-        "marque": vehicule.marque,
-        "modele": vehicule.modele,
-        "annee": vehicule.annee,
-        "cylindree": vehicule.cylindree,
-        "type_moto": vehicule.type_moto
-    }
-
-
-@app.get("/api/vehicule/{plaque}")
-async def get_vehicule_by_plaque(plaque: str, db: Session = Depends(get_db)):
-    """Récupère les informations d'un véhicule par sa plaque"""
-    return await get_vehicule_by_plaque_handler(plaque, db)
-
-
-@app.post("/api/vehicule")
-def create_vehicule_manuel(vehicule_data: dict, db: Session = Depends(get_db)):
-    """Crée un véhicule manuellement (pour les plaques non trouvées)"""
-    plaque = vehicule_data.get("plaque", "").upper().replace(" ", "").replace("-", "")
-    
-    # Vérifier si le véhicule existe déjà
-    existing = db.query(Vehicule).filter(Vehicule.plaque == plaque).first()
-    if existing:
-        return {
-            "id": existing.id,
-            "plaque": existing.plaque,
-            "marque": existing.marque,
-            "modele": existing.modele,
-            "annee": existing.annee,
-            "cylindree": existing.cylindree,
-            "type_moto": existing.type_moto,
-            "source": "database",
-            "message": "Véhicule déjà existant"
-        }
-    
-    # Créer le nouveau véhicule
-    new_vehicule = Vehicule(
-        plaque=plaque,
-        marque=vehicule_data.get("marque", "Non spécifié"),
-        modele=vehicule_data.get("modele", "Non spécifié"),
-        annee=vehicule_data.get("annee"),
-        cylindree=vehicule_data.get("cylindree"),
-        type_moto=vehicule_data.get("type_moto", "Non spécifié")
-    )
-    db.add(new_vehicule)
-    db.commit()
-    db.refresh(new_vehicule)
-    
-    return {
-        "id": new_vehicule.id,
-        "plaque": new_vehicule.plaque,
-        "marque": new_vehicule.marque,
-        "modele": new_vehicule.modele,
-        "annee": new_vehicule.annee,
-        "cylindree": new_vehicule.cylindree,
-        "type_moto": new_vehicule.type_moto,
-        "source": "manual",
-        "message": "Véhicule créé avec succès"
-    }
+from routes.vehicles import router as vehicles_router
+app.include_router(vehicles_router)
 
 
 # ========== RENDEZ-VOUS ==========
@@ -1065,413 +914,34 @@ app.include_router(travaux_supp_router)
 
 
 # ========== ENDPOINTS CONFIGURATION ATELIER ==========
-
-@app.get("/api/config/atelier")
-def get_config_atelier(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Récupère la configuration de l'atelier"""
-    config = db.query(ConfigAtelier).first()
-    if not config:
-        # Créer une config par défaut
-        config = ConfigAtelier()
-        db.add(config)
-        db.commit()
-        db.refresh(config)
-    
-    return {
-        "taux_horaire_mo_standard": config.taux_horaire_mo_standard,
-        "taux_horaire_mo_complexe": config.taux_horaire_mo_complexe,
-        "taux_horaire_mo_expert": config.taux_horaire_mo_expert,
-        "marge_pieces_standard": config.marge_pieces_standard,
-        "marge_pieces_consommable": config.marge_pieces_consommable,
-        "marge_pieces_pneumatique": config.marge_pieces_pneumatique,
-        "forfait_mo_minimum": config.forfait_mo_minimum,
-        "tva_mo_taux": config.tva_mo_taux,
-        "tva_pieces_taux": config.tva_pieces_taux,
-        "validite_devis_jours": config.validite_devis_jours,
-        "accompte_pourcentage": config.accompte_pourcentage,
-        "updated_at": config.updated_at.isoformat() if config.updated_at else None
-    }
-
-
-@app.put("/api/config/atelier")
-def update_config_atelier(
-    config_data: ConfigAtelierUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Met à jour la configuration de l'atelier"""
-    config = db.query(ConfigAtelier).first()
-    if not config:
-        config = ConfigAtelier()
-        db.add(config)
-    
-    for field, value in config_data.dict(exclude_unset=True).items():
-        setattr(config, field, value)
-    
-    db.commit()
-    db.refresh(config)
-    
-    return {"message": "Configuration mise à jour", "config": get_config_atelier(db=db, current_user=current_user)}
+# Les routes configuration sont désormais centralisées dans `config_api.py`.
 
 
 @app.get("/api/config/taux-mo")
 def get_taux_mo(
     db: Session = Depends(get_db)
 ):
-    """Récupère les taux horaires MO (public pour calculs frontend)"""
+    """Récupère les taux horaires MO (public pour calculs frontend)."""
     config = db.query(ConfigAtelier).first()
     if not config:
-        # Valeurs par défaut
         return {
             "standard": 65.0,
             "complexe": 85.0,
             "expert": 95.0,
-            "minimum": 25.0
+            "minimum": 25.0,
         }
-    
+
     return {
         "standard": config.taux_horaire_mo_standard,
         "complexe": config.taux_horaire_mo_complexe,
         "expert": config.taux_horaire_mo_expert,
-        "minimum": config.forfait_mo_minimum
+        "minimum": config.forfait_mo_minimum,
     }
 
 
 # ========== ENDPOINTS DEVIS ==========
-
-@app.get("/api/devis")
-def get_devis(
-    statut: Optional[str] = None,
-    client_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Liste les devis"""
-    query = db.query(Devis).options(
-        joinedload(Devis.client),
-        joinedload(Devis.vehicule)
-    )
-    
-    if statut:
-        query = query.filter(Devis.statut == statut)
-    if client_id:
-        query = query.filter(Devis.client_id == client_id)
-    
-    devis_list = query.order_by(Devis.date_creation.desc()).all()
-    
-    return [{
-        "id": d.id,
-        "numero_devis": d.numero_devis,
-        "client": {
-            "id": d.client.id,
-            "nom": d.client.nom,
-            "prenom": d.client.prenom,
-            "telephone": d.client.telephone
-        },
-        "vehicule": {
-            "id": d.vehicule.id,
-            "marque": d.vehicule.marque,
-            "modele": d.vehicule.modele,
-            "plaque": d.vehicule.plaque
-        } if d.vehicule else None,
-        "date_creation": d.date_creation.isoformat() if d.date_creation else None,
-        "date_validite": d.date_validite.isoformat() if d.date_validite else None,
-        "statut": d.statut,
-        "total_ht": d.total_ht,
-        "total_ttc": d.total_ttc,
-        "nb_lignes": len(d.lignes)
-    } for d in devis_list]
-
-
-@app.get("/api/devis/{devis_id}")
-def get_devis_detail(
-    devis_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Détail d'un devis avec ses lignes"""
-    devis = db.query(Devis).options(
-        joinedload(Devis.client),
-        joinedload(Devis.vehicule),
-        joinedload(Devis.lignes).joinedload(LigneDevis.forfait_mo),
-        joinedload(Devis.lignes).joinedload(LigneDevis.piece)
-    ).filter(Devis.id == devis_id).first()
-    
-    if not devis:
-        raise HTTPException(status_code=404, detail="Devis non trouvé")
-    
-    lignes = []
-    for ligne in sorted(devis.lignes, key=lambda x: x.ordre):
-        lignes.append({
-            "id": ligne.id,
-            "type_ligne": ligne.type_ligne,
-            "forfait_mo_id": ligne.forfait_mo_id,
-            "forfait_mo_code": ligne.forfait_mo.code if ligne.forfait_mo else None,
-            "piece_id": ligne.piece_id,
-            "piece_reference": ligne.piece.reference if ligne.piece else None,
-            "designation": ligne.designation,
-            "description_detail": ligne.description_detail,
-            "quantite": ligne.quantite,
-            "prix_unitaire_ht": ligne.prix_unitaire_ht,
-            "taux_tva": ligne.taux_tva,
-            "total_ligne_ht": ligne.total_ligne_ht,
-            "total_ligne_ttc": ligne.total_ligne_ttc
-        })
-    
-    return {
-        "id": devis.id,
-        "numero_devis": devis.numero_devis,
-        "client": {
-            "id": devis.client.id,
-            "nom": devis.client.nom,
-            "prenom": devis.client.prenom,
-            "telephone": devis.client.telephone,
-            "email": devis.client.email,
-            "adresse": devis.client.adresse
-        },
-        "vehicule": {
-            "id": devis.vehicule.id,
-            "marque": devis.vehicule.marque,
-            "modele": devis.vehicule.modele,
-            "plaque": devis.vehicule.plaque,
-            "annee": devis.vehicule.annee,
-            "cylindree": devis.vehicule.cylindree
-        } if devis.vehicule else None,
-        "date_creation": devis.date_creation.isoformat() if devis.date_creation else None,
-        "date_validite": devis.date_validite.isoformat() if devis.date_validite else None,
-        "statut": devis.statut,
-        "kilometrage": devis.kilometrage,
-        "total_mo_ht": devis.total_mo_ht,
-        "total_pieces_ht": devis.total_pieces_ht,
-        "total_ht": devis.total_ht,
-        "total_ttc": devis.total_ttc,
-        "remise_pourcentage": devis.remise_pourcentage,
-        "remise_montant": devis.remise_montant,
-        "acompte_demande": devis.acompte_demande,
-        "notes_client": devis.notes_client,
-        "notes_internes": devis.notes_internes,
-        "rendez_vous_id": devis.rendez_vous_id,
-        "lignes": lignes
-    }
-
-
-def generer_numero_devis(db: Session) -> str:
-    """Génère un numéro de devis unique"""
-    from datetime import datetime
-    import random
-    
-    annee = datetime.now().year
-    
-    # Compter les devis de l'année
-    count = db.query(Devis).filter(
-        Devis.numero_devis.like(f"DEV-{annee}-%")
-    ).count()
-    
-    numero = f"DEV-{annee}-{count + 1:04d}"
-    return numero
-
-
-@app.post("/api/devis")
-def create_devis(
-    devis_data: DevisCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Crée un nouveau devis"""
-    # Récupérer la config
-    config = db.query(ConfigAtelier).first()
-    validite = config.validite_devis_jours if config else 30
-    
-    # Créer le devis
-    date_validite = date.today() + timedelta(days=validite)
-    
-    devis = Devis(
-        numero_devis=generer_numero_devis(db),
-        client_id=devis_data.client_id,
-        vehicule_id=devis_data.vehicule_id,
-        date_validite=date_validite,
-        kilometrage=devis_data.kilometrage,
-        notes_client=devis_data.notes_client,
-        notes_internes=devis_data.notes_internes,
-        remise_pourcentage=devis_data.remise_pourcentage
-    )
-    db.add(devis)
-    db.flush()  # Pour obtenir l'ID
-    
-    # Ajouter les lignes
-    total_mo_ht = 0
-    total_pieces_ht = 0
-    
-    for i, ligne_data in enumerate(devis_data.lignes):
-        total_ligne_ht = ligne_data.quantite * ligne_data.prix_unitaire_ht
-        total_ligne_ttc = total_ligne_ht * (1 + ligne_data.taux_tva / 100)
-        
-        ligne = LigneDevis(
-            devis_id=devis.id,
-            type_ligne=ligne_data.type_ligne,
-            forfait_mo_id=ligne_data.forfait_mo_id,
-            piece_id=ligne_data.piece_id,
-            designation=ligne_data.designation,
-            description_detail=ligne_data.description_detail,
-            quantite=ligne_data.quantite,
-            prix_unitaire_ht=ligne_data.prix_unitaire_ht,
-            taux_tva=ligne_data.taux_tva,
-            total_ligne_ht=total_ligne_ht,
-            total_ligne_ttc=total_ligne_ttc,
-            ordre=i
-        )
-        db.add(ligne)
-        
-        # Calculer les totaux
-        if ligne_data.type_ligne == "forfait_mo" or ligne_data.type_ligne == "main_oeuvre_libre":
-            total_mo_ht += total_ligne_ht
-        else:
-            total_pieces_ht += total_ligne_ht
-    
-    # Calculer les totaux
-    total_ht = total_mo_ht + total_pieces_ht
-    remise_montant = total_ht * (devis_data.remise_pourcentage / 100)
-    total_ht_remise = total_ht - remise_montant
-    
-    # TVA moyenne (simplifié)
-    tva_taux = config.tva_mo_taux if config else 20.0
-    total_ttc = total_ht_remise * (1 + tva_taux / 100)
-    
-    # Acompte
-    accompte = total_ttc * (config.accompte_pourcentage / 100) if config else total_ttc * 0.3
-    
-    devis.total_mo_ht = total_mo_ht
-    devis.total_pieces_ht = total_pieces_ht
-    devis.total_ht = total_ht_remise
-    devis.total_ttc = total_ttc
-    devis.remise_montant = remise_montant
-    devis.acompte_demande = accompte
-    
-    db.commit()
-    db.refresh(devis)
-    
-    return {"message": "Devis créé", "id": devis.id, "numero": devis.numero_devis}
-
-
-@app.post("/api/devis/calculer")
-def calculer_devis(
-    calcul_data: CalculDevisRequest,
-    db: Session = Depends(get_db)
-):
-    """Calcule les totaux d'un devis sans le sauvegarder"""
-    config = db.query(ConfigAtelier).first()
-    
-    total_mo_ht = 0
-    total_pieces_ht = 0
-    
-    for ligne in calcul_data.lignes:
-        total_ligne_ht = ligne.quantite * ligne.prix_unitaire_ht
-        if ligne.type_ligne == "forfait_mo" or ligne.type_ligne == "main_oeuvre_libre":
-            total_mo_ht += total_ligne_ht
-        else:
-            total_pieces_ht += total_ligne_ht
-    
-    total_ht = total_mo_ht + total_pieces_ht
-    remise_montant = total_ht * (calcul_data.remise_pourcentage / 100)
-    total_ht_remise = total_ht - remise_montant
-    
-    tva_taux = config.tva_mo_taux if config else 20.0
-    total_ttc = total_ht_remise * (1 + tva_taux / 100)
-    
-    return {
-        "total_mo_ht": round(total_mo_ht, 2),
-        "total_pieces_ht": round(total_pieces_ht, 2),
-        "total_ht": round(total_ht, 2),
-        "remise_pourcentage": calcul_data.remise_pourcentage,
-        "remise_montant": round(remise_montant, 2),
-        "total_ht_remise": round(total_ht_remise, 2),
-        "total_ttc": round(total_ttc, 2)
-    }
-
-
-@app.put("/api/devis/{devis_id}")
-def update_devis(
-    devis_id: int,
-    devis_data: DevisUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Met à jour un devis (statut, notes)"""
-    devis = db.query(Devis).filter(Devis.id == devis_id).first()
-    if not devis:
-        raise HTTPException(status_code=404, detail="Devis non trouvé")
-    
-    for field, value in devis_data.dict(exclude_unset=True).items():
-        setattr(devis, field, value)
-    
-    db.commit()
-    db.refresh(devis)
-    
-    return {"message": "Devis mis à jour"}
-
-
-@app.post("/api/devis/{devis_id}/convertir-rdv")
-def convertir_devis_en_rdv(
-    devis_id: int,
-    date_rdv: date,
-    heure_rdv: time,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Convertit un devis accepté en rendez-vous"""
-    devis = db.query(Devis).filter(Devis.id == devis_id).first()
-    if not devis:
-        raise HTTPException(status_code=404, detail="Devis non trouvé")
-    
-    if devis.statut != "accepte":
-        raise HTTPException(status_code=400, detail="Le devis doit être accepté avant conversion")
-    
-    # Créer le RDV
-    types_intervention = ", ".join([l.designation for l in devis.lignes if l.type_ligne == "forfait_mo"])
-    
-    rdv = RendezVous(
-        client_id=devis.client_id,
-        vehicule_id=devis.vehicule_id,
-        date_rdv=date_rdv,
-        heure_rdv=heure_rdv,
-        type_intervention=types_intervention or "Intervention diverses",
-        prix_estime=devis.total_ttc,
-        statut="confirme",
-        commentaire=devis.notes_client,
-        kilometrage=devis.kilometrage
-    )
-    db.add(rdv)
-    db.flush()
-    
-    devis.rendez_vous_id = rdv.id
-    devis.statut = "converti"
-    
-    db.commit()
-    
-    return {"message": "Devis converti en RDV", "rdv_id": rdv.id}
-
-
-@app.delete("/api/devis/{devis_id}")
-def delete_devis(
-    devis_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Supprime un devis"""
-    devis = db.query(Devis).filter(Devis.id == devis_id).first()
-    if not devis:
-        raise HTTPException(status_code=404, detail="Devis non trouvé")
-    
-    if devis.statut == "converti":
-        raise HTTPException(status_code=400, detail="Impossible de supprimer un devis déjà converti")
-    
-    db.delete(devis)
-    db.commit()
-    
-    return {"message": "Devis supprimé"}
+from routes.devis import router as devis_router
+app.include_router(devis_router)
 
 
 # ==================== ENDPOINTS PUBLICS (sans auth) ====================

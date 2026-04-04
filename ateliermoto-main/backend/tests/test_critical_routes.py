@@ -516,6 +516,68 @@ class TestCriticalRoutesDevis:
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
+    def test_devis_can_be_created_and_converted_to_rdv(self):
+        """Le workflow devis -> RDV reste fonctionnel après refactor."""
+        headers = auth_headers_for_role("admin", "admin_devis_workflow")
+
+        db = TestingSessionLocal()
+        client_db = Client(atelier_id=1, nom="Devis", prenom="Client", telephone="0605050505")
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=1, plaque="DEVIS01", marque="Yamaha", modele="Tracer 9", client_id=client_db.id)
+        db.add(vehicule)
+        db.commit()
+        vehicule_id = vehicule.id
+        client_id = client_db.id
+        db.close()
+
+        create_response = client.post(
+            "/api/devis",
+            json={
+                "client_id": client_id,
+                "vehicule_id": vehicule_id,
+                "kilometrage": 24500,
+                "notes_client": "Prévoir la grosse révision",
+                "lignes": [
+                    {
+                        "type_ligne": "forfait_mo",
+                        "designation": "Révision complète",
+                        "quantite": 1,
+                        "prix_unitaire_ht": 120,
+                        "taux_tva": 20,
+                    }
+                ],
+                "remise_pourcentage": 10,
+            },
+            headers=headers,
+        )
+        assert create_response.status_code == 200
+        devis_id = create_response.json()["id"]
+
+        update_response = client.put(
+            f"/api/devis/{devis_id}",
+            json={"statut": "accepte"},
+            headers=headers,
+        )
+        assert update_response.status_code == 200
+
+        target_day = date.today() + timedelta(days=1)
+        convert_response = client.post(
+            f"/api/devis/{devis_id}/convertir-rdv",
+            params={"date_rdv": target_day.isoformat(), "heure_rdv": "10:30:00"},
+            headers=headers,
+        )
+        assert convert_response.status_code == 200
+        rdv_id = convert_response.json()["rdv_id"]
+
+        rdv_response = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert rdv_response.status_code == 200
+        rdv_payload = rdv_response.json()
+        assert rdv_payload["type_intervention"] == "Révision complète"
+        assert rdv_payload["commentaire"] == "Prévoir la grosse révision"
+        assert rdv_payload["kilometrage"] == 24500
+
 
 class TestCriticalRdvSecurityAndTransitions:
     """Tests de sécurité et de machine d'états pour le sprint A."""
