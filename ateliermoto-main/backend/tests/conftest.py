@@ -381,6 +381,50 @@ def sample_pont(db_session):
     return pont
 
 
+@pytest.fixture(autouse=True)
+def _sync_real_app_overrides(request):
+    """Évite la contamination inter-fichiers en réalignant les overrides sur le module courant."""
+    from auth import get_current_user as real_get_current_user
+    from main import app as real_app
+    from models import get_db as real_get_db
+
+    module_override_db = getattr(request.module, "override_get_db", None)
+    if callable(module_override_db):
+        real_app.dependency_overrides[real_get_db] = module_override_db
+    else:
+        real_app.dependency_overrides.pop(real_get_db, None)
+
+    current_user_override = None
+    for attr_name in ("_override_current_user", "_override_current_user_admin"):
+        candidate = getattr(request.module, attr_name, None)
+        if callable(candidate):
+            current_user_override = candidate
+            break
+    if callable(current_user_override):
+        real_app.dependency_overrides[real_get_current_user] = current_user_override
+    else:
+        real_app.dependency_overrides.pop(real_get_current_user, None)
+
+    module_client = getattr(request.module, "client", None)
+    if module_client is not None and hasattr(module_client, "cookies"):
+        module_client.cookies.clear()
+
+    yield
+
+    if callable(module_override_db):
+        real_app.dependency_overrides[real_get_db] = module_override_db
+    else:
+        real_app.dependency_overrides.pop(real_get_db, None)
+
+    if callable(current_user_override):
+        real_app.dependency_overrides[real_get_current_user] = current_user_override
+    else:
+        real_app.dependency_overrides.pop(real_get_current_user, None)
+
+    if module_client is not None and hasattr(module_client, "cookies"):
+        module_client.cookies.clear()
+
+
 @pytest.fixture
 def sample_mecanicien(db_session):
     """Fixture pour créer un mécanicien de test"""

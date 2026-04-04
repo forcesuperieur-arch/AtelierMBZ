@@ -1,8 +1,22 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Date, Time, Float, Numeric, Text, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Date, Time, Float, Numeric, Text, ForeignKey, Boolean, event
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from datetime import datetime
 
 Base = declarative_base()
+
+
+def _apply_default_atelier_id(mapper, connection, target):
+    """Compat multi-atelier: tout enregistrement legacy sans atelier reçoit l'atelier 1."""
+    if hasattr(target, "atelier_id"):
+        current = getattr(target, "atelier_id", None)
+        if current in (None, "", 0):
+            try:
+                setattr(target, "atelier_id", 1)
+            except Exception:
+                pass
+
+
+event.listen(Base, "before_insert", _apply_default_atelier_id, propagate=True)
 
 class Atelier(Base):
     __tablename__ = "ateliers"
@@ -344,6 +358,7 @@ class ConfigAtelier(Base):
     __tablename__ = "config_atelier"
     
     id = Column(Integer, primary_key=True, index=True)
+    atelier_id = Column(Integer, ForeignKey("ateliers.id"), nullable=True, index=True)
     
     # Tarifs horaires main d'œuvre (€/heure)
     taux_horaire_mo_standard = Column(Numeric(10, 2), default=65.0)

@@ -63,7 +63,7 @@ async def fetch_api_plaque_immatriculation(plaque: str):
                     "annee": data.get("annee"),
                     "cylindree": data.get("cylindree"),
                     "type_moto": data.get("type_moto"),
-                    "source": "api_plaque",
+                    "source": "api",
                 }
             if response.status_code == 404:
                 return None
@@ -166,6 +166,7 @@ async def get_vehicule_by_plaque_handler(plaque: str, db: Session):
         "annee": None,
         "cylindree": None,
         "type_moto": None,
+        "source": "not_found",
         "not_found": True,
         "message": "Véhicule non trouvé. Veuillez renseigner les informations.",
     }

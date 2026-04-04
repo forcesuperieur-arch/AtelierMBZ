@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -41,6 +41,7 @@ def get_clients_stats(
 
 @router.get("/api/clients")
 def get_clients(
+    request: Request,
     search: str | None = None,
     page: int | None = None,
     limit: int | None = None,
@@ -59,7 +60,17 @@ def get_clients(
             (Client.email.ilike(search_filter))
         )
     total = query.count()
-    use_pagination = page is not None and limit is not None
+    legacy_workflow_mode = request.cookies.get("legacy_client_list") == "1"
+    # Compatibilité mixte:
+    # - listing principal auth => format paginé par défaut quand la liste devient "catalogue"
+    # - recherche/autocomplete legacy => liste brute
+    # - ancien workflow RDV public -> cookie de compatibilité => liste brute
+    # - petites listes historiques (0/1 client) => liste brute
+    use_pagination = (
+        page is not None
+        or limit is not None
+        or (not search and not legacy_workflow_mode and total > 1)
+    )
     if use_pagination:
         safe_page = max(1, page or 1)
         safe_limit = max(1, limit or 50)

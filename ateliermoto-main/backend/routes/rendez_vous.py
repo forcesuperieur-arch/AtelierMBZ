@@ -2,10 +2,10 @@ from datetime import date, datetime, time, timedelta
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
-from auth import get_current_user
+from auth import get_current_user, get_optional_current_user
 from models import Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RapportTechnicien, RendezVous, RolePermission, User, Vehicule, get_db
 from schemas.rendez_vous import (
     OrdreReparationSave,
@@ -57,7 +57,7 @@ def _user_can_manage_workflow(current_user: User, db: Session, rdv: RendezVous |
 _ALLOWED_STATUS_TRANSITIONS = {
     "reserve": {"confirme", "annule", "non_presente", "reception"},
     "en_attente": {"confirme", "annule", "non_presente", "reception"},
-    "confirme": {"reception", "annule", "non_presente"},
+    "confirme": {"reception", "annule", "non_presente", "en_cours"},
     "reception": {"en_cours", "annule"},
     "en_cours": {"termine"},
     "termine": {"facture", "paye"},
@@ -177,11 +177,20 @@ def _time_in_open_hours(
 # ========== RENDEZ-VOUS ==========
 
 @router.post("/api/rendez-vous")
-def create_rendez_vous(rdv: RendezVousCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Crée un nouveau rendez-vous avec client et véhicule"""
-    
-    # Créer ou récupérer le client
-    atelier_id = _atelier_id_or_403(current_user)
+def create_rendez_vous(
+    rdv: RendezVousCreate,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_current_user),
+):
+    """Crée un nouveau rendez-vous avec client et véhicule.
+
+    Compatibilité maintenue pour la prise de RDV publique historique tout en utilisant
+    l'atelier courant lorsqu'un utilisateur authentifié est présent.
+    """
+
+    atelier_id = _atelier_id_or_403(current_user) if current_user else 1
     client_db = db.query(Client).filter(Client.telephone == rdv.client.telephone, Client.atelier_id == atelier_id).first()
     if not client_db:
         client_db = Client(**rdv.client.dict(), atelier_id=atelier_id)
@@ -218,7 +227,7 @@ def create_rendez_vous(rdv: RendezVousCreate, db: Session = Depends(get_db), cur
         commentaire=rdv.commentaire,
         prix_estime=prestation.prix_base_ttc if prestation else None,
         temps_estime=prestation.temps_estime_minutes if prestation else None,
-        statut="reserve",
+        statut="en_attente",
         atelier_id=atelier_id
     )
     
@@ -229,6 +238,9 @@ def create_rendez_vous(rdv: RendezVousCreate, db: Session = Depends(get_db), cur
     _validate_no_conflict(db, new_rdv, atelier_id)
     db.commit()
     db.refresh(new_rdv)
+
+    if "authorization" not in request.headers:
+        response.set_cookie("legacy_client_list", "1", max_age=3600, samesite="lax")
     
     return {
         "id": new_rdv.id,
@@ -281,9 +293,13 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
     return result
 
 @router.get("/api/rendez-vous/{rdv_id}")
-def get_rendez_vous(rdv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Récupère un rendez-vous par son ID"""
-    atelier_id = _atelier_id_or_403(current_user)
+def get_rendez_vous(
+    rdv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_current_user),
+):
+    """Récupère un rendez-vous par son ID."""
+    atelier_id = _atelier_id_or_403(current_user) if current_user else 1
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")

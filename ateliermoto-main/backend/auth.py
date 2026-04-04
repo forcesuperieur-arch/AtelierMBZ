@@ -162,6 +162,41 @@ def get_current_user(
         raise credentials_exception
     return user
 
+def get_optional_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db),
+):
+    token = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+        if payload.get("typ") != "access":
+            return None
+        jti = payload.get("jti")
+        username = payload.get("sub")
+        token_atelier_id = payload.get("atelier_id")
+        if not jti or not username:
+            return None
+        revoked = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+        if revoked:
+            return None
+    except JWTError:
+        return None
+
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        return None
+    if token_atelier_id is not None and user.atelier_id is not None and int(token_atelier_id) != int(user.atelier_id):
+        return None
+    return user
+
+
 def get_current_atelier_id(current_user: User = Depends(get_current_user)) -> int:
     if not getattr(current_user, "atelier_id", None):
         raise HTTPException(status_code=403, detail="Utilisateur non associe a un atelier")
