@@ -8,6 +8,7 @@ from .rendez_vous import (
     RendezVousUpdate,
     VehiculeCreate as RdvVehiculeCreate,
 )
+from .inventory import FournisseurCreate, FournisseurUpdate, PieceDetacheeCreate, PieceDetacheeUpdate
 from .workshop import AbsenceCreate, AbsenceResponse, MecanicienCreate, PontCreate
 
 __all__ = [
@@ -18,6 +19,10 @@ __all__ = [
     "PontCreate",
     "MecanicienCreate",
     "AbsenceCreate",
+    "FournisseurCreate",
+    "FournisseurUpdate",
+    "PieceDetacheeCreate",
+    "PieceDetacheeUpdate",
     "AbsenceResponse",
     "RendezVousCreate",
     "RendezVousUpdate",
