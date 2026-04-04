@@ -19,6 +19,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from auth import get_current_user
 from models import Base, get_db
 from main import app
 
@@ -43,40 +44,48 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+
+@pytest.fixture(autouse=True)
+def _reset_test_overrides():
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user, None)
+    yield
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user, None)
+
+
 # Créer les tables
 Base.metadata.create_all(bind=engine)
 
-# Client de test
-client = TestClient(app)
 
-
-@pytest.fixture(scope="module")
+@pytest.fixture
 def test_client():
-    """Fixture pour le client de test"""
-    return client
+    """Fixture pour le client de test avec état isolé par test"""
+    with TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture
-def auth_token():
+def auth_token(test_client):
     """Fixture pour obtenir un token d'authentification"""
-    # Créer un utilisateur de test
     db = TestingSessionLocal()
     from auth import get_password_hash
     from models import User
-    
-    user = User(
-        username="testuser",
-        email="test@test.com",
-        hashed_password=get_password_hash("testpass"),
-        role="admin"
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+
+    user = db.query(User).filter(User.username == "testuser").first()
+    if not user:
+        user = User(
+            username="testuser",
+            email="test@test.com",
+            hashed_password=get_password_hash("testpass"),
+            role="admin"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     db.close()
-    
-    # Se connecter
-    response = client.post(
+
+    response = test_client.post(
         "/api/auth/login",
         data={"username": "testuser", "password": "testpass"}
     )

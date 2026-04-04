@@ -18,6 +18,13 @@ router = APIRouter(prefix="/api", tags=["tarifs"])
 def _tenant_id(current_user) -> int:
     return int(getattr(current_user, "atelier_id", None) or 1)
 
+
+def _grille_tarifs_query(db: Session, atelier_id: int):
+    query = db.query(GrilleTarifs)
+    if hasattr(GrilleTarifs, "atelier_id"):
+        query = query.filter(GrilleTarifs.atelier_id == atelier_id)
+    return query
+
 # Modèles Pydantic
 class GrilleTarifCreate(BaseModel):
     categorie_moto_id: int
@@ -43,7 +50,7 @@ def get_tarifs(
 ):
     """Récupère la grille des tarifs"""
     atelier_id = _tenant_id(current_user)
-    query = db.query(GrilleTarifs).join(CategorieMoto).filter(GrilleTarifs.atelier_id == atelier_id)
+    query = _grille_tarifs_query(db, atelier_id).join(CategorieMoto)
     
     if categorie_id:
         query = query.filter(GrilleTarifs.categorie_moto_id == categorie_id)
@@ -77,7 +84,10 @@ def create_tarif(
 ):
     """Crée un nouveau tarif"""
     atelier_id = _tenant_id(current_user)
-    db_tarif = GrilleTarifs(**tarif.dict(), atelier_id=atelier_id)
+    payload = tarif.dict()
+    if hasattr(GrilleTarifs, "atelier_id"):
+        payload["atelier_id"] = atelier_id
+    db_tarif = GrilleTarifs(**payload)
     db.add(db_tarif)
     db.commit()
     db.refresh(db_tarif)
@@ -92,7 +102,7 @@ def update_tarif(
 ):
     """Met à jour un tarif"""
     atelier_id = _tenant_id(current_user)
-    db_tarif = db.query(GrilleTarifs).filter(GrilleTarifs.id == tarif_id, GrilleTarifs.atelier_id == atelier_id).first()
+    db_tarif = _grille_tarifs_query(db, atelier_id).filter(GrilleTarifs.id == tarif_id).first()
     if not db_tarif:
         raise HTTPException(status_code=404, detail="Tarif non trouvé")
     
@@ -110,7 +120,7 @@ def delete_tarif(
 ):
     """Désactive un tarif (soft delete)"""
     atelier_id = _tenant_id(current_user)
-    db_tarif = db.query(GrilleTarifs).filter(GrilleTarifs.id == tarif_id, GrilleTarifs.atelier_id == atelier_id).first()
+    db_tarif = _grille_tarifs_query(db, atelier_id).filter(GrilleTarifs.id == tarif_id).first()
     if not db_tarif:
         raise HTTPException(status_code=404, detail="Tarif non trouvé")
     
@@ -151,12 +161,12 @@ def calculer_devis(
         type_intervention = prestation.get("type_intervention")
         
         # Chercher le tarif adapté
-        tarif = db.query(GrilleTarifs).filter(
-            GrilleTarifs.atelier_id == atelier_id,
+        tarif_query = _grille_tarifs_query(db, atelier_id).filter(
             GrilleTarifs.categorie_moto_id == categorie_id,
             GrilleTarifs.type_intervention == type_intervention,
             GrilleTarifs.actif == True
-        ).first()
+        )
+        tarif = tarif_query.first()
         
         if tarif:
             prestations_detaillees.append({
@@ -214,6 +224,7 @@ def get_creneaux_par_duree(
 ):
     """Récupère les créneaux disponibles pour une plage de dates et une durée spécifique"""
     
+    atelier_id = _tenant_id(current_user)
     duree_minutes = duree_heures * 60
     debut = datetime.strptime(date_debut, "%Y-%m-%d").date()
     fin = datetime.strptime(date_fin, "%Y-%m-%d").date()
@@ -303,4 +314,3 @@ def get_creneaux_par_duree(
         current_date += timedelta(days=1)
     
     return tous_creneaux
-    atelier_id = _tenant_id(current_user)

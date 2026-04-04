@@ -270,10 +270,11 @@ def db_session():
     connection.close()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def test_client():
-    """Fixture pour le client HTTP de test"""
-    return TestClient(app)
+    """Fixture pour le client HTTP de test avec état isolé"""
+    with TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/statistiques", tags=["statistiques"])
 
 
 def _tenant_id(current_user: User) -> int:
-    return int(current_user.atelier_id or 1)
+    return int(getattr(current_user, "atelier_id", None) or 1)
 
 # ========== MODÈLES PYDANTIC ==========
 
@@ -177,6 +177,7 @@ def get_occupation_ponts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    atelier_id = _tenant_id(current_user)
     if not date_debut:
         date_debut = date.today() - timedelta(days=date.today().weekday())
     if not date_fin:

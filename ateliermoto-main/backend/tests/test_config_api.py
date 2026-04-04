@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
@@ -30,10 +32,21 @@ app.dependency_overrides[get_db] = override_get_db
 class _TestUser:
     username = "test-user"
     role = "admin"
+    atelier_id = 1
+    is_active = 1
 
 
 def _override_current_user():
     return _TestUser()
+
+
+@pytest.fixture(autouse=True)
+def _reset_test_overrides():
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = _override_current_user
+    yield
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = _override_current_user
 
 
 app.dependency_overrides[get_current_user] = _override_current_user

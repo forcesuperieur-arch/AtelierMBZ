@@ -55,6 +55,8 @@ def override_get_db():
 class _AdminUser:
     username = "admin-test"
     role = "admin"
+    atelier_id = 1
+    is_active = 1
 
 
 def _override_current_user_admin():
@@ -247,6 +249,8 @@ def test_config_endpoints_full_flow():
     class _ReceptionUser:
         username = "reception"
         role = "receptionnaire"
+        atelier_id = 1
+        is_active = 1
 
     app.dependency_overrides[get_current_user] = lambda: _ReceptionUser()
     try:
@@ -483,6 +487,8 @@ def test_facturation_endpoints_full_flow_and_errors():
     class _MecanicienUser:
         username = "mec"
         role = "mecanicien"
+        atelier_id = 1
+        is_active = 1
 
     app.dependency_overrides[get_current_user] = lambda: _MecanicienUser()
     try:
