@@ -19,6 +19,14 @@ from .inventory import (
     PieceUtiliseeCreate,
     ReceptionCommande,
 )
+from .moto_base import (
+    CategorieMotoCreate,
+    CategorieMotoResponse,
+    ModeleMotoCreate,
+    ModeleMotoResponse,
+    ModeleMotoUpdate,
+)
+from .travaux_supp import DemandeTravauxSuppCreate, DemandeTravauxSuppUpdate
 from .workshop import AbsenceCreate, AbsenceResponse, MecanicienCreate, PontCreate
 
 __all__ = [
@@ -39,6 +47,13 @@ __all__ = [
     "PieceUtiliseeCreate",
     "ForfaitMOCreate",
     "ForfaitMOUpdate",
+    "CategorieMotoCreate",
+    "CategorieMotoResponse",
+    "ModeleMotoCreate",
+    "ModeleMotoResponse",
+    "ModeleMotoUpdate",
+    "DemandeTravauxSuppCreate",
+    "DemandeTravauxSuppUpdate",
     "AbsenceResponse",
     "RendezVousCreate",
     "RendezVousUpdate",
