@@ -5,7 +5,7 @@ Ces tests vérifient que les routes essentielles fonctionnent correctement.
 import pytest
 import sys
 import os
-from datetime import date, time
+from datetime import date, time, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from auth import get_current_user
-from models import Base, get_db
+from models import Atelier, Base, Client, HoraireAtelier, Mecanicien, Pont, Prestation, RendezVous, Vehicule, get_db
 from main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -225,12 +225,143 @@ class TestCriticalRoutesRendezVous:
         )
         assert response.status_code == 200
 
+    def test_public_slots_block_overlap_and_pause_for_long_duration(self):
+        """Un créneau long ne doit ni chevaucher un RDV existant, ni traverser une fermeture atelier."""
+        target_day = date.today()
+        while target_day.weekday() >= 5:
+            target_day += timedelta(days=1)
+        atelier_slug = f"public-slots-{target_day.strftime('%Y%m%d')}"
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.slug == atelier_slug).first()
+        if not atelier:
+            atelier = Atelier(nom="Atelier Public", slug=atelier_slug, plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Martin", prenom="Leo", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+
+        pont = Pont(atelier_id=atelier.id, nom="Pont Public", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        client_db = Client(atelier_id=atelier.id, nom="Client", prenom="Test", telephone="0601010101")
+        db.add_all([pont, client_db])
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=atelier.id, plaque="PUBLIC01", marque="Yamaha", modele="MT-07", client_id=client_db.id)
+        db.add(vehicule)
+        db.flush()
+
+        db.add(HoraireAtelier(
+            atelier_id=atelier.id,
+            jour_semaine=target_day.weekday(),
+            heure_ouverture="08:00",
+            heure_fermeture="18:00",
+            pause_debut="12:00",
+            pause_fin="14:00",
+            is_ouvert=1,
+        ))
+        db.add(RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=target_day,
+            heure_rdv=time(10, 0),
+            type_intervention="Revision deja planifiee",
+            statut="confirme",
+            temps_estime=60,
+            mecanicien_id=mecanicien.id,
+        ))
+        db.commit()
+        db.close()
+
+        response = client.get(
+            "/api/creneaux/avec-ponts",
+            params={"date_str": target_day.isoformat(), "duree_minutes": 120, "atelier_slug": atelier_slug},
+        )
+        assert response.status_code == 200
+
+        creneaux = {item["heure"]: item for item in response.json()["creneaux"]}
+        assert creneaux["09:15"]["disponible"] is False
+        assert "11:00" not in creneaux
+        assert "16:15" not in creneaux
+
+    def test_public_booking_rejects_conflict_on_same_pont(self):
+        """La réservation publique doit refuser un chevauchement sur le même pont."""
+        target_day = date.today()
+        while target_day.weekday() >= 5:
+            target_day += timedelta(days=1)
+        atelier_slug = f"public-conflict-{target_day.strftime('%Y%m%d')}"
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.slug == atelier_slug).first()
+        if not atelier:
+            atelier = Atelier(nom="Atelier Public", slug=atelier_slug, plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Dupont", prenom="Max", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+
+        pont = Pont(atelier_id=atelier.id, nom="Pont Conflit", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        client_db = Client(atelier_id=atelier.id, nom="Existant", prenom="Client", telephone="0602020202")
+        db.add_all([pont, client_db])
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=atelier.id, plaque="CONFLIT01", marque="Honda", modele="CB500", client_id=client_db.id)
+        prestation = Prestation(
+            atelier_id=atelier.id,
+            code=f"PRESTA-CONFLIT-{target_day.strftime('%Y%m%d')}",
+            nom="Revision publique",
+            categorie="entretien",
+            prix_base_ht=50,
+            prix_base_ttc=60,
+            temps_estime_minutes=60,
+            is_active=1,
+        )
+        db.add_all([vehicule, prestation])
+        db.flush()
+
+        db.add(RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=target_day,
+            heure_rdv=time(10, 0),
+            type_intervention="Revision existante",
+            statut="confirme",
+            temps_estime=90,
+            pont_id=pont.id,
+            mecanicien_id=mecanicien.id,
+        ))
+        db.commit()
+        prestation_id = prestation.id
+        pont_id = pont.id
+        db.close()
+
+        response = client.post(
+            "/api/rendez-vous/public",
+            json={
+                "client": {"nom": "Nouveau", "prenom": "Client", "telephone": "0603030303", "email": "public@test.local"},
+                "vehicule": {"plaque": "NEWPUBLIC", "marque": "Suzuki", "modele": "SV650", "type_moto": "Roadster"},
+                "prestations": [prestation_id],
+                "date_heure": f"{target_day.isoformat()}T10:30:00",
+                "montant_estime": 60,
+                "commentaires": "Test conflit public",
+                "pont_id": pont_id,
+                "atelier_slug": atelier_slug,
+            },
+        )
+        assert response.status_code == 409
+
 
 class TestCriticalRoutesClient:
     """Tests critiques pour les routes de clients"""
     
     def test_list_clients_route(self, auth_token):
         """Test la route de liste des clients"""
+        client.cookies.set("legacy_client_list", "1")
         response = client.get(
             "/api/clients",
             headers={"Authorization": f"Bearer {auth_token}"}

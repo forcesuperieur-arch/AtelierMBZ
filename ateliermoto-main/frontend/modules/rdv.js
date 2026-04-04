@@ -436,7 +436,18 @@ window.RdvModule = window.RdvModule || {
         var RDV = window.RdvModule.getRdvState();
         var idx = RDV.selected.indexOf(id);
         if (idx === -1) RDV.selected.push(id); else RDV.selected.splice(idx, 1);
+        RDV.weekData = {};
+        RDV.selectedDate = null;
+        RDV.selectedHeure = null;
+        RDV.selectedPont = null;
+        RDV.selectedMeca = null;
         window.RdvModule.renderPrestations();
+        var selected = document.getElementById('pub-selected-slot');
+        if (selected) selected.style.display = 'none';
+        var assign = document.getElementById('pub-assign');
+        if (assign) assign.style.display = 'none';
+        var btnStep4 = document.getElementById('pub-btn-step4');
+        if (btnStep4) btnStep4.disabled = true;
         var btn = document.getElementById('pub-btn-step3');
         if (btn) btn.disabled = RDV.selected.length === 0;
     },
@@ -513,6 +524,7 @@ window.RdvModule = window.RdvModule || {
 
     chargerSemaine: function() {
         var RDV = window.RdvModule.getRdvState();
+        RDV.weekData = {};
         var days = window.RdvModule._rdvWeekDays(RDV.weekOffset, RDV.delaiInterventionJours);
         var monday = days[0], friday = days[4];
         var MOIS = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];

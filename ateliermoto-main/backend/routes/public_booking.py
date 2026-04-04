@@ -43,6 +43,69 @@ def _to_minutes(hhmm: str) -> int:
     return int(h) * 60 + int(m)
 
 
+ACTIVE_PUBLIC_RDV_STATUSES = ["reserve", "en_attente", "confirme", "reception", "en_cours"]
+
+
+def _slot_overlaps_closed_period(
+    start_min: int,
+    end_min: int,
+    closed_start: Optional[int],
+    closed_end: Optional[int],
+) -> bool:
+    if closed_start is None or closed_end is None:
+        return False
+    return start_min < closed_end and end_min > closed_start
+
+
+def _get_horaire_atelier(db: Session, atelier_id: int, target_date) -> Optional[HoraireAtelier]:
+    horaire = db.query(HoraireAtelier).filter(
+        HoraireAtelier.atelier_id == atelier_id,
+        HoraireAtelier.jour_semaine == target_date.weekday(),
+    ).first()
+    if horaire and (not horaire.heure_ouverture or not horaire.heure_fermeture):
+        return None
+    return horaire
+
+
+def _validate_slot_boundaries(horaire: Optional[HoraireAtelier], start_min: int, duration_min: int) -> Optional[str]:
+    if not horaire:
+        return None
+    if not horaire.is_ouvert:
+        return "Atelier ferme ce jour"
+
+    open_min = _to_minutes(horaire.heure_ouverture)
+    close_min = _to_minutes(horaire.heure_fermeture)
+    effective_duration = max(15, int(duration_min or 60))
+    end_min = start_min + effective_duration
+
+    if start_min < open_min or start_min >= close_min:
+        return "Creneau en dehors des horaires d'ouverture"
+
+    pause_start = _to_minutes(horaire.pause_debut) if horaire.pause_debut else None
+    pause_end = _to_minutes(horaire.pause_fin) if horaire.pause_fin else None
+    if _slot_overlaps_closed_period(start_min, end_min, pause_start, pause_end):
+        return "Duree intervention chevauche une fermeture atelier"
+
+    if end_min > close_min:
+        return "Duree intervention depasse l'heure de fermeture"
+
+    return None
+
+
+def _find_overlapping_rdvs(rdvs_existants, target_date, start_min: int, duration_min: int):
+    slot_start = datetime.combine(target_date, datetime.min.time()) + timedelta(minutes=start_min)
+    slot_end = slot_start + timedelta(minutes=max(15, int(duration_min or 60)))
+    overlaps = []
+    for rdv in rdvs_existants:
+        if not rdv.heure_rdv:
+            continue
+        rdv_start = datetime.combine(target_date, rdv.heure_rdv)
+        rdv_end = rdv_start + timedelta(minutes=max(15, int(rdv.temps_estime or 60)))
+        if slot_start < rdv_end and slot_end > rdv_start:
+            overlaps.append(rdv)
+    return overlaps
+
+
 async def fetch_api_plaque_immatriculation(plaque: str):
     """Récupère les infos d'un véhicule depuis une API plaque si configurée."""
     api_key = os.getenv("API_PLAQUE_IMMATRICULATION_KEY")
@@ -249,11 +312,10 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
     types_intervention = ", ".join([prestation.nom for prestation in prestations]) or "Intervention à définir"
     temps_total = sum(prestation.temps_estime_minutes or 60 for prestation in prestations) or 60
 
-    if horaire:
-        close_min = _to_minutes(horaire.heure_fermeture)
-        start_min = date_heure.hour * 60 + date_heure.minute
-        if (start_min + temps_total) > close_min:
-            raise HTTPException(status_code=400, detail="Duree intervention depasse l'heure de fermeture")
+    start_min = date_heure.hour * 60 + date_heure.minute
+    slot_validation_error = _validate_slot_boundaries(horaire, start_min, temps_total)
+    if slot_validation_error:
+        raise HTTPException(status_code=400, detail=slot_validation_error)
 
     assigned_mecanicien_id = None
     if rdv_data.pont_id:
@@ -267,6 +329,30 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         if not pont.mecanicien_id:
             raise HTTPException(status_code=400, detail="Pont sans technicien assigne")
         assigned_mecanicien_id = pont.mecanicien_id
+
+    overlapping_rdvs = _find_overlapping_rdvs(
+        db.query(RendezVous).filter(
+            RendezVous.date_rdv == date_heure.date(),
+            RendezVous.atelier_id == atelier_id,
+            RendezVous.statut.in_(ACTIVE_PUBLIC_RDV_STATUSES),
+        ).all(),
+        date_heure.date(),
+        start_min,
+        temps_total,
+    )
+    if overlapping_rdvs:
+        if rdv_data.pont_id and any(existing.pont_id == rdv_data.pont_id for existing in overlapping_rdvs):
+            raise HTTPException(status_code=409, detail="Conflit planning: pont deja occupe sur ce creneau")
+        if assigned_mecanicien_id and any(existing.mecanicien_id == assigned_mecanicien_id for existing in overlapping_rdvs):
+            raise HTTPException(status_code=409, detail="Conflit planning: technicien deja occupe sur ce creneau")
+
+        total_ponts_actifs = db.query(Pont).filter(
+            Pont.atelier_id == atelier_id,
+            Pont.is_active == 1,
+            Pont.mecanicien_id.isnot(None),
+        ).count() or 1
+        if len(overlapping_rdvs) >= total_ponts_actifs:
+            raise HTTPException(status_code=409, detail="Conflit planning: aucun pont libre sur ce creneau")
 
     rdv = RendezVous(
         atelier_id=atelier_id,
@@ -322,41 +408,20 @@ def get_creneaux_disponibles_handler(date_str: str, duree_minutes: int, atelier_
     ).all()
 
     requested_duration = max(15, int(duree_minutes or 60))
-    horaire = db.query(HoraireAtelier).filter(
-        HoraireAtelier.atelier_id == atelier_id,
-        HoraireAtelier.jour_semaine == target_date.weekday(),
-    ).first()
+    horaire = _get_horaire_atelier(db, atelier_id, target_date)
 
     creneaux = []
     is_closed = horaire and not horaire.is_ouvert
     if not is_closed:
         open_min = _to_minutes(horaire.heure_ouverture) if horaire and horaire.heure_ouverture else _to_minutes("08:00")
         close_min = _to_minutes(horaire.heure_fermeture) if horaire and horaire.heure_fermeture else _to_minutes("18:00")
-        pause_start = _to_minutes(horaire.pause_debut) if (horaire and horaire.pause_debut) else None
-        pause_end = _to_minutes(horaire.pause_fin) if (horaire and horaire.pause_fin) else None
 
         for start_min in range(open_min, close_min, 15):
-            end_min = start_min + requested_duration
-            if end_min > close_min:
-                continue
-            if pause_start is not None and pause_end is not None and pause_start <= start_min < pause_end:
+            if _validate_slot_boundaries(horaire, start_min, requested_duration):
                 continue
 
-            ponts_occupes = 0
-            for rdv in rdvs_existants:
-                if not rdv.heure_rdv:
-                    continue
-                rdv_start = rdv.heure_rdv.hour * 60 + rdv.heure_rdv.minute
-                rdv_end = rdv_start + int(rdv.temps_estime or 60)
-                if pause_start is not None and pause_end is not None and rdv_start < pause_start and rdv_end > pause_start:
-                    segments = [(rdv_start, pause_start), (pause_end, pause_end + (rdv_end - pause_start))]
-                else:
-                    segments = [(rdv_start, rdv_end)]
-                overlaps = any(start_min < seg_end and end_min > seg_start for seg_start, seg_end in segments)
-                if overlaps:
-                    ponts_occupes += 1
-
-            places_restantes = ponts_disponibles - ponts_occupes
+            overlapping_rdvs = _find_overlapping_rdvs(rdvs_existants, target_date, start_min, requested_duration)
+            places_restantes = ponts_disponibles - len(overlapping_rdvs)
             creneaux.append({
                 "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
                 "disponible": places_restantes > 0,
@@ -389,7 +454,7 @@ def get_creneaux_avec_ponts_handler(date_str: str, duree_minutes: int, atelier_s
         Pont.is_active == 1,
         Pont.mecanicien_id.isnot(None),
         Pont.atelier_id == atelier_id,
-    )
+    ).order_by(Pont.ordre_affichage, Pont.id)
     if mecaniciens_absents:
         query_ponts = query_ponts.filter(~Pont.mecanicien_id.in_(mecaniciens_absents))
     ponts_disponibles = query_ponts.all()
@@ -400,51 +465,38 @@ def get_creneaux_avec_ponts_handler(date_str: str, duree_minutes: int, atelier_s
         RendezVous.statut.in_(["reserve", "en_attente", "confirme", "reception", "en_cours"]),
     ).all()
 
-    rdv_plages = []
-    for rdv in rdvs_existants:
-        if rdv.heure_rdv and rdv.pont_id:
-            heure_debut = datetime.combine(target_date, rdv.heure_rdv)
-            heure_fin = heure_debut + timedelta(minutes=(rdv.temps_estime or 60))
-            rdv_plages.append({"pont_id": rdv.pont_id, "debut": heure_debut, "fin": heure_fin})
-
     requested_duration = max(15, int(duree_minutes or 60))
-    horaire = db.query(HoraireAtelier).filter(
-        HoraireAtelier.atelier_id == atelier_id,
-        HoraireAtelier.jour_semaine == target_date.weekday(),
-    ).first()
+    horaire = _get_horaire_atelier(db, atelier_id, target_date)
 
     creneaux = []
     is_closed = horaire and not horaire.is_ouvert
     if not is_closed:
         open_min = _to_minutes(horaire.heure_ouverture) if horaire and horaire.heure_ouverture else _to_minutes("08:00")
         close_min = _to_minutes(horaire.heure_fermeture) if horaire and horaire.heure_fermeture else _to_minutes("18:00")
-        pause_start = _to_minutes(horaire.pause_debut) if (horaire and horaire.pause_debut) else None
-        pause_end = _to_minutes(horaire.pause_fin) if (horaire and horaire.pause_fin) else None
 
         for start_min in range(open_min, close_min, 15):
-            end_min = start_min + requested_duration
-            if end_min > close_min:
-                continue
-            if pause_start is not None and pause_end is not None and pause_start <= start_min < pause_end:
+            if _validate_slot_boundaries(horaire, start_min, requested_duration):
                 continue
 
-            slot_start = datetime.combine(target_date, datetime.min.time()) + timedelta(minutes=start_min)
-            slot_end = slot_start + timedelta(minutes=requested_duration)
+            overlapping_rdvs = _find_overlapping_rdvs(rdvs_existants, target_date, start_min, requested_duration)
+            occupied_pont_ids = {rdv.pont_id for rdv in overlapping_rdvs if rdv.pont_id}
+            occupied_mecanicien_ids = {rdv.mecanicien_id for rdv in overlapping_rdvs if rdv.mecanicien_id}
+            floating_overlaps = [rdv for rdv in overlapping_rdvs if not rdv.pont_id and not rdv.mecanicien_id]
+
             ponts_libres = []
             for pont in ponts_disponibles:
-                occupied = False
-                for plage in rdv_plages:
-                    if plage["pont_id"] != pont.id:
-                        continue
-                    if slot_start < plage["fin"] and slot_end > plage["debut"]:
-                        occupied = True
-                        break
-                if not occupied:
-                    ponts_libres.append({
-                        "id": pont.id,
-                        "nom": pont.nom,
-                        "mecanicien": f"{pont.mecanicien.prenom} {pont.mecanicien.nom}" if getattr(pont, "mecanicien", None) else None,
-                    })
+                if pont.id in occupied_pont_ids:
+                    continue
+                if pont.mecanicien_id and pont.mecanicien_id in occupied_mecanicien_ids:
+                    continue
+                ponts_libres.append({
+                    "id": pont.id,
+                    "nom": pont.nom,
+                    "mecanicien": f"{pont.mecanicien.prenom} {pont.mecanicien.nom}" if getattr(pont, "mecanicien", None) else None,
+                })
+
+            if floating_overlaps and ponts_libres:
+                ponts_libres = ponts_libres[:max(0, len(ponts_libres) - len(floating_overlaps))]
 
             creneaux.append({
                 "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
