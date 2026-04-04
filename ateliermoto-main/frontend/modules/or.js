@@ -644,7 +644,10 @@ window.OrModule = window.OrModule || {
             closeModal();
             window.OrModule.showNotificationToast('Travaux approuves avec signature - OR supplementaire cree');
             window.OrModule.pollTravauxSupp();
-            setTimeout(function() { window.OrModule.renderTravauxSuppPanel(); }, 500);
+            setTimeout(function() {
+                window.OrModule.renderTravauxSuppPanel();
+                if (typeof refreshCurrentSection === 'function') refreshCurrentSection();
+            }, 500);
         }).catch(function(e) { alert('Erreur: ' + e.message); });
     },
 
@@ -707,7 +710,10 @@ window.OrModule = window.OrModule || {
             closeModal();
             window.OrModule.showNotificationToast('Travaux supplementaires approuves - OR supplementaire cree');
             window.OrModule.pollTravauxSupp();
-            setTimeout(function() { window.OrModule.renderTravauxSuppPanel(); }, 500);
+            setTimeout(function() {
+                window.OrModule.renderTravauxSuppPanel();
+                if (typeof refreshCurrentSection === 'function') refreshCurrentSection();
+            }, 500);
         }).catch(function(e) { alert('Erreur: ' + e.message); });
     },
 

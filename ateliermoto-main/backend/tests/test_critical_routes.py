@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from auth import get_current_user
-from models import Atelier, Base, Client, HoraireAtelier, Mecanicien, Pont, Prestation, RendezVous, Vehicule, get_db
+from models import Atelier, Base, Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RendezVous, Vehicule, get_db
 from main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -560,6 +560,113 @@ class TestCriticalRdvSecurityAndTransitions:
 
         assert response.status_code == 400
         assert "transition" in response.text.lower() or "statut" in response.text.lower()
+
+
+class TestTravauxSupplementairesWorkflow:
+    """Régressions sur le flux OR complémentaire."""
+
+    def test_approving_travaux_supp_updates_rdv_and_attached_ors(self):
+        headers = auth_headers_for_role("admin", "travaux_supp_admin")
+
+        db = TestingSessionLocal()
+        client_db = Client(atelier_id=1, nom="Client", prenom="Travaux", telephone="0604040404")
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=1, plaque="TSFLOW01", marque="Honda", modele="CB650R", client_id=client_db.id)
+        prestation = Prestation(
+            atelier_id=1,
+            code="TS-KIT-CHAINE",
+            nom="Kit chaine",
+            categorie="atelier",
+            prix_base_ht=150,
+            prix_base_ttc=180,
+            temps_estime_minutes=90,
+            is_active=1,
+        )
+        db.add_all([vehicule, prestation])
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=1,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(9, 0),
+            type_intervention="Vidange",
+            commentaire="Vidange annuelle",
+            prix_estime=120,
+            temps_estime=60,
+            statut="en_cours",
+        )
+        db.add(rdv)
+        db.flush()
+
+        db.add(OrdreReparation(
+            rendez_vous_id=rdv.id,
+            numero_or=f"OR-{date.today().year}-{str(rdv.id).zfill(3)}",
+            type_or="initial",
+            travaux="Vidange annuelle",
+            signature_client="signed",
+        ))
+        db.commit()
+        rdv_id = rdv.id
+        prestation_id = prestation.id
+        db.close()
+
+        create_response = client.post(
+            f"/api/rendez-vous/{rdv_id}/travaux-supplementaires",
+            json={
+                "description": "Usure du kit chaine constatee",
+                "prestations_demandees": [{"prestation_id": prestation_id, "nom": "Kit chaine", "code": "TS-KIT-CHAINE"}],
+                "urgence": "urgent",
+            },
+            headers=headers,
+        )
+        assert create_response.status_code == 200
+        demande_id = create_response.json()["id"]
+
+        approve_response = client.put(
+            f"/api/travaux-supplementaires/{demande_id}",
+            json={
+                "statut": "approuve",
+                "notes_receptionniste": "Accord client pour changement du kit chaine",
+                "prix_estime": 180,
+                "temps_estime": 90,
+                "signature": "signed-ts",
+            },
+            headers=headers,
+        )
+        assert approve_response.status_code == 200
+
+        rdv_response = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert rdv_response.status_code == 200
+        rdv_payload = rdv_response.json()
+
+        assert "Vidange" in rdv_payload["type_intervention"]
+        assert "Kit chaine" in rdv_payload["type_intervention"]
+        assert float(rdv_payload["prix_estime"]) == pytest.approx(300.0)
+        assert rdv_payload["temps_estime"] == 150
+        assert len(rdv_payload["ordres_reparation"]) == 2
+        assert any(o["type_or"] == "supplementaire" for o in rdv_payload["ordres_reparation"])
+
+        db = TestingSessionLocal()
+        demande = db.query(DemandeTravauxSupp).filter(DemandeTravauxSupp.id == demande_id).first()
+        initial_or = db.query(OrdreReparation).filter(
+            OrdreReparation.rendez_vous_id == rdv_id,
+            OrdreReparation.type_or == "initial",
+        ).first()
+        supp_or = db.query(OrdreReparation).filter(
+            OrdreReparation.rendez_vous_id == rdv_id,
+            OrdreReparation.type_or == "supplementaire",
+        ).first()
+
+        assert demande is not None
+        assert supp_or is not None
+        assert supp_or.demande_travaux_supp_id == demande_id
+        assert "Kit chaine" in (supp_or.travaux or "")
+        assert "Kit chaine" in (initial_or.travaux or "")
+        db.close()
 
 
 class TestRouteResponseTimes:
