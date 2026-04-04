@@ -34,6 +34,16 @@ APP._planningLoadSeq = 0;
 APP._planningBusyCells = {};
 APP._planningSlotMinutes = 15;
 APP._planningSlotPx = 8;
+window.APP = APP;
+
+function callModuleMethod(moduleName, methodName, argsLike, fallbackValue) {
+    if (window.AtelierDebug && window.AtelierDebug.callModule) {
+        return window.AtelierDebug.callModule(moduleName, methodName, argsLike, fallbackValue);
+    }
+    var moduleRef = window[moduleName];
+    if (!moduleRef || typeof moduleRef[methodName] !== 'function') return fallbackValue;
+    return moduleRef[methodName].apply(moduleRef, Array.prototype.slice.call(argsLike || []));
+}
 
 // ===== INITIALISATION =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -51,23 +61,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setupUiAccessibility();
 });
 
-function showLogin() { if (window.AppCoreModule && window.AppCoreModule.showLogin) return window.AppCoreModule.showLogin(); }
-function hideLogin() { if (window.AppCoreModule && window.AppCoreModule.hideLogin) return window.AppCoreModule.hideLogin(); }
-function doLogin() { if (window.AppCoreModule && window.AppCoreModule.doLogin) return window.AppCoreModule.doLogin(); }
-function logout() { if (window.AppCoreModule && window.AppCoreModule.logout) return window.AppCoreModule.logout(); }
-function initApp() { if (window.AppCoreModule && window.AppCoreModule.initApp) return window.AppCoreModule.initApp(); }
-function loadBaseData() { if (window.AppCoreModule && window.AppCoreModule.loadBaseData) return window.AppCoreModule.loadBaseData(); return Promise.resolve(); }
+function showLogin() { return callModuleMethod('AppCoreModule', 'showLogin', arguments); }
+function hideLogin() { return callModuleMethod('AppCoreModule', 'hideLogin', arguments); }
+function doLogin() { return callModuleMethod('AppCoreModule', 'doLogin', arguments); }
+function logout() { return callModuleMethod('AppCoreModule', 'logout', arguments); }
+function initApp() { return callModuleMethod('AppCoreModule', 'initApp', arguments); }
+function loadBaseData() { return callModuleMethod('AppCoreModule', 'loadBaseData', arguments, Promise.resolve()); }
 
 // ===== ROLE VISIBILITY =====
-function hasPermission(permission) { if (window.AppCoreModule && window.AppCoreModule.hasPermission) return window.AppCoreModule.hasPermission(permission); return false; }
-function canUseBilling() { if (window.AppCoreModule && window.AppCoreModule.canUseBilling) return window.AppCoreModule.canUseBilling(); return false; }
-function applyRoleVisibility(role) { if (window.AppCoreModule && window.AppCoreModule.applyRoleVisibility) return window.AppCoreModule.applyRoleVisibility(role); }
-function formatRbacBadges(items, type) { if (window.AppCoreModule && window.AppCoreModule.formatRbacBadges) return window.AppCoreModule.formatRbacBadges(items, type); return ''; }
-function getAllowedSections(role) { if (window.AppCoreModule && window.AppCoreModule.getAllowedSections) return window.AppCoreModule.getAllowedSections(role); return []; }
+function hasPermission(permission) { return callModuleMethod('AppCoreModule', 'hasPermission', arguments, false); }
+function canUseBilling() { return callModuleMethod('AppCoreModule', 'canUseBilling', arguments, false); }
+function applyRoleVisibility(role) { return callModuleMethod('AppCoreModule', 'applyRoleVisibility', arguments); }
+function formatRbacBadges(items, type) { return callModuleMethod('AppCoreModule', 'formatRbacBadges', arguments, ''); }
+function getAllowedSections(role) { return callModuleMethod('AppCoreModule', 'getAllowedSections', arguments, []); }
 
 // ===== NAVIGATION =====
-function showSection(id) { if (window.AppCoreModule && window.AppCoreModule.showSection) return window.AppCoreModule.showSection(id); }
-function switchTab(el, tabId) { if (window.AppCoreModule && window.AppCoreModule.switchTab) return window.AppCoreModule.switchTab(el, tabId); }
+function showSection(id) { return callModuleMethod('AppCoreModule', 'showSection', arguments); }
+function switchTab(el, tabId) { return callModuleMethod('AppCoreModule', 'switchTab', arguments); }
 
 // ===== HELPERS =====
 function formatTime(timeStr) {
@@ -215,155 +225,127 @@ function showAlert(message, type) {
 }
 
 // ===== RDV STATUS ACTIONS =====
-function confirmerRdv(rdvId) { if (window.RdvActionsModule && window.RdvActionsModule.confirmerRdv) return window.RdvActionsModule.confirmerRdv(rdvId); }
-function demarrerTravail(rdvId) { if (window.RdvActionsModule && window.RdvActionsModule.demarrerTravail) return window.RdvActionsModule.demarrerTravail(rdvId); }
-function terminerTravail(rdvId) { if (window.RdvActionsModule && window.RdvActionsModule.terminerTravail) return window.RdvActionsModule.terminerTravail(rdvId); }
-function annulerRdv(rdvId) { if (window.RdvActionsModule && window.RdvActionsModule.annulerRdv) return window.RdvActionsModule.annulerRdv(rdvId); }
-function toggleCancelOtherReason() { if (window.RdvActionsModule && window.RdvActionsModule.toggleCancelOtherReason) return window.RdvActionsModule.toggleCancelOtherReason(); }
-function confirmCancelRdv(rdvId) { if (window.RdvActionsModule && window.RdvActionsModule.confirmCancelRdv) return window.RdvActionsModule.confirmCancelRdv(rdvId); }
+function confirmerRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'confirmerRdv', arguments); }
+function demarrerTravail(rdvId) { return callModuleMethod('RdvActionsModule', 'demarrerTravail', arguments); }
+function terminerTravail(rdvId) { return callModuleMethod('RdvActionsModule', 'terminerTravail', arguments); }
+function annulerRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'annulerRdv', arguments); }
+function toggleCancelOtherReason() { return callModuleMethod('RdvActionsModule', 'toggleCancelOtherReason', arguments); }
+function confirmCancelRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'confirmCancelRdv', arguments); }
 
 function telechargerOR(rdvId) {
-    return window.OrModule.telechargerOR(rdvId);
+    return callModuleMethod('OrModule', 'telechargerOR', arguments);
 }
 
-function telechargerFacture(rdvId) { if (window.AppCoreModule && window.AppCoreModule.telechargerFacture) return window.AppCoreModule.telechargerFacture(rdvId); }
+function telechargerFacture(rdvId) { return callModuleMethod('AppCoreModule', 'telechargerFacture', arguments); }
 
-function refreshCurrentSection() { if (window.AppCoreModule && window.AppCoreModule.refreshCurrentSection) return window.AppCoreModule.refreshCurrentSection(); }
+function refreshCurrentSection() { return callModuleMethod('AppCoreModule', 'refreshCurrentSection', arguments); }
 
 // ===== FACTURATION =====
 function ouvrirFacturation(rdvId) {
-    return window.BillingModule.ouvrirFacturation(rdvId);
+    return callModuleMethod('BillingModule', 'ouvrirFacturation', arguments);
 }
 
 function renderFactureTotaux(data, remisePct) {
-    return window.BillingModule.renderFactureTotaux(data, remisePct);
+    return callModuleMethod('BillingModule', 'renderFactureTotaux', arguments, '');
 }
 
 function recalcFacturePreview() {
-    return window.BillingModule.recalcFacturePreview();
+    return callModuleMethod('BillingModule', 'recalcFacturePreview', arguments);
 }
 
 function confirmerFacturation(rdvId) {
-    return window.BillingModule.confirmerFacturation(rdvId);
+    return callModuleMethod('BillingModule', 'confirmerFacturation', arguments);
 }
 
 // ===== ENCAISSEMENT =====
 function ouvrirEncaissement(rdvId) {
-    return window.BillingModule.ouvrirEncaissement(rdvId);
+    return callModuleMethod('BillingModule', 'ouvrirEncaissement', arguments);
 }
 
 function toggleEncReference() {
-    return window.BillingModule.toggleEncReference();
+    return callModuleMethod('BillingModule', 'toggleEncReference', arguments);
 }
 
 function confirmerEncaissement(factureId) {
-    return window.BillingModule.confirmerEncaissement(factureId);
+    return callModuleMethod('BillingModule', 'confirmerEncaissement', arguments);
 }
 
 // Boutons d'action selon le statut
 function actionButtons(rdv, compact, options) {
-    if (window.RdvActionsModule && window.RdvActionsModule.actionButtons) {
-        return window.RdvActionsModule.actionButtons(rdv, compact, options);
-    }
-    return '';
+    return callModuleMethod('RdvActionsModule', 'actionButtons', arguments, '');
 }
 
 // Assignation mecanicien + pont
 function ouvrirAssignation(rdvId) {
-    if (window.RdvActionsModule && window.RdvActionsModule.ouvrirAssignation) {
-        return window.RdvActionsModule.ouvrirAssignation(rdvId);
-    }
+    return callModuleMethod('RdvActionsModule', 'ouvrirAssignation', arguments);
 }
 
 function renderAssignationModal(rdvId, rdv) {
-    if (window.RdvActionsModule && window.RdvActionsModule.renderAssignationModal) {
-        return window.RdvActionsModule.renderAssignationModal(rdvId, rdv);
-    }
+    return callModuleMethod('RdvActionsModule', 'renderAssignationModal', arguments);
 }
 
 function sauverAssignation(rdvId) {
-    if (window.RdvActionsModule && window.RdvActionsModule.sauverAssignation) {
-        return window.RdvActionsModule.sauverAssignation(rdvId);
-    }
+    return callModuleMethod('RdvActionsModule', 'sauverAssignation', arguments);
 }
 
 // ===== DASHBOARD =====
-function loadDashboard() {
-    if (window.DashboardModule && window.DashboardModule.loadDashboard) {
-        return window.DashboardModule.loadDashboard();
-    }
-}
-
-function renderDashboardStats(rdvs, ponts, facturationStats) {
-    if (window.DashboardModule && window.DashboardModule.renderDashboardStats) {
-        return window.DashboardModule.renderDashboardStats(rdvs, ponts, facturationStats);
-    }
-}
-
-function renderDashboardPonts(ponts, rdvs) {
-    if (window.DashboardModule && window.DashboardModule.renderDashboardPonts) {
-        return window.DashboardModule.renderDashboardPonts(ponts, rdvs);
-    }
-}
-
-function renderDashboardRdv(rdvs) {
-    if (window.DashboardModule && window.DashboardModule.renderDashboardRdv) {
-        return window.DashboardModule.renderDashboardRdv(rdvs);
-    }
-}
+function loadDashboard() { return callModuleMethod('DashboardModule', 'loadDashboard', arguments); }
+function renderDashboardStats(rdvs, ponts, facturationStats) { return callModuleMethod('DashboardModule', 'renderDashboardStats', arguments); }
+function renderDashboardPonts(ponts, rdvs) { return callModuleMethod('DashboardModule', 'renderDashboardPonts', arguments); }
+function renderDashboardRdv(rdvs) { return callModuleMethod('DashboardModule', 'renderDashboardRdv', arguments); }
 
 // ===== PRISE DE RDV =====
-function loadRdvForm() { if (window.RdvModule && window.RdvModule.loadRdvForm) return window.RdvModule.loadRdvForm(); }
-function searchMotoRdv(val) { if (window.RdvModule && window.RdvModule.searchMotoRdv) return window.RdvModule.searchMotoRdv(val); }
-function updateDurationRdv() { if (window.RdvModule && window.RdvModule.updateDurationRdv) return window.RdvModule.updateDurationRdv(); }
-function loadCreneaux() { if (window.RdvModule && window.RdvModule.loadCreneaux) return window.RdvModule.loadCreneaux(); }
-function renderCreneaux(creneaux) { if (window.RdvModule && window.RdvModule.renderCreneaux) return window.RdvModule.renderCreneaux(creneaux); }
-function selectSlotRdv(el, time) { if (window.RdvModule && window.RdvModule.selectSlotRdv) return window.RdvModule.selectSlotRdv(el, time); }
-function confirmRdv() { if (window.RdvModule && window.RdvModule.confirmRdv) return window.RdvModule.confirmRdv(); }
-function searchClientRdvEmbed(val) { if (window.RdvModule && window.RdvModule.searchClientRdvEmbed) return window.RdvModule.searchClientRdvEmbed(val); }
-function selectClientRdvEmbed(clientId) { if (window.RdvModule && window.RdvModule.selectClientRdvEmbed) return window.RdvModule.selectClientRdvEmbed(clientId); }
-function pushRdvPrefillToIframe() { if (window.RdvModule && window.RdvModule.pushRdvPrefillToIframe) return window.RdvModule.pushRdvPrefillToIframe(); }
-function ouvrirRdvPublicModal() { if (window.RdvModule && window.RdvModule.ouvrirRdvPublicModal) return window.RdvModule.ouvrirRdvPublicModal(); }
-function getCurrentAtelierSlug() { if (window.RdvModule && window.RdvModule.getCurrentAtelierSlug) return window.RdvModule.getCurrentAtelierSlug(); return 'default'; }
-function populateRdvAtelierSelect() { if (window.RdvModule && window.RdvModule.populateRdvAtelierSelect) return window.RdvModule.populateRdvAtelierSelect(); }
-function onRdvAtelierChange(slug) { if (window.RdvModule && window.RdvModule.onRdvAtelierChange) return window.RdvModule.onRdvAtelierChange(slug); }
-function getRdvState() { if (window.RdvModule && window.RdvModule.getRdvState) return window.RdvModule.getRdvState(); return APP.rdvWizard; }
-function goStep(n) { if (window.RdvModule && window.RdvModule.goStep) return window.RdvModule.goStep(n); }
-function rechercherVehicule() { if (window.RdvModule && window.RdvModule.rechercherVehicule) return window.RdvModule.rechercherVehicule(); }
-function validerVehiculeManuel() { if (window.RdvModule && window.RdvModule.validerVehiculeManuel) return window.RdvModule.validerVehiculeManuel(); }
-function onTypeMotoFoundSelect(val) { if (window.RdvModule && window.RdvModule.onTypeMotoFoundSelect) return window.RdvModule.onTypeMotoFoundSelect(val); }
-function continuerVehiculeFound() { if (window.RdvModule && window.RdvModule.continuerVehiculeFound) return window.RdvModule.continuerVehiculeFound(); }
-function getPrestaTarif(it) { if (window.RdvModule && window.RdvModule.getPrestaTarif) return window.RdvModule.getPrestaTarif(it); return { prix_ttc: 0, temps_minutes: 30 }; }
-function chargerPrestations() { if (window.RdvModule && window.RdvModule.chargerPrestations) return window.RdvModule.chargerPrestations(); }
-function renderPrestations() { if (window.RdvModule && window.RdvModule.renderPrestations) return window.RdvModule.renderPrestations(); }
-function togglePresta(id) { if (window.RdvModule && window.RdvModule.togglePresta) return window.RdvModule.togglePresta(id); }
-function updateRecap() { if (window.RdvModule && window.RdvModule.updateRecap) return window.RdvModule.updateRecap(); }
-function chargerDelaiIntervention() { if (window.RdvModule && window.RdvModule.chargerDelaiIntervention) return window.RdvModule.chargerDelaiIntervention(); return Promise.resolve(); }
-function _rdvDateToStr(d) { if (window.RdvModule && window.RdvModule._rdvDateToStr) return window.RdvModule._rdvDateToStr(d); return ''; }
-function _rdvWeekDays(offset, delayDays) { if (window.RdvModule && window.RdvModule._rdvWeekDays) return window.RdvModule._rdvWeekDays(offset, delayDays); return []; }
-function changeWeek(dir) { if (window.RdvModule && window.RdvModule.changeWeek) return window.RdvModule.changeWeek(dir); }
-function chargerSemaine() { if (window.RdvModule && window.RdvModule.chargerSemaine) return window.RdvModule.chargerSemaine(); }
-function chargerJour(dateStr) { if (window.RdvModule && window.RdvModule.chargerJour) return window.RdvModule.chargerJour(dateStr); }
-function renderJour(dateStr, data) { if (window.RdvModule && window.RdvModule.renderJour) return window.RdvModule.renderJour(dateStr, data); }
-function _rdvFormatDate(dateStr) { if (window.RdvModule && window.RdvModule._rdvFormatDate) return window.RdvModule._rdvFormatDate(dateStr); return dateStr || '-'; }
-function selectWeekSlot(el, dateStr, heure) { if (window.RdvModule && window.RdvModule.selectWeekSlot) return window.RdvModule.selectWeekSlot(el, dateStr, heure); }
-function afficherRecap() { if (window.RdvModule && window.RdvModule.afficherRecap) return window.RdvModule.afficherRecap(); }
-function confirmerRDV() { if (window.RdvModule && window.RdvModule.confirmerRDV) return window.RdvModule.confirmerRDV(); }
+function loadRdvForm() { return callModuleMethod('RdvModule', 'loadRdvForm', arguments); }
+function searchMotoRdv(val) { return callModuleMethod('RdvModule', 'searchMotoRdv', arguments); }
+function updateDurationRdv() { return callModuleMethod('RdvModule', 'updateDurationRdv', arguments); }
+function loadCreneaux() { return callModuleMethod('RdvModule', 'loadCreneaux', arguments); }
+function renderCreneaux(creneaux) { return callModuleMethod('RdvModule', 'renderCreneaux', arguments); }
+function selectSlotRdv(el, time) { return callModuleMethod('RdvModule', 'selectSlotRdv', arguments); }
+function confirmRdv() { return callModuleMethod('RdvModule', 'confirmRdv', arguments); }
+function searchClientRdvEmbed(val) { return callModuleMethod('RdvModule', 'searchClientRdvEmbed', arguments); }
+function selectClientRdvEmbed(clientId) { return callModuleMethod('RdvModule', 'selectClientRdvEmbed', arguments); }
+function pushRdvPrefillToIframe() { return callModuleMethod('RdvModule', 'pushRdvPrefillToIframe', arguments); }
+function ouvrirRdvPublicModal() { return callModuleMethod('RdvModule', 'ouvrirRdvPublicModal', arguments); }
+function getCurrentAtelierSlug() { return callModuleMethod('RdvModule', 'getCurrentAtelierSlug', arguments, 'default'); }
+function populateRdvAtelierSelect() { return callModuleMethod('RdvModule', 'populateRdvAtelierSelect', arguments); }
+function onRdvAtelierChange(slug) { return callModuleMethod('RdvModule', 'onRdvAtelierChange', arguments); }
+function getRdvState() { return callModuleMethod('RdvModule', 'getRdvState', arguments, APP.rdvWizard); }
+function goStep(n) { return callModuleMethod('RdvModule', 'goStep', arguments); }
+function rechercherVehicule() { return callModuleMethod('RdvModule', 'rechercherVehicule', arguments); }
+function validerVehiculeManuel() { return callModuleMethod('RdvModule', 'validerVehiculeManuel', arguments); }
+function onTypeMotoFoundSelect(val) { return callModuleMethod('RdvModule', 'onTypeMotoFoundSelect', arguments); }
+function continuerVehiculeFound() { return callModuleMethod('RdvModule', 'continuerVehiculeFound', arguments); }
+function getPrestaTarif(it) { return callModuleMethod('RdvModule', 'getPrestaTarif', arguments, { prix_ttc: 0, temps_minutes: 30 }); }
+function chargerPrestations() { return callModuleMethod('RdvModule', 'chargerPrestations', arguments); }
+function renderPrestations() { return callModuleMethod('RdvModule', 'renderPrestations', arguments); }
+function togglePresta(id) { return callModuleMethod('RdvModule', 'togglePresta', arguments); }
+function updateRecap() { return callModuleMethod('RdvModule', 'updateRecap', arguments); }
+function chargerDelaiIntervention() { return callModuleMethod('RdvModule', 'chargerDelaiIntervention', arguments, Promise.resolve()); }
+function _rdvDateToStr(d) { return callModuleMethod('RdvModule', '_rdvDateToStr', arguments, ''); }
+function _rdvWeekDays(offset, delayDays) { return callModuleMethod('RdvModule', '_rdvWeekDays', arguments, []); }
+function changeWeek(dir) { return callModuleMethod('RdvModule', 'changeWeek', arguments); }
+function chargerSemaine() { return callModuleMethod('RdvModule', 'chargerSemaine', arguments); }
+function chargerJour(dateStr) { return callModuleMethod('RdvModule', 'chargerJour', arguments); }
+function renderJour(dateStr, data) { return callModuleMethod('RdvModule', 'renderJour', arguments); }
+function _rdvFormatDate(dateStr) { return callModuleMethod('RdvModule', '_rdvFormatDate', arguments, dateStr || '-'); }
+function selectWeekSlot(el, dateStr, heure) { return callModuleMethod('RdvModule', 'selectWeekSlot', arguments); }
+function afficherRecap() { return callModuleMethod('RdvModule', 'afficherRecap', arguments); }
+function confirmerRDV() { return callModuleMethod('RdvModule', 'confirmerRDV', arguments); }
 
 // ===== PLANNING =====
-function loadPlanning() { if (window.PlanningModule && window.PlanningModule.loadPlanning) return window.PlanningModule.loadPlanning(); }
-function isPlanningSlotOpen(dateStr, hour) { if (window.PlanningModule && window.PlanningModule.isPlanningSlotOpen) return window.PlanningModule.isPlanningSlotOpen(dateStr, hour); return true; }
-function isPlanningSlotValidForDuration(dateStr, hour, durationMinutes) { if (window.PlanningModule && window.PlanningModule.isPlanningSlotValidForDuration) return window.PlanningModule.isPlanningSlotValidForDuration(dateStr, hour, durationMinutes); return true; }
-function getPlanningHoraireForDate(dateStr) { if (window.PlanningModule && window.PlanningModule.getPlanningHoraireForDate) return window.PlanningModule.getPlanningHoraireForDate(dateStr); return null; }
-function splitRdvSegments(dateStr, startMin, durationMin) { if (window.PlanningModule && window.PlanningModule.splitRdvSegments) return window.PlanningModule.splitRdvSegments(dateStr, startMin, durationMin); return [{ start: startMin, end: startMin + durationMin, continuation: false }]; }
-function buildPlanningBusyCells(rdvs) { if (window.PlanningModule && window.PlanningModule.buildPlanningBusyCells) return window.PlanningModule.buildPlanningBusyCells(rdvs); return {}; }
-function isPlanningCellBusy(dateStr, hour) { if (window.PlanningModule && window.PlanningModule.isPlanningCellBusy) return window.PlanningModule.isPlanningCellBusy(dateStr, hour); return false; }
-function getPlanningAtelierSlug() { if (window.PlanningModule && window.PlanningModule.getPlanningAtelierSlug) return window.PlanningModule.getPlanningAtelierSlug(); return 'default'; }
-function populatePlanningAtelierSelect() { if (window.PlanningModule && window.PlanningModule.populatePlanningAtelierSelect) return window.PlanningModule.populatePlanningAtelierSelect(); }
-function onPlanningAtelierChange(slug) { if (window.PlanningModule && window.PlanningModule.onPlanningAtelierChange) return window.PlanningModule.onPlanningAtelierChange(slug); }
-function renderMecaFilters() { if (window.PlanningModule && window.PlanningModule.renderMecaFilters) return window.PlanningModule.renderMecaFilters(); }
-function toggleMecaFilter(mecaId) { if (window.PlanningModule && window.PlanningModule.toggleMecaFilter) return window.PlanningModule.toggleMecaFilter(mecaId); }
-function renderPlanningGrid(rdvs, monday) { if (window.PlanningModule && window.PlanningModule.renderPlanningGrid) return window.PlanningModule.renderPlanningGrid(rdvs, monday); }
+function loadPlanning() { return callModuleMethod('PlanningModule', 'loadPlanning', arguments); }
+function isPlanningSlotOpen(dateStr, hour) { return callModuleMethod('PlanningModule', 'isPlanningSlotOpen', arguments, true); }
+function isPlanningSlotValidForDuration(dateStr, hour, durationMinutes) { return callModuleMethod('PlanningModule', 'isPlanningSlotValidForDuration', arguments, true); }
+function getPlanningHoraireForDate(dateStr) { return callModuleMethod('PlanningModule', 'getPlanningHoraireForDate', arguments, null); }
+function splitRdvSegments(dateStr, startMin, durationMin) { return callModuleMethod('PlanningModule', 'splitRdvSegments', arguments, [{ start: startMin, end: startMin + durationMin, continuation: false }]); }
+function buildPlanningBusyCells(rdvs) { return callModuleMethod('PlanningModule', 'buildPlanningBusyCells', arguments, {}); }
+function isPlanningCellBusy(dateStr, hour) { return callModuleMethod('PlanningModule', 'isPlanningCellBusy', arguments, false); }
+function getPlanningAtelierSlug() { return callModuleMethod('PlanningModule', 'getPlanningAtelierSlug', arguments, 'default'); }
+function populatePlanningAtelierSelect() { return callModuleMethod('PlanningModule', 'populatePlanningAtelierSelect', arguments); }
+function onPlanningAtelierChange(slug) { return callModuleMethod('PlanningModule', 'onPlanningAtelierChange', arguments); }
+function renderMecaFilters() { return callModuleMethod('PlanningModule', 'renderMecaFilters', arguments); }
+function toggleMecaFilter(mecaId) { return callModuleMethod('PlanningModule', 'toggleMecaFilter', arguments); }
+function renderPlanningGrid(rdvs, monday) { return callModuleMethod('PlanningModule', 'renderPlanningGrid', arguments); }
 
 function timeToMinutes(hhmm) {
     return window.PlanningUtils.timeToMinutes(hhmm);
@@ -406,539 +388,531 @@ function parseDurationToMinutes(value) {
     return window.PlanningUtils.parseDurationToMinutes(value);
 }
 
-function getWeekNumber(d) { if (window.PlanningModule && window.PlanningModule.getWeekNumber) return window.PlanningModule.getWeekNumber(d); return 1; }
+function getWeekNumber(d) { return callModuleMethod('PlanningModule', 'getWeekNumber', arguments, 1); }
 
-function planningPrev() { if (window.PlanningModule && window.PlanningModule.planningPrev) return window.PlanningModule.planningPrev(); }
-function planningNext() { if (window.PlanningModule && window.PlanningModule.planningNext) return window.PlanningModule.planningNext(); }
+function planningPrev() { return callModuleMethod('PlanningModule', 'planningPrev', arguments); }
+function planningNext() { return callModuleMethod('PlanningModule', 'planningNext', arguments); }
 
 // ===== DRAG & DROP PLANNING =====
-function onRdvDragStart(event, rdvId) { if (window.PlanningModule && window.PlanningModule.onRdvDragStart) return window.PlanningModule.onRdvDragStart(event, rdvId); }
-function onRdvDragEnd(event) { if (window.PlanningModule && window.PlanningModule.onRdvDragEnd) return window.PlanningModule.onRdvDragEnd(event); }
-function onCellDragOver(event) { if (window.PlanningModule && window.PlanningModule.onCellDragOver) return window.PlanningModule.onCellDragOver(event); }
-function onCellDragLeave(event) { if (window.PlanningModule && window.PlanningModule.onCellDragLeave) return window.PlanningModule.onCellDragLeave(event); }
-function onCellDrop(event, dateStr, hour) { if (window.PlanningModule && window.PlanningModule.onCellDrop) return window.PlanningModule.onCellDrop(event, dateStr, hour); }
+function onRdvDragStart(event, rdvId) { return callModuleMethod('PlanningModule', 'onRdvDragStart', arguments); }
+function onRdvDragEnd(event) { return callModuleMethod('PlanningModule', 'onRdvDragEnd', arguments); }
+function onCellDragOver(event) { return callModuleMethod('PlanningModule', 'onCellDragOver', arguments); }
+function onCellDragLeave(event) { return callModuleMethod('PlanningModule', 'onCellDragLeave', arguments); }
+function onCellDrop(event, dateStr, hour) { return callModuleMethod('PlanningModule', 'onCellDrop', arguments); }
 
 // ===== CLIC SUR RDV PLANNING =====
-function onPlanningRdvClick(rdvId) { if (window.PlanningModule && window.PlanningModule.onPlanningRdvClick) return window.PlanningModule.onPlanningRdvClick(rdvId); }
+function onPlanningRdvClick(rdvId) { return callModuleMethod('PlanningModule', 'onPlanningRdvClick', arguments); }
 
 // ===== CLIC CELLULE VIDE - QUICK CREATE =====
-function onPlanningCellClick(event, dateStr, hour) { if (window.PlanningModule && window.PlanningModule.onPlanningCellClick) return window.PlanningModule.onPlanningCellClick(event, dateStr, hour); }
-function ouvrirQuickCreateRdv(dateStr, hour) { if (window.PlanningModule && window.PlanningModule.ouvrirQuickCreateRdv) return window.PlanningModule.ouvrirQuickCreateRdv(dateStr, hour); }
-function searchClientQuickCreate(val) { if (window.PlanningModule && window.PlanningModule.searchClientQuickCreate) return window.PlanningModule.searchClientQuickCreate(val); }
-function selectClientQuickCreate(nom, prenom, tel) { if (window.PlanningModule && window.PlanningModule.selectClientQuickCreate) return window.PlanningModule.selectClientQuickCreate(nom, prenom, tel); }
-function searchVehiculeQuickCreate(val) { if (window.PlanningModule && window.PlanningModule.searchVehiculeQuickCreate) return window.PlanningModule.searchVehiculeQuickCreate(val); }
-function submitQuickCreateRdv() { if (window.PlanningModule && window.PlanningModule.submitQuickCreateRdv) return window.PlanningModule.submitQuickCreateRdv(); }
+function onPlanningCellClick(event, dateStr, hour) { return callModuleMethod('PlanningModule', 'onPlanningCellClick', arguments); }
+function ouvrirQuickCreateRdv(dateStr, hour) { return callModuleMethod('PlanningModule', 'ouvrirQuickCreateRdv', arguments); }
+function searchClientQuickCreate(val) { return callModuleMethod('PlanningModule', 'searchClientQuickCreate', arguments); }
+function selectClientQuickCreate(nom, prenom, tel) { return callModuleMethod('PlanningModule', 'selectClientQuickCreate', arguments); }
+function searchVehiculeQuickCreate(val) { return callModuleMethod('PlanningModule', 'searchVehiculeQuickCreate', arguments); }
+function submitQuickCreateRdv() { return callModuleMethod('PlanningModule', 'submitQuickCreateRdv', arguments); }
 
 
 // ===== PONTS & MECANICIENS =====
-function loadPontsMecas() { if (window.WorkshopModule && window.WorkshopModule.loadPontsMecas) return window.WorkshopModule.loadPontsMecas(); }
-function renderPontsTab() { if (window.WorkshopModule && window.WorkshopModule.renderPontsTab) return window.WorkshopModule.renderPontsTab(); }
-function renderMecasTab() { if (window.WorkshopModule && window.WorkshopModule.renderMecasTab) return window.WorkshopModule.renderMecasTab(); }
-function renderPontsManagerKpis(ponts, rdvs, absences) { if (window.WorkshopModule && window.WorkshopModule.renderPontsManagerKpis) return window.WorkshopModule.renderPontsManagerKpis(ponts, rdvs, absences); }
-function countManagerConflicts(rdvs) { if (window.WorkshopModule && window.WorkshopModule.countManagerConflicts) return window.WorkshopModule.countManagerConflicts(rdvs); return 0; }
-function renderTempsTab() { if (window.WorkshopModule && window.WorkshopModule.renderTempsTab) return window.WorkshopModule.renderTempsTab(); }
+function loadPontsMecas() { return callModuleMethod('WorkshopModule', 'loadPontsMecas', arguments); }
+function renderPontsTab() { return callModuleMethod('WorkshopModule', 'renderPontsTab', arguments); }
+function renderMecasTab() { return callModuleMethod('WorkshopModule', 'renderMecasTab', arguments); }
+function renderPontsManagerKpis(ponts, rdvs, absences) { return callModuleMethod('WorkshopModule', 'renderPontsManagerKpis', arguments); }
+function countManagerConflicts(rdvs) { return callModuleMethod('WorkshopModule', 'countManagerConflicts', arguments, 0); }
+function renderTempsTab() { return callModuleMethod('WorkshopModule', 'renderTempsTab', arguments); }
 
 // ===== ORDRES DE REPARATION =====
 function loadOrdresReparation() {
-    return window.OrModule.loadOrdresReparation();
+    return callModuleMethod('OrModule', 'loadOrdresReparation', arguments);
 }
 
 function renderOrdresReparation(rdvs) {
-    return window.OrModule.renderOrdresReparation(rdvs);
+    return callModuleMethod('OrModule', 'renderOrdresReparation', arguments);
 }
 
 function getEtapeIndex(statut) {
-    return window.OrModule.getEtapeIndex(statut);
+    return callModuleMethod('OrModule', 'getEtapeIndex', arguments);
 }
 
 function showOrDetail(rdvId) {
-    return window.OrModule.showOrDetail(rdvId);
+    return callModuleMethod('OrModule', 'showOrDetail', arguments);
 }
 
 function planifierRdvSuite(rdvId) {
-    return window.OrModule.planifierRdvSuite(rdvId);
+    return callModuleMethod('OrModule', 'planifierRdvSuite', arguments);
 }
 
 // ===== RECEPTION VEHICULE =====
 var ETAT_VEHICULE_POINTS = window.ETAT_VEHICULE_POINTS || [];
 
 function ouvrirReception(rdvId) {
-    return window.OrModule.ouvrirReception(rdvId);
+    return callModuleMethod('OrModule', 'ouvrirReception', arguments);
 }
 
 function initReceptionSignaturePad() {
-    return window.OrModule.initReceptionSignaturePad();
+    return callModuleMethod('OrModule', 'initReceptionSignaturePad', arguments);
 }
 
 function getCanvasCoords(canvas, event) {
-    return window.OrModule.getCanvasCoords(canvas, event);
+    return callModuleMethod('OrModule', 'getCanvasCoords', arguments);
 }
 
 function clearReceptionSignature() {
-    return window.OrModule.clearReceptionSignature();
+    return callModuleMethod('OrModule', 'clearReceptionSignature', arguments);
 }
 
 function getReceptionSignatureBase64() {
-    return window.OrModule.getReceptionSignatureBase64();
+    return callModuleMethod('OrModule', 'getReceptionSignatureBase64', arguments);
 }
 
 function validerReception(rdvId) {
-    return window.OrModule.validerReception(rdvId);
+    return callModuleMethod('OrModule', 'validerReception', arguments);
 }
 
 // ===== TRAVAUX SUPPLEMENTAIRES =====
 function ouvrirDemandeTravauxSupp(rdvId) {
-    return window.OrModule.ouvrirDemandeTravauxSupp(rdvId);
+    return callModuleMethod('OrModule', 'ouvrirDemandeTravauxSupp', arguments);
 }
 
 function toggleTsPrestation(id, code, nom) {
-    return window.OrModule.toggleTsPrestation(id, code, nom);
+    return callModuleMethod('OrModule', 'toggleTsPrestation', arguments);
 }
 
 function updateTsSelectedCount() {
-    return window.OrModule.updateTsSelectedCount();
+    return callModuleMethod('OrModule', 'updateTsSelectedCount', arguments);
 }
 
 function setTsUrgence(val) {
-    return window.OrModule.setTsUrgence(val);
+    return callModuleMethod('OrModule', 'setTsUrgence', arguments);
 }
 
 function envoyerDemandeTravauxSupp(rdvId) {
-    return window.OrModule.envoyerDemandeTravauxSupp(rdvId);
+    return callModuleMethod('OrModule', 'envoyerDemandeTravauxSupp', arguments);
 }
 
 // ===== POLLING TRAVAUX SUPP =====
 function pollTravauxSupp() {
-    return window.OrModule.pollTravauxSupp();
+    return callModuleMethod('OrModule', 'pollTravauxSupp', arguments);
 }
 
 function playAlertSound() {
-    return window.OrModule.playAlertSound();
+    return callModuleMethod('OrModule', 'playAlertSound', arguments);
 }
 
 function showTravauxSuppAlert(demande) {
-    return window.OrModule.showTravauxSuppAlert(demande);
+    return callModuleMethod('OrModule', 'showTravauxSuppAlert', arguments);
 }
 
 function traiterAlertTravaux(demandeId, statut, btn) {
-    return window.OrModule.traiterAlertTravaux(demandeId, statut, btn);
+    return callModuleMethod('OrModule', 'traiterAlertTravaux', arguments);
 }
 
 // ===== SIGNATURE TRAVAUX SUPP =====
 function ouvrirSignatureTravauxSupp(demandeId, notes, prixDevis, tempsDevis) {
-    return window.OrModule.ouvrirSignatureTravauxSupp(demandeId, notes, prixDevis, tempsDevis);
+    return callModuleMethod('OrModule', 'ouvrirSignatureTravauxSupp', arguments);
 }
 
 function initTsSignaturePad() {
-    return window.OrModule.initTsSignaturePad();
+    return callModuleMethod('OrModule', 'initTsSignaturePad', arguments);
 }
 
 function clearTsSignature() {
-    return window.OrModule.clearTsSignature();
+    return callModuleMethod('OrModule', 'clearTsSignature', arguments);
 }
 
 function confirmerTravauxSuppAvecSignature(demandeId, prixDevis, tempsDevis, notes) {
-    return window.OrModule.confirmerTravauxSuppAvecSignature(demandeId, prixDevis, tempsDevis, notes);
+    return callModuleMethod('OrModule', 'confirmerTravauxSuppAvecSignature', arguments);
 }
 
 function showNotificationToast(message) {
-    return window.OrModule.showNotificationToast(message);
+    return callModuleMethod('OrModule', 'showNotificationToast', arguments);
 }
 
 // ===== APPROBATION TRAVAUX SUPP (dans section OR) =====
 function renderTravauxSuppPanel() {
-    return window.OrModule.renderTravauxSuppPanel();
+    return callModuleMethod('OrModule', 'renderTravauxSuppPanel', arguments);
 }
 
 function approuverTravauxSupp(demandeId) {
-    return window.OrModule.approuverTravauxSupp(demandeId);
+    return callModuleMethod('OrModule', 'approuverTravauxSupp', arguments);
 }
 
 function confirmerApprouverTravauxSupp(demandeId) {
-    return window.OrModule.confirmerApprouverTravauxSupp(demandeId);
+    return callModuleMethod('OrModule', 'confirmerApprouverTravauxSupp', arguments);
 }
 
 function refuserTravauxSupp(demandeId) {
-    return window.OrModule.refuserTravauxSupp(demandeId);
+    return callModuleMethod('OrModule', 'refuserTravauxSupp', arguments);
 }
 
 function confirmerRefuserTravauxSupp(demandeId) {
-    return window.OrModule.confirmerRefuserTravauxSupp(demandeId);
+    return callModuleMethod('OrModule', 'confirmerRefuserTravauxSupp', arguments);
 }
 
 // ===== SUIVI LIVE =====
 function loadSuiviLive() {
-    return window.SuiviModule.loadSuiviLive();
+    return callModuleMethod('SuiviModule', 'loadSuiviLive', arguments);
 }
 
 function renderSuiviLive(rdvs) {
-    return window.SuiviModule.renderSuiviLive(rdvs);
+    return callModuleMethod('SuiviModule', 'renderSuiviLive', arguments);
 }
 
 function getRdvProgressInfo(rdv, now) {
-    return window.SuiviModule.getRdvProgressInfo(rdv, now);
+    return callModuleMethod('SuiviModule', 'getRdvProgressInfo', arguments);
 }
 
 function getRdvDelayInfo(rdv, now) {
-    return window.SuiviModule.getRdvDelayInfo(rdv, now);
+    return callModuleMethod('SuiviModule', 'getRdvDelayInfo', arguments);
 }
 
 // ===== CHECKUP / RAPPORT TECHNICIEN =====
 var CHECKUP_POINTS = window.CHECKUP_POINTS || [];
 
 function ouvrirCheckup(rdvId) {
-    return window.MecanicienModule.ouvrirCheckup(rdvId);
+    return callModuleMethod('MecanicienModule', 'ouvrirCheckup', arguments);
 }
 
 function renderCheckupModal(rdvId, rapport) {
-    return window.MecanicienModule.renderCheckupModal(rdvId, rapport);
+    return callModuleMethod('MecanicienModule', 'renderCheckupModal', arguments);
 }
 
 function setCheckpoint(key, value, btn) {
-    return window.MecanicienModule.setCheckpoint(key, value, btn);
+    return callModuleMethod('MecanicienModule', 'setCheckpoint', arguments);
 }
 
 function sauverCheckup(rdvId, statut) {
-    return window.MecanicienModule.sauverCheckup(rdvId, statut);
+    return callModuleMethod('MecanicienModule', 'sauverCheckup', arguments);
 }
 
 // ===== ESPACE MECANICIEN =====
 
 function loadEspaceMeca() {
-    return window.MecanicienModule.loadEspaceMeca();
+    return callModuleMethod('MecanicienModule', 'loadEspaceMeca', arguments);
 }
 
 function renderEspaceMeca(meca, allRdvs) {
-    return window.MecanicienModule.renderEspaceMeca(meca, allRdvs);
+    return callModuleMethod('MecanicienModule', 'renderEspaceMeca', arguments);
 }
 
 function renderMecaActivePanel(rdv) {
-    return window.MecanicienModule.renderMecaActivePanel(rdv);
+    return callModuleMethod('MecanicienModule', 'renderMecaActivePanel', arguments);
 }
 
 function renderMecaCard(rdv, type) {
-    return window.MecanicienModule.renderMecaCard(rdv, type);
+    return callModuleMethod('MecanicienModule', 'renderMecaCard', arguments);
 }
 
 function toggleMecaCheckup() {
-    return window.MecanicienModule.toggleMecaCheckup();
+    return callModuleMethod('MecanicienModule', 'toggleMecaCheckup', arguments);
 }
 
 function setMecaCheck(key, value, btn) {
-    return window.MecanicienModule.setMecaCheck(key, value, btn);
+    return callModuleMethod('MecanicienModule', 'setMecaCheck', arguments);
 }
 
 function startMecaLiveTimer(rdv) {
-    return window.MecanicienModule.startMecaLiveTimer(rdv);
+    return callModuleMethod('MecanicienModule', 'startMecaLiveTimer', arguments);
 }
 
 function cleanupMecaTimer() {
-
-
-
-
-
-
-
-
-    return window.MecanicienModule.cleanupMecaTimer();
+    return callModuleMethod('MecanicienModule', 'cleanupMecaTimer', arguments);
 }
 
 // ===== GESTION ABSENCES =====
 function loadAbsences() {
-    return window.AbsencesModule.loadAbsences();
+    return callModuleMethod('AbsencesModule', 'loadAbsences', arguments);
 }
 
 function renderAbsencesTable(absences) {
-    return window.AbsencesModule.renderAbsencesTable(absences);
+    return callModuleMethod('AbsencesModule', 'renderAbsencesTable', arguments);
 }
 
 function ouvrirModalAbsence() {
-    return window.AbsencesModule.ouvrirModalAbsence();
+    return callModuleMethod('AbsencesModule', 'ouvrirModalAbsence', arguments);
 }
 
 function sauverAbsence() {
-    return window.AbsencesModule.sauverAbsence();
+    return callModuleMethod('AbsencesModule', 'sauverAbsence', arguments);
 }
 
 function ouvrirModalEditAbsence(absenceId) {
-    return window.AbsencesModule.ouvrirModalEditAbsence(absenceId);
+    return callModuleMethod('AbsencesModule', 'ouvrirModalEditAbsence', arguments);
 }
 
 function sauverEditAbsence(absenceId) {
-    return window.AbsencesModule.sauverEditAbsence(absenceId);
+    return callModuleMethod('AbsencesModule', 'sauverEditAbsence', arguments);
 }
 
 function supprimerAbsence(id) {
-    return window.AbsencesModule.supprimerAbsence(id);
+    return callModuleMethod('AbsencesModule', 'supprimerAbsence', arguments);
 }
 
 // ===== GESTION CLIENTS =====
 function rechercherClients(val) {
-    return window.ClientsModule.rechercherClients(val);
+    return callModuleMethod('ClientsModule', 'rechercherClients', arguments);
 }
 
 function loadClients(search, page) {
-    return window.ClientsModule.loadClients(search, page);
+    return callModuleMethod('ClientsModule', 'loadClients', arguments);
 }
 
 function loadClientsStats() {
-    return window.ClientsModule.loadClientsStats();
+    return callModuleMethod('ClientsModule', 'loadClientsStats', arguments);
 }
 
 function renderClientsPagination(currentPage, totalPages) {
-    return window.ClientsModule.renderClientsPagination(currentPage, totalPages);
+    return callModuleMethod('ClientsModule', 'renderClientsPagination', arguments);
 }
 
 function ouvrirNouveauClient() {
-    return window.ClientsModule.ouvrirNouveauClient();
+    return callModuleMethod('ClientsModule', 'ouvrirNouveauClient', arguments);
 }
 
 function creerNouveauClient() {
-    return window.ClientsModule.creerNouveauClient();
+    return callModuleMethod('ClientsModule', 'creerNouveauClient', arguments);
 }
 
 function supprimerVehicule(vehiculeId, clientId) {
-    return window.ClientsModule.supprimerVehicule(vehiculeId, clientId);
+    return callModuleMethod('ClientsModule', 'supprimerVehicule', arguments);
 }
 
 function showClientDetail(clientId) {
-    return window.ClientsModule.showClientDetail(clientId);
+    return callModuleMethod('ClientsModule', 'showClientDetail', arguments);
 }
 
 // ===== DETAIL RDV DEPUIS HISTORIQUE CLIENT =====
 function ouvrirDetailHistoriqueRdv(rdvId, clientId) {
-    return window.ClientsModule.ouvrirDetailHistoriqueRdv(rdvId, clientId);
+    return callModuleMethod('ClientsModule', 'ouvrirDetailHistoriqueRdv', arguments);
 }
 
 // ===== AJOUTER VEHICULE A UN CLIENT =====
 function ouvrirAjouterVehicule(clientId) {
-    return window.ClientsModule.ouvrirAjouterVehicule(clientId);
+    return callModuleMethod('ClientsModule', 'ouvrirAjouterVehicule', arguments);
 }
 
 function sauverNouveauVehicule(clientId) {
-    return window.ClientsModule.sauverNouveauVehicule(clientId);
+    return callModuleMethod('ClientsModule', 'sauverNouveauVehicule', arguments);
 }
 
 function ouvrirModalEditClient(clientId) {
-    return window.ClientsModule.ouvrirModalEditClient(clientId);
+    return callModuleMethod('ClientsModule', 'ouvrirModalEditClient', arguments);
 }
 
 function sauverClient(clientId) {
-    return window.ClientsModule.sauverClient(clientId);
+    return callModuleMethod('ClientsModule', 'sauverClient', arguments);
 }
 
 // ===== EDIT VEHICULE MODAL =====
 function ouvrirModalEditVehicule(vehiculeId) {
-    return window.ClientsModule.ouvrirModalEditVehicule(vehiculeId);
+    return callModuleMethod('ClientsModule', 'ouvrirModalEditVehicule', arguments);
 }
 
 function sauverVehicule(vehiculeId) {
-    return window.ClientsModule.sauverVehicule(vehiculeId);
+    return callModuleMethod('ClientsModule', 'sauverVehicule', arguments);
 }
 
 // ===== DETAIL RDV MODAL (receptionnaire) =====
-function ouvrirDetailRdv(rdvId) { if (window.WorkshopModule && window.WorkshopModule.ouvrirDetailRdv) return window.WorkshopModule.ouvrirDetailRdv(rdvId); }
-function sauverCommentaireRdv(rdvId) { if (window.WorkshopModule && window.WorkshopModule.sauverCommentaireRdv) return window.WorkshopModule.sauverCommentaireRdv(rdvId); }
+function ouvrirDetailRdv(rdvId) { return callModuleMethod('WorkshopModule', 'ouvrirDetailRdv', arguments); }
+function sauverCommentaireRdv(rdvId) { return callModuleMethod('WorkshopModule', 'sauverCommentaireRdv', arguments); }
 
 // ===== ATTRIBUTION PONT -> MECANICIEN =====
-function ouvrirAttribuerPont(pontId) { if (window.WorkshopModule && window.WorkshopModule.ouvrirAttribuerPont) return window.WorkshopModule.ouvrirAttribuerPont(pontId); }
-function sauverAttribuerPont(pontId) { if (window.WorkshopModule && window.WorkshopModule.sauverAttribuerPont) return window.WorkshopModule.sauverAttribuerPont(pontId); }
+function ouvrirAttribuerPont(pontId) { return callModuleMethod('WorkshopModule', 'ouvrirAttribuerPont', arguments); }
+function sauverAttribuerPont(pontId) { return callModuleMethod('WorkshopModule', 'sauverAttribuerPont', arguments); }
 
 function loadAdminAteliers() {
-    return window.AdminModule.loadAdminAteliers();
+    return callModuleMethod('AdminModule', 'loadAdminAteliers', arguments);
 }
 
 function selectAdminAtelier(atelierId) {
-    return window.AdminModule.selectAdminAtelier(atelierId);
+    return callModuleMethod('AdminModule', 'selectAdminAtelier', arguments);
 }
 
 function loadAdminUsers() {
-    return window.AdminModule.loadAdminUsers();
+    return callModuleMethod('AdminModule', 'loadAdminUsers', arguments);
 }
 
 function renderAdminUsers(users) {
-    return window.AdminModule.renderAdminUsers(users);
+    return callModuleMethod('AdminModule', 'renderAdminUsers', arguments);
 }
 
 function switchAtelier(atelierId) {
-    return window.AdminModule.switchAtelier(atelierId);
+    return callModuleMethod('AdminModule', 'switchAtelier', arguments);
 }
 
 function ouvrirNouveauAtelier() {
-    return window.AdminModule.ouvrirNouveauAtelier();
+    return callModuleMethod('AdminModule', 'ouvrirNouveauAtelier', arguments);
 }
 
 function creerAtelier() {
-    return window.AdminModule.creerAtelier();
+    return callModuleMethod('AdminModule', 'creerAtelier', arguments);
 }
 
 function ouvrirEditAtelier(id, nom) {
-    return window.AdminModule.ouvrirEditAtelier(id, nom);
+    return callModuleMethod('AdminModule', 'ouvrirEditAtelier', arguments);
 }
 
 function sauverAtelier(id) {
-    return window.AdminModule.sauverAtelier(id);
+    return callModuleMethod('AdminModule', 'sauverAtelier', arguments);
 }
 
 function ouvrirNouvelUtilisateurAtelier() {
-    return window.AdminModule.ouvrirNouvelUtilisateurAtelier();
+    return callModuleMethod('AdminModule', 'ouvrirNouvelUtilisateurAtelier', arguments);
 }
 
 function renderCreateUserModal(roleOptionsHtml) {
-    return window.AdminModule.renderCreateUserModal(roleOptionsHtml);
+    return callModuleMethod('AdminModule', 'renderCreateUserModal', arguments);
 }
 
 function toggleCreateUserMecaFields() {
-    return window.AdminModule.toggleCreateUserMecaFields();
+    return callModuleMethod('AdminModule', 'toggleCreateUserMecaFields', arguments);
 }
 
 function creerUtilisateurAtelier() {
-    return window.AdminModule.creerUtilisateurAtelier();
+    return callModuleMethod('AdminModule', 'creerUtilisateurAtelier', arguments);
 }
 
 function ouvrirEditionUtilisateurAtelier(userId) {
-    return window.AdminModule.ouvrirEditionUtilisateurAtelier(userId);
+    return callModuleMethod('AdminModule', 'ouvrirEditionUtilisateurAtelier', arguments);
 }
 
 function toggleEditUserMecaFields() {
-    return window.AdminModule.toggleEditUserMecaFields();
+    return callModuleMethod('AdminModule', 'toggleEditUserMecaFields', arguments);
 }
 
 function sauverEditionUtilisateurAtelier(userId) {
-    return window.AdminModule.sauverEditionUtilisateurAtelier(userId);
+    return callModuleMethod('AdminModule', 'sauverEditionUtilisateurAtelier', arguments);
 }
 
 function supprimerUtilisateurAtelier(userId) {
-    return window.AdminModule.supprimerUtilisateurAtelier(userId);
+    return callModuleMethod('AdminModule', 'supprimerUtilisateurAtelier', arguments);
 }
 
 function switchAdminTab(tabId) {
-    return window.AdminModule.switchAdminTab(tabId);
+    return callModuleMethod('AdminModule', 'switchAdminTab', arguments);
 }
 
 function loadAdminRoles() {
-    return window.AdminModule.loadAdminRoles();
+    return callModuleMethod('AdminModule', 'loadAdminRoles', arguments);
 }
 
 function openRoleEditor(roleName) {
-    return window.AdminModule.openRoleEditor(roleName);
+    return callModuleMethod('AdminModule', 'openRoleEditor', arguments);
 }
 
 function saveRolePermission() {
-    return window.AdminModule.saveRolePermission();
+    return callModuleMethod('AdminModule', 'saveRolePermission', arguments);
 }
 
 function normalizeRoleSlug(value) {
-    return window.AdminModule.normalizeRoleSlug(value);
+    return callModuleMethod('AdminModule', 'normalizeRoleSlug', arguments);
 }
 
 function deleteRolePermission(role) {
-    return window.AdminModule.deleteRolePermission(role);
+    return callModuleMethod('AdminModule', 'deleteRolePermission', arguments);
 }
 
 function loadAdminConfig() {
-    return window.AdminModule.loadAdminConfig();
+    return callModuleMethod('AdminModule', 'loadAdminConfig', arguments);
 }
 
 function saveAdminConfig(e) {
-    return window.AdminModule.saveAdminConfig(e);
+    return callModuleMethod('AdminModule', 'saveAdminConfig', arguments);
 }
 
 function loadAdminCategoriesMoto() {
-    return window.AdminModule.loadAdminCategoriesMoto();
+    return callModuleMethod('AdminModule', 'loadAdminCategoriesMoto', arguments);
 }
 
 function toggleAdminCategorieMoto(categorieId) {
-    return window.AdminModule.toggleAdminCategorieMoto(categorieId);
+    return callModuleMethod('AdminModule', 'toggleAdminCategorieMoto', arguments);
 }
 
 function adminFmtTime(value) {
-    return window.AdminModule.adminFmtTime(value);
+    return callModuleMethod('AdminModule', 'adminFmtTime', arguments);
 }
 
 function loadAdminHoraires() {
-    return window.AdminModule.loadAdminHoraires();
+    return callModuleMethod('AdminModule', 'loadAdminHoraires', arguments);
 }
 
 function saveAdminHoraire(jour) {
-    return window.AdminModule.saveAdminHoraire(jour);
+    return callModuleMethod('AdminModule', 'saveAdminHoraire', arguments);
 }
 
 function toggleAdminMidi(jour) {
-    return window.AdminModule.toggleAdminMidi(jour);
+    return callModuleMethod('AdminModule', 'toggleAdminMidi', arguments);
 }
 
 function adminFormatMinutes(mins) {
-    return window.AdminModule.adminFormatMinutes(mins);
+    return callModuleMethod('AdminModule', 'adminFormatMinutes', arguments);
 }
 
 function loadAdminPrestations() {
-    return window.AdminModule.loadAdminPrestations();
+    return callModuleMethod('AdminModule', 'loadAdminPrestations', arguments);
 }
 
 function openAdminPrestationModal(id) {
-    return window.AdminModule.openAdminPrestationModal(id);
+    return callModuleMethod('AdminModule', 'openAdminPrestationModal', arguments);
 }
 
 function saveAdminPrestation(id, tvaMo) {
-    return window.AdminModule.saveAdminPrestation(id, tvaMo);
+    return callModuleMethod('AdminModule', 'saveAdminPrestation', arguments);
 }
 
 function toggleAdminPrestation(id, state) {
-    return window.AdminModule.toggleAdminPrestation(id, state);
+    return callModuleMethod('AdminModule', 'toggleAdminPrestation', arguments);
 }
 
 function openAdminGrilleModal(prestationId) {
-    return window.AdminModule.openAdminGrilleModal(prestationId);
+    return callModuleMethod('AdminModule', 'openAdminGrilleModal', arguments);
 }
 
 function saveAdminGrille(prestationId, tvaMo) {
-    return window.AdminModule.saveAdminGrille(prestationId, tvaMo);
+    return callModuleMethod('AdminModule', 'saveAdminGrille', arguments);
 }
 
 function loadAdminWorkshop() {
-    return window.AdminModule.loadAdminWorkshop();
+    return callModuleMethod('AdminModule', 'loadAdminWorkshop', arguments);
 }
 
 function renderAdminWorkshopPonts(ponts, mecas) {
-    return window.AdminModule.renderAdminWorkshopPonts(ponts, mecas);
+    return callModuleMethod('AdminModule', 'renderAdminWorkshopPonts', arguments);
 }
 
 function renderAdminWorkshopMecas(mecas, users) {
-    return window.AdminModule.renderAdminWorkshopMecas(mecas, users);
+    return callModuleMethod('AdminModule', 'renderAdminWorkshopMecas', arguments);
 }
 
 function openAdminPontModal(pontId) {
-    return window.AdminModule.openAdminPontModal(pontId);
+    return callModuleMethod('AdminModule', 'openAdminPontModal', arguments);
 }
 
 function saveAdminPont(pontId) {
-    return window.AdminModule.saveAdminPont(pontId);
+    return callModuleMethod('AdminModule', 'saveAdminPont', arguments);
 }
 
 function deleteAdminPont(pontId) {
-    return window.AdminModule.deleteAdminPont(pontId);
+    return callModuleMethod('AdminModule', 'deleteAdminPont', arguments);
 }
 
 function deleteAdminMecanicien(mecanicienId) {
-    return window.AdminModule.deleteAdminMecanicien(mecanicienId);
+    return callModuleMethod('AdminModule', 'deleteAdminMecanicien', arguments);
 }
 
 function loadAdminEquipements() {
-    return window.AdminModule.loadAdminEquipements();
+    return callModuleMethod('AdminModule', 'loadAdminEquipements', arguments);
 }
 
 function openAdminEquipementModal() {
-    return window.AdminModule.openAdminEquipementModal();
+    return callModuleMethod('AdminModule', 'openAdminEquipementModal', arguments);
 }
 
 function saveAdminEquipement() {
-    return window.AdminModule.saveAdminEquipement();
+    return callModuleMethod('AdminModule', 'saveAdminEquipement', arguments);
 }
 
 function deleteAdminEquipement(id) {
-    return window.AdminModule.deleteAdminEquipement(id);
+    return callModuleMethod('AdminModule', 'deleteAdminEquipement', arguments);
 }
 
 console.log('app.js loaded');

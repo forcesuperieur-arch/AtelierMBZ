@@ -21,9 +21,16 @@ function clearAuthState() {
 
 function apiRequest(url, options) {
     var opts = options || {};
+    var method = opts.method || 'GET';
     opts.credentials = opts.credentials || 'include';
+    if (window.AtelierDebug && window.AtelierDebug.traceApi) {
+        window.AtelierDebug.traceApi('request', { method: method, url: url });
+    }
     return fetch(window.API_URL + url, opts).then(function(response) {
         if (response.status === 401) {
+            if (window.AtelierDebug && window.AtelierDebug.traceApi) {
+                window.AtelierDebug.traceApi('http-error', { method: method, url: url, status: response.status, detail: 'Session expiree' });
+            }
             clearAuthState();
             if (typeof showLogin === 'function') showLogin();
             throw new Error('Session expiree');
@@ -37,10 +44,27 @@ function apiRequest(url, options) {
                 } catch (_) {
                     detail = txt || '';
                 }
+                if (window.AtelierDebug && window.AtelierDebug.traceApi) {
+                    window.AtelierDebug.traceApi('http-error', {
+                        method: method,
+                        url: url,
+                        status: response.status,
+                        detail: detail || response.statusText
+                    });
+                }
                 throw new Error('HTTP ' + response.status + ': ' + (detail || response.statusText));
             });
         }
         return response;
+    }).catch(function(error) {
+        if (window.AtelierDebug && window.AtelierDebug.traceApi) {
+            window.AtelierDebug.traceApi('error', {
+                method: method,
+                url: url,
+                message: error && error.message ? error.message : String(error)
+            });
+        }
+        throw error;
     });
 }
 
