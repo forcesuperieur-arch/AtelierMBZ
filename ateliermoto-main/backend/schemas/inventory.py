@@ -59,9 +59,48 @@ class PieceDetacheeUpdate(BaseModel):
     is_active: Optional[int] = None
 
 
+class LigneCommandeCreate(BaseModel):
+    piece_id: int
+    quantite_demandee: int
+    prix_unitaire_ht: float
+
+
+class CommandeFournisseurCreate(BaseModel):
+    fournisseur_id: int
+    lignes: list[LigneCommandeCreate]
+    notes: Optional[str] = None
+
+
+class CommandeFournisseurUpdate(BaseModel):
+    statut: Optional[str] = None
+    date_prevue_livraison: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ReceptionLigne(BaseModel):
+    ligne_id: int
+    quantite_recue: int
+
+
+class ReceptionCommande(BaseModel):
+    lignes: list[ReceptionLigne]
+
+
+class PieceUtiliseeCreate(BaseModel):
+    piece_id: int
+    quantite: int
+    prix_vente_unitaire: Optional[float] = None
+
+
 __all__ = [
     "FournisseurCreate",
     "FournisseurUpdate",
     "PieceDetacheeCreate",
     "PieceDetacheeUpdate",
+    "LigneCommandeCreate",
+    "CommandeFournisseurCreate",
+    "CommandeFournisseurUpdate",
+    "ReceptionLigne",
+    "ReceptionCommande",
+    "PieceUtiliseeCreate",
 ]

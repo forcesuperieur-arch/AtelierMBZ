@@ -4,12 +4,25 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
-from models import CommandeFournisseur, Fournisseur, PieceDetachee, User, get_db
+from models import (
+    CommandeFournisseur,
+    Fournisseur,
+    LigneCommandeFournisseur,
+    PieceDetachee,
+    PieceUtilisee,
+    RendezVous,
+    User,
+    get_db,
+)
 from schemas.inventory import (
+    CommandeFournisseurCreate,
+    CommandeFournisseurUpdate,
     FournisseurCreate,
     FournisseurUpdate,
     PieceDetacheeCreate,
     PieceDetacheeUpdate,
+    PieceUtiliseeCreate,
+    ReceptionCommande,
 )
 
 router = APIRouter(tags=["inventory"])
@@ -17,6 +30,19 @@ router = APIRouter(tags=["inventory"])
 
 def _atelier_id_or_default(current_user: User) -> int:
     return int(getattr(current_user, "atelier_id", None) or 1)
+
+
+def generate_numero_commande(db: Session, atelier_id: int) -> str:
+    """Génère un numéro de commande unique."""
+    import datetime
+
+    today = datetime.datetime.now()
+    prefix = f"CMD-{today.strftime('%Y%m%d')}"
+    count = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.atelier_id == atelier_id,
+        CommandeFournisseur.numero_commande.like(f"{prefix}%"),
+    ).count()
+    return f"{prefix}-{count + 1:03d}"
 
 
 @router.get("/api/pieces")
@@ -439,3 +465,392 @@ def delete_fournisseur(
     fournisseur.is_active = 0
     db.commit()
     return {"message": "Fournisseur supprimé"}
+
+
+@router.get("/api/commandes")
+def get_commandes(
+    statut: Optional[str] = None,
+    fournisseur_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Récupère la liste des commandes fournisseurs."""
+    atelier_id = _atelier_id_or_default(current_user)
+    query = db.query(CommandeFournisseur).filter(CommandeFournisseur.atelier_id == atelier_id)
+
+    if statut:
+        query = query.filter(CommandeFournisseur.statut == statut)
+    if fournisseur_id:
+        query = query.filter(CommandeFournisseur.fournisseur_id == fournisseur_id)
+
+    commandes = query.order_by(CommandeFournisseur.date_commande.desc()).offset(skip).limit(limit).all()
+    return [
+        {
+            "id": cmd.id,
+            "numero_commande": cmd.numero_commande,
+            "fournisseur": {"id": cmd.fournisseur.id, "nom": cmd.fournisseur.nom},
+            "statut": cmd.statut,
+            "date_commande": cmd.date_commande.isoformat() if cmd.date_commande else None,
+            "date_prevue_livraison": cmd.date_prevue_livraison.isoformat() if cmd.date_prevue_livraison else None,
+            "date_reception": cmd.date_reception.isoformat() if cmd.date_reception else None,
+            "total_ht": cmd.total_ht,
+            "total_ttc": cmd.total_ttc,
+            "nb_lignes": len(cmd.lignes),
+            "nb_pieces": sum(l.quantite_demandee for l in cmd.lignes),
+        }
+        for cmd in commandes
+    ]
+
+
+@router.get("/api/commandes/{commande_id}")
+def get_commande(
+    commande_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Récupère les détails d'une commande."""
+    atelier_id = _atelier_id_or_default(current_user)
+    cmd = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.id == commande_id,
+        CommandeFournisseur.atelier_id == atelier_id,
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+
+    return {
+        "id": cmd.id,
+        "numero_commande": cmd.numero_commande,
+        "fournisseur": {
+            "id": cmd.fournisseur.id,
+            "nom": cmd.fournisseur.nom,
+            "telephone": cmd.fournisseur.telephone,
+            "email": cmd.fournisseur.email,
+        },
+        "statut": cmd.statut,
+        "date_commande": cmd.date_commande.isoformat() if cmd.date_commande else None,
+        "date_prevue_livraison": cmd.date_prevue_livraison.isoformat() if cmd.date_prevue_livraison else None,
+        "date_reception": cmd.date_reception.isoformat() if cmd.date_reception else None,
+        "total_ht": cmd.total_ht,
+        "total_ttc": cmd.total_ttc,
+        "notes": cmd.notes,
+        "lignes": [
+            {
+                "id": ligne.id,
+                "piece": {
+                    "id": ligne.piece.id,
+                    "reference": ligne.piece.reference,
+                    "nom": ligne.piece.nom,
+                },
+                "quantite_demandee": ligne.quantite_demandee,
+                "quantite_recue": ligne.quantite_recue,
+                "prix_unitaire_ht": ligne.prix_unitaire_ht,
+                "total_ligne_ht": ligne.quantite_demandee * ligne.prix_unitaire_ht,
+            }
+            for ligne in cmd.lignes
+        ],
+    }
+
+
+@router.post("/api/commandes")
+def create_commande(
+    commande: CommandeFournisseurCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Crée une nouvelle commande fournisseur."""
+    from datetime import datetime, timedelta
+
+    atelier_id = _atelier_id_or_default(current_user)
+    fournisseur = db.query(Fournisseur).filter(
+        Fournisseur.id == commande.fournisseur_id,
+        Fournisseur.atelier_id == atelier_id,
+    ).first()
+    if not fournisseur:
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
+
+    total_ht = sum(ligne.quantite_demandee * ligne.prix_unitaire_ht for ligne in commande.lignes)
+    total_ttc = total_ht * 1.20
+
+    new_commande = CommandeFournisseur(
+        atelier_id=atelier_id,
+        numero_commande=generate_numero_commande(db, atelier_id),
+        fournisseur_id=commande.fournisseur_id,
+        statut="en_attente",
+        date_prevue_livraison=datetime.now() + timedelta(days=fournisseur.delai_livraison_jours or 3),
+        total_ht=total_ht,
+        total_ttc=total_ttc,
+        notes=commande.notes,
+    )
+    db.add(new_commande)
+    db.flush()
+
+    for ligne_data in commande.lignes:
+        piece = db.query(PieceDetachee).filter(
+            PieceDetachee.id == ligne_data.piece_id,
+            PieceDetachee.atelier_id == atelier_id,
+        ).first()
+        if not piece:
+            raise HTTPException(status_code=404, detail=f"Pièce {ligne_data.piece_id} non trouvée")
+
+        ligne = LigneCommandeFournisseur(
+            atelier_id=atelier_id,
+            commande_id=new_commande.id,
+            piece_id=ligne_data.piece_id,
+            quantite_demandee=ligne_data.quantite_demandee,
+            quantite_recue=0,
+            prix_unitaire_ht=ligne_data.prix_unitaire_ht,
+        )
+        db.add(ligne)
+
+    db.commit()
+    db.refresh(new_commande)
+    return {"message": "Commande créée", "id": new_commande.id, "numero": new_commande.numero_commande}
+
+
+@router.put("/api/commandes/{commande_id}")
+def update_commande(
+    commande_id: int,
+    commande_data: CommandeFournisseurUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Met à jour une commande fournisseur."""
+    from datetime import datetime
+
+    atelier_id = _atelier_id_or_default(current_user)
+    cmd = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.id == commande_id,
+        CommandeFournisseur.atelier_id == atelier_id,
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+
+    if commande_data.statut:
+        cmd.statut = commande_data.statut
+        if commande_data.statut == "receptionnee":
+            cmd.date_reception = datetime.now()
+
+    if commande_data.date_prevue_livraison:
+        cmd.date_prevue_livraison = datetime.fromisoformat(commande_data.date_prevue_livraison)
+    if commande_data.notes is not None:
+        cmd.notes = commande_data.notes
+
+    db.commit()
+    db.refresh(cmd)
+    return {"message": "Commande mise à jour", "id": cmd.id}
+
+
+@router.post("/api/commandes/{commande_id}/receptionner")
+def receptionner_commande(
+    commande_id: int,
+    reception: ReceptionCommande,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Réceptionne une commande et met à jour les stocks."""
+    from datetime import datetime
+
+    atelier_id = _atelier_id_or_default(current_user)
+    cmd = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.id == commande_id,
+        CommandeFournisseur.atelier_id == atelier_id,
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    if cmd.statut == "receptionnee":
+        raise HTTPException(status_code=400, detail="Cette commande a déjà été réceptionnée")
+
+    for ligne_reception in reception.lignes:
+        ligne = db.query(LigneCommandeFournisseur).filter(
+            LigneCommandeFournisseur.id == ligne_reception.ligne_id,
+            LigneCommandeFournisseur.commande_id == commande_id,
+            LigneCommandeFournisseur.atelier_id == atelier_id,
+        ).first()
+        if ligne:
+            ligne.quantite_recue = ligne_reception.quantite_recue
+            ligne.piece.quantite_stock += ligne_reception.quantite_recue
+
+    cmd.statut = "receptionnee"
+    cmd.date_reception = datetime.now()
+    db.commit()
+    return {"message": "Commande réceptionnée", "id": cmd.id}
+
+
+@router.delete("/api/commandes/{commande_id}")
+def delete_commande(
+    commande_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Supprime une commande si elle est encore en attente."""
+    atelier_id = _atelier_id_or_default(current_user)
+    cmd = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.id == commande_id,
+        CommandeFournisseur.atelier_id == atelier_id,
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    if cmd.statut != "en_attente":
+        raise HTTPException(status_code=400, detail="Impossible de supprimer une commande déjà validée")
+
+    db.delete(cmd)
+    db.commit()
+    return {"message": "Commande supprimée"}
+
+
+@router.get("/api/rendez-vous/{rdv_id}/pieces")
+def get_pieces_intervention(
+    rdv_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Récupère les pièces utilisées pour une intervention."""
+    atelier_id = _atelier_id_or_default(current_user)
+    rdv = db.query(RendezVous).filter(
+        RendezVous.id == rdv_id,
+        RendezVous.atelier_id == atelier_id,
+    ).first()
+    if not rdv:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+
+    pieces = []
+    total_pieces = 0
+    for util in rdv.pieces_utilisees:
+        total_ligne = util.quantite * (util.prix_vente_unitaire or 0)
+        pieces.append(
+            {
+                "id": util.id,
+                "piece_id": util.piece_id,
+                "reference": util.piece.reference,
+                "nom": util.piece.nom,
+                "quantite": util.quantite,
+                "prix_vente_unitaire": util.prix_vente_unitaire,
+                "total_ligne": total_ligne,
+            }
+        )
+        total_pieces += total_ligne
+
+    return {
+        "rendez_vous_id": rdv_id,
+        "pieces": pieces,
+        "total_pieces": total_pieces,
+        "main_oeuvre": rdv.prix_final - total_pieces if rdv.prix_final else rdv.prix_estime,
+    }
+
+
+@router.post("/api/rendez-vous/{rdv_id}/pieces")
+def add_piece_intervention(
+    rdv_id: int,
+    piece_data: PieceUtiliseeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Ajoute une pièce utilisée pour une intervention."""
+    atelier_id = _atelier_id_or_default(current_user)
+    rdv = db.query(RendezVous).filter(
+        RendezVous.id == rdv_id,
+        RendezVous.atelier_id == atelier_id,
+    ).first()
+    if not rdv:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+
+    piece = db.query(PieceDetachee).filter(
+        PieceDetachee.id == piece_data.piece_id,
+        PieceDetachee.atelier_id == atelier_id,
+    ).first()
+    if not piece:
+        raise HTTPException(status_code=404, detail="Pièce non trouvée")
+    if piece.quantite_stock < piece_data.quantite:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Stock insuffisant. Disponible: {piece.quantite_stock}, Demandé: {piece_data.quantite}",
+        )
+
+    prix_vente = piece_data.prix_vente_unitaire or piece.prix_vente_ht
+    utilisation = PieceUtilisee(
+        rendez_vous_id=rdv_id,
+        piece_id=piece_data.piece_id,
+        quantite=piece_data.quantite,
+        prix_vente_unitaire=prix_vente,
+    )
+    db.add(utilisation)
+    piece.quantite_stock -= piece_data.quantite
+
+    db.commit()
+    db.refresh(utilisation)
+    return {
+        "message": "Pièce ajoutée à l'intervention",
+        "id": utilisation.id,
+        "stock_restant": piece.quantite_stock,
+    }
+
+
+@router.delete("/api/rendez-vous/{rdv_id}/pieces/{utilisation_id}")
+def remove_piece_intervention(
+    rdv_id: int,
+    utilisation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retire une pièce d'une intervention et remet en stock."""
+    atelier_id = _atelier_id_or_default(current_user)
+    utilisation = db.query(PieceUtilisee).filter(
+        PieceUtilisee.id == utilisation_id,
+        PieceUtilisee.rendez_vous_id == rdv_id,
+    ).first()
+    if not utilisation:
+        raise HTTPException(status_code=404, detail="Utilisation non trouvée")
+    if utilisation.rendez_vous.atelier_id != atelier_id:
+        raise HTTPException(status_code=404, detail="Utilisation non trouvée")
+
+    utilisation.piece.quantite_stock += utilisation.quantite
+    db.delete(utilisation)
+    db.commit()
+    return {"message": "Pièce retirée", "stock_restant": utilisation.piece.quantite_stock}
+
+
+@router.get("/api/stats/stock")
+def get_stats_stock(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Statistiques du stock."""
+    from sqlalchemy import func
+
+    atelier_id = _atelier_id_or_default(current_user)
+    total_pieces = db.query(PieceDetachee).filter(
+        PieceDetachee.is_active == 1,
+        PieceDetachee.atelier_id == atelier_id,
+    ).count()
+    stock_bas = db.query(PieceDetachee).filter(
+        PieceDetachee.is_active == 1,
+        PieceDetachee.atelier_id == atelier_id,
+        PieceDetachee.quantite_stock <= PieceDetachee.quantite_minimale,
+    ).count()
+    valeur_stock = db.query(func.sum(
+        PieceDetachee.quantite_stock * PieceDetachee.prix_achat_ht
+    )).filter(
+        PieceDetachee.is_active == 1,
+        PieceDetachee.atelier_id == atelier_id,
+    ).scalar() or 0
+    valeur_vente = db.query(func.sum(
+        PieceDetachee.quantite_stock * PieceDetachee.prix_vente_ht
+    )).filter(
+        PieceDetachee.is_active == 1,
+        PieceDetachee.atelier_id == atelier_id,
+    ).scalar() or 0
+    commandes_en_cours = db.query(CommandeFournisseur).filter(
+        CommandeFournisseur.atelier_id == atelier_id,
+        CommandeFournisseur.statut.in_(["en_attente", "validee", "expediee"]),
+    ).count()
+
+    return {
+        "total_references": total_pieces,
+        "stock_bas": stock_bas,
+        "valeur_stock_ht": round(valeur_stock, 2),
+        "valeur_vente_ht": round(valeur_vente, 2),
+        "marge_potentielle": round(valeur_vente - valeur_stock, 2),
+        "commandes_en_cours": commandes_en_cours,
+    }
