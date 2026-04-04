@@ -8,6 +8,7 @@ from .rendez_vous import (
     RendezVousUpdate,
     VehiculeCreate as RdvVehiculeCreate,
 )
+from .forfaits_mo import ForfaitMOCreate, ForfaitMOUpdate
 from .inventory import (
     CommandeFournisseurCreate,
     CommandeFournisseurUpdate,
@@ -36,6 +37,8 @@ __all__ = [
     "CommandeFournisseurUpdate",
     "ReceptionCommande",
     "PieceUtiliseeCreate",
+    "ForfaitMOCreate",
+    "ForfaitMOUpdate",
     "AbsenceResponse",
     "RendezVousCreate",
     "RendezVousUpdate",
