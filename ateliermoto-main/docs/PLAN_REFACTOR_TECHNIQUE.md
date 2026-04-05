@@ -1,6 +1,6 @@
 # Plan de refactor technique — Atelier Moto Pro
 
-> Mise à jour au **05/04/2026** — état réel du chantier après les correctifs métier et les extractions backend/frontend
+> Mise à jour au **05/04/2026** — clôture de la passe de refactor et nettoyage après validation complète
 
 ## Objectif
 
@@ -36,9 +36,9 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 - cookies d’auth sécurisés et pilotés par variable d’environnement
 - tests critiques enrichis pour verrouiller les régressions principales
 
-### Phase 2 — Démonolithisation backend 🟡 très avancée
+### Phase 2 — Démonolithisation backend ✅ finalisée pour le périmètre actuel
 
-**Déjà extrait de `backend/main.py` :**
+**Extrait et stabilisé hors de `backend/main.py` :**
 - `routes/auth_api.py`
 - `routes/tenant_admin.py`
 - `routes/public_booking.py`
@@ -54,15 +54,15 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 - `services/runtime_migrations.py`
 - ainsi que les modules déjà en place : `clients.py`, `rendez_vous.py`, `workshop.py`
 
-**Cible atteinte en grande partie :**
-- `main.py` joue maintenant surtout le rôle de **composition root**
-- il conserve encore quelques routes publiques / legacy et le startup minimal
+**Résultat atteint :**
+- `main.py` joue désormais pleinement le rôle de **composition root**
+- le bootstrap applicatif est isolé et testable
+- les routes publiques / legacy restantes sont sorties dans des modules dédiés
 
-**Reste à finir :**
-- sortir davantage de logique de migration runtime du démarrage applicatif
-- basculer les évolutions de schéma vers `alembic/`
+**Dette technique restante (non bloquante) :**
+- convertir progressivement les migrations runtime résiduelles en révisions `alembic/`
 
-### Phase 3 — Découpage progressif du frontend 🟡 bien engagé
+### Phase 3 — Découpage progressif du frontend 🟡 structure stabilisée
 
 **Modules déjà présents :**
 - `frontend/app-core.js`
@@ -77,21 +77,26 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 - `frontend/modules/suivi.js`
 - `frontend/modules/workshop.js`
 
-**Reste à lisser :**
+**État actuel :**
+- la structure modulaire est en place et exploitable
+- le refactor backend n’introduit pas de régression UX vérifiée
+
+**Améliorations futures possibles :**
 - réduire les `onclick="..."` inline résiduels
 - limiter les accès globaux à `APP`
 - centraliser les helpers de rendu HTML encore dupliqués
 
-### Phase 4 — Fiabilisation infra et données 🔜
-
-**Sujets encore ouverts :**
-- stockage des signatures dans un volume dédié ou en base
-- poursuite de l’alignement Alembic pour remplacer les migrations runtime historiques
+### Phase 4 — Fiabilisation infra et données ✅ sécurisée pour l’exploitation locale
 
 **Déjà fiabilisé dans cette passe :**
 - scripts `db-backup.sh` / `db-restore.sh` standardisés vers le vrai dossier `backups/`
 - documentation d’exploitation ajoutée dans `docs/OPERATIONS.md`
 - nettoyage du dépôt avec archivage des anciens fichiers plats dans `archive/legacy-root-2026-04-05/`
+- restauration BDD et reprise des logins validées après migration
+
+**Points futurs non bloquants :**
+- stockage des signatures dans un volume dédié ou en base
+- poursuite de l’alignement Alembic pour remplacer les migrations runtime historiques
 
 ### Phase 5 — Tests de non-régression ✅ renforcés
 
@@ -106,15 +111,15 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 
 ---
 
-## Priorités restantes
+## Suite recommandée
 
-### Sprint suivant recommandé
+### Pistes futures non bloquantes
 1. basculer progressivement les migrations runtime restantes vers `alembic/`
 2. fiabiliser la persistance des signatures
 3. poursuivre le nettoyage frontend sans régression UX
 4. maintenir la couverture de non-régression sur les flux critiques
 
 ### Niveau de risque actuel
-- **Métier :** faible à modéré, grâce aux tests de régression ajoutés
-- **Structure backend :** en nette amélioration
-- **Infra / exploitation :** encore quelques points à fiabiliser
+- **Métier :** faible
+- **Structure backend :** faible, la base de composition est désormais propre
+- **Infra / exploitation :** faible à modéré uniquement sur les sujets signatures/Alembic
