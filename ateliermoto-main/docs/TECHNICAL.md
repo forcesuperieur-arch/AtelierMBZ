@@ -43,15 +43,18 @@
 
 ### Structure des fichiers
 
+> `backend/main.py` sert désormais surtout de **composition root** (app FastAPI, middlewares, `include_router(...)`, service SPA). Les tâches de bootstrap/runtime legacy encore nécessaires sont regroupées dans `backend/startup_tasks.py` en attendant leur bascule progressive vers Alembic.
+
 ```text
 backend/
-├── main.py                  # Composition root FastAPI + quelques routes legacy/public
+├── main.py                  # Composition root FastAPI + middlewares + SPA/static
 ├── models.py                # Modèles SQLAlchemy
 ├── auth.py                  # Auth de base / helpers JWT
 ├── config_api.py            # Routes /api/config/*
 ├── statistiques.py          # Routes /api/statistiques/*
 ├── facturation_api.py       # Facturation / paiements / PDF
 ├── tarifs_api.py            # Tarifs historiques / créneaux
+├── startup_tasks.py         # Bootstrap runtime temporaire / backfills idempotents
 ├── services/
 │   └── pdf_service.py       # Génération PDF OR / facture
 └── routes/
