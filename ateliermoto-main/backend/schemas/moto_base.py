@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CategorieMotoCreate(BaseModel):
@@ -14,8 +14,7 @@ class CategorieMotoResponse(BaseModel):
     description: Optional[str]
     nb_modeles: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModeleMotoCreate(BaseModel):
@@ -41,8 +40,7 @@ class ModeleMotoResponse(BaseModel):
     annee_fin: Optional[int]
     annees_display: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModeleMotoUpdate(BaseModel):

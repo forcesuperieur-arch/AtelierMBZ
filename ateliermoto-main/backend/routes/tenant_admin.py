@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
@@ -44,8 +44,7 @@ class UserResponse(BaseModel):
     atelier_id: Optional[int] = None
     mecanicien: Optional[dict] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserAtelierRoleCreate(BaseModel):

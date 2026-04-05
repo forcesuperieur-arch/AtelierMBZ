@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 import re
 
@@ -204,8 +204,7 @@ class ConfigAtelierSchema(BaseModel):
     validite_devis_jours: int
     accompte_pourcentage: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ConfigAtelierUpdate(BaseModel):
@@ -231,8 +230,7 @@ class HoraireAtelierSchema(BaseModel):
     pause_fin: Optional[str]
     is_ouvert: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HoraireAtelierUpdate(BaseModel):
@@ -250,8 +248,7 @@ class TempsInterventionSchema(BaseModel):
     temps_minutes: int
     coefficient_difficulte: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TempsInterventionCreate(BaseModel):
@@ -268,8 +265,7 @@ class PontEquipementSchema(BaseModel):
     description: Optional[str]
     is_present: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PontEquipementCreate(BaseModel):
