@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 import os
 import logging
 
 import httpx
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,9 +21,62 @@ from models import (
     Prestation,
     RendezVous,
     Vehicule,
+    get_db,
 )
 
 logger = logging.getLogger("ateliermoto.api")
+router = APIRouter(tags=["public-booking"])
+
+
+class RendezVousPublicCreate(BaseModel):
+    client: dict
+    vehicule: dict
+    prestations: List[int]
+    date_heure: str
+    montant_estime: float
+    commentaires: Optional[str] = None
+    pont_id: Optional[int] = None
+    atelier_slug: Optional[str] = None
+
+
+@router.get("/api/prestations/public")
+def get_prestations_public(
+    atelier_slug: Optional[str] = "default",
+    db: Session = Depends(get_db),
+):
+    """Liste les prestations actives avec grille tarifaire par type moto (sans auth)."""
+    return get_prestations_public_handler(atelier_slug, db)
+
+
+@router.post("/api/rendez-vous/public")
+def create_rendez_vous_public(
+    rdv_data: RendezVousPublicCreate,
+    db: Session = Depends(get_db),
+):
+    """Crée un rendez-vous depuis l'interface publique (sans authentification)."""
+    return create_rendez_vous_public_handler(rdv_data, db)
+
+
+@router.get("/api/creneaux/disponibles")
+def get_creneaux_disponibles(
+    date_str: str,
+    duree_minutes: int = 60,
+    atelier_slug: Optional[str] = "default",
+    db: Session = Depends(get_db),
+):
+    """Récupère les créneaux disponibles pour une date donnée avec gestion des absences."""
+    return get_creneaux_disponibles_handler(date_str, duree_minutes, atelier_slug, db)
+
+
+@router.get("/api/creneaux/avec-ponts")
+def get_creneaux_avec_ponts(
+    date_str: str,
+    duree_minutes: int = 60,
+    atelier_slug: Optional[str] = "default",
+    db: Session = Depends(get_db),
+):
+    """Récupère les créneaux disponibles avec les ponts spécifiques libres."""
+    return get_creneaux_avec_ponts_handler(date_str, duree_minutes, atelier_slug, db)
 
 
 def _resolve_atelier(db: Session, atelier_slug: Optional[str] = "default") -> Atelier:

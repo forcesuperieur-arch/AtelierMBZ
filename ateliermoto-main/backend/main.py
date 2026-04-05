@@ -49,12 +49,7 @@ from facturation_api import router as facturation_router
 from routes.auth_api import _get_role_permissions, router as auth_router, user_has_permission
 from routes.tenant_admin import router as tenant_admin_router
 from services.pdf_service import generate_ordre_reparation_pdf, generate_facture_pdf
-from routes.public_booking import (
-    create_rendez_vous_public_handler,
-    get_creneaux_avec_ponts_handler,
-    get_creneaux_disponibles_handler,
-    get_prestations_public_handler,
-)
+from routes.public_booking import router as public_booking_router
 
 app = FastAPI(title="Atelier Moto API Pro", version="2.0.0")
 
@@ -111,23 +106,6 @@ async def log_requests(request: Request, call_next):
         duration_ms
     )
     return response
-
-
-def _resolve_target_atelier_id_for_config(
-    db: Session,
-    current_user: User,
-    atelier_id: Optional[int] = None
-) -> int:
-    """Resolve atelier scope for config endpoints.
-    - super_admin can target any existing atelier via query param
-    - other roles are restricted to their own atelier
-    """
-    if current_user.role == "super_admin" and atelier_id is not None:
-        target = db.query(Atelier.id).filter(Atelier.id == atelier_id).first()
-        if not target:
-            raise HTTPException(status_code=404, detail="Atelier non trouvé")
-        return int(atelier_id)
-    return int(getattr(current_user, "atelier_id", None) or 1)
 
 
 @app.get("/api/health")
@@ -661,227 +639,10 @@ app.include_router(clients_router)
 # ========== AUTHENTIFICATION / ADMIN / MULTI-ATELIER ==========
 # Routes extraites vers `routes/auth_api.py` et `routes/tenant_admin.py`.
 
-# ========== INTERVENTIONS ==========
-
-@app.get("/api/interventions")
-def get_interventions(db: Session = Depends(get_db)):
-    """Backward-compat: retourne les Prestations au format InterventionType"""
-    prestations = db.query(Prestation).filter(Prestation.is_active == 1).order_by(Prestation.categorie, Prestation.nom).all()
-    return [{
-        "id": p.id,
-        "nom": p.nom,
-        "description": p.description,
-        "prix_base": p.prix_base_ttc or 0,
-        "temps_estime": p.temps_estime_minutes or 30
-    } for p in prestations]
-
-
-@app.get("/api/prestations/public")
-def get_prestations_public(atelier_slug: Optional[str] = "default", db: Session = Depends(get_db)):
-    """Liste les prestations actives avec grille tarifaire par type moto (sans auth)"""
-    return get_prestations_public_handler(atelier_slug, db)
-
-
-@app.get("/api/config/prestations")
-def get_config_prestations(
-    atelier_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Liste toutes les prestations avec grille complete (admin)"""
-    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
-    prestations = db.query(Prestation).filter(
-        Prestation.atelier_id == target_atelier_id
-    ).order_by(Prestation.categorie, Prestation.nom).all()
-
-    # Charger grilles
-    grilles = db.query(GrilleTarifaire, CategorieMoto.nom).outerjoin(
-        CategorieMoto, GrilleTarifaire.categorie_moto_id == CategorieMoto.id
-    ).filter(
-        GrilleTarifaire.is_active == 1,
-        GrilleTarifaire.categorie_moto_id.isnot(None),
-        GrilleTarifaire.atelier_id == target_atelier_id
-    ).all()
-
-    grilles_par_presta = {}
-    for g, cat_nom in grilles:
-        if g.prestation_id not in grilles_par_presta:
-            grilles_par_presta[g.prestation_id] = {}
-        grilles_par_presta[g.prestation_id][cat_nom] = {
-            "id": g.id,
-            "categorie_moto_id": g.categorie_moto_id,
-            "prix_ht": g.prix_ht,
-            "prix_ttc": g.prix_ttc,
-            "temps_minutes": g.temps_minutes
-        }
-
-    return [{
-        "id": p.id,
-        "code": p.code,
-        "nom": p.nom,
-        "description": p.description,
-        "categorie": p.categorie,
-        "sous_categorie": p.sous_categorie,
-        "prix_base_ht": p.prix_base_ht,
-        "prix_base_ttc": p.prix_base_ttc,
-        "temps_estime_minutes": p.temps_estime_minutes,
-        "type_tarif": p.type_tarif,
-        "taux_horaire_applique": p.taux_horaire_applique,
-        "is_active": p.is_active,
-        "is_forfait": p.is_forfait,
-        "is_promo": p.is_promo,
-        "prix_promo_ttc": p.prix_promo_ttc,
-        "grille": grilles_par_presta.get(p.id, {})
-    } for p in prestations]
-
-
-class PrestationCreate(BaseModel):
-    code: str
-    nom: str
-    description: Optional[str] = None
-    categorie: str = "entretien"
-    sous_categorie: Optional[str] = None
-    prix_base_ht: float
-    prix_base_ttc: float
-    temps_estime_minutes: int = 30
-    type_tarif: str = "forfait"
-    taux_horaire_applique: str = "standard"
-    is_forfait: int = 0
-
-
-class PrestationUpdate(BaseModel):
-    code: Optional[str] = None
-    nom: Optional[str] = None
-    description: Optional[str] = None
-    categorie: Optional[str] = None
-    sous_categorie: Optional[str] = None
-    prix_base_ht: Optional[float] = None
-    prix_base_ttc: Optional[float] = None
-    temps_estime_minutes: Optional[int] = None
-    type_tarif: Optional[str] = None
-    taux_horaire_applique: Optional[str] = None
-    is_forfait: Optional[int] = None
-    is_active: Optional[int] = None
-    is_promo: Optional[int] = None
-    prix_promo_ttc: Optional[float] = None
-
-
-@app.post("/api/config/prestations")
-def create_config_prestation(
-    data: PrestationCreate,
-    atelier_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Creer une nouvelle prestation (admin)"""
-    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
-    existing = db.query(Prestation).filter(Prestation.code == data.code).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Ce code prestation existe deja")
-    new_presta = Prestation(**data.dict(), atelier_id=target_atelier_id)
-    db.add(new_presta)
-    db.commit()
-    db.refresh(new_presta)
-    return {"id": new_presta.id, "message": "Prestation creee"}
-
-
-@app.put("/api/config/prestations/{prestation_id}")
-def update_config_prestation(
-    prestation_id: int,
-    data: PrestationUpdate,
-    atelier_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Modifier une prestation (admin)"""
-    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
-    presta = db.query(Prestation).filter(
-        Prestation.id == prestation_id,
-        Prestation.atelier_id == target_atelier_id
-    ).first()
-    if not presta:
-        raise HTTPException(status_code=404, detail="Prestation non trouvee")
-    for field, value in data.dict(exclude_unset=True).items():
-        setattr(presta, field, value)
-    db.commit()
-    return {"message": "Prestation modifiee"}
-
-
-@app.delete("/api/config/prestations/{prestation_id}")
-def delete_config_prestation(
-    prestation_id: int,
-    atelier_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Desactiver une prestation (admin)"""
-    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
-    presta = db.query(Prestation).filter(
-        Prestation.id == prestation_id,
-        Prestation.atelier_id == target_atelier_id
-    ).first()
-    if not presta:
-        raise HTTPException(status_code=404, detail="Prestation non trouvee")
-    presta.is_active = 0
-    db.commit()
-    return {"message": "Prestation desactivee"}
-
-
-class GrilleEntry(BaseModel):
-    categorie_moto_id: int
-    prix_ttc: float
-    prix_ht: float
-    temps_minutes: int
-
-
-class GrilleBulkUpdate(BaseModel):
-    entries: List[GrilleEntry]
-
-
-@app.put("/api/config/prestations/{prestation_id}/grille")
-def update_grille_prestation(
-    prestation_id: int,
-    data: GrilleBulkUpdate,
-    atelier_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Sauver la grille prix par type moto pour une prestation (bulk upsert)"""
-    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
-    presta = db.query(Prestation).filter(
-        Prestation.id == prestation_id,
-        Prestation.atelier_id == target_atelier_id
-    ).first()
-    if not presta:
-        raise HTTPException(status_code=404, detail="Prestation non trouvee")
-
-    for entry in data.entries:
-        existing = db.query(GrilleTarifaire).filter(
-            GrilleTarifaire.prestation_id == prestation_id,
-            GrilleTarifaire.categorie_moto_id == entry.categorie_moto_id,
-            GrilleTarifaire.atelier_id == target_atelier_id,
-            GrilleTarifaire.is_active == 1
-        ).first()
-
-        if existing:
-            existing.prix_ttc = entry.prix_ttc
-            existing.prix_ht = entry.prix_ht
-            existing.temps_minutes = entry.temps_minutes
-        else:
-            new_grille = GrilleTarifaire(
-                atelier_id=target_atelier_id,
-                prestation_id=prestation_id,
-                categorie_moto_id=entry.categorie_moto_id,
-                prix_ht=entry.prix_ht,
-                prix_ttc=entry.prix_ttc,
-                temps_minutes=entry.temps_minutes,
-                delai_jours=presta.delai_intervention_jours or 1,
-                is_active=1
-            )
-            db.add(new_grille)
-
-    db.commit()
-    return {"message": "Grille tarifaire mise a jour"}
+# ========== INTERVENTIONS / PRESTATIONS PUBLIQUES ==========
+# Les endpoints `/api/interventions`, `/api/prestations/public` et
+# `/api/config/prestations*` sont désormais centralisés dans
+# `routes.prestations_tarifs` et `routes.public_booking`.
 
 # ========== PONTS / MÉCANICIENS / ABSENCES / PLANNING ==========
 from routes.workshop import router as workshop_router
@@ -913,32 +674,15 @@ app.include_router(travaux_supp_router)
 
 from routes.prestations_tarifs import router as prestations_tarifs_router
 app.include_router(prestations_tarifs_router)
+app.include_router(public_booking_router)
 
 
 # ========== ENDPOINTS CONFIGURATION ATELIER ==========
 # Les routes configuration sont désormais centralisées dans `config_api.py`.
 
 
-@app.get("/api/config/taux-mo")
-def get_taux_mo(
-    db: Session = Depends(get_db)
-):
-    """Récupère les taux horaires MO (public pour calculs frontend)."""
-    config = db.query(ConfigAtelier).first()
-    if not config:
-        return {
-            "standard": 65.0,
-            "complexe": 85.0,
-            "expert": 95.0,
-            "minimum": 25.0,
-        }
-
-    return {
-        "standard": config.taux_horaire_mo_standard,
-        "complexe": config.taux_horaire_mo_complexe,
-        "expert": config.taux_horaire_mo_expert,
-        "minimum": config.forfait_mo_minimum,
-    }
+# La route publique `/api/config/taux-mo` est désormais gérée par
+# `routes.prestations_tarifs`.
 
 
 # ========== ENDPOINTS DEVIS ==========
@@ -946,99 +690,12 @@ from routes.devis import router as devis_router
 app.include_router(devis_router)
 
 
-# ==================== ENDPOINTS PUBLICS (sans auth) ====================
-
-class RendezVousPublicCreate(BaseModel):
-    client: dict
-    vehicule: dict
-    prestations: List[int]
-    date_heure: str
-    montant_estime: float
-    commentaires: Optional[str] = None
-    pont_id: Optional[int] = None
-    atelier_slug: Optional[str] = None
-
-@app.post("/api/rendez-vous/public")
-def create_rendez_vous_public(
-    rdv_data: RendezVousPublicCreate,
-    db: Session = Depends(get_db)
-):
-    """Crée un rendez-vous depuis l'interface publique (sans authentification)"""
-    return create_rendez_vous_public_handler(rdv_data, db)
-
-
-@app.get("/api/creneaux/disponibles")
-def get_creneaux_disponibles(
-    date_str: str,
-    duree_minutes: int = 60,
-    atelier_slug: Optional[str] = "default",
-    db: Session = Depends(get_db)
-):
-    """Récupère les créneaux disponibles pour une date donnée avec gestion des absences"""
-    return get_creneaux_disponibles_handler(date_str, duree_minutes, atelier_slug, db)
-
-
-@app.get("/api/creneaux/avec-ponts")
-def get_creneaux_avec_ponts(
-    date_str: str,
-    duree_minutes: int = 60,
-    atelier_slug: Optional[str] = "default",
-    db: Session = Depends(get_db)
-):
-    """Récupère les créneaux disponibles avec les ponts spécifiques libres, en tenant compte de la durée des RDV"""
-    return get_creneaux_avec_ponts_handler(date_str, duree_minutes, atelier_slug, db)
+# ==================== ENDPOINTS PUBLICS / TARIFS ====================
+# Les endpoints publics de prise de rendez-vous sont désormais
+# centralisés dans `routes.public_booking`.
 
 
 # ==================== ENDPOINTS GESTION DES TARIFS ====================
-
-# Modèles Pydantic pour les tarifs
-class PrestationCreate(BaseModel):
-    code: str
-    nom: str
-    description: Optional[str] = None
-    categorie: str = "entretien"
-    sous_categorie: Optional[str] = None
-    prix_base_ht: float = 0.0
-    prix_base_ttc: float = 0.0
-    temps_estime_minutes: int = 30
-    delai_intervention_jours: int = 1
-    type_tarif: str = "forfait"
-    taux_horaire_applique: str = "standard"
-    type_vehicule: str = "tous"
-    cylindree_min: Optional[int] = None
-    cylindree_max: Optional[int] = None
-    is_forfait: int = 0
-    inclut_pieces: int = 0
-    description_pieces_incluses: Optional[str] = None
-    cout_pieces_incluses_ht: float = 0.0
-    marge_pieces_pourcent: float = 30.0
-
-
-class PrestationUpdate(BaseModel):
-    code: Optional[str] = None
-    nom: Optional[str] = None
-    description: Optional[str] = None
-    categorie: Optional[str] = None
-    sous_categorie: Optional[str] = None
-    prix_base_ht: Optional[float] = None
-    prix_base_ttc: Optional[float] = None
-    temps_estime_minutes: Optional[int] = None
-    delai_intervention_jours: Optional[int] = None
-    type_tarif: Optional[str] = None
-    taux_horaire_applique: Optional[str] = None
-    type_vehicule: Optional[str] = None
-    cylindree_min: Optional[int] = None
-    cylindree_max: Optional[int] = None
-    is_active: Optional[int] = None
-    is_forfait: Optional[int] = None
-    is_promo: Optional[int] = None
-    prix_promo_ttc: Optional[float] = None
-    inclut_pieces: Optional[int] = None
-    description_pieces_incluses: Optional[str] = None
-    cout_pieces_incluses_ht: Optional[float] = None
-    marge_pieces_pourcent: Optional[float] = None
-
-
 # Les endpoints `api/prestations`, `api/grilles-tarifaires` et la synthèse tarifaire
 # sont désormais centralisés dans `routes.prestations_tarifs`.
 

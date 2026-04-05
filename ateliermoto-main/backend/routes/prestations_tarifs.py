@@ -6,10 +6,33 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
-from models import ConfigAtelier, ForfaitMO, GrilleTarifaire, PieceDetachee, Prestation, User, get_db
+from models import (
+    Atelier,
+    CategorieMoto,
+    ConfigAtelier,
+    ForfaitMO,
+    GrilleTarifaire,
+    PieceDetachee,
+    Prestation,
+    User,
+    get_db,
+)
 from routes.public_booking import get_delais_intervention_handler
 
 router = APIRouter(tags=["prestations-tarifs"])
+
+
+def _resolve_target_atelier_id_for_config(
+    db: Session,
+    current_user: User,
+    atelier_id: Optional[int] = None,
+) -> int:
+    if current_user.role == "super_admin" and atelier_id is not None:
+        target = db.query(Atelier.id).filter(Atelier.id == atelier_id).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Atelier non trouvé")
+        return int(atelier_id)
+    return int(getattr(current_user, "atelier_id", None) or 1)
 
 
 class PrestationCreate(BaseModel):
@@ -75,6 +98,217 @@ class CalculDetailleRequest(BaseModel):
     pieces: List[dict]  # [{"piece_id": 1, "quantite": 2, "prix_achat_ht": 50.0}]
     marge_pieces_pourcent: Optional[float] = 30.0
     remise_pourcent: Optional[float] = 0.0
+
+
+class GrilleEntry(BaseModel):
+    categorie_moto_id: int
+    prix_ttc: float
+    prix_ht: float
+    temps_minutes: int
+
+
+class GrilleBulkUpdate(BaseModel):
+    entries: List[GrilleEntry]
+
+
+@router.get("/api/interventions")
+def get_interventions(db: Session = Depends(get_db)):
+    """Backward-compat: retourne les prestations au format InterventionType."""
+    prestations = db.query(Prestation).filter(Prestation.is_active == 1).order_by(Prestation.categorie, Prestation.nom).all()
+    return [
+        {
+            "id": prestation.id,
+            "nom": prestation.nom,
+            "description": prestation.description,
+            "prix_base": prestation.prix_base_ttc or 0,
+            "temps_estime": prestation.temps_estime_minutes or 30,
+        }
+        for prestation in prestations
+    ]
+
+
+@router.get("/api/config/prestations")
+def get_config_prestations(
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Liste toutes les prestations avec grille complète (admin)."""
+    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
+    prestations = db.query(Prestation).filter(
+        Prestation.atelier_id == target_atelier_id,
+    ).order_by(Prestation.categorie, Prestation.nom).all()
+
+    grilles = db.query(GrilleTarifaire, CategorieMoto.nom).outerjoin(
+        CategorieMoto, GrilleTarifaire.categorie_moto_id == CategorieMoto.id,
+    ).filter(
+        GrilleTarifaire.is_active == 1,
+        GrilleTarifaire.categorie_moto_id.isnot(None),
+        GrilleTarifaire.atelier_id == target_atelier_id,
+    ).all()
+
+    grilles_par_presta = {}
+    for grille, cat_nom in grilles:
+        grilles_par_presta.setdefault(grille.prestation_id, {})[cat_nom] = {
+            "id": grille.id,
+            "categorie_moto_id": grille.categorie_moto_id,
+            "prix_ht": grille.prix_ht,
+            "prix_ttc": grille.prix_ttc,
+            "temps_minutes": grille.temps_minutes,
+        }
+
+    return [
+        {
+            "id": prestation.id,
+            "code": prestation.code,
+            "nom": prestation.nom,
+            "description": prestation.description,
+            "categorie": prestation.categorie,
+            "sous_categorie": prestation.sous_categorie,
+            "prix_base_ht": prestation.prix_base_ht,
+            "prix_base_ttc": prestation.prix_base_ttc,
+            "temps_estime_minutes": prestation.temps_estime_minutes,
+            "type_tarif": prestation.type_tarif,
+            "taux_horaire_applique": prestation.taux_horaire_applique,
+            "is_active": prestation.is_active,
+            "is_forfait": prestation.is_forfait,
+            "is_promo": prestation.is_promo,
+            "prix_promo_ttc": prestation.prix_promo_ttc,
+            "grille": grilles_par_presta.get(prestation.id, {}),
+        }
+        for prestation in prestations
+    ]
+
+
+@router.post("/api/config/prestations")
+def create_config_prestation(
+    data: PrestationCreate,
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Crée une nouvelle prestation (admin)."""
+    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
+    existing = db.query(Prestation).filter(Prestation.code == data.code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce code prestation existe déjà")
+
+    new_presta = Prestation(**data.model_dump(), atelier_id=target_atelier_id)
+    db.add(new_presta)
+    db.commit()
+    db.refresh(new_presta)
+    return {"id": new_presta.id, "message": "Prestation créée"}
+
+
+@router.put("/api/config/prestations/{prestation_id}")
+def update_config_prestation(
+    prestation_id: int,
+    data: PrestationUpdate,
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Modifie une prestation (admin)."""
+    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
+    prestation = db.query(Prestation).filter(
+        Prestation.id == prestation_id,
+        Prestation.atelier_id == target_atelier_id,
+    ).first()
+    if not prestation:
+        raise HTTPException(status_code=404, detail="Prestation non trouvée")
+
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(prestation, field, value)
+    db.commit()
+    return {"message": "Prestation modifiée"}
+
+
+@router.delete("/api/config/prestations/{prestation_id}")
+def delete_config_prestation(
+    prestation_id: int,
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Désactive une prestation (admin)."""
+    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
+    prestation = db.query(Prestation).filter(
+        Prestation.id == prestation_id,
+        Prestation.atelier_id == target_atelier_id,
+    ).first()
+    if not prestation:
+        raise HTTPException(status_code=404, detail="Prestation non trouvée")
+
+    prestation.is_active = 0
+    db.commit()
+    return {"message": "Prestation désactivée"}
+
+
+@router.put("/api/config/prestations/{prestation_id}/grille")
+def update_grille_prestation(
+    prestation_id: int,
+    data: GrilleBulkUpdate,
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Sauve la grille prix par type moto pour une prestation (bulk upsert)."""
+    target_atelier_id = _resolve_target_atelier_id_for_config(db, current_user, atelier_id)
+    prestation = db.query(Prestation).filter(
+        Prestation.id == prestation_id,
+        Prestation.atelier_id == target_atelier_id,
+    ).first()
+    if not prestation:
+        raise HTTPException(status_code=404, detail="Prestation non trouvée")
+
+    for entry in data.entries:
+        existing = db.query(GrilleTarifaire).filter(
+            GrilleTarifaire.prestation_id == prestation_id,
+            GrilleTarifaire.categorie_moto_id == entry.categorie_moto_id,
+            GrilleTarifaire.atelier_id == target_atelier_id,
+            GrilleTarifaire.is_active == 1,
+        ).first()
+
+        if existing:
+            existing.prix_ttc = entry.prix_ttc
+            existing.prix_ht = entry.prix_ht
+            existing.temps_minutes = entry.temps_minutes
+        else:
+            db.add(
+                GrilleTarifaire(
+                    atelier_id=target_atelier_id,
+                    prestation_id=prestation_id,
+                    categorie_moto_id=entry.categorie_moto_id,
+                    prix_ht=entry.prix_ht,
+                    prix_ttc=entry.prix_ttc,
+                    temps_minutes=entry.temps_minutes,
+                    delai_jours=prestation.delai_intervention_jours or 1,
+                    is_active=1,
+                )
+            )
+
+    db.commit()
+    return {"message": "Grille tarifaire mise à jour"}
+
+
+@router.get("/api/config/taux-mo")
+def get_taux_mo(db: Session = Depends(get_db)):
+    """Récupère les taux horaires MO (public pour calculs frontend)."""
+    config = db.query(ConfigAtelier).first()
+    if not config:
+        return {
+            "standard": 65.0,
+            "complexe": 85.0,
+            "expert": 95.0,
+            "minimum": 25.0,
+        }
+
+    return {
+        "standard": config.taux_horaire_mo_standard,
+        "complexe": config.taux_horaire_mo_complexe,
+        "expert": config.taux_horaire_mo_expert,
+        "minimum": config.forfait_mo_minimum,
+    }
 
 
 @router.get("/api/prestations")
