@@ -63,7 +63,7 @@ def create_categorie_moto(
     if existing:
         raise HTTPException(status_code=400, detail="Cette catégorie existe déjà")
 
-    new_categorie = CategorieMoto(**categorie.dict())
+    new_categorie = CategorieMoto(**categorie.model_dump())
     db.add(new_categorie)
     db.commit()
     db.refresh(new_categorie)
@@ -152,7 +152,7 @@ def create_modele_moto(
     if existing:
         raise HTTPException(status_code=400, detail="Ce modèle existe déjà dans cette catégorie")
 
-    new_modele = ModeleMoto(**modele.dict())
+    new_modele = ModeleMoto(**modele.model_dump())
     db.add(new_modele)
     db.commit()
     db.refresh(new_modele)
@@ -176,7 +176,7 @@ def update_modele_moto(
         if not categorie:
             raise HTTPException(status_code=404, detail="Catégorie non trouvée")
 
-    for field, value in modele_data.dict(exclude_unset=True).items():
+    for field, value in modele_data.model_dump(exclude_unset=True).items():
         setattr(modele, field, value)
 
     db.commit()

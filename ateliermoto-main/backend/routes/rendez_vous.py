@@ -193,7 +193,7 @@ def create_rendez_vous(
     atelier_id = _atelier_id_or_403(current_user) if current_user else 1
     client_db = db.query(Client).filter(Client.telephone == rdv.client.telephone, Client.atelier_id == atelier_id).first()
     if not client_db:
-        client_db = Client(**rdv.client.dict(), atelier_id=atelier_id)
+        client_db = Client(**rdv.client.model_dump(), atelier_id=atelier_id)
         db.add(client_db)
         db.flush()
     
@@ -204,7 +204,7 @@ def create_rendez_vous(
     ).first()
     
     if not vehicule_db:
-        vehicule_db = Vehicule(**rdv.vehicule.dict(), client_id=client_db.id, atelier_id=atelier_id)
+        vehicule_db = Vehicule(**rdv.vehicule.model_dump(), client_id=client_db.id, atelier_id=atelier_id)
         db.add(vehicule_db)
         db.flush()
     else:

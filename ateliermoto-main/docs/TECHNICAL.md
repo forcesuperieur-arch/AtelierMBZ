@@ -43,7 +43,7 @@
 
 ### Structure des fichiers
 
-> `backend/main.py` sert désormais surtout de **composition root** (app FastAPI, middlewares, `include_router(...)`, service SPA). Les tâches de bootstrap/runtime legacy encore nécessaires sont regroupées dans `backend/startup_tasks.py` en attendant leur bascule progressive vers Alembic.
+> `backend/main.py` sert désormais surtout de **composition root** (app FastAPI, middlewares, `include_router(...)`, service SPA) et orchestre le démarrage via **FastAPI `lifespan`**. Les tâches de bootstrap/runtime legacy encore nécessaires sont regroupées dans `backend/startup_tasks.py` en attendant leur bascule progressive vers Alembic.
 
 ```text
 backend/

@@ -186,9 +186,8 @@ class TestCriticalRoutesPublic:
 
 class TestCriticalRoutesRendezVous:
     """Tests critiques pour les routes de rendez-vous"""
-    
-    def test_create_rendez_vous_route(self):
-        """Test la route de création de RDV"""
+
+    def _create_rendez_vous_route(self):
         rdv_data = {
             "client": {"nom": "Test", "prenom": "Route", "telephone": "0600000000"},
             "vehicule": {"plaque": "ROUTE01", "marque": "YAMAHA", "modele": "MT"},
@@ -196,17 +195,22 @@ class TestCriticalRoutesRendezVous:
             "heure_rdv": "10:00:00",
             "type_intervention": "Révision"
         }
-        
+
         response = client.post("/api/rendez-vous", json=rdv_data)
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
         return data["id"]
-    
+
+    def test_create_rendez_vous_route(self):
+        """Test la route de création de RDV"""
+        rdv_id = self._create_rendez_vous_route()
+        assert isinstance(rdv_id, int)
+
     def test_get_rendez_vous_route(self):
         """Test la route de récupération d'un RDV"""
         # Créer un RDV d'abord
-        rdv_id = self.test_create_rendez_vous_route()
+        rdv_id = self._create_rendez_vous_route()
         
         response = client.get(f"/api/rendez-vous/{rdv_id}")
         assert response.status_code == 200
@@ -215,7 +219,7 @@ class TestCriticalRoutesRendezVous:
     
     def test_update_rendez_vous_route(self, auth_token):
         """Test la route de mise à jour d'un RDV"""
-        rdv_id = self.test_create_rendez_vous_route()
+        rdv_id = self._create_rendez_vous_route()
         
         update_data = {"statut": "confirme", "kilometrage": 5000}
         response = client.put(

@@ -1,17 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
-from pydantic import BaseModel
-import json
-from typing import Optional, List
-from datetime import datetime, date, time, timedelta
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
-from sqlalchemy.exc import OperationalError
+from contextlib import asynccontextmanager
+import logging
 import os
 import time as time_module
-import logging
+
 from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -28,22 +24,7 @@ COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").strip().lower()
 if COOKIE_SAMESITE not in {"lax", "strict", "none"}:
     COOKIE_SAMESITE = "lax"
 
-from models import (
-    get_db, init_db, SessionLocal,
-    Atelier,
-    Client, Vehicule, RendezVous, User,
-    Pont, Mecanicien, Absence, PieceDetachee, Fournisseur,
-    CommandeFournisseur, LigneCommandeFournisseur, PieceUtilisee,
-    ConfigAtelier, ForfaitMO,
-    Prestation, GrilleTarifaire, CalculTarif, GrilleTarifs,
-    CategorieMoto, ModeleMoto, AtelierCategorieMoto, RapportTechnicien,
-    TempsIntervention, HoraireAtelier, PontEquipement,
-    DemandeTravauxSupp, OrdreReparation,
-    Facture, LigneFacture, Paiement
-)
-from auth import get_current_user, create_default_users
-from seed import init_intervention_types, init_base_moto, init_prestations
-from seed_parametres import init_parametres
+from models import SessionLocal, init_db
 from statistiques import router as statistiques_router
 from facturation_api import router as facturation_router
 from routes.auth_api import _get_role_permissions, router as auth_router, user_has_permission
@@ -52,7 +33,18 @@ from services.pdf_service import generate_ordre_reparation_pdf, generate_facture
 from routes.public_booking import router as public_booking_router
 from startup_tasks import run_startup_tasks
 
-app = FastAPI(title="Atelier Moto API Pro", version="2.0.0")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    db = SessionLocal()
+    try:
+        run_startup_tasks(db)
+        yield
+    finally:
+        db.close()
+
+
+app = FastAPI(title="Atelier Moto API Pro", version="2.0.0", lifespan=lifespan)
 
 # Inclusion du router statistiques
 app.include_router(statistiques_router)
@@ -143,20 +135,7 @@ from schemas.forfaits_mo import ForfaitMOCreate, ForfaitMOUpdate
 # Les schémas et routes devis sont désormais centralisés dans `routes.devis`.
 
 
-# Initialisation au démarrage
-@app.on_event("startup")
-def startup_event():
-    init_db()
-    db = SessionLocal()
-    try:
-        run_startup_tasks(db)
-    finally:
-        db.close()
-
 # Servir les fichiers statiques
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-import os
 
 # Déterminer le chemin des fichiers statiques
 static_dir = os.getenv("STATIC_DIR")

@@ -233,7 +233,7 @@ def create_piece(
     if existing:
         raise HTTPException(status_code=400, detail="Une pièce avec cette référence existe déjà")
 
-    new_piece = PieceDetachee(**piece.dict(), atelier_id=atelier_id)
+    new_piece = PieceDetachee(**piece.model_dump(), atelier_id=atelier_id)
     db.add(new_piece)
     db.commit()
     db.refresh(new_piece)
@@ -265,7 +265,7 @@ def update_piece(
         if existing:
             raise HTTPException(status_code=400, detail="Une pièce avec cette référence existe déjà")
 
-    for key, value in piece_data.dict(exclude_unset=True).items():
+    for key, value in piece_data.model_dump(exclude_unset=True).items():
         setattr(piece, key, value)
 
     db.commit()
@@ -416,7 +416,7 @@ def create_fournisseur(
 ):
     """Crée un nouveau fournisseur."""
     atelier_id = _atelier_id_or_default(current_user)
-    new_fournisseur = Fournisseur(**fournisseur.dict(), atelier_id=atelier_id)
+    new_fournisseur = Fournisseur(**fournisseur.model_dump(), atelier_id=atelier_id)
     db.add(new_fournisseur)
     db.commit()
     db.refresh(new_fournisseur)
@@ -439,7 +439,7 @@ def update_fournisseur(
     if not fournisseur:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
-    for key, value in fournisseur_data.dict(exclude_unset=True).items():
+    for key, value in fournisseur_data.model_dump(exclude_unset=True).items():
         setattr(fournisseur, key, value)
 
     db.commit()

@@ -84,7 +84,7 @@ def create_tarif(
 ):
     """Crée un nouveau tarif"""
     atelier_id = _tenant_id(current_user)
-    payload = tarif.dict()
+    payload = tarif.model_dump()
     if hasattr(GrilleTarifs, "atelier_id"):
         payload["atelier_id"] = atelier_id
     db_tarif = GrilleTarifs(**payload)
@@ -106,7 +106,7 @@ def update_tarif(
     if not db_tarif:
         raise HTTPException(status_code=404, detail="Tarif non trouvé")
     
-    for key, value in tarif.dict().items():
+    for key, value in tarif.model_dump().items():
         setattr(db_tarif, key, value)
     
     db.commit()

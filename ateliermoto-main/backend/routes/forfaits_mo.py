@@ -103,7 +103,7 @@ def create_forfait_mo(
     if existing:
         raise HTTPException(status_code=400, detail="Ce code forfait existe déjà")
 
-    forfait = ForfaitMO(**forfait_data.dict())
+    forfait = ForfaitMO(**forfait_data.model_dump())
     db.add(forfait)
     db.commit()
     db.refresh(forfait)
@@ -127,7 +127,7 @@ def update_forfait_mo(
         if existing:
             raise HTTPException(status_code=400, detail="Ce code forfait existe déjà")
 
-    for field, value in forfait_data.dict(exclude_unset=True).items():
+    for field, value in forfait_data.model_dump(exclude_unset=True).items():
         setattr(forfait, field, value)
 
     db.commit()

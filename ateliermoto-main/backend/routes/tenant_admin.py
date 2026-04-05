@@ -458,7 +458,7 @@ def create_atelier(data: AtelierCreate, db: Session = Depends(get_db), current_u
     existing = db.query(Atelier).filter(Atelier.slug == slug).first()
     if existing:
         raise HTTPException(status_code=400, detail="Slug atelier deja utilise")
-    payload = data.dict()
+    payload = data.model_dump()
     payload["slug"] = slug
     atelier = Atelier(**payload)
     db.add(atelier)
@@ -496,7 +496,7 @@ def update_atelier(
         if exists:
             raise HTTPException(status_code=400, detail="Slug atelier deja utilise")
         atelier.slug = new_slug
-    for key, value in data.dict(exclude_unset=True).items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         if key == "slug":
             continue
         setattr(atelier, key, value)

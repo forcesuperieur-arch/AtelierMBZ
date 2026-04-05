@@ -7,6 +7,8 @@ This module keeps the temporary runtime migration/backfill logic out of
 import json
 import logging
 
+from sqlalchemy.orm import Session
+
 from auth import create_default_users
 from models import Atelier, AtelierCategorieMoto, CategorieMoto, RolePermission, User, UserAtelierRole
 from seed import init_base_moto, init_intervention_types, init_prestations
@@ -15,7 +17,7 @@ from seed_parametres import init_parametres
 logger = logging.getLogger("ateliermoto.api")
 
 
-def run_startup_tasks(db):
+def run_startup_tasks(db: Session):
     """Run idempotent startup bootstrap and temporary runtime maintenance."""
     migrate_vehicule_client_id(db)
     migrate_demandes_travaux_supp(db)
@@ -32,7 +34,7 @@ def run_startup_tasks(db):
     logger.info("Startup initialization completed")
 
 
-def migrate_demandes_travaux_supp(db):
+def migrate_demandes_travaux_supp(db: Session):
     """Migration: ajouter colonnes prestations_demandees, decision_client."""
     from sqlalchemy import inspect, text
 
@@ -53,7 +55,7 @@ def migrate_demandes_travaux_supp(db):
         print(f"[MIGRATION] demandes_travaux_supp: {e}")
 
 
-def migrate_multitenant_schema(db):
+def migrate_multitenant_schema(db: Session):
     """Migration Lot 1 v2: table ateliers + colonnes atelier_id + backfill atelier #1."""
     from sqlalchemy import inspect, text
 
@@ -130,7 +132,7 @@ def migrate_multitenant_schema(db):
         print(f"[MIGRATION] multitenant_schema: {e}")
 
 
-def migrate_user_atelier_roles(db):
+def migrate_user_atelier_roles(db: Session):
     """Migration Lot 4 v2: table user_atelier_roles + backfill depuis users."""
     from sqlalchemy import inspect, text
 
@@ -165,7 +167,7 @@ def migrate_user_atelier_roles(db):
         print(f"[MIGRATION] user_atelier_roles: {e}")
 
 
-def migrate_role_permissions(db):
+def migrate_role_permissions(db: Session):
     """Migration RBAC: table role_permissions + defaults."""
     from sqlalchemy import inspect, text
 
@@ -243,7 +245,7 @@ def migrate_role_permissions(db):
         print(f"[MIGRATION] role_permissions seed: {e}")
 
 
-def migrate_vehicule_client_id(db):
+def migrate_vehicule_client_id(db: Session):
     """Migration: ajouter client_id a vehicules et backfill depuis rendez_vous."""
     from sqlalchemy import inspect, text
 
@@ -290,7 +292,7 @@ def migrate_vehicule_client_id(db):
         db.rollback()
 
 
-def migrate_mecanicien_user_link(db):
+def migrate_mecanicien_user_link(db: Session):
     """Migration: ajoute user_id sur mecaniciens pour lier 1 login = 1 mecanicien."""
     from sqlalchemy import inspect, text
 
@@ -311,7 +313,7 @@ def migrate_mecanicien_user_link(db):
         db.rollback()
 
 
-def migrate_atelier_categorie_motos(db):
+def migrate_atelier_categorie_motos(db: Session):
     """Migration: table atelier_categorie_motos + backfill (toutes catégories actives par défaut)."""
     from sqlalchemy import inspect, text
 

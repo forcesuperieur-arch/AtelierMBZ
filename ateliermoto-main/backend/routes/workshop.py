@@ -422,7 +422,7 @@ def create_absence(
     if not mecano:
         raise HTTPException(status_code=404, detail="Mécanicien non trouvé")
     
-    db_absence = Absence(**absence.dict(), atelier_id=atelier_id)
+    db_absence = Absence(**absence.model_dump(), atelier_id=atelier_id)
     db.add(db_absence)
     db.commit()
     db.refresh(db_absence)

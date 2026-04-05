@@ -316,7 +316,7 @@ def update_config_atelier(
         db.add(config)
 
     # Mettre à jour les champs fournis
-    update_data = data.dict(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(config, key, value)
 
@@ -382,7 +382,7 @@ def update_horaire_jour(
 
     horaire = _ensure_horaire_jour(db, atelier_id, jour)
 
-    update_data = data.dict(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)
     for k in ["heure_ouverture", "heure_fermeture", "pause_debut", "pause_fin"]:
         if k in update_data and update_data[k] == "":
             update_data[k] = None
@@ -455,7 +455,7 @@ def create_temps_intervention(
     if not categorie or not intervention:
         raise HTTPException(status_code=400, detail="Catégorie ou intervention invalide")
 
-    temps = TempsIntervention(**data.dict())
+    temps = TempsIntervention(**data.model_dump())
     db.add(temps)
     db.commit()
     db.refresh(temps)
@@ -477,7 +477,7 @@ def update_temps_intervention(
     if not temps:
         raise HTTPException(status_code=404, detail="Temps d'intervention non trouvé")
 
-    for key, value in data.dict().items():
+    for key, value in data.model_dump().items():
         setattr(temps, key, value)
     temps.updated_at = datetime.now()
 
@@ -551,7 +551,7 @@ def create_pont_equipement(
     if not pont:
         raise HTTPException(status_code=404, detail="Pont non trouvé")
 
-    eq = PontEquipement(**data.dict())
+    eq = PontEquipement(**data.model_dump())
     db.add(eq)
     db.commit()
     db.refresh(eq)
@@ -580,7 +580,7 @@ def update_pont_equipement(
     if not pont:
         raise HTTPException(status_code=404, detail="Pont non trouvé")
 
-    for key, value in data.dict().items():
+    for key, value in data.model_dump().items():
         setattr(eq, key, value)
     eq.updated_at = datetime.now()
 
