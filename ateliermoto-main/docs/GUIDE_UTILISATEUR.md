@@ -1,7 +1,7 @@
 # Guide Utilisateur — Atelier Moto Pro
 
 > Application de gestion d'atelier moto multi-site  
-> **Version** : 2.0
+> **Version** : 2.1
 
 ---
 
@@ -78,6 +78,7 @@ Tableau listant tous les RDV de la journée avec :
 #### Étape 2 — Prestations
 - Sélectionnez une ou plusieurs prestations dans la liste
 - Le prix et le temps estimé se calculent automatiquement
+- Si plusieurs prestations sont choisies, **les durées se cumulent** pour proposer des créneaux réalistes
 - Les tarifs dépendent du type de moto sélectionné
 
 #### Étape 3 — Date et créneau
@@ -117,7 +118,7 @@ Le planning affiche une grille de 7 jours avec créneaux de 15 minutes :
 
 ### Conflits
 
-Si un RDV chevauche un autre sur le même pont, un avertissement s'affiche. Le planning vérifie automatiquement les horaires d'ouverture de l'atelier.
+Si un RDV chevauche un autre sur le même pont ou avec le même mécanicien, un avertissement s'affiche. Le planning vérifie aussi automatiquement les horaires d'ouverture, la pause atelier et la durée totale des prestations sélectionnées.
 
 ---
 
@@ -175,7 +176,8 @@ Si le mécanicien identifie des travaux additionnels pendant l'intervention :
 2. Une alerte apparaît chez le réceptionniste
 3. Le réceptionniste **approuve ou refuse** avec un devis
 4. Si approuvé → signature client requise
-5. Les travaux sont ajoutés à l'OR
+5. Les travaux sont ajoutés au **RDV courant**
+6. Un **OR complémentaire** est généré et rattaché automatiquement à l'intervention
 
 ---
 
@@ -323,10 +325,11 @@ Pour chaque jour de la semaine :
 - Heure d'ouverture et de fermeture
 - Pause déjeuner (début/fin)
 
-### Prestations
+### Prestations & tarification
 - Catalogue des services proposés
-- Prix et durée par type de moto (grille tarifaire)
+- Prix, durée et délais par type de moto (grille tarifaire)
 - Activer/désactiver une prestation
+- Consulter une synthèse tarifaire atelier
 
 ### Types de moto
 - Activer/désactiver les types de moto acceptés par l'atelier

@@ -503,6 +503,21 @@ class TestCriticalRoutesForfaits:
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
+    def test_prestations_and_tarifs_synthese_routes(self, auth_token):
+        """Les routes prestations/tarifs restent disponibles après extraction."""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        prestations_response = client.get("/api/prestations", headers=headers)
+        assert prestations_response.status_code == 200
+        assert isinstance(prestations_response.json(), list)
+
+        synthese_response = client.get("/api/tarifs/synthese", headers=headers)
+        assert synthese_response.status_code == 200
+        payload = synthese_response.json()
+        assert "prestations" in payload
+        assert "forfaits_mo" in payload
+        assert "taux_horaires" in payload
+
 
 class TestCriticalRoutesDevis:
     """Tests critiques pour les routes de devis"""

@@ -1,8 +1,8 @@
 # Documentation Technique — Atelier Moto Pro
 
-> **Version** : 2.0 Multi-Tenant  
-> **Stack** : FastAPI (Python) · PostgreSQL · Vanilla JS SPA · Docker  
-> **Dernière mise à jour** : Avril 2026
+> **Version** : 2.1 Soft Refactor Multi-Tenant  
+> **Stack** : FastAPI (Python) · PostgreSQL · Vanilla JS SPA modulaire · Docker  
+> **Dernière mise à jour** : 05 avril 2026
 
 ---
 
@@ -43,30 +43,54 @@
 
 ### Structure des fichiers
 
-```
+```text
 backend/
-├── main.py              # Routes principales (auth, users, véhicules, etc.)
-├── models.py            # Modèles SQLAlchemy
-├── database.py          # Configuration DB
-├── config_api.py        # Routes /api/config/*
-├── statistiques.py      # Routes /api/statistiques/*
-├── facturation_api.py   # Routes facturation
-├── tarifs_api.py        # Routes tarifs & créneaux
+├── main.py                  # Composition root FastAPI + quelques routes legacy/public
+├── models.py                # Modèles SQLAlchemy
+├── auth.py                  # Auth de base / helpers JWT
+├── config_api.py            # Routes /api/config/*
+├── statistiques.py          # Routes /api/statistiques/*
+├── facturation_api.py       # Facturation / paiements / PDF
+├── tarifs_api.py            # Tarifs historiques / créneaux
+├── services/
+│   └── pdf_service.py       # Génération PDF OR / facture
 └── routes/
-    ├── clients.py       # Routes /api/clients/*
-    ├── rendez_vous.py   # Routes /api/rendez-vous/*
-    └── workshop.py      # Routes /api/ponts/*, /api/mecaniciens/*, /api/planning/*
+    ├── auth_api.py
+    ├── tenant_admin.py
+    ├── clients.py
+    ├── rendez_vous.py
+    ├── workshop.py
+    ├── public_booking.py
+    ├── inventory.py
+    ├── forfaits_mo.py
+    ├── moto_base.py
+    ├── travaux_supp.py
+    ├── devis.py
+    ├── vehicles.py
+    └── prestations_tarifs.py
 
 frontend/
-├── index.html           # Page unique SPA
-├── app.js               # Logique applicative complète
-├── api.js               # Helpers API (apiGet, apiPost, apiPut, apiDelete)
-├── utils.js             # Helpers partagés (escapeHtml, escapeAttr, showToast, formatDate)
-└── theme.css            # Variables CSS, design system Motoblouz (couleurs, boutons, badges)
+├── index.html
+├── app.js
+├── api.js
+├── utils.js
+├── theme.css
+└── modules/
+    ├── app-core.js
+    ├── dashboard.js
+    ├── rdv.js
+    ├── planning.js
+    ├── or.js
+    ├── clients.js
+    ├── admin.js
+    ├── mecanicien.js
+    ├── billing.js
+    ├── suivi.js
+    └── workshop.js
 
 scripts/
-├── db-backup.sh         # Sauvegarde PostgreSQL
-└── db-restore.sh        # Restauration PostgreSQL
+├── db-backup.sh             # Sauvegarde PostgreSQL
+└── db-restore.sh            # Restauration PostgreSQL
 ```
 
 ---
@@ -107,7 +131,9 @@ docker compose logs -f atelier-backend
 
 - **JWT** dans cookie HttpOnly (`access_token`)
 - Refresh token dans cookie séparé (`refresh_token`)
+- support du header `Authorization: Bearer ...` pour les appels API/tests
 - Durée access token : 30 min / refresh token : 7 jours
+- sécurité cookie pilotée par `COOKIE_SECURE` et `COOKIE_SAMESITE`
 
 ### Rôles système
 
@@ -141,7 +167,7 @@ docker compose logs -f atelier-backend
 
 ## API Routes — Référence complète
 
-**Total : 92 routes**
+**Total :** routes métier + administration multi-atelier (nombre évolutif selon le refactor)
 
 ### Santé
 
@@ -171,10 +197,13 @@ docker compose logs -f atelier-backend
 | DELETE | `/api/clients/{client_id}` | Supprimer un client (si aucun RDV) | Authentifié |
 | POST | `/api/clients/{client_id}/vehicules` | Ajouter un véhicule au client | Authentifié |
 
-### Véhicules (2 routes)
+### Véhicules
 
 | Méthode | Route | Description | Auth |
 |---------|-------|-------------|------|
+| GET | `/api/vehicules/{vehicule_id}` | Détail d'un véhicule par ID | Authentifié |
+| GET | `/api/vehicule/{plaque}` | Lookup véhicule par plaque | Public |
+| POST | `/api/vehicule` | Créer un véhicule manuellement | Public |
 | PUT | `/api/vehicules/{vehicule_id}` | Modifier un véhicule | Authentifié |
 | DELETE | `/api/vehicules/{vehicule_id}` | Supprimer un véhicule (si aucun RDV) | Authentifié |
 
@@ -270,11 +299,39 @@ docker compose logs -f atelier-backend
 | POST | `/api/factures/{facture_id}/annuler` | Annuler une facture | `billing.edit` |
 | GET | `/api/factures/{facture_id}/pdf` | Télécharger le PDF facture | `billing.pdf` |
 
-### Tarifs (6 routes)
+### Devis
 
 | Méthode | Route | Description | Auth |
 |---------|-------|-------------|------|
-| GET | `/api/tarifs` | Grille tarifaire | Authentifié |
+| GET | `/api/devis` | Liste les devis | Authentifié |
+| GET | `/api/devis/{devis_id}` | Détail d'un devis | Authentifié |
+| POST | `/api/devis` | Créer un devis | Authentifié |
+| POST | `/api/devis/calculer` | Calculer un devis sans sauvegarde | Authentifié |
+| PUT | `/api/devis/{devis_id}` | Mettre à jour statut / notes | Authentifié |
+| POST | `/api/devis/{devis_id}/convertir-rdv` | Convertir un devis en RDV | Authentifié |
+| DELETE | `/api/devis/{devis_id}` | Supprimer un devis | Authentifié |
+
+### Prestations & tarification
+
+| Méthode | Route | Description | Auth |
+|---------|-------|-------------|------|
+| GET | `/api/prestations` | Catalogue des prestations | Authentifié |
+| GET | `/api/prestations/{prestation_id}` | Détail d'une prestation | Authentifié |
+| POST | `/api/prestations` | Créer une prestation | Authentifié |
+| PUT | `/api/prestations/{prestation_id}` | Modifier une prestation | Authentifié |
+| DELETE | `/api/prestations/{prestation_id}` | Désactiver une prestation | Authentifié |
+| GET | `/api/grilles-tarifaires` | Liste des grilles tarifaires | Authentifié |
+| POST | `/api/grilles-tarifaires` | Créer une grille tarifaire | Authentifié |
+| POST | `/api/tarifs/calcul-detaille` | Calcul détaillé MO + pièces | Authentifié |
+| GET | `/api/tarifs/forfaits-mo` | Forfaits MO actifs | Public / Auth selon usage |
+| GET | `/api/tarifs/delais` | Délais d'intervention | Public / Auth selon usage |
+| GET | `/api/tarifs/synthese` | Synthèse tarifaire atelier | Authentifié |
+
+### Tarifs historiques & créneaux
+
+| Méthode | Route | Description | Auth |
+|---------|-------|-------------|------|
+| GET | `/api/tarifs` | Grille tarifaire legacy | Authentifié |
 | POST | `/api/tarifs` | Créer un tarif | Authentifié |
 | PUT | `/api/tarifs/{tarif_id}` | Modifier un tarif | Authentifié |
 | DELETE | `/api/tarifs/{tarif_id}` | Désactiver un tarif | Authentifié |
