@@ -47,6 +47,9 @@ function callModuleMethod(moduleName, methodName, argsLike, fallbackValue) {
 
 // ===== INITIALISATION =====
 document.addEventListener('DOMContentLoaded', function() {
+    // On affiche toujours un écran utile immédiatement pour éviter la page blanche.
+    showLogin();
+
     // Le cookie access_token est HttpOnly: invisible a JS.
     // On valide la session en appelant directement /api/auth/me.
     apiGet('/api/auth/me').then(function(r) {

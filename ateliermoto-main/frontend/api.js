@@ -20,12 +20,25 @@ function clearAuthState() {
 }
 
 function apiRequest(url, options) {
-    var opts = options || {};
+    var opts = Object.assign({}, options || {});
     var method = opts.method || 'GET';
+    var timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 12000;
+    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timeoutId = null;
+
     opts.credentials = opts.credentials || 'include';
+    if (controller) opts.signal = controller.signal;
+
     if (window.AtelierDebug && window.AtelierDebug.traceApi) {
         window.AtelierDebug.traceApi('request', { method: method, url: url });
     }
+
+    if (controller && timeoutMs > 0) {
+        timeoutId = setTimeout(function() {
+            controller.abort();
+        }, timeoutMs);
+    }
+
     return fetch(window.API_URL + url, opts).then(function(response) {
         if (response.status === 401) {
             if (window.AtelierDebug && window.AtelierDebug.traceApi) {
@@ -57,6 +70,9 @@ function apiRequest(url, options) {
         }
         return response;
     }).catch(function(error) {
+        if (error && error.name === 'AbortError') {
+            error = new Error('Delai depasse pour ' + url);
+        }
         if (window.AtelierDebug && window.AtelierDebug.traceApi) {
             window.AtelierDebug.traceApi('error', {
                 method: method,
@@ -65,6 +81,8 @@ function apiRequest(url, options) {
             });
         }
         throw error;
+    }).finally(function() {
+        if (timeoutId) clearTimeout(timeoutId);
     });
 }
 
