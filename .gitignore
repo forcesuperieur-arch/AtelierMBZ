@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local app secrets / runtime artefacts
+ateliermoto-main/backend/.secret_key
+*.log
+
+# Local database dumps
+backups/*.sql

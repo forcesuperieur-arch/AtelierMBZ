@@ -4,7 +4,23 @@
 
 set -e
 
-BACKUP_DIR="$(dirname "$0")/../backups"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CANDIDATE_DIRS=(
+    "$SCRIPT_DIR/../backups"
+    "$SCRIPT_DIR/../../backups"
+)
+
+BACKUP_DIR=""
+for dir in "${CANDIDATE_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        BACKUP_DIR="$dir"
+        break
+    fi
+done
+
+if [ -z "$BACKUP_DIR" ]; then
+    BACKUP_DIR="${CANDIDATE_DIRS[0]}"
+fi
 
 if [ -z "$1" ]; then
     echo "Usage: ./scripts/db-restore.sh <fichier.sql>"
@@ -28,5 +44,5 @@ if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
 fi
 
 echo "🔄 Restauration en cours..."
-docker compose exec -T db psql -U atelier -d atelier_moto < "$FILEPATH"
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U atelier -d atelier_moto < "$FILEPATH"
 echo "✅ Restauration terminée"

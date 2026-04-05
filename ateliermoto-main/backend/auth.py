@@ -1,4 +1,5 @@
 import bcrypt
+import logging
 import os
 import secrets
 from pathlib import Path
@@ -10,6 +11,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from models import User, RevokedToken, Atelier, get_db
 from dotenv import load_dotenv
+
+logger = logging.getLogger("ateliermoto.auth")
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -45,11 +48,17 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 security = HTTPBearer(auto_error=False)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Vérifie un mot de passe avec bcrypt"""
-    return bcrypt.checkpw(
-        plain_password.encode('utf-8'),
-        hashed_password.encode('utf-8')
-    )
+    """Vérifie un mot de passe avec bcrypt sans casser l'API sur hash corrompu."""
+    if not hashed_password:
+        return False
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except (ValueError, TypeError):
+        logger.warning("Invalid password hash encountered during login")
+        return False
 
 def get_password_hash(password: str) -> str:
     """Hash un mot de passe avec bcrypt (salt automatique)"""

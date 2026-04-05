@@ -31,7 +31,7 @@ from routes.auth_api import _get_role_permissions, router as auth_router, user_h
 from routes.tenant_admin import router as tenant_admin_router
 from services.pdf_service import generate_ordre_reparation_pdf, generate_facture_pdf
 from routes.public_booking import router as public_booking_router
-from startup_tasks import run_startup_tasks
+from services.startup_service import run_startup_tasks
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
