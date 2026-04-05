@@ -208,9 +208,21 @@ def create_rendez_vous(
         db.add(vehicule_db)
         db.flush()
     else:
-        # Mettre a jour type_moto si manquant
+        # Mettre à jour les informations véhicule à partir de la base moto si besoin
+        if not vehicule_db.marque and rdv.vehicule.marque:
+            vehicule_db.marque = rdv.vehicule.marque
+        if not vehicule_db.modele and rdv.vehicule.modele:
+            vehicule_db.modele = rdv.vehicule.modele
+        if not vehicule_db.annee and rdv.vehicule.annee:
+            vehicule_db.annee = rdv.vehicule.annee
+        if not vehicule_db.cylindree and rdv.vehicule.cylindree:
+            vehicule_db.cylindree = rdv.vehicule.cylindree
         if not vehicule_db.type_moto and rdv.vehicule.type_moto:
             vehicule_db.type_moto = rdv.vehicule.type_moto
+        if not vehicule_db.categorie_id and rdv.vehicule.categorie_id:
+            vehicule_db.categorie_id = rdv.vehicule.categorie_id
+        if not vehicule_db.modele_id and rdv.vehicule.modele_id:
+            vehicule_db.modele_id = rdv.vehicule.modele_id
         if not vehicule_db.client_id:
             vehicule_db.client_id = client_db.id
     

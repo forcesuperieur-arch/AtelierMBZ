@@ -1,8 +1,11 @@
 var _rdvClientSearchTimer = null;
+var _rdvMotoBrandTimer = null;
+var _rdvMotoModelTimer = null;
 
 window.RdvModule = window.RdvModule || {
     loadRdvForm: function() {
         APP.rdvClientPrefill = null;
+        APP.rdvMotoLookup = { marques: [], modeles: [], selectedModele: null };
         APP.rdvWizard = {
             step: 1,
             vehicule: null,
@@ -23,12 +26,17 @@ window.RdvModule = window.RdvModule || {
         window.RdvModule.populateRdvAtelierSelect();
         var res = document.getElementById('rdv-client-search-results');
         if (res) res.innerHTML = '<div style="font-size:12px;color:#888">Tapez au moins 2 caracteres pour rechercher un client existant.</div>';
-        ['pub-prenom', 'pub-nom', 'pub-tel', 'pub-email', 'pub-comment', 'pub-plaque'].forEach(function(id) {
+        ['pub-prenom', 'pub-nom', 'pub-tel', 'pub-email', 'pub-comment', 'pub-plaque', 'pub-man-marque', 'pub-man-modele', 'pub-man-annee', 'pub-man-cylindree'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
         });
+        var manualType = document.getElementById('pub-moto-type-manual');
+        if (manualType) manualType.value = '';
+        var yearInput = document.getElementById('pub-man-annee');
+        if (yearInput) yearInput.placeholder = 'Ex: 2021';
         var r1 = document.getElementById('pub-veh-result'); if (r1) r1.style.display = 'none';
         var r2 = document.getElementById('pub-veh-notfound'); if (r2) r2.style.display = 'none';
+        window.RdvModule.loadMotoReferenceData();
         window.RdvModule.goStep(1);
     },
 
@@ -318,6 +326,110 @@ window.RdvModule = window.RdvModule || {
         return APP.rdvWizard;
     },
 
+    loadMotoReferenceData: function() {
+        APP.rdvMotoLookup = APP.rdvMotoLookup || { marques: [], modeles: [], selectedModele: null };
+        window.RdvModule.renderMotoDatalist('pub-modele-suggestions', []);
+        window.RdvModule.setManualMotoHelp('La base moto propose des suggestions pendant la saisie.', '');
+        apiGet('/api/motos/marques').then(function(r) { return r.json(); }).then(function(marques) {
+            APP.rdvMotoLookup.marques = Array.isArray(marques) ? marques : [];
+            window.RdvModule.renderMotoDatalist('pub-marque-suggestions', APP.rdvMotoLookup.marques);
+        }).catch(function() {
+            window.RdvModule.renderMotoDatalist('pub-marque-suggestions', []);
+        });
+    },
+
+    setManualMotoHelp: function(message, tone) {
+        var help = document.getElementById('pub-man-moto-help');
+        if (!help) return;
+        help.textContent = message || 'La base moto propose des suggestions pendant la saisie.';
+        help.style.color = tone === 'error' ? '#fca5a5' : (tone === 'success' ? '#86efac' : '#9ca3af');
+    },
+
+    renderMotoDatalist: function(listId, values, formatter) {
+        var list = document.getElementById(listId);
+        if (!list) return;
+        var html = '';
+        (values || []).forEach(function(item) {
+            var value = formatter ? formatter(item) : item;
+            if (!value) return;
+            html += '<option value="' + escapeAttr(String(value)) + '"></option>';
+        });
+        list.innerHTML = html;
+    },
+
+    searchManualMotoBrand: function(val) {
+        APP.rdvMotoLookup = APP.rdvMotoLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.rdvMotoLookup.selectedModele = null;
+        if (APP.rdvMotoLookup.marques && APP.rdvMotoLookup.marques.length) {
+            window.RdvModule.renderMotoDatalist('pub-marque-suggestions', APP.rdvMotoLookup.marques);
+        }
+        if (_rdvMotoBrandTimer) clearTimeout(_rdvMotoBrandTimer);
+        _rdvMotoBrandTimer = setTimeout(function() {
+            var modelValue = (document.getElementById('pub-man-modele') || {}).value || '';
+            if (!val) {
+                window.RdvModule.renderMotoDatalist('pub-modele-suggestions', []);
+                window.RdvModule.setManualMotoHelp('La base moto propose des suggestions pendant la saisie.', '');
+                return;
+            }
+            window.RdvModule.searchManualMotoModel(modelValue);
+        }, 120);
+    },
+
+    searchManualMotoModel: function(val) {
+        var marque = ((document.getElementById('pub-man-marque') || {}).value || '').trim().toUpperCase();
+        var query = (val || '').trim();
+        APP.rdvMotoLookup = APP.rdvMotoLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.rdvMotoLookup.selectedModele = null;
+        if (_rdvMotoModelTimer) clearTimeout(_rdvMotoModelTimer);
+        if (!marque && query.length < 2) {
+            window.RdvModule.renderMotoDatalist('pub-modele-suggestions', []);
+            return;
+        }
+        _rdvMotoModelTimer = setTimeout(function() {
+            var params = ['limit=10'];
+            if (marque) params.push('marque=' + encodeURIComponent(marque));
+            if (query) params.push('query=' + encodeURIComponent(query));
+            apiGet('/api/motos/autocomplete?' + params.join('&')).then(function(r) { return r.json(); }).then(function(data) {
+                APP.rdvMotoLookup.marques = Array.isArray(data.marques) && data.marques.length ? data.marques : (APP.rdvMotoLookup.marques || []);
+                APP.rdvMotoLookup.modeles = Array.isArray(data.modeles) ? data.modeles : [];
+                window.RdvModule.renderMotoDatalist('pub-marque-suggestions', APP.rdvMotoLookup.marques);
+                window.RdvModule.renderMotoDatalist('pub-modele-suggestions', APP.rdvMotoLookup.modeles, function(item) { return item.modele; });
+
+                var normalized = query.trim().toUpperCase();
+                var exact = APP.rdvMotoLookup.modeles.find(function(item) {
+                    return ((item.modele || '').trim().toUpperCase() === normalized);
+                });
+
+                if (exact) {
+                    window.RdvModule.applyManualMotoBaseSelection(exact);
+                } else if (APP.rdvMotoLookup.modeles.length) {
+                    window.RdvModule.setManualMotoHelp(APP.rdvMotoLookup.modeles.length + ' suggestion(s) trouvee(s) dans la base moto.', '');
+                } else {
+                    window.RdvModule.setManualMotoHelp('Aucun modele correspondant dans la base moto. Saisie libre possible.', 'error');
+                }
+            }).catch(function() {
+                window.RdvModule.setManualMotoHelp('Base moto indisponible pour le moment. Saisie libre possible.', 'error');
+            });
+        }, 180);
+    },
+
+    applyManualMotoBaseSelection: function(item) {
+        if (!item) return;
+        APP.rdvMotoLookup = APP.rdvMotoLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.rdvMotoLookup.selectedModele = item;
+        var marqueInput = document.getElementById('pub-man-marque');
+        var modeleInput = document.getElementById('pub-man-modele');
+        var anneeInput = document.getElementById('pub-man-annee');
+        var cylindreeInput = document.getElementById('pub-man-cylindree');
+        var typeSelect = document.getElementById('pub-moto-type-manual');
+        if (marqueInput) marqueInput.value = item.marque || marqueInput.value;
+        if (modeleInput) modeleInput.value = item.modele || modeleInput.value;
+        if (cylindreeInput && item.cylindree_display) cylindreeInput.value = item.cylindree_display;
+        if (anneeInput && item.annees_display) anneeInput.placeholder = 'Ex: ' + item.annees_display;
+        if (typeSelect && item.categorie_nom) typeSelect.value = item.categorie_nom;
+        window.RdvModule.setManualMotoHelp('Base moto: ' + [item.marque, item.modele, item.categorie_nom, item.cylindree_display].filter(Boolean).join(' • '), 'success');
+    },
+
     goStep: function(n) {
         var RDV = window.RdvModule.getRdvState();
         RDV.step = n;
@@ -377,8 +489,23 @@ window.RdvModule = window.RdvModule || {
         var cylindree = (document.getElementById('pub-man-cylindree').value || '').trim();
         var typeMoto = (document.getElementById('pub-moto-type-manual').value || '').trim();
         if (!marque || !modele || !annee || !typeMoto) { alert('Veuillez remplir les champs obligatoires'); return; }
+        var selectedModele = APP.rdvMotoLookup && APP.rdvMotoLookup.selectedModele ? APP.rdvMotoLookup.selectedModele : null;
+        if (selectedModele) {
+            var sameBrand = (selectedModele.marque || '').trim().toUpperCase() === marque.toUpperCase();
+            var sameModele = (selectedModele.modele || '').trim().toUpperCase() === modele.toUpperCase();
+            if (!sameBrand || !sameModele) selectedModele = null;
+        }
         var plaque = (document.getElementById('pub-plaque').value || '').replace(/[\s-]/g, '').toUpperCase();
-        RDV.vehicule = { plaque: plaque || 'XX-000-XX', marque: marque.toUpperCase(), modele: modele, annee: parseInt(annee, 10), cylindree: cylindree || null, type_moto: typeMoto };
+        RDV.vehicule = {
+            plaque: plaque || 'XX-000-XX',
+            marque: marque.toUpperCase(),
+            modele: modele,
+            annee: parseInt(annee, 10),
+            cylindree: cylindree || null,
+            type_moto: typeMoto,
+            categorie_id: selectedModele ? (selectedModele.categorie_id || null) : null,
+            modele_id: selectedModele ? (selectedModele.id || null) : null
+        };
         RDV.motoType = typeMoto;
         window.RdvModule.goStep(2);
     },
@@ -668,7 +795,16 @@ window.RdvModule = window.RdvModule || {
         var v = RDV.vehicule || {};
         var body = {
             client: { nom: nom, prenom: prenom, telephone: tel, email: email || null },
-            vehicule: { plaque: v.plaque || 'XX-000-XX', marque: v.marque || null, modele: v.modele || null, annee: v.annee || null, cylindree: v.cylindree || null, type_moto: RDV.motoType || v.type_moto || null, categorie_id: null },
+            vehicule: {
+                plaque: v.plaque || 'XX-000-XX',
+                marque: v.marque || null,
+                modele: v.modele || null,
+                annee: v.annee || null,
+                cylindree: v.cylindree || null,
+                type_moto: RDV.motoType || v.type_moto || null,
+                categorie_id: v.categorie_id || null,
+                modele_id: v.modele_id || null
+            },
             prestations: RDV.selected,
             date_heure: RDV.selectedDate + 'T' + RDV.selectedHeure + ':00',
             montant_estime: RDV.totalPrix || 0,

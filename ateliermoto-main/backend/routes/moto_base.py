@@ -70,6 +70,67 @@ def create_categorie_moto(
     return {"message": "Catégorie créée", "id": new_categorie.id}
 
 
+@router.get("/api/motos/autocomplete")
+def autocomplete_moto_base(
+    query: Optional[str] = None,
+    marque: Optional[str] = None,
+    limit: int = 8,
+    db: Session = Depends(get_db),
+):
+    """Suggestions rapides marque/modèle pour la saisie véhicule."""
+    safe_limit = max(1, min(int(limit or 8), 20))
+    query_value = (query or "").strip()
+    marque_value = (marque or "").strip()
+
+    marques_query = db.query(ModeleMoto.marque).distinct()
+    if marque_value:
+        marques_query = marques_query.filter(ModeleMoto.marque.ilike(f"%{marque_value}%"))
+    if query_value:
+        search_filter = f"%{query_value}%"
+        marques_query = marques_query.filter(
+            (ModeleMoto.marque.ilike(search_filter))
+            | (ModeleMoto.modele.ilike(search_filter))
+        )
+
+    modeles_query = db.query(ModeleMoto).join(CategorieMoto)
+    if marque_value:
+        modeles_query = modeles_query.filter(ModeleMoto.marque.ilike(f"%{marque_value}%"))
+    if query_value:
+        search_filter = f"%{query_value}%"
+        modeles_query = modeles_query.filter(
+            (ModeleMoto.marque.ilike(search_filter))
+            | (ModeleMoto.modele.ilike(search_filter))
+        )
+
+    marques = [
+        marque_name
+        for (marque_name,) in marques_query.order_by(ModeleMoto.marque).limit(safe_limit).all()
+        if marque_name
+    ]
+    modeles = modeles_query.order_by(ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
+
+    return {
+        "marques": marques,
+        "modeles": [
+            {
+                "id": modele.id,
+                "marque": modele.marque,
+                "modele": modele.modele,
+                "categorie_id": modele.categorie_id,
+                "categorie_nom": modele.categorie.nom if modele.categorie else None,
+                "cylindree_min": modele.cylindree_min,
+                "cylindree_max": modele.cylindree_max,
+                "cylindree_display": modele.cylindree_display,
+                "annee_debut": modele.annee_debut,
+                "annee_fin": modele.annee_fin,
+                "annees_display": modele.annees_display,
+                "type_moto": modele.categorie.nom if modele.categorie else None,
+            }
+            for modele in modeles
+        ],
+    }
+
+
 @router.get("/api/motos/modeles")
 def get_modeles_moto(
     categorie: Optional[int] = None,

@@ -324,13 +324,26 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
             cylindree=rdv_data.vehicule.get("cylindree"),
             type_moto=rdv_data.vehicule.get("type_moto"),
             categorie_id=rdv_data.vehicule.get("categorie_id"),
+            modele_id=rdv_data.vehicule.get("modele_id"),
             client_id=client.id,
         )
         db.add(vehicule)
         db.flush()
     else:
+        if not vehicule.marque and rdv_data.vehicule.get("marque"):
+            vehicule.marque = rdv_data.vehicule["marque"]
+        if not vehicule.modele and rdv_data.vehicule.get("modele"):
+            vehicule.modele = rdv_data.vehicule["modele"]
+        if not vehicule.annee and rdv_data.vehicule.get("annee"):
+            vehicule.annee = rdv_data.vehicule["annee"]
+        if not vehicule.cylindree and rdv_data.vehicule.get("cylindree"):
+            vehicule.cylindree = rdv_data.vehicule["cylindree"]
         if not vehicule.type_moto and rdv_data.vehicule.get("type_moto"):
             vehicule.type_moto = rdv_data.vehicule["type_moto"]
+        if not vehicule.categorie_id and rdv_data.vehicule.get("categorie_id"):
+            vehicule.categorie_id = rdv_data.vehicule["categorie_id"]
+        if not vehicule.modele_id and rdv_data.vehicule.get("modele_id"):
+            vehicule.modele_id = rdv_data.vehicule["modele_id"]
         if not vehicule.client_id:
             vehicule.client_id = client.id
 

@@ -18,6 +18,8 @@ class VehiculeCreate(BaseModel):
     annee: Optional[int] = None
     cylindree: Optional[str] = None
     type_moto: Optional[str] = None
+    categorie_id: Optional[int] = None
+    modele_id: Optional[int] = None
 
 
 class RendezVousCreate(BaseModel):

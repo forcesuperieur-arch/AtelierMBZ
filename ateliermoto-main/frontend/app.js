@@ -312,6 +312,8 @@ function onRdvAtelierChange(slug) { return callModuleMethod('RdvModule', 'onRdvA
 function getRdvState() { return callModuleMethod('RdvModule', 'getRdvState', arguments, APP.rdvWizard); }
 function goStep(n) { return callModuleMethod('RdvModule', 'goStep', arguments); }
 function rechercherVehicule() { return callModuleMethod('RdvModule', 'rechercherVehicule', arguments); }
+function searchManualMotoBrand(val) { return callModuleMethod('RdvModule', 'searchManualMotoBrand', arguments); }
+function searchManualMotoModel(val) { return callModuleMethod('RdvModule', 'searchManualMotoModel', arguments); }
 function validerVehiculeManuel() { return callModuleMethod('RdvModule', 'validerVehiculeManuel', arguments); }
 function onTypeMotoFoundSelect(val) { return callModuleMethod('RdvModule', 'onTypeMotoFoundSelect', arguments); }
 function continuerVehiculeFound() { return callModuleMethod('RdvModule', 'continuerVehiculeFound', arguments); }
