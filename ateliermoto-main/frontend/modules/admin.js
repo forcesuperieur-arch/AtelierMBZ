@@ -401,6 +401,9 @@ window.AdminModule = window.AdminModule || {
             showAlert('Action non autorisee', 'error');
             return;
         }
+        var motoCard = document.getElementById('admin-moto-base-card');
+        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
+        if (motoCard) motoCard.style.display = isSuperAdmin ? '' : 'none';
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         apiGet('/api/config/atelier' + qs).then(function(r) { return r.json(); }).then(function(d) {
             document.getElementById('cfg-taux-std').value = d.taux_horaire_mo_standard || 0;
@@ -416,6 +419,7 @@ window.AdminModule = window.AdminModule || {
             document.getElementById('cfg-accompte').value = d.accompte_pourcentage || 0;
         }).catch(function(e) { showAlert('Erreur config: ' + (e.message || 'chargement'), 'error'); });
         loadAdminCategoriesMoto();
+        if (isSuperAdmin) loadAdminMotoBase();
     },
 
     saveAdminConfig: function(e) {
@@ -470,6 +474,113 @@ window.AdminModule = window.AdminModule || {
             showNotificationToast(d.is_active ? 'Type moto active' : 'Type moto desactive');
             loadAdminCategoriesMoto();
         }).catch(function(e) { showAlert('Erreur: ' + (e.message || 'toggle'), 'error'); });
+    },
+
+    loadAdminMotoBase: function() {
+        var card = document.getElementById('admin-moto-base-card');
+        var tbody = document.getElementById('admin-moto-base-tbody');
+        var count = document.getElementById('admin-moto-base-count');
+        if (!card || !tbody) return;
+        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') {
+            card.style.display = 'none';
+            return;
+        }
+        card.style.display = '';
+        var marque = (document.getElementById('admin-moto-base-marque').value || '').trim();
+        var search = (document.getElementById('admin-moto-base-search').value || '').trim();
+        tbody.innerHTML = '<tr><td colspan="6" style="color:#888">Chargement...</td></tr>';
+        var params = [];
+        if (marque) params.push('marque=' + encodeURIComponent(marque));
+        if (search) params.push('search=' + encodeURIComponent(search));
+        var url = '/api/motos/modeles' + (params.length ? '?' + params.join('&') : '');
+        apiGet(url).then(function(r) { return r.json(); }).then(function(items) {
+            var rows = Array.isArray(items) ? items.slice(0, 80) : [];
+            if (count) count.textContent = (Array.isArray(items) ? items.length : 0) + ' modèle(s)';
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:#888">Aucun modèle trouvé.</td></tr>';
+                return;
+            }
+            var html = '';
+            rows.forEach(function(item) {
+                html += '<tr>' +
+                    '<td>' + escapeHtml(item.marque || '-') + '</td>' +
+                    '<td><b>' + escapeHtml(item.modele || '-') + '</b></td>' +
+                    '<td>' + escapeHtml(item.categorie_nom || '-') + '</td>' +
+                    '<td>' + escapeHtml(item.cylindree_display || '-') + '</td>' +
+                    '<td>' + escapeHtml(item.annees_display || '-') + '</td>' +
+                    '<td><button class="btn btn-ghost" onclick="openAdminMotoModeleModal(' + item.id + ')">Editer</button> <button class="btn btn-ghost" onclick="deleteAdminMotoModele(' + item.id + ')">Supprimer</button></td>' +
+                    '</tr>';
+            });
+            tbody.innerHTML = html;
+        }).catch(function(e) {
+            tbody.innerHTML = '<tr><td colspan="6" style="color:#ef4444">Erreur: ' + escapeHtml(e.message || 'chargement') + '</td></tr>';
+        });
+    },
+
+    openAdminMotoModeleModal: function(modeleId) {
+        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') {
+            showAlert('Acces reserve au super_admin', 'error');
+            return;
+        }
+        Promise.all([
+            apiGet('/api/motos/categories').then(function(r) { return r.json(); }).catch(function() { return []; }),
+            modeleId ? apiGet('/api/motos/modeles/' + modeleId).then(function(r) { return r.json(); }) : Promise.resolve(null)
+        ]).then(function(results) {
+            var categories = Array.isArray(results[0]) ? results[0] : [];
+            var modele = results[1] || null;
+            var catOptions = categories.map(function(cat) {
+                var selected = modele && Number(modele.categorie_id) === Number(cat.id) ? ' selected' : '';
+                return '<option value="' + cat.id + '"' + selected + '>' + escapeHtml(cat.nom) + '</option>';
+            }).join('');
+            var html = '' +
+                '<div class="form-group"><label class="form-label">Marque</label><input id="adm-moto-marque" class="form-input" value="' + escapeAttr((modele && modele.marque) || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">Modèle</label><input id="adm-moto-modele" class="form-input" value="' + escapeAttr((modele && modele.modele) || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">Catégorie</label><select id="adm-moto-categorie" class="form-select"><option value="">-- Sélectionnez --</option>' + catOptions + '</select></div>' +
+                '<div class="form-grid">' +
+                    '<div class="form-group"><label class="form-label">Cylindrée min</label><input id="adm-moto-cyl-min" type="number" class="form-input" value="' + escapeAttr(String((modele && modele.cylindree_min) || '')) + '"></div>' +
+                    '<div class="form-group"><label class="form-label">Cylindrée max</label><input id="adm-moto-cyl-max" type="number" class="form-input" value="' + escapeAttr(String((modele && modele.cylindree_max) || '')) + '"></div>' +
+                    '<div class="form-group"><label class="form-label">Année début</label><input id="adm-moto-annee-debut" type="number" class="form-input" value="' + escapeAttr(String((modele && modele.annee_debut) || '')) + '"></div>' +
+                    '<div class="form-group"><label class="form-label">Année fin</label><input id="adm-moto-annee-fin" type="number" class="form-input" value="' + escapeAttr(String((modele && modele.annee_fin) || '')) + '"></div>' +
+                '</div>' +
+                '<button class="btn btn-primary" style="width:100%" onclick="saveAdminMotoModele(' + (modeleId || 'null') + ')">' + (modeleId ? 'Enregistrer' : 'Créer le modèle') + '</button>';
+            showModal(modeleId ? 'Editer modèle moto' : 'Ajouter modèle moto', html, '560px');
+        }).catch(function(e) {
+            showAlert('Erreur base moto: ' + (e.message || 'chargement'), 'error');
+        });
+    },
+
+    saveAdminMotoModele: function(modeleId) {
+        var payload = {
+            marque: (document.getElementById('adm-moto-marque').value || '').trim().toUpperCase(),
+            modele: (document.getElementById('adm-moto-modele').value || '').trim(),
+            categorie_id: parseInt(document.getElementById('adm-moto-categorie').value || '0', 10),
+            cylindree_min: parseInt(document.getElementById('adm-moto-cyl-min').value || '0', 10) || null,
+            cylindree_max: parseInt(document.getElementById('adm-moto-cyl-max').value || '0', 10) || null,
+            annee_debut: parseInt(document.getElementById('adm-moto-annee-debut').value || '0', 10) || null,
+            annee_fin: parseInt(document.getElementById('adm-moto-annee-fin').value || '0', 10) || null
+        };
+        if (!payload.marque || !payload.modele || !payload.categorie_id) {
+            showAlert('Marque, modèle et catégorie sont obligatoires', 'error');
+            return;
+        }
+        var request = modeleId ? apiPut('/api/motos/modeles/' + modeleId, payload) : apiPost('/api/motos/modeles', payload);
+        request.then(function(r) { return r.json(); }).then(function() {
+            closeModal();
+            loadAdminMotoBase();
+            showNotificationToast(modeleId ? 'Modèle mis à jour' : 'Modèle créé');
+        }).catch(function(e) {
+            showAlert('Erreur base moto: ' + (e.message || 'sauvegarde'), 'error');
+        });
+    },
+
+    deleteAdminMotoModele: function(modeleId) {
+        if (!confirm('Supprimer ce modèle de la base moto ?')) return;
+        apiDelete('/api/motos/modeles/' + modeleId).then(function(r) { return r.json(); }).then(function() {
+            loadAdminMotoBase();
+            showNotificationToast('Modèle supprimé');
+        }).catch(function(e) {
+            showAlert('Erreur base moto: ' + (e.message || 'suppression'), 'error');
+        });
     },
 
     adminFmtTime: function(value) {

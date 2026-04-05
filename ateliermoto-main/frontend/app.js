@@ -832,6 +832,22 @@ function toggleAdminCategorieMoto(categorieId) {
     return callModuleMethod('AdminModule', 'toggleAdminCategorieMoto', arguments);
 }
 
+function loadAdminMotoBase() {
+    return callModuleMethod('AdminModule', 'loadAdminMotoBase', arguments);
+}
+
+function openAdminMotoModeleModal(modeleId) {
+    return callModuleMethod('AdminModule', 'openAdminMotoModeleModal', arguments);
+}
+
+function saveAdminMotoModele(modeleId) {
+    return callModuleMethod('AdminModule', 'saveAdminMotoModele', arguments);
+}
+
+function deleteAdminMotoModele(modeleId) {
+    return callModuleMethod('AdminModule', 'deleteAdminMotoModele', arguments);
+}
+
 function adminFmtTime(value) {
     return callModuleMethod('AdminModule', 'adminFmtTime', arguments);
 }

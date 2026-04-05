@@ -12,8 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 
+from auth import get_current_user
 from main import app
-from models import Base, get_db
+from models import Base, User, get_db
 from seed import init_base_moto
 
 
@@ -41,12 +42,14 @@ Base.metadata.create_all(bind=engine)
 @pytest.fixture(autouse=True)
 def _seed_moto_reference_data():
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user, None)
     db = TestingSessionLocal()
     try:
         init_base_moto(db)
         yield
     finally:
         db.close()
+        app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.fixture
@@ -73,3 +76,51 @@ class TestMotoBaseAutocomplete:
         data = response.json()
         assert data["modeles"]
         assert all(item["marque"] == "HONDA" for item in data["modeles"])
+
+    def test_create_modele_is_reserved_to_super_admin(self, client):
+        app.dependency_overrides[get_current_user] = lambda: User(
+            id=1,
+            username="admin",
+            email="admin@test.local",
+            hashed_password="x",
+            role="admin",
+            is_active=1,
+        )
+
+        response = client.post(
+            "/api/motos/modeles",
+            json={
+                "marque": "TEST",
+                "modele": "MODELE-ADMIN",
+                "categorie_id": 1,
+                "cylindree_min": 500,
+                "cylindree_max": 500,
+            },
+        )
+
+        assert response.status_code == 403
+
+    def test_super_admin_can_create_modele(self, client):
+        app.dependency_overrides[get_current_user] = lambda: User(
+            id=2,
+            username="superadmin",
+            email="superadmin@test.local",
+            hashed_password="x",
+            role="super_admin",
+            is_active=1,
+        )
+
+        response = client.post(
+            "/api/motos/modeles",
+            json={
+                "marque": "TEST",
+                "modele": "MODELE-SUPERADMIN",
+                "categorie_id": 1,
+                "cylindree_min": 650,
+                "cylindree_max": 650,
+                "annee_debut": 2024,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["message"] == "Modèle créé"

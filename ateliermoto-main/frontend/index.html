@@ -807,6 +807,26 @@ tr:hover td { background: rgba(255,255,255,.03); }
             <p style="font-size:13px;color:#9ca3af;margin-bottom:12px">Activez ou désactivez les types de moto disponibles pour cet atelier.</p>
             <div id="admin-categories-moto-list" style="color:#888">Chargement...</div>
           </div>
+          <div class="card" id="admin-moto-base-card" style="margin-top:16px;display:none">
+            <div class="card-header" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <div>
+                <div class="card-title">Base moto globale</div>
+                <p style="font-size:13px;color:#9ca3af;margin:6px 0 0 0">Réservé au <code>super_admin</code>. Gère les marques et modèles utilisés pour l’auto-complétion des RDV.</p>
+              </div>
+              <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <input class="form-input" id="admin-moto-base-marque" placeholder="Filtrer par marque" oninput="loadAdminMotoBase()" style="min-width:160px">
+                <input class="form-input" id="admin-moto-base-search" placeholder="Rechercher un modèle" oninput="loadAdminMotoBase()" style="min-width:220px">
+                <button class="btn btn-primary" onclick="openAdminMotoModeleModal()">+ Ajouter modèle</button>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:10px"><span id="admin-moto-base-count">0 modèle</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Marque</th><th>Modèle</th><th>Catégorie</th><th>Cylindrée</th><th>Années</th><th>Actions</th></tr></thead>
+                <tbody id="admin-moto-base-tbody"><tr><td colspan="6" style="color:#888">Chargement...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <div id="admin-panel-horaires" class="tab-content" style="display:none">

@@ -15,6 +15,11 @@ from schemas.moto_base import (
 router = APIRouter(tags=["moto-base"])
 
 
+def _require_super_admin(current_user: User) -> None:
+    if not current_user or current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Acces reserve au super_admin")
+
+
 @router.get("/api/motos/categories", response_model=List[CategorieMotoResponse])
 def get_categories_moto(
     atelier_slug: Optional[str] = None,
@@ -58,7 +63,8 @@ def create_categorie_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Crée une nouvelle catégorie de moto (admin)."""
+    """Crée une nouvelle catégorie de moto (super_admin)."""
+    _require_super_admin(current_user)
     existing = db.query(CategorieMoto).filter(CategorieMoto.nom == categorie.nom).first()
     if existing:
         raise HTTPException(status_code=400, detail="Cette catégorie existe déjà")
@@ -200,7 +206,8 @@ def create_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Crée un nouveau modèle de moto (admin)."""
+    """Crée un nouveau modèle de moto (super_admin)."""
+    _require_super_admin(current_user)
     categorie = db.query(CategorieMoto).filter(CategorieMoto.id == modele.categorie_id).first()
     if not categorie:
         raise HTTPException(status_code=404, detail="Catégorie non trouvée")
@@ -227,7 +234,8 @@ def update_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Met à jour un modèle de moto (admin)."""
+    """Met à jour un modèle de moto (super_admin)."""
+    _require_super_admin(current_user)
     modele = db.query(ModeleMoto).filter(ModeleMoto.id == modele_id).first()
     if not modele:
         raise HTTPException(status_code=404, detail="Modèle non trouvé")
@@ -251,7 +259,8 @@ def delete_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Supprime un modèle de moto (admin)."""
+    """Supprime un modèle de moto (super_admin)."""
+    _require_super_admin(current_user)
     modele = db.query(ModeleMoto).filter(ModeleMoto.id == modele_id).first()
     if not modele:
         raise HTTPException(status_code=404, detail="Modèle non trouvé")
