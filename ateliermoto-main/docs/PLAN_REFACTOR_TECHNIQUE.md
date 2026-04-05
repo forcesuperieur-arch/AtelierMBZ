@@ -13,14 +13,16 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 
 ## État actuel vérifié
 
-- `backend/main.py` est descendu à **~1053 lignes** (contre **5153** au départ du plan)
+- `backend/main.py` est descendu à **176 lignes** (contre **5153** au départ du plan)
 - le frontend est désormais découpé en `app-core.js` + `frontend/modules/*`
+- les routes frontend publiques/legacy sont isolées dans `backend/routes/frontend_pages.py`
+- le bootstrap de démarrage est isolé dans `backend/services/startup_service.py` et `backend/services/runtime_migrations.py`
 - les cookies d’auth sont configurables via `COOKIE_SECURE` et `COOKIE_SAMESITE`
 - les transitions de statuts RDV sont formalisées dans `backend/routes/rendez_vous.py`
 - deux correctifs métier critiques ont été validés :
   - créneaux publics **multi-prestations** avec durée cumulée correcte
   - **travaux complémentaires / OR complémentaire** bien rattachés au RDV courant
-- la suite backend la plus récente est verte : **`149 passed, 69 warnings`**
+- la suite backend la plus récente est verte : **`154 passed in 30.84s`**
 
 ---
 
@@ -47,6 +49,9 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 - `routes/devis.py`
 - `routes/vehicles.py`
 - `routes/prestations_tarifs.py`
+- `routes/frontend_pages.py`
+- `services/startup_service.py`
+- `services/runtime_migrations.py`
 - ainsi que les modules déjà en place : `clients.py`, `rendez_vous.py`, `workshop.py`
 
 **Cible atteinte en grande partie :**
@@ -81,8 +86,12 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 
 **Sujets encore ouverts :**
 - stockage des signatures dans un volume dédié ou en base
-- standardisation des scripts `db-backup.sh` / `db-restore.sh`
-- documentation d’exploitation plus explicite pour restore / rollback
+- poursuite de l’alignement Alembic pour remplacer les migrations runtime historiques
+
+**Déjà fiabilisé dans cette passe :**
+- scripts `db-backup.sh` / `db-restore.sh` standardisés vers le vrai dossier `backups/`
+- documentation d’exploitation ajoutée dans `docs/OPERATIONS.md`
+- nettoyage du dépôt avec archivage des anciens fichiers plats dans `archive/legacy-root-2026-04-05/`
 
 ### Phase 5 — Tests de non-régression ✅ renforcés
 
@@ -100,10 +109,10 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 ## Priorités restantes
 
 ### Sprint suivant recommandé
-1. sortir la logique de migration runtime du `startup`
+1. basculer progressivement les migrations runtime restantes vers `alembic/`
 2. fiabiliser la persistance des signatures
-3. standardiser backup / restore et la documentation d’exploitation
-4. poursuivre le nettoyage frontend sans régression UX
+3. poursuivre le nettoyage frontend sans régression UX
+4. maintenir la couverture de non-régression sur les flux critiques
 
 ### Niveau de risque actuel
 - **Métier :** faible à modéré, grâce aux tests de régression ajoutés

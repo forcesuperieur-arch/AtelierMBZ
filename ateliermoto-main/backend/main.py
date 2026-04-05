@@ -4,10 +4,8 @@ import os
 import time as time_module
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -19,18 +17,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ateliermoto.api")
 
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").strip().lower() in {"1", "true", "yes", "on"}
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").strip().lower()
-if COOKIE_SAMESITE not in {"lax", "strict", "none"}:
-    COOKIE_SAMESITE = "lax"
-
 from models import SessionLocal, init_db
 from statistiques import router as statistiques_router
 from facturation_api import router as facturation_router
-from routes.auth_api import _get_role_permissions, router as auth_router, user_has_permission
-from routes.tenant_admin import router as tenant_admin_router
-from services.pdf_service import generate_ordre_reparation_pdf, generate_facture_pdf
+from routes.auth_api import router as auth_router
+from routes.frontend_pages import mount_static_files, router as frontend_pages_router
 from routes.public_booking import router as public_booking_router
+from routes.tenant_admin import router as tenant_admin_router
 from services.startup_service import run_startup_tasks
 
 @asynccontextmanager
@@ -45,6 +38,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Atelier Moto API Pro", version="2.0.0", lifespan=lifespan)
+mount_static_files(app)
+app.include_router(frontend_pages_router)
 
 # Inclusion du router statistiques
 app.include_router(statistiques_router)
@@ -101,145 +96,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "ok",
-        "service": "atelier-moto-api",
-        "version": app.version
-    }
-
-# ========== SCHÉMAS DÉPLACÉS ==========
-# Les schémas tarifaires/devis historiques sont désormais portés par
-# `tarifs_api.py` et `routes.devis`; `main.py` reste centré sur la composition.
-
-
-# ========== MODÈLES PYDANTIC POUR PIÈCES ==========
-from schemas.inventory import (
-    CommandeFournisseurCreate,
-    CommandeFournisseurUpdate,
-    FournisseurCreate,
-    FournisseurUpdate,
-    PieceDetacheeCreate,
-    PieceDetacheeUpdate,
-    PieceUtiliseeCreate,
-    ReceptionCommande,
-)
-
-
-# ========== MODÈLES PYDANTIC POUR FORFAITS MO ==========
-
-from schemas.forfaits_mo import ForfaitMOCreate, ForfaitMOUpdate
-
-
-# Les schémas et routes devis sont désormais centralisés dans `routes.devis`.
-
-
-# Servir les fichiers statiques
-
-# Déterminer le chemin des fichiers statiques
-static_dir = os.getenv("STATIC_DIR")
-if static_dir:
-    if not os.path.isabs(static_dir):
-        static_dir = os.path.join(os.path.dirname(__file__), static_dir)
-    static_dir = os.path.abspath(static_dir)
-else:
-    candidates = [
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend")),
-        "/app/static",  # docker-compose mount
-        "/app/frontend",
-    ]
-    static_dir = next((p for p in candidates if os.path.exists(p)), candidates[0])
-
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-@app.get("/", response_class=HTMLResponse)
-def serve_frontend():
-    try:
-        frontend_path = os.path.join(static_dir, "index.html")
-        with open(frontend_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"""
-        <html>
-        <body>
-            <h1>Atelier Moto API Pro</h1>
-            <p>Version 2.0.0 - Online</p>
-            <p>API disponible sur /api/*, documentation sur /docs</p>
-        </body>
-        </html>
-        """
-
-@app.get("/{page_name}.html", response_class=HTMLResponse)
-def serve_page(page_name: str):
-    allowed_pages = {
-        "index", "planning", "admin", "rendez-vous", "dashboard", "factures", "devis",
-        "tarifs", "statistiques", "mecaniciens", "mecaniciens-v2", "technicien",
-        "clients", "motos", "login"
-    }
-    if page_name not in allowed_pages:
-        raise HTTPException(status_code=404, detail="Page not found")
-
-    # Compatibilité: dashboard unifié dans index SPA
-    if page_name == "dashboard":
-        return RedirectResponse(url="/", status_code=307)
-
-    frontend_path = os.path.join(static_dir, f"{page_name}.html")
-    if not os.path.exists(frontend_path):
-        raise HTTPException(status_code=404, detail="Page not found")
-    with open(frontend_path, "r") as f:
-        return f.read()
-
-@app.get("/planning.html", response_class=HTMLResponse)
-def serve_planning():
-    try:
-        frontend_path = os.path.join(static_dir, "planning.html")
-        with open(frontend_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"""
-        <html>
-        <body>
-            <h1>Planning Mécanicien</h1>
-            <p>Page non disponible</p>
-        </body>
-        </html>
-        """
-
-@app.get("/admin.html", response_class=HTMLResponse)
-def serve_admin():
-    """Page admin complète"""
-    try:
-        frontend_path = os.path.join(static_dir, "admin.html")
-        with open(frontend_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"""
-        <html>
-        <body>
-            <h1>Admin</h1>
-            <p>Page non disponible</p>
-        </body>
-        </html>
-        """
-
-@app.get("/rendez-vous.html", response_class=HTMLResponse)
-def serve_rendez_vous():
-    """Page publique de prise de rendez-vous (sans authentification)"""
-    try:
-        frontend_path = os.path.join(static_dir, "rendez-vous.html")
-        with open(frontend_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"""
-        <html>
-        <body>
-            <h1>Prise de Rendez-vous</h1>
-            <p>Erreur chargement: {str(e)}</p>
-        </body>
-        </html>
-        """
+# `main.py` reste volontairement un point de composition léger.
 
 # ========== CLIENTS ==========
 from routes.clients import router as clients_router

@@ -113,11 +113,11 @@ docker compose build backend && docker compose up -d backend
 # Accéder au shell du conteneur backend
 docker exec -it atelier-backend bash
 
-# Sauvegarde BDD
+# Sauvegarde BDD (fichiers stockés dans `../backups/` à la racine du workspace)
 ./scripts/db-backup.sh
 
 # Restauration BDD
-./scripts/db-restore.sh backups/backup_YYYYMMDD_HHMMSS.sql
+./scripts/db-restore.sh backup_YYYYMMDD_HHMMSS.sql
 ```
 
 ### Structure du code
