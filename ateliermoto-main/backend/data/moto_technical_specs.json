@@ -5233,19 +5233,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 599,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 4,
+        "nombre_bougie": 4,
+        "quantite_huile_avec_filtre": "3.4 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "180/55-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR9EH-9",
+        "ecartement_electrode_bougie_mm": "0.8 - 0.9 mm",
+        "ref_filtre_huile_hiflofiltro": "HF204",
+        "ref_filtre_air_hiflofiltro": "HFA1610",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "30 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "HONDA",
@@ -5317,19 +5334,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 745,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 2,
+        "nombre_bougie": 2,
+        "quantite_huile_avec_filtre": "3.4 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "160/60-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK LMAR8L-9",
+        "ecartement_electrode_bougie_mm": "0.8 - 0.9 mm",
+        "ref_filtre_huile_hiflofiltro": "HF204",
+        "ref_filtre_air_hiflofiltro": "HFA1708",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "30 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "HONDA",
@@ -6912,19 +6946,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 649,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 2,
+        "nombre_bougie": 2,
+        "quantite_huile_avec_filtre": "2.3 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "160/60-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR9EIA-9",
+        "ecartement_electrode_bougie_mm": "0.8 - 0.9 mm",
+        "ref_filtre_huile_hiflofiltro": "HF303",
+        "ref_filtre_air_hiflofiltro": "HFA2613",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "29 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "KAWASAKI",
@@ -7136,19 +7187,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 649,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 2,
+        "nombre_bougie": 2,
+        "quantite_huile_avec_filtre": "2.3 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "160/60-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK LMAR8A-9",
+        "ecartement_electrode_bougie_mm": "0.8 - 0.9 mm",
+        "ref_filtre_huile_hiflofiltro": "HF303",
+        "ref_filtre_air_hiflofiltro": "HFA2613",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "29 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "KAWASAKI",
@@ -7164,19 +7232,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 748,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 4,
+        "nombre_bougie": 4,
+        "quantite_huile_avec_filtre": "3.1 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "180/55-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR9E",
+        "ecartement_electrode_bougie_mm": "0.7 - 0.8 mm",
+        "ref_filtre_huile_hiflofiltro": "HF303",
+        "ref_filtre_air_hiflofiltro": "HFA2707",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "29 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "KAWASAKI",
@@ -11000,19 +11085,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 1157,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 4,
+        "nombre_bougie": 4,
+        "quantite_huile_avec_filtre": "3.5 L",
+        "viscosite_huile_moteur": "10W50"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "180/55-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W50",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK JR9B",
+        "ecartement_electrode_bougie_mm": "0.7 - 0.8 mm",
+        "ref_filtre_huile_hiflofiltro": "HF138",
+        "ref_filtre_air_hiflofiltro": "HFA3910",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "23 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "SUZUKI",
@@ -11267,19 +11369,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 487,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 2,
+        "nombre_bougie": 2,
+        "quantite_huile_avec_filtre": "3.2 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "110/70-17",
+        "dimension_pneu_arriere": "130/70-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK BPR8ES",
+        "ecartement_electrode_bougie_mm": "0.7 - 0.8 mm",
+        "ref_filtre_huile_hiflofiltro": "HF132",
+        "ref_filtre_air_hiflofiltro": "HFA3401",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "21 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "SUZUKI",
@@ -11814,19 +11933,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 645,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 2,
+        "nombre_bougie": 4,
+        "quantite_huile_avec_filtre": "2.9 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "110/80-19",
+        "dimension_pneu_arriere": "150/70-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR8E",
+        "ecartement_electrode_bougie_mm": "0.7 - 0.8 mm",
+        "ref_filtre_huile_hiflofiltro": "HF138",
+        "ref_filtre_air_hiflofiltro": "HFA3614",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "23 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "SUZUKI",
@@ -12962,19 +13098,36 @@
       },
       "moteur": {
         "cylindree_constructeur_cc": 600,
-        "type_moteur": "4 Temps"
+        "type_moteur": "4 Temps",
+        "nombre_cylindre": 4,
+        "nombre_bougie": 4,
+        "quantite_huile_avec_filtre": "3.4 L",
+        "viscosite_huile_moteur": "10W40"
       },
-      "pneumatique": {},
-      "freinage": {},
+      "pneumatique": {
+        "dimension_pneu_avant": "120/70-17",
+        "dimension_pneu_arriere": "180/55-17"
+      },
+      "freinage": {
+        "type_de_liquide_de_frein": "DOT 4"
+      },
       "suspension": {},
       "systemes_electriques": {
-        "tension_batterie": "12V"
+        "tension_batterie": "12V",
+        "tension_charge_batterie": "12V"
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR9E",
+        "ecartement_electrode_bougie_mm": "0.7 - 0.8 mm",
+        "ref_filtre_huile_hiflofiltro": "HF204",
+        "ref_filtre_air_hiflofiltro": "HFA4612",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)",
+        "couple_serrage_bouchon_vidange_nm": "43 N·m"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "Donnees atelier enrichies sur modele courant; confirmer selon VIN/millesime exact avant commande."
     },
     {
       "marque": "YAMAHA",

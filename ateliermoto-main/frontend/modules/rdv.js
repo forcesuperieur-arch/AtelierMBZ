@@ -733,6 +733,8 @@ window.RdvModule = window.RdvModule || {
             ref_filtre_huile_hiflofiltro: 'Filtre a huile Hiflofiltro',
             ref_filtre_air_hiflofiltro: 'Filtre a air Hiflofiltro',
             diametre_joint_bouchon_vidange_mm: 'Joint bouchon de vidange',
+            couple_serrage_bouchon_vidange_nm: 'Couple bouchon de vidange',
+            ecartement_electrode_bougie_mm: 'Ecartement bougie',
             pneus_avant: 'Pneu avant',
             pneus_arriere: 'Pneu arriere',
             freins_avant: 'Freins avant',
