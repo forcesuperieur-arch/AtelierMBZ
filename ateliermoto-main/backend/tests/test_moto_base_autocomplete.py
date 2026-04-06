@@ -1,5 +1,7 @@
 import os
 import sys
+import zipfile
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,7 +17,13 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 from auth import get_current_user
 from main import app
 from models import Base, User, get_db
-from seed import init_base_moto, init_moto_technical_specs, load_moto_catalog, load_moto_technical_specs
+from seed import (
+    init_base_moto,
+    init_moto_technical_specs,
+    load_moto_catalog,
+    load_moto_technical_specs,
+    load_ngk_sparkplug_rows,
+)
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -57,6 +65,52 @@ def _seed_moto_reference_data():
 def client():
     with TestClient(app) as test_client:
         yield test_client
+
+
+def _write_minimal_ngk_xlsx(target_path: Path):
+    files = {
+        "[Content_Types].xml": """<?xml version='1.0' encoding='UTF-8'?>
+<Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
+  <Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>
+  <Default Extension='xml' ContentType='application/xml'/>
+  <Override PartName='/xl/workbook.xml' ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml'/>
+  <Override PartName='/xl/worksheets/sheet1.xml' ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml'/>
+</Types>""",
+        "_rels/.rels": """<?xml version='1.0' encoding='UTF-8'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' Target='xl/workbook.xml'/>
+</Relationships>""",
+        "xl/workbook.xml": """<?xml version='1.0' encoding='UTF-8'?>
+<workbook xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships'>
+  <sheets><sheet name='NGK' sheetId='1' r:id='rId1'/></sheets>
+</workbook>""",
+        "xl/_rels/workbook.xml.rels": """<?xml version='1.0' encoding='UTF-8'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet' Target='worksheets/sheet1.xml'/>
+</Relationships>""",
+        "xl/worksheets/sheet1.xml": """<?xml version='1.0' encoding='UTF-8'?>
+<worksheet xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main'>
+  <sheetData>
+    <row r='1'>
+      <c r='A1' t='inlineStr'><is><t>Marque</t></is></c>
+      <c r='B1' t='inlineStr'><is><t>Modele</t></is></c>
+      <c r='C1' t='inlineStr'><is><t>Annee debut</t></is></c>
+      <c r='D1' t='inlineStr'><is><t>Annee fin</t></is></c>
+      <c r='E1' t='inlineStr'><is><t>Bougie NGK</t></is></c>
+    </row>
+    <row r='2'>
+      <c r='A2' t='inlineStr'><is><t>KAWASAKI</t></is></c>
+      <c r='B2' t='inlineStr'><is><t>ER-6n</t></is></c>
+      <c r='C2' t='inlineStr'><is><t>2006</t></is></c>
+      <c r='D2' t='inlineStr'><is><t>2011</t></is></c>
+      <c r='E2' t='inlineStr'><is><t>CR9EIA-9</t></is></c>
+    </row>
+  </sheetData>
+</worksheet>""",
+    }
+    with zipfile.ZipFile(target_path, "w") as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
 
 
 class TestMotoBaseAutocomplete:
@@ -164,6 +218,29 @@ class TestMotoBaseAutocomplete:
         assert len(catalog["specs"]) >= 300
         assert any((item.get("annee_debut") or 9999) <= 1990 for item in catalog["specs"])
         assert any((item.get("annee_fin") is None or item.get("annee_fin") >= 2024) for item in catalog["specs"])
+
+    def test_can_load_ngk_rows_from_minimal_xlsx_export(self, tmp_path):
+        xlsx_path = tmp_path / "ngk_sparkplugs.xlsx"
+        _write_minimal_ngk_xlsx(xlsx_path)
+
+        rows = load_ngk_sparkplug_rows(xlsx_path)
+
+        assert rows
+        assert rows[0]["marque"] == "KAWASAKI"
+        assert rows[0]["modele"] == "ER-6n"
+        assert rows[0]["annee_debut"] == 2006
+        assert rows[0]["annee_fin"] == 2011
+        assert rows[0]["ref_bougie_ngk"] == "NGK CR9EIA-9"
+
+    def test_ngk_xlsx_merge_can_enrich_matching_specs(self, tmp_path):
+        xlsx_path = tmp_path / "ngk_sparkplugs.xlsx"
+        _write_minimal_ngk_xlsx(xlsx_path)
+
+        catalog = load_moto_technical_specs(ngk_xlsx_path=xlsx_path)
+        er6n = next(item for item in catalog["specs"] if item.get("marque") == "KAWASAKI" and item.get("modele") == "ER-6n")
+
+        assert er6n["entretien"]["ref_bougie_ngk"] == "NGK CR9EIA-9"
+        assert catalog["metadata"]["ngk_rows_loaded"] >= 1
 
     def test_can_fetch_structured_technical_sheet_for_model_and_year(self, client):
         response = client.get(

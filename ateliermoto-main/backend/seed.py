@@ -1,5 +1,9 @@
 import json
+import re
+import unicodedata
+import zipfile
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 from sqlalchemy.orm import Session
 from models import InterventionType, Pont, Mecanicien, Fournisseur, PieceDetachee, ConfigAtelier, ForfaitMO, Prestation, CategorieMoto, ModeleMoto, MotoTechnicalSpec
@@ -7,6 +11,7 @@ from models import InterventionType, Pont, Mecanicien, Fournisseur, PieceDetache
 
 MOTO_CATALOG_PATH = Path(__file__).resolve().parent / "data" / "moto_catalog.json"
 MOTO_TECHNICAL_SPECS_PATH = Path(__file__).resolve().parent / "data" / "moto_technical_specs.json"
+NGK_SPARKPLUGS_PATH = Path(__file__).resolve().parent / "data" / "ngk_sparkplugs.xlsx"
 
 DEFAULT_MOTO_CATEGORIES = [
     {"nom": "Roadster", "description": "Moto nue, polyvalente et maniable"},
@@ -134,7 +139,186 @@ def sync_moto_catalog_to_db(db: Session, catalog=None):
     }
 
 
-def load_moto_technical_specs(specs_path=None):
+def _normalize_ascii(value):
+    text = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _normalize_key(value):
+    key = re.sub(r"[^a-z0-9]+", "_", _normalize_ascii(value).lower()).strip("_")
+    aliases = {
+        "brand": "marque",
+        "constructeur": "marque",
+        "make": "marque",
+        "model": "modele",
+        "designation": "modele",
+        "modele_moto": "modele",
+        "annee_debut_modele": "annee_debut",
+        "annee_debut": "annee_debut",
+        "year_from": "annee_debut",
+        "from_year": "annee_debut",
+        "debut": "annee_debut",
+        "annee_fin_modele": "annee_fin",
+        "annee_fin": "annee_fin",
+        "year_to": "annee_fin",
+        "to_year": "annee_fin",
+        "fin": "annee_fin",
+        "bougie_ngk": "ref_bougie_ngk",
+        "ref_bougie_ngk": "ref_bougie_ngk",
+        "reference_ngk": "ref_bougie_ngk",
+        "spark_plug": "ref_bougie_ngk",
+        "sparkplug": "ref_bougie_ngk",
+        "type_bougie": "ref_bougie_ngk",
+        "bougie": "ref_bougie_ngk",
+        "ngk": "ref_bougie_ngk",
+    }
+    return aliases.get(key, key)
+
+
+def _normalize_model_key(value):
+    return re.sub(r"[^A-Z0-9]+", "", _normalize_ascii(value).upper())
+
+
+def _xlsx_column_index(cell_ref):
+    letters = "".join(ch for ch in str(cell_ref or "") if ch.isalpha()).upper()
+    index = 0
+    for char in letters:
+        index = index * 26 + (ord(char) - 64)
+    return max(index - 1, 0)
+
+
+def _read_xlsx_sheet_rows(xlsx_path):
+    ns = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    rows = []
+    with zipfile.ZipFile(xlsx_path) as archive:
+        shared_strings = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+            for si in root.findall("x:si", ns):
+                chunks = [node.text or "" for node in si.findall(".//x:t", ns)]
+                shared_strings.append("".join(chunks))
+
+        sheet_name = next((name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml")), None)
+        if not sheet_name:
+            return []
+
+        sheet_root = ET.fromstring(archive.read(sheet_name))
+        for row in sheet_root.findall(".//x:sheetData/x:row", ns):
+            values = {}
+            for cell in row.findall("x:c", ns):
+                idx = _xlsx_column_index(cell.attrib.get("r", "A1"))
+                cell_type = cell.attrib.get("t")
+                if cell_type == "inlineStr":
+                    value = "".join(node.text or "" for node in cell.findall(".//x:t", ns))
+                else:
+                    value_node = cell.find("x:v", ns)
+                    value = value_node.text if value_node is not None else ""
+                    if cell_type == "s" and value not in (None, ""):
+                        try:
+                            value = shared_strings[int(value)]
+                        except Exception:
+                            value = ""
+                values[idx] = (value or "").strip()
+            if values:
+                max_idx = max(values)
+                rows.append([values.get(i, "") for i in range(max_idx + 1)])
+    return rows
+
+
+def load_ngk_sparkplug_rows(xlsx_path=None):
+    """Charge une base NGK depuis un export XLSX sans dépendance externe."""
+    path = Path(xlsx_path) if xlsx_path else NGK_SPARKPLUGS_PATH
+    if not path.exists():
+        return []
+
+    rows = _read_xlsx_sheet_rows(path)
+    if not rows:
+        return []
+
+    headers = [_normalize_key(value) or f"col_{idx}" for idx, value in enumerate(rows[0])]
+    parsed = []
+    for raw_row in rows[1:]:
+        item = {}
+        for idx, raw_value in enumerate(raw_row):
+            value = _normalize_ascii(raw_value)
+            if not value:
+                continue
+            item[headers[idx]] = value
+
+        marque = _normalize_ascii(item.get("marque") or "").upper()
+        modele = _normalize_ascii(item.get("modele") or "")
+        ref_bougie = _normalize_ascii(item.get("ref_bougie_ngk") or "")
+        if not modele or not ref_bougie:
+            continue
+
+        if ref_bougie and not ref_bougie.upper().startswith("NGK"):
+            ref_bougie = f"NGK {ref_bougie}"
+
+        parsed.append({
+            "marque": marque,
+            "modele": modele,
+            "annee_debut": _optional_int(item.get("annee_debut")),
+            "annee_fin": _optional_int(item.get("annee_fin")),
+            "ref_bougie_ngk": ref_bougie,
+        })
+    return parsed
+
+
+def merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows):
+    """Injecte les refs NGK d'un export XLSX dans les fiches techniques chargées."""
+    specs = (catalog or {}).get("specs") or []
+    updated = 0
+
+    for spec in specs:
+        marque = _normalize_ascii(spec.get("marque") or "").upper()
+        modele = _normalize_model_key(spec.get("modele") or "")
+        spec_start = _optional_int(spec.get("annee_debut")) or 1900
+        spec_end = _optional_int(spec.get("annee_fin")) or 2100
+        if not modele:
+            continue
+
+        best_row = None
+        best_score = -1
+        for row in ngk_rows or []:
+            row_modele = _normalize_model_key(row.get("modele") or "")
+            if not row_modele:
+                continue
+            row_marque = _normalize_ascii(row.get("marque") or "").upper()
+            if row_marque and marque and row_marque != marque:
+                continue
+            if row_modele == modele:
+                score = 5
+            elif row_modele in modele or modele in row_modele:
+                score = 2
+            else:
+                continue
+
+            row_start = _optional_int(row.get("annee_debut")) or 1900
+            row_end = _optional_int(row.get("annee_fin")) or 2100
+            if row_start > spec_end or row_end < spec_start:
+                continue
+            score += 2 if row.get("ref_bougie_ngk") else 0
+            if score > best_score:
+                best_row = row
+                best_score = score
+
+        if not best_row:
+            continue
+
+        entretien = spec.setdefault("entretien", {})
+        ref_bougie = best_row.get("ref_bougie_ngk")
+        if ref_bougie and entretien.get("ref_bougie_ngk") != ref_bougie:
+            entretien["ref_bougie_ngk"] = ref_bougie
+            updated += 1
+
+    if catalog is not None:
+        metadata = catalog.setdefault("metadata", {})
+        metadata["ngk_rows_loaded"] = len(ngk_rows or [])
+        metadata["ngk_refs_merged"] = updated
+    return updated
+
+
+def load_moto_technical_specs(specs_path=None, ngk_xlsx_path=None):
     """Charge le référentiel de fiches techniques moto 1990+ depuis un fichier externe."""
     path = Path(specs_path) if specs_path else MOTO_TECHNICAL_SPECS_PATH
     if not path.exists():
@@ -147,10 +331,16 @@ def load_moto_technical_specs(specs_path=None):
     if not isinstance(specs, list):
         raise ValueError("Format invalide des fiches techniques moto")
 
-    return {
+    catalog = {
         "metadata": payload.get("metadata", {}),
         "specs": specs,
     }
+
+    ngk_rows = load_ngk_sparkplug_rows(ngk_xlsx_path)
+    if ngk_rows:
+        merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows)
+
+    return catalog
 
 
 def _json_dump(value):
