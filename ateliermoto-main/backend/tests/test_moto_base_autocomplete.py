@@ -197,6 +197,44 @@ class TestMotoBaseAutocomplete:
         assert response.status_code == 200
         assert response.json()["message"] == "Modèle créé"
 
+    def test_super_admin_can_create_same_model_name_for_other_variant(self, client):
+        app.dependency_overrides[get_current_user] = lambda: User(
+            id=3,
+            username="superadmin2",
+            email="superadmin2@test.local",
+            hashed_password="x",
+            role="super_admin",
+            is_active=1,
+        )
+
+        first = client.post(
+            "/api/motos/modeles",
+            json={
+                "marque": "TEST",
+                "modele": "MODELE-VARIANT",
+                "categorie_id": 1,
+                "cylindree_min": 650,
+                "cylindree_max": 650,
+                "annee_debut": 2020,
+                "annee_fin": 2022,
+            },
+        )
+        second = client.post(
+            "/api/motos/modeles",
+            json={
+                "marque": "TEST",
+                "modele": "MODELE-VARIANT",
+                "categorie_id": 1,
+                "cylindree_min": 900,
+                "cylindree_max": 900,
+                "annee_debut": 2023,
+                "annee_fin": 2025,
+            },
+        )
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+
     def test_seed_contains_extended_brand_catalog(self, client):
         response = client.get("/api/motos/marques")
 
@@ -308,6 +346,49 @@ class TestMotoBaseAutocomplete:
             assert spec.annee_debut == 2018
             assert spec.annee_fin == 2022
             assert (spec.entretien or {})["ref_bougie_ngk"] == "NGK CR8E"
+        finally:
+            db.close()
+
+    def test_ngk_sync_keeps_variants_split_by_cylindree_and_years(self, tmp_path):
+        xlsx_path = tmp_path / "ngk_variants.xlsx"
+        _write_minimal_ngk_xlsx(
+            xlsx_path,
+            headers=["Brand", "CC", "Model", "Name", "From", "To", "Sparkplug"],
+            rows=[
+                ["TESTBRAND", "500", "Roadster", "Base", "2010", "2012", "CR7E"],
+                ["TESTBRAND", "500", "Roadster", "Base", "2013", "2015", "CR7E"],
+                ["TESTBRAND", "650", "Roadster", "Base", "2010", "2015", "CR8E"],
+            ],
+        )
+
+        ngk_rows = load_ngk_sparkplug_rows(xlsx_path)
+        db = TestingSessionLocal()
+        try:
+            catalog_result = sync_ngk_catalog_to_db(db, ngk_rows=ngk_rows)
+            specs_result = sync_ngk_minimal_specs_to_db(db, ngk_rows=ngk_rows)
+
+            modeles = db.query(ModeleMoto).filter(
+                ModeleMoto.marque == "TESTBRAND",
+                ModeleMoto.modele == "Roadster",
+            ).order_by(ModeleMoto.cylindree_min, ModeleMoto.annee_debut).all()
+
+            assert catalog_result["created"] >= 3
+            assert len(modeles) == 3
+            assert {
+                (modele.cylindree_min, modele.annee_debut, modele.annee_fin)
+                for modele in modeles
+            } == {
+                (500, 2010, 2012),
+                (500, 2013, 2015),
+                (650, 2010, 2015),
+            }
+
+            specs = db.query(MotoTechnicalSpec).join(MotoTechnicalSpec.modele).filter(
+                ModeleMoto.marque == "TESTBRAND",
+                ModeleMoto.modele == "Roadster",
+            ).all()
+            assert specs_result["created"] >= 3
+            assert len(specs) == 3
         finally:
             db.close()
 

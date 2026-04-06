@@ -329,9 +329,13 @@ def create_modele_moto(
         ModeleMoto.marque == modele.marque,
         ModeleMoto.modele == modele.modele,
         ModeleMoto.categorie_id == modele.categorie_id,
+        ModeleMoto.cylindree_min == modele.cylindree_min,
+        ModeleMoto.cylindree_max == modele.cylindree_max,
+        ModeleMoto.annee_debut == modele.annee_debut,
+        ModeleMoto.annee_fin == modele.annee_fin,
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Ce modèle existe déjà dans cette catégorie")
+        raise HTTPException(status_code=400, detail="Ce modèle existe déjà avec cette cylindrée et cette plage d'années")
 
     new_modele = ModeleMoto(**modele.model_dump())
     db.add(new_modele)

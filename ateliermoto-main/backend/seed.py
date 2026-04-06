@@ -81,13 +81,11 @@ def sync_moto_catalog_to_db(db: Session, catalog=None):
         cat.nom: cat
         for cat in db.query(CategorieMoto).all()
     }
-    existing_modeles = {
-        ((item.marque or "").strip().upper(), (item.modele or "").strip().upper()): item
-        for item in db.query(ModeleMoto).all()
-    }
+    by_signature, by_base = _build_modele_indexes(db.query(ModeleMoto).all())
 
     created_count = 0
     updated_count = 0
+    used_model_ids = set()
 
     for raw in catalog.get("models") or []:
         marque = str(raw.get("marque") or "").strip().upper()
@@ -107,13 +105,25 @@ def sync_moto_catalog_to_db(db: Session, catalog=None):
             "annee_fin": _optional_int(raw.get("annee_fin")),
         }
 
-        key = (marque, modele.upper())
-        existing = existing_modeles.get(key)
+        existing = _find_matching_modele_ref(by_signature, by_base, payload, exclude_ids=used_model_ids)
         if not existing:
-            db.add(ModeleMoto(**payload))
+            existing = ModeleMoto(**payload)
+            db.add(existing)
+            db.flush()
+            by_base.setdefault(_modele_variant_key(marque, modele)[:2], []).append(existing)
+            by_signature[_modele_variant_key(
+                marque,
+                modele,
+                payload.get("cylindree_min"),
+                payload.get("cylindree_max"),
+                payload.get("annee_debut"),
+                payload.get("annee_fin"),
+            )] = existing
+            used_model_ids.add(existing.id)
             created_count += 1
             continue
 
+        used_model_ids.add(existing.id)
         dirty = False
         for field, value in payload.items():
             if getattr(existing, field) != value:
@@ -183,6 +193,130 @@ def _normalize_key(value):
 
 def _normalize_model_key(value):
     return re.sub(r"[^A-Z0-9]+", "", _normalize_ascii(value).upper())
+
+
+def _modele_variant_key(marque, modele, cylindree_min=None, cylindree_max=None, annee_debut=None, annee_fin=None):
+    return (
+        _normalize_ascii(marque).upper(),
+        _normalize_model_key(modele),
+        _optional_int(cylindree_min),
+        _optional_int(cylindree_max),
+        _optional_int(annee_debut),
+        _optional_int(annee_fin),
+    )
+
+
+def _score_modele_candidate(modele_ref, payload):
+    score = 0
+
+    desired_min = _optional_int(payload.get("cylindree_min"))
+    desired_max = _optional_int(payload.get("cylindree_max"))
+    current_min = _optional_int(getattr(modele_ref, "cylindree_min", None))
+    current_max = _optional_int(getattr(modele_ref, "cylindree_max", None))
+
+    if desired_min is not None:
+        if current_min == desired_min and current_max == desired_max:
+            score += 8
+        elif current_min is not None and current_max is not None and current_min <= desired_min <= current_max:
+            score += 4
+        elif current_min is None and current_max is None:
+            score += 1
+        else:
+            score -= 2
+    elif current_min is None and current_max is None:
+        score += 1
+
+    desired_start = _optional_int(payload.get("annee_debut"))
+    desired_end = _optional_int(payload.get("annee_fin"))
+    current_start = _optional_int(getattr(modele_ref, "annee_debut", None))
+    current_end = _optional_int(getattr(modele_ref, "annee_fin", None))
+
+    if desired_start is not None:
+        if current_start == desired_start:
+            score += 5
+        elif current_start is None or current_start <= desired_start:
+            score += 2
+        else:
+            score -= 2
+
+    if desired_end is not None:
+        if current_end == desired_end:
+            score += 5
+        elif current_end is None or current_end >= desired_end:
+            score += 2
+        else:
+            score -= 2
+    elif current_end is None:
+        score += 1
+
+    if getattr(modele_ref, "modele", None) == payload.get("modele"):
+        score += 1
+
+    return score
+
+
+def _build_modele_indexes(modeles):
+    by_signature = {}
+    by_base = {}
+    for item in modeles or []:
+        signature = _modele_variant_key(
+            item.marque,
+            item.modele,
+            item.cylindree_min,
+            item.cylindree_max,
+            item.annee_debut,
+            item.annee_fin,
+        )
+        by_signature[signature] = item
+        by_base.setdefault(signature[:2], []).append(item)
+    return by_signature, by_base
+
+
+def _find_matching_modele_ref(by_signature, by_base, payload, exclude_ids=None):
+    signature = _modele_variant_key(
+        payload.get("marque"),
+        payload.get("modele"),
+        payload.get("cylindree_min"),
+        payload.get("cylindree_max"),
+        payload.get("annee_debut"),
+        payload.get("annee_fin"),
+    )
+
+    exact = by_signature.get(signature)
+    if exact and (not exclude_ids or exact.id not in exclude_ids):
+        return exact
+
+    candidates = []
+    for item in by_base.get(signature[:2], []):
+        if exclude_ids and item.id in exclude_ids:
+            continue
+        candidates.append(item)
+
+    if not candidates:
+        return None
+
+    best = max(candidates, key=lambda item: (_score_modele_candidate(item, payload), item.id))
+    if _score_modele_candidate(best, payload) < 0:
+        return None
+    return best
+
+
+def _extract_spec_cylindree(raw):
+    if not isinstance(raw, dict):
+        return None
+
+    general = raw.get("general") or {}
+    moteur = raw.get("moteur") or {}
+    for candidate in [
+        raw.get("cylindree"),
+        general.get("cylindree"),
+        general.get("cylindree_cc"),
+        moteur.get("cylindree_constructeur_cc"),
+    ]:
+        value = _optional_int(candidate)
+        if value is not None:
+            return value
+    return None
 
 
 def _xlsx_column_index(cell_ref):
@@ -317,6 +451,7 @@ def merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows):
         modele = _normalize_model_key(spec.get("modele") or "")
         spec_start = _optional_int(spec.get("annee_debut")) or 1900
         spec_end = _optional_int(spec.get("annee_fin")) or 2100
+        spec_cylindree = _extract_spec_cylindree(spec)
         if not modele:
             continue
 
@@ -348,6 +483,14 @@ def merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows):
             row_end = _optional_int(row.get("annee_fin")) or 2100
             if row_start > spec_end or row_end < spec_start:
                 continue
+
+            row_cylindree = _optional_int(row.get("cylindree"))
+            if spec_cylindree is not None:
+                if row_cylindree == spec_cylindree:
+                    score += 3
+                elif row_cylindree is not None:
+                    score -= 1
+
             score += 2 if row.get("ref_bougie_ngk") else 0
             if score > best_score:
                 best_row = row
@@ -377,19 +520,23 @@ def sync_ngk_catalog_to_db(db: Session, ngk_rows=None):
 
     sync_moto_catalog_to_db(db, {"categories": list(DEFAULT_MOTO_CATEGORIES), "models": []})
     categories_by_name = {cat.nom: cat for cat in db.query(CategorieMoto).all()}
-    existing_modeles = {
-        ((item.marque or "").strip().upper(), _normalize_model_key(item.modele or "")): item
-        for item in db.query(ModeleMoto).all()
-    }
+    by_signature, by_base = _build_modele_indexes(db.query(ModeleMoto).all())
 
     grouped = {}
     for row in ngk_rows:
         marque = _normalize_ascii(row.get("marque") or "").upper()
         modele = _normalize_ascii(row.get("modele") or "")
-        key = (marque, _normalize_model_key(modele))
+        key = _modele_variant_key(
+            marque,
+            modele,
+            row.get("cylindree"),
+            row.get("cylindree"),
+            row.get("annee_debut"),
+            row.get("annee_fin"),
+        )
         if not marque or not key[1]:
             continue
-        bucket = grouped.setdefault(key, {
+        grouped.setdefault(key, {
             "marque": marque,
             "modele": modele,
             "designation": row.get("designation"),
@@ -397,21 +544,12 @@ def sync_ngk_catalog_to_db(db: Session, ngk_rows=None):
             "annee_debut": row.get("annee_debut"),
             "annee_fin": row.get("annee_fin"),
         })
-        if row.get("cylindree") and not bucket.get("cylindree"):
-            bucket["cylindree"] = row.get("cylindree")
-        start = _optional_int(row.get("annee_debut"))
-        end = _optional_int(row.get("annee_fin"))
-        if start is not None:
-            current = _optional_int(bucket.get("annee_debut"))
-            bucket["annee_debut"] = start if current is None else min(current, start)
-        if end is not None:
-            current = _optional_int(bucket.get("annee_fin"))
-            bucket["annee_fin"] = end if current is None else max(current, end)
 
     created_count = 0
     updated_count = 0
-    for key, row in grouped.items():
-        marque, _ = key
+    used_model_ids = set()
+    for _, row in grouped.items():
+        marque = row.get("marque")
         categorie_name = _infer_ngk_category_name(marque, row.get("modele"), row.get("designation"), row.get("cylindree"))
         categorie = categories_by_name.get(categorie_name) or categories_by_name.get("Roadster")
         if not categorie:
@@ -426,26 +564,28 @@ def sync_ngk_catalog_to_db(db: Session, ngk_rows=None):
             "annee_debut": _optional_int(row.get("annee_debut")),
             "annee_fin": _optional_int(row.get("annee_fin")),
         }
-        existing = existing_modeles.get(key)
+        existing = _find_matching_modele_ref(by_signature, by_base, payload, exclude_ids=used_model_ids)
         if not existing:
             existing = ModeleMoto(**payload)
             db.add(existing)
             db.flush()
-            existing_modeles[key] = existing
+            by_base.setdefault(_modele_variant_key(marque, row.get("modele"))[:2], []).append(existing)
+            by_signature[_modele_variant_key(
+                marque,
+                row.get("modele"),
+                payload.get("cylindree_min"),
+                payload.get("cylindree_max"),
+                payload.get("annee_debut"),
+                payload.get("annee_fin"),
+            )] = existing
+            used_model_ids.add(existing.id)
             created_count += 1
             continue
 
+        used_model_ids.add(existing.id)
         dirty = False
-        for field in ["cylindree_min", "cylindree_max", "annee_debut", "annee_fin"]:
-            value = payload.get(field)
-            current = getattr(existing, field)
-            if current is None and value is not None:
-                setattr(existing, field, value)
-                dirty = True
-            elif field == "annee_debut" and value is not None and current is not None and value < current:
-                setattr(existing, field, value)
-                dirty = True
-            elif field == "annee_fin" and value is not None and current is not None and value > current:
+        for field, value in payload.items():
+            if getattr(existing, field) != value:
                 setattr(existing, field, value)
                 dirty = True
         if dirty:
@@ -461,10 +601,7 @@ def sync_ngk_minimal_specs_to_db(db: Session, ngk_rows=None):
     if not ngk_rows:
         return {"created": 0, "updated": 0}
 
-    modeles_by_key = {
-        ((item.marque or "").strip().upper(), _normalize_model_key(item.modele or "")): item
-        for item in db.query(ModeleMoto).all()
-    }
+    by_signature, by_base = _build_modele_indexes(db.query(ModeleMoto).all())
     existing_specs = {
         (item.modele_moto_id, item.annee_debut, item.annee_fin, item.variante or ""): item
         for item in db.query(MotoTechnicalSpec).all()
@@ -475,8 +612,18 @@ def sync_ngk_minimal_specs_to_db(db: Session, ngk_rows=None):
     for row in ngk_rows:
         marque = _normalize_ascii(row.get("marque") or "").upper()
         modele = _normalize_ascii(row.get("modele") or "")
-        key = (marque, _normalize_model_key(modele))
-        modele_ref = modeles_by_key.get(key)
+        modele_ref = _find_matching_modele_ref(
+            by_signature,
+            by_base,
+            {
+                "marque": marque,
+                "modele": modele,
+                "cylindree_min": _optional_int(row.get("cylindree")),
+                "cylindree_max": _optional_int(row.get("cylindree")),
+                "annee_debut": _optional_int(row.get("annee_debut")),
+                "annee_fin": _optional_int(row.get("annee_fin")),
+            },
+        )
         if not modele_ref:
             continue
 
@@ -564,10 +711,7 @@ def sync_moto_technical_specs_to_db(db: Session, catalog=None):
     ngk_catalog_result = sync_ngk_catalog_to_db(db, ngk_rows=ngk_rows) if ngk_rows else {"created": 0, "updated": 0, "rows": 0}
     catalog = catalog or load_moto_technical_specs(ngk_xlsx_path=NGK_SPARKPLUGS_PATH)
 
-    modeles_by_key = {
-        ((item.marque or "").strip().upper(), (item.modele or "").strip().upper()): item
-        for item in db.query(ModeleMoto).all()
-    }
+    by_signature, by_base = _build_modele_indexes(db.query(ModeleMoto).all())
     existing_specs = {
         (item.modele_moto_id, item.annee_debut, item.annee_fin, item.variante or ""): item
         for item in db.query(MotoTechnicalSpec).all()
@@ -582,11 +726,24 @@ def sync_moto_technical_specs_to_db(db: Session, catalog=None):
         if not marque or not modele:
             continue
 
-        modele_ref = modeles_by_key.get((marque, modele.upper()))
+        annee_debut = _optional_int(raw.get("annee_debut")) or 1990
+        annee_fin = _optional_int(raw.get("annee_fin"))
+        cylindree = _extract_spec_cylindree(raw)
+        modele_ref = _find_matching_modele_ref(
+            by_signature,
+            by_base,
+            {
+                "marque": marque,
+                "modele": modele,
+                "cylindree_min": cylindree,
+                "cylindree_max": cylindree,
+                "annee_debut": annee_debut,
+                "annee_fin": annee_fin,
+            },
+        )
         if not modele_ref:
             continue
 
-        annee_debut = _optional_int(raw.get("annee_debut")) or 1990
         annee_fin = _optional_int(raw.get("annee_fin"))
         variante = (raw.get("variante") or "").strip() or None
         key = (modele_ref.id, annee_debut, annee_fin, variante or "")
