@@ -719,6 +719,7 @@ tr:hover td { background: rgba(255,255,255,.03); }
           <div class="tab active" id="admin-tab-ateliers" onclick="switchAdminTab('ateliers')">Ateliers & comptes</div>
           <div class="tab" id="admin-tab-workshop" onclick="switchAdminTab('workshop')">Ponts & techniciens</div>
           <div class="tab" id="admin-tab-config" onclick="switchAdminTab('config')">Configuration</div>
+          <div class="tab" id="admin-tab-moto-base" onclick="switchAdminTab('moto-base')" style="display:none">Base moto</div>
           <div class="tab" id="admin-tab-horaires" onclick="switchAdminTab('horaires')">Horaires</div>
           <div class="tab" id="admin-tab-prestations" onclick="switchAdminTab('prestations')">Prestations</div>
           <div class="tab" id="admin-tab-equipements" onclick="switchAdminTab('equipements')">Equipements ponts</div>
@@ -808,11 +809,14 @@ tr:hover td { background: rgba(255,255,255,.03); }
             <p style="font-size:13px;color:#9ca3af;margin-bottom:12px">Activez ou désactivez les types de moto disponibles pour cet atelier.</p>
             <div id="admin-categories-moto-list" style="color:#888">Chargement...</div>
           </div>
-          <div class="card" id="admin-moto-base-card" style="margin-top:16px;display:none">
+        </div>
+
+        <div id="admin-panel-moto-base" class="tab-content" style="display:none">
+          <div class="card" id="admin-moto-base-card" style="display:none">
             <div class="card-header" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
               <div>
                 <div class="card-title">Base moto globale</div>
-                <p style="font-size:13px;color:#9ca3af;margin:6px 0 0 0">Réservé au <code>super_admin</code>. Gère les marques et modèles utilisés pour l’auto-complétion des RDV.</p>
+                <p style="font-size:13px;color:#9ca3af;margin:6px 0 0 0">Vue dédiée réservée au <code>super_admin</code> pour parcourir et gérer plus facilement les marques et modèles utilisés pour l’auto-complétion des RDV.</p>
               </div>
               <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <input class="form-input" id="admin-moto-base-marque" placeholder="Filtrer par marque" oninput="loadAdminMotoBase()" style="min-width:160px">

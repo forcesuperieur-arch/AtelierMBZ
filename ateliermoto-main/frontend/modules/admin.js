@@ -1,5 +1,8 @@
 window.AdminModule = window.AdminModule || {
     loadAdminAteliers: function() {
+        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
+        var motoTab = document.getElementById('admin-tab-moto-base');
+        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
         apiGet('/api/ateliers').then(function(r) { return r.json(); }).then(function(items) {
             var list = document.getElementById('admin-ateliers-list');
             if (!list) return;
@@ -284,7 +287,11 @@ window.AdminModule = window.AdminModule || {
     },
 
     switchAdminTab: function(tabId) {
-        ['ateliers', 'workshop', 'config', 'horaires', 'prestations', 'equipements', 'roles'].forEach(function(id) {
+        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
+        var motoTab = document.getElementById('admin-tab-moto-base');
+        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
+        if (!isSuperAdmin && tabId === 'moto-base') tabId = 'config';
+        ['ateliers', 'workshop', 'config', 'moto-base', 'horaires', 'prestations', 'equipements', 'roles'].forEach(function(id) {
             var tab = document.getElementById('admin-tab-' + id);
             var panel = document.getElementById('admin-panel-' + id);
             if (tab) tab.classList.toggle('active', id === tabId);
@@ -292,6 +299,7 @@ window.AdminModule = window.AdminModule || {
         });
         if (tabId === 'workshop') loadAdminWorkshop();
         if (tabId === 'config') loadAdminConfig();
+        if (tabId === 'moto-base') loadAdminMotoBase();
         if (tabId === 'horaires') loadAdminHoraires();
         if (tabId === 'prestations') loadAdminPrestations();
         if (tabId === 'equipements') loadAdminEquipements();
@@ -401,9 +409,9 @@ window.AdminModule = window.AdminModule || {
             showAlert('Action non autorisee', 'error');
             return;
         }
-        var motoCard = document.getElementById('admin-moto-base-card');
         var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
-        if (motoCard) motoCard.style.display = isSuperAdmin ? '' : 'none';
+        var motoTab = document.getElementById('admin-tab-moto-base');
+        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         apiGet('/api/config/atelier' + qs).then(function(r) { return r.json(); }).then(function(d) {
             document.getElementById('cfg-taux-std').value = d.taux_horaire_mo_standard || 0;
@@ -419,7 +427,6 @@ window.AdminModule = window.AdminModule || {
             document.getElementById('cfg-accompte').value = d.accompte_pourcentage || 0;
         }).catch(function(e) { showAlert('Erreur config: ' + (e.message || 'chargement'), 'error'); });
         loadAdminCategoriesMoto();
-        if (isSuperAdmin) loadAdminMotoBase();
     },
 
     saveAdminConfig: function(e) {
