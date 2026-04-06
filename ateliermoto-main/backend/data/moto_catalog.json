@@ -1,0 +1,4455 @@
+{
+  "metadata": {
+    "version": "2026.04",
+    "source": "ateliermoto curated workshop catalog",
+    "description": "Catalogue moto large (historique + moderne) destiné à l'autocomplétion atelier et synchronisé en base de données.",
+    "model_count": 490,
+    "brand_count": 49
+  },
+  "categories": [
+    {
+      "nom": "Roadster",
+      "description": "Moto nue, polyvalente et maniable"
+    },
+    {
+      "nom": "Sportive",
+      "description": "Moto performante, position sportive"
+    },
+    {
+      "nom": "Trail",
+      "description": "Moto tout-terrain et route"
+    },
+    {
+      "nom": "Scooter",
+      "description": "Scooter urbain et GT"
+    },
+    {
+      "nom": "Cruiser",
+      "description": "Custom, américaine, position relax"
+    },
+    {
+      "nom": "Cross/Enduro",
+      "description": "Moto tout-terrain compétition"
+    },
+    {
+      "nom": "Touring",
+      "description": "Moto voyage, grand confort"
+    },
+    {
+      "nom": "Supermotard",
+      "description": "Moto cross déclinée route"
+    }
+  ],
+  "models": [
+    {
+      "marque": "APRILIA",
+      "modele": "Atlantic 500",
+      "categorie": "Scooter",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 460,
+      "cylindree_max": 460
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Caponord 1200",
+      "categorie": "Trail",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 1197,
+      "cylindree_max": 1197
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Dorsoduro 750",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 749,
+      "cylindree_max": 749
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Pegaso 650",
+      "categorie": "Trail",
+      "annee_debut": 1992,
+      "annee_fin": null,
+      "cylindree_min": 652,
+      "cylindree_max": 652
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "RS 125",
+      "categorie": "Sportive",
+      "annee_debut": 1992,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "RS 457",
+      "categorie": "Sportive",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 457,
+      "cylindree_max": 457
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "RS 660",
+      "categorie": "Sportive",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 659,
+      "cylindree_max": 659
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "RSV Mille",
+      "categorie": "Sportive",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "RSV4",
+      "categorie": "Sportive",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 1099
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "SR 50",
+      "categorie": "Scooter",
+      "annee_debut": 1993,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "SR GT 125",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "SR GT 200",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 174,
+      "cylindree_max": 174
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "SX 125",
+      "categorie": "Supermotard",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "SXV 550",
+      "categorie": "Supermotard",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 549,
+      "cylindree_max": 549
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Shiver 750",
+      "categorie": "Roadster",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 750,
+      "cylindree_max": 750
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Shiver 900",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 896,
+      "cylindree_max": 896
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Tuareg 660",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 659,
+      "cylindree_max": 659
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Tuono 125",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Tuono 660",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 659,
+      "cylindree_max": 659
+    },
+    {
+      "marque": "APRILIA",
+      "modele": "Tuono V4",
+      "categorie": "Roadster",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 1077,
+      "cylindree_max": 1099
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "752S",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 754,
+      "cylindree_max": 754
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "BN 125",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "Leoncino 125",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "Leoncino 500",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 500,
+      "cylindree_max": 500
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "TNT 899",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 898,
+      "cylindree_max": 898
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "TRK 251",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 249,
+      "cylindree_max": 249
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "TRK 502",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 500,
+      "cylindree_max": 500
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "TRK 702",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 698,
+      "cylindree_max": 698
+    },
+    {
+      "marque": "BENELLI",
+      "modele": "Zafferano 125",
+      "categorie": "Scooter",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BETA",
+      "modele": "Motard 125",
+      "categorie": "Supermotard",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BETA",
+      "modele": "RR 125",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BETA",
+      "modele": "RR 200",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 190,
+      "cylindree_max": 190
+    },
+    {
+      "marque": "BETA",
+      "modele": "RR 300",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 300,
+      "cylindree_max": 300
+    },
+    {
+      "marque": "BETA",
+      "modele": "RR 390",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 386,
+      "cylindree_max": 386
+    },
+    {
+      "marque": "BETA",
+      "modele": "RR 430",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 430,
+      "cylindree_max": 430
+    },
+    {
+      "marque": "BETA",
+      "modele": "Xtrainer 300",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 300,
+      "cylindree_max": 300
+    },
+    {
+      "marque": "BIMOTA",
+      "modele": "DB5",
+      "categorie": "Sportive",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 992,
+      "cylindree_max": 992
+    },
+    {
+      "marque": "BIMOTA",
+      "modele": "KB4",
+      "categorie": "Sportive",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1043,
+      "cylindree_max": 1043
+    },
+    {
+      "marque": "BIMOTA",
+      "modele": "Tesi H2",
+      "categorie": "Sportive",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "BMW",
+      "modele": "C400GT",
+      "categorie": "Scooter",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 350,
+      "cylindree_max": 350
+    },
+    {
+      "marque": "BMW",
+      "modele": "C400X",
+      "categorie": "Scooter",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 350,
+      "cylindree_max": 350
+    },
+    {
+      "marque": "BMW",
+      "modele": "C650 Sport",
+      "categorie": "Scooter",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 647,
+      "cylindree_max": 647
+    },
+    {
+      "marque": "BMW",
+      "modele": "F650GS",
+      "categorie": "Trail",
+      "annee_debut": 2000,
+      "annee_fin": null,
+      "cylindree_min": 652,
+      "cylindree_max": 652
+    },
+    {
+      "marque": "BMW",
+      "modele": "F750GS",
+      "categorie": "Trail",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "BMW",
+      "modele": "F800R",
+      "categorie": "Roadster",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "BMW",
+      "modele": "F800S",
+      "categorie": "Sportive",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "BMW",
+      "modele": "F850GS",
+      "categorie": "Trail",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "BMW",
+      "modele": "F900R",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 895,
+      "cylindree_max": 895
+    },
+    {
+      "marque": "BMW",
+      "modele": "F900XR",
+      "categorie": "Touring",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 895,
+      "cylindree_max": 895
+    },
+    {
+      "marque": "BMW",
+      "modele": "G310GS",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 313,
+      "cylindree_max": 313
+    },
+    {
+      "marque": "BMW",
+      "modele": "G310R",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 313,
+      "cylindree_max": 313
+    },
+    {
+      "marque": "BMW",
+      "modele": "HP4",
+      "categorie": "Sportive",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 999
+    },
+    {
+      "marque": "BMW",
+      "modele": "K1300R",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 1293,
+      "cylindree_max": 1293
+    },
+    {
+      "marque": "BMW",
+      "modele": "K1600GT",
+      "categorie": "Touring",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 1649,
+      "cylindree_max": 1649
+    },
+    {
+      "marque": "BMW",
+      "modele": "K1600GTL",
+      "categorie": "Touring",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 1649,
+      "cylindree_max": 1649
+    },
+    {
+      "marque": "BMW",
+      "modele": "M1000RR",
+      "categorie": "Sportive",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1001,
+      "cylindree_max": 1001
+    },
+    {
+      "marque": "BMW",
+      "modele": "R nineT",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 1170,
+      "cylindree_max": 1170
+    },
+    {
+      "marque": "BMW",
+      "modele": "R1150R",
+      "categorie": "Roadster",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 1130,
+      "cylindree_max": 1130
+    },
+    {
+      "marque": "BMW",
+      "modele": "R1200GS",
+      "categorie": "Trail",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 1170,
+      "cylindree_max": 1170
+    },
+    {
+      "marque": "BMW",
+      "modele": "R1200RT",
+      "categorie": "Touring",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 1170,
+      "cylindree_max": 1170
+    },
+    {
+      "marque": "BMW",
+      "modele": "R1250GS",
+      "categorie": "Trail",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1254,
+      "cylindree_max": 1254
+    },
+    {
+      "marque": "BMW",
+      "modele": "R1250RT",
+      "categorie": "Touring",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1254,
+      "cylindree_max": 1254
+    },
+    {
+      "marque": "BMW",
+      "modele": "R18",
+      "categorie": "Cruiser",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 1802,
+      "cylindree_max": 1802
+    },
+    {
+      "marque": "BMW",
+      "modele": "S1000R",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 999
+    },
+    {
+      "marque": "BMW",
+      "modele": "S1000RR",
+      "categorie": "Sportive",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 999
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Cromwell 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1222,
+      "cylindree_max": 1222
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Cromwell 125",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Crossfire 500",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 486,
+      "cylindree_max": 486
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Crossfire 500 X",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 486,
+      "cylindree_max": 486
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Felsberg 125",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BRIXTON",
+      "modele": "Sunray 125",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "BSA",
+      "modele": "Gold Star 650",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 652,
+      "cylindree_max": 652
+    },
+    {
+      "marque": "BSA",
+      "modele": "Rocket Gold Star",
+      "categorie": "Roadster",
+      "annee_debut": 1962,
+      "annee_fin": null,
+      "cylindree_min": 646,
+      "cylindree_max": 646
+    },
+    {
+      "marque": "BUELL",
+      "modele": "1125R",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 1125,
+      "cylindree_max": 1125
+    },
+    {
+      "marque": "BUELL",
+      "modele": "XB12S",
+      "categorie": "Roadster",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 1203,
+      "cylindree_max": 1203
+    },
+    {
+      "marque": "BUELL",
+      "modele": "XB9SX",
+      "categorie": "Roadster",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 984,
+      "cylindree_max": 984
+    },
+    {
+      "marque": "CAGIVA",
+      "modele": "Elefant 900",
+      "categorie": "Trail",
+      "annee_debut": 1990,
+      "annee_fin": null,
+      "cylindree_min": 904,
+      "cylindree_max": 904
+    },
+    {
+      "marque": "CAGIVA",
+      "modele": "Navigator 1000",
+      "categorie": "Trail",
+      "annee_debut": 2000,
+      "annee_fin": null,
+      "cylindree_min": 996,
+      "cylindree_max": 996
+    },
+    {
+      "marque": "CAGIVA",
+      "modele": "Planet 125",
+      "categorie": "Roadster",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "CAGIVA",
+      "modele": "Raptor 650",
+      "categorie": "Roadster",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 645,
+      "cylindree_max": 645
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "125NK",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "300NK",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 292,
+      "cylindree_max": 292
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "300SR",
+      "categorie": "Sportive",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 292,
+      "cylindree_max": 292
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "450MT",
+      "categorie": "Trail",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "450NK",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "450SR",
+      "categorie": "Sportive",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "650GT",
+      "categorie": "Touring",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "650MT",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "650NK",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "675SR-R",
+      "categorie": "Sportive",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 675,
+      "cylindree_max": 675
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "700MT",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 693,
+      "cylindree_max": 693
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "800MT",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "CFMOTO",
+      "modele": "800NK",
+      "categorie": "Roadster",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "DAELIM",
+      "modele": "S1 125",
+      "categorie": "Scooter",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "DAELIM",
+      "modele": "XQ1 125",
+      "categorie": "Scooter",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "DAELIM",
+      "modele": "XQ2 300",
+      "categorie": "Scooter",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "DERBI",
+      "modele": "Atlantis 50",
+      "categorie": "Scooter",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "DERBI",
+      "modele": "GP1 125",
+      "categorie": "Scooter",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "DERBI",
+      "modele": "Mulhacén 659",
+      "categorie": "Supermotard",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 659,
+      "cylindree_max": 659
+    },
+    {
+      "marque": "DERBI",
+      "modele": "Senda 50 SM",
+      "categorie": "Supermotard",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "1199 Panigale",
+      "categorie": "Sportive",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 1198,
+      "cylindree_max": 1198
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "749",
+      "categorie": "Sportive",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 748,
+      "cylindree_max": 748
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "848",
+      "categorie": "Sportive",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 849,
+      "cylindree_max": 849
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "916",
+      "categorie": "Sportive",
+      "annee_debut": 1994,
+      "annee_fin": null,
+      "cylindree_min": 916,
+      "cylindree_max": 916
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "959 Panigale",
+      "categorie": "Sportive",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "DesertX",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Diavel 1260",
+      "categorie": "Cruiser",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1262,
+      "cylindree_max": 1262
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Hypermotard 796",
+      "categorie": "Supermotard",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 803,
+      "cylindree_max": 803
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Hypermotard 950",
+      "categorie": "Supermotard",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Monster 620",
+      "categorie": "Roadster",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 618,
+      "cylindree_max": 618
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Monster 696",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 696,
+      "cylindree_max": 696
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Monster 821",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 821,
+      "cylindree_max": 821
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Monster 937",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Multistrada 950",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Multistrada V2",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Multistrada V4",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1158,
+      "cylindree_max": 1158
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Panigale V2",
+      "categorie": "Sportive",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Panigale V4",
+      "categorie": "Sportive",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 1103,
+      "cylindree_max": 1103
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "ST3",
+      "categorie": "Touring",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 992,
+      "cylindree_max": 992
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Scrambler 800",
+      "categorie": "Roadster",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 803,
+      "cylindree_max": 803
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Scrambler Desert Sled",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 803,
+      "cylindree_max": 803
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Streetfighter 848",
+      "categorie": "Roadster",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 849,
+      "cylindree_max": 849
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Streetfighter V2",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "Streetfighter V4",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 1103,
+      "cylindree_max": 1103
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "SuperSport 950",
+      "categorie": "Sportive",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 937,
+      "cylindree_max": 937
+    },
+    {
+      "marque": "DUCATI",
+      "modele": "XDiavel",
+      "categorie": "Cruiser",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 1262,
+      "cylindree_max": 1262
+    },
+    {
+      "marque": "FANTIC",
+      "modele": "Caballero 125",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "FANTIC",
+      "modele": "Caballero 500",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "FANTIC",
+      "modele": "Caballero 700",
+      "categorie": "Roadster",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "FANTIC",
+      "modele": "XE 125",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "FANTIC",
+      "modele": "XEF 250 Trail",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "EC 250",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "EC 300",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 300,
+      "cylindree_max": 300
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "ES 700",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 693,
+      "cylindree_max": 693
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "MC 125",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "MC 250F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "GASGAS",
+      "modele": "SM 700",
+      "categorie": "Supermotard",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 693,
+      "cylindree_max": 693
+    },
+    {
+      "marque": "GILERA",
+      "modele": "GP800",
+      "categorie": "Scooter",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 839,
+      "cylindree_max": 839
+    },
+    {
+      "marque": "GILERA",
+      "modele": "Nexus 500",
+      "categorie": "Scooter",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 460,
+      "cylindree_max": 460
+    },
+    {
+      "marque": "GILERA",
+      "modele": "Runner 125",
+      "categorie": "Scooter",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "GILERA",
+      "modele": "Runner 50",
+      "categorie": "Scooter",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Breakout 117",
+      "categorie": "Cruiser",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 1923,
+      "cylindree_max": 1923
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Electra Glide",
+      "categorie": "Touring",
+      "annee_debut": 1965,
+      "annee_fin": null,
+      "cylindree_min": 1745,
+      "cylindree_max": 1923
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Fat Bob 114",
+      "categorie": "Cruiser",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 1868,
+      "cylindree_max": 1868
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Forty-Eight",
+      "categorie": "Cruiser",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 1200,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Heritage Classic",
+      "categorie": "Cruiser",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 1745,
+      "cylindree_max": 1868
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Iron 883",
+      "categorie": "Cruiser",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 883,
+      "cylindree_max": 883
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Low Rider S",
+      "categorie": "Cruiser",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 1868,
+      "cylindree_max": 1868
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Nightster",
+      "categorie": "Cruiser",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 975,
+      "cylindree_max": 975
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Pan America 1250",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1252,
+      "cylindree_max": 1252
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Road Glide",
+      "categorie": "Touring",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 1745,
+      "cylindree_max": 1923
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Sportster S",
+      "categorie": "Cruiser",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1252,
+      "cylindree_max": 1252
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Street 750",
+      "categorie": "Cruiser",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 749,
+      "cylindree_max": 749
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Street Bob 114",
+      "categorie": "Cruiser",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 1868,
+      "cylindree_max": 1868
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Street Glide",
+      "categorie": "Touring",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 1584,
+      "cylindree_max": 1923
+    },
+    {
+      "marque": "HARLEY-DAVIDSON",
+      "modele": "Ultra Limited",
+      "categorie": "Touring",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 1690,
+      "cylindree_max": 1923
+    },
+    {
+      "marque": "HONDA",
+      "modele": "ADV350",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 330,
+      "cylindree_max": 330
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Africa Twin",
+      "categorie": "Trail",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 1084
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB1000R",
+      "categorie": "Roadster",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB1100",
+      "categorie": "Roadster",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 1140,
+      "cylindree_max": 1140
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB125R",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB500F",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB650R",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB750 Four",
+      "categorie": "Roadster",
+      "annee_debut": 1969,
+      "annee_fin": null,
+      "cylindree_min": 736,
+      "cylindree_max": 736
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB750 Hornet",
+      "categorie": "Roadster",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 755,
+      "cylindree_max": 755
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CB900 Hornet",
+      "categorie": "Roadster",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 919,
+      "cylindree_max": 919
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR1000RR-R",
+      "categorie": "Sportive",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 1000,
+      "cylindree_max": 1000
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR125R",
+      "categorie": "Sportive",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR500R",
+      "categorie": "Sportive",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR600RR",
+      "categorie": "Sportive",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 599,
+      "cylindree_max": 599
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR650R",
+      "categorie": "Sportive",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CBR900RR Fireblade",
+      "categorie": "Sportive",
+      "annee_debut": 1992,
+      "annee_fin": null,
+      "cylindree_min": 893,
+      "cylindree_max": 893
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CMX1100 Rebel",
+      "categorie": "Cruiser",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1084,
+      "cylindree_max": 1084
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CRF250R",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 249,
+      "cylindree_max": 249
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CRF300L",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 286,
+      "cylindree_max": 286
+    },
+    {
+      "marque": "HONDA",
+      "modele": "CRF450R",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "HONDA",
+      "modele": "FMX 650",
+      "categorie": "Supermotard",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Forza 125",
+      "categorie": "Scooter",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Forza 350",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 330,
+      "cylindree_max": 330
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Gold Wing",
+      "categorie": "Touring",
+      "annee_debut": 1975,
+      "annee_fin": null,
+      "cylindree_min": 1833,
+      "cylindree_max": 1833
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Gold Wing F6B",
+      "categorie": "Cruiser",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 1833,
+      "cylindree_max": 1833
+    },
+    {
+      "marque": "HONDA",
+      "modele": "MSX 125 Grom",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Monkey 125",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "NC750X",
+      "categorie": "Trail",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 745,
+      "cylindree_max": 745
+    },
+    {
+      "marque": "HONDA",
+      "modele": "NT1100",
+      "categorie": "Touring",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1084,
+      "cylindree_max": 1084
+    },
+    {
+      "marque": "HONDA",
+      "modele": "NX500",
+      "categorie": "Trail",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "HONDA",
+      "modele": "PCX 125",
+      "categorie": "Scooter",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Pan European ST1300",
+      "categorie": "Touring",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 1261,
+      "cylindree_max": 1261
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Rebel 500",
+      "categorie": "Cruiser",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "HONDA",
+      "modele": "SH125i",
+      "categorie": "Scooter",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Shadow 750",
+      "categorie": "Cruiser",
+      "annee_debut": 1983,
+      "annee_fin": null,
+      "cylindree_min": 745,
+      "cylindree_max": 745
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Transalp 750",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 755,
+      "cylindree_max": 755
+    },
+    {
+      "marque": "HONDA",
+      "modele": "VFR800",
+      "categorie": "Sportive",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 782,
+      "cylindree_max": 782
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Vision 110",
+      "categorie": "Scooter",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 110,
+      "cylindree_max": 110
+    },
+    {
+      "marque": "HONDA",
+      "modele": "XL600V Transalp",
+      "categorie": "Trail",
+      "annee_debut": 1987,
+      "annee_fin": null,
+      "cylindree_min": 583,
+      "cylindree_max": 583
+    },
+    {
+      "marque": "HONDA",
+      "modele": "XL750 Transalp",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 755,
+      "cylindree_max": 755
+    },
+    {
+      "marque": "HONDA",
+      "modele": "XR650L",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 1993,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "701 Enduro",
+      "categorie": "Trail",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 692,
+      "cylindree_max": 692
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "701 Supermoto",
+      "categorie": "Supermotard",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 692,
+      "cylindree_max": 692
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "FC 450",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "FE 450",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "FS 450",
+      "categorie": "Supermotard",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "Norden 901",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 889,
+      "cylindree_max": 889
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "Svartpilen 125",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "Svartpilen 401",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 373,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "TC 125",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "TE 300",
+      "categorie": "Trail",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 300,
+      "cylindree_max": 300
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "Vitpilen 401",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 373,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "HUSQVARNA",
+      "modele": "Vitpilen 701",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 692,
+      "cylindree_max": 692
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Chief",
+      "categorie": "Cruiser",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1890,
+      "cylindree_max": 1890
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Chief Dark Horse",
+      "categorie": "Cruiser",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1890,
+      "cylindree_max": 1890
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Chieftain",
+      "categorie": "Cruiser",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 1811,
+      "cylindree_max": 1890
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "FTR",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1203,
+      "cylindree_max": 1203
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "FTR Sport",
+      "categorie": "Roadster",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 1203,
+      "cylindree_max": 1203
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Pursuit",
+      "categorie": "Touring",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1768,
+      "cylindree_max": 1768
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Roadmaster",
+      "categorie": "Touring",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 1811,
+      "cylindree_max": 1890
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Scout",
+      "categorie": "Cruiser",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 1133,
+      "cylindree_max": 1133
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Scout Bobber",
+      "categorie": "Cruiser",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 1133,
+      "cylindree_max": 1133
+    },
+    {
+      "marque": "INDIAN",
+      "modele": "Springfield",
+      "categorie": "Cruiser",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 1811,
+      "cylindree_max": 1811
+    },
+    {
+      "marque": "JAWA",
+      "modele": "350 OHC",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 397,
+      "cylindree_max": 397
+    },
+    {
+      "marque": "JAWA",
+      "modele": "42 Bobber",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 334,
+      "cylindree_max": 334
+    },
+    {
+      "marque": "JAWA",
+      "modele": "Perak",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 334,
+      "cylindree_max": 334
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ER-6n",
+      "categorie": "Roadster",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Eliminator 450",
+      "categorie": "Cruiser",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 451,
+      "cylindree_max": 451
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "GPZ900R",
+      "categorie": "Sportive",
+      "annee_debut": 1984,
+      "annee_fin": null,
+      "cylindree_min": 908,
+      "cylindree_max": 908
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "H2",
+      "categorie": "Sportive",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "KLR650",
+      "categorie": "Trail",
+      "annee_debut": 1987,
+      "annee_fin": null,
+      "cylindree_min": 652,
+      "cylindree_max": 652
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "KLX230",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 233,
+      "cylindree_max": 233
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "KLX450R",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "KX250",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 249,
+      "cylindree_max": 249
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "KX450F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Ninja 125",
+      "categorie": "Sportive",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Ninja 300",
+      "categorie": "Sportive",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 296,
+      "cylindree_max": 296
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Ninja 400",
+      "categorie": "Sportive",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 399,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Ninja 650",
+      "categorie": "Sportive",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "VN900 Custom",
+      "categorie": "Cruiser",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 903,
+      "cylindree_max": 903
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Versys 1000",
+      "categorie": "Trail",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 1043,
+      "cylindree_max": 1043
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Versys 650",
+      "categorie": "Trail",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Versys-X 300",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 296,
+      "cylindree_max": 296
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Vulcan S",
+      "categorie": "Cruiser",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z1 900",
+      "categorie": "Roadster",
+      "annee_debut": 1972,
+      "annee_fin": null,
+      "cylindree_min": 903,
+      "cylindree_max": 903
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z1000",
+      "categorie": "Roadster",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 1043,
+      "cylindree_max": 1043
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z125",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z300",
+      "categorie": "Roadster",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 296,
+      "cylindree_max": 296
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z400",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 399,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z650",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z750",
+      "categorie": "Roadster",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 748,
+      "cylindree_max": 748
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z800",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 806,
+      "cylindree_max": 806
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "Z900",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 948,
+      "cylindree_max": 948
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ZX-10R",
+      "categorie": "Sportive",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ZX-4RR",
+      "categorie": "Sportive",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 399,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ZX-6R",
+      "categorie": "Sportive",
+      "annee_debut": 1995,
+      "annee_fin": null,
+      "cylindree_min": 636,
+      "cylindree_max": 636
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ZX-7R",
+      "categorie": "Sportive",
+      "annee_debut": 1996,
+      "annee_fin": null,
+      "cylindree_min": 748,
+      "cylindree_max": 748
+    },
+    {
+      "marque": "KTM",
+      "modele": "1090 Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 1050,
+      "cylindree_max": 1050
+    },
+    {
+      "marque": "KTM",
+      "modele": "125 Duke",
+      "categorie": "Roadster",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KTM",
+      "modele": "1290 Super Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 1301,
+      "cylindree_max": 1301
+    },
+    {
+      "marque": "KTM",
+      "modele": "1290 Super Duke R",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 1301,
+      "cylindree_max": 1301
+    },
+    {
+      "marque": "KTM",
+      "modele": "250 EXC",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 249,
+      "cylindree_max": 249
+    },
+    {
+      "marque": "KTM",
+      "modele": "300 EXC",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 293,
+      "cylindree_max": 293
+    },
+    {
+      "marque": "KTM",
+      "modele": "350 EXC-F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 350,
+      "cylindree_max": 350
+    },
+    {
+      "marque": "KTM",
+      "modele": "390 Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 373,
+      "cylindree_max": 373
+    },
+    {
+      "marque": "KTM",
+      "modele": "390 Duke",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 373,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "KTM",
+      "modele": "450 SMR",
+      "categorie": "Supermotard",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "KTM",
+      "modele": "450 SX-F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "KTM",
+      "modele": "500 EXC-F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 510,
+      "cylindree_max": 510
+    },
+    {
+      "marque": "KTM",
+      "modele": "625 SMC",
+      "categorie": "Supermotard",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 625,
+      "cylindree_max": 625
+    },
+    {
+      "marque": "KTM",
+      "modele": "690 Duke",
+      "categorie": "Roadster",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 690,
+      "cylindree_max": 690
+    },
+    {
+      "marque": "KTM",
+      "modele": "690 Enduro R",
+      "categorie": "Trail",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 690,
+      "cylindree_max": 690
+    },
+    {
+      "marque": "KTM",
+      "modele": "690 SMC R",
+      "categorie": "Supermotard",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 693,
+      "cylindree_max": 693
+    },
+    {
+      "marque": "KTM",
+      "modele": "790 Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "KTM",
+      "modele": "790 Duke",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "KTM",
+      "modele": "890 Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 889,
+      "cylindree_max": 889
+    },
+    {
+      "marque": "KTM",
+      "modele": "890 Duke",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 889,
+      "cylindree_max": 889
+    },
+    {
+      "marque": "KTM",
+      "modele": "950 Adventure",
+      "categorie": "Trail",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 942,
+      "cylindree_max": 942
+    },
+    {
+      "marque": "KTM",
+      "modele": "RC 125",
+      "categorie": "Sportive",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KTM",
+      "modele": "RC 390",
+      "categorie": "Sportive",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 373,
+      "cylindree_max": 373
+    },
+    {
+      "marque": "KTM",
+      "modele": "RC8",
+      "categorie": "Sportive",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 1195,
+      "cylindree_max": 1195
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "AK 550",
+      "categorie": "Scooter",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 550,
+      "cylindree_max": 550
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "Agility 50",
+      "categorie": "Scooter",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "Agility City 125",
+      "categorie": "Scooter",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "DT X360",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 321,
+      "cylindree_max": 321
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "Like 125",
+      "categorie": "Scooter",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "People S 125",
+      "categorie": "Scooter",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "KYMCO",
+      "modele": "Xciting S 400",
+      "categorie": "Scooter",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 400,
+      "cylindree_max": 400
+    },
+    {
+      "marque": "LAMBRETTA",
+      "modele": "G350",
+      "categorie": "Scooter",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 330,
+      "cylindree_max": 330
+    },
+    {
+      "marque": "LAMBRETTA",
+      "modele": "V125",
+      "categorie": "Scooter",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "LAMBRETTA",
+      "modele": "V50",
+      "categorie": "Scooter",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "LAMBRETTA",
+      "modele": "X300",
+      "categorie": "Scooter",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 275,
+      "cylindree_max": 275
+    },
+    {
+      "marque": "LAVERDA",
+      "modele": "1000 Jota",
+      "categorie": "Roadster",
+      "annee_debut": 1976,
+      "annee_fin": null,
+      "cylindree_min": 981,
+      "cylindree_max": 981
+    },
+    {
+      "marque": "LAVERDA",
+      "modele": "750 SF",
+      "categorie": "Roadster",
+      "annee_debut": 1970,
+      "annee_fin": null,
+      "cylindree_min": 744,
+      "cylindree_max": 744
+    },
+    {
+      "marque": "MALAGUTI",
+      "modele": "F12 Phantom",
+      "categorie": "Scooter",
+      "annee_debut": 1994,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "MALAGUTI",
+      "modele": "Madison 125",
+      "categorie": "Scooter",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "MALAGUTI",
+      "modele": "Password 250",
+      "categorie": "Scooter",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "MASH",
+      "modele": "Adventure 400R",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 397,
+      "cylindree_max": 397
+    },
+    {
+      "marque": "MASH",
+      "modele": "Belena 125",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "MASH",
+      "modele": "Black Seven 125",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "MASH",
+      "modele": "Fifty 50",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 49,
+      "cylindree_max": 49
+    },
+    {
+      "marque": "MASH",
+      "modele": "Five Hundred 400",
+      "categorie": "Roadster",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 397,
+      "cylindree_max": 397
+    },
+    {
+      "marque": "MASH",
+      "modele": "Seventy 125",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "MASH",
+      "modele": "Six Hundred 650",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "MASH",
+      "modele": "X-Ride 650 Classic",
+      "categorie": "Roadster",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "MASH",
+      "modele": "X-Ride Trail 650",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "MONDIAL",
+      "modele": "Flat Track 125",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "MONDIAL",
+      "modele": "HPS 125",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "MONDIAL",
+      "modele": "Piega 452",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "MORINI",
+      "modele": "3 1/2",
+      "categorie": "Roadster",
+      "annee_debut": 1974,
+      "annee_fin": null,
+      "cylindree_min": 344,
+      "cylindree_max": 344
+    },
+    {
+      "marque": "MORINI",
+      "modele": "Corsaro 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 1187,
+      "cylindree_max": 1187
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Audace",
+      "categorie": "Cruiser",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 1380,
+      "cylindree_max": 1380
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Breva 750",
+      "categorie": "Roadster",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 744,
+      "cylindree_max": 744
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "California Touring",
+      "categorie": "Cruiser",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 1380,
+      "cylindree_max": 1380
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Griso 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 1151,
+      "cylindree_max": 1151
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Le Mans 850",
+      "categorie": "Roadster",
+      "annee_debut": 1976,
+      "annee_fin": null,
+      "cylindree_min": 844,
+      "cylindree_max": 844
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Norge 1200",
+      "categorie": "Touring",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 1151,
+      "cylindree_max": 1151
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "Stelvio",
+      "categorie": "Trail",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 1042,
+      "cylindree_max": 1151
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "V100 Mandello",
+      "categorie": "Touring",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1042,
+      "cylindree_max": 1042
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "V7 Special",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "V7 Stone",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "V85 TT",
+      "categorie": "Trail",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "MOTO GUZZI",
+      "modele": "V9 Bobber",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 853,
+      "cylindree_max": 853
+    },
+    {
+      "marque": "MOTO MORINI",
+      "modele": "Corsaro 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 1187,
+      "cylindree_max": 1187
+    },
+    {
+      "marque": "MOTO MORINI",
+      "modele": "Granpasso 1200",
+      "categorie": "Trail",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 1187,
+      "cylindree_max": 1187
+    },
+    {
+      "marque": "MOTO MORINI",
+      "modele": "Seiemmezzo SCR",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "MOTO MORINI",
+      "modele": "Seiemmezzo STR",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "MOTO MORINI",
+      "modele": "X-Cape 650",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 649,
+      "cylindree_max": 649
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Brutale 1000",
+      "categorie": "Roadster",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Brutale 675",
+      "categorie": "Roadster",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 675,
+      "cylindree_max": 675
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Brutale 800",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Dragster 800",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Enduro Veloce",
+      "categorie": "Touring",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 931,
+      "cylindree_max": 931
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "F3 675",
+      "categorie": "Sportive",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 675,
+      "cylindree_max": 675
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "F3 800",
+      "categorie": "Sportive",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "F4 1000",
+      "categorie": "Sportive",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Superveloce 800",
+      "categorie": "Sportive",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "MV AGUSTA",
+      "modele": "Turismo Veloce 800",
+      "categorie": "Touring",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 798,
+      "cylindree_max": 798
+    },
+    {
+      "marque": "MZ",
+      "modele": "RT 125",
+      "categorie": "Roadster",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "MZ",
+      "modele": "Skorpion 660",
+      "categorie": "Roadster",
+      "annee_debut": 1994,
+      "annee_fin": null,
+      "cylindree_min": 660,
+      "cylindree_max": 660
+    },
+    {
+      "marque": "NORTON",
+      "modele": "Atlas 650 Ranger",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 650,
+      "cylindree_max": 650
+    },
+    {
+      "marque": "NORTON",
+      "modele": "Commando 961",
+      "categorie": "Roadster",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 961,
+      "cylindree_max": 961
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "Kisbee 50",
+      "categorie": "Scooter",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "Metropolis 400",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 399,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "Pulsion 125",
+      "categorie": "Scooter",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "Speedfight 4",
+      "categorie": "Scooter",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "Tweet 125",
+      "categorie": "Scooter",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "PEUGEOT",
+      "modele": "XP400",
+      "categorie": "Scooter",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 400,
+      "cylindree_max": 400
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "Beverly 300",
+      "categorie": "Scooter",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "Beverly 400",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 399,
+      "cylindree_max": 399
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "Liberty 125",
+      "categorie": "Scooter",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "MP3 300",
+      "categorie": "Scooter",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "MP3 530",
+      "categorie": "Scooter",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 530,
+      "cylindree_max": 530
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "Medley 125",
+      "categorie": "Scooter",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "PIAGGIO",
+      "modele": "X10 350",
+      "categorie": "Scooter",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 330,
+      "cylindree_max": 330
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRK 125R",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRK 550",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 554,
+      "cylindree_max": 554
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRK 800 RR",
+      "categorie": "Roadster",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 778,
+      "cylindree_max": 778
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRT 550",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 554,
+      "cylindree_max": 554
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRT 700X",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 698,
+      "cylindree_max": 698
+    },
+    {
+      "marque": "QJMOTOR",
+      "modele": "SRT 800 SX",
+      "categorie": "Trail",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "RIEJU",
+      "modele": "Aventura 125",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "RIEJU",
+      "modele": "Aventura 500",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "RIEJU",
+      "modele": "Aventura 500 Legend",
+      "categorie": "Trail",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 471,
+      "cylindree_max": 471
+    },
+    {
+      "marque": "RIEJU",
+      "modele": "MRT 125 SM",
+      "categorie": "Supermotard",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "RIEJU",
+      "modele": "MRT 50 SM",
+      "categorie": "Supermotard",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Bullet 350",
+      "categorie": "Roadster",
+      "annee_debut": 1932,
+      "annee_fin": null,
+      "cylindree_min": 346,
+      "cylindree_max": 349
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Bullet 500",
+      "categorie": "Roadster",
+      "annee_debut": 1990,
+      "annee_fin": null,
+      "cylindree_min": 499,
+      "cylindree_max": 499
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Classic 350",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 349,
+      "cylindree_max": 349
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Continental GT 650",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 648,
+      "cylindree_max": 648
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Himalayan 411",
+      "categorie": "Trail",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 411,
+      "cylindree_max": 411
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Himalayan 450",
+      "categorie": "Trail",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 452,
+      "cylindree_max": 452
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Hunter 350",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 349,
+      "cylindree_max": 349
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Interceptor 650",
+      "categorie": "Roadster",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 648,
+      "cylindree_max": 648
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Meteor 350",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 349,
+      "cylindree_max": 349
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Scram 411",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 411,
+      "cylindree_max": 411
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Shotgun 650",
+      "categorie": "Cruiser",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 648,
+      "cylindree_max": 648
+    },
+    {
+      "marque": "ROYAL ENFIELD",
+      "modele": "Super Meteor 650",
+      "categorie": "Cruiser",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 648,
+      "cylindree_max": 648
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "125 SE",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "125 SM-R",
+      "categorie": "Supermotard",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "250 SE-R",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "300 SE Factory",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 300,
+      "cylindree_max": 300
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "450 SEF Factory",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "SHERCO",
+      "modele": "500 SEF Factory",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 478,
+      "cylindree_max": 478
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "AN650 Burgman",
+      "categorie": "Scooter",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 638,
+      "cylindree_max": 638
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Address 125",
+      "categorie": "Scooter",
+      "annee_debut": 2018,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Bandit 1200",
+      "categorie": "Roadster",
+      "annee_debut": 1996,
+      "annee_fin": null,
+      "cylindree_min": 1157,
+      "cylindree_max": 1157
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Bandit 650",
+      "categorie": "Roadster",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 656,
+      "cylindree_max": 656
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Boulevard M109R",
+      "categorie": "Cruiser",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 1783,
+      "cylindree_max": 1783
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Burgman 125",
+      "categorie": "Scooter",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Burgman 400",
+      "categorie": "Scooter",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 400,
+      "cylindree_max": 400
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "DR-Z400E",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2000,
+      "annee_fin": null,
+      "cylindree_min": 398,
+      "cylindree_max": 398
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "DR-Z400SM",
+      "categorie": "Supermotard",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 398,
+      "cylindree_max": 398
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "DR650SE",
+      "categorie": "Trail",
+      "annee_debut": 1990,
+      "annee_fin": null,
+      "cylindree_min": 644,
+      "cylindree_max": 644
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-R1000",
+      "categorie": "Sportive",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 988,
+      "cylindree_max": 1000
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-R125",
+      "categorie": "Sportive",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-R600",
+      "categorie": "Sportive",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 599,
+      "cylindree_max": 599
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-R750",
+      "categorie": "Sportive",
+      "annee_debut": 1985,
+      "annee_fin": null,
+      "cylindree_min": 750,
+      "cylindree_max": 750
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-S1000",
+      "categorie": "Roadster",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 999
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-S125",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX-S750",
+      "categorie": "Roadster",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 749,
+      "cylindree_max": 749
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GSX250R",
+      "categorie": "Sportive",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 248,
+      "cylindree_max": 248
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Gladius 650",
+      "categorie": "Roadster",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 645,
+      "cylindree_max": 645
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Hayabusa 1300",
+      "categorie": "Sportive",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 1299,
+      "cylindree_max": 1340
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Inazuma 250",
+      "categorie": "Roadster",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 248,
+      "cylindree_max": 248
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Intruder 800",
+      "categorie": "Cruiser",
+      "annee_debut": 1992,
+      "annee_fin": null,
+      "cylindree_min": 805,
+      "cylindree_max": 805
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "Katana 1000",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 999,
+      "cylindree_max": 999
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "RM-Z250",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 249,
+      "cylindree_max": 249
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "RM-Z450",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 449,
+      "cylindree_max": 449
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "SV650",
+      "categorie": "Roadster",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 645,
+      "cylindree_max": 645
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "V-Strom 1050",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 1037,
+      "cylindree_max": 1037
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "V-Strom 250",
+      "categorie": "Trail",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 248,
+      "cylindree_max": 248
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "V-Strom 650",
+      "categorie": "Trail",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 645,
+      "cylindree_max": 645
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "V-Strom 800DE",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 776,
+      "cylindree_max": 776
+    },
+    {
+      "marque": "SYM",
+      "modele": "Cruisym 300",
+      "categorie": "Scooter",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "SYM",
+      "modele": "Jet 14 125",
+      "categorie": "Scooter",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SYM",
+      "modele": "Joymax Z+ 125",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "SYM",
+      "modele": "Joymax Z+ 300",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "SYM",
+      "modele": "Maxsym TL 508",
+      "categorie": "Scooter",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 508,
+      "cylindree_max": 508
+    },
+    {
+      "marque": "SYM",
+      "modele": "Symphony 125",
+      "categorie": "Scooter",
+      "annee_debut": 2009,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Bonneville T100",
+      "categorie": "Roadster",
+      "annee_debut": 2002,
+      "annee_fin": null,
+      "cylindree_min": 865,
+      "cylindree_max": 900
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Bonneville T120",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 1200,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Daytona 660",
+      "categorie": "Sportive",
+      "annee_debut": 2024,
+      "annee_fin": null,
+      "cylindree_min": 660,
+      "cylindree_max": 660
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Daytona 675",
+      "categorie": "Sportive",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 675,
+      "cylindree_max": 675
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Daytona 955i",
+      "categorie": "Sportive",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Rocket 3",
+      "categorie": "Cruiser",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 2458,
+      "cylindree_max": 2458
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Rocket III",
+      "categorie": "Cruiser",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 2294,
+      "cylindree_max": 2294
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Scrambler 1200",
+      "categorie": "Trail",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1200,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Speed Triple 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 1160,
+      "cylindree_max": 1160
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Speed Triple 955i",
+      "categorie": "Roadster",
+      "annee_debut": 1997,
+      "annee_fin": null,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Speed Twin 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 1200,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Speedmaster",
+      "categorie": "Cruiser",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 865,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Street Triple 675",
+      "categorie": "Roadster",
+      "annee_debut": 2007,
+      "annee_fin": null,
+      "cylindree_min": 675,
+      "cylindree_max": 675
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Street Triple 765",
+      "categorie": "Roadster",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 765,
+      "cylindree_max": 765
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Thruxton 1200",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 1200,
+      "cylindree_max": 1200
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Tiger 1200",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 1160,
+      "cylindree_max": 1160
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Tiger 660 Sport",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 660,
+      "cylindree_max": 660
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Tiger 800",
+      "categorie": "Trail",
+      "annee_debut": 2011,
+      "annee_fin": null,
+      "cylindree_min": 799,
+      "cylindree_max": 799
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Tiger 900",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 888,
+      "cylindree_max": 888
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Trident 660",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 660,
+      "cylindree_max": 660
+    },
+    {
+      "marque": "TRIUMPH",
+      "modele": "Trophy SE",
+      "categorie": "Touring",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 1215,
+      "cylindree_max": 1215
+    },
+    {
+      "marque": "URAL",
+      "modele": "Gear Up",
+      "categorie": "Touring",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 749,
+      "cylindree_max": 749
+    },
+    {
+      "marque": "URAL",
+      "modele": "cT",
+      "categorie": "Touring",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 749,
+      "cylindree_max": 749
+    },
+    {
+      "marque": "VESPA",
+      "modele": "GTS 125",
+      "categorie": "Scooter",
+      "annee_debut": 2005,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "VESPA",
+      "modele": "GTS 300",
+      "categorie": "Scooter",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 278,
+      "cylindree_max": 278
+    },
+    {
+      "marque": "VESPA",
+      "modele": "PX 125",
+      "categorie": "Scooter",
+      "annee_debut": 1977,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "VESPA",
+      "modele": "PX 200",
+      "categorie": "Scooter",
+      "annee_debut": 1977,
+      "annee_fin": null,
+      "cylindree_min": 200,
+      "cylindree_max": 200
+    },
+    {
+      "marque": "VESPA",
+      "modele": "Primavera 125",
+      "categorie": "Scooter",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "VESPA",
+      "modele": "Primavera 50",
+      "categorie": "Scooter",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "VESPA",
+      "modele": "Sprint 125",
+      "categorie": "Scooter",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "Aerox 155",
+      "categorie": "Scooter",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 155,
+      "cylindree_max": 155
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "FZ1",
+      "categorie": "Roadster",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "FZ6",
+      "categorie": "Roadster",
+      "annee_debut": 2004,
+      "annee_fin": null,
+      "cylindree_min": 600,
+      "cylindree_max": 600
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "MT-03",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 321,
+      "cylindree_max": 321
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "MT-07",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "MT-09",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 847,
+      "cylindree_max": 890
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "MT-10",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "MT-125",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "NMAX 125",
+      "categorie": "Scooter",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "R1",
+      "categorie": "Sportive",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 998,
+      "cylindree_max": 998
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "R3",
+      "categorie": "Sportive",
+      "annee_debut": 2015,
+      "annee_fin": null,
+      "cylindree_min": 321,
+      "cylindree_max": 321
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "R6",
+      "categorie": "Sportive",
+      "annee_debut": 1999,
+      "annee_fin": null,
+      "cylindree_min": 599,
+      "cylindree_max": 599
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "R7",
+      "categorie": "Sportive",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "Super Ténéré 1200",
+      "categorie": "Trail",
+      "annee_debut": 2010,
+      "annee_fin": null,
+      "cylindree_min": 1199,
+      "cylindree_max": 1199
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "TMAX",
+      "categorie": "Scooter",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 530,
+      "cylindree_max": 562
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "TZR 50",
+      "categorie": "Sportive",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 50,
+      "cylindree_max": 50
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "Tracer 7",
+      "categorie": "Trail",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "Tracer 9",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 890,
+      "cylindree_max": 890
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "Ténéré 700",
+      "categorie": "Trail",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "WR250F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "WR450F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XJR1300",
+      "categorie": "Roadster",
+      "annee_debut": 1998,
+      "annee_fin": null,
+      "cylindree_min": 1251,
+      "cylindree_max": 1251
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XMAX 125",
+      "categorie": "Scooter",
+      "annee_debut": 2006,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XMAX 300",
+      "categorie": "Scooter",
+      "annee_debut": 2017,
+      "annee_fin": null,
+      "cylindree_min": 292,
+      "cylindree_max": 292
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XSR125",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XSR700",
+      "categorie": "Roadster",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 689,
+      "cylindree_max": 689
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "XT660Z Ténéré",
+      "categorie": "Trail",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 660,
+      "cylindree_max": 660
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "YZ250F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2001,
+      "annee_fin": null,
+      "cylindree_min": 250,
+      "cylindree_max": 250
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "YZ450F",
+      "categorie": "Cross/Enduro",
+      "annee_debut": 2003,
+      "annee_fin": null,
+      "cylindree_min": 450,
+      "cylindree_max": 450
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "YZF-R125",
+      "categorie": "Sportive",
+      "annee_debut": 2008,
+      "annee_fin": null,
+      "cylindree_min": 124,
+      "cylindree_max": 124
+    },
+    {
+      "marque": "ZERO",
+      "modele": "DS",
+      "categorie": "Trail",
+      "annee_debut": 2012,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "DSR",
+      "categorie": "Trail",
+      "annee_debut": 2016,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "DSR/X",
+      "categorie": "Trail",
+      "annee_debut": 2023,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "FXE",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "S",
+      "categorie": "Roadster",
+      "annee_debut": 2013,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "SR",
+      "categorie": "Roadster",
+      "annee_debut": 2014,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "SR/F",
+      "categorie": "Roadster",
+      "annee_debut": 2019,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZERO",
+      "modele": "SR/S",
+      "categorie": "Touring",
+      "annee_debut": 2020,
+      "annee_fin": null,
+      "cylindree_min": 0,
+      "cylindree_max": 0
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "125 T",
+      "categorie": "Trail",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "125 U",
+      "categorie": "Roadster",
+      "annee_debut": 2021,
+      "annee_fin": null,
+      "cylindree_min": 125,
+      "cylindree_max": 125
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "350 R",
+      "categorie": "Roadster",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 348,
+      "cylindree_max": 348
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "350 T",
+      "categorie": "Trail",
+      "annee_debut": 2022,
+      "annee_fin": null,
+      "cylindree_min": 348,
+      "cylindree_max": 348
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "703 F",
+      "categorie": "Roadster",
+      "annee_debut": 2025,
+      "annee_fin": null,
+      "cylindree_min": 699,
+      "cylindree_max": 699
+    },
+    {
+      "marque": "ZONTES",
+      "modele": "703 T",
+      "categorie": "Trail",
+      "annee_debut": 2025,
+      "annee_fin": null,
+      "cylindree_min": 699,
+      "cylindree_max": 699
+    }
+  ]
+}

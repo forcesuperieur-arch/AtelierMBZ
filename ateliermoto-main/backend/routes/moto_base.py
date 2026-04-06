@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from models import Atelier, AtelierCategorieMoto, CategorieMoto, ModeleMoto, User, get_db
+from seed import sync_moto_catalog_to_db
 from schemas.moto_base import (
     CategorieMotoCreate,
     CategorieMotoResponse,
@@ -74,6 +75,16 @@ def create_categorie_moto(
     db.commit()
     db.refresh(new_categorie)
     return {"message": "Catégorie créée", "id": new_categorie.id}
+
+
+@router.post("/api/motos/catalog/import")
+def import_catalogue_moto(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Réimporte le catalogue moto externe dans la BDD (super_admin)."""
+    _require_super_admin(current_user)
+    return sync_moto_catalog_to_db(db)
 
 
 @router.get("/api/motos/autocomplete")

@@ -15,7 +15,7 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 from auth import get_current_user
 from main import app
 from models import Base, User, get_db
-from seed import init_base_moto
+from seed import init_base_moto, load_moto_catalog
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -130,5 +130,27 @@ class TestMotoBaseAutocomplete:
 
         assert response.status_code == 200
         brands = response.json()
-        for expected in ["APRILIA", "HARLEY-DAVIDSON", "ROYAL ENFIELD", "CFMOTO", "VESPA"]:
+        assert len(brands) >= 35
+        for expected in [
+            "APRILIA",
+            "HARLEY-DAVIDSON",
+            "ROYAL ENFIELD",
+            "CFMOTO",
+            "VESPA",
+            "MOTO GUZZI",
+            "INDIAN",
+            "MASH",
+        ]:
+            assert expected in brands
+
+    def test_external_catalog_is_loaded_from_data_file(self):
+        catalog = load_moto_catalog()
+
+        assert isinstance(catalog, dict)
+        assert isinstance(catalog.get("categories"), list)
+        assert isinstance(catalog.get("models"), list)
+        assert len(catalog["models"]) >= 300
+
+        brands = {item["marque"] for item in catalog["models"]}
+        for expected in ["YAMAHA", "HONDA", "BMW", "HARLEY-DAVIDSON", "MOTO GUZZI", "MASH"]:
             assert expected in brands
