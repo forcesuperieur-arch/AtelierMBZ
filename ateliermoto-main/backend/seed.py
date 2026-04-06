@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 
 from sqlalchemy.orm import Session
-from models import InterventionType, Pont, Mecanicien, Fournisseur, PieceDetachee, ConfigAtelier, ForfaitMO, Prestation, CategorieMoto, ModeleMoto
+from models import InterventionType, Pont, Mecanicien, Fournisseur, PieceDetachee, ConfigAtelier, ForfaitMO, Prestation, CategorieMoto, ModeleMoto, MotoTechnicalSpec
 
 
 MOTO_CATALOG_PATH = Path(__file__).resolve().parent / "data" / "moto_catalog.json"
+MOTO_TECHNICAL_SPECS_PATH = Path(__file__).resolve().parent / "data" / "moto_technical_specs.json"
 
 DEFAULT_MOTO_CATEGORIES = [
     {"nom": "Roadster", "description": "Moto nue, polyvalente et maniable"},
@@ -131,6 +132,112 @@ def sync_moto_catalog_to_db(db: Session, catalog=None):
         "catalog_version": metadata.get("version"),
         "catalog_source": metadata.get("source"),
     }
+
+
+def load_moto_technical_specs(specs_path=None):
+    """Charge le référentiel de fiches techniques moto 1990+ depuis un fichier externe."""
+    path = Path(specs_path) if specs_path else MOTO_TECHNICAL_SPECS_PATH
+    if not path.exists():
+        return {"metadata": {}, "specs": []}
+
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    specs = payload.get("specs") or []
+    if not isinstance(specs, list):
+        raise ValueError("Format invalide des fiches techniques moto")
+
+    return {
+        "metadata": payload.get("metadata", {}),
+        "specs": specs,
+    }
+
+
+def _json_dump(value):
+    return json.dumps(value or {}, ensure_ascii=False)
+
+
+def sync_moto_technical_specs_to_db(db: Session, catalog=None):
+    """Synchronise les fiches techniques détaillées dans la BDD."""
+    sync_moto_catalog_to_db(db)
+    catalog = catalog or load_moto_technical_specs()
+
+    modeles_by_key = {
+        ((item.marque or "").strip().upper(), (item.modele or "").strip().upper()): item
+        for item in db.query(ModeleMoto).all()
+    }
+    existing_specs = {
+        (item.modele_moto_id, item.annee_debut, item.annee_fin, item.variante or ""): item
+        for item in db.query(MotoTechnicalSpec).all()
+    }
+
+    created_count = 0
+    updated_count = 0
+
+    for raw in catalog.get("specs") or []:
+        marque = str(raw.get("marque") or "").strip().upper()
+        modele = str(raw.get("modele") or "").strip()
+        if not marque or not modele:
+            continue
+
+        modele_ref = modeles_by_key.get((marque, modele.upper()))
+        if not modele_ref:
+            continue
+
+        annee_debut = _optional_int(raw.get("annee_debut")) or 1990
+        annee_fin = _optional_int(raw.get("annee_fin"))
+        variante = (raw.get("variante") or "").strip() or None
+        key = (modele_ref.id, annee_debut, annee_fin, variante or "")
+
+        payload = {
+            "modele_moto_id": modele_ref.id,
+            "variante": variante,
+            "annee_debut": annee_debut,
+            "annee_fin": annee_fin,
+            "source": raw.get("source"),
+            "general_json": _json_dump(raw.get("general")),
+            "moteur_json": _json_dump(raw.get("moteur")),
+            "pneumatique_json": _json_dump(raw.get("pneumatique")),
+            "freinage_json": _json_dump(raw.get("freinage")),
+            "suspension_json": _json_dump(raw.get("suspension")),
+            "systemes_electriques_json": _json_dump(raw.get("systemes_electriques")),
+            "entretien_json": _json_dump(raw.get("entretien")),
+            "notes": raw.get("notes"),
+        }
+
+        existing = existing_specs.get(key)
+        if not existing:
+            db.add(MotoTechnicalSpec(**payload))
+            created_count += 1
+            continue
+
+        dirty = False
+        for field, value in payload.items():
+            if getattr(existing, field) != value:
+                setattr(existing, field, value)
+                dirty = True
+        if dirty:
+            updated_count += 1
+
+    db.commit()
+
+    total_specs = db.query(MotoTechnicalSpec).count()
+    metadata = catalog.get("metadata") or {}
+    return {
+        "message": "Fiches techniques moto synchronisées",
+        "created": created_count,
+        "updated": updated_count,
+        "total_specs": total_specs,
+        "coverage_from_year": metadata.get("coverage_from_year"),
+        "coverage_to_year": metadata.get("coverage_to_year"),
+        "catalog_version": metadata.get("version"),
+    }
+
+
+def init_moto_technical_specs(db: Session):
+    """Initialise/synchronise les fiches techniques moto détaillées."""
+    return sync_moto_technical_specs_to_db(db)
+
 
 def init_intervention_types(db: Session):
     """Initialise les types d'intervention avec prix et temps"""

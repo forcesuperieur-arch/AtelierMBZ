@@ -10,11 +10,12 @@ import logging
 from sqlalchemy.orm import Session
 
 from auth import create_default_users
-from seed import init_base_moto, init_intervention_types, init_prestations
+from seed import init_base_moto, init_intervention_types, init_moto_technical_specs, init_prestations
 from seed_parametres import init_parametres
 from services.runtime_migrations import (
     migrate_atelier_categorie_motos,
     migrate_demandes_travaux_supp,
+    migrate_moto_technical_specs,
     migrate_mecanicien_user_link,
     migrate_multitenant_schema,
     migrate_role_permissions,
@@ -35,12 +36,14 @@ def run_runtime_migrations(db: Session) -> None:
     migrate_role_permissions(db)
     migrate_mecanicien_user_link(db)
     migrate_atelier_categorie_motos(db)
+    migrate_moto_technical_specs(db)
 
 
 def run_reference_seeders(db: Session) -> None:
     """Seed immutable/reference business data required by the app."""
     init_intervention_types(db)
     init_base_moto(db)
+    init_moto_technical_specs(db)
     init_prestations(db)
     init_parametres(db)
 

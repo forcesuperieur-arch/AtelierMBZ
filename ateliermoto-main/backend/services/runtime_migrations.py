@@ -323,8 +323,44 @@ def migrate_atelier_categorie_motos(db: Session):
         print(f"[MIGRATION] atelier_categorie_motos: {e}")
 
 
+def migrate_moto_technical_specs(db: Session):
+    """Migration: table des fiches techniques moto détaillées."""
+    try:
+        inspector = inspect(db.bind)
+        tables = set(inspector.get_table_names())
+        if "moto_technical_specs" not in tables:
+            db.execute(text("""
+                CREATE TABLE moto_technical_specs (
+                    id SERIAL PRIMARY KEY,
+                    modele_moto_id INTEGER NOT NULL REFERENCES modele_motos(id),
+                    variante VARCHAR(150),
+                    annee_debut INTEGER NOT NULL,
+                    annee_fin INTEGER,
+                    source VARCHAR(255),
+                    general_json TEXT NOT NULL DEFAULT '{}',
+                    moteur_json TEXT NOT NULL DEFAULT '{}',
+                    pneumatique_json TEXT NOT NULL DEFAULT '{}',
+                    freinage_json TEXT NOT NULL DEFAULT '{}',
+                    suspension_json TEXT NOT NULL DEFAULT '{}',
+                    systemes_electriques_json TEXT NOT NULL DEFAULT '{}',
+                    entretien_json TEXT NOT NULL DEFAULT '{}',
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            db.execute(text("CREATE INDEX IF NOT EXISTS idx_moto_specs_modele ON moto_technical_specs(modele_moto_id)"))
+            db.execute(text("CREATE INDEX IF NOT EXISTS idx_moto_specs_annee ON moto_technical_specs(annee_debut, annee_fin)"))
+            db.commit()
+            print("[MIGRATION] Table moto_technical_specs creee")
+    except Exception as e:
+        db.rollback()
+        print(f"[MIGRATION] moto_technical_specs: {e}")
+
+
 __all__ = [
     "migrate_atelier_categorie_motos",
+    "migrate_moto_technical_specs",
     "migrate_demandes_travaux_supp",
     "migrate_mecanicien_user_link",
     "migrate_multitenant_schema",

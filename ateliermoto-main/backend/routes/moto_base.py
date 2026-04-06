@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
-from models import Atelier, AtelierCategorieMoto, CategorieMoto, ModeleMoto, User, get_db
-from seed import sync_moto_catalog_to_db
+from models import Atelier, AtelierCategorieMoto, CategorieMoto, ModeleMoto, MotoTechnicalSpec, User, get_db
+from seed import sync_moto_catalog_to_db, sync_moto_technical_specs_to_db
 from schemas.moto_base import (
     CategorieMotoCreate,
     CategorieMotoResponse,
@@ -19,6 +19,27 @@ router = APIRouter(tags=["moto-base"])
 def _require_super_admin(current_user: User) -> None:
     if not current_user or current_user.role != "super_admin":
         raise HTTPException(status_code=403, detail="Acces reserve au super_admin")
+
+
+def _serialize_technical_spec(spec: MotoTechnicalSpec):
+    return {
+        "id": spec.id,
+        "modele_moto_id": spec.modele_moto_id,
+        "marque": spec.modele.marque if spec.modele else None,
+        "modele": spec.modele.modele if spec.modele else None,
+        "variante": spec.variante,
+        "annee_debut": spec.annee_debut,
+        "annee_fin": spec.annee_fin,
+        "source": spec.source,
+        "general": spec.general,
+        "moteur": spec.moteur,
+        "pneumatique": spec.pneumatique,
+        "freinage": spec.freinage,
+        "suspension": spec.suspension,
+        "systemes_electriques": spec.systemes_electriques,
+        "entretien": spec.entretien,
+        "notes": spec.notes,
+    }
 
 
 @router.get("/api/motos/categories", response_model=List[CategorieMotoResponse])
@@ -84,7 +105,12 @@ def import_catalogue_moto(
 ):
     """Réimporte le catalogue moto externe dans la BDD (super_admin)."""
     _require_super_admin(current_user)
-    return sync_moto_catalog_to_db(db)
+    catalog_result = sync_moto_catalog_to_db(db)
+    specs_result = sync_moto_technical_specs_to_db(db)
+    return {
+        "catalog": catalog_result,
+        "technical_specs": specs_result,
+    }
 
 
 @router.get("/api/motos/autocomplete")
@@ -211,6 +237,58 @@ def get_modele_moto_detail(modele_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/api/motos/technical-specs")
+def get_moto_technical_specs(
+    marque: str,
+    modele: str,
+    annee: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retourne la fiche technique détaillée d'une moto pour un millésime donné."""
+    marque_value = (marque or "").strip()
+    modele_value = (modele or "").strip()
+    if not marque_value or not modele_value:
+        raise HTTPException(status_code=400, detail="Les parametres marque et modele sont obligatoires")
+
+    query = db.query(MotoTechnicalSpec).join(ModeleMoto).filter(
+        ModeleMoto.marque.ilike(f"%{marque_value}%"),
+        ModeleMoto.modele.ilike(f"%{modele_value}%"),
+    )
+    if annee:
+        query = query.filter(
+            MotoTechnicalSpec.annee_debut <= annee,
+            ((MotoTechnicalSpec.annee_fin == None) | (MotoTechnicalSpec.annee_fin >= annee)),
+        )
+
+    spec = query.order_by(MotoTechnicalSpec.annee_debut.desc()).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Fiche technique non trouvée")
+
+    data = _serialize_technical_spec(spec)
+    if annee:
+        data.setdefault("general", {})["annee"] = annee
+    return data
+
+
+@router.get("/api/motos/modeles/{modele_id}/technical-specs")
+def get_modele_moto_technical_specs(modele_id: int, annee: Optional[int] = None, db: Session = Depends(get_db)):
+    """Retourne la fiche technique rattachée à un modèle moto de la base."""
+    query = db.query(MotoTechnicalSpec).filter(MotoTechnicalSpec.modele_moto_id == modele_id)
+    if annee:
+        query = query.filter(
+            MotoTechnicalSpec.annee_debut <= annee,
+            ((MotoTechnicalSpec.annee_fin == None) | (MotoTechnicalSpec.annee_fin >= annee)),
+        )
+    spec = query.order_by(MotoTechnicalSpec.annee_debut.desc()).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Fiche technique non trouvée")
+
+    data = _serialize_technical_spec(spec)
+    if annee:
+        data.setdefault("general", {})["annee"] = annee
+    return data
+
+
 @router.post("/api/motos/modeles")
 def create_modele_moto(
     modele: ModeleMotoCreate,
@@ -295,6 +373,7 @@ def get_stats_moto(db: Session = Depends(get_db)):
 
     total_modeles = db.query(ModeleMoto).count()
     total_categories = db.query(CategorieMoto).count()
+    total_fiches_techniques = db.query(MotoTechnicalSpec).count()
     modeles_par_marque = db.query(
         ModeleMoto.marque,
         func.count(ModeleMoto.id).label("count"),
@@ -307,6 +386,7 @@ def get_stats_moto(db: Session = Depends(get_db)):
     return {
         "total_modeles": total_modeles,
         "total_categories": total_categories,
+        "total_fiches_techniques": total_fiches_techniques,
         "modeles_par_marque": [{"marque": marque, "count": count} for marque, count in modeles_par_marque],
         "modeles_par_categorie": [{"categorie": categorie, "count": count} for categorie, count in modeles_par_categorie],
     }

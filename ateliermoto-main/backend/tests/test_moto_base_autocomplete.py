@@ -15,7 +15,7 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 from auth import get_current_user
 from main import app
 from models import Base, User, get_db
-from seed import init_base_moto, load_moto_catalog
+from seed import init_base_moto, init_moto_technical_specs, load_moto_catalog, load_moto_technical_specs
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -46,6 +46,7 @@ def _seed_moto_reference_data():
     db = TestingSessionLocal()
     try:
         init_base_moto(db)
+        init_moto_technical_specs(db)
         yield
     finally:
         db.close()
@@ -154,3 +155,26 @@ class TestMotoBaseAutocomplete:
         brands = {item["marque"] for item in catalog["models"]}
         for expected in ["YAMAHA", "HONDA", "BMW", "HARLEY-DAVIDSON", "MOTO GUZZI", "MASH"]:
             assert expected in brands
+
+    def test_external_technical_specs_cover_1990_to_today(self):
+        catalog = load_moto_technical_specs()
+
+        assert isinstance(catalog, dict)
+        assert isinstance(catalog.get("specs"), list)
+        assert len(catalog["specs"]) >= 300
+        assert any((item.get("annee_debut") or 9999) <= 1990 for item in catalog["specs"])
+        assert any((item.get("annee_fin") is None or item.get("annee_fin") >= 2024) for item in catalog["specs"])
+
+    def test_can_fetch_structured_technical_sheet_for_model_and_year(self, client):
+        response = client.get(
+            "/api/motos/technical-specs",
+            params={"marque": "KAWASAKI", "modele": "ER-5", "annee": 2000},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["general"]["marque_moto"] == "KAWASAKI"
+        assert "ER-5" in data["general"]["modele"]
+        assert data["general"]["annee"] == 2000
+        assert "moteur" in data and isinstance(data["moteur"], dict)
+        assert "pneumatique" in data and isinstance(data["pneumatique"], dict)

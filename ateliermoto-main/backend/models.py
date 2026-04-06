@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Date, Time, Float, Numeric, Text, ForeignKey, Boolean, event
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from datetime import datetime
@@ -550,6 +552,7 @@ class ModeleMoto(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     categorie = relationship("CategorieMoto", back_populates="modeles")
+    technical_specs = relationship("MotoTechnicalSpec", back_populates="modele", cascade="all, delete-orphan")
 
     @property
     def cylindree_display(self):
@@ -570,6 +573,69 @@ class ModeleMoto(Base):
         elif self.annee_debut:
             return f"Depuis {self.annee_debut}"
         return "N/A"
+
+
+class MotoTechnicalSpec(Base):
+    """Fiche technique structurée par modèle et plage de millésimes."""
+    __tablename__ = "moto_technical_specs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    modele_moto_id = Column(Integer, ForeignKey("modele_motos.id"), nullable=False, index=True)
+    variante = Column(String(150), nullable=True)
+    annee_debut = Column(Integer, nullable=False, index=True)
+    annee_fin = Column(Integer, nullable=True, index=True)
+    source = Column(String(255), nullable=True)
+    general_json = Column(Text, nullable=False, default="{}")
+    moteur_json = Column(Text, nullable=False, default="{}")
+    pneumatique_json = Column(Text, nullable=False, default="{}")
+    freinage_json = Column(Text, nullable=False, default="{}")
+    suspension_json = Column(Text, nullable=False, default="{}")
+    systemes_electriques_json = Column(Text, nullable=False, default="{}")
+    entretien_json = Column(Text, nullable=False, default="{}")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    modele = relationship("ModeleMoto", back_populates="technical_specs")
+
+    @staticmethod
+    def _json_to_dict(value):
+        if not value:
+            return {}
+        if isinstance(value, dict):
+            return value
+        try:
+            return json.loads(value)
+        except Exception:
+            return {}
+
+    @property
+    def general(self):
+        return self._json_to_dict(self.general_json)
+
+    @property
+    def moteur(self):
+        return self._json_to_dict(self.moteur_json)
+
+    @property
+    def pneumatique(self):
+        return self._json_to_dict(self.pneumatique_json)
+
+    @property
+    def freinage(self):
+        return self._json_to_dict(self.freinage_json)
+
+    @property
+    def suspension(self):
+        return self._json_to_dict(self.suspension_json)
+
+    @property
+    def systemes_electriques(self):
+        return self._json_to_dict(self.systemes_electriques_json)
+
+    @property
+    def entretien(self):
+        return self._json_to_dict(self.entretien_json)
 
 
 # ========== GESTION DES TARIFS - PRESTATIONS ==========

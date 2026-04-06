@@ -3,7 +3,7 @@
     "version": "2026.04",
     "source": "ateliermoto curated workshop catalog",
     "description": "Catalogue moto large (historique + moderne) destiné à l'autocomplétion atelier et synchronisé en base de données.",
-    "model_count": 490,
+    "model_count": 502,
     "brand_count": 49
   },
   "categories": [
@@ -1024,6 +1024,15 @@
     },
     {
       "marque": "DUCATI",
+      "modele": "Monster 600",
+      "categorie": "Roadster",
+      "annee_debut": 1994,
+      "annee_fin": 2001,
+      "cylindree_min": 583,
+      "cylindree_max": 583
+    },
+    {
+      "marque": "DUCATI",
       "modele": "Monster 620",
       "categorie": "Roadster",
       "annee_debut": 2002,
@@ -1492,6 +1501,15 @@
     },
     {
       "marque": "HONDA",
+      "modele": "CB500",
+      "categorie": "Roadster",
+      "annee_debut": 1994,
+      "annee_fin": 2003,
+      "cylindree_min": 499,
+      "cylindree_max": 499
+    },
+    {
+      "marque": "HONDA",
       "modele": "CB500F",
       "categorie": "Roadster",
       "annee_debut": 2013,
@@ -1627,6 +1645,15 @@
     },
     {
       "marque": "HONDA",
+      "modele": "Deauville 650",
+      "categorie": "Touring",
+      "annee_debut": 1998,
+      "annee_fin": 2005,
+      "cylindree_min": 647,
+      "cylindree_max": 647
+    },
+    {
+      "marque": "HONDA",
       "modele": "FMX 650",
       "categorie": "Supermotard",
       "annee_debut": 2005,
@@ -1669,6 +1696,15 @@
       "annee_fin": null,
       "cylindree_min": 1833,
       "cylindree_max": 1833
+    },
+    {
+      "marque": "HONDA",
+      "modele": "Hornet 600",
+      "categorie": "Roadster",
+      "annee_debut": 1998,
+      "annee_fin": 2006,
+      "cylindree_min": 599,
+      "cylindree_max": 599
     },
     {
       "marque": "HONDA",
@@ -2041,6 +2077,15 @@
     },
     {
       "marque": "KAWASAKI",
+      "modele": "ER-5",
+      "categorie": "Roadster",
+      "annee_debut": 1997,
+      "annee_fin": 2006,
+      "cylindree_min": 498,
+      "cylindree_max": 498
+    },
+    {
+      "marque": "KAWASAKI",
       "modele": "ER-6n",
       "categorie": "Roadster",
       "annee_debut": 2006,
@@ -2056,6 +2101,15 @@
       "annee_fin": null,
       "cylindree_min": 451,
       "cylindree_max": 451
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "GPZ500S",
+      "categorie": "Sportive",
+      "annee_debut": 1987,
+      "annee_fin": 2009,
+      "cylindree_min": 498,
+      "cylindree_max": 498
     },
     {
       "marque": "KAWASAKI",
@@ -2281,6 +2335,15 @@
       "annee_fin": null,
       "cylindree_min": 948,
       "cylindree_max": 948
+    },
+    {
+      "marque": "KAWASAKI",
+      "modele": "ZR-7",
+      "categorie": "Roadster",
+      "annee_debut": 1999,
+      "annee_fin": 2004,
+      "cylindree_min": 738,
+      "cylindree_max": 738
     },
     {
       "marque": "KAWASAKI",
@@ -3490,6 +3553,15 @@
     },
     {
       "marque": "SUZUKI",
+      "modele": "Bandit 600",
+      "categorie": "Roadster",
+      "annee_debut": 1995,
+      "annee_fin": 2004,
+      "cylindree_min": 599,
+      "cylindree_max": 599
+    },
+    {
+      "marque": "SUZUKI",
       "modele": "Bandit 650",
       "categorie": "Roadster",
       "annee_debut": 2005,
@@ -3550,6 +3622,15 @@
       "annee_fin": null,
       "cylindree_min": 644,
       "cylindree_max": 644
+    },
+    {
+      "marque": "SUZUKI",
+      "modele": "GS500E",
+      "categorie": "Roadster",
+      "annee_debut": 1989,
+      "annee_fin": 2007,
+      "cylindree_min": 487,
+      "cylindree_max": 487
     },
     {
       "marque": "SUZUKI",
@@ -3895,6 +3976,15 @@
     },
     {
       "marque": "TRIUMPH",
+      "modele": "Sprint ST 955i",
+      "categorie": "Touring",
+      "annee_debut": 1999,
+      "annee_fin": 2004,
+      "cylindree_min": 955,
+      "cylindree_max": 955
+    },
+    {
+      "marque": "TRIUMPH",
       "modele": "Street Triple 675",
       "categorie": "Roadster",
       "annee_debut": 2007,
@@ -4084,6 +4174,15 @@
     },
     {
       "marque": "YAMAHA",
+      "modele": "FZS600 Fazer",
+      "categorie": "Roadster",
+      "annee_debut": 1998,
+      "annee_fin": 2003,
+      "cylindree_min": 599,
+      "cylindree_max": 599
+    },
+    {
+      "marque": "YAMAHA",
       "modele": "MT-03",
       "categorie": "Roadster",
       "annee_debut": 2016,
@@ -4180,6 +4279,15 @@
       "annee_fin": null,
       "cylindree_min": 1199,
       "cylindree_max": 1199
+    },
+    {
+      "marque": "YAMAHA",
+      "modele": "TDM 900",
+      "categorie": "Touring",
+      "annee_debut": 2002,
+      "annee_fin": 2013,
+      "cylindree_min": 897,
+      "cylindree_max": 897
     },
     {
       "marque": "YAMAHA",
