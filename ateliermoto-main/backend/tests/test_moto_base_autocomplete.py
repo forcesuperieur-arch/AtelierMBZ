@@ -16,13 +16,15 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 
 from auth import get_current_user
 from main import app
-from models import Base, User, get_db
+from models import Base, ModeleMoto, MotoTechnicalSpec, User, get_db
 from seed import (
     init_base_moto,
     init_moto_technical_specs,
     load_moto_catalog,
     load_moto_technical_specs,
     load_ngk_sparkplug_rows,
+    sync_ngk_catalog_to_db,
+    sync_ngk_minimal_specs_to_db,
 )
 
 
@@ -67,7 +69,35 @@ def client():
         yield test_client
 
 
-def _write_minimal_ngk_xlsx(target_path: Path):
+def _xlsx_column_name(index: int) -> str:
+    name = ""
+    current = index + 1
+    while current:
+        current, remainder = divmod(current - 1, 26)
+        name = chr(65 + remainder) + name
+    return name
+
+
+def _write_minimal_ngk_xlsx(target_path: Path, headers=None, rows=None):
+    headers = headers or ["Marque", "Modele", "Annee debut", "Annee fin", "Bougie NGK"]
+    rows = rows or [["KAWASAKI", "ER-6n", "2006", "2011", "CR9EIA-9"]]
+
+    def _build_row_xml(row_index, values):
+        cells = []
+        for col_index, value in enumerate(values):
+            cell_ref = f"{_xlsx_column_name(col_index)}{row_index}"
+            cells.append(
+                f"      <c r='{cell_ref}' t='inlineStr'><is><t>{value}</t></is></c>"
+            )
+        return "    <row r='{row_index}'>\n{cells}\n    </row>".format(
+            row_index=row_index,
+            cells="\n".join(cells),
+        )
+
+    sheet_rows = [_build_row_xml(1, headers)]
+    for row_index, values in enumerate(rows, start=2):
+        sheet_rows.append(_build_row_xml(row_index, values))
+
     files = {
         "[Content_Types].xml": """<?xml version='1.0' encoding='UTF-8'?>
 <Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
@@ -91,22 +121,9 @@ def _write_minimal_ngk_xlsx(target_path: Path):
         "xl/worksheets/sheet1.xml": """<?xml version='1.0' encoding='UTF-8'?>
 <worksheet xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main'>
   <sheetData>
-    <row r='1'>
-      <c r='A1' t='inlineStr'><is><t>Marque</t></is></c>
-      <c r='B1' t='inlineStr'><is><t>Modele</t></is></c>
-      <c r='C1' t='inlineStr'><is><t>Annee debut</t></is></c>
-      <c r='D1' t='inlineStr'><is><t>Annee fin</t></is></c>
-      <c r='E1' t='inlineStr'><is><t>Bougie NGK</t></is></c>
-    </row>
-    <row r='2'>
-      <c r='A2' t='inlineStr'><is><t>KAWASAKI</t></is></c>
-      <c r='B2' t='inlineStr'><is><t>ER-6n</t></is></c>
-      <c r='C2' t='inlineStr'><is><t>2006</t></is></c>
-      <c r='D2' t='inlineStr'><is><t>2011</t></is></c>
-      <c r='E2' t='inlineStr'><is><t>CR9EIA-9</t></is></c>
-    </row>
+{sheet_rows}
   </sheetData>
-</worksheet>""",
+</worksheet>""".format(sheet_rows="\n".join(sheet_rows)),
     }
     with zipfile.ZipFile(target_path, "w") as archive:
         for name, content in files.items():
@@ -241,6 +258,58 @@ class TestMotoBaseAutocomplete:
 
         assert er6n["entretien"]["ref_bougie_ngk"] == "NGK CR9EIA-9"
         assert catalog["metadata"]["ngk_rows_loaded"] >= 1
+
+    def test_can_load_ngk_rows_from_vehicle_headers_with_years_and_name(self, tmp_path):
+        xlsx_path = tmp_path / "ngk_vehicle.xlsx"
+        _write_minimal_ngk_xlsx(
+            xlsx_path,
+            headers=["Brand", "CC", "Model", "Name", "From", "To", "Sparkplug"],
+            rows=[["HONDA", "750", "NC750", "X DCT", "2014", "2020", "LMAR8A-9"]],
+        )
+
+        rows = load_ngk_sparkplug_rows(xlsx_path)
+
+        assert rows
+        assert rows[0]["marque"] == "HONDA"
+        assert rows[0]["modele"] == "NC750"
+        assert rows[0]["designation"] == "X DCT"
+        assert rows[0]["cylindree"] == 750
+        assert rows[0]["annee_debut"] == 2014
+        assert rows[0]["annee_fin"] == 2020
+        assert rows[0]["ref_bougie_ngk"] == "NGK LMAR8A-9"
+
+    def test_ngk_sync_can_create_missing_model_and_minimal_spec(self, tmp_path):
+        xlsx_path = tmp_path / "ngk_missing_model.xlsx"
+        _write_minimal_ngk_xlsx(
+            xlsx_path,
+            headers=["Brand", "CC", "Model", "Name", "From", "To", "Sparkplug"],
+            rows=[["TESTBRAND", "300", "Road 300", "Adventure", "2018", "2022", "CR8E"]],
+        )
+
+        ngk_rows = load_ngk_sparkplug_rows(xlsx_path)
+        db = TestingSessionLocal()
+        try:
+            catalog_result = sync_ngk_catalog_to_db(db, ngk_rows=ngk_rows)
+            specs_result = sync_ngk_minimal_specs_to_db(db, ngk_rows=ngk_rows)
+
+            modele = db.query(ModeleMoto).filter(
+                ModeleMoto.marque == "TESTBRAND",
+                ModeleMoto.modele == "Road 300",
+            ).first()
+            assert catalog_result["created"] >= 1
+            assert modele is not None
+            assert modele.annee_debut == 2018
+            assert modele.annee_fin == 2022
+            assert modele.cylindree_min == 300
+
+            spec = db.query(MotoTechnicalSpec).filter(MotoTechnicalSpec.modele_moto_id == modele.id).first()
+            assert specs_result["created"] >= 1
+            assert spec is not None
+            assert spec.annee_debut == 2018
+            assert spec.annee_fin == 2022
+            assert (spec.entretien or {})["ref_bougie_ngk"] == "NGK CR8E"
+        finally:
+            db.close()
 
     def test_can_fetch_structured_technical_sheet_for_model_and_year(self, client):
         response = client.get(

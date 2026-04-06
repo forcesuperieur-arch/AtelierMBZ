@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -150,7 +151,30 @@ def autocomplete_moto_base(
         for (marque_name,) in marques_query.order_by(ModeleMoto.marque).limit(safe_limit).all()
         if marque_name
     ]
-    modeles = modeles_query.order_by(ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
+
+    if query_value:
+        normalized_query = "".join(ch for ch in query_value.lower() if ch.isalnum()) or query_value.lower()
+        normalized_modele = func.lower(
+            func.replace(
+                func.replace(
+                    func.replace(ModeleMoto.modele, " ", ""),
+                    "-",
+                    "",
+                ),
+                "/",
+                "",
+            )
+        )
+        model_rank = case(
+            (ModeleMoto.modele.ilike(f"{query_value}-%"), 0),
+            (ModeleMoto.modele.ilike(f"{query_value} %"), 1),
+            (ModeleMoto.modele.ilike(f"{query_value}%"), 2),
+            (normalized_modele.ilike(f"{normalized_query}%"), 3),
+            else_=4,
+        )
+        modeles = modeles_query.order_by(model_rank, ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
+    else:
+        modeles = modeles_query.order_by(ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
 
     return {
         "marques": marques,

@@ -150,18 +150,24 @@ def _normalize_key(value):
         "brand": "marque",
         "constructeur": "marque",
         "make": "marque",
+        "cc": "cylindree",
+        "cylindree": "cylindree",
+        "cylinder_capacity": "cylindree",
         "model": "modele",
-        "designation": "modele",
+        "name": "designation",
+        "designation": "designation",
         "modele_moto": "modele",
         "annee_debut_modele": "annee_debut",
         "annee_debut": "annee_debut",
         "year_from": "annee_debut",
         "from_year": "annee_debut",
+        "from": "annee_debut",
         "debut": "annee_debut",
         "annee_fin_modele": "annee_fin",
         "annee_fin": "annee_fin",
         "year_to": "annee_fin",
         "to_year": "annee_fin",
+        "to": "annee_fin",
         "fin": "annee_fin",
         "bougie_ngk": "ref_bougie_ngk",
         "ref_bougie_ngk": "ref_bougie_ngk",
@@ -225,6 +231,39 @@ def _read_xlsx_sheet_rows(xlsx_path):
     return rows
 
 
+def _compose_ngk_modele_label(modele, designation=None):
+    base = _normalize_ascii(modele or "")
+    extra = _normalize_ascii(designation or "")
+    if not base:
+        return extra
+    if not extra:
+        return base
+    if _normalize_model_key(extra) == _normalize_model_key(base):
+        return base
+    if base.isdigit() or len(base) <= 3:
+        return f"{extra} {base}".strip()
+    return base
+
+
+def _infer_ngk_category_name(marque, modele, designation=None, cylindree=None):
+    text = " ".join([_normalize_ascii(marque), _normalize_ascii(modele), _normalize_ascii(designation)]).lower()
+    if any(token in text for token in ["scoot", "scooter", "burgman", "xmax", "tmax", "vespa", "forza", "pcx", "nmax", "gts", "primavera", "sprint", "people", "downtown", "citycom", "cruisym", "joymax", "symphony", "maxsym"]):
+        return "Scooter"
+    if any(token in text for token in ["africa twin", "transalp", "tenere", "tracer", "multistrada", "v-strom", "versys", "gs", "adventure", "tiger", "caponord", "pegaso", "nc750x", "nx", "dr650", "xt660", "xtz"]):
+        return "Trail"
+    if any(token in text for token in ["cbr", "r1", "r6", "r7", "r125", "zx", "ninja", "gsx-r", "daytona", "panigale", "f3", "f4", "fzr", "rsv", "supersport", "sport"]):
+        return "Sportive"
+    if any(token in text for token in ["shadow", "dragstar", "virago", "vulcan", "intruder", "boulevard", "softail", "sportster", "fat bob", "fat boy", "cruiser", "diavel", "rocket", "eliminator"]):
+        return "Cruiser"
+    if any(token in text for token in ["crf", "wr", "yz", "kx", "rmz", "exc", "sx", "fe", "te", "enduro", "cross"]):
+        return "Cross/Enduro"
+    if any(token in text for token in ["smc", "supermot", "dr-z400sm", "690 sm", "701 sm"]):
+        return "Supermotard"
+    if any(token in text for token in ["gold wing", "fjr", "k1600", "trophy", "pan european", "deauville", "rt", "gt"]):
+        return "Touring"
+    return "Roadster"
+
+
 def load_ngk_sparkplug_rows(xlsx_path=None):
     """Charge une base NGK depuis un export XLSX sans dépendance externe."""
     path = Path(xlsx_path) if xlsx_path else NGK_SPARKPLUGS_PATH
@@ -247,8 +286,9 @@ def load_ngk_sparkplug_rows(xlsx_path=None):
 
         marque = _normalize_ascii(item.get("marque") or "").upper()
         modele = _normalize_ascii(item.get("modele") or "")
+        designation = _normalize_ascii(item.get("designation") or "")
         ref_bougie = _normalize_ascii(item.get("ref_bougie_ngk") or "")
-        if not modele or not ref_bougie:
+        if not marque or not modele or not ref_bougie:
             continue
 
         if ref_bougie and not ref_bougie.upper().startswith("NGK"):
@@ -256,7 +296,10 @@ def load_ngk_sparkplug_rows(xlsx_path=None):
 
         parsed.append({
             "marque": marque,
-            "modele": modele,
+            "modele": _compose_ngk_modele_label(modele, designation),
+            "modele_base": modele,
+            "designation": designation or None,
+            "cylindree": _optional_int(item.get("cylindree")),
             "annee_debut": _optional_int(item.get("annee_debut")),
             "annee_fin": _optional_int(item.get("annee_fin")),
             "ref_bougie_ngk": ref_bougie,
@@ -280,17 +323,25 @@ def merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows):
         best_row = None
         best_score = -1
         for row in ngk_rows or []:
-            row_modele = _normalize_model_key(row.get("modele") or "")
-            if not row_modele:
+            row_candidates = [
+                _normalize_model_key(row.get("modele") or ""),
+                _normalize_model_key(row.get("modele_base") or ""),
+                _normalize_model_key(row.get("designation") or ""),
+            ]
+            row_candidates = [candidate for candidate in row_candidates if candidate]
+            if not row_candidates:
                 continue
             row_marque = _normalize_ascii(row.get("marque") or "").upper()
             if row_marque and marque and row_marque != marque:
                 continue
-            if row_modele == modele:
-                score = 5
-            elif row_modele in modele or modele in row_modele:
-                score = 2
-            else:
+
+            score = -1
+            for candidate in row_candidates:
+                if candidate == modele:
+                    score = max(score, 5)
+                elif candidate in modele or modele in candidate:
+                    score = max(score, 2)
+            if score < 0:
                 continue
 
             row_start = _optional_int(row.get("annee_debut")) or 1900
@@ -316,6 +367,165 @@ def merge_ngk_sparkplug_rows_into_specs_data(catalog, ngk_rows):
         metadata["ngk_rows_loaded"] = len(ngk_rows or [])
         metadata["ngk_refs_merged"] = updated
     return updated
+
+
+def sync_ngk_catalog_to_db(db: Session, ngk_rows=None):
+    """Ajoute les motos absentes du catalogue à partir du véhiculier NGK."""
+    ngk_rows = ngk_rows or load_ngk_sparkplug_rows()
+    if not ngk_rows:
+        return {"created": 0, "updated": 0, "rows": 0}
+
+    sync_moto_catalog_to_db(db, {"categories": list(DEFAULT_MOTO_CATEGORIES), "models": []})
+    categories_by_name = {cat.nom: cat for cat in db.query(CategorieMoto).all()}
+    existing_modeles = {
+        ((item.marque or "").strip().upper(), _normalize_model_key(item.modele or "")): item
+        for item in db.query(ModeleMoto).all()
+    }
+
+    grouped = {}
+    for row in ngk_rows:
+        marque = _normalize_ascii(row.get("marque") or "").upper()
+        modele = _normalize_ascii(row.get("modele") or "")
+        key = (marque, _normalize_model_key(modele))
+        if not marque or not key[1]:
+            continue
+        bucket = grouped.setdefault(key, {
+            "marque": marque,
+            "modele": modele,
+            "designation": row.get("designation"),
+            "cylindree": row.get("cylindree"),
+            "annee_debut": row.get("annee_debut"),
+            "annee_fin": row.get("annee_fin"),
+        })
+        if row.get("cylindree") and not bucket.get("cylindree"):
+            bucket["cylindree"] = row.get("cylindree")
+        start = _optional_int(row.get("annee_debut"))
+        end = _optional_int(row.get("annee_fin"))
+        if start is not None:
+            current = _optional_int(bucket.get("annee_debut"))
+            bucket["annee_debut"] = start if current is None else min(current, start)
+        if end is not None:
+            current = _optional_int(bucket.get("annee_fin"))
+            bucket["annee_fin"] = end if current is None else max(current, end)
+
+    created_count = 0
+    updated_count = 0
+    for key, row in grouped.items():
+        marque, _ = key
+        categorie_name = _infer_ngk_category_name(marque, row.get("modele"), row.get("designation"), row.get("cylindree"))
+        categorie = categories_by_name.get(categorie_name) or categories_by_name.get("Roadster")
+        if not categorie:
+            continue
+
+        payload = {
+            "marque": marque,
+            "modele": row.get("modele"),
+            "categorie_id": categorie.id,
+            "cylindree_min": _optional_int(row.get("cylindree")),
+            "cylindree_max": _optional_int(row.get("cylindree")),
+            "annee_debut": _optional_int(row.get("annee_debut")),
+            "annee_fin": _optional_int(row.get("annee_fin")),
+        }
+        existing = existing_modeles.get(key)
+        if not existing:
+            existing = ModeleMoto(**payload)
+            db.add(existing)
+            db.flush()
+            existing_modeles[key] = existing
+            created_count += 1
+            continue
+
+        dirty = False
+        for field in ["cylindree_min", "cylindree_max", "annee_debut", "annee_fin"]:
+            value = payload.get(field)
+            current = getattr(existing, field)
+            if current is None and value is not None:
+                setattr(existing, field, value)
+                dirty = True
+            elif field == "annee_debut" and value is not None and current is not None and value < current:
+                setattr(existing, field, value)
+                dirty = True
+            elif field == "annee_fin" and value is not None and current is not None and value > current:
+                setattr(existing, field, value)
+                dirty = True
+        if dirty:
+            updated_count += 1
+
+    db.commit()
+    return {"created": created_count, "updated": updated_count, "rows": len(ngk_rows)}
+
+
+def sync_ngk_minimal_specs_to_db(db: Session, ngk_rows=None):
+    """Crée des fiches techniques minimales pour les motos connues du véhiculier NGK mais absentes des fiches JSON."""
+    ngk_rows = ngk_rows or load_ngk_sparkplug_rows()
+    if not ngk_rows:
+        return {"created": 0, "updated": 0}
+
+    modeles_by_key = {
+        ((item.marque or "").strip().upper(), _normalize_model_key(item.modele or "")): item
+        for item in db.query(ModeleMoto).all()
+    }
+    existing_specs = {
+        (item.modele_moto_id, item.annee_debut, item.annee_fin, item.variante or ""): item
+        for item in db.query(MotoTechnicalSpec).all()
+    }
+
+    created_count = 0
+    updated_count = 0
+    for row in ngk_rows:
+        marque = _normalize_ascii(row.get("marque") or "").upper()
+        modele = _normalize_ascii(row.get("modele") or "")
+        key = (marque, _normalize_model_key(modele))
+        modele_ref = modeles_by_key.get(key)
+        if not modele_ref:
+            continue
+
+        annee_debut = _optional_int(row.get("annee_debut")) or _optional_int(modele_ref.annee_debut) or 1990
+        annee_fin = _optional_int(row.get("annee_fin")) or _optional_int(modele_ref.annee_fin)
+        variante = _normalize_ascii(row.get("designation") or "") or None
+        if variante and _normalize_model_key(variante) == _normalize_model_key(modele_ref.modele):
+            variante = None
+
+        payload = {
+            "modele_moto_id": modele_ref.id,
+            "variante": variante,
+            "annee_debut": annee_debut,
+            "annee_fin": annee_fin,
+            "source": "NGK vehicle application guide",
+            "general_json": _json_dump({
+                "marque_moto": marque,
+                "modele": modele_ref.modele,
+                "cylindree": _optional_int(row.get("cylindree")) or _optional_int(modele_ref.cylindree_min),
+                "annee": annee_debut,
+                "univers": modele_ref.categorie.nom if modele_ref.categorie else None,
+            }),
+            "moteur_json": _json_dump({
+                "cylindree_constructeur_cc": _optional_int(row.get("cylindree")) or _optional_int(modele_ref.cylindree_min),
+            }),
+            "pneumatique_json": _json_dump({}),
+            "freinage_json": _json_dump({}),
+            "suspension_json": _json_dump({}),
+            "systemes_electriques_json": _json_dump({}),
+            "entretien_json": _json_dump({"ref_bougie_ngk": row.get("ref_bougie_ngk")}),
+            "notes": "Fiche minimale générée depuis le véhiculier NGK; compléter les autres données atelier si disponibles.",
+        }
+
+        key_spec = (modele_ref.id, annee_debut, annee_fin, variante or "")
+        existing = existing_specs.get(key_spec)
+        if not existing:
+            db.add(MotoTechnicalSpec(**payload))
+            created_count += 1
+            continue
+
+        entretien = existing.entretien or {}
+        ref_bougie = row.get("ref_bougie_ngk")
+        if ref_bougie and entretien.get("ref_bougie_ngk") != ref_bougie:
+            entretien["ref_bougie_ngk"] = ref_bougie
+            existing.entretien_json = _json_dump(entretien)
+            updated_count += 1
+
+    db.commit()
+    return {"created": created_count, "updated": updated_count}
 
 
 def load_moto_technical_specs(specs_path=None, ngk_xlsx_path=None):
@@ -350,7 +560,9 @@ def _json_dump(value):
 def sync_moto_technical_specs_to_db(db: Session, catalog=None):
     """Synchronise les fiches techniques détaillées dans la BDD."""
     sync_moto_catalog_to_db(db)
-    catalog = catalog or load_moto_technical_specs()
+    ngk_rows = load_ngk_sparkplug_rows()
+    ngk_catalog_result = sync_ngk_catalog_to_db(db, ngk_rows=ngk_rows) if ngk_rows else {"created": 0, "updated": 0, "rows": 0}
+    catalog = catalog or load_moto_technical_specs(ngk_xlsx_path=NGK_SPARKPLUGS_PATH)
 
     modeles_by_key = {
         ((item.marque or "").strip().upper(), (item.modele or "").strip().upper()): item
@@ -411,6 +623,7 @@ def sync_moto_technical_specs_to_db(db: Session, catalog=None):
 
     db.commit()
 
+    ngk_specs_result = sync_ngk_minimal_specs_to_db(db, ngk_rows=ngk_rows) if ngk_rows else {"created": 0, "updated": 0}
     total_specs = db.query(MotoTechnicalSpec).count()
     metadata = catalog.get("metadata") or {}
     return {
@@ -421,6 +634,11 @@ def sync_moto_technical_specs_to_db(db: Session, catalog=None):
         "coverage_from_year": metadata.get("coverage_from_year"),
         "coverage_to_year": metadata.get("coverage_to_year"),
         "catalog_version": metadata.get("version"),
+        "ngk_rows_loaded": len(ngk_rows or []),
+        "ngk_catalog_created": ngk_catalog_result.get("created", 0),
+        "ngk_catalog_updated": ngk_catalog_result.get("updated", 0),
+        "ngk_specs_created": ngk_specs_result.get("created", 0),
+        "ngk_specs_updated": ngk_specs_result.get("updated", 0),
     }
 
 
