@@ -178,3 +178,7 @@ class TestMotoBaseAutocomplete:
         assert data["general"]["annee"] == 2000
         assert "moteur" in data and isinstance(data["moteur"], dict)
         assert "pneumatique" in data and isinstance(data["pneumatique"], dict)
+        assert data["entretien"]["ref_bougie_ngk"].startswith("NGK")
+        assert data["entretien"]["ref_filtre_huile_hiflofiltro"].startswith("HF")
+        assert data["entretien"]["ref_filtre_air_hiflofiltro"].startswith("HFA")
+        assert "diametre_joint_bouchon_vidange_mm" in data["entretien"]

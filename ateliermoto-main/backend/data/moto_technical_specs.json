@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "version": "2026.04-tech",
+    "version": "2026.04-tech-parts",
     "source": "ateliermoto curated workshop reference",
     "description": "Fiches techniques moto structurées 1990+ pour consultation atelier.",
     "spec_count": 502,
@@ -1218,9 +1218,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK DPR8EA-9",
+        "ref_filtre_huile_hiflofiltro": "HF160",
+        "ref_filtre_air_hiflofiltro": "HFA7910",
+        "diametre_joint_bouchon_vidange_mm": "24 x 18 x 1.5 mm"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime exact avant commande."
     },
     {
       "marque": "BMW",
@@ -3103,9 +3108,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK DCPR8E",
+        "ref_filtre_huile_hiflofiltro": "HF153",
+        "ref_filtre_air_hiflofiltro": "HFA6001",
+        "diametre_joint_bouchon_vidange_mm": "22 x 15 x 1.5 mm"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime exact avant commande."
     },
     {
       "marque": "DUCATI",
@@ -4597,9 +4607,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR8EH-9",
+        "ref_filtre_huile_hiflofiltro": "HF204",
+        "ref_filtre_air_hiflofiltro": "HFA1501",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime exact avant commande."
     },
     {
       "marque": "HONDA",
@@ -4663,9 +4678,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK IMR9E-9HES",
+        "ref_filtre_huile_hiflofiltro": "HF204RC",
+        "ref_filtre_air_hiflofiltro": "HFA1612",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon VIN/millesime avant commande."
     },
     {
       "marque": "HONDA",
@@ -6420,10 +6440,15 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK DPR8EA-9",
+        "ref_filtre_huile_hiflofiltro": "HF303",
+        "ref_filtre_air_hiflofiltro": "HFA2505",
+        "diametre_joint_bouchon_vidange_mm": "12 mm (diametre interieur)"
       },
       "source": "ateliermoto curated workshop reference",
-      "variante": "ER500A"
+      "variante": "ER500A",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon version avant commande."
     },
     {
       "marque": "KAWASAKI",
@@ -11023,9 +11048,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR9E",
+        "ref_filtre_huile_hiflofiltro": "HF138",
+        "ref_filtre_air_hiflofiltro": "HFA3612",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime exact avant commande."
     },
     {
       "marque": "SUZUKI",
@@ -11705,9 +11735,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR8E",
+        "ref_filtre_huile_hiflofiltro": "HF138",
+        "ref_filtre_air_hiflofiltro": "HFA3613",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon version injection/carte grise avant commande."
     },
     {
       "marque": "SUZUKI",
@@ -12973,9 +13008,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK CR8E",
+        "ref_filtre_huile_hiflofiltro": "HF303",
+        "ref_filtre_air_hiflofiltro": "HFA4601",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime exact avant commande."
     },
     {
       "marque": "YAMAHA",
@@ -13043,9 +13083,14 @@
       },
       "entretien": {
         "viscosite_huile_moteur": "10W40",
-        "intervalle_vidange_km": 6000
+        "intervalle_vidange_km": 6000,
+        "ref_bougie_ngk": "NGK LMAR8A-9",
+        "ref_filtre_huile_hiflofiltro": "HF204",
+        "ref_filtre_air_hiflofiltro": "HFA4708",
+        "diametre_joint_bouchon_vidange_mm": "14 mm (diametre interieur)"
       },
-      "source": "ateliermoto curated workshop reference"
+      "source": "ateliermoto curated workshop reference",
+      "notes": "References atelier NGK / Hiflofiltro ajoutees; confirmer selon millesime/VIN avant commande."
     },
     {
       "marque": "YAMAHA",
