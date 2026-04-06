@@ -168,31 +168,31 @@ def migrate_role_permissions(db: Session):
         "super_admin": {
             "label": "Super Admin",
             "description": "Acces total multi-ateliers",
-            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca", "admin"],
+            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
             "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"],
         },
         "admin": {
             "label": "Admin Atelier",
             "description": "Administration atelier courant",
-            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca", "admin"],
+            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
             "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"],
         },
         "receptionnaire": {
             "label": "Reception",
             "description": "Gestion operationnelle reception",
-            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca"],
+            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
             "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit"],
         },
         "service_client": {
             "label": "Service Client (SRC)",
             "description": "Version simple sans facturation",
-            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca"],
+            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
             "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit"],
         },
         "mecanicien": {
             "label": "Mecanicien",
             "description": "Execution atelier",
-            "sections": ["dashboard", "planning", "or", "espace-meca"],
+            "sections": ["dashboard", "planning", "or", "motos", "espace-meca"],
             "permissions": [],
         },
     }
@@ -210,6 +210,30 @@ def migrate_role_permissions(db: Session):
                         is_system=1,
                     )
                 )
+                continue
+
+            updated = False
+            try:
+                sections = json.loads(existing.sections_json or "[]")
+            except Exception:
+                sections = []
+            if "motos" in cfg["sections"] and "motos" not in sections:
+                sections.append("motos")
+                existing.sections_json = json.dumps(sections)
+                updated = True
+
+            if not existing.label:
+                existing.label = cfg["label"]
+                updated = True
+            if not existing.description:
+                existing.description = cfg["description"]
+                updated = True
+            if existing.is_system is None:
+                existing.is_system = 1
+                updated = True
+
+            if updated:
+                db.add(existing)
         db.commit()
     except Exception as e:
         db.rollback()

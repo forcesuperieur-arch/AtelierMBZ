@@ -75,23 +75,23 @@ def _get_role_permissions(db: Session, role: str) -> dict:
     if not rp:
         legacy = {
             "super_admin": {
-                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca", "admin"],
+                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
                 "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"]
             },
             "admin": {
-                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca", "admin"],
+                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
                 "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"]
             },
             "receptionnaire": {
-                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca"],
+                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
                 "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit"]
             },
             "service_client": {
-                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca"],
+                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
                 "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit"]
             },
             "mecanicien": {
-                "sections": ["dashboard", "planning", "or", "espace-meca"],
+                "sections": ["dashboard", "planning", "or", "motos", "espace-meca"],
                 "permissions": []
             },
         }
@@ -346,7 +346,7 @@ def create_or_update_role_permissions(
         raise HTTPException(status_code=400, detail="Role obligatoire")
     if role == "super_admin":
         raise HTTPException(status_code=400, detail="Role super_admin non modifiable")
-    allowed_sections = {"dashboard", "rdv", "planning", "ponts", "or", "suivi", "clients", "espace-meca", "admin"}
+    allowed_sections = {"dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"}
     allowed_permissions = {
         "billing.view", "billing.edit", "billing.pay", "billing.pdf",
         "travaux_supp.review", "users.manage", "ateliers.manage",

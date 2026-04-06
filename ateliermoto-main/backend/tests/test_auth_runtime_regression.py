@@ -1,3 +1,4 @@
+import json
 import os
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-auth-runtime")
@@ -16,3 +17,23 @@ def test_verify_password_uses_real_bcrypt_hash():
 def test_verify_password_returns_false_for_invalid_hashes():
     assert verify_password("password", "") is False
     assert verify_password("password", "invalid_hash") is False
+
+
+def test_migrate_role_permissions_backfills_motos_section_for_existing_roles(db_session):
+    from models import RolePermission
+    from services.runtime_migrations import migrate_role_permissions
+
+    RolePermission.__table__.create(bind=db_session.get_bind(), checkfirst=True)
+    migrate_role_permissions(db_session)
+    admin_role = db_session.query(RolePermission).filter(RolePermission.role == "admin").first()
+    assert admin_role is not None
+
+    admin_role.sections_json = json.dumps(["dashboard", "rdv", "planning", "admin"])
+    db_session.commit()
+
+    migrate_role_permissions(db_session)
+    db_session.expire_all()
+
+    admin_role = db_session.query(RolePermission).filter(RolePermission.role == "admin").first()
+    assert admin_role is not None
+    assert "motos" in json.loads(admin_role.sections_json or "[]")
