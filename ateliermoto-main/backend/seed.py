@@ -1053,6 +1053,81 @@ def init_base_moto(db: Session):
         {"marque": "TRIUMPH", "modele": "Scrambler 1200", "categorie_id": cat_trail.id, "cylindree_min": 1200, "cylindree_max": 1200, "annee_debut": 2019, "annee_fin": None},
     ]
 
+    modeles.extend([
+        # APRILIA
+        {"marque": "APRILIA", "modele": "Tuono 660", "categorie_id": cat_roadster.id, "cylindree_min": 659, "cylindree_max": 659, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "APRILIA", "modele": "RS 660", "categorie_id": cat_sportive.id, "cylindree_min": 659, "cylindree_max": 659, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "APRILIA", "modele": "RSV4", "categorie_id": cat_sportive.id, "cylindree_min": 1099, "cylindree_max": 1099, "annee_debut": 2009, "annee_fin": None},
+        {"marque": "APRILIA", "modele": "Tuareg 660", "categorie_id": cat_trail.id, "cylindree_min": 659, "cylindree_max": 659, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "APRILIA", "modele": "SR GT 200", "categorie_id": cat_scooter.id, "cylindree_min": 174, "cylindree_max": 174, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "APRILIA", "modele": "Shiver 900", "categorie_id": cat_roadster.id, "cylindree_min": 896, "cylindree_max": 896, "annee_debut": 2017, "annee_fin": 2020},
+
+        # MOTO GUZZI
+        {"marque": "MOTO GUZZI", "modele": "V7 Stone", "categorie_id": cat_roadster.id, "cylindree_min": 853, "cylindree_max": 853, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "MOTO GUZZI", "modele": "V85 TT", "categorie_id": cat_trail.id, "cylindree_min": 853, "cylindree_max": 853, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "MOTO GUZZI", "modele": "V100 Mandello", "categorie_id": cat_touring.id, "cylindree_min": 1042, "cylindree_max": 1042, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "MOTO GUZZI", "modele": "California Touring", "categorie_id": cat_cruiser.id, "cylindree_min": 1380, "cylindree_max": 1380, "annee_debut": 2013, "annee_fin": 2020},
+        {"marque": "MOTO GUZZI", "modele": "Griso 1200", "categorie_id": cat_roadster.id, "cylindree_min": 1151, "cylindree_max": 1151, "annee_debut": 2005, "annee_fin": 2016},
+
+        # HARLEY-DAVIDSON
+        {"marque": "HARLEY-DAVIDSON", "modele": "Sportster S", "categorie_id": cat_cruiser.id, "cylindree_min": 1252, "cylindree_max": 1252, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "HARLEY-DAVIDSON", "modele": "Iron 883", "categorie_id": cat_cruiser.id, "cylindree_min": 883, "cylindree_max": 883, "annee_debut": 2009, "annee_fin": 2022},
+        {"marque": "HARLEY-DAVIDSON", "modele": "Street Bob 114", "categorie_id": cat_cruiser.id, "cylindree_min": 1868, "cylindree_max": 1868, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "HARLEY-DAVIDSON", "modele": "Road Glide", "categorie_id": cat_touring.id, "cylindree_min": 1745, "cylindree_max": 1923, "annee_debut": 2015, "annee_fin": None},
+        {"marque": "HARLEY-DAVIDSON", "modele": "Pan America 1250", "categorie_id": cat_trail.id, "cylindree_min": 1252, "cylindree_max": 1252, "annee_debut": 2021, "annee_fin": None},
+
+        # HUSQVARNA
+        {"marque": "HUSQVARNA", "modele": "Svartpilen 401", "categorie_id": cat_roadster.id, "cylindree_min": 373, "cylindree_max": 399, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "HUSQVARNA", "modele": "Vitpilen 401", "categorie_id": cat_roadster.id, "cylindree_min": 373, "cylindree_max": 399, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "HUSQVARNA", "modele": "Norden 901", "categorie_id": cat_trail.id, "cylindree_min": 889, "cylindree_max": 889, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "HUSQVARNA", "modele": "701 Supermoto", "categorie_id": cat_supermotard.id, "cylindree_min": 692, "cylindree_max": 692, "annee_debut": 2015, "annee_fin": None},
+        {"marque": "HUSQVARNA", "modele": "FE 450", "categorie_id": cat_cross.id, "cylindree_min": 450, "cylindree_max": 450, "annee_debut": 2014, "annee_fin": None},
+
+        # GASGAS / BETA / SHERCO
+        {"marque": "GASGAS", "modele": "SM 700", "categorie_id": cat_supermotard.id, "cylindree_min": 693, "cylindree_max": 693, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "GASGAS", "modele": "ES 700", "categorie_id": cat_trail.id, "cylindree_min": 693, "cylindree_max": 693, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "GASGAS", "modele": "EC 300", "categorie_id": cat_cross.id, "cylindree_min": 300, "cylindree_max": 300, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "BETA", "modele": "RR 390", "categorie_id": cat_cross.id, "cylindree_min": 386, "cylindree_max": 386, "annee_debut": 2015, "annee_fin": None},
+        {"marque": "BETA", "modele": "Xtrainer 300", "categorie_id": cat_cross.id, "cylindree_min": 300, "cylindree_max": 300, "annee_debut": 2015, "annee_fin": None},
+        {"marque": "SHERCO", "modele": "500 SEF Factory", "categorie_id": cat_cross.id, "cylindree_min": 478, "cylindree_max": 478, "annee_debut": 2018, "annee_fin": None},
+
+        # BENELLI / CFMOTO / ROYAL ENFIELD
+        {"marque": "BENELLI", "modele": "Leoncino 500", "categorie_id": cat_roadster.id, "cylindree_min": 500, "cylindree_max": 500, "annee_debut": 2017, "annee_fin": None},
+        {"marque": "BENELLI", "modele": "TRK 502", "categorie_id": cat_trail.id, "cylindree_min": 500, "cylindree_max": 500, "annee_debut": 2017, "annee_fin": None},
+        {"marque": "BENELLI", "modele": "752S", "categorie_id": cat_roadster.id, "cylindree_min": 754, "cylindree_max": 754, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "CFMOTO", "modele": "300NK", "categorie_id": cat_roadster.id, "cylindree_min": 292, "cylindree_max": 292, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "CFMOTO", "modele": "650MT", "categorie_id": cat_trail.id, "cylindree_min": 649, "cylindree_max": 649, "annee_debut": 2020, "annee_fin": None},
+        {"marque": "CFMOTO", "modele": "800MT", "categorie_id": cat_trail.id, "cylindree_min": 799, "cylindree_max": 799, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "CFMOTO", "modele": "450SR", "categorie_id": cat_sportive.id, "cylindree_min": 449, "cylindree_max": 449, "annee_debut": 2023, "annee_fin": None},
+        {"marque": "ROYAL ENFIELD", "modele": "Interceptor 650", "categorie_id": cat_roadster.id, "cylindree_min": 648, "cylindree_max": 648, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "ROYAL ENFIELD", "modele": "Continental GT 650", "categorie_id": cat_roadster.id, "cylindree_min": 648, "cylindree_max": 648, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "ROYAL ENFIELD", "modele": "Himalayan 450", "categorie_id": cat_trail.id, "cylindree_min": 452, "cylindree_max": 452, "annee_debut": 2024, "annee_fin": None},
+        {"marque": "ROYAL ENFIELD", "modele": "Hunter 350", "categorie_id": cat_roadster.id, "cylindree_min": 349, "cylindree_max": 349, "annee_debut": 2022, "annee_fin": None},
+
+        # INDIAN / MV AGUSTA / ZERO
+        {"marque": "INDIAN", "modele": "Scout Bobber", "categorie_id": cat_cruiser.id, "cylindree_min": 1133, "cylindree_max": 1133, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "INDIAN", "modele": "Chief Dark Horse", "categorie_id": cat_cruiser.id, "cylindree_min": 1890, "cylindree_max": 1890, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "INDIAN", "modele": "FTR", "categorie_id": cat_roadster.id, "cylindree_min": 1203, "cylindree_max": 1203, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "MV AGUSTA", "modele": "Brutale 800", "categorie_id": cat_roadster.id, "cylindree_min": 798, "cylindree_max": 798, "annee_debut": 2013, "annee_fin": None},
+        {"marque": "MV AGUSTA", "modele": "Turismo Veloce 800", "categorie_id": cat_touring.id, "cylindree_min": 798, "cylindree_max": 798, "annee_debut": 2015, "annee_fin": None},
+        {"marque": "MV AGUSTA", "modele": "Superveloce 800", "categorie_id": cat_sportive.id, "cylindree_min": 798, "cylindree_max": 798, "annee_debut": 2020, "annee_fin": None},
+        {"marque": "ZERO", "modele": "SR/F", "categorie_id": cat_roadster.id, "cylindree_min": 0, "cylindree_max": 0, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "ZERO", "modele": "SR/S", "categorie_id": cat_touring.id, "cylindree_min": 0, "cylindree_max": 0, "annee_debut": 2020, "annee_fin": None},
+        {"marque": "ZERO", "modele": "DSR/X", "categorie_id": cat_trail.id, "cylindree_min": 0, "cylindree_max": 0, "annee_debut": 2023, "annee_fin": None},
+
+        # SCOOTERS ET URBAINES
+        {"marque": "PIAGGIO", "modele": "MP3 530", "categorie_id": cat_scooter.id, "cylindree_min": 530, "cylindree_max": 530, "annee_debut": 2022, "annee_fin": None},
+        {"marque": "PIAGGIO", "modele": "Beverly 400", "categorie_id": cat_scooter.id, "cylindree_min": 399, "cylindree_max": 399, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "VESPA", "modele": "GTS 300", "categorie_id": cat_scooter.id, "cylindree_min": 278, "cylindree_max": 278, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "VESPA", "modele": "Primavera 125", "categorie_id": cat_scooter.id, "cylindree_min": 124, "cylindree_max": 124, "annee_debut": 2014, "annee_fin": None},
+        {"marque": "KYMCO", "modele": "AK 550", "categorie_id": cat_scooter.id, "cylindree_min": 550, "cylindree_max": 550, "annee_debut": 2017, "annee_fin": None},
+        {"marque": "KYMCO", "modele": "Xciting S 400", "categorie_id": cat_scooter.id, "cylindree_min": 400, "cylindree_max": 400, "annee_debut": 2018, "annee_fin": None},
+        {"marque": "SYM", "modele": "Maxsym TL 508", "categorie_id": cat_scooter.id, "cylindree_min": 508, "cylindree_max": 508, "annee_debut": 2020, "annee_fin": None},
+        {"marque": "SYM", "modele": "Joymax Z+ 300", "categorie_id": cat_scooter.id, "cylindree_min": 278, "cylindree_max": 278, "annee_debut": 2021, "annee_fin": None},
+        {"marque": "PEUGEOT", "modele": "Pulsion 125", "categorie_id": cat_scooter.id, "cylindree_min": 125, "cylindree_max": 125, "annee_debut": 2019, "annee_fin": None},
+        {"marque": "PEUGEOT", "modele": "Metropolis 400", "categorie_id": cat_scooter.id, "cylindree_min": 399, "cylindree_max": 399, "annee_debut": 2021, "annee_fin": None},
+    ])
+
     for modele_data in modeles:
         existing = db.query(ModeleMoto).filter(
             ModeleMoto.marque == modele_data["marque"],

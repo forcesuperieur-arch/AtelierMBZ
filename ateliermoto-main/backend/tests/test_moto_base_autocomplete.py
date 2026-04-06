@@ -124,3 +124,11 @@ class TestMotoBaseAutocomplete:
 
         assert response.status_code == 200
         assert response.json()["message"] == "Modèle créé"
+
+    def test_seed_contains_extended_brand_catalog(self, client):
+        response = client.get("/api/motos/marques")
+
+        assert response.status_code == 200
+        brands = response.json()
+        for expected in ["APRILIA", "HARLEY-DAVIDSON", "ROYAL ENFIELD", "CFMOTO", "VESPA"]:
+            assert expected in brands

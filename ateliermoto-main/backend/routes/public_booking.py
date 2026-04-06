@@ -81,15 +81,19 @@ def get_creneaux_avec_ponts(
 
 def _resolve_atelier(db: Session, atelier_slug: Optional[str] = "default") -> Atelier:
     slug = (atelier_slug or "default").strip().lower()
-    atelier = db.query(Atelier).filter(Atelier.slug == slug, Atelier.actif == True).first()
-    if not atelier and slug == "default":
-        atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
-        db.add(atelier)
-        db.commit()
-        db.refresh(atelier)
-    if not atelier:
-        raise HTTPException(status_code=404, detail="Atelier non trouvé")
-    return atelier
+    try:
+        atelier = db.query(Atelier).filter(Atelier.slug == slug, Atelier.actif == True).first()
+        if not atelier and slug == "default":
+            atelier = Atelier(nom="Mon Atelier", slug="default", plan="starter", actif=True)
+            db.add(atelier)
+            db.commit()
+            db.refresh(atelier)
+        if not atelier:
+            raise HTTPException(status_code=404, detail="Atelier non trouvé")
+        return atelier
+    except OperationalError as exc:
+        logger.warning("Fallback resolution atelier sans schema complet: %s", exc)
+        return Atelier(id=1, nom="Mon Atelier", slug=slug or "default", plan="starter", actif=True)
 
 
 def _to_minutes(hhmm: str) -> int:
@@ -193,12 +197,16 @@ async def fetch_api_plaque_immatriculation(plaque: str):
 
 def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
     """Liste les prestations actives avec grille tarifaire par type moto (sans auth)."""
-    atelier = _resolve_atelier(db, atelier_slug)
-    atelier_id = atelier.id
-    prestations = db.query(Prestation).filter(
-        Prestation.is_active == 1,
-        Prestation.atelier_id == atelier_id,
-    ).order_by(Prestation.categorie, Prestation.nom).all()
+    try:
+        atelier = _resolve_atelier(db, atelier_slug)
+        atelier_id = atelier.id
+        prestations = db.query(Prestation).filter(
+            Prestation.is_active == 1,
+            Prestation.atelier_id == atelier_id,
+        ).order_by(Prestation.categorie, Prestation.nom).all()
+    except OperationalError as exc:
+        logger.warning("Fallback prestations publiques sans schema complet: %s", exc)
+        return []
 
     grilles_par_presta = {}
     try:

@@ -40,6 +40,10 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Atelier Moto API Pro", version="2.0.0", lifespan=lifespan)
 mount_static_files(app)
 app.include_router(frontend_pages_router)
+# Les routes publiques doivent être montées tôt pour éviter qu'un chemin
+# dynamique authentifié comme `/api/prestations/{prestation_id}` ne capture
+# `/api/prestations/public`.
+app.include_router(public_booking_router)
 
 # Inclusion du router statistiques
 app.include_router(statistiques_router)
@@ -140,7 +144,6 @@ app.include_router(travaux_supp_router)
 
 from routes.prestations_tarifs import router as prestations_tarifs_router
 app.include_router(prestations_tarifs_router)
-app.include_router(public_booking_router)
 
 
 # ========== ENDPOINTS CONFIGURATION ATELIER ==========

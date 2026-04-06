@@ -25,6 +25,22 @@ ALLOWED_PAGES = {
     "login",
 }
 
+LEGACY_PAGE_CANDIDATES = {
+    "rendez-vous": ["rendez-vous.html", "tarifs.html"],
+    "tarifs": ["tarifs.html", "rendez-vous.html"],
+    "planning": ["planning.html", "index.html"],
+    "admin": ["admin.html", "index.html"],
+    "factures": ["factures.html", "index.html"],
+    "devis": ["devis.html", "index.html"],
+    "statistiques": ["statistiques.html", "index.html"],
+    "mecaniciens": ["mecaniciens.html", "index.html"],
+    "mecaniciens-v2": ["mecaniciens-v2.html", "index.html"],
+    "technicien": ["technicien.html", "index.html"],
+    "clients": ["clients.html", "index.html"],
+    "motos": ["motos.html", "index.html"],
+    "login": ["login.html", "index.html"],
+}
+
 
 def resolve_static_dir() -> str:
     """Resolve the frontend static directory in local/dev and Docker modes."""
@@ -96,10 +112,13 @@ def serve_page(page_name: str):
     if page_name == "dashboard":
         return RedirectResponse(url="/", status_code=307)
 
-    page_path = Path(STATIC_DIR) / f"{page_name}.html"
-    if not page_path.exists():
-        raise HTTPException(status_code=404, detail="Page not found")
-    return page_path.read_text(encoding="utf-8")
+    candidates = LEGACY_PAGE_CANDIDATES.get(page_name, [f"{page_name}.html"])
+    for filename in candidates:
+        page_path = Path(STATIC_DIR) / filename
+        if page_path.exists():
+            return page_path.read_text(encoding="utf-8")
+
+    raise HTTPException(status_code=404, detail="Page not found")
 
 
 __all__ = ["ALLOWED_PAGES", "STATIC_DIR", "mount_static_files", "resolve_static_dir", "router"]

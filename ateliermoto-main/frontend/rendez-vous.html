@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirection RDV public</title>
+  <meta http-equiv="refresh" content="0; url=./tarifs.html">
+  <script>
+    (function () {
+      var target = './tarifs.html' + (window.location.search || '') + (window.location.hash || '');
+      window.location.replace(target);
+    })();
+  </script>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 24px; background: #111; color: #eee;">
+  <p>Redirection vers la page de prise de rendez-vous…</p>
+  <p><a href="./tarifs.html" style="color: #FFD200;">Continuer</a></p>
+</body>
+</html>
