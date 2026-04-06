@@ -299,6 +299,7 @@ function renderDashboardRdv(rdvs) { return callModuleMethod('DashboardModule', '
 
 // ===== PRISE DE RDV =====
 function loadRdvForm() { return callModuleMethod('RdvModule', 'loadRdvForm', arguments); }
+function loadMotoTechExplorer(reset) { return callModuleMethod('RdvModule', 'loadMotoTechExplorer', arguments); }
 function searchMotoRdv(val) { return callModuleMethod('RdvModule', 'searchMotoRdv', arguments); }
 function updateDurationRdv() { return callModuleMethod('RdvModule', 'updateDurationRdv', arguments); }
 function loadCreneaux() { return callModuleMethod('RdvModule', 'loadCreneaux', arguments); }
@@ -319,6 +320,11 @@ function searchManualMotoBrand(val) { return callModuleMethod('RdvModule', 'sear
 function searchManualMotoModel(val) { return callModuleMethod('RdvModule', 'searchManualMotoModel', arguments); }
 function selectManualMotoBrand(val) { return callModuleMethod('RdvModule', 'selectManualMotoBrand', arguments); }
 function selectManualMotoModel(val) { return callModuleMethod('RdvModule', 'selectManualMotoModel', arguments); }
+function searchMotoTechBrand(val) { return callModuleMethod('RdvModule', 'searchMotoTechBrand', arguments); }
+function searchMotoTechModel(val) { return callModuleMethod('RdvModule', 'searchMotoTechModel', arguments); }
+function selectMotoTechBrand(val) { return callModuleMethod('RdvModule', 'selectMotoTechBrand', arguments); }
+function selectMotoTechModel(val) { return callModuleMethod('RdvModule', 'selectMotoTechModel', arguments); }
+function lookupMotoTechnicalSpec() { return callModuleMethod('RdvModule', 'lookupMotoTechnicalSpec', arguments); }
 function validerVehiculeManuel() { return callModuleMethod('RdvModule', 'validerVehiculeManuel', arguments); }
 function onTypeMotoFoundSelect(val) { return callModuleMethod('RdvModule', 'onTypeMotoFoundSelect', arguments); }
 function continuerVehiculeFound() { return callModuleMethod('RdvModule', 'continuerVehiculeFound', arguments); }

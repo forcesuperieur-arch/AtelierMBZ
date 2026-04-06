@@ -1,6 +1,8 @@
 var _rdvClientSearchTimer = null;
 var _rdvMotoBrandTimer = null;
 var _rdvMotoModelTimer = null;
+var _motoTechBrandTimer = null;
+var _motoTechModelTimer = null;
 
 window.RdvModule = window.RdvModule || {
     loadRdvForm: function() {
@@ -514,6 +516,338 @@ window.RdvModule = window.RdvModule || {
             RDV.vehicule.modele_id = item.id || null;
         }
         window.RdvModule.setManualMotoHelp('Base moto: ' + [item.marque, item.modele, item.categorie_nom, item.cylindree_display].filter(Boolean).join(' • '), 'success');
+    },
+
+    loadMotoTechExplorer: function(reset) {
+        APP.motoTechLookup = APP.motoTechLookup || { marques: [], modeles: [], selectedModele: null };
+        if (reset) {
+            ['moto-tech-marque', 'moto-tech-modele', 'moto-tech-annee'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            APP.motoTechLookup.modeles = [];
+            APP.motoTechLookup.selectedModele = null;
+        }
+
+        var yearInput = document.getElementById('moto-tech-annee');
+        if (yearInput && !yearInput.value) yearInput.value = String(new Date().getFullYear());
+
+        window.RdvModule.renderMotoDatalist('moto-tech-modele-suggestions', []);
+        window.RdvModule.renderMotoQuickSelect('moto-tech-modele-quick', [], '-- Modeles suggeres --');
+        window.RdvModule.setMotoTechHelp('Commencez par une marque ou un modele pour afficher les suggestions de la base moto.', '');
+        window.RdvModule.renderMotoTechBaseSummary(APP.motoTechLookup.selectedModele || null);
+
+        var result = document.getElementById('moto-tech-result');
+        var badge = document.getElementById('moto-tech-result-badge');
+        if (result && (reset || !result.innerHTML.trim())) {
+            result.innerHTML = '<div>Choisissez une moto dans l\'index pour afficher sa fiche technique detaillee.</div>';
+        }
+        if (badge && reset) {
+            badge.className = 'badge blue';
+            badge.textContent = 'En attente';
+        }
+
+        apiGet('/api/motos/marques').then(function(r) { return r.json(); }).then(function(marques) {
+            APP.motoTechLookup.marques = Array.isArray(marques) ? marques : [];
+            window.RdvModule.renderMotoDatalist('moto-tech-marque-suggestions', APP.motoTechLookup.marques);
+            window.RdvModule.renderMotoQuickSelect('moto-tech-marque-quick', APP.motoTechLookup.marques, '-- Marques de la base --');
+        }).catch(function() {
+            window.RdvModule.renderMotoDatalist('moto-tech-marque-suggestions', []);
+            window.RdvModule.renderMotoQuickSelect('moto-tech-marque-quick', [], '-- Marques de la base --');
+        });
+    },
+
+    setMotoTechHelp: function(message, tone) {
+        var help = document.getElementById('moto-tech-help');
+        if (!help) return;
+        help.textContent = message || 'Commencez par une marque ou un modele pour afficher les suggestions de la base moto.';
+        help.style.color = tone === 'error' ? '#fca5a5' : (tone === 'success' ? '#86efac' : '#9ca3af');
+    },
+
+    renderMotoTechBaseSummary: function(item) {
+        var summary = document.getElementById('moto-tech-base-summary');
+        if (!summary) return;
+        if (!item) {
+            summary.innerHTML = '';
+            return;
+        }
+        var chips = [
+            item.categorie_nom ? '<span class="badge blue">' + escapeHtml(item.categorie_nom) + '</span>' : '',
+            item.cylindree_display ? '<span class="badge orange">' + escapeHtml(item.cylindree_display) + '</span>' : '',
+            item.annees_display ? '<span class="badge green">' + escapeHtml(item.annees_display) + '</span>' : ''
+        ].filter(Boolean).join(' ');
+        summary.innerHTML = '<div style="font-weight:600;color:#e5e7eb;margin-bottom:6px">Base moto selectionnee</div>' +
+            '<div style="color:#cbd5e1">' + escapeHtml([item.marque, item.modele].filter(Boolean).join(' ')) + '</div>' +
+            (chips ? '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div>' : '');
+    },
+
+    selectMotoTechBrand: function(value) {
+        var brandInput = document.getElementById('moto-tech-marque');
+        var modelInput = document.getElementById('moto-tech-modele');
+        if (brandInput) brandInput.value = value || '';
+        if (modelInput) modelInput.value = '';
+        APP.motoTechLookup = APP.motoTechLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.motoTechLookup.selectedModele = null;
+        window.RdvModule.renderMotoQuickSelect('moto-tech-modele-quick', [], '-- Modeles suggeres --');
+        window.RdvModule.renderMotoTechBaseSummary(null);
+        window.RdvModule.searchMotoTechBrand(value || '');
+    },
+
+    selectMotoTechModel: function(value) {
+        var selected = (APP.motoTechLookup && APP.motoTechLookup.modeles || []).find(function(item) {
+            return String(item.id) === String(value) || String(item.modele) === String(value);
+        });
+        var modelInput = document.getElementById('moto-tech-modele');
+        if (selected) {
+            if (modelInput) modelInput.value = selected.modele || '';
+            window.RdvModule.applyMotoTechSelection(selected);
+            return;
+        }
+        if (modelInput) modelInput.value = value || '';
+        window.RdvModule.searchMotoTechModel(value || '');
+    },
+
+    searchMotoTechBrand: function(val) {
+        APP.motoTechLookup = APP.motoTechLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.motoTechLookup.selectedModele = null;
+        if (APP.motoTechLookup.marques && APP.motoTechLookup.marques.length) {
+            window.RdvModule.renderMotoDatalist('moto-tech-marque-suggestions', APP.motoTechLookup.marques);
+            window.RdvModule.renderMotoQuickSelect('moto-tech-marque-quick', APP.motoTechLookup.marques, '-- Marques de la base --');
+        }
+        if (_motoTechBrandTimer) clearTimeout(_motoTechBrandTimer);
+        _motoTechBrandTimer = setTimeout(function() {
+            var brandInput = document.getElementById('moto-tech-marque');
+            var brandSelect = document.getElementById('moto-tech-marque-quick');
+            var typedBrand = (val || '').trim().toUpperCase();
+            var knownBrands = APP.motoTechLookup.marques || [];
+            var exactBrand = knownBrands.find(function(item) { return String(item || '').trim().toUpperCase() === typedBrand; });
+            var prefixBrands = knownBrands.filter(function(item) { return String(item || '').trim().toUpperCase().indexOf(typedBrand) === 0; });
+            if (brandInput && !exactBrand && typedBrand && prefixBrands.length === 1) {
+                brandInput.value = prefixBrands[0];
+                exactBrand = prefixBrands[0];
+            }
+            if (brandSelect) brandSelect.value = exactBrand || '';
+            var modelValue = (document.getElementById('moto-tech-modele') || {}).value || '';
+            if (!val) {
+                window.RdvModule.renderMotoDatalist('moto-tech-modele-suggestions', []);
+                window.RdvModule.renderMotoQuickSelect('moto-tech-modele-quick', [], '-- Modeles suggeres --');
+                window.RdvModule.setMotoTechHelp('Commencez par une marque ou un modele pour afficher les suggestions de la base moto.', '');
+                return;
+            }
+            window.RdvModule.searchMotoTechModel(modelValue);
+        }, 120);
+    },
+
+    searchMotoTechModel: function(val) {
+        var marque = ((document.getElementById('moto-tech-marque') || {}).value || '').trim().toUpperCase();
+        var query = (val || '').trim();
+        APP.motoTechLookup = APP.motoTechLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.motoTechLookup.selectedModele = null;
+        if (_motoTechModelTimer) clearTimeout(_motoTechModelTimer);
+        if (!marque && query.length < 2) {
+            window.RdvModule.renderMotoDatalist('moto-tech-modele-suggestions', []);
+            return;
+        }
+        _motoTechModelTimer = setTimeout(function() {
+            var params = ['limit=12'];
+            if (marque) params.push('marque=' + encodeURIComponent(marque));
+            if (query) params.push('query=' + encodeURIComponent(query));
+            apiGet('/api/motos/autocomplete?' + params.join('&')).then(function(r) { return r.json(); }).then(function(data) {
+                APP.motoTechLookup.marques = Array.isArray(data.marques) && data.marques.length ? data.marques : (APP.motoTechLookup.marques || []);
+                APP.motoTechLookup.modeles = Array.isArray(data.modeles) ? data.modeles : [];
+                window.RdvModule.renderMotoDatalist('moto-tech-marque-suggestions', APP.motoTechLookup.marques);
+                window.RdvModule.renderMotoQuickSelect('moto-tech-marque-quick', APP.motoTechLookup.marques, '-- Marques de la base --');
+                window.RdvModule.renderMotoDatalist('moto-tech-modele-suggestions', APP.motoTechLookup.modeles, function(item) { return item.modele; });
+                window.RdvModule.renderMotoQuickSelect(
+                    'moto-tech-modele-quick',
+                    APP.motoTechLookup.modeles,
+                    '-- Modeles suggeres --',
+                    function(item) {
+                        return [item.modele, item.categorie_nom, item.cylindree_display].filter(Boolean).join(' • ');
+                    },
+                    function(item) { return item.id || item.modele; }
+                );
+
+                var normalized = query.trim().toUpperCase();
+                var exact = APP.motoTechLookup.modeles.find(function(item) {
+                    return ((item.modele || '').trim().toUpperCase() === normalized);
+                });
+                var prefixMatches = normalized ? APP.motoTechLookup.modeles.filter(function(item) {
+                    return ((item.modele || '').trim().toUpperCase().indexOf(normalized) === 0);
+                }) : [];
+                var selected = exact || (prefixMatches.length === 1 ? prefixMatches[0] : null) || ((!normalized || normalized.length < 2) && APP.motoTechLookup.modeles.length === 1 ? APP.motoTechLookup.modeles[0] : null);
+
+                if (selected) {
+                    window.RdvModule.applyMotoTechSelection(selected);
+                } else if (APP.motoTechLookup.modeles.length) {
+                    window.RdvModule.renderMotoTechBaseSummary(null);
+                    window.RdvModule.setMotoTechHelp(APP.motoTechLookup.modeles.length + ' suggestion(s) trouvee(s) dans la base moto. Continuez a taper ou choisissez un modele propose.', '');
+                } else {
+                    window.RdvModule.renderMotoTechBaseSummary(null);
+                    window.RdvModule.setMotoTechHelp('Aucun modele correspondant dans la base moto. Essayez une autre orthographe ou retirez l\'annee.', 'error');
+                }
+            }).catch(function() {
+                window.RdvModule.setMotoTechHelp('Base moto indisponible pour le moment.', 'error');
+            });
+        }, 180);
+    },
+
+    applyMotoTechSelection: function(item) {
+        if (!item) return;
+        APP.motoTechLookup = APP.motoTechLookup || { marques: [], modeles: [], selectedModele: null };
+        APP.motoTechLookup.selectedModele = item;
+        var marqueInput = document.getElementById('moto-tech-marque');
+        var modeleInput = document.getElementById('moto-tech-modele');
+        var anneeInput = document.getElementById('moto-tech-annee');
+        var brandSelect = document.getElementById('moto-tech-marque-quick');
+        var modelSelect = document.getElementById('moto-tech-modele-quick');
+        if (marqueInput) marqueInput.value = item.marque || marqueInput.value;
+        if (modeleInput) modeleInput.value = item.modele || modeleInput.value;
+        if (brandSelect && item.marque) brandSelect.value = item.marque;
+        if (modelSelect && item.id) modelSelect.value = String(item.id);
+        if (anneeInput) {
+            if (!anneeInput.value) anneeInput.value = item.annee_fin || item.annee_debut || '';
+            if (item.annees_display) anneeInput.placeholder = 'Ex: ' + item.annees_display;
+        }
+        window.RdvModule.renderMotoTechBaseSummary(item);
+        window.RdvModule.setMotoTechHelp('Base moto: ' + [item.marque, item.modele, item.categorie_nom, item.cylindree_display].filter(Boolean).join(' • '), 'success');
+    },
+
+    formatMotoTechLabel: function(key) {
+        var labels = {
+            annee: 'Annee',
+            type_moto: 'Type',
+            categorie: 'Categorie',
+            cylindree: 'Cylindree',
+            reservoir: 'Reservoir',
+            poids: 'Poids',
+            hauteur_selle: 'Hauteur de selle',
+            puissance: 'Puissance',
+            couple: 'Couple',
+            refroidissement: 'Refroidissement',
+            transmission: 'Transmission',
+            demarrage: 'Demarrage',
+            batterie: 'Batterie',
+            bougie: 'Bougie',
+            pneus_avant: 'Pneu avant',
+            pneus_arriere: 'Pneu arriere',
+            freins_avant: 'Freins avant',
+            freins_arriere: 'Freins arriere',
+            suspension_avant: 'Suspension avant',
+            suspension_arriere: 'Suspension arriere',
+            vidange: 'Vidange',
+            pression_avant: 'Pression avant',
+            pression_arriere: 'Pression arriere'
+        };
+        if (labels[key]) return labels[key];
+        return String(key || '').replace(/_/g, ' ').replace(/\b\w/g, function(ch) { return ch.toUpperCase(); });
+    },
+
+    renderMotoTechSection: function(title, data) {
+        if (!data || typeof data !== 'object') return '';
+        var keys = Object.keys(data).filter(function(key) {
+            var value = data[key];
+            return value !== null && value !== undefined && value !== '';
+        });
+        if (!keys.length) return '';
+        var rows = keys.map(function(key) {
+            var value = data[key];
+            if (Array.isArray(value)) value = value.join(' / ');
+            else if (value && typeof value === 'object') value = JSON.stringify(value);
+            return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #25262b">' +
+                '<span style="color:#9ca3af">' + escapeHtml(window.RdvModule.formatMotoTechLabel(key)) + '</span>' +
+                '<span style="color:#f3f4f6;text-align:right;white-space:pre-wrap">' + escapeHtml(String(value)) + '</span>' +
+                '</div>';
+        }).join('');
+        return '<div style="border:1px solid #262b33;border-radius:12px;padding:12px;background:#14161b">' +
+            '<div style="font-weight:700;color:#f3f4f6;margin-bottom:8px">' + escapeHtml(title) + '</div>' + rows + '</div>';
+    },
+
+    renderMotoTechnicalSpec: function(spec) {
+        var result = document.getElementById('moto-tech-result');
+        var badge = document.getElementById('moto-tech-result-badge');
+        if (!result) return;
+        if (badge) {
+            badge.className = 'badge green';
+            badge.textContent = 'Fiche trouvee';
+        }
+
+        var title = [spec.marque, spec.modele, spec.variante].filter(Boolean).join(' ');
+        var years = spec.annee_debut && spec.annee_fin ? (spec.annee_debut + ' - ' + spec.annee_fin) : (spec.annee_debut || spec.annee_fin || 'N/A');
+        var chips = [
+            years ? '<span class="badge blue">Periode: ' + escapeHtml(String(years)) + '</span>' : '',
+            spec.source ? '<span class="badge orange">Source: ' + escapeHtml(String(spec.source)) + '</span>' : ''
+        ].filter(Boolean).join(' ');
+        var sections = [
+            window.RdvModule.renderMotoTechSection('General', spec.general),
+            window.RdvModule.renderMotoTechSection('Moteur', spec.moteur),
+            window.RdvModule.renderMotoTechSection('Pneumatique', spec.pneumatique),
+            window.RdvModule.renderMotoTechSection('Freinage', spec.freinage),
+            window.RdvModule.renderMotoTechSection('Suspension', spec.suspension),
+            window.RdvModule.renderMotoTechSection('Systemes electriques', spec.systemes_electriques),
+            window.RdvModule.renderMotoTechSection('Entretien', spec.entretien)
+        ].filter(Boolean).join('');
+
+        result.innerHTML = '<div style="padding:14px;border:1px solid #262b33;border-radius:12px;background:#14161b">' +
+            '<div style="font-size:22px;font-weight:700;color:#f3f4f6">' + escapeHtml(title || 'Fiche technique moto') + '</div>' +
+            (chips ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' + chips + '</div>' : '') +
+            (spec.notes ? '<div style="margin-top:10px;color:#cbd5e1">' + escapeHtml(spec.notes) + '</div>' : '') +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">' + sections + '</div>';
+    },
+
+    lookupMotoTechnicalSpec: function() {
+        var marque = ((document.getElementById('moto-tech-marque') || {}).value || '').trim();
+        var modele = ((document.getElementById('moto-tech-modele') || {}).value || '').trim();
+        var anneeValue = ((document.getElementById('moto-tech-annee') || {}).value || '').trim();
+        var annee = anneeValue ? parseInt(anneeValue, 10) : null;
+        var result = document.getElementById('moto-tech-result');
+        var badge = document.getElementById('moto-tech-result-badge');
+
+        if (!marque || !modele) {
+            if (badge) {
+                badge.className = 'badge red';
+                badge.textContent = 'Champs requis';
+            }
+            if (result) result.innerHTML = '<div style="color:#fca5a5">Veuillez renseigner au minimum une marque et un modele.</div>';
+            window.RdvModule.setMotoTechHelp('Renseignez une marque et un modele pour lancer la recherche.', 'error');
+            return;
+        }
+
+        if (result) setLoadingState(result, true, 'Recherche de la fiche technique...');
+        if (badge) {
+            badge.className = 'badge blue';
+            badge.textContent = 'Recherche...';
+        }
+
+        var state = APP.motoTechLookup || {};
+        var selected = state.selectedModele;
+        var requestUrl = '';
+        if (selected && String(selected.marque || '').trim().toUpperCase() === marque.toUpperCase() && String(selected.modele || '').trim().toUpperCase() === modele.toUpperCase() && selected.id) {
+            requestUrl = '/api/motos/modeles/' + encodeURIComponent(selected.id) + '/technical-specs' + (annee ? ('?annee=' + encodeURIComponent(annee)) : '');
+        } else {
+            var params = ['marque=' + encodeURIComponent(marque), 'modele=' + encodeURIComponent(modele)];
+            if (annee) params.push('annee=' + encodeURIComponent(annee));
+            requestUrl = '/api/motos/technical-specs?' + params.join('&');
+        }
+
+        apiGet(requestUrl).then(function(r) { return r.json(); }).then(function(spec) {
+            window.RdvModule.renderMotoTechnicalSpec(spec || {});
+            window.RdvModule.setMotoTechHelp('Fiche technique chargee pour ' + [spec.marque, spec.modele].filter(Boolean).join(' '), 'success');
+        }).catch(function(error) {
+            if (badge) {
+                badge.className = 'badge red';
+                badge.textContent = 'Introuvable';
+            }
+            if (result) {
+                result.innerHTML = '<div style="padding:14px;border:1px solid #3f1d1d;border-radius:12px;background:#1f1315">' +
+                    '<div style="font-weight:700;color:#fca5a5;margin-bottom:6px">Aucune fiche technique trouvee</div>' +
+                    '<div style="color:#cbd5e1">Verifiez la marque, le modele et le millesime, ou essayez sans annee precise.</div>' +
+                    '<div style="margin-top:8px;color:#94a3b8;font-size:12px">Detail: ' + escapeHtml((error && error.message) ? error.message : 'recherche impossible') + '</div>' +
+                    '</div>';
+            }
+            window.RdvModule.setMotoTechHelp('La fiche technique n\'a pas ete trouvee pour cette recherche.', 'error');
+        });
     },
 
     goStep: function(n) {

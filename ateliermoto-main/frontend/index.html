@@ -423,6 +423,9 @@ tr:hover td { background: rgba(255,255,255,.03); }
     <button class="nav-btn" id="nav-clients" onclick="showSection('clients')" aria-label="Clients">
       <span>&#128101;</span><span class="tooltip">Clients</span>
     </button>
+    <button class="nav-btn" id="nav-motos" onclick="showSection('motos')" aria-label="Fiches techniques moto">
+      <span>🏍️</span><span class="tooltip">Fiches moto</span>
+    </button>
     <a href="/factures.html" class="nav-btn" id="nav-factures" style="text-decoration:none" title="Factures">
       <span>&#128179;</span><span class="tooltip">Factures</span>
     </a>
@@ -697,6 +700,51 @@ tr:hover td { background: rgba(255,255,255,.03); }
             <div class="card" id="client-detail-info"></div>
             <div class="card" style="margin-top:12px" id="client-detail-vehicules"></div>
             <div class="card" style="margin-top:12px" id="client-detail-historique"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== FICHES MOTO ===== -->
+      <div id="s-motos" class="section">
+        <div class="page-header">
+          <div><div class="page-title">Fiches techniques moto</div><div class="page-sub">Recherchez une moto de la base atelier et affichez sa fiche technique par millesime.</div></div>
+        </div>
+        <div class="grid-2" style="align-items:start">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Recherche rapide</div>
+                <div style="font-size:12px;color:#9ca3af">Marque, modele et annee s'appuient sur la base moto synchronisee en BDD.</div>
+              </div>
+            </div>
+            <form onsubmit="lookupMotoTechnicalSpec(); return false;">
+              <div class="f-row">
+                <div class="f-group"><label class="f-label">Marque</label><input class="f-input" id="moto-tech-marque" list="moto-tech-marque-suggestions" placeholder="Ex: Kawasaki" autocomplete="off" oninput="searchMotoTechBrand(this.value)"><datalist id="moto-tech-marque-suggestions"></datalist></div>
+                <div class="f-group"><label class="f-label">Annee</label><input class="f-input" id="moto-tech-annee" type="number" min="1990" max="2030" placeholder="Ex: 2000"></div>
+              </div>
+              <div class="f-row">
+                <div class="f-group"><label class="f-label">Modele</label><input class="f-input" id="moto-tech-modele" list="moto-tech-modele-suggestions" placeholder="Ex: ER-5" autocomplete="off" oninput="searchMotoTechModel(this.value)" onchange="searchMotoTechModel(this.value)"><datalist id="moto-tech-modele-suggestions"></datalist></div>
+              </div>
+              <div class="f-row">
+                <div class="f-group"><label class="f-label">Choix rapide marque</label><select class="f-input" id="moto-tech-marque-quick" onchange="selectMotoTechBrand(this.value)"><option value="">-- Marques de la base --</option></select></div>
+                <div class="f-group"><label class="f-label">Choix rapide modele</label><select class="f-input" id="moto-tech-modele-quick" onchange="selectMotoTechModel(this.value)"><option value="">-- Modeles suggeres --</option></select></div>
+              </div>
+              <div id="moto-tech-help" style="font-size:12px;color:#9ca3af;margin:-4px 0 12px 0">Commencez par une marque ou un modele pour afficher les suggestions de la base moto.</div>
+              <div class="btn-row" style="justify-content:flex-start">
+                <button class="btn btn-primary" type="submit">Afficher la fiche technique</button>
+                <button class="btn btn-ghost" type="button" onclick="loadMotoTechExplorer(true)">Reinitialiser</button>
+              </div>
+            </form>
+            <div id="moto-tech-base-summary" style="margin-top:12px;font-size:12px;color:#9ca3af"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Resultat</div>
+              <span class="badge blue" id="moto-tech-result-badge">En attente</span>
+            </div>
+            <div id="moto-tech-result" style="display:flex;flex-direction:column;gap:12px;color:#9ca3af">
+              <div>Choisissez une moto dans l'index pour afficher sa fiche technique detaillee.</div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,9 +1,9 @@
 window.ROLE_SECTIONS = window.ROLE_SECTIONS || {
-    mecanicien: ['dashboard', 'planning', 'or', 'espace-meca'],
-    receptionnaire: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'clients', 'espace-meca'],
-    service_client: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'clients', 'espace-meca'],
-    admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'clients', 'espace-meca', 'admin'],
-    super_admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'clients', 'espace-meca', 'admin']
+    mecanicien: ['dashboard', 'planning', 'or', 'motos', 'espace-meca'],
+    receptionnaire: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
+    service_client: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
+    admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'],
+    super_admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin']
 };
 var ROLE_SECTIONS = window.ROLE_SECTIONS;
 
@@ -14,6 +14,7 @@ window.RBAC_SECTION_LABELS = window.RBAC_SECTION_LABELS || {
     'ponts': 'Ponts & mecaniciens',
     'or': 'Ordres de reparation',
     'suivi': 'Suivi live',
+    'motos': 'Fiches moto',
     'clients': 'Clients',
     'espace-meca': 'Espace mecanicien',
     'admin': 'Administration'
@@ -147,6 +148,7 @@ window.AppCoreModule = window.AppCoreModule || {
             ponts: 'nav-ponts',
             or: 'nav-or',
             suivi: 'nav-suivi',
+            motos: 'nav-motos',
             clients: 'nav-clients',
             admin: 'nav-admin'
         };
@@ -198,15 +200,29 @@ window.AppCoreModule = window.AppCoreModule || {
             'ponts': 'Ponts & Mecaniciens',
             'or': 'Ordres de Reparation',
             'suivi': 'Suivi Live',
+            'motos': 'Fiches moto',
             'clients': 'Clients',
             'espace-meca': 'Espace Mecanicien',
             'admin': 'Administration'
         };
         document.getElementById('page-title').textContent = titles[id] || id;
 
-        var idx = { 'dashboard': 0, 'rdv': 1, 'planning': 2, 'ponts': 3, 'or': 4, 'suivi': 5, 'clients': 6, 'admin': 8 };
-        var btns = document.querySelectorAll('.nav-btn');
-        if (idx[id] !== undefined && btns[idx[id]]) btns[idx[id]].classList.add('active');
+        var sectionToNav = {
+            dashboard: 'nav-dashboard',
+            rdv: 'nav-rdv',
+            planning: 'nav-planning',
+            ponts: 'nav-ponts',
+            or: 'nav-or',
+            suivi: 'nav-suivi',
+            motos: 'nav-motos',
+            clients: 'nav-clients',
+            admin: 'nav-admin'
+        };
+        var activeNav = sectionToNav[id];
+        if (activeNav) {
+            var activeBtn = document.getElementById(activeNav);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
 
         if (id === 'dashboard') loadDashboard();
         if (id === 'rdv') loadRdvForm();
@@ -214,6 +230,7 @@ window.AppCoreModule = window.AppCoreModule || {
         if (id === 'ponts') loadPontsMecas();
         if (id === 'or') loadOrdresReparation();
         if (id === 'suivi') loadSuiviLive();
+        if (id === 'motos') loadMotoTechExplorer();
         if (id === 'clients') loadClients();
         if (id === 'espace-meca') loadEspaceMeca();
         if (id === 'admin') {
@@ -252,6 +269,7 @@ window.AppCoreModule = window.AppCoreModule || {
         else if (APP.currentSection === 'suivi') loadSuiviLive();
         else if (APP.currentSection === 'espace-meca') loadEspaceMeca();
         else if (APP.currentSection === 'clients') loadClients();
+        else if (APP.currentSection === 'motos') loadMotoTechExplorer();
         else if (APP.currentSection === 'ponts') loadPontsMecas();
         else if (APP.currentSection === 'planning') loadPlanning();
     }
