@@ -149,6 +149,20 @@ class TestMotoBaseAutocomplete:
         assert data["modeles"]
         assert all(item["marque"] == "HONDA" for item in data["modeles"])
 
+    def test_autocomplete_keeps_public_rdv_suggestions_useful_after_variant_split(self, client):
+        response = client.get("/api/motos/autocomplete?query=mt&marque=YAMAHA&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert any(item["marque"] == "YAMAHA" and item["modele"] in {"MT-07", "MT 07"} for item in data["modeles"])
+
+    def test_autocomplete_matches_hyphenated_public_queries(self, client):
+        response = client.get("/api/motos/autocomplete?query=mt-07&marque=YAMAHA&limit=10")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert any(item["marque"] == "YAMAHA" and item["modele"] in {"MT-07", "MT 07", "MT 07 A"} for item in data["modeles"])
+
     def test_create_modele_is_reserved_to_super_admin(self, client):
         app.dependency_overrides[get_current_user] = lambda: User(
             id=1,

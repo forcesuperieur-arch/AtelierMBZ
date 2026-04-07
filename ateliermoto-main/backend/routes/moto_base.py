@@ -17,6 +17,28 @@ from schemas.moto_base import (
 router = APIRouter(tags=["moto-base"])
 
 
+def _normalize_autocomplete_value(value: Optional[str]) -> str:
+    return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+
+def _normalized_search_expr(column):
+    return func.lower(
+        func.replace(
+            func.replace(
+                func.replace(
+                    func.replace(column, " ", ""),
+                    "-",
+                    "",
+                ),
+                "/",
+                "",
+            ),
+            "_",
+            "",
+        )
+    )
+
+
 def _require_super_admin(current_user: User) -> None:
     if not current_user or current_user.role != "super_admin":
         raise HTTPException(status_code=403, detail="Acces reserve au super_admin")
@@ -126,24 +148,41 @@ def autocomplete_moto_base(
     query_value = (query or "").strip()
     marque_value = (marque or "").strip()
 
+    normalized_query = _normalize_autocomplete_value(query_value)
+    normalized_marque_value = _normalize_autocomplete_value(marque_value)
+    normalized_marque = _normalized_search_expr(ModeleMoto.marque)
+    normalized_modele = _normalized_search_expr(ModeleMoto.modele)
+
     marques_query = db.query(ModeleMoto.marque).distinct()
     if marque_value:
-        marques_query = marques_query.filter(ModeleMoto.marque.ilike(f"%{marque_value}%"))
+        marques_query = marques_query.filter(
+            (ModeleMoto.marque.ilike(f"%{marque_value}%"))
+            | (normalized_marque.ilike(f"%{normalized_marque_value}%"))
+        )
     if query_value:
         search_filter = f"%{query_value}%"
+        normalized_filter = f"%{normalized_query}%"
         marques_query = marques_query.filter(
             (ModeleMoto.marque.ilike(search_filter))
             | (ModeleMoto.modele.ilike(search_filter))
+            | (normalized_marque.ilike(normalized_filter))
+            | (normalized_modele.ilike(normalized_filter))
         )
 
     modeles_query = db.query(ModeleMoto).join(CategorieMoto)
     if marque_value:
-        modeles_query = modeles_query.filter(ModeleMoto.marque.ilike(f"%{marque_value}%"))
+        modeles_query = modeles_query.filter(
+            (ModeleMoto.marque.ilike(f"%{marque_value}%"))
+            | (normalized_marque.ilike(f"%{normalized_marque_value}%"))
+        )
     if query_value:
         search_filter = f"%{query_value}%"
+        normalized_filter = f"%{normalized_query}%"
         modeles_query = modeles_query.filter(
             (ModeleMoto.marque.ilike(search_filter))
             | (ModeleMoto.modele.ilike(search_filter))
+            | (normalized_marque.ilike(normalized_filter))
+            | (normalized_modele.ilike(normalized_filter))
         )
 
     marques = [
@@ -153,18 +192,6 @@ def autocomplete_moto_base(
     ]
 
     if query_value:
-        normalized_query = "".join(ch for ch in query_value.lower() if ch.isalnum()) or query_value.lower()
-        normalized_modele = func.lower(
-            func.replace(
-                func.replace(
-                    func.replace(ModeleMoto.modele, " ", ""),
-                    "-",
-                    "",
-                ),
-                "/",
-                "",
-            )
-        )
         model_rank = case(
             (ModeleMoto.modele.ilike(f"{query_value}-%"), 0),
             (ModeleMoto.modele.ilike(f"{query_value} %"), 1),
@@ -172,9 +199,34 @@ def autocomplete_moto_base(
             (normalized_modele.ilike(f"{normalized_query}%"), 3),
             else_=4,
         )
-        modeles = modeles_query.order_by(model_rank, ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
+        raw_modeles = modeles_query.order_by(
+            model_rank,
+            ModeleMoto.marque,
+            ModeleMoto.modele,
+            ModeleMoto.annee_fin.desc().nulls_last(),
+            ModeleMoto.annee_debut.desc().nulls_last(),
+        ).limit(max(safe_limit * 15, 30)).all()
     else:
-        modeles = modeles_query.order_by(ModeleMoto.marque, ModeleMoto.modele).limit(safe_limit).all()
+        raw_modeles = modeles_query.order_by(
+            ModeleMoto.marque,
+            ModeleMoto.modele,
+            ModeleMoto.annee_fin.desc().nulls_last(),
+            ModeleMoto.annee_debut.desc().nulls_last(),
+        ).limit(max(safe_limit * 15, 30)).all()
+
+    modeles = []
+    seen_keys = set()
+    for modele in raw_modeles:
+        key = (
+            (modele.marque or "").strip().upper(),
+            _normalize_autocomplete_value(modele.modele),
+        )
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        modeles.append(modele)
+        if len(modeles) >= safe_limit:
+            break
 
     return {
         "marques": marques,
