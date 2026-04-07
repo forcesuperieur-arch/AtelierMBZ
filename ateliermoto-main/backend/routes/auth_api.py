@@ -76,19 +76,23 @@ def _get_role_permissions(db: Session, role: str) -> dict:
         legacy = {
             "super_admin": {
                 "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
-                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"]
+                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"]
             },
             "admin": {
                 "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
-                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"]
+                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"]
+            },
+            "manager": {
+                "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
+                "permissions": ["billing.view", "travaux_supp.review", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"]
             },
             "receptionnaire": {
                 "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
-                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit"]
+                "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "clients.edit"]
             },
             "service_client": {
                 "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
-                "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit"]
+                "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit", "clients.edit"]
             },
             "mecanicien": {
                 "sections": ["dashboard", "planning", "or", "motos", "espace-meca"],
@@ -124,7 +128,7 @@ def normalize_role_slug(role: Optional[str]) -> str:
 
 
 def get_allowed_roles(db: Session) -> set[str]:
-    system_roles = {"admin", "receptionnaire", "service_client", "mecanicien", "super_admin"}
+    system_roles = {"admin", "manager", "receptionnaire", "service_client", "mecanicien", "super_admin"}
     db_roles = {r.role for r in db.query(RolePermission.role).all()}
     return system_roles | db_roles
 
@@ -350,7 +354,10 @@ def create_or_update_role_permissions(
     allowed_permissions = {
         "billing.view", "billing.edit", "billing.pay", "billing.pdf",
         "travaux_supp.review", "users.manage", "ateliers.manage",
-        "roles.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"
+        "roles.manage", "config.manage", "prestations.manage",
+        "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage",
+        "workshop.manage", "motos.manage", "horaires.manage",
+        "clients.edit", "stats.view"
     }
     sections = [s for s in (payload.sections or []) if s in allowed_sections]
     permissions = [p for p in (payload.permissions or []) if p in allowed_permissions]

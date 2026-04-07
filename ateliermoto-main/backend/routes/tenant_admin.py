@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user, get_password_hash, is_password_strong
 from models import Atelier, Mecanicien, Pont, RendezVous, User, UserAtelierRole, get_db
-from routes.auth_api import get_allowed_roles, normalize_role_slug, require_role
+from routes.auth_api import get_allowed_roles, normalize_role_slug, require_role, user_has_permission
 
 router = APIRouter(tags=["tenant-admin"])
 
@@ -183,13 +183,23 @@ def _delete_mecanicien_for_user(db: Session, user: User):
         mecano.is_active = 0
 
 
+def _ensure_users_manage(current_user: User, db: Session) -> None:
+    if not user_has_permission(current_user, db, "users.manage"):
+        raise HTTPException(status_code=403, detail="Permission users.manage requise")
+
+
+def _ensure_ateliers_manage(current_user: User, db: Session) -> None:
+    if not user_has_permission(current_user, db, "ateliers.manage"):
+        raise HTTPException(status_code=403, detail="Permission ateliers.manage requise")
+
+
 @router.get("/api/users", response_model=List[UserResponse])
-@require_role("admin")
 def get_users(
     atelier_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    _ensure_users_manage(current_user, db)
     target_atelier_id = atelier_id or current_user.atelier_id or 1
     if current_user.role != "super_admin":
         target_atelier_id = current_user.atelier_id or 1
@@ -198,8 +208,8 @@ def get_users(
 
 
 @router.post("/api/users", response_model=UserResponse)
-@require_role("admin")
 def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _ensure_users_manage(current_user, db)
     user_data.role = normalize_role_slug(user_data.role)
     allowed_roles = get_allowed_roles(db)
     if user_data.role not in allowed_roles:
@@ -240,8 +250,8 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_us
 
 
 @router.get("/api/users/{user_id}", response_model=UserResponse)
-@require_role("admin")
 def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _ensure_users_manage(current_user, db)
     query = db.query(User).filter(User.id == user_id)
     if current_user.role != "super_admin":
         query = query.filter(User.atelier_id == (current_user.atelier_id or 1))
@@ -252,8 +262,8 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
 
 
 @router.put("/api/users/{user_id}", response_model=UserResponse)
-@require_role("admin")
 def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _ensure_users_manage(current_user, db)
     query = db.query(User).filter(User.id == user_id)
     if current_user.role != "super_admin":
         query = query.filter(User.atelier_id == (current_user.atelier_id or 1))
@@ -310,8 +320,8 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
 
 
 @router.delete("/api/users/{user_id}")
-@require_role("admin")
 def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _ensure_users_manage(current_user, db)
     query = db.query(User).filter(User.id == user_id)
     if current_user.role != "super_admin":
         query = query.filter(User.atelier_id == (current_user.atelier_id or 1))
@@ -330,12 +340,12 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
 
 
 @router.post("/api/users/invite")
-@require_role("admin")
 def invite_user_to_atelier(
     payload: UserAtelierRoleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    _ensure_users_manage(current_user, db)
     payload.role = normalize_role_slug(payload.role)
     payload.email = (payload.email or "").strip().lower()
     if not payload.email:
@@ -397,12 +407,12 @@ def invite_user_to_atelier(
 
 
 @router.get("/api/ateliers/{atelier_id}/users", response_model=List[UserResponse])
-@require_role("admin")
 def get_atelier_users(
     atelier_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    _ensure_users_manage(current_user, db)
     if current_user.role != "super_admin" and atelier_id != (current_user.atelier_id or 1):
         raise HTTPException(status_code=403, detail="Acces atelier refuse")
     users = db.query(User).filter(User.atelier_id == atelier_id).all()
@@ -445,8 +455,7 @@ def list_public_ateliers(db: Session = Depends(get_db)):
 
 @router.post("/api/ateliers")
 def create_atelier(data: AtelierCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Acces reserve super_admin")
+    _ensure_ateliers_manage(current_user, db)
     base_slug = (data.slug or data.nom or "").strip().lower()
     base_slug = re.sub(r"[^a-z0-9]+", "-", base_slug).strip("-") or "atelier"
     slug = base_slug
@@ -480,8 +489,7 @@ def update_atelier(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in ("super_admin", "admin"):
-        raise HTTPException(status_code=403, detail="Acces refuse")
+    _ensure_ateliers_manage(current_user, db)
     if current_user.role != "super_admin" and (current_user.atelier_id or 1) != atelier_id:
         raise HTTPException(status_code=403, detail="Acces atelier refuse")
     atelier = db.query(Atelier).filter(Atelier.id == atelier_id).first()

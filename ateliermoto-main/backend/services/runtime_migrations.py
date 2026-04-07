@@ -169,25 +169,31 @@ def migrate_role_permissions(db: Session):
             "label": "Super Admin",
             "description": "Acces total multi-ateliers",
             "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
-            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"],
+            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "ateliers.manage", "roles.manage", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"],
         },
         "admin": {
             "label": "Admin Atelier",
             "description": "Administration atelier courant",
             "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
-            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "equipements.manage", "rdv.select_atelier", "rdv.edit"],
+            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "users.manage", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"],
+        },
+        "manager": {
+            "label": "Manager Atelier",
+            "description": "Supervision operationnelle sans acces super_admin",
+            "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca", "admin"],
+            "permissions": ["billing.view", "travaux_supp.review", "config.manage", "prestations.manage", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "motos.manage", "horaires.manage", "clients.edit", "stats.view"],
         },
         "receptionnaire": {
             "label": "Reception",
             "description": "Gestion operationnelle reception",
             "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
-            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit"],
+            "permissions": ["billing.view", "billing.edit", "billing.pay", "billing.pdf", "travaux_supp.review", "rdv.select_atelier", "rdv.edit", "workflow.manage", "or.manage", "clients.edit"],
         },
         "service_client": {
             "label": "Service Client (SRC)",
             "description": "Version simple sans facturation",
             "sections": ["dashboard", "rdv", "planning", "ponts", "or", "suivi", "motos", "clients", "espace-meca"],
-            "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit"],
+            "permissions": ["travaux_supp.review", "rdv.select_atelier", "rdv.edit", "clients.edit"],
         },
         "mecanicien": {
             "label": "Mecanicien",
@@ -217,10 +223,23 @@ def migrate_role_permissions(db: Session):
                 sections = json.loads(existing.sections_json or "[]")
             except Exception:
                 sections = []
-            if "motos" in cfg["sections"] and "motos" not in sections:
-                sections.append("motos")
+            try:
+                permissions = json.loads(existing.permissions_json or "[]")
+            except Exception:
+                permissions = []
+
+            for section in cfg["sections"]:
+                if section not in sections:
+                    sections.append(section)
+                    updated = True
+            for permission in cfg["permissions"]:
+                if permission not in permissions:
+                    permissions.append(permission)
+                    updated = True
+
+            if updated:
                 existing.sections_json = json.dumps(sections)
-                updated = True
+                existing.permissions_json = json.dumps(permissions)
 
             if not existing.label:
                 existing.label = cfg["label"]

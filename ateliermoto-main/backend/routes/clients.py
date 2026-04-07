@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from models import Atelier, Client, Mecanicien, RapportTechnicien, RendezVous, User, Vehicule, get_db
+from routes.auth_api import user_has_permission
 from schemas.clients import ClientCreate, ClientUpdate, VehiculeCreate, VehiculeUpdate
 
 router = APIRouter(tags=["clients"])
@@ -11,6 +12,11 @@ router = APIRouter(tags=["clients"])
 def _atelier_id_or_403(current_user: User) -> int:
     # Compatibilite temporaire: users legacy sans atelier_id -> atelier par defaut
     return int(current_user.atelier_id or 1)
+
+
+def _ensure_clients_edit(current_user: User, db: Session) -> None:
+    if not user_has_permission(current_user, db, "clients.edit"):
+        raise HTTPException(status_code=403, detail="Permission clients.edit requise")
 
 
 @router.get("/api/clients/stats")
@@ -246,6 +252,7 @@ def get_client(client_id: int, db: Session = Depends(get_db), current_user: User
 @router.put("/api/clients/{client_id}")
 def update_client(client_id: int, update_data: ClientUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Met à jour les informations d'un client"""
+    _ensure_clients_edit(current_user, db)
     atelier_id = _atelier_id_or_403(current_user)
     client = db.query(Client).filter(Client.id == client_id, Client.atelier_id == atelier_id).first()
     if not client:
@@ -271,6 +278,7 @@ def update_client(client_id: int, update_data: ClientUpdate, db: Session = Depen
 @router.post("/api/clients/{client_id}/vehicules")
 def add_vehicule_to_client(client_id: int, vehicule_data: VehiculeCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Ajoute un véhicule à un client via lien direct"""
+    _ensure_clients_edit(current_user, db)
     atelier_id = _atelier_id_or_403(current_user)
     client = db.query(Client).filter(Client.id == client_id, Client.atelier_id == atelier_id).first()
     if not client:
@@ -303,6 +311,7 @@ def add_vehicule_to_client(client_id: int, vehicule_data: VehiculeCreate, db: Se
 @router.put("/api/vehicules/{vehicule_id}")
 def update_vehicule(vehicule_id: int, update_data: VehiculeUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Met à jour les informations d'un véhicule"""
+    _ensure_clients_edit(current_user, db)
     atelier_id = _atelier_id_or_403(current_user)
     vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id, Vehicule.atelier_id == atelier_id).first()
     if not vehicule:
@@ -328,6 +337,7 @@ def update_vehicule(vehicule_id: int, update_data: VehiculeUpdate, db: Session =
 @router.delete("/api/vehicules/{vehicule_id}")
 def delete_vehicule(vehicule_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un véhicule s'il n'a pas de vrais RDV"""
+    _ensure_clients_edit(current_user, db)
     atelier_id = _atelier_id_or_403(current_user)
     vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id, Vehicule.atelier_id == atelier_id).first()
     if not vehicule:
@@ -344,6 +354,7 @@ def delete_vehicule(vehicule_id: int, db: Session = Depends(get_db), current_use
 @router.delete("/api/clients/{client_id}")
 def delete_client(client_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un client (si pas de RDV)"""
+    _ensure_clients_edit(current_user, db)
     atelier_id = _atelier_id_or_403(current_user)
     client = db.query(Client).filter(Client.id == client_id, Client.atelier_id == atelier_id).first()
     if not client:

@@ -90,24 +90,25 @@ window.RdvActionsModule = window.RdvActionsModule || {
         var html = '<div style="display:flex;gap:4px;flex-wrap:wrap">';
         var showBillingActions = !(options && options.hideBillingActions === true);
         var canEditRdv = hasPermission('rdv.edit');
+        var canManageWorkflow = hasPermission('workflow.manage') || hasPermission('or.manage') || canEditRdv;
 
         if (canEditRdv && s !== 'annule' && s !== 'non_presente' && s !== 'paye') {
             html += '<button class="btn btn-ghost" style="' + sz + 'color:var(--teal)" onclick="ouvrirDetailRdv(' + rdv.id + ')">Editer</button>';
         }
 
-        if (canEditRdv && s !== 'annule' && s !== 'non_presente' && s !== 'termine' && s !== 'facture' && s !== 'paye') {
+        if (canManageWorkflow && s !== 'annule' && s !== 'non_presente' && s !== 'termine' && s !== 'facture' && s !== 'paye') {
             html += '<button class="btn btn-ghost" style="' + sz + 'color:var(--purple)" onclick="ouvrirAssignation(' + rdv.id + ')">' + (rdv.mecanicien_id && rdv.pont_id ? 'Reassigner' : 'Assigner') + '</button>';
         }
 
-        if (canEditRdv && (s === 'reserve' || s === 'en_attente')) {
+        if (canManageWorkflow && (s === 'reserve' || s === 'en_attente')) {
             html += '<button class="btn btn-primary" style="' + sz + '" onclick="confirmerRdv(' + rdv.id + ')">Confirmer</button>';
             html += '<button class="btn btn-ghost" style="' + sz + '" onclick="annulerRdv(' + rdv.id + ')">Annuler</button>';
-        } else if (canEditRdv && s === 'confirme') {
+        } else if (canManageWorkflow && s === 'confirme') {
             html += '<button class="btn btn-primary" style="' + sz + 'background:var(--teal)" onclick="ouvrirReception(' + rdv.id + ')">Reception</button>';
             html += '<button class="btn btn-ghost" style="' + sz + '" onclick="annulerRdv(' + rdv.id + ')">Annuler</button>';
-        } else if (canEditRdv && s === 'reception') {
+        } else if (canManageWorkflow && s === 'reception') {
             html += '<button class="btn btn-primary" style="' + sz + 'background:var(--green)" onclick="demarrerTravail(' + rdv.id + ')">Demarrer</button>';
-        } else if (canEditRdv && s === 'en_cours') {
+        } else if (canManageWorkflow && s === 'en_cours') {
             html += '<button class="btn btn-primary" style="' + sz + 'background:var(--green)" onclick="terminerTravail(' + rdv.id + ')">Terminer</button>';
             html += '<button class="btn btn-ghost" style="' + sz + '" onclick="ouvrirCheckup(' + rdv.id + ')">Checkup</button>';
         } else if (s === 'termine') {

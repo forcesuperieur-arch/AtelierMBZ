@@ -49,6 +49,12 @@ class OrdreReparationSave(BaseModel):
     etat_vehicule: str
     travaux: Optional[str] = None
     signature: Optional[str] = None
+    priorite: Optional[str] = None
+    niveau_carburant: Optional[int] = None
+    dommages_carrosserie: Optional[List[str]] = None
+    notes_schema: Optional[str] = None
+    lignes_estimation: Optional[List[dict]] = None
+    photos: Optional[List[str]] = None
 
 
 class RapportTechnicienCreate(BaseModel):

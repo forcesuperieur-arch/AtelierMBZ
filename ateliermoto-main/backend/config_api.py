@@ -19,6 +19,7 @@ from models import (
     AtelierCategorieMoto
 )
 from auth import get_current_user
+from routes.auth_api import user_has_permission
 import json as _json
 
 router = APIRouter(prefix="/api/config", tags=["Configuration"])
@@ -188,6 +189,11 @@ def _is_hhmm(value: Optional[str]) -> bool:
     hh, mm = value.split(":")
     return 0 <= int(hh) <= 23 and 0 <= int(mm) <= 59
 
+
+def _ensure_permission(current_user: User, db: Session, permission: str) -> None:
+    if not user_has_permission(current_user, db, permission):
+        raise HTTPException(status_code=403, detail=f"Permission {permission} requise")
+
 # ===== PYDANTIC MODELS =====
 
 class ConfigAtelierSchema(BaseModel):
@@ -301,9 +307,8 @@ def update_config_atelier(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Modifie la configuration de l'atelier (admin seulement)"""
-    if current_user.role not in ["admin", "manager", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Modifie la configuration de l'atelier (permission `config.manage`)."""
+    _ensure_permission(current_user, db, "config.manage")
 
     target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
     config = db.query(ConfigAtelier).filter(ConfigAtelier.id == target_atelier_id).first()
@@ -364,9 +369,8 @@ def update_horaire_jour(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Modifie l'horaire d'un jour"""
-    if current_user.role not in ["admin", "manager", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Modifie l'horaire d'un jour (permission `horaires.manage`)."""
+    _ensure_permission(current_user, db, "horaires.manage")
 
     if jour < 0 or jour > 6:
         raise HTTPException(status_code=400, detail="Jour invalide (0-6)")
@@ -440,9 +444,8 @@ def create_temps_intervention(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Crée un nouveau temps d'intervention"""
-    if current_user.role not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Crée un nouveau temps d'intervention."""
+    _ensure_permission(current_user, db, "prestations.manage")
 
     # Vérifier que la catégorie et intervention existent
     categorie = db.query(CategorieMoto).filter(CategorieMoto.id == data.categorie_moto_id).first()
@@ -465,9 +468,8 @@ def update_temps_intervention(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Modifie un temps d'intervention"""
-    if current_user.role not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Modifie un temps d'intervention."""
+    _ensure_permission(current_user, db, "prestations.manage")
 
     temps = db.query(TempsIntervention).filter(TempsIntervention.id == temps_id).first()
     if not temps:
@@ -488,9 +490,8 @@ def delete_temps_intervention(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Supprime un temps d'intervention"""
-    if current_user.role not in ["admin", "manager"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Supprime un temps d'intervention."""
+    _ensure_permission(current_user, db, "prestations.manage")
 
     temps = db.query(TempsIntervention).filter(TempsIntervention.id == temps_id).first()
     if not temps:
@@ -537,9 +538,8 @@ def create_pont_equipement(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Crée un nouvel équipement pour un pont"""
-    if current_user.role not in ["admin", "manager", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Crée un nouvel équipement pour un pont."""
+    _ensure_permission(current_user, db, "workshop.manage")
 
     # Vérifier que le pont existe
     target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
@@ -562,9 +562,8 @@ def update_pont_equipement(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Modifie un équipement"""
-    if current_user.role not in ["admin", "manager", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Modifie un équipement."""
+    _ensure_permission(current_user, db, "workshop.manage")
     target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
     eq = db.query(PontEquipement).join(Pont, PontEquipement.pont_id == Pont.id).filter(
         PontEquipement.id == eq_id,
@@ -592,9 +591,8 @@ def delete_pont_equipement(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Supprime un équipement"""
-    if current_user.role not in ["admin", "manager", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Supprime un équipement."""
+    _ensure_permission(current_user, db, "workshop.manage")
     target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
     eq = db.query(PontEquipement).join(Pont, PontEquipement.pont_id == Pont.id).filter(
         PontEquipement.id == eq_id,
@@ -643,9 +641,8 @@ def toggle_atelier_categorie_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Active/désactive une catégorie moto pour l'atelier"""
-    if current_user.role not in ("super_admin", "admin"):
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Active/désactive une catégorie moto pour l'atelier."""
+    _ensure_permission(current_user, db, "motos.manage")
 
     target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
 

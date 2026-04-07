@@ -4,13 +4,13 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 
-from models import RendezVous, RapportTechnicien, Mecanicien, OrdreReparation, Pont
+from models import Atelier, RendezVous, RapportTechnicien, Mecanicien, OrdreReparation, Pont
 
 logger = logging.getLogger("ateliermoto.pdf")
 
 
-def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
-    """Génère un ordre de réparation au format PDF avec design professionnel"""
+def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = None):
+    """Génère un ordre de réparation au format PDF avec design professionnel depuis l'OR stocké en base."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm, mm
@@ -18,8 +18,10 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
     from reportlab.platypus import Image as RLImage
+    from reportlab.graphics.shapes import Circle, Drawing, Line, Path as ShapePath, Rect, String
     from io import BytesIO
-    from pathlib import Path
+    from pathlib import Path as FsPath
+    import base64
     import json
 
     rdv = db.query(RendezVous).options(
@@ -27,6 +29,19 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     ).filter(RendezVous.id == rdv_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+
+    ordre_source = None
+    if or_id is not None:
+        ordre_source = db.query(OrdreReparation).filter(
+            OrdreReparation.id == or_id,
+            OrdreReparation.rendez_vous_id == rdv_id,
+        ).first()
+        if not ordre_source:
+            raise HTTPException(status_code=404, detail="Ordre de réparation non trouvé")
+    else:
+        ordre_source = db.query(OrdreReparation).filter(
+            OrdreReparation.rendez_vous_id == rdv_id,
+        ).order_by(OrdreReparation.created_at.desc()).first()
 
     rapport = db.query(RapportTechnicien).filter(RapportTechnicien.rendez_vous_id == rdv_id).first()
 
@@ -40,10 +55,67 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     if rdv.pont_id:
         pont = db.query(Pont).filter(Pont.id == rdv.pont_id).first()
 
+    atelier = None
+    if rdv.atelier_id:
+        atelier = db.query(Atelier).filter(Atelier.id == rdv.atelier_id).first()
+
+    def _parse_json(raw_value, default):
+        if not raw_value:
+            return default
+        try:
+            value = json.loads(raw_value) if isinstance(raw_value, str) else raw_value
+            return value if value is not None else default
+        except Exception:
+            return default
+
+    etat_meta = _parse_json((ordre_source.etat_vehicule if ordre_source and ordre_source.etat_vehicule else rdv.etat_vehicule), {})
+    if not isinstance(etat_meta, dict):
+        etat_meta = {"observations": str(etat_meta)}
+    photos_list = _parse_json(rdv.photos_etat, [])
+    if not isinstance(photos_list, list):
+        photos_list = []
+
+    priority_value = str(etat_meta.get("priority") or etat_meta.get("priorite") or "standard").lower()
+    priority_label = {
+        "basse": "Basse",
+        "low": "Basse",
+        "standard": "Standard",
+        "normal": "Standard",
+        "urgent": "Flash / Urgent",
+        "critique": "Critique",
+    }.get(priority_value, "Standard")
+    fuel_level = etat_meta.get("fuel_level", etat_meta.get("niveau_carburant"))
+    try:
+        fuel_level = int(fuel_level) if fuel_level is not None else None
+    except Exception:
+        fuel_level = None
+    body_damages = etat_meta.get("body_damages") if isinstance(etat_meta.get("body_damages"), list) else []
+    schema_notes = etat_meta.get("schema_notes") or ""
+    estimate_rows = etat_meta.get("estimate_rows") if isinstance(etat_meta.get("estimate_rows"), list) else []
+    observations = (ordre_source.travaux if ordre_source and ordre_source.travaux else None) or etat_meta.get("observations") or rdv.commentaire or ""
+
+    damage_labels = {
+        "avant": "Avant",
+        "reservoir": "Reservoir",
+        "flanc_gauche": "Flanc gauche",
+        "flanc_droit": "Flanc droit",
+        "arriere": "Arriere",
+        "roue_av": "Roue AV",
+        "roue_ar": "Roue AR",
+        "selle": "Selle",
+    }
+
+    if not estimate_rows:
+        estimate_rows = [{
+            "label": (ordre_source.travaux if ordre_source and ordre_source.travaux else rdv.type_intervention) or "Intervention atelier",
+            "qty": 1,
+            "amount": float(rdv.prix_final or rdv.prix_estime or 0) if (rdv.prix_final or rdv.prix_estime) is not None else None,
+        }]
+
     buffer = BytesIO()
     W, H = A4  # 595, 842
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=12*mm, leftMargin=12*mm, topMargin=10*mm, bottomMargin=10*mm)
-    usable_w = W - 24*mm  # ~171mm
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=10*mm, leftMargin=10*mm, topMargin=6*mm, bottomMargin=6*mm)
+    usable_w = W - 20*mm  # ~190mm
 
     # ===== COULEURS =====
     NOIR = colors.HexColor('#1a1a1a')
@@ -58,6 +130,79 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     ROUGE = colors.HexColor('#EF4444')
     BLEU = colors.HexColor('#3B82F6')
 
+    def build_moto_diagram(width=150*mm, height=72*mm):
+        drawing = Drawing(width, height)
+        sx = width / 512.0
+        sy = height / 320.0
+
+        def tx(x): return x * sx
+        def ty(y): return height - (y * sy)
+
+        stroke = colors.HexColor('#334155')
+        fill_light = colors.HexColor('#F8FAFC')
+
+        def add_circle(cx, cy, r, dash=None):
+            c = Circle(tx(cx), ty(cy), r * sx)
+            c.strokeColor = stroke
+            c.fillColor = None
+            c.strokeWidth = 1.2
+            if dash:
+                c.strokeDashArray = dash
+            drawing.add(c)
+
+        add_circle(110, 230, 65)
+        add_circle(110, 230, 55, [4, 4])
+        add_circle(400, 230, 65)
+        add_circle(400, 230, 55, [4, 4])
+        add_circle(110, 230, 30)
+
+        drawing.add(Line(tx(110), ty(230), tx(180), ty(80), strokeColor=stroke, strokeWidth=1.5))
+        drawing.add(Line(tx(180), ty(80), tx(200), ty(85), strokeColor=stroke, strokeWidth=1.5))
+        drawing.add(Line(tx(200), ty(85), tx(130), ty(235), strokeColor=stroke, strokeWidth=1.5))
+        drawing.add(Line(tx(300), ty(200), tx(400), ty(230), strokeColor=stroke, strokeWidth=3))
+        drawing.add(Line(tx(250), ty(220), tx(380), ty(260), strokeColor=stroke, strokeWidth=4))
+        drawing.add(Line(tx(380), ty(260), tx(420), ty(240), strokeColor=stroke, strokeWidth=4))
+        drawing.add(Line(tx(180), ty(80), tx(160), ty(70), strokeColor=stroke, strokeWidth=1.5))
+        drawing.add(Line(tx(180), ty(80), tx(200), ty(65), strokeColor=stroke, strokeWidth=1.5))
+
+        frame = ShapePath(strokeColor=stroke, fillColor=None, strokeWidth=1.5)
+        frame.moveTo(tx(180), ty(120))
+        frame.lineTo(tx(300), ty(120))
+        frame.lineTo(tx(350), ty(180))
+        frame.lineTo(tx(350), ty(230))
+        frame.lineTo(tx(220), ty(230))
+        frame.closePath()
+        drawing.add(frame)
+
+        moteur = Rect(tx(220), ty(220), 80 * sx, 60 * sy, rx=5, ry=5)
+        moteur.strokeColor = stroke
+        moteur.fillColor = None
+        moteur.strokeWidth = 1.5
+        drawing.add(moteur)
+
+        reservoir = ShapePath(strokeColor=stroke, fillColor=fill_light, strokeWidth=1.3)
+        reservoir.moveTo(tx(180), ty(120))
+        reservoir.curveTo(tx(220), ty(70), tx(320), ty(90), tx(340), ty(100))
+        reservoir.lineTo(tx(340), ty(130))
+        reservoir.lineTo(tx(300), ty(130))
+        reservoir.closePath()
+        drawing.add(reservoir)
+
+        selle = ShapePath(strokeColor=stroke, fillColor=fill_light, strokeWidth=1.3)
+        selle.moveTo(tx(340), ty(130))
+        selle.curveTo(tx(380), ty(120), tx(440), ty(140), tx(430), ty(160))
+        selle.curveTo(tx(380), ty(150), tx(340), ty(160), tx(340), ty(160))
+        selle.closePath()
+        drawing.add(selle)
+
+        phare = Circle(tx(165), ty(100), 12 * sx)
+        phare.strokeColor = stroke
+        phare.fillColor = None
+        phare.strokeWidth = 1.2
+        drawing.add(phare)
+        drawing.add(String(tx(410), ty(24), 'Vue de profil (D)', fontName='Helvetica-Bold', fontSize=6, fillColor=colors.HexColor('#94A3B8')))
+        return drawing
+
     styles = getSampleStyleSheet()
 
     # ===== STYLES =====
@@ -65,11 +210,11 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     s_header_w_bold = ParagraphStyle('hwb', parent=styles['Normal'], fontSize=10, textColor=BLANC, fontName='Helvetica-Bold')
     s_or_title = ParagraphStyle('ort', parent=styles['Normal'], fontSize=22, textColor=ORANGE, fontName='Helvetica-Bold', alignment=TA_RIGHT)
     s_or_num = ParagraphStyle('orn', parent=styles['Normal'], fontSize=11, textColor=BLANC, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    s_section = ParagraphStyle('sec', parent=styles['Normal'], fontSize=11, textColor=NOIR, fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=6)
-    s_label = ParagraphStyle('lbl', parent=styles['Normal'], fontSize=8, textColor=GRIS, fontName='Helvetica')
-    s_val = ParagraphStyle('val', parent=styles['Normal'], fontSize=10, textColor=GRIS_FONCE, fontName='Helvetica-Bold')
-    s_val_sm = ParagraphStyle('vsm', parent=styles['Normal'], fontSize=9, textColor=GRIS_FONCE, fontName='Helvetica')
-    s_text = ParagraphStyle('txt', parent=styles['Normal'], fontSize=9, textColor=GRIS_FONCE, leading=13)
+    s_section = ParagraphStyle('sec', parent=styles['Normal'], fontSize=9.5, textColor=NOIR, fontName='Helvetica-Bold', leading=11, spaceBefore=4, spaceAfter=3)
+    s_label = ParagraphStyle('lbl', parent=styles['Normal'], fontSize=7.5, textColor=GRIS, fontName='Helvetica')
+    s_val = ParagraphStyle('val', parent=styles['Normal'], fontSize=9.5, textColor=GRIS_FONCE, fontName='Helvetica-Bold')
+    s_val_sm = ParagraphStyle('vsm', parent=styles['Normal'], fontSize=8.5, textColor=GRIS_FONCE, fontName='Helvetica', leading=10)
+    s_text = ParagraphStyle('txt', parent=styles['Normal'], fontSize=8.2, textColor=GRIS_FONCE, leading=10.5)
     s_th = ParagraphStyle('th', parent=styles['Normal'], fontSize=8, textColor=GRIS, fontName='Helvetica-Bold', alignment=TA_CENTER)
     s_td = ParagraphStyle('td', parent=styles['Normal'], fontSize=9, textColor=GRIS_FONCE, fontName='Helvetica')
     s_td_r = ParagraphStyle('tdr', parent=styles['Normal'], fontSize=9, textColor=GRIS_FONCE, fontName='Helvetica', alignment=TA_RIGHT)
@@ -78,8 +223,10 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     s_badge = ParagraphStyle('bdg', parent=styles['Normal'], fontSize=8, textColor=BLANC, fontName='Helvetica-Bold', alignment=TA_CENTER)
 
     elements = []
-    or_number = f"OR-{rdv.id:06d}"
-    date_emission = rdv.date_rdv.strftime('%d/%m/%Y') if rdv.date_rdv else '-'
+    year = rdv.date_rdv.year if rdv.date_rdv else datetime.now().year
+    or_number = ordre_source.numero_or if ordre_source and ordre_source.numero_or else f"OR-{year}-{str(rdv.id).zfill(3)}"
+    ref_date = ordre_source.created_at if ordre_source and ordre_source.created_at else rdv.date_rdv
+    date_emission = ref_date.strftime('%d/%m/%Y') if ref_date else '-'
     heure_rdv = rdv.heure_rdv.strftime('%H:%M') if rdv.heure_rdv else '-'
 
     # Statut
@@ -95,11 +242,18 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     statut_color = colors.HexColor(statut_colors.get(rdv.statut, '#666666'))
 
     # ===== EN-TETE BANDEAU =====
+    atelier_nom = getattr(atelier, 'nom', None) or "PRO MOTO SERVICE"
+    atelier_adresse = getattr(atelier, 'adresse', None) or "12 Rue du Circuit"
+    atelier_ville = getattr(atelier, 'ville', None) or "Le Mans"
+    atelier_tel = getattr(atelier, 'telephone', None) or "02 43 00 00 00"
+    atelier_email = getattr(atelier, 'email', None) or "contact@atelier-moto.fr"
+    atelier_siret = getattr(atelier, 'siret', None) or "123 456 789 0001"
+
     header_left = Paragraph(
-        f"<b>ATELIER MOTO PRO</b><br/>"
-        f"<font size='7'>123 Rue de l'Atelier, 75000 Paris</font><br/>"
-        f"<font size='7'>Tel: 01 23 45 67 89 | contact@atelier-moto.fr</font><br/>"
-        f"<font size='7'>SIRET: XXX XXX XXX 00012</font>",
+        f"<font size='22'><b>PRO <font color='#FB923C'>MOTO</font> WORKSHOP</b></font><br/>"
+        f"<font size='7' color='#CBD5E1'><b>ENGINEERING &amp; PERFORMANCE DIVISION</b></font><br/>"
+        f"<font size='7'>{atelier_nom} • {atelier_adresse}, {atelier_ville}</font><br/>"
+        f"<font size='7'>Tel: {atelier_tel} | {atelier_email} | SIRET: {atelier_siret}</font>",
         s_header_w
     )
     header_right_content = (
@@ -113,8 +267,8 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
     header_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), NOIR),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
         ('LEFTPADDING', (0, 0), (0, 0), 12),
         ('RIGHTPADDING', (-1, 0), (-1, 0), 12),
         ('ROUNDEDCORNERS', [4, 4, 0, 0]),
@@ -137,7 +291,7 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
         ('ROUNDEDCORNERS', [0, 0, 4, 4]),
     ]))
     elements.append(statut_bar)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 8))
 
     # ===== CLIENT & VEHICULE - 2 colonnes encadrées =====
     def info_cell(label, value):
@@ -149,13 +303,14 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
         [info_cell("Nom complet", f"{rdv.client.prenom} {rdv.client.nom}")],
         [info_cell("Telephone", rdv.client.telephone)],
         [info_cell("Email", rdv.client.email or '-')],
+        [info_cell("Adresse", getattr(rdv.client, 'adresse', None) or '-')],
     ]
     client_table = Table(client_cells, colWidths=[usable_w * 0.48])
     client_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
         ('BACKGROUND', (0, 0), (-1, 0), ORANGE_LIGHT),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
         ('ROUNDEDCORNERS', [6, 6, 6, 6]),
@@ -176,15 +331,16 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
         [info_cell("Cylindree / Type", veh_details)],
         [info_cell("Immatriculation", veh.plaque)],
     ]
-    if rdv.kilometrage:
-        vehicule_cells.append([info_cell("Kilometrage", f"{rdv.kilometrage} km")])
+    kilometrage_value = ordre_source.kilometrage if ordre_source and ordre_source.kilometrage is not None else rdv.kilometrage
+    if kilometrage_value:
+        vehicule_cells.append([info_cell("Kilometrage", f"{kilometrage_value} km")])
 
     vehicule_table = Table(vehicule_cells, colWidths=[usable_w * 0.48])
     vehicule_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
         ('BACKGROUND', (0, 0), (-1, 0), ORANGE_LIGHT),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
         ('ROUNDEDCORNERS', [6, 6, 6, 6]),
@@ -197,185 +353,254 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(cv_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 6))
+
+    quick_state_data = [[
+        Paragraph(f"<b>Priorite</b><br/>{priority_label}", s_text),
+        Paragraph(f"<b>Niveau carburant</b><br/>{str(fuel_level) + '/4' if fuel_level is not None else 'Non renseigne'}", s_text),
+        Paragraph(f"<b>Zones signalees</b><br/>{', '.join([damage_labels.get(d, d) for d in body_damages]) if body_damages else 'Aucune'}", s_text),
+    ]]
+    quick_state = Table(quick_state_data, colWidths=[usable_w * 0.33, usable_w * 0.22, usable_w * 0.45])
+    quick_state.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(quick_state)
+    elements.append(Spacer(1, 8))
 
     # ===== ETAT A L'ARRIVEE =====
-    if rdv.etat_vehicule:
-        # Parser le JSON de l'etat du vehicule
-        etat_content = ""
-        try:
-            import json
-            etat_data = json.loads(rdv.etat_vehicule)
-            parts = []
-            # Points de controle
-            if etat_data.get("points"):
-                for pt in etat_data["points"]:
-                    label = pt.get("label", pt.get("nom", ""))
-                    status = pt.get("status", pt.get("etat", ""))
-                    icon = "OK" if status in ("ok", "bon", "OK") else "NOK" if status in ("nok", "mauvais", "NOK", "defaut") else status.upper()
-                    parts.append(f"<b>{label}</b> : {icon}")
-            # Observations
-            obs = etat_data.get("observations", "")
-            if obs:
-                parts.append(f"<b>Observations :</b> {obs}")
-            etat_content = "<br/>".join(parts) if parts else "Aucune observation"
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            etat_content = rdv.etat_vehicule if rdv.etat_vehicule else "Aucune observation"
-
-        if etat_content and etat_content != "Aucune observation":
-            elements.append(Paragraph("<font color='#E8480A'><b>ETAT DU VEHICULE A L'ARRIVEE</b></font>", s_section))
-            etat_box = Table([[Paragraph(etat_content, s_text)]], colWidths=[usable_w])
+    if etat_meta:
+        parts = []
+        if etat_meta.get("points"):
+            for pt in etat_meta.get("points", []):
+                if isinstance(pt, str):
+                    label = next((item["label"] for item in [
+                        {"key": "carrosserie_ok", "label": "Carrosserie OK"},
+                        {"key": "rayures", "label": "Rayures visibles"},
+                        {"key": "bosses", "label": "Bosses / chocs"},
+                        {"key": "freins_ok", "label": "Freins OK"},
+                        {"key": "pneus_av_ok", "label": "Pneu avant OK"},
+                        {"key": "pneus_ar_ok", "label": "Pneu arriere OK"},
+                        {"key": "eclairage_ok", "label": "Eclairage OK"},
+                        {"key": "retros_ok", "label": "Retroviseurs OK"},
+                        {"key": "clignotants_ok", "label": "Clignotants OK"},
+                        {"key": "compteur_ok", "label": "Compteur OK"},
+                        {"key": "fuite_visible", "label": "Fuite visible"},
+                    ] if item["key"] == pt), pt)
+                    parts.append(f"• {label}")
+                elif isinstance(pt, dict):
+                    label = pt.get("label") or pt.get("nom") or pt.get("key") or pt.get("code") or "Point de controle"
+                    parts.append(f"• {label}")
+        if etat_meta.get("observations"):
+            parts.append(f"<b>Observations :</b> {etat_meta.get('observations')}")
+        if parts:
+            etat_box = Table([[Paragraph("<font color='#E8480A'><b>ETAT DU VEHICULE A L'ARRIVEE</b></font>", s_section)] , [Paragraph("<br/>".join(parts), s_text)]], colWidths=[usable_w])
             etat_box.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), GRIS_CLAIR),
+                ('BACKGROUND', (0, 0), (-1, 0), ORANGE_LIGHT),
+                ('BACKGROUND', (0, 1), (-1, -1), GRIS_CLAIR),
                 ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
                 ('LEFTPADDING', (0, 0), (-1, -1), 10),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 10),
                 ('TOPPADDING', (0, 0), (-1, -1), 8),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
             ]))
             elements.append(etat_box)
             elements.append(Spacer(1, 10))
 
-    # ===== INTERVENTION DEMANDEE =====
-    elements.append(Paragraph("<font color='#E8480A'><b>INTERVENTION DEMANDEE</b></font>", s_section))
+    # ===== WORK ZONE (comme la page master) =====
+    intervention_items = []
+    for row in estimate_rows:
+        label = row.get('label') or row.get('designation') or 'Intervention atelier'
+        if label not in intervention_items:
+            intervention_items.append(label)
+    if not intervention_items:
+        intervention_items = [rdv.type_intervention or 'Intervention atelier']
+    if len(intervention_items) % 2 != 0:
+        intervention_items.append('')
 
-    interv_data = [
-        [Paragraph("Type", s_label), Paragraph(f"<b>{rdv.type_intervention or '-'}</b>", s_val)],
-        [Paragraph("Temps estime", s_label), Paragraph(f"{rdv.temps_estime or '-'} min", s_val_sm)],
+    checklist_rows = []
+    for i in range(0, min(6, len(intervention_items)), 2):
+        left_label = intervention_items[i]
+        right_label = intervention_items[i + 1] if i + 1 < len(intervention_items) else ''
+        left = Paragraph(("☑ " + left_label) if left_label else "", s_text)
+        right = Paragraph(("☑ " + right_label) if right_label else "", s_text)
+        checklist_rows.append([left, right])
+
+    left_block_data = [
+        [Paragraph("<font color='#E8480A'><b>INTERVENTIONS PROGRAMMEES</b></font>", s_section)],
+        [Table(checklist_rows, colWidths=[usable_w * 0.30, usable_w * 0.30])],
+        [Paragraph("<font size='8' color='#999999'><b>Observations Atelier &amp; Symptomes Clients</b></font>", s_label)],
+        [Table([[Paragraph(observations or 'Notez ici les bruits, fuites ou comportements anormaux...', s_text)]], colWidths=[usable_w * 0.60])],
     ]
-    if rdv.commentaire:
-        interv_data.append([Paragraph("Commentaire", s_label), Paragraph(rdv.commentaire, s_text)])
-
-    interv_table = Table(interv_data, colWidths=[35*mm, usable_w - 35*mm])
-    interv_table.setStyle(TableStyle([
+    left_block = Table(left_block_data, colWidths=[usable_w * 0.62])
+    left_block.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LINEBELOW', (0, 0), (-1, -2), 0.5, GRIS_BORDER),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('BOX', (0, 3), (-1, 3), 1, GRIS_BORDER),
+        ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#FCFCFD')),
     ]))
-    elements.append(interv_table)
 
-    # ===== RAPPORT TECHNICIEN =====
-    if rapport:
+    diagram_note = Paragraph("INSTRUCTIONS : Marquez précisément les impacts, rayures ou fissures avant toute intervention.", ParagraphStyle('diagNote', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#9A3412'), leading=10))
+    diagram_box = Table([
+        [Paragraph("<font color='#1F2937'><b>CONTROLE CARROSSERIE</b></font>", s_section)],
+        [build_moto_diagram(54*mm, 36*mm)],
+        [diagram_note],
+    ], colWidths=[usable_w * 0.34])
+    diagram_box.setStyle(TableStyle([
+        ('BOX', (0, 1), (-1, 1), 1, GRIS_BORDER),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.white),
+        ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#FFF7ED')),
+        ('BOX', (0, 2), (-1, 2), 1, colors.HexColor('#FDBA74')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    work_zone = Table([[left_block, diagram_box]], colWidths=[usable_w * 0.64, usable_w * 0.34])
+    work_zone.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(work_zone)
+    elements.append(Spacer(1, 8))
+
+    # ===== INTERVENTIONS & ESTIMATION =====
+    elements.append(Paragraph("<font color='#E8480A'><b>ESTIMATION ATELIER</b></font>", s_section))
+
+    estimate_table_rows = [[
+        Paragraph("<b>Operation / Reference</b>", s_th),
+        Paragraph("<b>Qte</b>", s_th),
+        Paragraph("<b>Montant EST.</b>", s_th),
+    ]]
+    total_estime = 0.0
+    for row in estimate_rows:
+        label = row.get("label") or row.get("designation") or "Intervention atelier"
+        qty = row.get("qty", row.get("quantite", 1)) or 1
+        amount = row.get("amount", row.get("montant"))
+        try:
+            qty_val = float(qty)
+        except Exception:
+            qty_val = 1.0
+        try:
+            amount_val = float(amount) if amount is not None else None
+        except Exception:
+            amount_val = None
+        if amount_val is not None:
+            total_estime += qty_val * amount_val
+        estimate_table_rows.append([
+            Paragraph(str(label), s_td),
+            Paragraph(str(int(qty_val) if qty_val.is_integer() else qty_val), s_td),
+            Paragraph(f"{amount_val:.2f} EUR" if amount_val is not None else "A chiffrer", s_td_r),
+        ])
+
+    if rdv.commentaire:
+        estimate_table_rows.append([
+            Paragraph("Commentaire client", s_td),
+            Paragraph("-", s_td),
+            Paragraph("-", s_td_r),
+        ])
+        estimate_table_rows.append([
+            Paragraph(rdv.commentaire, s_text),
+            Paragraph("", s_td),
+            Paragraph("", s_td_r),
+        ])
+
+    total_display = f"{total_estime:.2f} EUR" if total_estime else (f"{float(rdv.prix_final or rdv.prix_estime):.2f} EUR" if (rdv.prix_final or rdv.prix_estime) is not None else "A chiffrer")
+    estimate_table_rows.append([
+        Paragraph("<b>Total Estimatif TTC</b>", ParagraphStyle('tot_est', parent=styles['Normal'], fontSize=9, textColor=BLANC, fontName='Helvetica-Bold', alignment=TA_RIGHT)),
+        Paragraph("", s_td),
+        Paragraph(f"<b>{total_display}</b>", ParagraphStyle('tot_est_r', parent=styles['Normal'], fontSize=10, textColor=ORANGE, fontName='Helvetica-Bold', alignment=TA_RIGHT)),
+    ])
+
+    est_table = Table(estimate_table_rows, colWidths=[usable_w * 0.62, usable_w * 0.12, usable_w * 0.26])
+    est_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), NOIR),
+        ('TEXTCOLOR', (0, 0), (-1, 0), BLANC),
+        ('BACKGROUND', (0, -1), (-1, -1), NOIR),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, GRIS_BORDER),
+        ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(est_table)
+
+    if body_damages or schema_notes or photos_list:
         elements.append(Spacer(1, 10))
-        elements.append(Paragraph("<font color='#E8480A'><b>RAPPORT D'INTERVENTION</b></font>", s_section))
+        elements.append(Paragraph("<font color='#E8480A'><b>CONTROLE CARROSSERIE</b></font>", s_section))
+        damages_text = ", ".join([damage_labels.get(d, d) for d in body_damages]) if body_damages else "Aucun impact note"
+        content_items = [Paragraph(f"<b>Zones notees :</b> {damages_text}", s_text)]
+        if schema_notes:
+            content_items.append(Spacer(1, 4))
+            content_items.append(Paragraph(f"<b>Notes schema :</b> {schema_notes}", s_text))
+        if photos_list:
+            photo_cells = []
+            for photo in photos_list[:3]:
+                try:
+                    data = photo.split(',')[1] if isinstance(photo, str) and ',' in photo else photo
+                    img = RLImage(BytesIO(base64.b64decode(data)), width=42*mm, height=28*mm)
+                    photo_cells.append(img)
+                except Exception as e:
+                    logger.warning("Erreur chargement photo etat rdv_id=%s: %s", rdv.id, e)
+            if photo_cells:
+                content_items.append(Spacer(1, 6))
+                photo_table = Table([photo_cells], colWidths=[42*mm] * len(photo_cells))
+                photo_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                content_items.append(photo_table)
+        carrosserie_box = Table([[content_items]], colWidths=[usable_w])
+        carrosserie_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF7ED')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#FDBA74')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(carrosserie_box)
 
-        # Points de contrôle en grille
-        if rapport.points_controle:
-            try:
-                points = json.loads(rapport.points_controle)
-                labels_map = {
-                    'niveau_huile': "Huile", 'pression_pneus': "Pneus",
-                    'freins_avant': "Freins AV", 'freins_arriere': "Freins AR",
-                    'eclairage': "Eclairage", 'clignotants': "Clignotants",
-                    'batterie': "Batterie", 'chaine_courroie': "Chaine",
-                    'liquide_refroidissement': "Refroid.", 'filtre_air': "Filtre air"
-                }
-                checked = []
-                for key, label in labels_map.items():
-                    state = points.get(key, 'non_verifie')
-                    if state == 'ok':
-                        checked.append([Paragraph(f"<font color='#22C55E'>OK</font>", ParagraphStyle('ok', parent=styles['Normal'], fontSize=8, textColor=VERT, fontName='Helvetica-Bold', alignment=TA_CENTER)), Paragraph(label, s_label)])
-                    elif state == 'a_remplacer' or state == 'defaillant':
-                        checked.append([Paragraph(f"<font color='#EF4444'>NOK</font>", ParagraphStyle('nok', parent=styles['Normal'], fontSize=8, textColor=ROUGE, fontName='Helvetica-Bold', alignment=TA_CENTER)), Paragraph(label, s_label)])
+    # ===== NOTES ATELIER (version compacte pour rester sur une page) =====
+    atelier_notes = []
+    if rapport and rapport.travaux_realises:
+        atelier_notes.append(f"<b>Travaux realises :</b> {rapport.travaux_realises}")
+    if rapport and rapport.alertes:
+        atelier_notes.append(f"<b>Alerte :</b> {rapport.alertes}")
+    if rapport and rapport.recommandations:
+        atelier_notes.append(f"<b>Recommandation :</b> {rapport.recommandations}")
 
-                if checked:
-                    # Layout en rangées de 5
-                    rows = []
-                    for i in range(0, len(checked), 5):
-                        row_cells = []
-                        for j in range(5):
-                            if i + j < len(checked):
-                                mini = Table([checked[i + j]], colWidths=[12*mm, 22*mm])
-                                mini.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 2)]))
-                                row_cells.append(mini)
-                            else:
-                                row_cells.append('')
-                        rows.append(row_cells)
+    if atelier_notes:
+        elements.append(Spacer(1, 6))
+        atelier_note_box = Table([[Paragraph("<br/>".join(atelier_notes[:2]), s_text)]], colWidths=[usable_w])
+        atelier_note_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(atelier_note_box)
 
-                    col_w = usable_w / 5
-                    pts_table = Table(rows, colWidths=[col_w] * 5)
-                    pts_table.setStyle(TableStyle([
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                    ]))
-                    elements.append(pts_table)
-            except Exception as e:
-                logger.warning("Erreur rendu points controle rdv_id=%s: %s", rdv.id, e)
+    # ===== LEGAL & SIGNATURES =====
+    elements.append(Spacer(1, 10))
 
-        # Travaux réalisés
-        if rapport.travaux_realises:
-            elements.append(Spacer(1, 6))
-            elements.append(Paragraph("<font size='8' color='#999999'>Travaux realises</font>", s_label))
-            travaux_box = Table([[Paragraph(rapport.travaux_realises, s_text)]], colWidths=[usable_w])
-            travaux_box.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), GRIS_CLAIR),
-                ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-            ]))
-            elements.append(travaux_box)
-
-        # Pièces utilisées
-        if rapport.pieces_utilisees:
-            try:
-                pieces = json.loads(rapport.pieces_utilisees)
-                if pieces:
-                    elements.append(Spacer(1, 6))
-                    elements.append(Paragraph("<font size='8' color='#999999'>Pieces utilisees</font>", s_label))
-                    p_rows = [[Paragraph("<b>Designation</b>", s_th), Paragraph("<b>Ref</b>", s_th), Paragraph("<b>Qte</b>", s_th)]]
-                    for p in pieces:
-                        qty = p.get('quantite', 1)
-                        p_rows.append([
-                            Paragraph(p.get('nom', '-'), s_td),
-                            Paragraph(p.get('reference', '-'), s_td),
-                            Paragraph(str(qty), s_td),
-                        ])
-                    p_table = Table(p_rows, colWidths=[usable_w * 0.55, usable_w * 0.3, usable_w * 0.15])
-                    p_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), GRIS_CLAIR),
-                        ('LINEBELOW', (0, 0), (-1, 0), 1, GRIS_BORDER),
-                        ('LINEBELOW', (0, -1), (-1, -1), 1, GRIS_BORDER),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                    ]))
-                    elements.append(p_table)
-            except Exception as e:
-                logger.warning("Erreur rendu pieces utilisees rdv_id=%s: %s", rdv.id, e)
-
-        # Alertes / Recommandations
-        if rapport.alertes:
-            elements.append(Spacer(1, 6))
-            alert_box = Table([[Paragraph(f"<b>ALERTES :</b> {rapport.alertes}", s_text)]], colWidths=[usable_w])
-            alert_box.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF2F2')),
-                ('BOX', (0, 0), (-1, -1), 1, ROUGE),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-            ]))
-            elements.append(alert_box)
-
-        if rapport.recommandations:
-            elements.append(Spacer(1, 4))
-            reco_box = Table([[Paragraph(f"<b>RECOMMANDATIONS :</b> {rapport.recommandations}", s_text)]], colWidths=[usable_w])
-            reco_box.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#EFF6FF')),
-                ('BOX', (0, 0), (-1, -1), 1, BLEU),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-            ]))
-            elements.append(reco_box)
-
-    # ===== SIGNATURES =====
-    elements.append(Spacer(1, 16))
-    elements.append(Paragraph("<font color='#E8480A'><b>SIGNATURES</b></font>", s_section))
-
-    or_initial = db.query(OrdreReparation).filter(
+    or_initial = ordre_source or db.query(OrdreReparation).filter(
         OrdreReparation.rendez_vous_id == rdv.id,
         OrdreReparation.type_or == "initial"
     ).order_by(OrdreReparation.created_at.desc()).first()
@@ -386,82 +611,89 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session):
             import base64
             data = or_initial.signature_client.split(',')[1] if ',' in or_initial.signature_client else or_initial.signature_client
             img_bytes = base64.b64decode(data)
-            sig_client = RLImage(BytesIO(img_bytes), width=50*mm, height=25*mm)
+            sig_client = RLImage(BytesIO(img_bytes), width=46*mm, height=20*mm)
         except Exception as e:
             logger.warning("Erreur chargement signature BDD rdv_id=%s: %s", rdv.id, e)
             sig_client = ''
     else:
-        signature_path = Path("signatures") / f"rdv_{rdv.id}_signature.png"
+        signature_path = FsPath("signatures") / f"rdv_{rdv.id}_signature.png"
         if signature_path.exists():
             try:
-                sig_client = RLImage(str(signature_path), width=50*mm, height=25*mm)
+                sig_client = RLImage(str(signature_path), width=46*mm, height=20*mm)
             except Exception as e:
                 logger.warning("Erreur chargement signature fichier rdv_id=%s: %s", rdv.id, e)
                 sig_client = ''
 
+    legal_text = (
+        "• Le client accepte le devis estimatif et autorise les essais sur route.<br/>"
+        "• Le garage n'est pas responsable des objets laisses dans les sacoches ou coffres.<br/>"
+        "• Toute piece non reclamee lors de la reprise pourra etre recyclee apres 48h."
+    )
+    legal_style = ParagraphStyle('legalBox', parent=styles['Normal'], fontSize=7.5, textColor=GRIS, leading=10)
+    pill_style = ParagraphStyle('legalPill', parent=styles['Normal'], fontSize=7.5, textColor=colors.HexColor('#9A3412'), fontName='Helvetica-Bold')
+
+    legal_box = Table([
+        [Paragraph("<font color='#1F2937'><b>ENGAGEMENT &amp; DECHARGE</b></font>", s_section)],
+        [Paragraph(legal_text, legal_style)],
+        [Paragraph("Récupération des pièces usagées", pill_style)],
+    ], colWidths=[usable_w * 0.44])
+    legal_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#FFF7ED')),
+        ('BOX', (0, 0), (-1, -1), 1, GRIS_BORDER),
+        ('BOX', (0, 2), (-1, 2), 1, colors.HexColor('#FDBA74')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
     sig_data = [
-        [Paragraph("<b>Client</b><br/><font size='7' color='#999'>Signature avant intervention</font>", s_label),
-         Paragraph("<b>Atelier</b><br/><font size='7' color='#999'>Cachet et signature</font>", s_label)],
-        [sig_client or Spacer(1, 30*mm), Spacer(1, 30*mm)],
+        [Paragraph("<b>Le Client</b><br/><font size='7' color='#999'>Bon pour accord</font>", s_label),
+         Paragraph("<b>Atelier / Expert</b><br/><font size='7' color='#999'>Validation</font>", s_label)],
+        [sig_client or Spacer(1, 24*mm), Spacer(1, 24*mm)],
     ]
-    sig_table = Table(sig_data, colWidths=[usable_w * 0.5, usable_w * 0.5])
+    sig_table = Table(sig_data, colWidths=[usable_w * 0.25, usable_w * 0.25], rowHeights=[8*mm, 22*mm])
     sig_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOX', (0, 0), (0, -1), 1, GRIS_BORDER),
         ('BOX', (1, 0), (1, -1), 1, GRIS_BORDER),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FCFCFD')),
     ]))
-    elements.append(sig_table)
 
-    # ===== PAGE 2 - CGV =====
-    elements.append(PageBreak())
-
-    cgv_header = Table([[Paragraph("<b>CONDITIONS GENERALES DE VENTE ET DE REPARATION</b>", ParagraphStyle('cgvh', parent=styles['Normal'], fontSize=10, textColor=BLANC, fontName='Helvetica-Bold', alignment=TA_CENTER))]], colWidths=[usable_w])
-    cgv_header.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), NOIR),
-        ('TOPPADDING', (0, 0), (-1, -1), 8), ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+    legal_sig = Table([[legal_box, sig_table]], colWidths=[usable_w * 0.46, usable_w * 0.52])
+    legal_sig.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
-    elements.append(cgv_header)
+    elements.append(legal_sig)
     elements.append(Spacer(1, 10))
 
-    cgv_text = (
-        "<b>1. Devis et acceptation</b><br/>"
-        "Toute reparation necessite l'etablissement d'un devis prealable. L'acceptation du devis par le client "
-        "(signature ou accord ecrit) est obligatoire avant toute intervention. Les prix indiques sont en euros TTC.<br/><br/>"
-        "<b>2. Garantie</b><br/>"
-        "Les pieces remplacees beneficient d'une garantie de 12 mois (hors usure normale). La main d'oeuvre est "
-        "garantie 3 mois. Cette garantie ne couvre pas les dommages resultant d'une mauvaise utilisation.<br/><br/>"
-        "<b>3. Responsabilite</b><br/>"
-        "L'atelier est responsable des dommages causes aux biens confies pendant la duree de l'intervention, "
-        "dans la limite de la valeur declaree du vehicule.<br/><br/>"
-        "<b>4. Paiement</b><br/>"
-        "Le paiement est du a la livraison du vehicule. Moyens de paiement acceptes : especes, carte bancaire, "
-        "cheque. Un acompte de 30% peut etre demande pour les interventions importantes.<br/><br/>"
-        "<b>5. Abandon de vehicule</b><br/>"
-        "En cas de non-paiement et apres mise en demeure restee sans effet pendant 30 jours, l'atelier se reserve "
-        "le droit de vendre le vehicule aux encheres pour recouvrer les sommes dues.<br/><br/>"
-        "<b>6. Litiges</b><br/>"
-        "En cas de litige, les parties s'engagent a rechercher une solution amiable. A defaut, le tribunal competent "
-        "est celui du lieu de l'atelier.<br/><br/>"
-        "<b>7. Protection des donnees</b><br/>"
-        "Les informations collectees sont utilisees uniquement pour la gestion des reparations et des relations clients, "
-        "conformement au RGPD. Le client dispose d'un droit d'acces et de rectification sur ses donnees."
+    footer_left = Paragraph(
+        f"<b>{atelier_nom}</b><br/><font size='7' color='#CBD5E1'>SIRET {atelier_siret} - APE 4540Z</font>",
+        ParagraphStyle('footerLeft', parent=styles['Normal'], fontSize=8.5, textColor=BLANC, fontName='Helvetica-Bold')
     )
-    elements.append(Paragraph(cgv_text, s_cgv))
-    elements.append(Spacer(1, 20))
-
-    # Footer
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=GRIS_BORDER))
-    elements.append(Spacer(1, 6))
-    elements.append(Paragraph(
-        f"<b>Atelier Moto Pro</b> | SIRET: XXX XXX XXX 00012 | 123 Rue de l'Atelier, 75000 Paris<br/>"
-        f"Tel: 01 23 45 67 89 | Email: contact@atelier-moto.fr | Document genere le {datetime.now().strftime('%d/%m/%Y a %H:%M')}",
-        s_footer
-    ))
+    footer_right = Paragraph(
+        f"<font size='8'><b>Adresse :</b> {atelier_adresse}, {atelier_ville}<br/><b>Tél :</b> {atelier_tel}</font>",
+        ParagraphStyle('footerRight', parent=styles['Normal'], fontSize=8, textColor=BLANC, alignment=TA_RIGHT)
+    )
+    footer_band = Table([[footer_left, footer_right]], colWidths=[usable_w * 0.46, usable_w * 0.54])
+    footer_band.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), NOIR),
+        ('LINEABOVE', (0, 0), (-1, 0), 3, ORANGE),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(footer_band)
 
     doc.build(elements)
     buffer.seek(0)

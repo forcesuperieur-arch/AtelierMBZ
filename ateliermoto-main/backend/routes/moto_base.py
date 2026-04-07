@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from models import Atelier, AtelierCategorieMoto, CategorieMoto, ModeleMoto, MotoTechnicalSpec, User, get_db
+from routes.auth_api import user_has_permission
 from seed import sync_moto_catalog_to_db, sync_moto_technical_specs_to_db
 from schemas.moto_base import (
     CategorieMotoCreate,
@@ -39,9 +40,9 @@ def _normalized_search_expr(column):
     )
 
 
-def _require_super_admin(current_user: User) -> None:
-    if not current_user or current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Acces reserve au super_admin")
+def _require_moto_manage(current_user: User, db: Session) -> None:
+    if not current_user or not user_has_permission(current_user, db, "motos.manage"):
+        raise HTTPException(status_code=403, detail="Permission motos.manage requise")
 
 
 def _serialize_technical_spec(spec: MotoTechnicalSpec):
@@ -108,8 +109,8 @@ def create_categorie_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Crée une nouvelle catégorie de moto (super_admin)."""
-    _require_super_admin(current_user)
+    """Crée une nouvelle catégorie de moto (permission `motos.manage`)."""
+    _require_moto_manage(current_user, db)
     existing = db.query(CategorieMoto).filter(CategorieMoto.nom == categorie.nom).first()
     if existing:
         raise HTTPException(status_code=400, detail="Cette catégorie existe déjà")
@@ -126,8 +127,8 @@ def import_catalogue_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Réimporte le catalogue moto externe dans la BDD (super_admin)."""
-    _require_super_admin(current_user)
+    """Réimporte le catalogue moto externe dans la BDD (permission `motos.manage`)."""
+    _require_moto_manage(current_user, db)
     catalog_result = sync_moto_catalog_to_db(db)
     specs_result = sync_moto_technical_specs_to_db(db)
     return {
@@ -371,8 +372,8 @@ def create_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Crée un nouveau modèle de moto (super_admin)."""
-    _require_super_admin(current_user)
+    """Crée un nouveau modèle de moto (permission `motos.manage`)."""
+    _require_moto_manage(current_user, db)
     categorie = db.query(CategorieMoto).filter(CategorieMoto.id == modele.categorie_id).first()
     if not categorie:
         raise HTTPException(status_code=404, detail="Catégorie non trouvée")
@@ -403,8 +404,8 @@ def update_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Met à jour un modèle de moto (super_admin)."""
-    _require_super_admin(current_user)
+    """Met à jour un modèle de moto (permission `motos.manage`)."""
+    _require_moto_manage(current_user, db)
     modele = db.query(ModeleMoto).filter(ModeleMoto.id == modele_id).first()
     if not modele:
         raise HTTPException(status_code=404, detail="Modèle non trouvé")
@@ -428,8 +429,8 @@ def delete_modele_moto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Supprime un modèle de moto (super_admin)."""
-    _require_super_admin(current_user)
+    """Supprime un modèle de moto (permission `motos.manage`)."""
+    _require_moto_manage(current_user, db)
     modele = db.query(ModeleMoto).filter(ModeleMoto.id == modele_id).first()
     if not modele:
         raise HTTPException(status_code=404, detail="Modèle non trouvé")

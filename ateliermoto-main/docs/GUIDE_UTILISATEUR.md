@@ -1,7 +1,7 @@
 # Guide Utilisateur — Atelier Moto Pro
 
-> Application de gestion d'atelier moto multi-site  
-> **Version** : 2.1
+> Application de gestion d’atelier moto multi-atelier  
+> **Version** : 2.2
 
 ---
 
@@ -25,45 +25,37 @@
 
 ### Se connecter
 
-1. Ouvrir l'application dans le navigateur
-2. Entrer votre **nom d'utilisateur** et **mot de passe**
+1. Ouvrir l’application dans le navigateur
+2. Entrer votre **nom d’utilisateur** et votre **mot de passe**
 3. Cliquer **Se connecter**
 
-Vous êtes automatiquement redirigé vers votre section par défaut :
-- **Mécanicien** → Espace Mécanicien
+Redirection automatique :
+- **Mécanicien** → Espace Méca
 - **Autres rôles** → Dashboard
 
-### Changer d'atelier
+### Changer d’atelier
 
-Si vous avez accès à plusieurs ateliers (permission `rdv.select_atelier`) :
-- Un sélecteur d'atelier apparaît en haut de certaines pages (Planning, RDV)
-- Choisissez l'atelier souhaité dans le menu déroulant
+Si votre rôle possède la permission `rdv.select_atelier` :
+- un sélecteur d’atelier apparaît en haut des écrans concernés
+- le planning, les RDV et les données se rechargent pour l’atelier choisi
 
 ---
 
 ## 2. Dashboard
 
-Le dashboard affiche un résumé de la journée en cours :
-
-### Cartes KPI
-- **RDV aujourd'hui** — Nombre de rendez-vous du jour
-- **Ordres ouverts** — Travaux en cours
-- **Taux d'occupation** — % d'utilisation des ponts
-- **CA du mois** — Chiffre d'affaires mensuel
+Le dashboard synthétise l’activité du jour :
+- **RDV aujourd’hui**
+- **Ordres ouverts**
+- **Taux d’occupation** des ponts
+- **CA du mois**
 
 ### Statut des ponts
-Cartes visuelles pour chaque pont de l'atelier :
-- 🟢 **Libre** — Pont disponible
-- 🟠 **Occupé** — Intervention en cours (avec mécanicien et véhicule)
-- 🔴 **Maintenance** — Pont hors service
+- 🟢 **Libre**
+- 🟠 **Occupé**
+- 🔴 **Maintenance**
 
-### RDV du jour
-Tableau listant tous les RDV de la journée avec :
-- Heure, client, véhicule, prestation
-- Statut (badge couleur)
-- Actions rapides
-
-> Le dashboard se rafraîchit automatiquement toutes les 30 secondes.
+### Rafraîchissement
+Le dashboard se met à jour automatiquement toutes les 30 secondes.
 
 ---
 
@@ -72,27 +64,24 @@ Tableau listant tous les RDV de la journée avec :
 ### Assistant en 4 étapes
 
 #### Étape 1 — Véhicule
-- **Recherche par immatriculation** : tapez la plaque, l'API recherche automatiquement
-- **Saisie manuelle** : si le véhicule n'est pas trouvé, remplissez marque, modèle, année, type moto
+- recherche par **immatriculation**
+- saisie manuelle si besoin
+- **autocomplete amélioré** sur la marque et le modèle moto
 
 #### Étape 2 — Prestations
-- Sélectionnez une ou plusieurs prestations dans la liste
-- Le prix et le temps estimé se calculent automatiquement
-- Si plusieurs prestations sont choisies, **les durées se cumulent** pour proposer des créneaux réalistes
-- Les tarifs dépendent du type de moto sélectionné
+- une ou plusieurs prestations peuvent être sélectionnées
+- prix et temps estimés sont recalculés automatiquement
+- les **durées se cumulent** pour proposer des créneaux réalistes
 
 #### Étape 3 — Date et créneau
-- Grille hebdomadaire affichant les créneaux disponibles
-- Naviguer entre les semaines avec les flèches ◀ ▶
-- Les créneaux grisés sont indisponibles (atelier fermé ou plein)
-- Cliquez sur un créneau libre pour le sélectionner
+- affichage des créneaux disponibles
+- navigation par semaine
+- créneaux grisés = indisponibles ou atelier fermé
 
 #### Étape 4 — Confirmation
-- Vérifiez le récapitulatif (véhicule, prestations, date/heure)
-- Renseignez les informations client (nom, téléphone, email)
-- Cliquez **Confirmer le RDV**
-
-> **Multi-atelier** : Si vous avez la permission, un sélecteur d'atelier apparaît en haut du formulaire. Les prestations et créneaux se rechargent selon l'atelier choisi.
+- récapitulatif final
+- informations client
+- validation du RDV
 
 ---
 
@@ -100,268 +89,190 @@ Tableau listant tous les RDV de la journée avec :
 
 ### Vue hebdomadaire
 
-Le planning affiche une grille de 7 jours avec créneaux de 15 minutes :
+Le planning affiche des blocs par RDV avec :
+- la couleur du mécanicien
+- la ligne rouge de l’heure courante
+- les zones atelier fermé / pause déjeuner
 
-- **Blocs colorés** = RDV planifiés (couleur = mécanicien assigné)
-- **Ligne rouge verticale** = heure actuelle (mise à jour toutes les 60s)
-- **Zones grisées** = atelier fermé / pause déjeuner
-
-### Actions
+### Actions rapides
 
 | Action | Comment |
 |--------|---------|
-| Voir un RDV | Cliquer sur le bloc coloré |
-| Créer un RDV rapide | Cliquer sur une cellule vide |
-| Déplacer un RDV | Glisser-déposer le bloc vers un autre créneau |
-| Filtrer par mécanicien | Cliquer les puces de filtre en haut |
-| Changer de semaine | Flèches ◀ ▶ ou bouton "Aujourd'hui" |
+| Voir un RDV | cliquer sur le bloc |
+| Créer un RDV rapide | cliquer une cellule vide |
+| Déplacer un RDV | glisser-déposer |
+| Filtrer par mécanicien | utiliser les puces de filtre |
+| Changer de semaine | flèches ou bouton **Aujourd’hui** |
 
-### Conflits
-
-Si un RDV chevauche un autre sur le même pont ou avec le même mécanicien, un avertissement s'affiche. Le planning vérifie aussi automatiquement les horaires d'ouverture, la pause atelier et la durée totale des prestations sélectionnées.
+Le système vérifie les conflits de pont, de mécanicien, d’horaires et de durée totale.
 
 ---
 
 ## 5. Ponts & Mécaniciens
 
-### Onglet Ponts
-Cartes pour chaque pont de l'atelier :
-- Nom et type du pont
-- Statut actuel (libre/occupé/maintenance)
-- Mécanicien assigné
-- Prochain RDV prévu
+### Ponts
+- statut actuel du pont
+- mécanicien affecté
+- prochain RDV
 
-### Onglet Mécaniciens
-Cartes pour chaque technicien :
-- Nom, spécialités, couleur (planning)
-- Planning du jour
-- Nombre d'interventions en cours
+### Mécaniciens
+- spécialités et couleur planning
+- charge de la journée
+- nombre d’interventions en cours
 
-### Onglet Temps d'intervention
-Tableau des durées estimées par prestation et type de moto :
-- Permet de calibrer les créneaux du planning
-- Modifiable depuis l'administration
+### Temps d’intervention
+Les durées par prestation et type de moto servent au calcul des créneaux.
 
 ---
 
 ## 6. Ordres de Réparation
 
-### Liste des OR
+### Liste OR
 
-Triés par statut (en cours en premier), chaque OR affiche :
-- Numéro d'OR, client, véhicule
-- Mécanicien assigné
-- Barre de progression en 5 étapes :
+Les OR sont triés par statut et affichent :
+- numéro OR
+- client et véhicule
+- montant estimatif
+- barre d’avancement métier
 
 ```
-Réception → Diagnostic → Intervention → Contrôle qualité → Livraison
+Réception → Diagnostic → Intervention → Contrôle QC → Livraison
 ```
 
-### Actions sur un OR
+### Nouvelles actions disponibles
 
 | Action | Description |
 |--------|-------------|
-| **Réception** | Check-in du véhicule (kilométrage, état, signature client) |
-| **Assignation** | Attribuer un mécanicien et un pont |
-| **Démarrer** | Lancer le chrono de travail |
-| **Checkup** | Rapport technicien (10 points de contrôle) |
-| **Terminer** | Arrêter le chrono, calculer le temps réel |
-| **Facturer** | Générer la facture |
+| **Aperçu master** | vue détaillée de l’OR avec mise en page atelier |
+| **Imprimer** | impression directe depuis le navigateur |
+| **PDF** | ouverture du PDF sécurisé de l’OR |
+| **Réception** | formulaire enrichi de check-in véhicule |
+| **Travaux supp** | traitement des demandes complémentaires |
+| **RDV suite** | planification de la prochaine intervention |
+
+### Réception enrichie
+
+L’écran de réception permet maintenant de saisir :
+- kilométrage
+- points de contrôle véhicule
+- **priorité**
+- **niveau de carburant**
+- **dommages carrosserie** via schéma cliquable
+- **notes sur le schéma**
+- **photos de l’état du véhicule**
+- **lignes d’estimation**
+- signature client
 
 ### Travaux supplémentaires
 
-Si le mécanicien identifie des travaux additionnels pendant l'intervention :
-
-1. Le mécanicien fait une **demande de travaux supplémentaires**
-2. Une alerte apparaît chez le réceptionniste
-3. Le réceptionniste **approuve ou refuse** avec un devis
-4. Si approuvé → signature client requise
-5. Les travaux sont ajoutés au **RDV courant**
-6. Un **OR complémentaire** est généré et rattaché automatiquement à l'intervention
+Si le mécanicien détecte des travaux additionnels :
+1. création d’une demande complémentaire
+2. apparition dans la file d’attente du réceptionnaire
+3. approbation ou refus
+4. signature / validation client si nécessaire
+5. rattachement automatique au RDV courant
+6. création d’un OR complémentaire archivé avec le dossier
 
 ---
 
 ## 7. Suivi Live
 
-Vue en temps réel de l'activité de l'atelier :
-
-### Par mécanicien
-- Timeline des RDV du jour avec points de statut
-- **Timer live** (HH:MM:SS) pour l'intervention en cours
-- Barre de progression temps écoulé vs temps estimé
+Le suivi live montre :
+- la timeline des RDV du jour
+- le **timer live** de l’intervention active
+- les écarts entre temps estimé et temps réel
 
 ### Alertes
-- 🔴 **Retard** — Intervention dépassant le temps estimé
-- 🟠 **Imminent** — RDV démarrant dans les 15 prochaines minutes
-- ⚪ **Non assigné** — RDV sans mécanicien
-
-> Le suivi se rafraîchit automatiquement toutes les 30 secondes.
+- 🔴 retard
+- 🟠 démarrage imminent
+- ⚪ RDV non assigné
 
 ---
 
 ## 8. Clients
 
-### Recherche
-- Recherche par nom, téléphone ou email
-- Pagination automatique
-
-### Fiche client
-En cliquant sur un client :
-- **Informations** — Nom, téléphone, email, adresse
-- **Véhicules** — Liste des motos du client (ajouter/modifier/supprimer)
-- **Historique** — Tous les RDV passés avec détails et montants
-- **CA total** — Chiffre d'affaires cumulé du client
+### Recherche et fiche client
+- recherche par nom, téléphone ou email
+- fiche avec coordonnées, adresse, véhicules, historique et CA cumulé
 
 ### Actions
-- ✏️ Modifier les informations client
-- 🏍️ Ajouter un véhicule
-- 📅 Planifier un nouveau RDV
-- 🗑️ Supprimer (uniquement si aucun RDV associé)
+- modifier les informations
+- ajouter un véhicule
+- planifier un nouveau RDV
+- supprimer si aucun RDV n’est rattaché
 
 ---
 
 ## 9. Espace Mécanicien
 
-Interface dédiée aux techniciens, optimisée pour une utilisation sur tablette/mobile.
+Interface pensée pour l’usage atelier / tablette.
 
-### Intervention active
-Quand un travail est en cours :
-- **Grand timer** (HH:MM:SS) — Temps écoulé en temps réel
-- Infos véhicule et client
-- Prestations à effectuer
+### Fonctionnalités
+- grand timer en temps réel
+- informations client / véhicule
+- checkup 10 points
+- alertes et recommandations
+- demande de travaux supplémentaires
+- consultation de l’OR
 
-### Checkup (Rapport technicien)
-10 points de contrôle avec état OK / NOK / Non vérifié :
-1. Niveau huile
-2. Pression pneus
-3. Usure plaquettes
-4. État chaîne/courroie
-5. Éclairage
-6. Niveaux liquides
-7. État pneus
-8. Freins
-9. Suspension
-10. État général
-
-Champs additionnels :
-- Alertes (texte libre)
-- Recommandations
-- Travaux effectués
-
-### Actions mécanicien
-- ▶️ **Démarrer** — Lance le chrono
-- ⏹️ **Terminer** — Arrête le chrono
-- 🔧 **Signaler un problème** — Demande de travaux supplémentaires
-- 📋 **Voir l'OR** — Consulter l'ordre de réparation
-
-### File d'attente
-- **À faire** — RDV planifiés triés par urgence (en retard d'abord)
-- **Terminés** — Interventions finies avec liens vers OR et rapport
-
-> Le timer se met à jour chaque seconde. Il change de couleur si le temps estimé est dépassé.
+Le timer se met à jour chaque seconde et change visuellement en cas de dépassement.
 
 ---
 
 ## 10. Facturation
 
-### Créer une facture
+### Générer une facture
 
-1. Depuis un RDV terminé, cliquer **Facturer**
-2. Le modal affiche le calcul automatique :
-   - Main d'œuvre : heures × tarif horaire (ou forfait)
-   - Pièces : listées avec quantité × prix unitaire
-   - Remise : saisir un % (recalcul automatique)
-   - TVA : calculée séparément MO et pièces
-   - **Total TTC**
-3. Cliquer **Générer la facture**
+Depuis un RDV terminé :
+1. cliquer **Facturer**
+2. contrôler MO, pièces, remise et TVA
+3. générer la facture PDF
 
-### Encaisser un paiement
+### Encaisser
 
-1. Sur une facture existante, cliquer **Encaisser**
-2. Choisir le mode de paiement :
-   - 💳 Carte bancaire
-   - 💶 Espèces
-   - 📝 Chèque (référence obligatoire)
-   - 🏦 Virement (référence obligatoire)
-   - ⏳ Paiement différé
-3. Saisir le montant (partiel ou total)
-4. Confirmer
+Modes gérés :
+- carte bancaire
+- espèces
+- chèque
+- virement
+- paiement différé
 
-### Suivi des factures
-
-- Liste filtrable par statut (en attente, payée, annulée)
-- Statistiques : CA total, nombre de factures, taux d'encaissement
-- Export PDF pour chaque facture
+### Suivi
+- liste filtrable des factures
+- statistiques d’encaissement
+- PDF disponible à tout moment
 
 ---
 
 ## 11. Administration
 
-> Accessible uniquement aux rôles **Admin** et **Super Admin**
+> Réservé aux rôles **Admin** et **Super Admin**
 
-### Ateliers
-- Voir la liste des ateliers
-- Sélectionner un atelier pour gérer sa configuration
-- Créer un nouvel atelier (Super Admin)
+### Onglets principaux
 
-### Workshop (Ponts & Techniciens)
-- Ajouter/modifier/supprimer des ponts
-- Ajouter/modifier/supprimer des mécaniciens
-- Gérer les absences (congés, maladie)
+| Onglet | Usage |
+|--------|-------|
+| **Ateliers** | gestion multi-atelier (super admin) |
+| **Workshop** | ponts, mécaniciens, absences |
+| **Config** | paramètres atelier, marges, TVA |
+| **Base moto** | catégories, modèles, import catalogue |
+| **Horaires** | jours ouvrés, heures, pauses |
+| **Prestations** | catalogue et paramétrage tarifaire |
+| **Rôles & droits** | sections et permissions RBAC |
 
-### Utilisateurs
-- Créer des comptes utilisateur par atelier
-- Attribuer un rôle (admin, réceptionniste, service client, mécanicien)
-- Modifier ou supprimer des comptes
-
-### Configuration
-- **Tarif horaire MO** — Prix de l'heure de main d'œuvre
-- **Marge pièces** — % de marge sur les pièces
-- **TVA** — Taux de TVA (MO et pièces)
-
-### Horaires
-Pour chaque jour de la semaine :
-- Ouvert / Fermé
-- Heure d'ouverture et de fermeture
-- Pause déjeuner (début/fin)
-
-### Prestations & tarification
-- Catalogue des services proposés
-- Prix, durée et délais par type de moto (grille tarifaire)
-- Activer/désactiver une prestation
-- Consulter une synthèse tarifaire atelier
-
-### Types de moto
-- Activer/désactiver les types de moto acceptés par l'atelier
-- Les types désactivés ne seront plus proposés dans le booking
-
-### Équipements
-- Gérer les équipements par pont (élévateur, démonte-pneu, etc.)
-- Marquer la présence ou l'absence d'un équipement
-
-### Rôles & Permissions (Super Admin uniquement)
-- Créer des rôles personnalisés
-- Définir les sections accessibles par rôle
-- Attribuer les permissions granulaires (billing, RDV, config, etc.)
+### Points à retenir
+- la **base moto** est réservée au super admin
+- les prestations et horaires se gèrent depuis les onglets dédiés
+- les permissions fines sont configurées dans **Rôles & droits**
 
 ---
 
-## Cycle de vie d'un RDV — Résumé
+## Cycle de vie d’un RDV — résumé
 
+```text
+reserve → confirme → reception → en_cours → termine → facture → paye
+           └──────────────→ annule / non_presente
 ```
-┌──────────┐    ┌──────────┐    ┌───────────┐    ┌──────────┐
-│ Réservé  │───▶│ Confirmé │───▶│ Réception │───▶│ En cours │
-└──────────┘    └──────────┘    └───────────┘    └──────────┘
-                     │                                 │
-                     ▼                                 ▼
-               ┌──────────┐                      ┌──────────┐
-               │  Annulé  │                      │ Terminé  │
-               └──────────┘                      └──────────┘
-                                                       │
-                                                       ▼
-                                                 ┌──────────┐    ┌──────────┐
-                                                 │ Facturé  │───▶│  Payé    │
-                                                 └──────────┘    └──────────┘
 ```
 
 | Étape | Action | Qui |

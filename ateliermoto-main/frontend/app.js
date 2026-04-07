@@ -450,6 +450,10 @@ function showOrDetail(rdvId) {
     return callModuleMethod('OrModule', 'showOrDetail', arguments);
 }
 
+function imprimerOR(rdvId) {
+    return callModuleMethod('OrModule', 'imprimerOR', arguments);
+}
+
 function planifierRdvSuite(rdvId) {
     return callModuleMethod('OrModule', 'planifierRdvSuite', arguments);
 }
@@ -471,6 +475,22 @@ function getCanvasCoords(canvas, event) {
 
 function clearReceptionSignature() {
     return callModuleMethod('OrModule', 'clearReceptionSignature', arguments);
+}
+
+function toggleBodyDamage(key) {
+    return callModuleMethod('OrModule', 'toggleBodyDamage', arguments);
+}
+
+function handleReceptionPhotoUpload(event) {
+    return callModuleMethod('OrModule', 'handleReceptionPhotoUpload', arguments);
+}
+
+function removeReceptionPhoto(index) {
+    return callModuleMethod('OrModule', 'removeReceptionPhoto', arguments);
+}
+
+function addReceptionEstimateRow(row) {
+    return callModuleMethod('OrModule', 'addReceptionEstimateRow', arguments);
 }
 
 function getReceptionSignatureBase64() {
@@ -926,22 +946,6 @@ function deleteAdminPont(pontId) {
 
 function deleteAdminMecanicien(mecanicienId) {
     return callModuleMethod('AdminModule', 'deleteAdminMecanicien', arguments);
-}
-
-function loadAdminEquipements() {
-    return callModuleMethod('AdminModule', 'loadAdminEquipements', arguments);
-}
-
-function openAdminEquipementModal() {
-    return callModuleMethod('AdminModule', 'openAdminEquipementModal', arguments);
-}
-
-function saveAdminEquipement() {
-    return callModuleMethod('AdminModule', 'saveAdminEquipement', arguments);
-}
-
-function deleteAdminEquipement(id) {
-    return callModuleMethod('AdminModule', 'deleteAdminEquipement', arguments);
 }
 
 console.log('app.js loaded');

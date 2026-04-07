@@ -1,6 +1,6 @@
 # Atelier Moto Pro
 
-Application SPA de gestion d'atelier moto multi-site.
+Application de gestion d'atelier moto **multi-atelier** avec **SPA Vanilla JS**, **API FastAPI** et **PostgreSQL**.
 
 ## 🚀 Démarrage rapide
 
@@ -9,21 +9,26 @@ Application SPA de gestion d'atelier moto multi-site.
 - [Docker](https://docs.docker.com/get-docker/) et Docker Compose
 - Git
 
-### Installation
+### Installation locale
 
 ```bash
 # 1. Cloner le dépôt
 git clone git@github.com:forcesuperieur-arch/ateliermoto.git
-cd ateliermoto
+cd ateliermoto-main
 
 # 2. Configurer l'environnement
 cp backend/.env.example backend/.env
-# Éditer backend/.env si nécessaire (les valeurs par défaut fonctionnent en local)
 
-# 3. Lancer l'application
-docker compose up -d
+# 3. Démarrer les services
+docker compose up -d --build
 
-# 4. Vérifier que tout tourne
+# 4. Appliquer le schéma versionné et injecter les données de référence
+docker compose exec backend alembic upgrade head
+docker compose exec backend python seed_parametres.py
+# optionnel : catalogue / données complémentaires
+docker compose exec backend python seed.py
+
+# 5. Vérifier
 docker compose logs -f backend
 ```
 
@@ -33,112 +38,145 @@ docker compose logs -f backend
 |-----|-------------|
 | http://localhost:8000 | Application (SPA) |
 | http://localhost:8000/api/health | Health check API |
-| http://localhost:8000/docs | Swagger API (auto-généré) |
+| http://localhost:8000/docs | Swagger API |
 
-> **Premier lancement** : configurez `ADMIN_USERNAME` et `ADMIN_PASSWORD` dans `backend/.env` pour créer le compte admin initial. Voir `backend/.env.example` pour les options.
+> **Premier lancement** : configurez `ADMIN_USERNAME` et `ADMIN_PASSWORD` dans `backend/.env` si vous souhaitez créer un compte administrateur initial.
 
-## 🏗️ Architecture
+---
 
-```
-ateliermoto/
-├── backend/                # API FastAPI (Python)
-│   ├── main.py             # Routes principales (auth, users, etc.)
-│   ├── models.py           # Modèles SQLAlchemy
-│   ├── config_api.py       # Routes /api/config/*
-│   ├── statistiques.py     # Routes /api/statistiques/*
-│   ├── facturation_api.py  # Routes facturation & factures
-│   ├── tarifs_api.py       # Routes tarifs & créneaux
-│   ├── routes/
-│   │   ├── clients.py      # Routes /api/clients/*
-│   │   ├── rendez_vous.py  # Routes /api/rendez-vous/*
-│   │   └── workshop.py     # Routes ponts, mécaniciens, planning
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/               # SPA Vanilla JS (pas de build)
-│   ├── index.html
-│   ├── app.js
-│   ├── api.js
-│   ├── utils.js            # Helpers (escapeHtml, showToast, formatDate)
-│   └── theme.css           # Variables CSS et styles Motoblouz
-├── Caddyfile/              # Config reverse proxy (production)
-├── scripts/                # Scripts utilitaires
-│   ├── db-backup.sh        # Sauvegarde PostgreSQL
-│   └── db-restore.sh       # Restauration PostgreSQL
-├── docs/                   # Documentation
-│   ├── TECHNICAL.md        # Doc technique (92 routes API)
-│   └── GUIDE_UTILISATEUR.md # Guide utilisateur complet
+## 🏗️ Architecture actuelle
+
+```text
+ateliermoto-main/
+├── backend/
+│   ├── main.py                  # Composition root FastAPI
+│   ├── models.py                # Modèles SQLAlchemy
+│   ├── auth.py                  # Helpers auth / JWT
+│   ├── config_api.py            # Configuration atelier
+│   ├── facturation_api.py       # Facturation / encaissement / PDF
+│   ├── statistiques.py          # Dashboard et KPI
+│   ├── tarifs_api.py            # Tarifs legacy / créneaux
+│   ├── alembic/versions/        # Schéma versionné dans Git
+│   ├── routes/                  # Routers métier modulaires
+│   ├── services/                # PDF, startup, runtime migrations
+│   └── tests/                   # Tests backend
+├── frontend/
+│   ├── index.html               # SPA principale
+│   ├── app.js                   # Pont global / compatibilité UI
+│   ├── api.js                   # Helpers HTTP + ouverture PDF protégée
+│   ├── utils.js                 # Helpers communs
+│   ├── theme.css                # Design system
+│   └── modules/                 # Modules métier (RDV, planning, OR, admin...)
+├── docs/                        # Documentation à jour
+├── scripts/                     # Backup / restore PostgreSQL
 └── docker-compose.yml
 ```
 
-## 🔧 Stack technique
+### Stack technique
 
 | Composant | Technologie |
 |-----------|-------------|
 | Backend | FastAPI + SQLAlchemy (Python 3.11) |
-| Frontend | HTML5 + CSS + Vanilla JS (SPA, aucun build) |
+| Frontend | HTML5 + CSS + JavaScript vanilla modulaire |
 | Base de données | PostgreSQL 15 |
-| Auth | JWT (cookies HttpOnly) + bcrypt |
+| Auth | JWT + cookies HttpOnly + bcrypt |
 | PDF | ReportLab |
-| Conteneurisation | Docker + Docker Compose |
-| Reverse proxy | Caddy (production) |
+| Infra | Docker Compose + Caddy |
 
-## ✨ Fonctionnalités
+---
 
-- **Multi-atelier** — Gestion multi-site avec isolation des données
-- **Prise de RDV** — Wizard 4 étapes (véhicule → prestations → créneau → confirmation)
-- **Planning semaine** — Grille visuelle drag & drop avec filtres mécaniciens
-- **Ordres de réparation** — Workflow 5 étapes avec PDF et signature
-- **Espace mécanicien** — Interface dédiée avec chrono live et checkup 10 points
-- **Suivi live** — Monitoring temps réel des interventions
-- **Facturation** — Devis, factures PDF, encaissement multi-modes
-- **Statistiques** — Dashboard KPI, CA, productivité, clients fidèles
-- **RBAC** — Rôles personnalisables avec 13 permissions granulaires
-- **Gestion clients** — Fiches complètes avec historique et véhicules
+## ✨ Fonctionnalités en place
+
+- **Prise de RDV** publique et interne avec calcul des créneaux par durée
+- **Planning atelier** semaine/jour avec assignation pont / mécanicien
+- **Réception enrichie** : kilométrage, état véhicule, priorité, niveau carburant, annotations carrosserie, photos, signature client
+- **Ordres de réparation** : aperçu “master”, impression navigateur, PDF sécurisé, OR complémentaires
+- **Travaux supplémentaires** : demande, validation, rattachement au RDV courant
+- **Base moto** et **autocomplete amélioré** des modèles
+- **Facturation / devis / paiements** avec PDF
+- **Stock / fournisseurs / commandes** côté backend
+- **Dashboard & statistiques** opérationnelles
+- **RBAC** par rôles et permissions granulaires
+- **Gestion clients / véhicules** avec historique atelier
+
+---
+
+## 🗄️ Base de données et Git
+
+La base **ne doit pas être commitée sous forme de dump vivant**. La stratégie retenue pour Git est :
+
+### ✅ Ce qui est versionné
+
+- `backend/alembic/versions/` → **schéma et migrations**
+- `backend/seed.py` → **catalogue et données métier de référence**
+- `backend/seed_parametres.py` → **paramètres initiaux atelier**
+- `backend/data/` → fichiers de données sources utilisés pour le seed
+
+### ❌ Ce qui ne doit pas être commitée
+
+- le volume Docker PostgreSQL `postgres_data`
+- les dumps de travail dans `backups/*.sql`
+- les données locales de développement ou de production
+
+### Recréer la base depuis Git
+
+```bash
+cd ateliermoto-main
+docker compose up -d
+docker compose exec backend alembic upgrade head
+docker compose exec backend python seed_parametres.py
+docker compose exec backend python seed.py
+```
+
+---
 
 ## 👨‍💻 Développement
 
-### Commandes courantes
+### Commandes utiles
 
 ```bash
-# Redémarrer le backend après modification
+# Redémarrer le backend
 docker compose restart backend
 
-# Voir les logs en temps réel
+# Logs backend
 docker compose logs -f backend
 
-# Reconstruire après modification des dépendances
+# Rebuild si dépendances modifiées
 docker compose build backend && docker compose up -d backend
 
-# Accéder au shell du conteneur backend
-docker exec -it atelier-backend bash
+# Shell dans le conteneur backend
+docker compose exec backend bash
 
-# Sauvegarde BDD (fichiers stockés dans `../backups/` à la racine du workspace)
+# Sauvegarde PostgreSQL (dumps stockés dans ../backups/)
 ./scripts/db-backup.sh
 
-# Restauration BDD
+# Restauration d'un dump
 ./scripts/db-restore.sh backup_YYYYMMDD_HHMMSS.sql
 ```
 
-### Structure du code
+### Notes de structure
 
-- **Backend** : Le fichier `main.py` est le point d'entrée (~4700 lignes). Les routes sont réparties dans `routes/`, `config_api.py`, `statistiques.py`, `facturation_api.py`, `tarifs_api.py`.
-- **Frontend** : SPA monolithique dans `app.js` (~7000 lignes) + `utils.js` (helpers XSS/toast) + `theme.css` (design system). Pas de framework, pas de build step. Modifié → rafraîchir le navigateur.
-- **Base de données** : PostgreSQL dans un Docker volume (`postgres_data`). Les tables sont créées automatiquement au démarrage via SQLAlchemy.
+- **Backend** : `main.py` sert désormais de composition root ; la logique métier vit dans `backend/routes/` et `backend/services/`.
+- **Frontend** : la SPA est **modulaire** (`frontend/modules/*`) ; `app.js` sert surtout de couche de compatibilité / dispatch global.
+- **Pages legacy** : quelques fichiers HTML isolés restent servis via `backend/routes/frontend_pages.py` pour compatibilité, en parallèle de la SPA principale.
 
-### Variables d'environnement
-
-Voir `backend/.env.example` pour la liste complète. Les principales :
+### Variables d'environnement principales
 
 | Variable | Description | Défaut |
 |----------|-------------|--------|
-| `SECRET_KEY` | Clé JWT (auto-générée si absente) | Auto |
+| `SECRET_KEY` | Clé JWT | auto / `.env` |
 | `DATABASE_URL` | URL PostgreSQL | `postgresql://atelier:atelier@db:5432/atelier_moto` |
-| `CORS_ORIGINS` | Domaines autorisés | `http://localhost:3000,http://localhost:8080` |
-| `ADMIN_USERNAME` | Compte admin initial (optionnel) | — |
-| `ADMIN_PASSWORD` | Mot de passe admin initial (optionnel) | — |
+| `CORS_ORIGINS` | Origines autorisées | local dev |
+| `ADMIN_USERNAME` | Admin initial | optionnel |
+| `ADMIN_PASSWORD` | Mot de passe admin initial | optionnel |
+| `COOKIE_SECURE` | Sécurisation cookies | selon env |
+| `COOKIE_SAMESITE` | Politique SameSite | `lax` par défaut |
+
+---
 
 ## 📚 Documentation
 
-- **[Documentation technique](docs/TECHNICAL.md)** — Architecture, 92 routes API, modèles, auth, RBAC
-- **[Guide utilisateur](docs/GUIDE_UTILISATEUR.md)** — Manuel d'utilisation complet de l'application
+- **[`docs/TECHNICAL.md`](docs/TECHNICAL.md)** — référence technique canonique
+- **[`docs/GUIDE_UTILISATEUR.md`](docs/GUIDE_UTILISATEUR.md)** — guide métier et parcours utilisateur
+- **[`docs/OPERATIONS.md`](docs/OPERATIONS.md)** — exploitation locale, backup/restore, bootstrap BDD
+- **[`docs/PLAN_REFACTOR_TECHNIQUE.md`](docs/PLAN_REFACTOR_TECHNIQUE.md)** — état du refactor et dette restante

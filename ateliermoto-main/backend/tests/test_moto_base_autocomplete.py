@@ -163,13 +163,13 @@ class TestMotoBaseAutocomplete:
         data = response.json()
         assert any(item["marque"] == "YAMAHA" and item["modele"] in {"MT-07", "MT 07", "MT 07 A"} for item in data["modeles"])
 
-    def test_create_modele_is_reserved_to_super_admin(self, client):
+    def test_create_modele_requires_motos_manage_permission(self, client):
         app.dependency_overrides[get_current_user] = lambda: User(
             id=1,
-            username="admin",
-            email="admin@test.local",
+            username="service_client",
+            email="service@test.local",
             hashed_password="x",
-            role="admin",
+            role="service_client",
             is_active=1,
         )
 

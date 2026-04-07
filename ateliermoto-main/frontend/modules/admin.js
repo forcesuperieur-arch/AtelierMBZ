@@ -1,8 +1,8 @@
 window.AdminModule = window.AdminModule || {
     loadAdminAteliers: function() {
-        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
+        var canManageMotoBase = hasPermission('motos.manage');
         var motoTab = document.getElementById('admin-tab-moto-base');
-        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
+        if (motoTab) motoTab.style.display = canManageMotoBase ? '' : 'none';
         apiGet('/api/ateliers').then(function(r) { return r.json(); }).then(function(items) {
             var list = document.getElementById('admin-ateliers-list');
             if (!list) return;
@@ -138,12 +138,13 @@ window.AdminModule = window.AdminModule || {
             alert('Selectionnez un atelier');
             return;
         }
-        var roleOptions = '<option value="service_client">service_client (SRC)</option><option value="receptionnaire">receptionnaire</option><option value="mecanicien">mecanicien</option><option value="admin">admin</option>' +
+        var roleOptions = '<option value="service_client">service_client (SRC)</option><option value="receptionnaire">receptionnaire</option><option value="mecanicien">mecanicien</option><option value="manager">manager</option><option value="admin">admin</option>' +
             (APP.currentUser && APP.currentUser.role === 'super_admin' ? '<option value="super_admin">super_admin</option>' : '');
-        if (APP.currentUser && APP.currentUser.role === 'super_admin') {
+        if (hasPermission('roles.manage')) {
             apiGet('/api/roles/permissions').then(function(r) { return r.json(); }).then(function(roles) {
                 roleOptions = '';
                 (roles || []).forEach(function(roleCfg) {
+                    if (roleCfg.role === 'super_admin' && !(APP.currentUser && APP.currentUser.role === 'super_admin')) return;
                     roleOptions += '<option value="' + escapeHtml(roleCfg.role) + '">' + escapeHtml(roleCfg.role) + '</option>';
                 });
                 renderCreateUserModal(roleOptions);
@@ -214,12 +215,28 @@ window.AdminModule = window.AdminModule || {
     },
 
     ouvrirEditionUtilisateurAtelier: function(userId) {
-        apiGet('/api/users/' + userId).then(function(r) { return r.json(); }).then(function(u) {
-            var roleOptions = '<option value="service_client"' + (u.role === 'service_client' ? ' selected' : '') + '>service_client (SRC)</option>' +
-                '<option value="receptionnaire"' + (u.role === 'receptionnaire' ? ' selected' : '') + '>receptionnaire</option>' +
-                '<option value="mecanicien"' + (u.role === 'mecanicien' ? ' selected' : '') + '>mecanicien</option>' +
-                '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>admin</option>' +
-                (APP.currentUser && APP.currentUser.role === 'super_admin' ? '<option value="super_admin"' + (u.role === 'super_admin' ? ' selected' : '') + '>super_admin</option>' : '');
+        var userRequest = apiGet('/api/users/' + userId).then(function(r) { return r.json(); });
+        var rolesRequest = hasPermission('roles.manage')
+            ? apiGet('/api/roles/permissions').then(function(r) { return r.json(); }).catch(function() { return null; })
+            : Promise.resolve(null);
+
+        Promise.all([userRequest, rolesRequest]).then(function(results) {
+            var u = results[0];
+            var roles = results[1];
+            var roleOptions = '';
+            if (Array.isArray(roles) && roles.length) {
+                roles.forEach(function(roleCfg) {
+                    if (roleCfg.role === 'super_admin' && !(APP.currentUser && APP.currentUser.role === 'super_admin')) return;
+                    roleOptions += '<option value="' + escapeHtml(roleCfg.role) + '"' + (u.role === roleCfg.role ? ' selected' : '') + '>' + escapeHtml(roleCfg.role) + '</option>';
+                });
+            } else {
+                roleOptions = '<option value="service_client"' + (u.role === 'service_client' ? ' selected' : '') + '>service_client (SRC)</option>' +
+                    '<option value="receptionnaire"' + (u.role === 'receptionnaire' ? ' selected' : '') + '>receptionnaire</option>' +
+                    '<option value="mecanicien"' + (u.role === 'mecanicien' ? ' selected' : '') + '>mecanicien</option>' +
+                    '<option value="manager"' + (u.role === 'manager' ? ' selected' : '') + '>manager</option>' +
+                    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>admin</option>' +
+                    (APP.currentUser && APP.currentUser.role === 'super_admin' ? '<option value="super_admin"' + (u.role === 'super_admin' ? ' selected' : '') + '>super_admin</option>' : '');
+            }
             var html = '<div class="form-group"><label class="form-label">Username</label><input id="edit-user-username" class="form-input" value="' + escapeHtml(u.username || '') + '"></div>' +
                 '<div class="form-group"><label class="form-label">Email (obligatoire)</label><input id="edit-user-email" class="form-input" value="' + escapeHtml(u.email || '') + '"></div>' +
                 '<div class="form-group"><label class="form-label">Mot de passe (laisser vide pour ne pas changer)</label><input id="edit-user-password" class="form-input" type="password"></div>' +
@@ -287,30 +304,41 @@ window.AdminModule = window.AdminModule || {
     },
 
     switchAdminTab: function(tabId) {
-        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
-        var motoTab = document.getElementById('admin-tab-moto-base');
-        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
-        if (!isSuperAdmin && tabId === 'moto-base') tabId = 'config';
-        ['ateliers', 'workshop', 'config', 'moto-base', 'horaires', 'prestations', 'equipements', 'roles'].forEach(function(id) {
+        var allowedTabs = {
+            ateliers: hasPermission('ateliers.manage') || hasPermission('users.manage'),
+            workshop: hasPermission('workshop.manage'),
+            config: hasPermission('config.manage'),
+            'moto-base': hasPermission('motos.manage'),
+            horaires: hasPermission('horaires.manage') || hasPermission('config.manage'),
+            prestations: hasPermission('prestations.manage'),
+            roles: hasPermission('roles.manage')
+        };
+        var visibleTabs = Object.keys(allowedTabs).filter(function(id) { return allowedTabs[id]; });
+        if (!allowedTabs[tabId]) tabId = visibleTabs[0] || 'ateliers';
+
+        ['ateliers', 'workshop', 'config', 'moto-base', 'horaires', 'prestations', 'roles'].forEach(function(id) {
             var tab = document.getElementById('admin-tab-' + id);
             var panel = document.getElementById('admin-panel-' + id);
-            if (tab) tab.classList.toggle('active', id === tabId);
-            if (panel) panel.style.display = id === tabId ? '' : 'none';
+            var isAllowed = !!allowedTabs[id];
+            if (tab) {
+                tab.classList.toggle('active', isAllowed && id === tabId);
+                tab.style.display = isAllowed ? '' : 'none';
+            }
+            if (panel) panel.style.display = isAllowed && id === tabId ? '' : 'none';
         });
         if (tabId === 'workshop') loadAdminWorkshop();
         if (tabId === 'config') loadAdminConfig();
         if (tabId === 'moto-base') loadAdminMotoBase();
         if (tabId === 'horaires') loadAdminHoraires();
         if (tabId === 'prestations') loadAdminPrestations();
-        if (tabId === 'equipements') loadAdminEquipements();
         if (tabId === 'roles') loadAdminRoles();
     },
 
     loadAdminRoles: function() {
         var container = document.getElementById('admin-roles-content');
         if (!container) return;
-        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') {
-            container.innerHTML = '<div style="color:#888">Reserve super_admin.</div>';
+        if (!hasPermission('roles.manage')) {
+            container.innerHTML = '<div style="color:#888">Permission roles.manage requise.</div>';
             return;
         }
         apiGet('/api/roles/permissions').then(function(r) { return r.json(); }).then(function(roles) {
@@ -340,15 +368,15 @@ window.AdminModule = window.AdminModule || {
     },
 
     openRoleEditor: function(roleName) {
-        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') return;
+        if (!hasPermission('roles.manage')) return;
         apiGet('/api/roles/permissions').then(function(r) { return r.json(); }).then(function(roles) {
             var existing = (roles || []).find(function(x) { return x.role === roleName; }) || null;
             if (existing && existing.role === 'super_admin') {
                 showAlert('Le role super_admin est fige et non modifiable', 'warning');
                 return;
             }
-            var sections = ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'clients', 'espace-meca', 'admin'];
-            var perms = ['billing.view', 'billing.edit', 'billing.pay', 'billing.pdf', 'travaux_supp.review', 'rdv.select_atelier', 'rdv.edit', 'users.manage', 'ateliers.manage', 'roles.manage', 'config.manage', 'prestations.manage', 'equipements.manage'];
+            var sections = ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'];
+            var perms = ['billing.view', 'billing.edit', 'billing.pay', 'billing.pdf', 'travaux_supp.review', 'rdv.select_atelier', 'rdv.edit', 'workflow.manage', 'or.manage', 'workshop.manage', 'motos.manage', 'horaires.manage', 'clients.edit', 'stats.view', 'users.manage', 'ateliers.manage', 'roles.manage', 'config.manage', 'prestations.manage'];
             var html = '<div class="form-group"><label class="form-label">Role (slug)</label><input id="rbac-role" class="form-input" ' + (existing ? 'readonly' : '') + ' value="' + escapeHtml(existing ? existing.role : '') + '"></div>' +
                 '<div class="form-group"><label class="form-label">Label</label><input id="rbac-label" class="form-input" value="' + escapeHtml(existing ? (existing.label || '') : '') + '"></div>' +
                 '<div class="form-group"><label class="form-label">Description</label><input id="rbac-desc" class="form-input" value="' + escapeHtml(existing ? (existing.description || '') : '') + '"></div>' +
@@ -409,9 +437,9 @@ window.AdminModule = window.AdminModule || {
             showAlert('Action non autorisee', 'error');
             return;
         }
-        var isSuperAdmin = !!(APP.currentUser && APP.currentUser.role === 'super_admin');
+        var canManageMotoBase = hasPermission('motos.manage');
         var motoTab = document.getElementById('admin-tab-moto-base');
-        if (motoTab) motoTab.style.display = isSuperAdmin ? '' : 'none';
+        if (motoTab) motoTab.style.display = canManageMotoBase ? '' : 'none';
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         apiGet('/api/config/atelier' + qs).then(function(r) { return r.json(); }).then(function(d) {
             document.getElementById('cfg-taux-std').value = d.taux_horaire_mo_standard || 0;
@@ -454,6 +482,7 @@ window.AdminModule = window.AdminModule || {
     loadAdminCategoriesMoto: function() {
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         var container = document.getElementById('admin-categories-moto-list');
+        var canManageMoto = hasPermission('motos.manage');
         if (!container) return;
         apiGet('/api/config/categories-moto' + qs).then(function(r) { return r.json(); }).then(function(cats) {
             if (!cats || cats.length === 0) {
@@ -463,7 +492,8 @@ window.AdminModule = window.AdminModule || {
             var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">';
             cats.forEach(function(cat) {
                 var activeClass = cat.is_active ? 'background:#10b981;color:white' : 'background:#374151;color:#9ca3af';
-                html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid #374151;cursor:pointer" onclick="toggleAdminCategorieMoto(' + cat.id + ')">' +
+                html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid #374151;cursor:' + (canManageMoto ? 'pointer' : 'default') + '"' +
+                    (canManageMoto ? ' onclick="toggleAdminCategorieMoto(' + cat.id + ')"' : '') + '>' +
                     '<span style="display:inline-block;width:12px;height:12px;border-radius:50%;' + activeClass + ';flex-shrink:0"></span>' +
                     '<span style="font-size:14px">' + escapeHtml(cat.nom) + '</span>' +
                     '</div>';
@@ -476,6 +506,10 @@ window.AdminModule = window.AdminModule || {
     },
 
     toggleAdminCategorieMoto: function(categorieId) {
+        if (!hasPermission('motos.manage')) {
+            showAlert('Permission motos.manage requise', 'error');
+            return;
+        }
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         apiPut('/api/config/categories-moto/' + categorieId + '/toggle' + qs, {}).then(function(r) { return r.json(); }).then(function(d) {
             showNotificationToast(d.is_active ? 'Type moto active' : 'Type moto desactive');
@@ -488,7 +522,7 @@ window.AdminModule = window.AdminModule || {
         var tbody = document.getElementById('admin-moto-base-tbody');
         var count = document.getElementById('admin-moto-base-count');
         if (!card || !tbody) return;
-        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') {
+        if (!hasPermission('motos.manage')) {
             card.style.display = 'none';
             return;
         }
@@ -525,8 +559,8 @@ window.AdminModule = window.AdminModule || {
     },
 
     openAdminMotoModeleModal: function(modeleId) {
-        if (!APP.currentUser || APP.currentUser.role !== 'super_admin') {
-            showAlert('Acces reserve au super_admin', 'error');
+        if (!hasPermission('motos.manage')) {
+            showAlert('Permission motos.manage requise', 'error');
             return;
         }
         Promise.all([
@@ -596,7 +630,7 @@ window.AdminModule = window.AdminModule || {
     },
 
     loadAdminHoraires: function() {
-        if (!hasPermission('config.manage')) {
+        if (!(hasPermission('horaires.manage') || hasPermission('config.manage'))) {
             showAlert('Action non autorisee', 'error');
             return;
         }
@@ -897,67 +931,5 @@ window.AdminModule = window.AdminModule || {
         });
     },
 
-    loadAdminEquipements: function() {
-        if (!hasPermission('equipements.manage')) {
-            showAlert('Action non autorisee', 'error');
-            return;
-        }
-        var tbody = document.getElementById('admin-equipements-tbody');
-        if (!tbody) return;
-        var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
-        apiGet('/api/config/pont-equipements' + qs).then(function(r) { return r.json(); }).then(function(items) {
-            var html = '';
-            (items || []).forEach(function(eq) {
-                var pont = (APP.ponts || []).find(function(p) { return p.id === eq.pont_id; });
-                html += '<tr><td>' + escapeHtml((pont && pont.nom) || ('Pont #' + eq.pont_id)) + '</td>' +
-                    '<td><b>' + escapeHtml(eq.nom || '') + '</b></td>' +
-                    '<td>' + escapeHtml(eq.description || '-') + '</td>' +
-                    '<td>' + (eq.is_present ? '<span class="badge green">Oui</span>' : '<span class="badge amber">Non</span>') + '</td>' +
-                    '<td><button class="btn btn-danger" onclick="deleteAdminEquipement(' + eq.id + ')">Supprimer</button></td></tr>';
-            });
-            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#888;padding:16px">Aucun equipement</td></tr>';
-        }).catch(function(e) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:16px">Erreur: ' + escapeHtml(e.message || 'chargement') + '</td></tr>';
-        });
-    },
-
-    openAdminEquipementModal: function() {
-        var opts = '<option value="">Selectionner un pont...</option>';
-        (APP.ponts || []).forEach(function(p) {
-            opts += '<option value="' + p.id + '">' + escapeHtml(p.nom || ('Pont #' + p.id)) + '</option>';
-        });
-        var html = '<div class="form-group"><label class="form-label">Pont</label><select id="ae-pont" class="form-select">' + opts + '</select></div>' +
-            '<div class="form-group"><label class="form-label">Nom equipement</label><input id="ae-nom" class="form-input"></div>' +
-            '<div class="form-group"><label class="form-label">Description</label><input id="ae-desc" class="form-input"></div>' +
-            '<label style="display:flex;align-items:center;gap:6px;color:#ddd;margin-bottom:10px"><input type="checkbox" id="ae-present" checked> Present</label>' +
-            '<button class="btn btn-primary" style="width:100%" onclick="saveAdminEquipement()">Ajouter</button>';
-        showModal('Nouvel equipement pont', html, '440px');
-    },
-
-    saveAdminEquipement: function() {
-        var pontId = parseInt(document.getElementById('ae-pont').value || '0', 10);
-        var nom = document.getElementById('ae-nom').value.trim();
-        if (!pontId || !nom) { showAlert('Pont et nom obligatoires', 'error'); return; }
-        var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
-        apiPost('/api/config/pont-equipements' + qs, {
-            pont_id: pontId,
-            nom: nom,
-            description: document.getElementById('ae-desc').value || null,
-            is_present: document.getElementById('ae-present').checked ? 1 : 0
-        }).then(function() {
-            closeModal();
-            loadAdminEquipements();
-            showNotificationToast('Equipement ajoute');
-        }).catch(function(e) { showAlert('Erreur equipement: ' + (e.message || 'creation'), 'error'); });
-    },
-
-    deleteAdminEquipement: function(id) {
-        openConfirmDialog('Supprimer cet equipement ?', function() {
-            var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
-            apiDelete('/api/config/pont-equipements/' + id + qs).then(function() {
-                loadAdminEquipements();
-                showNotificationToast('Equipement supprime');
-            }).catch(function(e) { showAlert('Erreur suppression: ' + (e.message || 'suppression'), 'error'); });
-        });
-    }
+    
 };

@@ -143,6 +143,9 @@ def traiter_demande_travaux_supp(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not user_has_permission(current_user, db, "travaux_supp.review"):
+        raise HTTPException(status_code=403, detail="Permission travaux_supp.review requise")
+
     demande = db.query(DemandeTravauxSupp).filter(DemandeTravauxSupp.id == demande_id).first()
     if not demande:
         raise HTTPException(status_code=404, detail="Demande non trouvee")
@@ -289,8 +292,12 @@ def reception_vehicule(
     current_user: User = Depends(get_current_user),
 ):
     """Passe le RDV en statut `reception` et crée l'OR initial."""
-    if not user_has_permission(current_user, db, "rdv.edit"):
-        raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
+    if not (
+        user_has_permission(current_user, db, "or.manage")
+        or user_has_permission(current_user, db, "workflow.manage")
+        or user_has_permission(current_user, db, "rdv.edit")
+    ):
+        raise HTTPException(status_code=403, detail="Permission or.manage ou workflow.manage requise")
 
     atelier_id = current_user.atelier_id or 1
     rdv = db.query(RendezVous).filter(

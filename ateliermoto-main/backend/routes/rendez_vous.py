@@ -35,13 +35,23 @@ def _user_has_permission(current_user: User, db: Session, permission: str) -> bo
         except Exception:
             perms = []
         return permission in perms
-    if permission == "rdv.edit" and current_user.role in {"admin", "receptionnaire", "service_client"}:
-        return True
-    return False
+
+    legacy = {
+        "admin": {"rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "clients.edit", "stats.view"},
+        "manager": {"rdv.edit", "workflow.manage", "or.manage", "workshop.manage", "clients.edit", "stats.view"},
+        "receptionnaire": {"rdv.edit", "workflow.manage", "or.manage", "clients.edit"},
+        "service_client": {"rdv.edit", "clients.edit"},
+        "mecanicien": set(),
+    }
+    return permission in legacy.get(current_user.role or "", set())
 
 
 def _user_can_manage_workflow(current_user: User, db: Session, rdv: RendezVous | None = None) -> bool:
-    if _user_has_permission(current_user, db, "rdv.edit"):
+    if (
+        _user_has_permission(current_user, db, "workflow.manage")
+        or _user_has_permission(current_user, db, "or.manage")
+        or _user_has_permission(current_user, db, "rdv.edit")
+    ):
         return True
     if current_user.role != "mecanicien":
         return False
@@ -283,7 +293,20 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
     
     result = []
     for rdv in rdvs:
-        ors = [{"id": o.id, "numero_or": o.numero_or, "type_or": o.type_or, "travaux": o.travaux} for o in rdv.ordres_reparation] if rdv.ordres_reparation else []
+        try:
+            photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
+        except Exception:
+            photos = []
+        ors = [{
+            "id": o.id,
+            "numero_or": o.numero_or,
+            "type_or": o.type_or,
+            "travaux": o.travaux,
+            "kilometrage": o.kilometrage,
+            "etat_vehicule": o.etat_vehicule,
+            "signature_client": o.signature_client,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+        } for o in rdv.ordres_reparation] if rdv.ordres_reparation else []
         result.append({
             "id": rdv.id,
             "client": {"nom": rdv.client.nom, "prenom": rdv.client.prenom, "telephone": rdv.client.telephone},
@@ -297,6 +320,8 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
             "pont_id": rdv.pont_id,
             "notes": rdv.commentaire,
             "statut": rdv.statut,
+            "etat_vehicule": rdv.etat_vehicule,
+            "photos_etat": photos,
             "heure_debut_travail": rdv.heure_debut_travail.isoformat() if rdv.heure_debut_travail else None,
             "heure_fin_travail": rdv.heure_fin_travail.isoformat() if rdv.heure_fin_travail else None,
             "temps_effectif_minutes": rdv.temps_effectif_minutes,
@@ -308,18 +333,31 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
 def get_rendez_vous(
     rdv_id: int,
     db: Session = Depends(get_db),
-    current_user: User | None = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    """Récupère un rendez-vous par son ID."""
-    atelier_id = _atelier_id_or_403(current_user) if current_user else 1
+    """Récupère un rendez-vous par son ID (authentification requise)."""
+    atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     
-    ors = [{"id": o.id, "numero_or": o.numero_or, "type_or": o.type_or, "travaux": o.travaux} for o in rdv.ordres_reparation] if rdv.ordres_reparation else []
+    try:
+        photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
+    except Exception:
+        photos = []
+    ors = [{
+        "id": o.id,
+        "numero_or": o.numero_or,
+        "type_or": o.type_or,
+        "travaux": o.travaux,
+        "kilometrage": o.kilometrage,
+        "etat_vehicule": o.etat_vehicule,
+        "signature_client": o.signature_client,
+        "created_at": o.created_at.isoformat() if o.created_at else None,
+    } for o in rdv.ordres_reparation] if rdv.ordres_reparation else []
     return {
         "id": rdv.id,
-        "client": {"id": rdv.client.id, "nom": rdv.client.nom, "prenom": rdv.client.prenom, "telephone": rdv.client.telephone, "email": rdv.client.email},
+        "client": {"id": rdv.client.id, "nom": rdv.client.nom, "prenom": rdv.client.prenom, "telephone": rdv.client.telephone, "email": rdv.client.email, "adresse": rdv.client.adresse},
         "vehicule": {"id": rdv.vehicule.id, "plaque": rdv.vehicule.plaque, "marque": rdv.vehicule.marque, "modele": rdv.vehicule.modele, "annee": rdv.vehicule.annee, "cylindree": rdv.vehicule.cylindree, "type_moto": rdv.vehicule.type_moto},
         "date_rdv": rdv.date_rdv,
         "heure_rdv": rdv.heure_rdv,
@@ -330,6 +368,7 @@ def get_rendez_vous(
         "temps_estime": rdv.temps_estime,
         "kilometrage": rdv.kilometrage,
         "etat_vehicule": rdv.etat_vehicule,
+        "photos_etat": photos,
         "mecanicien_id": rdv.mecanicien_id,
         "pont_id": rdv.pont_id,
         "notes": rdv.commentaire,
@@ -341,7 +380,31 @@ def get_rendez_vous(
 @router.put("/api/rendez-vous/{rdv_id}")
 def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Met à jour un rendez-vous (statut, kilométrage, état, prix, pont, mecanicien)"""
-    if not _user_has_permission(current_user, db, "rdv.edit"):
+    can_edit_rdv = _user_has_permission(current_user, db, "rdv.edit")
+    can_manage_workflow = (
+        _user_has_permission(current_user, db, "workflow.manage")
+        or _user_has_permission(current_user, db, "or.manage")
+        or can_edit_rdv
+    )
+    wants_workflow_change = any([
+        update_data.statut is not None,
+        update_data.pont_id is not None,
+        update_data.mecanicien_id is not None,
+    ])
+    wants_rdv_edit = any([
+        update_data.kilometrage is not None,
+        update_data.etat_vehicule is not None,
+        update_data.prix_final is not None,
+        update_data.temps_final is not None,
+        update_data.commentaire is not None,
+        update_data.heure_rdv is not None,
+        update_data.date_rdv is not None,
+    ])
+    if wants_workflow_change and not can_manage_workflow:
+        raise HTTPException(status_code=403, detail="Permission workflow.manage requise")
+    if wants_rdv_edit and not can_edit_rdv:
+        raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
+    if not wants_workflow_change and not wants_rdv_edit and not can_edit_rdv:
         raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
@@ -429,8 +492,8 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
 @router.delete("/api/rendez-vous/{rdv_id}")
 def delete_rendez_vous(rdv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un rendez-vous"""
-    if not _user_has_permission(current_user, db, "rdv.edit"):
-        raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
+    if not (_user_has_permission(current_user, db, "workflow.manage") or _user_has_permission(current_user, db, "rdv.edit")):
+        raise HTTPException(status_code=403, detail="Permission workflow.manage ou rdv.edit requise")
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
@@ -527,12 +590,25 @@ def get_temps_travail(rdv_id: int, db: Session = Depends(get_db), current_user: 
 
 @router.get("/api/rendez-vous/{rdv_id}/ordre-reparation")
 def generate_ordre_reparation(rdv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Génère un ordre de réparation au format PDF avec design professionnel"""
+    """Génère un ordre de réparation PDF pour un rendez-vous."""
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     return generate_ordre_reparation_pdf(rdv_id, db)
+
+
+@router.get("/api/ordres-reparation/{or_id}/pdf")
+def generate_stored_or_pdf(or_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Ouvre directement le PDF d'un OR stocké en base."""
+    atelier_id = _atelier_id_or_403(current_user)
+    ordre = db.query(OrdreReparation).join(RendezVous, RendezVous.id == OrdreReparation.rendez_vous_id).filter(
+        OrdreReparation.id == or_id,
+        RendezVous.atelier_id == atelier_id,
+    ).first()
+    if not ordre:
+        raise HTTPException(status_code=404, detail="Ordre de réparation non trouvé")
+    return generate_ordre_reparation_pdf(ordre.rendez_vous_id, db, or_id=ordre.id)
 
 
 @router.post("/api/rendez-vous/{rdv_id}/ordre-reparation/save")
@@ -543,14 +619,52 @@ def save_ordre_reparation(
     current_user: User = Depends(get_current_user)
 ):
     """Sauvegarde les données de l'ordre de réparation"""
+    if not (
+        _user_has_permission(current_user, db, "or.manage")
+        or _user_has_permission(current_user, db, "workflow.manage")
+        or _user_has_permission(current_user, db, "rdv.edit")
+    ):
+        raise HTTPException(status_code=403, detail="Permission or.manage ou workflow.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     
-    # Mettre à jour les champs
+    # Mettre à jour les champs enrichis de reception
+    try:
+        etat_payload = json.loads(or_data.etat_vehicule) if or_data.etat_vehicule else {}
+        if not isinstance(etat_payload, dict):
+            etat_payload = {"raw": etat_payload}
+    except Exception:
+        etat_payload = {"observations": or_data.etat_vehicule}
+
+    if or_data.priorite is not None:
+        etat_payload["priority"] = or_data.priorite
+    if or_data.niveau_carburant is not None:
+        etat_payload["fuel_level"] = or_data.niveau_carburant
+    if or_data.dommages_carrosserie is not None:
+        etat_payload["body_damages"] = or_data.dommages_carrosserie
+    if or_data.notes_schema is not None:
+        etat_payload["schema_notes"] = or_data.notes_schema
+    if or_data.lignes_estimation is not None:
+        etat_payload["estimate_rows"] = or_data.lignes_estimation
+    try:
+        existing_photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
+        if not isinstance(existing_photos, list):
+            existing_photos = []
+    except Exception:
+        existing_photos = []
+    photos_payload = or_data.photos if or_data.photos is not None else existing_photos
+    if photos_payload:
+        etat_payload["photo_count"] = len(photos_payload)
+        etat_payload["photos"] = photos_payload
+
+    etat_json = json.dumps(etat_payload)
+    photos_json = json.dumps(photos_payload)
+
     rdv.kilometrage = or_data.kilometrage
-    rdv.etat_vehicule = or_data.etat_vehicule
+    rdv.etat_vehicule = etat_json
+    rdv.photos_etat = photos_json
     if or_data.travaux:
         rdv.commentaire = or_data.travaux
     
@@ -570,7 +684,7 @@ def save_ordre_reparation(
         db.add(or_initial)
 
     or_initial.kilometrage = or_data.kilometrage
-    or_initial.etat_vehicule = or_data.etat_vehicule
+    or_initial.etat_vehicule = etat_json
     or_initial.travaux = or_data.travaux
 
     # Sauvegarder la signature si fournie (base + fichier legacy)
@@ -595,7 +709,8 @@ def save_ordre_reparation(
     return {
         "message": "Ordre de réparation sauvegardé",
         "id": rdv.id,
-        "or_signe": True
+        "or_signe": True,
+        "photos_count": len(or_data.photos or [])
     }
 
 @router.get("/api/rendez-vous/{rdv_id}/signature")

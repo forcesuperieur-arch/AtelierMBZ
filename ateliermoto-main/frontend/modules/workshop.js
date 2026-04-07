@@ -27,6 +27,7 @@ window.WorkshopModule = window.WorkshopModule || {
         var now = new Date();
         var today = now.toISOString().split('T')[0];
         var rdvsToday = (APP.rdvs || []).filter(function(r) { return (r.date_rdv || '') === today; });
+        var canManageWorkshop = hasPermission('workshop.manage');
         var html = '';
         APP.ponts.forEach(function(pont) {
             var pontActif = isActive(pont);
@@ -45,7 +46,7 @@ window.WorkshopModule = window.WorkshopModule || {
                 '<div style="font-size:12px;color:#9ca3af;margin-bottom:3px">Temps planifie: <b style="color:#e5e7eb">' + chargeLabel + '</b></div>' +
                 (prochain ? '<div style="font-size:11px;color:#888;margin-bottom:3px">Prochain passage: ' + formatTime(prochain.heure_rdv) + ' - ' + escapeHtml(prochain.type_intervention || '-') + '</div>' : '<div style="font-size:11px;color:#666;margin-bottom:3px">Aucun rendez-vous planifie</div>') +
                 '<div class="stat-bar" style="margin:8px 0 10px"><div class="stat-bar-fill" style="width:' + chargePct + '%;background:' + (chargePct > 80 ? 'var(--amber)' : 'var(--teal)') + '"></div></div>' +
-                '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--purple)" onclick="ouvrirAttribuerPont(' + pont.id + ')">' + (meca ? 'Modifier technicien' : 'Affecter technicien') + '</button></div>';
+                (canManageWorkshop ? '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--purple)" onclick="ouvrirAttribuerPont(' + pont.id + ')">' + (meca ? 'Modifier technicien' : 'Affecter technicien') + '</button>' : '') + '</div>';
         });
         container.innerHTML = html || '<div style="color:#666;padding:20px">Aucun pont</div>';
         document.getElementById('ponts-count').textContent = APP.ponts.length;
@@ -238,6 +239,10 @@ window.WorkshopModule = window.WorkshopModule || {
     },
 
     ouvrirAttribuerPont: function(pontId) {
+        if (!hasPermission('workshop.manage')) {
+            showAlert('Permission workshop.manage requise', 'error');
+            return;
+        }
         var pont = APP.ponts.find(function(p) { return p.id === pontId; });
         var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Mecanicien attribue</label><select id="attr-pont-meca" class="form-select">';
         html += '<option value="">-- Aucun --</option>';

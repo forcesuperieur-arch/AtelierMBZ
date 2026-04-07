@@ -2,6 +2,7 @@
 Tests pour les endpoints critiques de l'application.
 Ces tests vérifient que les routes essentielles fonctionnent correctement.
 """
+import json
 import pytest
 import sys
 import os
@@ -748,6 +749,90 @@ class TestTravauxSupplementairesWorkflow:
         assert "Kit chaine" in (supp_or.travaux or "")
         assert "Kit chaine" in (initial_or.travaux or "")
         db.close()
+
+
+class TestOrdreReparationVisualData:
+    """Régressions sur la sauvegarde enrichie des OR."""
+
+    def test_save_ordre_reparation_persists_visual_metadata(self):
+        headers = auth_headers_for_role("admin", "admin_or_visual")
+
+        db = TestingSessionLocal()
+        client_db = Client(
+            atelier_id=1,
+            nom="Martin",
+            prenom="Elise",
+            telephone="0605050505",
+            email="elise@example.com",
+            adresse="8 rue des virages",
+        )
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(
+            atelier_id=1,
+            plaque="ORVIS001",
+            marque="Ducati",
+            modele="Monster",
+            annee=2022,
+            client_id=client_db.id,
+        )
+        db.add(vehicule)
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=1,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(10, 30),
+            type_intervention="Revision majeure",
+            commentaire="Controle complet",
+            prix_estime=249.0,
+            temps_estime=120,
+            statut="confirme",
+        )
+        db.add(rdv)
+        db.commit()
+        rdv_id = rdv.id
+        db.close()
+
+        payload = {
+            "kilometrage": 18234,
+            "etat_vehicule": json.dumps({
+                "points": ["carrosserie_ok", "freins_ok"],
+                "observations": "Rayure visible sur le flanc droit.",
+                "priority": "urgent",
+                "fuel_level": 3,
+                "body_damages": ["flanc_droit", "reservoir"],
+                "schema_notes": "Impact leger proche du reservoir",
+                "estimate_rows": [
+                    {"label": "Diagnostic complet", "qty": 1, "amount": 89.9},
+                    {"label": "Remplacement plaquettes", "qty": 1, "amount": 159.1},
+                ],
+            }),
+            "travaux": "Diagnostic complet et controle securite.",
+            "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nXKkAAAAASUVORK5CYII=",
+            "photos": [
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nXKkAAAAASUVORK5CYII="
+            ],
+        }
+
+        response = client.post(f"/api/rendez-vous/{rdv_id}/ordre-reparation/save", json=payload, headers=headers)
+        assert response.status_code == 200
+
+        detail = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert detail.status_code == 200
+        data = detail.json()
+
+        meta = json.loads(data["etat_vehicule"])
+        assert meta["priority"] == "urgent"
+        assert meta["fuel_level"] == 3
+        assert meta["body_damages"] == ["flanc_droit", "reservoir"]
+        assert len(meta["estimate_rows"]) == 2
+        assert isinstance(data["photos_etat"], list)
+        assert len(data["photos_etat"]) == 1
+        assert data["ordres_reparation"][0]["signature_client"].startswith("data:image/png;base64,")
 
 
 class TestRouteResponseTimes:

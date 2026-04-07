@@ -7,5 +7,7 @@ __pycache__/
 ateliermoto-main/backend/.secret_key
 *.log
 
-# Local database dumps
+# Local database dumps stay out of Git.
+# The schema/versioning source of truth is `ateliermoto-main/backend/alembic/versions/`
+# and the bootstrap data lives in the seed scripts under `ateliermoto-main/backend/`.
 backups/*.sql

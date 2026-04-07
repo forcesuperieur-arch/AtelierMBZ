@@ -2,6 +2,7 @@ window.ROLE_SECTIONS = window.ROLE_SECTIONS || {
     mecanicien: ['dashboard', 'planning', 'or', 'motos', 'espace-meca'],
     receptionnaire: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
     service_client: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
+    manager: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'],
     admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'],
     super_admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin']
 };
@@ -29,12 +30,18 @@ window.RBAC_PERMISSION_LABELS = window.RBAC_PERMISSION_LABELS || {
     'travaux_supp.review': 'Valider travaux supplementaires',
     'rdv.select_atelier': 'Choix atelier (multi-site)',
     'rdv.edit': 'Modifier les rendez-vous',
+    'workflow.manage': 'Piloter le workflow atelier',
+    'or.manage': 'Gerer les OR et la reception',
+    'workshop.manage': 'Gerer ponts & mecaniciens',
+    'motos.manage': 'Gerer la base moto',
+    'horaires.manage': 'Gerer les horaires',
+    'clients.edit': 'Modifier clients & vehicules',
+    'stats.view': 'Voir les statistiques',
     'users.manage': 'Gerer utilisateurs',
     'ateliers.manage': 'Gerer ateliers',
     'roles.manage': 'Gerer roles & droits',
     'config.manage': 'Gerer configuration',
-    'prestations.manage': 'Gerer prestations',
-    'equipements.manage': 'Gerer equipements'
+    'prestations.manage': 'Gerer prestations'
 };
 var RBAC_PERMISSION_LABELS = window.RBAC_PERMISSION_LABELS;
 
@@ -106,8 +113,9 @@ window.AppCoreModule = window.AppCoreModule || {
         APP.refreshInterval = setInterval(function() {
             if (APP.currentSection === 'dashboard') loadDashboard();
             if (APP.currentSection === 'suivi') loadSuiviLive();
-            var role = APP.currentUser ? APP.currentUser.role : '';
-            if (role === 'admin' || role === 'super_admin' || role === 'receptionnaire' || role === 'service_client') pollTravauxSupp();
+            if (window.AppCoreModule.hasPermission('travaux_supp.review') || window.AppCoreModule.hasPermission('workflow.manage')) {
+                pollTravauxSupp();
+            }
         }, 30000);
     },
 
@@ -130,9 +138,17 @@ window.AppCoreModule = window.AppCoreModule || {
     hasPermission: function(permission) {
         if (!APP.currentUser) return false;
         if (APP.currentUser.role === 'super_admin') return true;
-        if (permission === 'config.manage' && (APP.currentUser.role === 'admin' || APP.currentUser.role === 'manager')) return true;
         if (APP.rolePermissions && APP.rolePermissions.indexOf(permission) !== -1) return true;
-        return false;
+
+        var legacyPermissions = {
+            admin: ['config.manage', 'prestations.manage', 'rdv.edit', 'workflow.manage', 'or.manage', 'workshop.manage', 'motos.manage', 'horaires.manage', 'clients.edit', 'stats.view', 'billing.view', 'billing.edit', 'billing.pay', 'billing.pdf', 'travaux_supp.review', 'users.manage', 'ateliers.manage', 'roles.manage'],
+            manager: ['config.manage', 'prestations.manage', 'rdv.edit', 'workflow.manage', 'or.manage', 'workshop.manage', 'motos.manage', 'horaires.manage', 'clients.edit', 'stats.view', 'billing.view', 'billing.edit', 'billing.pay', 'billing.pdf', 'travaux_supp.review', 'users.manage'],
+            receptionnaire: ['rdv.edit', 'workflow.manage', 'or.manage', 'clients.edit', 'stats.view', 'travaux_supp.review', 'billing.view'],
+            service_client: ['rdv.edit', 'clients.edit'],
+            mecanicien: []
+        };
+        var role = APP.currentUser.role || '';
+        return (legacyPermissions[role] || []).indexOf(permission) !== -1;
     },
 
     canUseBilling: function() {
@@ -260,7 +276,11 @@ window.AppCoreModule = window.AppCoreModule || {
             showAlert('Facturation desactivee pour le role service client', 'warning');
             return;
         }
-        window.open(window.API_URL + '/api/rendez-vous/' + rdvId + '/facture-pdf', '_blank');
+        return openProtectedDocument('/api/rendez-vous/' + rdvId + '/facture-pdf', 'facture-' + rdvId + '.pdf').catch(function(error) {
+            console.error('Erreur ouverture PDF facture:', error);
+            showAlert('Impossible d\'ouvrir la facture PDF.', 'error');
+            throw error;
+        });
     },
 
     refreshCurrentSection: function() {

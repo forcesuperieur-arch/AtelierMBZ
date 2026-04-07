@@ -31,7 +31,9 @@ def _user_has_permission(current_user: User, db: Session, permission: str) -> bo
             perms = []
         return permission in perms
     # Fallback legacy roles
-    if permission == "rdv.select_atelier" and current_user.role in {"admin", "receptionnaire", "service_client"}:
+    if permission == "rdv.select_atelier" and current_user.role in {"admin", "manager", "receptionnaire", "service_client"}:
+        return True
+    if permission == "workshop.manage" and current_user.role in {"admin", "manager"}:
         return True
     return False
 
@@ -212,6 +214,8 @@ def create_pont(
     current_user: User = Depends(get_current_user)
 ):
     """Crée un nouveau pont"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     new_pont = Pont(
         atelier_id=atelier_id,
@@ -235,6 +239,8 @@ def update_pont(
     current_user: User = Depends(get_current_user)
 ):
     """Met à jour un pont"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     db_pont = db.query(Pont).filter(Pont.id == pont_id, Pont.atelier_id == atelier_id).first()
     if not db_pont:
@@ -258,6 +264,8 @@ def delete_pont(
     current_user: User = Depends(get_current_user)
 ):
     """Supprime un pont (soft delete)"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     db_pont = db.query(Pont).filter(Pont.id == pont_id, Pont.atelier_id == atelier_id).first()
     if not db_pont:
@@ -317,6 +325,8 @@ def create_mecanicien(
     current_user: User = Depends(get_current_user)
 ):
     """Crée un nouveau mécanicien"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     new_mecanicien = Mecanicien(
         atelier_id=atelier_id,
@@ -339,6 +349,8 @@ def update_mecanicien(
     current_user: User = Depends(get_current_user)
 ):
     """Met à jour un mécanicien"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
     if not db_mecanicien:
@@ -361,6 +373,8 @@ def delete_mecanicien(
     current_user: User = Depends(get_current_user)
 ):
     """Supprime un mécanicien (soft delete)"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
     if not db_mecanicien:
@@ -416,6 +430,8 @@ def create_absence(
     current_user: User = Depends(get_current_user)
 ):
     """Crée une nouvelle absence"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     # Vérifier que le mécanicien existe
     mecano = db.query(Mecanicien).filter(Mecanicien.id == absence.mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
@@ -437,6 +453,8 @@ def update_absence(
     current_user: User = Depends(get_current_user)
 ):
     """Met à jour une absence"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     db_absence = db.query(Absence).filter(Absence.id == absence_id, Absence.atelier_id == atelier_id).first()
     if not db_absence:
@@ -462,6 +480,8 @@ def delete_absence(
     current_user: User = Depends(get_current_user)
 ):
     """Supprime une absence"""
+    if not _user_has_permission(current_user, db, "workshop.manage"):
+        raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
     absence = db.query(Absence).filter(Absence.id == absence_id, Absence.atelier_id == atelier_id).first()
     if not absence:

@@ -123,3 +123,32 @@ function apiDelete(url) {
         headers: { 'Content-Type': 'application/json', 'X-Use-Cookie-Auth': '1' }
     });
 }
+
+function openProtectedDocument(url, filename) {
+    return apiRequest(url, {
+        method: 'GET',
+        headers: { 'X-Use-Cookie-Auth': '1' }
+    }).then(function(response) {
+        return response.blob().then(function(blob) {
+            var pdfBlob = blob && blob.type ? blob : new Blob([blob], { type: 'application/pdf' });
+            var objectUrl = URL.createObjectURL(pdfBlob);
+            var popup = window.open(objectUrl, '_blank', 'noopener');
+
+            if (!popup) {
+                var link = document.createElement('a');
+                link.href = objectUrl;
+                link.target = '_blank';
+                if (filename) link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+
+            setTimeout(function() {
+                URL.revokeObjectURL(objectUrl);
+            }, 60000);
+
+            return objectUrl;
+        });
+    });
+}

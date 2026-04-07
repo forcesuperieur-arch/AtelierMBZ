@@ -93,6 +93,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     ouvrirNouveauClient: function() {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         var html = '<div class="form-group"><label class="form-label" style="color:#ccc">Nom *</label><input id="new-client-nom" class="form-input" placeholder="Nom de famille"></div>' +
             '<div class="form-group"><label class="form-label" style="color:#ccc">Prenom *</label><input id="new-client-prenom" class="form-input" placeholder="Prenom"></div>' +
             '<div class="form-group"><label class="form-label" style="color:#ccc">Telephone *</label><input id="new-client-tel" class="form-input" placeholder="06 12 34 56 78"></div>' +
@@ -104,6 +108,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     creerNouveauClient: function() {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         var nom = (document.getElementById('new-client-nom') || {}).value || '';
         var prenom = (document.getElementById('new-client-prenom') || {}).value || '';
         var tel = (document.getElementById('new-client-tel') || {}).value || '';
@@ -134,6 +142,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     supprimerVehicule: function(vehiculeId, clientId) {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         openConfirmDialog('Supprimer ce vehicule ?', function() {
             apiDelete('/api/vehicules/' + vehiculeId).then(function(r) {
                 return r.json();
@@ -160,6 +172,7 @@ window.ClientsModule = window.ClientsModule || {
             panel.style.display = 'block';
             APP._currentClientId = clientId;
 
+            var canEditClients = hasPermission('clients.edit');
             var nbRdv = (c.historique || []).length;
             var totalCA = Number(c.ca_total || 0);
             var email = escapeHtml(c.email) || '';
@@ -172,7 +185,7 @@ window.ClientsModule = window.ClientsModule || {
                 (email ? '<div style="font-size:13px;color:#888">' + email + '</div>' : '') +
                 (adresse ? '<div style="font-size:12px;color:#666;margin-top:4px">' + adresse + '</div>' : '') +
                 '</div>' +
-                '<button class="btn btn-ghost" style="font-size:12px" onclick="ouvrirModalEditClient(' + c.id + ')">Modifier</button>' +
+                (canEditClients ? '<button class="btn btn-ghost" style="font-size:12px" onclick="ouvrirModalEditClient(' + c.id + ')">Modifier</button>' : '') +
                 '</div>' +
                 '<div style="display:flex;gap:12px;margin-bottom:8px">' +
                 '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--orange)">' + nbRdv + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Visites</div></div>' +
@@ -183,15 +196,15 @@ window.ClientsModule = window.ClientsModule || {
 
             var vehicules = c.vehicules || [];
             var vHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="card-title">Vehicules (' + vehicules.length + ')</div>' +
-                '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--green)" onclick="ouvrirAjouterVehicule(' + c.id + ')">+ Ajouter</button></div>';
+                (canEditClients ? '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--green)" onclick="ouvrirAjouterVehicule(' + c.id + ')">+ Ajouter</button>' : '') + '</div>';
             if (vehicules.length) {
                 vehicules.forEach(function(v) {
                     vHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2a2a2a">' +
                         '<div style="font-size:20px">&#127949;</div>' +
                         '<div style="flex:1"><div style="font-weight:600;color:#eee">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
                         '<div style="font-size:12px;color:#888">' + (escapeHtml(v.plaque) || '') + (v.annee ? ' | ' + escapeHtml(v.annee) : '') + (v.cylindree ? ' | ' + escapeHtml(v.cylindree) : '') + (v.type_moto ? ' | ' + escapeHtml(v.type_moto) : '') + '</div></div>' +
-                        '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--teal)" onclick="ouvrirModalEditVehicule(' + v.id + ')">\u270E</button>' +
-                        '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="supprimerVehicule(' + v.id + ',' + c.id + ')">\u2716</button>' +
+                        (canEditClients ? '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--teal)" onclick="ouvrirModalEditVehicule(' + v.id + ')">✎</button>' +
+                        '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="supprimerVehicule(' + v.id + ',' + c.id + ')">✖</button>' : '') +
                         '</div>';
                 });
             } else {
@@ -325,6 +338,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     ouvrirAjouterVehicule: function(clientId) {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         var html = '<div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Marque *</label><input id="add-veh-marque" class="form-input" placeholder="Ex: Yamaha"></div>' +
             '<div class="form-group" style="flex:1"><label class="form-label" style="color:#ccc">Modele *</label><input id="add-veh-modele" class="form-input" placeholder="Ex: MT-07"></div></div>' +
             '<div class="form-group"><label class="form-label" style="color:#ccc">Plaque *</label><input id="add-veh-plaque" class="form-input" placeholder="AB-123-CD" style="text-transform:uppercase"></div>' +
@@ -361,6 +378,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     ouvrirModalEditClient: function(clientId) {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         apiGet('/api/clients/' + clientId).then(function(r) {
             return r.json();
         }).then(function(c) {
@@ -400,6 +421,10 @@ window.ClientsModule = window.ClientsModule || {
     },
 
     ouvrirModalEditVehicule: function(vehiculeId) {
+        if (!hasPermission('clients.edit')) {
+            showAlert('Permission clients.edit requise', 'error');
+            return;
+        }
         apiGet('/api/vehicules/' + vehiculeId).then(function(r) {
             return r.json();
         }).then(function(v) {

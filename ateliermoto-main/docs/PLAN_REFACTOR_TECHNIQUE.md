@@ -1,28 +1,26 @@
 # Plan de refactor technique — Atelier Moto Pro
 
-> Mise à jour au **05/04/2026** — clôture de la passe de refactor et nettoyage après validation complète
+> Mise à jour au **07/04/2026** — documentation et stratégie BDD Git réalignées avec l’état réel du dépôt
 
 ## Objectif
 
-Réduire le risque technique **sans casser le flux métier actuel** :
-- sécuriser le cycle `RDV -> réception -> intervention -> clôture`
-- sortir la logique critique des fichiers monolithiques
-- garder la compatibilité fonctionnelle pendant la phase soft
+Réduire le risque technique **sans casser le flux métier** :
+- sécuriser le cycle `RDV -> réception -> intervention -> facturation`
+- maintenir le backend modulaire et testable
+- poursuivre le nettoyage du frontend et de la documentation
+- garder une stratégie BDD **compatible Git** via migrations + seeds
 
 ---
 
 ## État actuel vérifié
 
-- `backend/main.py` est descendu à **176 lignes** (contre **5153** au départ du plan)
-- le frontend est désormais découpé en `app-core.js` + `frontend/modules/*`
-- les routes frontend publiques/legacy sont isolées dans `backend/routes/frontend_pages.py`
-- le bootstrap de démarrage est isolé dans `backend/services/startup_service.py` et `backend/services/runtime_migrations.py`
-- les cookies d’auth sont configurables via `COOKIE_SECURE` et `COOKIE_SAMESITE`
-- les transitions de statuts RDV sont formalisées dans `backend/routes/rendez_vous.py`
-- deux correctifs métier critiques ont été validés :
-  - créneaux publics **multi-prestations** avec durée cumulée correcte
-  - **travaux complémentaires / OR complémentaire** bien rattachés au RDV courant
-- la suite backend la plus récente est verte : **`154 passed in 30.84s`**
+- `backend/main.py` joue désormais un vrai rôle de **composition root**
+- le backend métier est réparti dans des routers dédiés (`auth_api`, `rendez_vous`, `workshop`, `inventory`, `devis`, `moto_base`, etc.)
+- le frontend est découpé en modules spécialisés sous `frontend/modules/`
+- la réception OR a été enrichie avec **priorité, carburant, dommages carrosserie, photos, lignes d’estimation et impression/PDF**
+- l’autocomplete de la base moto a été renforcé pour mieux gérer les variantes de modèles
+- la documentation active a été réalignée ; `docs/TECHNICAL.md` devient la **référence technique canonique**
+- la stratégie BDD Git est désormais explicitée autour de **`alembic` + `seed.py` + `seed_parametres.py`**
 
 ---
 
@@ -30,96 +28,96 @@ Réduire le risque technique **sans casser le flux métier actuel** :
 
 ### Phase 1 — Durcissement métier immédiat ✅
 
-**Terminé / durci :**
-- permissions `rdv.edit` renforcées sur les actions RDV sensibles
-- transitions de statuts explicites avec message d’erreur clair si transition invalide
-- cookies d’auth sécurisés et pilotés par variable d’environnement
-- tests critiques enrichis pour verrouiller les régressions principales
+**Validé :**
+- permissions `rdv.edit` renforcées sur les actions sensibles
+- transitions de statuts RDV contrôlées côté backend
+- sécurité cookie pilotée par variables d’environnement
+- tests de régression métiers enrichis
 
-### Phase 2 — Démonolithisation backend ✅ finalisée pour le périmètre actuel
+### Phase 2 — Démonolithisation backend ✅
 
-**Extrait et stabilisé hors de `backend/main.py` :**
+**Routers et services sortis du noyau :**
 - `routes/auth_api.py`
 - `routes/tenant_admin.py`
 - `routes/public_booking.py`
+- `routes/clients.py`
+- `routes/vehicles.py`
+- `routes/rendez_vous.py`
+- `routes/workshop.py`
 - `routes/travaux_supp.py`
+- `routes/devis.py`
 - `routes/inventory.py`
 - `routes/forfaits_mo.py`
 - `routes/moto_base.py`
-- `routes/devis.py`
-- `routes/vehicles.py`
 - `routes/prestations_tarifs.py`
 - `routes/frontend_pages.py`
 - `services/startup_service.py`
 - `services/runtime_migrations.py`
-- ainsi que les modules déjà en place : `clients.py`, `rendez_vous.py`, `workshop.py`
+- `services/pdf_service.py`
 
-**Résultat atteint :**
-- `main.py` joue désormais pleinement le rôle de **composition root**
-- le bootstrap applicatif est isolé et testable
-- les routes publiques / legacy restantes sont sorties dans des modules dédiés
+**Résultat :**
+- bootstrap plus lisible
+- logique métier plus localisée
+- compatibilité legacy conservée
 
-**Dette technique restante (non bloquante) :**
-- convertir progressivement les migrations runtime résiduelles en révisions `alembic/`
+### Phase 3 — Découpage progressif du frontend ✅ structure en place
 
-### Phase 3 — Découpage progressif du frontend 🟡 structure stabilisée
-
-**Modules déjà présents :**
-- `frontend/app-core.js`
-- `frontend/modules/dashboard.js`
-- `frontend/modules/rdv.js`
-- `frontend/modules/planning.js`
-- `frontend/modules/or.js`
-- `frontend/modules/clients.js`
+**Modules actuellement présents :**
+- `frontend/modules/absences.js`
 - `frontend/modules/admin.js`
-- `frontend/modules/mecanicien.js`
+- `frontend/modules/app-core.js`
 - `frontend/modules/billing.js`
+- `frontend/modules/clients.js`
+- `frontend/modules/dashboard.js`
+- `frontend/modules/debug-tools.js`
+- `frontend/modules/mecanicien.js`
+- `frontend/modules/or.js`
+- `frontend/modules/planning-utils.js`
+- `frontend/modules/planning.js`
+- `frontend/modules/rdv-actions.js`
+- `frontend/modules/rdv.js`
 - `frontend/modules/suivi.js`
 - `frontend/modules/workshop.js`
 
-**État actuel :**
-- la structure modulaire est en place et exploitable
-- le refactor backend n’introduit pas de régression UX vérifiée
-
-**Améliorations futures possibles :**
-- réduire les `onclick="..."` inline résiduels
+**À poursuivre sans urgence :**
+- réduire les `onclick="..."` inline restants
 - limiter les accès globaux à `APP`
-- centraliser les helpers de rendu HTML encore dupliqués
+- factoriser certains helpers HTML encore dupliqués
 
-### Phase 4 — Fiabilisation infra et données ✅ sécurisée pour l’exploitation locale
+### Phase 4 — Infra / données / exploitation ✅
 
-**Déjà fiabilisé dans cette passe :**
-- scripts `db-backup.sh` / `db-restore.sh` standardisés vers le vrai dossier `backups/`
-- documentation d’exploitation ajoutée dans `docs/OPERATIONS.md`
-- nettoyage du dépôt avec archivage des anciens fichiers plats dans `archive/legacy-root-2026-04-05/`
-- restauration BDD et reprise des logins validées après migration
+**Déjà fiabilisé :**
+- scripts `db-backup.sh` / `db-restore.sh` stabilisés
+- dossier `backups/` confirmé comme emplacement des dumps d’exploitation
+- documentation d’exploitation remise à jour
+- persistance locale assurée par le volume Docker `postgres_data`
 
-**Points futurs non bloquants :**
-- stockage des signatures dans un volume dédié ou en base
-- poursuite de l’alignement Alembic pour remplacer les migrations runtime historiques
+**Décision structurante retenue :**
+- **Git versionne le schéma et les seeds**
+- **Git ne versionne pas** la base vivante, les volumes Docker ou les dumps SQL de travail
 
-### Phase 5 — Tests de non-régression ✅ renforcés
+### Phase 5 — Documentation & nettoyage ✅ en cours de stabilisation
 
-**Déjà couvert côté backend :**
-- transitions de statut invalides
-- permissions refusées sur actions critiques
-- conflits planning pont / mécano
-- booking public avec durée cumulée
-- approbation travaux supp et rattachement OR / RDV
-- conversion `devis -> RDV`
-- disponibilité des routes `prestations / tarifs / synthèse`
+**Fait dans cette passe :**
+- `README.md` remis à niveau
+- `docs/TECHNICAL.md`, `docs/GUIDE_UTILISATEUR.md`, `docs/OPERATIONS.md` réalignés
+- audit des fichiers legacy / compatibles encore servis via `frontend_pages.py`
+- identification des doublons documentaires à supprimer ou archiver
 
 ---
 
-## Suite recommandée
+## Dette technique restante
 
-### Pistes futures non bloquantes
-1. basculer progressivement les migrations runtime restantes vers `alembic/`
-2. fiabiliser la persistance des signatures
-3. poursuivre le nettoyage frontend sans régression UX
-4. maintenir la couverture de non-régression sur les flux critiques
+1. poursuivre la bascule des backfills historiques de `runtime_migrations.py` vers **Alembic**
+2. fiabiliser encore la persistance / archivage des signatures si besoin métier
+3. poursuivre le nettoyage des pages legacy une fois les redirections devenues inutiles
+4. garder la couverture de tests sur les flux critiques RDV / OR / facturation / travaux supp
 
-### Niveau de risque actuel
-- **Métier :** faible
-- **Structure backend :** faible, la base de composition est désormais propre
-- **Infra / exploitation :** faible à modéré uniquement sur les sujets signatures/Alembic
+---
+
+## Niveau de risque actuel
+
+- **Métier** : faible
+- **Structure backend** : faible
+- **Frontend** : faible à modéré tant que la couche de compatibilité globale reste présente
+- **Infra / BDD** : faible, avec un point de vigilance restant sur l’alignement complet Alembic
