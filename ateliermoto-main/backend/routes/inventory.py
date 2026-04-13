@@ -1,3 +1,4 @@
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -570,8 +571,8 @@ def create_commande(
     if not fournisseur:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
-    total_ht = sum(ligne.quantite_demandee * ligne.prix_unitaire_ht for ligne in commande.lignes)
-    total_ttc = total_ht * 1.20
+    total_ht = sum(Decimal(str(ligne.quantite_demandee)) * Decimal(str(ligne.prix_unitaire_ht)) for ligne in commande.lignes)
+    total_ttc = (total_ht * Decimal("1.20")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     new_commande = CommandeFournisseur(
         atelier_id=atelier_id,

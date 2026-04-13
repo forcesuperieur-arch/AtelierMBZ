@@ -180,26 +180,25 @@ def init_grille_tarifaire(db):
     # Coefficients par catégorie moto (temps et prix)
     # Base = Roadster (1.0), ajustements pour les autres
     coefs = {
-        "Roadster": 1.0,
-        "Sportive": 1.10,
-        "Trail": 1.15,
-        "Scooter": 0.85,
-        "Cruiser": 1.10,
-        "Cross/Enduro": 1.20,
-        "Touring": 1.15,
-        "Supermotard": 1.0,
+        "Roadster": Decimal("1.00"),
+        "Sportive": Decimal("1.10"),
+        "Trail": Decimal("1.15"),
+        "Scooter": Decimal("0.85"),
+        "Cruiser": Decimal("1.10"),
+        "Cross/Enduro": Decimal("1.20"),
+        "Touring": Decimal("1.15"),
+        "Supermotard": Decimal("1.00"),
     }
 
     for presta in prestations:
         for cat in categories:
-            coef = coefs.get(cat.nom, 1.0)
-            coef_decimal = Decimal(str(coef))
-            prix_base_ttc = Decimal(str(presta.prix_base_ttc or 0))
+            coef = coefs.get(cat.nom, Decimal("1.00"))
+            prix_base_ttc = presta.prix_base_ttc or Decimal("0.00")
 
             # Calculer prix et temps ajustés
-            prix_ttc = (prix_base_ttc * coef_decimal).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            prix_ttc = (prix_base_ttc * coef).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             prix_ht = (prix_ttc / (Decimal("1") + (tva_taux / Decimal("100")))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            temps = max(30, round(presta.temps_estime_minutes * coef / 15) * 15)  # arrondi 15min
+            temps = max(30, round(presta.temps_estime_minutes * float(coef) / 15) * 15)  # arrondi 15min
 
             grille = GrilleTarifaire(
                 prestation_id=presta.id,
