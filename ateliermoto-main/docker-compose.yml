@@ -54,6 +54,8 @@ services:
       RUN_STARTUP_TASKS: "false"
       STATIC_DIR: /app/static
       SECRET_KEY_FILE: ${SECRET_KEY_FILE:-/app/run/secrets/secret_key}
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
