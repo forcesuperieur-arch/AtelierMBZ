@@ -9,10 +9,12 @@ __pycache__/
 .pytest_cache/
 
 # Local environment
-backend/.env
+.env
+app/.env
+app/.secret_key
 
 # Runtime data
-backend/signatures/
-backend/data/logos/
-backend/photos/
+app/signatures/
+app/data/logos/
+app/photos/
 backups/

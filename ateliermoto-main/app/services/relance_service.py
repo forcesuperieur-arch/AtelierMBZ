@@ -1,9 +1,4 @@
-"""Service de relance des clients inactifs.
-
-Envoie automatiquement des emails de relance aux clients qui n'ont pas
-eu de RDV depuis 6, 9 ou 12 mois. Maximum 3 relances par client.
-Le scheduler tourne en tâche de fond (asyncio) et vérifie une fois par jour.
-"""
+"""Service de relance des clients inactifs."""
 
 import asyncio
 import logging
@@ -19,11 +14,10 @@ from services.email_service import render_relance_client, send_email
 
 logger = logging.getLogger("ateliermoto.relance")
 
-# Seuils de relance (en jours) et niveaux
 RELANCE_SEUILS = [
-    (180, 1),   # 6 mois -> relance niveau 1
-    (270, 2),   # 9 mois -> relance niveau 2
-    (365, 3),   # 12 mois -> relance niveau 3
+    (180, 1),
+    (270, 2),
+    (365, 3),
 ]
 MAX_RELANCES = 3
 
@@ -70,7 +64,6 @@ def traiter_relances_atelier(db: Session, atelier_id: int) -> int:
     now = datetime.now()
     count = 0
 
-    # Clients avec au moins 1 RDV passé payé/terminé
     clients = (
         db.query(Client)
         .filter(Client.atelier_id == atelier_id, Client.email.isnot(None), Client.email != "")
@@ -88,7 +81,6 @@ def traiter_relances_atelier(db: Session, atelier_id: int) -> int:
         if relances_envoyees >= MAX_RELANCES:
             continue
 
-        # Déterminer le niveau de relance approprié
         niveau_cible = None
         for seuil_jours, niveau in RELANCE_SEUILS:
             if jours_inactif >= seuil_jours and relances_envoyees < niveau:
@@ -97,7 +89,6 @@ def traiter_relances_atelier(db: Session, atelier_id: int) -> int:
         if niveau_cible is None:
             continue
 
-        # Vérifier qu'on n'a pas déjà envoyé ce niveau
         deja_niveau = db.query(RappelEmail).filter(
             RappelEmail.client_id == client.id,
             RappelEmail.type_rappel == f"relance_{niveau_cible}",
@@ -106,7 +97,6 @@ def traiter_relances_atelier(db: Session, atelier_id: int) -> int:
         if deja_niveau > 0:
             continue
 
-        # Trouver le dernier véhicule du client
         vehicule = db.query(Vehicule).filter(Vehicule.client_id == client.id).first()
         veh_str = _vehicule_info_str(vehicule)
 
@@ -123,7 +113,6 @@ def traiter_relances_atelier(db: Session, atelier_id: int) -> int:
 
         ok = send_email(client.email, subject, html_body, text_body, atelier_id=atelier_id)
 
-        # Journaliser (rdv_id = 0 car pas lié à un RDV spécifique)
         last_rdv = (
             db.query(RendezVous)
             .filter(RendezVous.client_id == client.id, RendezVous.atelier_id == atelier_id)
@@ -168,8 +157,6 @@ def _process_all_relances() -> int:
         db.close()
 
 
-# ── Scheduler asyncio (tâche de fond) ───────────────────────────
-
 _relance_task: asyncio.Task | None = None
 
 
@@ -179,7 +166,6 @@ async def _relance_loop():
     while True:
         try:
             now = datetime.now()
-            # Calculer le temps jusqu'à demain 10h
             demain_10h = now.replace(hour=10, minute=0, second=0, microsecond=0)
             if now.hour >= 10:
                 demain_10h += timedelta(days=1)
@@ -193,7 +179,7 @@ async def _relance_loop():
             break
         except Exception:
             logger.exception("Erreur scheduler relances")
-            await asyncio.sleep(3600)  # Retry dans 1h
+            await asyncio.sleep(3600)
 
 
 def start_relance_scheduler():

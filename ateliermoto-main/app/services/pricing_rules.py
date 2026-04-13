@@ -80,7 +80,6 @@ def _resolve_hourly_rate(config: Optional[ConfigAtelier], profile: str) -> float
     if not config:
         defaults = {"standard": 65.0, "complexe": 85.0, "expert": 95.0}
         return defaults[profile]
-
     if profile == "complexe":
         return _to_float(config.taux_horaire_mo_complexe, 85.0)
     if profile == "expert":
@@ -154,13 +153,7 @@ def resolve_prestation_pricing(
     )
 
     if mode == "sur_devis":
-        return PricingResult(
-            mode_tarification=mode,
-            prix_ht=None,
-            prix_ttc=None,
-            temps_minutes=base_temps,
-            source="prestation:sur_devis",
-        )
+        return PricingResult(mode_tarification=mode, prix_ht=None, prix_ttc=None, temps_minutes=base_temps, source="prestation:sur_devis")
 
     if mode == "taux_horaire":
         profile = normalize_taux_profile(prestation.taux_horaire_applique)
@@ -171,13 +164,7 @@ def resolve_prestation_pricing(
         prix_ht = (base_temps / 60.0) * taux_horaire
         tva = _to_float(config.tva_mo_taux, 20.0) if config else 20.0
         prix_ttc = prix_ht * (1 + (tva / 100.0))
-        return PricingResult(
-            mode_tarification=mode,
-            prix_ht=_round_2(prix_ht),
-            prix_ttc=_round_2(prix_ttc),
-            temps_minutes=base_temps,
-            source=f"config_atelier:{profile}",
-        )
+        return PricingResult(mode_tarification=mode, prix_ht=_round_2(prix_ht), prix_ttc=_round_2(prix_ttc), temps_minutes=base_temps, source=f"config_atelier:{profile}")
 
     grille = category_rule
     if grille is None and categorie_id is not None:
@@ -206,10 +193,4 @@ def resolve_prestation_pricing(
             source="prestation:base",
         )
 
-    return PricingResult(
-        mode_tarification=mode,
-        prix_ht=_to_float(grille.prix_ht, 0.0),
-        prix_ttc=_to_float(grille.prix_ttc, 0.0),
-        temps_minutes=int(grille.temps_minutes or base_temps),
-        source=f"grille_tarifaire:{grille.id}",
-    )
+    return PricingResult(mode_tarification=mode, prix_ht=_to_float(grille.prix_ht, 0.0), prix_ttc=_to_float(grille.prix_ttc, 0.0), temps_minutes=int(grille.temps_minutes or base_temps), source=f"grille_tarifaire:{grille.id}")

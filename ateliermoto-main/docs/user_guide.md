@@ -14,3 +14,13 @@ Le script verifie:
 
 Si le script affiche une erreur, corriger les points signales puis relancer.
 
+## Donnees locales a ne pas versionner
+
+Avec la nouvelle structure `app/`, les fichiers locaux suivants restent hors Git:
+- `app/.env`
+- `app/.secret_key`
+- `app/signatures/`
+- `app/data/logos/`
+
+Ils sont generes ou utilises localement par l'application et ne doivent pas etre pousses.
+

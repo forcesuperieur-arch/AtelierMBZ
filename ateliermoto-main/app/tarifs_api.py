@@ -2,17 +2,16 @@
 # NOTE: Les vieilles routes GET/POST/PUT/DELETE sur GrilleTarifs sont DEPRECATED.
 # Tout devrait passer par /api/config/prestations (routes/prestations_tarifs.py).
 # Cette file gère seulement le calcul de tarifs et creneaux.
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import Optional, List
-from datetime import datetime, timedelta
-from pydantic import BaseModel
+from datetime import datetime
+from typing import List
 
-from models import (
-    get_db, Vehicule, CategorieMoto,
-    Absence, Pont, RendezVous, Prestation
-)
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from auth import get_current_user
+from models import Prestation, Vehicule, get_db
+from services.slot_service import list_available_duration_slots
 from services.pricing_rules import PricingConfigError, resolve_prestation_pricing
 
 router = APIRouter(prefix="/api", tags=["tarifs"])
@@ -154,94 +153,10 @@ def get_creneaux_par_duree(
     current_user = Depends(get_current_user)
 ):
     """Récupère les créneaux disponibles pour une plage de dates et une durée spécifique"""
-    
-    atelier_id = _tenant_id(current_user)
-    duree_minutes = duree_heures * 60
-    debut = datetime.strptime(date_debut, "%Y-%m-%d").date()
-    fin = datetime.strptime(date_fin, "%Y-%m-%d").date()
-    
-    # Récupérer les mécaniciens absents sur toute la période
-    absences = db.query(Absence).filter(
-        Absence.atelier_id == atelier_id,
-        Absence.date_debut <= fin,
-        Absence.date_fin >= debut
-    ).all()
-    mecaniciens_absents_par_jour = {}
-    for a in absences:
-        current = max(a.date_debut, debut)
-        while current <= min(a.date_fin, fin):
-            if current not in mecaniciens_absents_par_jour:
-                mecaniciens_absents_par_jour[current] = set()
-            mecaniciens_absents_par_jour[current].add(a.mecanicien_id)
-            current += timedelta(days=1)
-    
-    # Récupérer tous les ponts actifs
-    tous_ponts = db.query(Pont).filter(Pont.is_active == 1, Pont.atelier_id == atelier_id).all()
-    nb_ponts_total = len(tous_ponts)
-    
-    # Récupérer tous les RDV sur la période
-    rdvs_existants = db.query(RendezVous).filter(
-        RendezVous.atelier_id == atelier_id,
-        RendezVous.date_rdv >= debut,
-        RendezVous.date_rdv <= fin,
-        RendezVous.statut.in_(["en_attente", "confirme", "en_cours"])
-    ).all()
-    rdvs_par_jour = {}
-    for rdv in rdvs_existants:
-        if rdv.date_rdv not in rdvs_par_jour:
-            rdvs_par_jour[rdv.date_rdv] = []
-        rdvs_par_jour[rdv.date_rdv].append(rdv)
-    
-    # Créer les créneaux pour chaque jour
-    heures = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
-    tous_creneaux = []
-    
-    current_date = debut
-    while current_date <= fin:
-        if current_date.weekday() < 5:  # Lundi-Vendredi
-            # Nombre de mécaniciens absents ce jour
-            absents = mecaniciens_absents_par_jour.get(current_date, set())
-            nb_absents = len(absents)
-            
-            # Calculer les ponts disponibles (tous les ponts moins ceux sans mécanicien disponible)
-            # Pour l'instant, on considère que tous les ponts sont disponibles
-            # sauf si tous les mécaniciens sont absents
-            nb_ponts = max(1, nb_ponts_total - nb_absents) if nb_absents < nb_ponts_total else 0
-            
-            # RDV ce jour
-            rdvs_jour = rdvs_par_jour.get(current_date, [])
-            
-            for heure in heures:
-                heure_datetime = datetime.strptime(heure, "%H:%M")
-                heure_fin = heure_datetime + timedelta(minutes=duree_minutes)
-                
-                if heure_fin.time() > datetime.strptime("18:00", "%H:%M").time():
-                    continue
-                
-                # Compter les places occupées
-                places_occupees = 0
-                for rdv in rdvs_jour:
-                    rdv_heure = datetime.combine(current_date, rdv.heure_rdv)
-                    rdv_duree = rdv.temps_estime or 60
-                    rdv_fin = rdv_heure + timedelta(minutes=rdv_duree)
-                    
-                    creneau_debut = datetime.combine(current_date, heure_datetime.time())
-                    creneau_fin = datetime.combine(current_date, heure_fin.time())
-                    
-                    if (creneau_debut < rdv_fin and creneau_fin > rdv_heure):
-                        places_occupees += 1
-                
-                places_restantes = nb_ponts - places_occupees
-                
-                tous_creneaux.append({
-                    "date": current_date.isoformat(),
-                    "heure": heure,
-                    "heure_fin": heure_fin.strftime("%H:%M"),
-                    "disponible": places_restantes > 0,
-                    "places_restantes": max(0, places_restantes),
-                    "places_totales": nb_ponts
-                })
-        
-        current_date += timedelta(days=1)
-    
-    return tous_creneaux
+    return list_available_duration_slots(
+        db,
+        atelier_id=_tenant_id(current_user),
+        date_debut=date_debut,
+        date_fin=date_fin,
+        duree_heures=duree_heures,
+    )

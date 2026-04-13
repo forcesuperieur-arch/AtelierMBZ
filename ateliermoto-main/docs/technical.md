@@ -19,3 +19,10 @@ Comportement:
 - code retour `1` si au moins une violation est detectee
 - limite configurable via `MAX_FILE_LINES` (par defaut `200`)
 
+## Alignement runtime et refactor backend
+
+Le deplacement de `backend/` vers `app/` impose les ajustements suivants:
+- les secrets et fichiers runtime sont ignores dans `.gitignore` via `app/.env`, `app/.secret_key`, `app/signatures/` et `app/data/logos/`
+- le calcul des creneaux par duree a ete extrait dans `app/services/slot_service.py` pour alleger `app/tarifs_api.py`
+- la resolution du token d'acces et de l'utilisateur courant a ete factorisee dans `app/auth.py` pour supprimer la duplication entre acces obligatoire et acces optionnel
+
