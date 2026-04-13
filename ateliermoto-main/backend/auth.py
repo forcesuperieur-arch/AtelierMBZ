@@ -212,19 +212,21 @@ def get_current_atelier_id(current_user: User = Depends(get_current_user)) -> in
     return int(current_user.atelier_id)
 
 def create_default_users(db: Session):
-    """Crée un admin initial seulement si explicitement configuré via ENV"""
+    """Crée un superadmin initial seulement si explicitement configuré via ENV"""
     bootstrap_username = os.getenv("ADMIN_USERNAME")
     bootstrap_password = os.getenv("ADMIN_PASSWORD")
     bootstrap_email = os.getenv("ADMIN_EMAIL", "admin@atelier-moto.fr")
 
     if not bootstrap_username or not bootstrap_password:
+        logger.info("Aucune variable ADMIN_USERNAME/PASSWORD définie — pas de superadmin créé")
         return
 
     if not is_password_strong(bootstrap_password):
-        raise ValueError("ADMIN_PASSWORD doit avoir 8+ caracteres, 1 majuscule et 1 chiffre")
+        raise ValueError("ADMIN_PASSWORD doit avoir 8+ caractères, 1 majuscule et 1 chiffre")
 
     existing = db.query(User).filter(User.username == bootstrap_username).first()
     if existing:
+        logger.info(f"Utilisateur admin {bootstrap_username} existe déjà — pas de régénération")
         return
 
     default_atelier = db.query(Atelier).filter(Atelier.slug == "default").first()
@@ -237,3 +239,4 @@ def create_default_users(db: Session):
     )
     db.add(admin)
     db.commit()
+    logger.info(f"✓ Superadmin créé: {bootstrap_username} ({bootstrap_email}) avec rôle admin")

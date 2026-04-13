@@ -159,15 +159,24 @@ Autrement dit :
 - pour une preprod vide ou de test rapide : `docker compose up -d --build` suffit
 - pour une preprod qui doit reprendre les donnees actuelles : il faut faire la restauration SQL ensuite
 
-## Identifiants du premier compte admin
+## Identifiants du premier compte superadmin
 
-Le compte est cree automatiquement si ces variables sont renseignees dans `.env` :
+Le compte superadmin est créé automatiquement au premier démarrage si ces variables sont renseignées dans `.env` :
 
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `ADMIN_EMAIL`
+- `ADMIN_USERNAME` : nom d'utilisateur (ex: `admin`)
+- `ADMIN_PASSWORD` : mot de passe sécurisé (min 8 caractères, 1 majuscule, 1 chiffre)
+- `ADMIN_EMAIL` : email de contact
 
-Si l'utilisateur existe deja en base, le bootstrap n'ecrase rien.
+**Important** : Le mot de passe doit respecter la politique de sécurité (8+ caractères, au moins 1 majuscule et 1 chiffre).
+
+Si l'utilisateur admin existe déjà en base, le bootstrap ne le régénère pas lors des redémarrages.
+
+Exemple de `.env` sécurisé :
+```
+ADMIN_USERNAME=superadmin
+ADMIN_PASSWORD=SecurePass123
+ADMIN_EMAIL=admin@atelier-moto.local
+```
 
 ## Montages et persistance
 
