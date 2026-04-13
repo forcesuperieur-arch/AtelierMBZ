@@ -1,7 +1,4 @@
-# DEPRECATED: forfaits_mo.py
-# Les routes de gestion des forfaits MO sont maintenant DEPRECIES.
-# Tout tarifaire doit passer par /api/config/prestations.
-# Toggles par categorie moto: is_active dans GrilleTarifaire.
+# DEPRECATED: utiliser /api/config/prestations (routes/prestations_tarifs.py).
 
 from typing import Optional
 
@@ -13,7 +10,6 @@ from models import ConfigAtelier, ForfaitMO, User, get_db
 from schemas.forfaits_mo import ForfaitMOCreate, ForfaitMOUpdate
 
 router = APIRouter(tags=["forfaits-mo"])
-
 
 @router.get("/api/forfaits-mo")
 def get_forfaits_mo(
@@ -62,7 +58,6 @@ def get_forfaits_mo(
         for forfait in forfaits
     ]
 
-
 @router.get("/api/forfaits-mo/{forfait_id}")
 def get_forfait_mo(
     forfait_id: int,
@@ -96,7 +91,6 @@ def get_forfait_mo(
         "created_at": forfait.created_at.isoformat() if forfait.created_at else None,
     }
 
-
 @router.post("/api/forfaits-mo")
 def create_forfait_mo(
     forfait_data: ForfaitMOCreate,
@@ -114,7 +108,6 @@ def create_forfait_mo(
     db.refresh(forfait)
     return {"message": "Forfait créé", "id": forfait.id}
 
-
 @router.put("/api/forfaits-mo/{forfait_id}")
 def update_forfait_mo(
     forfait_id: int,
@@ -125,6 +118,8 @@ def update_forfait_mo(
     """Met à jour un forfait MO."""
     forfait = db.query(ForfaitMO).filter(ForfaitMO.id == forfait_id).first()
     if not forfait:
+        raise HTTPException(status_code=404, detail="Forfait non trouvé")
+    if current_user.role != "super_admin" and forfait.atelier_id != current_user.atelier_id:
         raise HTTPException(status_code=404, detail="Forfait non trouvé")
 
     if forfait_data.code and forfait_data.code != forfait.code:
@@ -139,7 +134,6 @@ def update_forfait_mo(
     db.refresh(forfait)
     return {"message": "Forfait mis à jour", "forfait": get_forfait_mo(forfait_id, db, current_user)}
 
-
 @router.delete("/api/forfaits-mo/{forfait_id}")
 def delete_forfait_mo(
     forfait_id: int,
@@ -149,6 +143,8 @@ def delete_forfait_mo(
     """Désactive un forfait MO."""
     forfait = db.query(ForfaitMO).filter(ForfaitMO.id == forfait_id).first()
     if not forfait:
+        raise HTTPException(status_code=404, detail="Forfait non trouvé")
+    if current_user.role != "super_admin" and forfait.atelier_id != current_user.atelier_id:
         raise HTTPException(status_code=404, detail="Forfait non trouvé")
 
     forfait.is_active = 0

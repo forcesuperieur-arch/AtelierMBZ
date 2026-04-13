@@ -249,18 +249,17 @@ def update_piece(
     current_user: User = Depends(get_current_user),
 ):
     """Met à jour une pièce détachée."""
-    atelier_id = _atelier_id_or_default(current_user)
-    piece = db.query(PieceDetachee).filter(
-        PieceDetachee.id == piece_id,
-        PieceDetachee.atelier_id == atelier_id,
-    ).first()
+    piece_query = db.query(PieceDetachee).filter(PieceDetachee.id == piece_id)
+    if current_user.role != "super_admin":
+        piece_query = piece_query.filter(PieceDetachee.atelier_id == _atelier_id_or_default(current_user))
+    piece = piece_query.first()
     if not piece:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
     if piece_data.reference and piece_data.reference != piece.reference:
         existing = db.query(PieceDetachee).filter(
             PieceDetachee.reference == piece_data.reference,
-            PieceDetachee.atelier_id == atelier_id,
+            PieceDetachee.atelier_id == piece.atelier_id,
             PieceDetachee.id != piece.id,
         ).first()
         if existing:
@@ -281,11 +280,10 @@ def delete_piece(
     current_user: User = Depends(get_current_user),
 ):
     """Supprime une pièce en soft delete."""
-    atelier_id = _atelier_id_or_default(current_user)
-    piece = db.query(PieceDetachee).filter(
-        PieceDetachee.id == piece_id,
-        PieceDetachee.atelier_id == atelier_id,
-    ).first()
+    piece_query = db.query(PieceDetachee).filter(PieceDetachee.id == piece_id)
+    if current_user.role != "super_admin":
+        piece_query = piece_query.filter(PieceDetachee.atelier_id == _atelier_id_or_default(current_user))
+    piece = piece_query.first()
     if not piece:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
@@ -432,11 +430,10 @@ def update_fournisseur(
     current_user: User = Depends(get_current_user),
 ):
     """Met à jour un fournisseur."""
-    atelier_id = _atelier_id_or_default(current_user)
-    fournisseur = db.query(Fournisseur).filter(
-        Fournisseur.id == fournisseur_id,
-        Fournisseur.atelier_id == atelier_id,
-    ).first()
+    fournisseur_query = db.query(Fournisseur).filter(Fournisseur.id == fournisseur_id)
+    if current_user.role != "super_admin":
+        fournisseur_query = fournisseur_query.filter(Fournisseur.atelier_id == _atelier_id_or_default(current_user))
+    fournisseur = fournisseur_query.first()
     if not fournisseur:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
@@ -455,11 +452,10 @@ def delete_fournisseur(
     current_user: User = Depends(get_current_user),
 ):
     """Supprime un fournisseur en soft delete."""
-    atelier_id = _atelier_id_or_default(current_user)
-    fournisseur = db.query(Fournisseur).filter(
-        Fournisseur.id == fournisseur_id,
-        Fournisseur.atelier_id == atelier_id,
-    ).first()
+    fournisseur_query = db.query(Fournisseur).filter(Fournisseur.id == fournisseur_id)
+    if current_user.role != "super_admin":
+        fournisseur_query = fournisseur_query.filter(Fournisseur.atelier_id == _atelier_id_or_default(current_user))
+    fournisseur = fournisseur_query.first()
     if not fournisseur:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
@@ -620,11 +616,10 @@ def update_commande(
     """Met à jour une commande fournisseur."""
     from datetime import datetime
 
-    atelier_id = _atelier_id_or_default(current_user)
-    cmd = db.query(CommandeFournisseur).filter(
-        CommandeFournisseur.id == commande_id,
-        CommandeFournisseur.atelier_id == atelier_id,
-    ).first()
+    cmd_query = db.query(CommandeFournisseur).filter(CommandeFournisseur.id == commande_id)
+    if current_user.role != "super_admin":
+        cmd_query = cmd_query.filter(CommandeFournisseur.atelier_id == _atelier_id_or_default(current_user))
+    cmd = cmd_query.first()
     if not cmd:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
@@ -686,11 +681,10 @@ def delete_commande(
     current_user: User = Depends(get_current_user),
 ):
     """Supprime une commande si elle est encore en attente."""
-    atelier_id = _atelier_id_or_default(current_user)
-    cmd = db.query(CommandeFournisseur).filter(
-        CommandeFournisseur.id == commande_id,
-        CommandeFournisseur.atelier_id == atelier_id,
-    ).first()
+    cmd_query = db.query(CommandeFournisseur).filter(CommandeFournisseur.id == commande_id)
+    if current_user.role != "super_admin":
+        cmd_query = cmd_query.filter(CommandeFournisseur.atelier_id == _atelier_id_or_default(current_user))
+    cmd = cmd_query.first()
     if not cmd:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     if cmd.statut != "en_attente":

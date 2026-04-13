@@ -566,7 +566,11 @@ def create_rendez_vous(
             vehicule_db.client_id = client_db.id
     
     # Source de vérité tarifaire: configuration des prestations
-    prestation = db.query(Prestation).filter(Prestation.nom == rdv.type_intervention, Prestation.atelier_id == atelier_id).first()
+    prestation = db.query(Prestation).filter(
+        Prestation.nom == rdv.type_intervention,
+        Prestation.atelier_id == atelier_id,
+        Prestation.is_active == 1,
+    ).first()
     if not prestation:
         raise HTTPException(
             status_code=400,
@@ -773,10 +777,12 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
         raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
     if not wants_workflow_change and not wants_rdv_edit and not can_edit_rdv:
         raise HTTPException(status_code=403, detail="Permission rdv.edit requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
+    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+    if current_user.role != "super_admin" and rdv.atelier_id != _atelier_id_or_403(current_user):
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+    atelier_id = rdv.atelier_id
     
     previous_status = rdv.statut
     previous_date_rdv = rdv.date_rdv
@@ -923,9 +929,10 @@ def delete_rendez_vous(rdv_id: int, db: Session = Depends(get_db), current_user:
     """Supprime un rendez-vous"""
     if not (_user_has_permission(current_user, db, "workflow.manage") or _user_has_permission(current_user, db, "rdv.edit")):
         raise HTTPException(status_code=403, detail="Permission workflow.manage ou rdv.edit requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
+    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id).first()
     if not rdv:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+    if current_user.role != "super_admin" and rdv.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
 
     db.delete(rdv)

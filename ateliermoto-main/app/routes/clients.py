@@ -253,9 +253,10 @@ def get_client(client_id: int, db: Session = Depends(get_db), current_user: User
 def update_client(client_id: int, update_data: ClientUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Met à jour les informations d'un client"""
     _ensure_clients_edit(current_user, db)
-    atelier_id = _atelier_id_or_403(current_user)
-    client = db.query(Client).filter(Client.id == client_id, Client.atelier_id == atelier_id).first()
+    client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+    if current_user.role != "super_admin" and client.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Client non trouvé")
     
     if update_data.nom:
@@ -312,9 +313,10 @@ def add_vehicule_to_client(client_id: int, vehicule_data: VehiculeCreate, db: Se
 def update_vehicule(vehicule_id: int, update_data: VehiculeUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Met à jour les informations d'un véhicule"""
     _ensure_clients_edit(current_user, db)
-    atelier_id = _atelier_id_or_403(current_user)
-    vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id, Vehicule.atelier_id == atelier_id).first()
+    vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id).first()
     if not vehicule:
+        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
+    if current_user.role != "super_admin" and vehicule.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")
 
     if update_data.plaque is not None:
@@ -338,9 +340,10 @@ def update_vehicule(vehicule_id: int, update_data: VehiculeUpdate, db: Session =
 def delete_vehicule(vehicule_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un véhicule s'il n'a pas de vrais RDV"""
     _ensure_clients_edit(current_user, db)
-    atelier_id = _atelier_id_or_403(current_user)
-    vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id, Vehicule.atelier_id == atelier_id).first()
+    vehicule = db.query(Vehicule).filter(Vehicule.id == vehicule_id).first()
     if not vehicule:
+        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
+    if current_user.role != "super_admin" and vehicule.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")
     real_rdvs = [r for r in vehicule.rendez_vous if r.statut != 'annule']
     if real_rdvs:
@@ -355,9 +358,10 @@ def delete_vehicule(vehicule_id: int, db: Session = Depends(get_db), current_use
 def delete_client(client_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Supprime un client (si pas de RDV)"""
     _ensure_clients_edit(current_user, db)
-    atelier_id = _atelier_id_or_403(current_user)
-    client = db.query(Client).filter(Client.id == client_id, Client.atelier_id == atelier_id).first()
+    client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+    if current_user.role != "super_admin" and client.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Client non trouvé")
     
     if client.rendez_vous:

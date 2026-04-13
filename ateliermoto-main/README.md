@@ -147,6 +147,9 @@ docker compose build backend && docker compose up -d backend
 # Shell dans le conteneur backend
 docker compose exec backend bash
 
+# Controle des regles hygiene code (<= 200 lignes + secrets en dur)
+./scripts/check_code_hygiene.sh
+
 # Sauvegarde PostgreSQL (dumps stockés dans ../backups/)
 ./scripts/db-backup.sh
 

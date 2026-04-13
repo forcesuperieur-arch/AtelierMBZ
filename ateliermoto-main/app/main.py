@@ -185,21 +185,6 @@ from routes.admin_avance import router as admin_avance_router
 app.include_router(admin_avance_router)
 
 
-# ==================== ENDPOINTS PUBLICS / TARIFS ====================
-# Les endpoints publics de prise de rendez-vous sont désormais
-# centralisés dans `routes.public_booking`.
-
-
-# ==================== ENDPOINTS GESTION DES TARIFS ====================
-# Les endpoints `api/prestations`, `api/grilles-tarifaires` et la synthèse tarifaire
-# sont désormais centralisés dans `routes.prestations_tarifs`.
-
-
-# ========== BASE MOTO / TRAVAUX SUPPLÉMENTAIRES ==========
-# Les routes correspondantes sont désormais centralisées dans
-# `routes.moto_base` et `routes.travaux_supp`.
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

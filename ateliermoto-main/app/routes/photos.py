@@ -121,6 +121,8 @@ def delete_photo(
     photo = db.query(PhotoIntervention).filter(PhotoIntervention.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo non trouvée")
+    if current_user.role != "super_admin" and photo.atelier_id != current_user.atelier_id:
+        raise HTTPException(status_code=404, detail="Photo non trouvée")
 
     # Delete file
     file_path = PHOTOS_DIR / photo.filename
@@ -143,6 +145,8 @@ def update_annotation(
     """Met à jour les annotations d'une photo."""
     photo = db.query(PhotoIntervention).filter(PhotoIntervention.id == photo_id).first()
     if not photo:
+        raise HTTPException(status_code=404, detail="Photo non trouvée")
+    if current_user.role != "super_admin" and photo.atelier_id != current_user.atelier_id:
         raise HTTPException(status_code=404, detail="Photo non trouvée")
 
     if annotation_json:

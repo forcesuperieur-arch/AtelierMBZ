@@ -137,6 +137,9 @@ def resolve_prestation_pricing(
     vehicule: Optional[Vehicule] = None,
     strict: bool = True,
 ) -> PricingResult:
+    if int(getattr(prestation, "is_active", 1) or 0) != 1:
+        raise PricingConfigError(f"La prestation '{prestation.nom}' est desactivee")
+
     mode = normalize_mode_tarification(prestation.type_tarif)
     base_temps = int(prestation.temps_estime_minutes or 0)
     if base_temps <= 0:

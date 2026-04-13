@@ -287,6 +287,8 @@ def update_devis(
     devis = db.query(Devis).filter(Devis.id == devis_id).first()
     if not devis:
         raise HTTPException(status_code=404, detail="Devis non trouvé")
+    if current_user.role != "super_admin" and devis.atelier_id != current_user.atelier_id:
+        raise HTTPException(status_code=404, detail="Devis non trouvé")
 
     for field, value in devis_data.model_dump(exclude_unset=True).items():
         setattr(devis, field, value)
@@ -347,6 +349,8 @@ def delete_devis(
     """Supprime un devis."""
     devis = db.query(Devis).filter(Devis.id == devis_id).first()
     if not devis:
+        raise HTTPException(status_code=404, detail="Devis non trouvé")
+    if current_user.role != "super_admin" and devis.atelier_id != current_user.atelier_id:
         raise HTTPException(status_code=404, detail="Devis non trouvé")
 
     if devis.statut == "converti":

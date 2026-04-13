@@ -952,8 +952,14 @@ window.RdvModule = window.RdvModule || {
 
     getPrestaTarif: function(it) {
         var RDV = window.RdvModule.getRdvState();
-        var t = it.tarifs && it.tarifs[RDV.motoType];
-        if (t) return { prix_ttc: t.prix_ttc, temps_minutes: t.temps_minutes };
+        var catId = RDV.vehicule && RDV.vehicule.categorie_id != null ? String(RDV.vehicule.categorie_id) : '';
+        var byCatId = it.tarifs_by_categorie_id && catId ? it.tarifs_by_categorie_id[catId] : null;
+        if (byCatId) return { prix_ttc: byCatId.prix_ttc, temps_minutes: byCatId.temps_minutes };
+
+        var byTypeLabel = it.tarifs && RDV.motoType ? it.tarifs[RDV.motoType] : null;
+        if (byTypeLabel) return { prix_ttc: byTypeLabel.prix_ttc, temps_minutes: byTypeLabel.temps_minutes };
+
+        if (it.has_tarifs_categorie) return null;
         return { prix_ttc: it.prix_base_ttc || 0, temps_minutes: it.temps_estime_minutes || 30 };
     },
 
@@ -961,9 +967,22 @@ window.RdvModule = window.RdvModule || {
         var RDV = window.RdvModule.getRdvState();
         if (RDV.interventions.length > 0) { window.RdvModule.renderPrestations(); return; }
         var atelierSlug = window.RdvModule.getCurrentAtelierSlug();
-        apiGet('/api/prestations/public?atelier_slug=' + encodeURIComponent(atelierSlug)).then(function(r) { return r.json(); }).then(function(data) {
+        var categorieMotoId = RDV.vehicule && RDV.vehicule.categorie_id != null ? String(RDV.vehicule.categorie_id) : '';
+        var qs = '/api/prestations/public?atelier_slug=' + encodeURIComponent(atelierSlug);
+        if (categorieMotoId) qs += '&categorie_moto_id=' + encodeURIComponent(categorieMotoId);
+        apiGet(qs).then(function(r) { return r.json(); }).then(function(data) {
             RDV.interventions = (Array.isArray(data) ? data : []).map(function(it) {
-                return { id: it.id, nom: it.nom, description: it.description || '', prix_base_ttc: it.prix_base_ttc != null ? it.prix_base_ttc : (it.prix_base || 0), temps_estime_minutes: it.temps_estime_minutes != null ? it.temps_estime_minutes : (it.temps_estime || 30), tarifs: it.grille || it.tarifs || {}, delai_intervention_jours: it.delai_intervention_jours != null ? it.delai_intervention_jours : 1 };
+                return {
+                    id: it.id,
+                    nom: it.nom,
+                    description: it.description || '',
+                    prix_base_ttc: it.prix_base_ttc != null ? it.prix_base_ttc : (it.prix_base || 0),
+                    temps_estime_minutes: it.temps_estime_minutes != null ? it.temps_estime_minutes : (it.temps_estime || 30),
+                    tarifs: it.grille || it.tarifs || {},
+                    tarifs_by_categorie_id: it.tarifs_by_categorie_id || {},
+                    has_tarifs_categorie: !!it.has_tarifs_categorie,
+                    delai_intervention_jours: it.delai_intervention_jours != null ? it.delai_intervention_jours : 1,
+                };
             });
             window.RdvModule.renderPrestations();
         }).catch(function() {
@@ -977,11 +996,12 @@ window.RdvModule = window.RdvModule || {
         if (!container) return;
         var html = '';
         RDV.interventions.forEach(function(it) {
-            var selected = RDV.selected.indexOf(it.id) !== -1;
             var tarif = window.RdvModule.getPrestaTarif(it);
+            if (!tarif) return;
+            var selected = RDV.selected.indexOf(it.id) !== -1;
             html += '<div class="presta-card' + (selected ? ' selected' : '') + '" onclick="togglePresta(' + it.id + ')"><div class="presta-check">' + (selected ? '✓' : '') + '</div><div class="presta-info"><div class="presta-name">' + escapeHtml(it.nom) + '</div><div class="presta-detail">' + escapeHtml(it.description || '') + '</div></div><div class="presta-price">' + Number(tarif.prix_ttc || 0).toFixed(2) + ' EUR</div></div>';
         });
-        container.innerHTML = html;
+        container.innerHTML = html || '<div style="color:#666">Aucune prestation disponible pour ce type de moto.</div>';
         window.RdvModule.updateRecap();
     },
 
@@ -1020,6 +1040,7 @@ window.RdvModule = window.RdvModule || {
             var it = RDV.interventions.find(function(x) { return x.id === id; });
             if (!it) return;
             var tarif = window.RdvModule.getPrestaTarif(it);
+            if (!tarif) return;
             var p = Number(tarif.prix_ttc || 0);
             var t = parseInt(tarif.temps_minutes || 0, 10) || 0;
             prix += p; temps += t;

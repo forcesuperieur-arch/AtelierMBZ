@@ -43,10 +43,11 @@ class RendezVousPublicCreate(BaseModel):
 @router.get("/api/prestations/public")
 def get_prestations_public(
     atelier_slug: Optional[str] = "default",
+    categorie_moto_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
     """Liste les prestations actives avec grille tarifaire par type moto (sans auth)."""
-    return get_prestations_public_handler(atelier_slug, db)
+    return get_prestations_public_handler(atelier_slug, db, categorie_moto_id=categorie_moto_id)
 
 
 @router.post("/api/rendez-vous/public")
@@ -217,7 +218,11 @@ async def fetch_api_plaque_immatriculation(plaque: str):
         return None
 
 
-def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
+def get_prestations_public_handler(
+    atelier_slug: Optional[str],
+    db: Session,
+    categorie_moto_id: Optional[int] = None,
+):
     """Liste les prestations actives avec grille tarifaire par type moto (sans auth)."""
     try:
         atelier = _resolve_atelier(db, atelier_slug)
@@ -231,6 +236,7 @@ def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
         return []
 
     grilles_par_presta = {}
+    grilles_par_presta_by_cat_id = {}
     try:
         grilles = db.query(GrilleTarifaire, CategorieMoto.nom).join(
             CategorieMoto, GrilleTarifaire.categorie_moto_id == CategorieMoto.id
@@ -246,11 +252,31 @@ def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
                 "prix_ht": grille.prix_ht,
                 "temps_minutes": grille.temps_minutes,
             }
+            grilles_par_presta_by_cat_id.setdefault(grille.prestation_id, {})[str(grille.categorie_moto_id)] = {
+                "prix_ttc": grille.prix_ttc,
+                "prix_ht": grille.prix_ht,
+                "temps_minutes": grille.temps_minutes,
+            }
     except OperationalError as exc:
         logger.warning("Fallback tarifs publics sans categorie_moto_id: %s", exc)
 
+    vehicule_context = Vehicule(categorie_id=categorie_moto_id) if categorie_moto_id is not None else None
     result = []
     for prestation in prestations:
+        pricing = None
+        if vehicule_context is not None:
+            try:
+                pricing = resolve_prestation_pricing(
+                    db,
+                    atelier_id=atelier_id,
+                    prestation=prestation,
+                    vehicule=vehicule_context,
+                    strict=True,
+                )
+            except PricingConfigError:
+                # Toggle categorie OFF (ou configuration manquante): on masque la prestation.
+                continue
+
         result.append({
             "id": prestation.id,
             "code": prestation.code,
@@ -258,14 +284,20 @@ def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
             "description": prestation.description,
             "categorie": prestation.categorie,
             "type_tarif": prestation.type_tarif,
-            "mode_tarification": normalize_mode_tarification(prestation.type_tarif),
-            "prix_base_ttc": prestation.prix_promo_ttc if prestation.is_promo and prestation.prix_promo_ttc else prestation.prix_base_ttc,
+            "mode_tarification": pricing.mode_tarification if pricing else normalize_mode_tarification(prestation.type_tarif),
+            "prix_base_ttc": (
+                pricing.prix_ttc
+                if pricing and pricing.prix_ttc is not None
+                else (prestation.prix_promo_ttc if prestation.is_promo and prestation.prix_promo_ttc else prestation.prix_base_ttc)
+            ),
             "prix_base_ht": prestation.prix_base_ht,
-            "temps_estime_minutes": prestation.temps_estime_minutes,
+            "temps_estime_minutes": pricing.temps_minutes if pricing else prestation.temps_estime_minutes,
             "is_forfait": prestation.is_forfait,
             "is_promo": prestation.is_promo,
             "prix_promo_ttc": prestation.prix_promo_ttc,
             "tarifs": grilles_par_presta.get(prestation.id, {}),
+            "tarifs_by_categorie_id": grilles_par_presta_by_cat_id.get(prestation.id, {}),
+            "has_tarifs_categorie": bool(grilles_par_presta_by_cat_id.get(prestation.id, {})),
         })
     return result
 
@@ -406,6 +438,7 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
     prestations = db.query(Prestation).filter(
         Prestation.id.in_(rdv_data.prestations),
         Prestation.atelier_id == atelier_id,
+        Prestation.is_active == 1,
     ).all()
     if len(prestations) != len(set(rdv_data.prestations or [])):
         raise HTTPException(status_code=400, detail="Une ou plusieurs prestations sont introuvables pour cet atelier")

@@ -19,7 +19,7 @@ services:
   init:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     container_name: atelier-init
     env_file:
       - ./.env
@@ -45,7 +45,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     container_name: atelier-backend
     env_file:
       - ./.env

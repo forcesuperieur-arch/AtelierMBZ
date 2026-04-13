@@ -174,12 +174,10 @@ def annuler_rappel(
 ):
     """Annule un rappel programmé."""
     _ensure_perm(current_user, db, "rdv.edit")
-    atelier_id = _atelier_id(current_user)
-
-    rappel = db.query(RappelEmail).filter(
-        RappelEmail.id == rappel_id, RappelEmail.atelier_id == atelier_id
-    ).first()
+    rappel = db.query(RappelEmail).filter(RappelEmail.id == rappel_id).first()
     if not rappel:
+        raise HTTPException(status_code=404, detail="Rappel non trouvé")
+    if current_user.role != "super_admin" and rappel.atelier_id != _atelier_id(current_user):
         raise HTTPException(status_code=404, detail="Rappel non trouvé")
     if rappel.statut != "programme":
         raise HTTPException(status_code=400, detail="Seuls les rappels programmés peuvent être annulés")

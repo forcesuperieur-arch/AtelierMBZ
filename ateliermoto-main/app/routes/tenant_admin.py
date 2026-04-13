@@ -9,7 +9,17 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, get_password_hash, is_password_strong
-from models import Atelier, Mecanicien, Pont, RendezVous, User, UserAtelierRole, get_db
+from models import (
+    Atelier,
+    AuditLog,
+    DemandeTravauxSupp,
+    Mecanicien,
+    Pont,
+    RendezVous,
+    User,
+    UserAtelierRole,
+    get_db,
+)
 from routes.auth_api import get_allowed_roles, normalize_role_slug, require_role, user_has_permission
 
 router = APIRouter(tags=["tenant-admin"])
@@ -181,7 +191,22 @@ def _delete_mecanicien_for_user(db: Session, user: User):
             )
         ).update({"mecanicien_id": None, "pont_id": None}, synchronize_session=False)
         db.query(Pont).filter(Pont.mecanicien_id == mecano.id).update({"mecanicien_id": None}, synchronize_session=False)
+        mecano.user_id = None
         mecano.is_active = 0
+
+
+def _hard_delete_user(db: Session, user: User) -> None:
+    """Suppression forte d'un utilisateur avec nettoyage des references FK."""
+    _delete_mecanicien_for_user(db, user)
+
+    # Nettoyage references vers users.id pour eviter un blocage FK.
+    db.query(UserAtelierRole).filter(UserAtelierRole.user_id == user.id).delete(synchronize_session=False)
+    db.query(AuditLog).filter(AuditLog.user_id == user.id).update({"user_id": None}, synchronize_session=False)
+    db.query(DemandeTravauxSupp).filter(DemandeTravauxSupp.approved_by == user.id).update(
+        {"approved_by": None}, synchronize_session=False
+    )
+
+    db.delete(user)
 
 
 def _ensure_users_manage(current_user: User, db: Session) -> None:
@@ -333,8 +358,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte")
 
-    _delete_mecanicien_for_user(db, user)
-    db.delete(user)
+    _hard_delete_user(db, user)
     db.commit()
 
     return {"message": "Utilisateur supprimé avec succès"}

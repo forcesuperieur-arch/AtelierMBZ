@@ -241,9 +241,10 @@ def update_pont(
     """Met à jour un pont"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    db_pont = db.query(Pont).filter(Pont.id == pont_id, Pont.atelier_id == atelier_id).first()
+    db_pont = db.query(Pont).filter(Pont.id == pont_id).first()
     if not db_pont:
+        raise HTTPException(status_code=404, detail="Pont non trouvé")
+    if current_user.role != "super_admin" and db_pont.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Pont non trouvé")
 
     db_pont.nom = pont.nom
@@ -266,10 +267,12 @@ def delete_pont(
     """Supprime un pont (soft delete)"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    db_pont = db.query(Pont).filter(Pont.id == pont_id, Pont.atelier_id == atelier_id).first()
+    db_pont = db.query(Pont).filter(Pont.id == pont_id).first()
     if not db_pont:
         raise HTTPException(status_code=404, detail="Pont non trouvé")
+    if current_user.role != "super_admin" and db_pont.atelier_id != _atelier_id_or_403(current_user):
+        raise HTTPException(status_code=404, detail="Pont non trouvé")
+    atelier_id = db_pont.atelier_id
     
     db_pont.is_active = 0
     # Desaffecter le mecanicien du pont supprime
@@ -351,9 +354,10 @@ def update_mecanicien(
     """Met à jour un mécanicien"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
+    db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id).first()
     if not db_mecanicien:
+        raise HTTPException(status_code=404, detail="Mécanicien non trouvé")
+    if current_user.role != "super_admin" and db_mecanicien.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Mécanicien non trouvé")
     
     db_mecanicien.nom = mecanicien.nom
@@ -375,10 +379,12 @@ def delete_mecanicien(
     """Supprime un mécanicien (soft delete)"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
+    db_mecanicien = db.query(Mecanicien).filter(Mecanicien.id == mecanicien_id).first()
     if not db_mecanicien:
         raise HTTPException(status_code=404, detail="Mécanicien non trouvé")
+    if current_user.role != "super_admin" and db_mecanicien.atelier_id != _atelier_id_or_403(current_user):
+        raise HTTPException(status_code=404, detail="Mécanicien non trouvé")
+    atelier_id = db_mecanicien.atelier_id
     
     db_mecanicien.is_active = 0
     db.query(Pont).filter(Pont.mecanicien_id == mecanicien_id, Pont.atelier_id == atelier_id).update(
@@ -456,10 +462,12 @@ def update_absence(
     """Met à jour une absence"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    db_absence = db.query(Absence).filter(Absence.id == absence_id, Absence.atelier_id == atelier_id).first()
+    db_absence = db.query(Absence).filter(Absence.id == absence_id).first()
     if not db_absence:
         raise HTTPException(status_code=404, detail="Absence non trouvée")
+    if current_user.role != "super_admin" and db_absence.atelier_id != _atelier_id_or_403(current_user):
+        raise HTTPException(status_code=404, detail="Absence non trouvée")
+    atelier_id = db_absence.atelier_id
 
     mecano = db.query(Mecanicien).filter(Mecanicien.id == absence.mecanicien_id, Mecanicien.atelier_id == atelier_id).first()
     if not mecano:
@@ -483,9 +491,10 @@ def delete_absence(
     """Supprime une absence"""
     if not _user_has_permission(current_user, db, "workshop.manage"):
         raise HTTPException(status_code=403, detail="Permission workshop.manage requise")
-    atelier_id = _atelier_id_or_403(current_user)
-    absence = db.query(Absence).filter(Absence.id == absence_id, Absence.atelier_id == atelier_id).first()
+    absence = db.query(Absence).filter(Absence.id == absence_id).first()
     if not absence:
+        raise HTTPException(status_code=404, detail="Absence non trouvée")
+    if current_user.role != "super_admin" and absence.atelier_id != _atelier_id_or_403(current_user):
         raise HTTPException(status_code=404, detail="Absence non trouvée")
     
     db.delete(absence)

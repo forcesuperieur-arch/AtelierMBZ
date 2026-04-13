@@ -136,9 +136,16 @@ def _validate_and_normalize_prestation_payload(payload: dict, *, partial: bool =
 
 
 @router.get("/api/interventions")
-def get_interventions(db: Session = Depends(get_db)):
-    """Backward-compat: retourne les prestations au format InterventionType."""
-    prestations = db.query(Prestation).filter(Prestation.is_active == 1).order_by(Prestation.categorie, Prestation.nom).all()
+def get_interventions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Backward-compat: retourne les prestations actives du tenant au format InterventionType."""
+    atelier_id = int(getattr(current_user, "atelier_id", None) or 1)
+    prestations = db.query(Prestation).filter(
+        Prestation.is_active == 1,
+        Prestation.atelier_id == atelier_id,
+    ).order_by(Prestation.categorie, Prestation.nom).all()
     return [
         {
             "id": prestation.id,
@@ -497,7 +504,10 @@ def update_prestation(
     current_user: User = Depends(get_current_user),
 ):
     """Met à jour une prestation."""
-    prestation = db.query(Prestation).filter(Prestation.id == prestation_id).first()
+    query = db.query(Prestation).filter(Prestation.id == prestation_id)
+    if current_user.role != "super_admin":
+        query = query.filter(Prestation.atelier_id == int(getattr(current_user, "atelier_id", None) or 1))
+    prestation = query.first()
     if not prestation:
         raise HTTPException(status_code=404, detail="Prestation non trouvée")
 
@@ -525,7 +535,10 @@ def delete_prestation(
     current_user: User = Depends(get_current_user),
 ):
     """Désactive une prestation."""
-    prestation = db.query(Prestation).filter(Prestation.id == prestation_id).first()
+    query = db.query(Prestation).filter(Prestation.id == prestation_id)
+    if current_user.role != "super_admin":
+        query = query.filter(Prestation.atelier_id == int(getattr(current_user, "atelier_id", None) or 1))
+    prestation = query.first()
     if not prestation:
         raise HTTPException(status_code=404, detail="Prestation non trouvée")
 
@@ -601,7 +614,10 @@ def delete_grille_tarifaire(
     current_user: User = Depends(get_current_user),
 ):
     """Désactive une grille tarifaire."""
-    grille = db.query(GrilleTarifaire).filter(GrilleTarifaire.id == grille_id).first()
+    query = db.query(GrilleTarifaire).filter(GrilleTarifaire.id == grille_id)
+    if current_user.role != "super_admin":
+        query = query.filter(GrilleTarifaire.atelier_id == int(getattr(current_user, "atelier_id", None) or 1))
+    grille = query.first()
     if not grille:
         raise HTTPException(status_code=404, detail="Grille tarifaire non trouvée")
 

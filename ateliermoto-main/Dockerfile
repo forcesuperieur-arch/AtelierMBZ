@@ -10,10 +10,10 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends postgresql-client \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /tmp/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-COPY backend/ /app/
+COPY app/ /app/
 COPY frontend/ /app/static/
 
 RUN mkdir -p /app/backups /app/signatures /app/data/photos /app/data/logos /app/run/secrets

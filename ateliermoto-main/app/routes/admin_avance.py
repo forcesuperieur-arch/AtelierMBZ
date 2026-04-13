@@ -239,6 +239,8 @@ def update_email_template(
     template = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template non trouvé")
+    if current_user.role != "super_admin" and template.atelier_id != (getattr(current_user, "atelier_id", None) or 1):
+        raise HTTPException(status_code=404, detail="Template non trouvé")
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(template, field, value)
@@ -267,6 +269,8 @@ def delete_email_template(
 
     template = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
     if not template:
+        raise HTTPException(status_code=404, detail="Template non trouvé")
+    if current_user.role != "super_admin" and template.atelier_id != (getattr(current_user, "atelier_id", None) or 1):
         raise HTTPException(status_code=404, detail="Template non trouvé")
 
     db.delete(template)
