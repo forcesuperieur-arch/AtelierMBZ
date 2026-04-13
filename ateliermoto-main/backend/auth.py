@@ -213,30 +213,30 @@ def get_current_atelier_id(current_user: User = Depends(get_current_user)) -> in
 
 def create_default_users(db: Session):
     """Crée un superadmin initial seulement si explicitement configuré via ENV"""
-    bootstrap_username = os.getenv("ADMIN_USERNAME")
-    bootstrap_password = os.getenv("ADMIN_PASSWORD")
-    bootstrap_email = os.getenv("ADMIN_EMAIL", "admin@atelier-moto.fr")
+    bootstrap_username = os.getenv("SUPERADMIN_USERNAME")
+    bootstrap_password = os.getenv("SUPERADMIN_PASSWORD")
+    bootstrap_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@atelier-moto.fr")
 
     if not bootstrap_username or not bootstrap_password:
-        logger.info("Aucune variable ADMIN_USERNAME/PASSWORD définie — pas de superadmin créé")
+        logger.info("Aucune variable SUPERADMIN_USERNAME/PASSWORD définie — pas de superadmin créé")
         return
 
     if not is_password_strong(bootstrap_password):
-        raise ValueError("ADMIN_PASSWORD doit avoir 8+ caractères, 1 majuscule et 1 chiffre")
+        raise ValueError("SUPERADMIN_PASSWORD doit avoir 8+ caractères, 1 majuscule et 1 chiffre")
 
     existing = db.query(User).filter(User.username == bootstrap_username).first()
     if existing:
-        logger.info(f"Utilisateur admin {bootstrap_username} existe déjà — pas de régénération")
+        logger.info(f"Utilisateur superadmin {bootstrap_username} existe déjà — pas de régénération")
         return
 
-    default_atelier = db.query(Atelier).filter(Atelier.slug == "default").first()
-    admin = User(
+    # Superadmin n'est lié à aucun atelier spécifique
+    superadmin = User(
         username=bootstrap_username,
         email=bootstrap_email,
         hashed_password=get_password_hash(bootstrap_password),
-        role="admin",
-        atelier_id=default_atelier.id if default_atelier else None
+        role="super_admin",
+        atelier_id=None
     )
-    db.add(admin)
+    db.add(superadmin)
     db.commit()
-    logger.info(f"✓ Superadmin créé: {bootstrap_username} ({bootstrap_email}) avec rôle admin")
+    logger.info(f"✓ Superadmin créé: {bootstrap_username} ({bootstrap_email}) avec rôle super_admin")

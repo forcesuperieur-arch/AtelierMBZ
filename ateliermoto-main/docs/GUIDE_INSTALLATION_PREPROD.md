@@ -163,19 +163,21 @@ Autrement dit :
 
 Le compte superadmin est créé automatiquement au premier démarrage si ces variables sont renseignées dans `.env` :
 
-- `ADMIN_USERNAME` : nom d'utilisateur (ex: `admin`)
-- `ADMIN_PASSWORD` : mot de passe sécurisé (min 8 caractères, 1 majuscule, 1 chiffre)
-- `ADMIN_EMAIL` : email de contact
+- `SUPERADMIN_USERNAME` : nom d'utilisateur (ex: `superadmin`)
+- `SUPERADMIN_PASSWORD` : mot de passe sécurisé (min 8 caractères, 1 majuscule, 1 chiffre)
+- `SUPERADMIN_EMAIL` : email de contact
 
-**Important** : Le mot de passe doit respecter la politique de sécurité (8+ caractères, au moins 1 majuscule et 1 chiffre).
-
-Si l'utilisateur admin existe déjà en base, le bootstrap ne le régénère pas lors des redémarrages.
+**Important** :
+- Le mot de passe doit respecter la politique de sécurité (8+ caractères, au moins 1 majuscule et 1 chiffre)
+- Le rôle `super_admin` donne accès **global** à tous les ateliers (pas lié à un atelier spécifique)
+- Si le superadmin existe déjà en base, le bootstrap ne le régénère pas lors des redémarrages
+- Le rôle `super_admin` n'est pas modifiable par les administrateurs
 
 Exemple de `.env` sécurisé :
 ```
-ADMIN_USERNAME=superadmin
-ADMIN_PASSWORD=SecurePass123
-ADMIN_EMAIL=admin@atelier-moto.local
+SUPERADMIN_USERNAME=superadmin
+SUPERADMIN_PASSWORD=SecurePass123
+SUPERADMIN_EMAIL=admin@atelier-moto.local
 ```
 
 ## Montages et persistance
