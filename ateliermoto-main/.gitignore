@@ -9,7 +9,6 @@ __pycache__/
 .pytest_cache/
 
 # Local environment
-.env
 backend/.env
 
 # Runtime data
