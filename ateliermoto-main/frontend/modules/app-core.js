@@ -1,10 +1,10 @@
 window.ROLE_SECTIONS = window.ROLE_SECTIONS || {
-    mecanicien: ['dashboard', 'planning', 'or', 'motos', 'espace-meca'],
-    receptionnaire: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
-    service_client: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca'],
-    manager: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'],
-    admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin'],
-    super_admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'espace-meca', 'admin']
+    mecanicien: ['dashboard', 'planning', 'or', 'motos', 'vehicule-history', 'espace-meca'],
+    receptionnaire: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'vehicule-history', 'devis', 'espace-meca'],
+    service_client: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'vehicule-history', 'devis', 'espace-meca'],
+    manager: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'vehicule-history', 'devis', 'espace-meca', 'admin'],
+    admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'vehicule-history', 'devis', 'espace-meca', 'admin'],
+    super_admin: ['dashboard', 'rdv', 'planning', 'ponts', 'or', 'suivi', 'motos', 'clients', 'vehicule-history', 'devis', 'espace-meca', 'admin']
 };
 var ROLE_SECTIONS = window.ROLE_SECTIONS;
 
@@ -13,10 +13,11 @@ window.RBAC_SECTION_LABELS = window.RBAC_SECTION_LABELS || {
     'rdv': 'Prise de RDV',
     'planning': 'Planning',
     'ponts': 'Ponts & mecaniciens',
-    'or': 'Ordres de reparation',
+    'or': 'Dossiers atelier',
     'suivi': 'Suivi live',
     'motos': 'Fiches moto',
-    'clients': 'Clients',
+    'clients': 'Clients & vehicules',
+    'vehicule-history': 'Historique vehicule',
     'espace-meca': 'Espace mecanicien',
     'admin': 'Administration'
 };
@@ -102,6 +103,8 @@ window.AppCoreModule = window.AppCoreModule || {
             window.AppCoreModule.applyRoleVisibility(me.role);
         }).catch(function() {});
 
+        window.AppCoreModule.loadAtelierBranding();
+
         window.AppCoreModule.loadBaseData().then(function() {
             var role = getAuthRole();
             var allowed = window.AppCoreModule.getAllowedSections(role || '');
@@ -117,6 +120,23 @@ window.AppCoreModule = window.AppCoreModule || {
                 pollTravauxSupp();
             }
         }, 30000);
+    },
+
+    loadAtelierBranding: function() {
+        apiGet('/api/config/atelier-info').then(function(r) { return r.json(); }).then(function(info) {
+            APP.atelierInfo = info;
+            var logoBtn = document.querySelector('.sidebar .logo');
+            if (logoBtn && info.logo_url) {
+                logoBtn.innerHTML = '<img src="' + info.logo_url + '" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">';
+            } else if (logoBtn && info.nom) {
+                logoBtn.textContent = (info.nom || 'M').charAt(0).toUpperCase();
+            }
+            if (info.nom) {
+                document.title = info.nom;
+                var loginTitle = document.querySelector('.login-box h2');
+                if (loginTitle) loginTitle.textContent = info.nom;
+            }
+        }).catch(function() {});
     },
 
     loadBaseData: function() {
@@ -166,6 +186,7 @@ window.AppCoreModule = window.AppCoreModule || {
             suivi: 'nav-suivi',
             motos: 'nav-motos',
             clients: 'nav-clients',
+            devis: 'nav-devis',
             admin: 'nav-admin'
         };
         Object.keys(sectionToNav).forEach(function(section) {
@@ -175,7 +196,7 @@ window.AppCoreModule = window.AppCoreModule || {
         var btnNouveauRdv = document.getElementById('btn-nouveau-rdv');
         if (btnNouveauRdv) btnNouveauRdv.style.display = allowed.indexOf('rdv') !== -1 ? '' : 'none';
         var navFactures = document.getElementById('nav-factures');
-        if (navFactures) navFactures.style.display = window.AppCoreModule.canUseBilling() ? '' : 'none';
+        if (navFactures) navFactures.style.display = 'none';
     },
 
     formatRbacBadges: function(items, type) {
@@ -189,8 +210,17 @@ window.AppCoreModule = window.AppCoreModule || {
     },
 
     getAllowedSections: function(role) {
-        if (APP.roleSections && APP.roleSections.length) return APP.roleSections;
-        return ROLE_SECTIONS[role] || ROLE_SECTIONS.admin;
+        var sections = APP.roleSections && APP.roleSections.length
+            ? APP.roleSections.slice()
+            : (ROLE_SECTIONS[role] || ROLE_SECTIONS.admin).slice();
+        if (sections.indexOf('clients') !== -1 && sections.indexOf('vehicule-history') === -1) {
+            sections.push('vehicule-history');
+        }
+        // Devis accessible to all non-mecanicien roles that have rdv access
+        if (sections.indexOf('rdv') !== -1 && sections.indexOf('devis') === -1) {
+            sections.push('devis');
+        }
+        return sections;
     },
 
     showSection: function(id) {
@@ -214,10 +244,12 @@ window.AppCoreModule = window.AppCoreModule || {
             'rdv': 'Prise de RDV',
             'planning': 'Planning',
             'ponts': 'Ponts & Mecaniciens',
-            'or': 'Ordres de Reparation',
+            'or': 'Dossiers atelier',
             'suivi': 'Suivi Live',
             'motos': 'Fiches moto',
-            'clients': 'Clients',
+            'clients': 'Clients & Vehicules',
+            'vehicule-history': 'Historique vehicule',
+            'devis': 'Devis',
             'espace-meca': 'Espace Mecanicien',
             'admin': 'Administration'
         };
@@ -232,6 +264,8 @@ window.AppCoreModule = window.AppCoreModule || {
             suivi: 'nav-suivi',
             motos: 'nav-motos',
             clients: 'nav-clients',
+            'vehicule-history': 'nav-clients',
+            devis: 'nav-devis',
             admin: 'nav-admin'
         };
         var activeNav = sectionToNav[id];
@@ -248,7 +282,11 @@ window.AppCoreModule = window.AppCoreModule || {
         if (id === 'suivi') loadSuiviLive();
         if (id === 'motos') loadMotoTechExplorer();
         if (id === 'clients') loadClients();
+        if (id === 'vehicule-history' && window.ClientsModule && typeof window.ClientsModule.loadVehiculeHistoryPage === 'function') {
+            window.ClientsModule.loadVehiculeHistoryPage();
+        }
         if (id === 'espace-meca') loadEspaceMeca();
+        if (id === 'devis') loadDevisList();
         if (id === 'admin') {
             var navAdmin = document.getElementById('nav-admin');
             if (navAdmin) navAdmin.classList.add('active');
@@ -285,12 +323,15 @@ window.AppCoreModule = window.AppCoreModule || {
 
     refreshCurrentSection: function() {
         if (APP.currentSection === 'dashboard') loadDashboard();
+        else if (APP.currentSection === 'rdv') loadRdvForm();
         else if (APP.currentSection === 'or') loadOrdresReparation();
         else if (APP.currentSection === 'suivi') loadSuiviLive();
         else if (APP.currentSection === 'espace-meca') loadEspaceMeca();
         else if (APP.currentSection === 'clients') loadClients();
+        else if (APP.currentSection === 'vehicule-history' && window.ClientsModule && typeof window.ClientsModule.loadVehiculeHistoryPage === 'function') window.ClientsModule.loadVehiculeHistoryPage();
         else if (APP.currentSection === 'motos') loadMotoTechExplorer();
         else if (APP.currentSection === 'ponts') loadPontsMecas();
         else if (APP.currentSection === 'planning') loadPlanning();
+        else if (APP.currentSection === 'devis') loadDevisList();
     }
 };

@@ -394,11 +394,12 @@ def delete_mecanicien(
 def get_absences(
     date: str | None = None,
     mecanicien_id: int | None = None,
+    atelier_slug: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Récupère les absences (filtre par date et/ou mécanicien)"""
-    atelier_id = _atelier_id_or_403(current_user)
+    atelier_id = _resolve_atelier_id(current_user, db, atelier_slug)
     query = db.query(Absence).join(Mecanicien).filter(Absence.atelier_id == atelier_id, Mecanicien.atelier_id == atelier_id)
     
     if date:
@@ -611,6 +612,15 @@ def get_planning_semaine(
         RendezVous.date_rdv <= end_date,
         RendezVous.atelier_id == atelier_id
     ).order_by(RendezVous.date_rdv, RendezVous.heure_rdv).all()
+
+    ponts = db.query(Pont).filter(Pont.is_active == 1, Pont.atelier_id == atelier_id).order_by(Pont.ordre_affichage).all()
+    mecaniciens = db.query(Mecanicien).filter(Mecanicien.is_active == 1, Mecanicien.atelier_id == atelier_id).order_by(Mecanicien.nom).all()
+    absences = db.query(Absence).join(Mecanicien).filter(
+        Absence.atelier_id == atelier_id,
+        Mecanicien.atelier_id == atelier_id,
+        Absence.date_debut <= end_date,
+        Absence.date_fin >= start_date,
+    ).order_by(Absence.date_debut.asc()).all()
     
     # Grouper par jour
     jours = {}
@@ -658,5 +668,17 @@ def get_planning_semaine(
     return {
         "date_debut": start_date.isoformat(),
         "date_fin": end_date.isoformat(),
-        "jours": jours
+        "jours": jours,
+        "ponts": [{"id": p.id, "nom": p.nom, "type_pont": p.type_pont, "actif": p.is_active == 1, "mecanicien_id": p.mecanicien_id} for p in ponts],
+        "mecaniciens": [{"id": m.id, "nom": m.nom, "prenom": m.prenom, "couleur": m.couleur, "actif": m.is_active == 1} for m in mecaniciens],
+        "absences": [{
+            "id": a.id,
+            "mecanicien_id": a.mecanicien_id,
+            "mecanicien_nom": a.mecanicien.nom,
+            "mecanicien_prenom": a.mecanicien.prenom,
+            "date_debut": a.date_debut.isoformat(),
+            "date_fin": a.date_fin.isoformat(),
+            "motif": a.motif,
+            "notes": a.notes,
+        } for a in absences],
     }

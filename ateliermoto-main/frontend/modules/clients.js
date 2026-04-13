@@ -36,7 +36,7 @@ window.ClientsModule = window.ClientsModule || {
                 var nom = escapeHtml(c.nom) || '';
                 var telephone = escapeHtml(c.telephone) || '-';
                 var email = escapeHtml(c.email) || '';
-                html += '<div style="background:#252525;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--orange)\'" onmouseout="this.style.borderColor=\'#333\'" onclick="showClientDetail(' + c.id + ')">' +
+                html += '<div style="background:var(--dark3);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--orange)\'" onmouseout="this.style.borderColor=\'#333\'" onclick="showClientDetail(' + c.id + ')">' +
                     '<div style="display:flex;justify-content:space-between;align-items:center">' +
                         '<div><div style="font-weight:600;color:#eee">' + prenom + ' ' + nom + '</div>' +
                         '<div style="font-size:12px;color:#888">' + telephone + (email ? ' | ' + email : '') + '</div></div>' +
@@ -159,6 +159,21 @@ window.ClientsModule = window.ClientsModule || {
         });
     },
 
+    openClientFromAnywhere: function(clientId) {
+        if (!clientId) return;
+        APP._pendingClientFocusId = clientId;
+        if (APP.currentSection !== 'clients') {
+            showSection('clients');
+        }
+        setTimeout(function() {
+            window.ClientsModule.showClientDetail(clientId);
+            var panel = document.getElementById('client-detail-panel');
+            if (panel && typeof panel.scrollIntoView === 'function') {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 80);
+    },
+
     showClientDetail: function(clientId) {
         apiGet('/api/clients/' + clientId).then(function(r) {
             return r.json();
@@ -169,17 +184,83 @@ window.ClientsModule = window.ClientsModule || {
             var histEl = document.getElementById('client-detail-historique');
             if (!panel || !infoEl || !vehEl || !histEl) return;
 
+            function getRdvSortKey(rdv) {
+                return String((rdv && rdv.date_rdv) || '') + 'T' + String((rdv && rdv.heure_rdv) || '00:00:00');
+            }
+
+            function getVehicleKey(vehicule) {
+                if (!vehicule) return 'vehicule-inconnu';
+                if (vehicule.id != null) return 'veh-' + vehicule.id;
+                if (vehicule.plaque) return 'plaque-' + String(vehicule.plaque).toUpperCase();
+                return 'veh-' + String(vehicule.marque || '') + '-' + String(vehicule.modele || '');
+            }
+
+            function getVehicleLabel(vehicule) {
+                var label = [vehicule && vehicule.marque, vehicule && vehicule.modele].filter(Boolean).join(' ');
+                return escapeHtml(label || 'Vehicule non renseigne');
+            }
+
+            function getVehicleMetaLabel(vehicule) {
+                var meta = [];
+                if (vehicule && vehicule.plaque) meta.push(vehicule.plaque);
+                if (vehicule && vehicule.annee) meta.push(vehicule.annee);
+                if (vehicule && vehicule.cylindree) meta.push(vehicule.cylindree);
+                if (vehicule && vehicule.type_moto) meta.push(vehicule.type_moto);
+                return escapeHtml(meta.join(' • ') || 'Infos atelier a completer');
+            }
+
+            function formatDateLabel(dateValue) {
+                if (!dateValue) return 'Non planifie';
+                try {
+                    return new Date(dateValue).toLocaleDateString('fr-FR');
+                } catch (e) {
+                    return String(dateValue);
+                }
+            }
+
+            function isDossierAtelierAvailable(rdv) {
+                if (window.RdvActionsModule && typeof window.RdvActionsModule.hasGeneratedOr === 'function') {
+                    return !!window.RdvActionsModule.hasGeneratedOr(rdv);
+                }
+                var ordres = Array.isArray(rdv && rdv.ordres_reparation) ? rdv.ordres_reparation : [];
+                if (ordres.length) return true;
+                return !!(rdv && (rdv.or_id || rdv.or_numero || rdv.has_or));
+            }
+
             panel.style.display = 'block';
             APP._currentClientId = clientId;
+            APP._pendingClientFocusId = null;
 
             var canEditClients = hasPermission('clients.edit');
-            var nbRdv = (c.historique || []).length;
+            var vehicules = c.vehicules || [];
+            var historique = (c.historique || []).slice().sort(function(a, b) {
+                return getRdvSortKey(b).localeCompare(getRdvSortKey(a));
+            });
+            var nbRdv = historique.length;
             var totalCA = Number(c.ca_total || 0);
             var email = escapeHtml(c.email) || '';
             var adresse = escapeHtml(c.adresse) || '';
             var notes = escapeHtml(c.notes) || '';
+            var historyByVehicle = {};
 
-            infoEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">' +
+            vehicules.forEach(function(v) {
+                historyByVehicle[getVehicleKey(v)] = { vehicle: v, rdvs: [] };
+            });
+            historique.forEach(function(rdv) {
+                var key = getVehicleKey(rdv.vehicule);
+                if (!historyByVehicle[key]) {
+                    historyByVehicle[key] = { vehicle: rdv.vehicule || {}, rdvs: [] };
+                }
+                historyByVehicle[key].rdvs.push(rdv);
+            });
+
+            var vehicleGroups = Object.keys(historyByVehicle).map(function(key) {
+                return historyByVehicle[key];
+            }).sort(function(a, b) {
+                return getRdvSortKey((b.rdvs || [])[0]).localeCompare(getRdvSortKey((a.rdvs || [])[0]));
+            });
+
+            infoEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;gap:10px;flex-wrap:wrap">' +
                 '<div><div style="font-size:18px;font-weight:700;color:#eee">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div>' +
                 '<div style="font-size:13px;color:#888;margin-top:4px">' + (escapeHtml(c.telephone) || '-') + '</div>' +
                 (email ? '<div style="font-size:13px;color:#888">' + email + '</div>' : '') +
@@ -187,63 +268,124 @@ window.ClientsModule = window.ClientsModule || {
                 '</div>' +
                 (canEditClients ? '<button class="btn btn-ghost" style="font-size:12px" onclick="ouvrirModalEditClient(' + c.id + ')">Modifier</button>' : '') +
                 '</div>' +
-                '<div style="display:flex;gap:12px;margin-bottom:8px">' +
-                '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--orange)">' + nbRdv + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Visites</div></div>' +
-                '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)">' + (totalCA > 0 ? Math.round(totalCA) + '\u20AC' : '-') + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">CA total</div></div>' +
-                '<div style="background:#1e1e1e;border-radius:6px;padding:8px 14px;flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--teal)">' + (c.vehicules || []).length + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Motos</div></div>' +
+                '<div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">' +
+                '<div style="background:var(--dark3);border-radius:6px;padding:8px 14px;flex:1;min-width:100px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--orange)">' + nbRdv + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Visites</div></div>' +
+                '<div style="background:var(--dark3);border-radius:6px;padding:8px 14px;flex:1;min-width:100px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)">' + (totalCA > 0 ? Math.round(totalCA) + '\u20AC' : '-') + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">CA total</div></div>' +
+                '<div style="background:var(--dark3);border-radius:6px;padding:8px 14px;flex:1;min-width:100px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--teal)">' + vehicules.length + '</div><div style="font-size:10px;color:#666;text-transform:uppercase">Motos</div></div>' +
                 '</div>' +
-                (notes ? '<div style="font-size:12px;color:#888;background:#1e1e1e;padding:8px 12px;border-radius:6px;margin-top:8px">' + notes + '</div>' : '');
+                '<div style="font-size:12px;color:#ddd;background:linear-gradient(135deg,rgba(255,210,0,.10),rgba(249,115,22,.10));border:1px solid rgba(255,210,0,.15);padding:10px 12px;border-radius:10px;margin-top:8px">Le planning pilote les RDV. Cette fiche garde la memoire atelier du client, de ses motos et des dossiers actifs.</div>' +
+                (notes ? '<div style="font-size:12px;color:#888;background:var(--dark3);padding:8px 12px;border-radius:6px;margin-top:8px">' + notes + '</div>' : '');
 
-            var vehicules = c.vehicules || [];
-            var vHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="card-title">Vehicules (' + vehicules.length + ')</div>' +
+            var vHtml = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px"><div><div class="card-title">Carnet moto (' + vehicleGroups.length + ')</div><div style="font-size:12px;color:#888;margin-top:3px">Par machine : passages, statut recent et acces rapide au dossier atelier.</div></div>' +
                 (canEditClients ? '<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px;color:var(--green)" onclick="ouvrirAjouterVehicule(' + c.id + ')">+ Ajouter</button>' : '') + '</div>';
-            if (vehicules.length) {
-                vehicules.forEach(function(v) {
-                    vHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2a2a2a">' +
-                        '<div style="font-size:20px">&#127949;</div>' +
-                        '<div style="flex:1"><div style="font-weight:600;color:#eee">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
-                        '<div style="font-size:12px;color:#888">' + (escapeHtml(v.plaque) || '') + (v.annee ? ' | ' + escapeHtml(v.annee) : '') + (v.cylindree ? ' | ' + escapeHtml(v.cylindree) : '') + (v.type_moto ? ' | ' + escapeHtml(v.type_moto) : '') + '</div></div>' +
-                        (canEditClients ? '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--teal)" onclick="ouvrirModalEditVehicule(' + v.id + ')">✎</button>' +
-                        '<button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;color:var(--red)" onclick="supprimerVehicule(' + v.id + ',' + c.id + ')">✖</button>' : '') +
-                        '</div>';
+            if (vehicleGroups.length) {
+                vHtml += '<div style="display:grid;gap:10px">';
+                vehicleGroups.forEach(function(group) {
+                    var v = group.vehicle || {};
+                    var rdvs = group.rdvs || [];
+                    var latest = rdvs[0] || null;
+                    var passages = rdvs.length;
+                    var activeNow = latest && ['confirme', 'reception', 'en_cours'].indexOf(String(latest.statut || '')) !== -1;
+                    var totalVehicule = rdvs.reduce(function(sum, rdv) {
+                        var amount = Number(rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime);
+                        return isNaN(amount) ? sum : (sum + amount);
+                    }, 0);
+                    var historyPreviewHtml = rdvs.length
+                        ? rdvs.slice(0, 3).map(function(rdv) {
+                            return '<div style="padding:8px 0;border-top:1px solid #2a2a2a">' +
+                                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+                                    '<div style="font-size:12px;font-weight:700;color:#eee">' + formatDateLabel(rdv.date_rdv) + ' • ' + formatTime(rdv.heure_rdv) + '</div>' +
+                                    statusBadge(rdv.statut) +
+                                '</div>' +
+                                '<div style="font-size:12px;color:#ccc;margin-top:4px">' + (escapeHtml(rdv.type_intervention) || '-') + '</div>' +
+                            '</div>';
+                        }).join('')
+                        : '<div style="font-size:12px;color:#777;padding-top:8px">Aucun passage atelier enregistre pour cette moto.</div>';
+                    vHtml += '<details ' + (activeNow ? 'open' : '') + ' style="background:linear-gradient(135deg,#171717 0%,#1f1f1f 100%);border:1px solid rgba(255,210,0,.14);border-radius:14px;padding:12px 14px">' +
+                        '<summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">' +
+                            '<div><div style="font-weight:700;color:#eee">' + getVehicleLabel(v) + '</div><div style="font-size:12px;color:#888;margin-top:3px">' + getVehicleMetaLabel(v) + '</div></div>' +
+                            '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' +
+                                '<span class="badge blue">' + passages + ' passage' + (passages > 1 ? 's' : '') + '</span>' +
+                                (activeNow ? '<span class="badge orange">Dossier actif</span>' : '<span class="badge" style="background:rgba(34,197,94,.12);color:#86efac">Historique archive</span>') +
+                                '<span style="padding:5px 9px;border-radius:999px;background:#111827;color:#facc15;font-size:11px;font-weight:700">Cliquer pour l\'historique</span>' +
+                            '</div>' +
+                        '</summary>' +
+                        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+                            '<span style="padding:5px 9px;border-radius:999px;background:#111827;color:#cbd5e1;font-size:11px">Dernier passage : ' + (latest ? formatDateLabel(latest.date_rdv) : 'jamais') + '</span>' +
+                            (latest ? statusBadge(latest.statut) : '<span class="badge">Aucun historique</span>') +
+                            (totalVehicule > 0 ? '<span style="padding:5px 9px;border-radius:999px;background:rgba(34,197,94,.12);color:#86efac;font-size:11px">' + Math.round(totalVehicule) + '\u20AC cumules</span>' : '') +
+                        '</div>' +
+                        '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #2a2a2a">' +
+                            '<div style="font-size:12px;font-weight:700;color:#f3f4f6">Historique de cette moto</div>' +
+                            '<div style="font-size:11px;color:#888;margin-top:3px">Deroule le detail rapide ou ouvre la page dediee pour la chronologie complete.</div>' +
+                            historyPreviewHtml +
+                            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+                                '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="showSection(\'rdv\')">Planifier un RDV</button>' +
+                                (latest ? '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="ouvrirDetailHistoriqueRdv(' + latest.id + ',' + c.id + ')">Voir historique</button>' : '') +
+                                '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;color:var(--orange)" onclick="window.ClientsModule.openVehiculeHistoryPage(' + c.id + ',' + (v.id != null ? v.id : 'null') + ')">Page dediee</button>' +
+                                (latest && isDossierAtelierAvailable(latest)
+                                    ? '<button class="btn btn-primary" style="font-size:11px;padding:6px 10px" onclick="showOrDetail(' + latest.id + ')">Voir dossier atelier</button>'
+                                    : '<span style="padding:6px 10px;border-radius:999px;background:#241c15;color:#facc15;font-size:11px">Pas de dossier actif</span>') +
+                                (canEditClients && v.id != null ? '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;color:var(--teal)" onclick="ouvrirModalEditVehicule(' + v.id + ')">Modifier</button>' : '') +
+                            '</div>' +
+                        '</div>' +
+                    '</details>';
                 });
+                vHtml += '</div>';
             } else {
                 vHtml += '<div style="color:#666;font-size:13px">Aucun vehicule enregistre</div>';
             }
             vehEl.innerHTML = vHtml;
 
-            var historique = c.historique || [];
-            var hHtml = '<div class="card-title" style="margin-bottom:10px">Historique atelier (' + historique.length + ')</div>';
-            if (historique.length) {
-                historique.forEach(function(rdv) {
-                    var v = rdv.vehicule || {};
-                    var meca = rdv.mecanicien;
-                    var prix = rdv.prix_final || rdv.prix_estime || null;
-                    var tempsEff = rdv.temps_effectif_minutes;
-                    var commentaire = escapeHtml(rdv.commentaire || '');
-                    var borderColor = rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye'
-                        ? 'var(--green)'
-                        : (rdv.statut === 'en_cours' ? 'var(--orange)' : ((rdv.statut === 'annule' || rdv.statut === 'non_presente') ? 'var(--red)' : '#444'));
-                    hHtml += '<div style="background:#1a1a1e;border-left:3px solid ' + borderColor + ';border-radius:6px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#222\'" onmouseout="this.style.background=\'#1a1a1e\'" onclick="ouvrirDetailHistoriqueRdv(' + rdv.id + ',' + clientId + ')">' +
-                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-                            '<div style="display:flex;align-items:center;gap:8px">' +
-                                '<span style="font-weight:700;color:#eee;font-size:13px">' + (rdv.date_rdv || '') + '</span>' +
-                                '<span style="font-size:12px;color:#888">' + formatTime(rdv.heure_rdv) + '</span>' +
+            var hHtml = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div><div class="card-title">Historique par vehicule (' + historique.length + ')</div><div style="font-size:12px;color:#888;margin-top:3px">Le planning sert a piloter les RDV. Ici, on garde la memoire atelier de chaque moto.</div></div><span style="padding:6px 10px;border-radius:999px;background:rgba(255,210,0,.12);color:var(--orange);font-size:11px;font-weight:700">Memoire client / machine</span></div>';
+            if (vehicleGroups.length) {
+                vehicleGroups.forEach(function(group) {
+                    var v = group.vehicle || {};
+                    var rdvs = group.rdvs || [];
+                    var activeCount = rdvs.filter(function(rdv) {
+                        return ['confirme', 'reception', 'en_cours'].indexOf(String(rdv.statut || '')) !== -1;
+                    }).length;
+                    hHtml += '<div style="background:#1a1a1e;border:1px solid #2a2a2a;border-radius:12px;padding:12px 14px;margin-bottom:10px">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">' +
+                            '<div><div style="font-size:14px;font-weight:700;color:#eee">' + getVehicleLabel(v) + '</div><div style="font-size:12px;color:#888;margin-top:2px">' + getVehicleMetaLabel(v) + '</div></div>' +
+                            '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+                                '<span class="badge blue">' + rdvs.length + ' passage' + (rdvs.length > 1 ? 's' : '') + '</span>' +
+                                (activeCount ? '<span class="badge orange">' + activeCount + ' actif' + (activeCount > 1 ? 's' : '') + '</span>' : '<span class="badge" style="background:rgba(34,197,94,.12);color:#86efac">Archive</span>') +
                             '</div>' +
-                            statusBadge(rdv.statut) +
-                        '</div>' +
-                        '<div style="font-size:13px;color:#ccc;margin-bottom:4px">' + (escapeHtml(rdv.type_intervention) || '-') + '</div>' +
-                        '<div style="display:flex;gap:12px;font-size:11px;color:#777;flex-wrap:wrap">' +
-                            '<span>&#127949; ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</span>' +
-                            (meca ? '<span>&#128100; ' + (escapeHtml(meca.prenom) || '') + ' ' + (escapeHtml(meca.nom) || '') + '</span>' : '') +
-                            (rdv.pont ? '<span>&#128295; ' + escapeHtml(rdv.pont.nom) + '</span>' : '') +
-                            (tempsEff ? '<span>&#9201; ' + tempsEff + ' min</span>' : '') +
-                            (prix ? '<span>&#128182; ' + Math.round(prix) + '\u20AC</span>' : '') +
-                            (rdv.kilometrage ? '<span>&#128663; ' + rdv.kilometrage + ' km</span>' : '') +
-                        '</div>' +
-                        (commentaire ? '<div style="font-size:11px;color:#666;margin-top:4px;font-style:italic">' + commentaire.substring(0, 80) + (commentaire.length > 80 ? '...' : '') + '</div>' : '') +
-                        (rdv.rapport ? '<div style="margin-top:4px"><span class="badge blue" style="font-size:9px">Rapport technicien</span></div>' : '') +
-                    '</div>';
+                        '</div>';
+                    if (rdvs.length) {
+                        rdvs.slice(0, 4).forEach(function(rdv) {
+                            var prix = rdv.prix_final || rdv.prix_estime || null;
+                            var meca = rdv.mecanicien;
+                            hHtml += '<div style="background:var(--dark3);border-left:3px solid ' + (rdv.statut === 'en_cours' ? 'var(--orange)' : (rdv.statut === 'termine' || rdv.statut === 'restitue' || rdv.statut === 'facture' || rdv.statut === 'paye' ? 'var(--green)' : '#444')) + ';border-radius:8px;padding:10px 12px;margin-top:8px">' +
+                                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+                                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:700;color:#eee;font-size:13px">' + formatDateLabel(rdv.date_rdv) + '</span><span style="font-size:12px;color:#888">' + formatTime(rdv.heure_rdv) + '</span></div>' +
+                                    statusBadge(rdv.statut) +
+                                '</div>' +
+                                '<div style="font-size:13px;color:#ccc;margin-top:6px">' + (escapeHtml(rdv.type_intervention) || '-') + '</div>' +
+                                '<div style="display:flex;gap:12px;font-size:11px;color:#777;flex-wrap:wrap;margin-top:4px">' +
+                                    (meca ? '<span>&#128100; ' + (escapeHtml(meca.prenom) || '') + ' ' + (escapeHtml(meca.nom) || '') + '</span>' : '') +
+                                    (rdv.pont ? '<span>&#128295; ' + escapeHtml(rdv.pont.nom) + '</span>' : '') +
+                                    (rdv.temps_effectif_minutes ? '<span>&#9201; ' + rdv.temps_effectif_minutes + ' min</span>' : '') +
+                                    (prix ? '<span>&#128182; ' + Math.round(prix) + '\u20AC</span>' : '') +
+                                    (rdv.kilometrage ? '<span>&#128663; ' + rdv.kilometrage + ' km</span>' : '') +
+                                '</div>' +
+                                '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+                                    '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="ouvrirDetailHistoriqueRdv(' + rdv.id + ',' + clientId + ')">Voir la fiche passage</button>' +
+                                    (isDossierAtelierAvailable(rdv)
+                                        ? '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;color:var(--orange)" onclick="showOrDetail(' + rdv.id + ')">Voir dossier atelier</button>'
+                                        : '<span style="padding:6px 10px;border-radius:999px;background:#241c15;color:#facc15;font-size:11px">Pas de dossier actif</span>') +
+                                    (rdv.rapport ? '<span class="badge blue" style="font-size:10px">Rapport technicien</span>' : '') +
+                                '</div>' +
+                            '</div>';
+                        });
+                        if (rdvs.length > 4) {
+                            hHtml += '<div style="font-size:11px;color:#888;margin-top:8px">+' + (rdvs.length - 4) + ' passage(s) supplementaire(s) sur cette moto.</div>';
+                        }
+                    } else {
+                        hHtml += '<div style="color:#666;font-size:13px">Aucun passage atelier enregistre pour cette moto.</div>';
+                    }
+                    hHtml += '</div>';
                 });
             } else {
                 hHtml += '<div style="color:#666;font-size:13px">Aucun historique</div>';
@@ -251,6 +393,137 @@ window.ClientsModule = window.ClientsModule || {
             histEl.innerHTML = hHtml;
         }).catch(function(e) {
             console.error('Erreur client detail:', e);
+        });
+    },
+
+    openVehiculeHistoryPage: function(clientId, vehiculeId) {
+        APP._vehiculeHistoryState = {
+            clientId: clientId,
+            vehiculeId: vehiculeId
+        };
+        if (typeof showSection === 'function') showSection('vehicule-history');
+        return window.ClientsModule.loadVehiculeHistoryPage(clientId, vehiculeId);
+    },
+
+    loadVehiculeHistoryPage: function(clientId, vehiculeId) {
+        var state = APP._vehiculeHistoryState || {};
+        clientId = clientId || state.clientId || APP._currentClientId;
+        if (vehiculeId == null || vehiculeId === '') vehiculeId = state.vehiculeId;
+        var container = document.getElementById('vehicule-history-root');
+        var subEl = document.getElementById('vehicule-history-sub');
+        if (!container) return Promise.resolve();
+        if (!clientId) {
+            container.innerHTML = '<div class="card" style="padding:18px;color:#888">Selectionnez une moto depuis la fiche client pour afficher son historique dedie.</div>';
+            return Promise.resolve();
+        }
+
+        function getVehicleKey(vehicule) {
+            if (!vehicule) return 'vehicule-inconnu';
+            if (vehicule.id != null) return 'veh-' + vehicule.id;
+            if (vehicule.plaque) return 'plaque-' + String(vehicule.plaque).toUpperCase();
+            return 'veh-' + String(vehicule.marque || '') + '-' + String(vehicule.modele || '');
+        }
+
+        function vehicleMatches(rdvVehicule, targetVehicule) {
+            if (!rdvVehicule || !targetVehicule) return false;
+            return getVehicleKey(rdvVehicule) === getVehicleKey(targetVehicule);
+        }
+
+        function formatDateLabel(dateValue) {
+            if (!dateValue) return 'Non planifie';
+            try {
+                return new Date(dateValue).toLocaleDateString('fr-FR');
+            } catch (e) {
+                return String(dateValue);
+            }
+        }
+
+        function isDossierAtelierAvailable(rdv) {
+            if (window.RdvActionsModule && typeof window.RdvActionsModule.hasGeneratedOr === 'function') {
+                return !!window.RdvActionsModule.hasGeneratedOr(rdv);
+            }
+            return !!(rdv && Array.isArray(rdv.ordres_reparation) && rdv.ordres_reparation.length);
+        }
+
+        container.innerHTML = '<div class="card" style="padding:18px;color:#888">Chargement du carnet moto...</div>';
+        APP._vehiculeHistoryState = { clientId: clientId, vehiculeId: vehiculeId };
+
+        return apiGet('/api/clients/' + clientId).then(function(r) {
+            return r.json();
+        }).then(function(c) {
+            var vehicules = c.vehicules || [];
+            var historique = (c.historique || []).slice().sort(function(a, b) {
+                return (String(b.date_rdv || '') + 'T' + String(b.heure_rdv || '00:00:00')).localeCompare(String(a.date_rdv || '') + 'T' + String(a.heure_rdv || '00:00:00'));
+            });
+            var selectedVehicule = vehicules.find(function(v) { return String(v.id) === String(vehiculeId); }) || null;
+            if (!selectedVehicule && historique.length) {
+                selectedVehicule = historique.map(function(rdv) { return rdv.vehicule || null; }).find(Boolean) || null;
+            }
+            if (!selectedVehicule && vehicules.length) selectedVehicule = vehicules[0];
+
+            var filteredHistory = historique.filter(function(rdv) {
+                return vehicleMatches(rdv.vehicule, selectedVehicule);
+            });
+            var activeRdv = filteredHistory.find(function(rdv) {
+                return ['confirme', 'reception', 'en_cours'].indexOf(String(rdv.statut || '')) !== -1;
+            }) || filteredHistory[0] || null;
+            var vehicleLabel = selectedVehicule ? escapeHtml([selectedVehicule.marque, selectedVehicule.modele].filter(Boolean).join(' ') || 'Vehicule') : 'Vehicule';
+            var vehicleMeta = selectedVehicule
+                ? escapeHtml([selectedVehicule.plaque, selectedVehicule.annee, selectedVehicule.cylindree, selectedVehicule.type_moto].filter(Boolean).join(' • ') || 'Infos atelier a completer')
+                : 'Vehicule non renseigne';
+            var totalCA = filteredHistory.reduce(function(sum, rdv) {
+                var amount = Number(rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime);
+                return isNaN(amount) ? sum : (sum + amount);
+            }, 0);
+
+            if (subEl) {
+                subEl.textContent = 'Suivi complet de ' + (selectedVehicule && selectedVehicule.plaque ? selectedVehicule.plaque : 'la moto') + ' pour ' + escapeHtml(((c.prenom || '') + ' ' + (c.nom || '')).trim() || 'le client');
+            }
+
+            container.innerHTML = '<div class="card" style="margin-bottom:12px">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">' +
+                    '<div><div class="card-title">Historique complet du vehicule</div><div style="font-size:18px;font-weight:700;color:#eee;margin-top:6px">' + vehicleLabel + '</div><div style="font-size:12px;color:#888;margin-top:4px">' + vehicleMeta + '</div><div style="font-size:12px;color:#aaa;margin-top:6px">Client associe : ' + escapeHtml(((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-') + '</div></div>' +
+                    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+                        '<button class="btn btn-ghost" onclick="showSection(\'clients\');setTimeout(function(){ window.ClientsModule.showClientDetail(' + c.id + '); }, 80)">← Retour fiche client</button>' +
+                        '<button class="btn btn-primary" onclick="showSection(\'rdv\')">+ Planifier un RDV</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+                    '<span class="badge blue">' + filteredHistory.length + ' passage' + (filteredHistory.length > 1 ? 's' : '') + '</span>' +
+                    (totalCA > 0 ? '<span style="padding:6px 10px;border-radius:999px;background:rgba(34,197,94,.12);color:#86efac;font-size:11px;font-weight:700">' + Math.round(totalCA) + '\u20AC cumules</span>' : '') +
+                    (activeRdv ? statusBadge(activeRdv.statut) : '<span class="badge">Aucun dossier actif</span>') +
+                    (activeRdv && isDossierAtelierAvailable(activeRdv) ? '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;color:var(--orange)" onclick="showOrDetail(' + activeRdv.id + ')">Voir dossier atelier</button>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="card">' +
+                '<div class="card-title" style="margin-bottom:10px">Chronologie atelier</div>' +
+                (filteredHistory.length
+                    ? filteredHistory.map(function(rdv) {
+                        var prix = rdv.prix_final || rdv.prix_estime || null;
+                        return '<div style="background:var(--dark3);border-left:3px solid ' + (rdv.statut === 'en_cours' ? 'var(--orange)' : (rdv.statut === 'termine' || rdv.statut === 'restitue' || rdv.statut === 'facture' || rdv.statut === 'paye' ? 'var(--green)' : '#444')) + ';border-radius:8px;padding:12px 14px;margin-bottom:10px">' +
+                            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+                                '<div style="font-size:13px;font-weight:700;color:#eee">' + formatDateLabel(rdv.date_rdv) + ' • ' + formatTime(rdv.heure_rdv) + '</div>' +
+                                statusBadge(rdv.statut) +
+                            '</div>' +
+                            '<div style="font-size:13px;color:#ccc;margin-top:6px">' + escapeHtml(rdv.type_intervention || '-') + '</div>' +
+                            '<div style="display:flex;gap:12px;font-size:11px;color:#777;flex-wrap:wrap;margin-top:6px">' +
+                                (rdv.pont ? '<span>&#128295; ' + escapeHtml(rdv.pont.nom || '-') + '</span>' : '') +
+                                (rdv.temps_effectif_minutes ? '<span>&#9201; ' + rdv.temps_effectif_minutes + ' min</span>' : '') +
+                                (prix ? '<span>&#128182; ' + Math.round(prix) + '\u20AC</span>' : '') +
+                                (rdv.kilometrage ? '<span>&#128663; ' + rdv.kilometrage + ' km</span>' : '') +
+                            '</div>' +
+                            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+                                '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="ouvrirDetailHistoriqueRdv(' + rdv.id + ',' + c.id + ')">Voir la fiche passage</button>' +
+                                (isDossierAtelierAvailable(rdv) ? '<button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;color:var(--orange)" onclick="showOrDetail(' + rdv.id + ')">Voir dossier atelier</button>' : '') +
+                                (rdv.rapport ? '<span class="badge blue" style="font-size:10px">Rapport technicien</span>' : '') +
+                            '</div>' +
+                        '</div>';
+                    }).join('')
+                    : '<div style="color:#666;font-size:13px">Aucun passage enregistre pour cette moto.</div>') +
+            '</div>';
+        }).catch(function(e) {
+            console.error('Erreur historique vehicule:', e);
+            container.innerHTML = '<div class="card" style="padding:18px;color:#fca5a5">Impossible de charger l\'historique de cette moto.</div>';
         });
     },
 
@@ -268,7 +541,7 @@ window.ClientsModule = window.ClientsModule || {
                 '<div>' + statusBadge(rdv.statut) + '</div>' +
                 '<div style="font-size:12px;color:#888">RDV #' + rdv.id + '</div></div>';
 
-            html += '<div style="background:#16161a;border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
+            html += '<div style="background:var(--dark3);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
                 '<div><span style="color:#666">Date:</span> <span style="color:#eee">' + (rdv.date_rdv || '-') + '</span></div>' +
                 '<div><span style="color:#666">Heure:</span> <span style="color:#eee">' + formatTime(rdv.heure_rdv) + '</span></div>' +
                 '<div><span style="color:#666">Intervention:</span> <span style="color:#eee">' + (escapeHtml(rdv.type_intervention) || '-') + '</span></div>' +
@@ -281,7 +554,7 @@ window.ClientsModule = window.ClientsModule || {
 
             if (rdv.commentaire) {
                 html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;margin-bottom:4px">Commentaire</div>' +
-                    '<div style="background:#16161a;border-radius:6px;padding:10px;font-size:13px;color:#ccc">' + escapeHtml(rdv.commentaire) + '</div></div>';
+                    '<div style="background:var(--dark3);border-radius:6px;padding:10px;font-size:13px;color:#ccc">' + escapeHtml(rdv.commentaire) + '</div></div>';
             }
 
             html += '<div id="hist-rdv-temps" style="margin-bottom:12px"></div>';
@@ -299,7 +572,7 @@ window.ClientsModule = window.ClientsModule || {
                 var debut = t.heure_debut_travail ? (parseUTCDate(t.heure_debut_travail) || new Date()).toLocaleString('fr-FR') : '-';
                 var fin = t.heure_fin_travail ? (parseUTCDate(t.heure_fin_travail) || new Date()).toLocaleString('fr-FR') : 'En cours...';
                 tEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;margin-bottom:4px">Temps d\'intervention</div>' +
-                    '<div style="background:#16161a;border-radius:6px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
+                    '<div style="background:var(--dark3);border-radius:6px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
                     '<div><span style="color:#666">Debut:</span> <span style="color:#eee">' + debut + '</span></div>' +
                     '<div><span style="color:#666">Fin:</span> <span style="color:#eee">' + fin + '</span></div>' +
                     '<div><span style="color:#666">Temps effectif:</span> <span style="color:var(--green);font-weight:700">' + (t.temps_effectif_minutes ? t.temps_effectif_minutes + ' min' : '-') + '</span></div>' +
@@ -319,7 +592,7 @@ window.ClientsModule = window.ClientsModule || {
                     piecesUtilisees = escapeHtml(rap.pieces_utilisees);
                 }
                 var rHtml = '<div style="font-size:11px;font-weight:600;color:var(--purple);text-transform:uppercase;margin-bottom:4px">Rapport technicien</div>' +
-                    '<div style="background:#16161a;border-radius:6px;padding:10px;font-size:13px">';
+                    '<div style="background:var(--dark3);border-radius:6px;padding:10px;font-size:13px">';
                 if (rap.travaux_realises) rHtml += '<div style="margin-bottom:8px"><span style="color:#666">Travaux realises:</span><div style="color:#ccc;margin-top:2px">' + escapeHtml(rap.travaux_realises) + '</div></div>';
                 if (rap.alertes) rHtml += '<div style="margin-bottom:8px"><span style="color:var(--red)">Alertes:</span><div style="color:#ccc;margin-top:2px">' + escapeHtml(rap.alertes) + '</div></div>';
                 if (rap.recommandations) rHtml += '<div style="margin-bottom:8px"><span style="color:var(--amber)">Recommandations:</span><div style="color:#ccc;margin-top:2px">' + escapeHtml(rap.recommandations) + '</div></div>';

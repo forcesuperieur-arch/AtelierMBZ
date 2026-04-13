@@ -1,5 +1,6 @@
 from datetime import datetime
-import logging
+import logging, os
+from pathlib import Path
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
@@ -7,6 +8,102 @@ from sqlalchemy.orm import Session, joinedload
 from models import Atelier, RendezVous, RapportTechnicien, Mecanicien, OrdreReparation, Pont
 
 logger = logging.getLogger("ateliermoto.pdf")
+
+LOGO_DIR = Path(__file__).resolve().parent.parent / "data" / "logos"
+
+
+def _as_float_or_none(value):
+    if value is None or value == "":
+        return None
+    try:
+        amount = float(value)
+    except Exception:
+        return None
+    return amount
+
+
+def _get_estimate_rows_total(rows):
+    total = 0.0
+    has_amount = False
+    for row in rows or []:
+        qty = _as_float_or_none(row.get("qty", row.get("quantite", 1)))
+        amount = _as_float_or_none(row.get("amount", row.get("montant")))
+        if amount is None:
+            continue
+        total += amount * (qty if qty is not None else 1.0)
+        has_amount = True
+    return total if has_amount else None
+
+
+def _get_supplementary_ordre_amount(ordre):
+    amount = _as_float_or_none(getattr(ordre, "montant_estime", None))
+    if amount is None:
+        amount = _as_float_or_none(getattr(ordre, "prix_estime", None))
+    if amount is None and getattr(ordre, "demande_travaux_supp", None) is not None:
+        amount = _as_float_or_none(getattr(ordre.demande_travaux_supp, "prix_estime", None))
+    return amount
+
+
+def build_ordre_reparation_estimate_rows(rdv, ordre_source=None, etat_meta=None):
+    etat_meta = etat_meta if isinstance(etat_meta, dict) else {}
+    estimate_rows = etat_meta.get("estimate_rows") if isinstance(etat_meta.get("estimate_rows"), list) else []
+    if estimate_rows:
+        return [{
+            "label": row.get("label") or row.get("designation") or "Intervention atelier",
+            "qty": row.get("qty", row.get("quantite", 1)) or 1,
+            "amount": row.get("amount", row.get("montant")),
+        } for row in estimate_rows]
+
+    if ordre_source is not None and getattr(ordre_source, "type_or", None) == "supplementaire":
+        return [{
+            "label": getattr(ordre_source, "travaux", None) or "Travaux supplementaires",
+            "qty": 1,
+            "amount": _get_supplementary_ordre_amount(ordre_source),
+        }]
+
+    supplementary_total = 0.0
+    for ordre in getattr(rdv, "ordres_reparation", []) or []:
+        if getattr(ordre, "type_or", None) != "supplementaire":
+            continue
+        amount = _get_supplementary_ordre_amount(ordre)
+        if amount is not None:
+            supplementary_total += amount
+
+    rdv_amount = _as_float_or_none(etat_meta.get("booking_price"))
+    if rdv_amount is None:
+        rdv_amount = _as_float_or_none(getattr(rdv, "prix_estime", None))
+    if rdv_amount is None:
+        rdv_amount = _as_float_or_none(getattr(rdv, "prix_final", None))
+
+    rows = []
+    if getattr(rdv, "type_intervention", None) or rdv_amount is not None:
+        main_amount = rdv_amount
+        if main_amount is not None and supplementary_total > 0 and main_amount >= supplementary_total:
+            main_amount = max(0.0, main_amount - supplementary_total)
+        rows.append({
+            "label": (getattr(ordre_source, "travaux", None) if ordre_source is not None else None) or getattr(rdv, "type_intervention", None) or "Intervention atelier",
+            "qty": 1,
+            "amount": main_amount,
+        })
+
+    if not rows:
+        rows = [{
+            "label": "Intervention atelier",
+            "qty": 1,
+            "amount": rdv_amount,
+        }]
+    return rows
+
+
+def get_ordre_reparation_total_amount(rdv, estimate_rows):
+    rows_total = _get_estimate_rows_total(estimate_rows)
+    if rows_total is not None:
+        return rows_total
+
+    rdv_amount = _as_float_or_none(getattr(rdv, "prix_estime", None))
+    if rdv_amount is None:
+        rdv_amount = _as_float_or_none(getattr(rdv, "prix_final", None))
+    return rdv_amount
 
 
 def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = None):
@@ -91,7 +188,7 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = 
         fuel_level = None
     body_damages = etat_meta.get("body_damages") if isinstance(etat_meta.get("body_damages"), list) else []
     schema_notes = etat_meta.get("schema_notes") or ""
-    estimate_rows = etat_meta.get("estimate_rows") if isinstance(etat_meta.get("estimate_rows"), list) else []
+    estimate_rows = build_ordre_reparation_estimate_rows(rdv, ordre_source, etat_meta)
     observations = (ordre_source.travaux if ordre_source and ordre_source.travaux else None) or etat_meta.get("observations") or rdv.commentaire or ""
 
     damage_labels = {
@@ -104,13 +201,6 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = 
         "roue_ar": "Roue AR",
         "selle": "Selle",
     }
-
-    if not estimate_rows:
-        estimate_rows = [{
-            "label": (ordre_source.travaux if ordre_source and ordre_source.travaux else rdv.type_intervention) or "Intervention atelier",
-            "qty": 1,
-            "amount": float(rdv.prix_final or rdv.prix_estime or 0) if (rdv.prix_final or rdv.prix_estime) is not None else None,
-        }]
 
     buffer = BytesIO()
     W, H = A4  # 595, 842
@@ -249,13 +339,38 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = 
     atelier_email = getattr(atelier, 'email', None) or "contact@atelier-moto.fr"
     atelier_siret = getattr(atelier, 'siret', None) or "123 456 789 0001"
 
-    header_left = Paragraph(
-        f"<font size='22'><b>PRO <font color='#FB923C'>MOTO</font> WORKSHOP</b></font><br/>"
-        f"<font size='7' color='#CBD5E1'><b>ENGINEERING &amp; PERFORMANCE DIVISION</b></font><br/>"
-        f"<font size='7'>{atelier_nom} • {atelier_adresse}, {atelier_ville}</font><br/>"
-        f"<font size='7'>Tel: {atelier_tel} | {atelier_email} | SIRET: {atelier_siret}</font>",
-        s_header_w
-    )
+    # Resolve logo path
+    logo_path = None
+    atelier_logo_url = getattr(atelier, 'logo_url', None) or ""
+    if atelier_logo_url.startswith("/api/config/atelier/logo/"):
+        logo_filename = atelier_logo_url.split("/")[-1]
+        candidate = LOGO_DIR / logo_filename
+        if candidate.exists():
+            logo_path = str(candidate)
+
+    # Build header left with dynamic atelier name or logo
+    if logo_path:
+        try:
+            from reportlab.platypus import Image as RLImage
+            logo_img = RLImage(logo_path, width=40, height=40)
+            header_left_content = (
+                f"<font size='18'><b>{atelier_nom}</b></font><br/>"
+                f"<font size='7' color='#CBD5E1'><b>ATELIER MOTO PROFESSIONNEL</b></font><br/>"
+                f"<font size='7'>{atelier_adresse}, {atelier_ville}</font><br/>"
+                f"<font size='7'>Tel: {atelier_tel} | {atelier_email} | SIRET: {atelier_siret}</font>"
+            )
+        except Exception:
+            logo_path = None
+
+    if not logo_path:
+        header_left_content = (
+            f"<font size='18'><b>{atelier_nom}</b></font><br/>"
+            f"<font size='7' color='#CBD5E1'><b>ATELIER MOTO PROFESSIONNEL</b></font><br/>"
+            f"<font size='7'>{atelier_adresse}, {atelier_ville}</font><br/>"
+            f"<font size='7'>Tel: {atelier_tel} | {atelier_email} | SIRET: {atelier_siret}</font>"
+        )
+
+    header_left = Paragraph(header_left_content, s_header_w)
     header_right_content = (
         f"<b>ORDRE DE REPARATION</b><br/>"
         f"<font size='16' color='#FFFFFF'><b>{or_number}</b></font><br/>"
@@ -516,7 +631,8 @@ def generate_ordre_reparation_pdf(rdv_id: int, db: Session, or_id: int | None = 
             Paragraph("", s_td_r),
         ])
 
-    total_display = f"{total_estime:.2f} EUR" if total_estime else (f"{float(rdv.prix_final or rdv.prix_estime):.2f} EUR" if (rdv.prix_final or rdv.prix_estime) is not None else "A chiffrer")
+    total_amount = get_ordre_reparation_total_amount(rdv, estimate_rows)
+    total_display = f"{total_amount:.2f} EUR" if total_amount is not None else "A chiffrer"
     estimate_table_rows.append([
         Paragraph("<b>Total Estimatif TTC</b>", ParagraphStyle('tot_est', parent=styles['Normal'], fontSize=9, textColor=BLANC, fontName='Helvetica-Bold', alignment=TA_RIGHT)),
         Paragraph("", s_td),
@@ -831,3 +947,22 @@ def generate_facture_pdf(rdv_id: int, db: Session):
     return StreamingResponse(buffer, media_type="application/pdf", headers={
         "Content-Disposition": f"attachment; filename=FACTURE-{facture_number}.pdf"
     })
+
+
+def generate_facture_pdf_bytes(db: Session, facture_id: int, atelier_id: int) -> bytes | None:
+    """Génère un PDF de facture et retourne les bytes bruts (pour envoi par email).
+
+    Utilise la facture existante en base plutôt que le RDV directement.
+    Retourne None si impossible de générer.
+    """
+    from models import Facture
+    facture = db.query(Facture).filter(Facture.id == facture_id).first()
+    if not facture:
+        return None
+    try:
+        resp = generate_facture_pdf(facture.rendez_vous_id, db)
+        # StreamingResponse wraps a BytesIO; read it
+        return resp.body_iterator.read() if hasattr(resp.body_iterator, "read") else b"".join(resp.body_iterator)
+    except Exception:
+        logger.exception("Erreur génération PDF facture_id=%s", facture_id)
+        return None

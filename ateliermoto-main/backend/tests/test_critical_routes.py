@@ -6,7 +6,7 @@ import json
 import pytest
 import sys
 import os
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from auth import get_current_user
-from models import Atelier, Base, Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RendezVous, Vehicule, get_db
+from models import Absence, Atelier, Base, Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RendezVous, Vehicule, get_db
 from main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -208,12 +208,15 @@ class TestCriticalRoutesRendezVous:
         rdv_id = self._create_rendez_vous_route()
         assert isinstance(rdv_id, int)
 
-    def test_get_rendez_vous_route(self):
+    def test_get_rendez_vous_route(self, auth_token):
         """Test la route de récupération d'un RDV"""
         # Créer un RDV d'abord
         rdv_id = self._create_rendez_vous_route()
-        
-        response = client.get(f"/api/rendez-vous/{rdv_id}")
+
+        response = client.get(
+            f"/api/rendez-vous/{rdv_id}",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == rdv_id
@@ -229,6 +232,134 @@ class TestCriticalRoutesRendezVous:
             headers={"Authorization": f"Bearer {auth_token}"}
         )
         assert response.status_code == 200
+
+    def test_update_rendez_vous_detects_conflict_after_pause_split(self, auth_token):
+        """Un RDV qui reprend après la pause midi doit bloquer le même pont/technicien."""
+        target_day = date.today()
+        while target_day.weekday() >= 5:
+            target_day += timedelta(days=1)
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.id == 1).first()
+        if not atelier:
+            atelier = Atelier(id=1, nom="Atelier Test Interne", slug="default", plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Pause", prenom="Split", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+        pont = Pont(atelier_id=atelier.id, nom="Pont Pause", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        client_a = Client(atelier_id=atelier.id, nom="Client", prenom="A", telephone="0611111111")
+        client_b = Client(atelier_id=atelier.id, nom="Client", prenom="B", telephone="0622222222")
+        db.add_all([pont, client_a, client_b])
+        db.flush()
+
+        vehicule_a = Vehicule(atelier_id=atelier.id, plaque="PAUSEA01", marque="Yamaha", modele="MT-09", client_id=client_a.id)
+        vehicule_b = Vehicule(atelier_id=atelier.id, plaque="PAUSEB01", marque="Honda", modele="CB650", client_id=client_b.id)
+        db.add_all([vehicule_a, vehicule_b])
+        db.flush()
+
+        existing_horaire = db.query(HoraireAtelier).filter(HoraireAtelier.atelier_id == atelier.id, HoraireAtelier.jour_semaine == target_day.weekday()).first()
+        if existing_horaire:
+            existing_horaire.heure_ouverture = "08:00"
+            existing_horaire.heure_fermeture = "18:00"
+            existing_horaire.pause_debut = "12:00"
+            existing_horaire.pause_fin = "14:00"
+            existing_horaire.is_ouvert = 1
+        else:
+            db.add(HoraireAtelier(
+                atelier_id=atelier.id,
+                jour_semaine=target_day.weekday(),
+                heure_ouverture="08:00",
+                heure_fermeture="18:00",
+                pause_debut="12:00",
+                pause_fin="14:00",
+                is_ouvert=1,
+            ))
+
+        rdv_a = RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_a.id,
+            vehicule_id=vehicule_a.id,
+            date_rdv=target_day,
+            heure_rdv=time(11, 30),
+            type_intervention="Diagnostic long",
+            statut="confirme",
+            temps_estime=90,
+            pont_id=pont.id,
+            mecanicien_id=mecanicien.id,
+        )
+        rdv_b = RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_b.id,
+            vehicule_id=vehicule_b.id,
+            date_rdv=target_day,
+            heure_rdv=time(14, 30),
+            type_intervention="Controle rapide",
+            statut="confirme",
+            temps_estime=60,
+            pont_id=pont.id,
+            mecanicien_id=mecanicien.id,
+        )
+        db.add_all([rdv_a, rdv_b])
+        db.commit()
+        rdv_b_id = rdv_b.id
+        db.close()
+
+        response = client.put(
+            f"/api/rendez-vous/{rdv_b_id}",
+            json={"commentaire": "verification conflit pause"},
+            headers={"Authorization": f"Bearer {auth_token}"}
+        )
+        assert response.status_code == 409
+        assert "Conflit planning" in response.json()["detail"]
+
+    def test_create_rendez_vous_rejects_absent_mecanicien_assignment(self, auth_token):
+        """La creation rapide ne doit pas assigner un technicien absent."""
+        target_day = date.today()
+        while target_day.weekday() >= 5:
+            target_day += timedelta(days=1)
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.id == 1).first()
+        if not atelier:
+            atelier = Atelier(id=1, nom="Atelier Test Interne", slug="default", plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Absent", prenom="Tech", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+        pont = Pont(atelier_id=atelier.id, nom="Pont Absence", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        db.add(pont)
+        db.flush()
+        db.add(Absence(
+            atelier_id=atelier.id,
+            mecanicien_id=mecanicien.id,
+            date_debut=target_day,
+            date_fin=target_day,
+            motif="conge",
+            notes="indisponible",
+        ))
+        db.commit()
+        mecanicien_id = mecanicien.id
+        pont_id = pont.id
+        db.close()
+
+        response = client.post(
+            "/api/rendez-vous",
+            json={
+                "client": {"nom": "Creation", "prenom": "Rapide", "telephone": "0633333333"},
+                "vehicule": {"plaque": "ABSENCE01", "marque": "BMW", "modele": "R1250"},
+                "date_rdv": target_day.isoformat(),
+                "heure_rdv": "09:00:00",
+                "type_intervention": "Revision express",
+                "mecanicien_id": mecanicien_id,
+                "pont_id": pont_id,
+            },
+            headers={"Authorization": f"Bearer {auth_token}"}
+        )
+        assert response.status_code == 409
+        assert "Technicien indisponible" in response.json()["detail"]
 
     def test_public_slots_block_overlap_and_pause_for_long_duration(self):
         """Un créneau long ne doit ni chevaucher un RDV existant, ni traverser une fermeture atelier."""
@@ -631,6 +762,72 @@ class TestCriticalRdvSecurityAndTransitions:
         assert response.status_code == 400
         assert "reception" in response.text.lower()
 
+    def test_terminer_avec_rapport_persists_notes_and_sets_end_date(self):
+        headers = auth_headers_for_role("admin", "admin_atomic_finish")
+
+        db = TestingSessionLocal()
+        client_db = Client(atelier_id=1, nom="Fin", prenom="Atomic", telephone="0607070707")
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=1, plaque="ATOMIC01", marque="Suzuki", modele="GSX-8S", client_id=client_db.id)
+        db.add(vehicule)
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=1,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(10, 0),
+            type_intervention="Diagnostic final",
+            commentaire="RDV atelier pour cloture",
+            statut="en_cours",
+            temps_estime=30,
+            heure_debut_travail=datetime.now() - timedelta(minutes=35),
+        )
+        db.add(rdv)
+        db.commit()
+        rdv_id = rdv.id
+        db.close()
+
+        response = client.post(
+            f"/api/rendez-vous/{rdv_id}/terminer-avec-rapport",
+            json={
+                "points_controle": {},
+                "alertes": "Client a rappeler pour la batterie.",
+                "recommandations": "Controle complementaire au prochain passage.",
+                "travaux_realises": "Essai routier et verification finale.",
+                "statut": "termine",
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["statut"] == "termine"
+        assert response.json()["rapport"]["alertes"] == "Client a rappeler pour la batterie."
+        assert response.json()["rapport"]["date_fin"] is not None
+
+        rapport_response = client.get(f"/api/rendez-vous/{rdv_id}/rapport-technicien", headers=headers)
+        assert rapport_response.status_code == 200
+        rapport_payload = rapport_response.json()
+        assert rapport_payload["alertes"] == "Client a rappeler pour la batterie."
+        assert rapport_payload["travaux_realises"] == "Essai routier et verification finale."
+        assert rapport_payload["date_fin"] is not None
+
+    def test_service_client_cannot_drive_workflow_without_workflow_permission(self):
+        rdv_id, _ = self._create_rdv_as_admin()
+        service_headers = auth_headers_for_role("service_client", "src_workflow_blocked")
+
+        response = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "confirme"},
+            headers=service_headers,
+        )
+
+        assert response.status_code == 403
+        assert "workflow.manage" in response.text or "permission" in response.text.lower()
+
     def test_invalid_status_transition_is_rejected(self):
         rdv_id, headers = self._create_rdv_as_admin()
 
@@ -642,6 +839,205 @@ class TestCriticalRdvSecurityAndTransitions:
 
         assert response.status_code == 400
         assert "transition" in response.text.lower() or "statut" in response.text.lower()
+
+    def test_generic_update_cannot_force_reception_gate(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        response = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "reception"},
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert "reception" in response.text.lower() or "dedi" in response.text.lower()
+
+    def test_dedicated_reception_requires_confirmed_status(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        response = client.post(
+            f"/api/rendez-vous/{rdv_id}/reception",
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert "confirme" in response.text.lower()
+
+    def test_restitution_endpoint_closes_rdv_and_records_history(self):
+        headers = auth_headers_for_role("admin", "admin_restitution_flow")
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.id == 1).first()
+        if not atelier:
+            atelier = Atelier(id=1, nom="Atelier Test Interne", slug="default", plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+
+        client_db = Client(atelier_id=atelier.id, nom="Restit", prenom="Client", telephone="0609090909")
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=atelier.id, plaque="RESTIT01", marque="Ducati", modele="Monster", client_id=client_db.id)
+        db.add(vehicule)
+        db.flush()
+
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Restit", prenom="Tech", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+
+        pont = Pont(atelier_id=atelier.id, nom="Pont restitution", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        db.add(pont)
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(17, 0),
+            type_intervention="Restitution finale",
+            statut="termine",
+            temps_estime=45,
+            pont_id=pont.id,
+            mecanicien_id=mecanicien.id,
+        )
+        db.add(rdv)
+        db.commit()
+        rdv_id = rdv.id
+        pont_id = pont.id
+        mecanicien_id = mecanicien.id
+        db.close()
+
+        response = client.post(
+            f"/api/rendez-vous/{rdv_id}/restituer",
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["statut"] == "restitue"
+
+        detail = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert detail.status_code == 200
+        payload = detail.json()
+        history = payload.get("workflow_history") or []
+        assert payload["statut"] == "restitue"
+        assert any(entry.get("to_status") == "restitue" for entry in history)
+
+        locked = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"pont_id": pont_id, "mecanicien_id": mecanicien_id + 999},
+            headers=headers,
+        )
+
+        assert locked.status_code == 409
+        assert "finalise" in locked.text.lower() or "verrou" in locked.text.lower()
+
+    def test_finalized_rdv_cannot_reassign_pont_or_mecanicien(self):
+        headers = auth_headers_for_role("admin", "admin_assignment_lock")
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.id == 1).first()
+        if not atelier:
+            atelier = Atelier(id=1, nom="Atelier Test Interne", slug="default", plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+
+        client_db = Client(atelier_id=atelier.id, nom="Lock", prenom="Assignation", telephone="0608080808")
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=atelier.id, plaque="LOCKAS01", marque="Kawasaki", modele="Z900", client_id=client_db.id)
+        db.add(vehicule)
+        db.flush()
+
+        mecanicien_a = Mecanicien(atelier_id=atelier.id, nom="Alpha", prenom="Tech", is_active=1)
+        mecanicien_b = Mecanicien(atelier_id=atelier.id, nom="Bravo", prenom="Tech", is_active=1)
+        db.add_all([mecanicien_a, mecanicien_b])
+        db.flush()
+
+        pont_a = Pont(atelier_id=atelier.id, nom="Pont A lock", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien_a.id)
+        pont_b = Pont(atelier_id=atelier.id, nom="Pont B lock", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien_b.id)
+        db.add_all([pont_a, pont_b])
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(15, 0),
+            type_intervention="Controle final",
+            statut="termine",
+            temps_estime=45,
+            pont_id=pont_a.id,
+            mecanicien_id=mecanicien_a.id,
+        )
+        db.add(rdv)
+        db.commit()
+        pont_a_id = pont_a.id
+        pont_b_id = pont_b.id
+        mecanicien_a_id = mecanicien_a.id
+        mecanicien_b_id = mecanicien_b.id
+        rdv_id = rdv.id
+        db.close()
+
+        response = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"pont_id": pont_b_id, "mecanicien_id": mecanicien_b_id},
+            headers=headers,
+        )
+
+        assert response.status_code == 409
+        assert "verrou" in response.text.lower() or "finalise" in response.text.lower()
+
+        detail = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert detail.status_code == 200
+        payload = detail.json()
+        assert payload["pont_id"] == pont_a_id
+        assert payload["mecanicien_id"] == mecanicien_a_id
+
+    def test_annulation_requires_reason_and_records_history(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        blocked = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "annule"},
+            headers=headers,
+        )
+
+        assert blocked.status_code == 400
+        assert "motif" in blocked.text.lower() or "commentaire" in blocked.text.lower()
+
+        allowed = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "annule", "commentaire": "[ANNULATION] motif=atelier_indisponible"},
+            headers=headers,
+        )
+
+        assert allowed.status_code == 200
+
+        detail = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert detail.status_code == 200
+        payload = detail.json()
+        history = payload.get("workflow_history") or []
+        assert payload["statut"] == "annule"
+        assert any(entry.get("to_status") == "annule" for entry in history)
+
+    def test_workflow_history_is_exposed_on_status_change(self):
+        rdv_id, headers = self._create_rdv_as_admin()
+
+        update = client.put(
+            f"/api/rendez-vous/{rdv_id}",
+            json={"statut": "confirme"},
+            headers=headers,
+        )
+
+        assert update.status_code == 200
+
+        detail = client.get(f"/api/rendez-vous/{rdv_id}", headers=headers)
+        assert detail.status_code == 200
+        history = detail.json().get("workflow_history") or []
+        assert any(entry.get("to_status") == "confirme" for entry in history)
 
 
 class TestTravauxSupplementairesWorkflow:
@@ -833,6 +1229,66 @@ class TestOrdreReparationVisualData:
         assert isinstance(data["photos_etat"], list)
         assert len(data["photos_etat"]) == 1
         assert data["ordres_reparation"][0]["signature_client"].startswith("data:image/png;base64,")
+
+    def test_signed_ordre_reparation_becomes_locked_against_resave(self):
+        headers = auth_headers_for_role("admin", "admin_or_locked")
+
+        db = TestingSessionLocal()
+        client_db = Client(
+            atelier_id=1,
+            nom="Lock",
+            prenom="Test",
+            telephone="0606060606",
+        )
+        db.add(client_db)
+        db.flush()
+
+        vehicule = Vehicule(
+            atelier_id=1,
+            plaque="ORLOCK01",
+            marque="Yamaha",
+            modele="MT-07",
+            client_id=client_db.id,
+        )
+        db.add(vehicule)
+        db.flush()
+
+        rdv = RendezVous(
+            atelier_id=1,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=date.today(),
+            heure_rdv=time(14, 0),
+            type_intervention="Controle",
+            commentaire="Reception atelier",
+            prix_estime=99.0,
+            temps_estime=45,
+            statut="confirme",
+        )
+        db.add(rdv)
+        db.commit()
+        rdv_id = rdv.id
+        db.close()
+
+        first_payload = {
+            "kilometrage": 25000,
+            "etat_vehicule": json.dumps({"points": ["carrosserie_ok"], "observations": "RAS"}),
+            "travaux": "Controle de routine",
+            "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nXKkAAAAASUVORK5CYII=",
+        }
+        second_payload = {
+            "kilometrage": 25555,
+            "etat_vehicule": json.dumps({"points": ["bosses"], "observations": "Modification tardive"}),
+            "travaux": "Tentative de modification apres signature",
+            "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nXKkAAAAASUVORK5CYII=",
+        }
+
+        first = client.post(f"/api/rendez-vous/{rdv_id}/ordre-reparation/save", json=first_payload, headers=headers)
+        assert first.status_code == 200
+
+        second = client.post(f"/api/rendez-vous/{rdv_id}/ordre-reparation/save", json=second_payload, headers=headers)
+        assert second.status_code == 409
+        assert "verrou" in second.text.lower() or "signe" in second.text.lower()
 
 
 class TestRouteResponseTimes:

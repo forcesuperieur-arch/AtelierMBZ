@@ -1,0 +1,19 @@
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local environment
+.env
+backend/.env
+
+# Runtime data
+backend/signatures/
+backend/data/logos/
+backend/photos/
+backups/

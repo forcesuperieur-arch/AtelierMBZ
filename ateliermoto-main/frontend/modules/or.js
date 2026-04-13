@@ -37,10 +37,69 @@ window.OrModule = window.OrModule || {
 
     loadOrdresReparation: function() {
         apiGet('/api/rendez-vous').then(function(r) { return r.json(); }).then(function(rdvs) {
+            APP._orAllRdvs = rdvs;
             window.OrModule.renderOrdresReparation(rdvs);
         }).catch(function(e) { console.error('Erreur OR:', e); });
         window.OrModule.pollTravauxSupp();
         setTimeout(function() { window.OrModule.renderTravauxSuppPanel(); }, 500);
+    },
+
+    filterOrList: function() {
+        var rdvs = APP._orAllRdvs || [];
+        var search = (document.getElementById('or-search-filter') || {}).value || '';
+        var statusFilter = (document.getElementById('or-status-filter') || {}).value || '';
+        search = search.toLowerCase().trim();
+        var filtered = rdvs.filter(function(r) {
+            if (statusFilter && r.statut !== statusFilter) return false;
+            if (search) {
+                var c = r.client || {};
+                var v = r.vehicule || {};
+                var orNum = window.OrModule.getOrNumber(r).toLowerCase();
+                var haystack = ((c.nom || '') + ' ' + (c.prenom || '') + ' ' + (v.plaque || '') + ' ' + (v.marque || '') + ' ' + (v.modele || '') + ' ' + orNum).toLowerCase();
+                if (haystack.indexOf(search) === -1) return false;
+            }
+            return true;
+        });
+        window.OrModule.renderOrdresReparation(filtered);
+    },
+
+    exportOrCsv: function() {
+        var rdvs = APP._orAllRdvs || [];
+        var rows = [['OR', 'Date', 'Heure', 'Client', 'Telephone', 'Vehicule', 'Plaque', 'Intervention', 'Statut', 'Montant']];
+        rdvs.forEach(function(r) {
+            if (r.statut === 'annule' || r.statut === 'non_presente') return;
+            var c = r.client || {};
+            var v = r.vehicule || {};
+            var orInfo = window.OrModule.getLatestOrdreInfo(r) || {};
+            var etat = window.OrModule.parseEtatVehicule(orInfo.etat_vehicule || r.etat_vehicule);
+            var amount = window.OrModule.getDisplayedOrAmountValue(r, orInfo, etat);
+            rows.push([
+                window.OrModule.getOrNumber(r),
+                r.date_rdv || '',
+                formatTime(r.heure_rdv || '') || '',
+                ((c.prenom || '') + ' ' + (c.nom || '')).trim(),
+                c.telephone || '',
+                ((v.marque || '') + ' ' + (v.modele || '')).trim(),
+                v.plaque || '',
+                r.type_intervention || '',
+                r.statut || '',
+                amount != null ? String(amount) : ''
+            ]);
+        });
+        var csv = rows.map(function(row) {
+            return row.map(function(cell) {
+                var s = String(cell).replace(/"/g, '""');
+                return '"' + s + '"';
+            }).join(';');
+        }).join('\n');
+        var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'ordres_reparation_' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotificationToast('Export CSV telecharge');
     },
 
     getOrNumber: function(rdv) {
@@ -57,8 +116,9 @@ window.OrModule = window.OrModule || {
             en_cours: { label: 'En atelier', tone: '#f97316', soft: 'rgba(249,115,22,.15)' },
             en_attente: { label: 'En attente', tone: '#f59e0b', soft: 'rgba(245,158,11,.14)' },
             termine: { label: 'Termine', tone: '#22c55e', soft: 'rgba(34,197,94,.14)' },
-            facture: { label: 'Facture', tone: '#8b5cf6', soft: 'rgba(139,92,246,.16)' },
-            paye: { label: 'Paye', tone: '#16a34a', soft: 'rgba(22,163,74,.14)' },
+            restitue: { label: 'Restitue', tone: '#16a34a', soft: 'rgba(22,163,74,.14)' },
+            facture: { label: 'Cloture', tone: '#16a34a', soft: 'rgba(22,163,74,.14)' },
+            paye: { label: 'Cloture', tone: '#16a34a', soft: 'rgba(22,163,74,.14)' },
             annule: { label: 'Annule', tone: '#ef4444', soft: 'rgba(239,68,68,.14)' },
             non_presente: { label: 'Non presente', tone: '#ef4444', soft: 'rgba(239,68,68,.14)' }
         };
@@ -69,6 +129,55 @@ window.OrModule = window.OrModule || {
         var num = parseFloat(value);
         if (isNaN(num)) return 'A chiffrer';
         return num.toFixed(2).replace('.', ',') + ' €';
+    },
+
+    getRdvAmountValue: function(rdv) {
+        if (!rdv) return null;
+        var raw = rdv.prix_estime != null ? rdv.prix_estime : rdv.prix_final;
+        if (raw == null || raw === '') return null;
+        var amount = parseFloat(raw);
+        return isNaN(amount) ? null : amount;
+    },
+
+    getEstimateRowsTotal: function(rows) {
+        var total = 0;
+        var hasAmount = false;
+        (rows || []).forEach(function(row) {
+            var qty = parseFloat(row && (row.qty != null ? row.qty : row.quantite));
+            var amount = parseFloat(row && (row.amount != null ? row.amount : row.montant));
+            if (isNaN(amount)) return;
+            total += amount * (isNaN(qty) ? 1 : qty);
+            hasAmount = true;
+        });
+        return hasAmount ? total : null;
+    },
+
+    getStoredBookingAmountValue: function(etatMeta) {
+        if (!etatMeta) return null;
+        var raw = etatMeta.booking_price;
+        if (raw != null && raw !== '') {
+            var storedAmount = parseFloat(raw);
+            if (!isNaN(storedAmount)) return storedAmount;
+        }
+        return window.OrModule.getEstimateRowsTotal(etatMeta.estimate_rows || []);
+    },
+
+    getDisplayedOrAmountValue: function(rdv, orInfo, etatMeta) {
+        var bookingAmount = window.OrModule.getStoredBookingAmountValue(etatMeta);
+        if (bookingAmount != null) return bookingAmount;
+        return window.OrModule.getRdvAmountValue(rdv);
+    },
+
+    getSupplementaryOrRows: function(rdv) {
+        return (rdv && rdv.ordres_reparation || []).filter(function(orItem) {
+            return orItem.type_or === 'supplementaire';
+        }).map(function(orItem) {
+            return {
+                label: orItem.travaux || 'Travaux supplementaires',
+                qty: 1,
+                amount: orItem.montant_estime != null ? orItem.montant_estime : (orItem.prix_estime != null ? orItem.prix_estime : null)
+            };
+        });
     },
 
     getLatestOrdreInfo: function(rdv) {
@@ -93,7 +202,10 @@ window.OrModule = window.OrModule || {
             body_damages: [],
             schema_notes: '',
             estimate_rows: [],
-            photos: []
+            booking_price: null,
+            photos: [],
+            is_locked: false,
+            locked_at: null
         };
         if (!raw) return out;
         try {
@@ -119,7 +231,13 @@ window.OrModule = window.OrModule || {
             out.body_damages = data && Array.isArray(data.body_damages) ? data.body_damages.slice() : [];
             out.schema_notes = data && data.schema_notes ? String(data.schema_notes) : '';
             out.estimate_rows = data && Array.isArray(data.estimate_rows) ? data.estimate_rows.slice() : [];
+            if (data && data.booking_price != null && data.booking_price !== '') {
+                out.booking_price = parseFloat(data.booking_price);
+                if (isNaN(out.booking_price)) out.booking_price = null;
+            }
             out.photos = data && Array.isArray(data.photos) ? data.photos.slice() : [];
+            out.is_locked = !!(data && (data.or_locked || data.is_locked));
+            out.locked_at = data && (data.or_locked_at || data.locked_at) ? String(data.or_locked_at || data.locked_at) : null;
             return out;
         } catch (e) {
             out.observations = String(raw || '');
@@ -150,21 +268,14 @@ window.OrModule = window.OrModule || {
             }).filter(function(row) { return row.label; });
         }
         if (rows.length) return rows;
-        if (rdv && (rdv.type_intervention || rdv.prix_estime || rdv.prix_final)) {
+        var mainAmount = window.OrModule.getDisplayedOrAmountValue(rdv, null, etatMeta);
+        if (rdv && (rdv.type_intervention || mainAmount != null)) {
             rows.push({
                 label: rdv.type_intervention || 'Intervention atelier',
                 qty: 1,
-                amount: rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime
+                amount: mainAmount
             });
         }
-        (rdv.ordres_reparation || []).forEach(function(orItem) {
-            if (orItem.type_or !== 'supplementaire') return;
-            rows.push({
-                label: orItem.travaux || 'Travaux supplementaires',
-                qty: 1,
-                amount: orItem.montant_estime != null ? orItem.montant_estime : (orItem.prix_estime != null ? orItem.prix_estime : null)
-            });
-        });
         if (!rows.length) rows.push({ label: 'Diagnostic atelier', qty: 1, amount: null });
         return rows;
     },
@@ -184,16 +295,14 @@ window.OrModule = window.OrModule || {
         var rows = window.OrModule.buildOrEstimateRows(rdv, etat);
         var clientName = escapeHtml(((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-');
         var motoName = escapeHtml(((v.marque || '') + ' ' + (v.modele || '')).trim() || '-');
-        var atelierName = escapeHtml((rdv.atelier && (rdv.atelier.nom || rdv.atelier.name)) || (APP.currentUser && APP.currentUser.atelier_nom) || 'Atelier Moto Pro');
+        var atelierName = escapeHtml((rdv.atelier && (rdv.atelier.nom || rdv.atelier.name)) || (APP.atelierInfo && APP.atelierInfo.nom) || (APP.currentUser && APP.currentUser.atelier_nom) || 'Atelier Moto Pro');
         var immat = escapeHtml(v.plaque || '-');
         var km = rdv.kilometrage || orInfo.kilometrage || '-';
         var serial = escapeHtml(v.numero_serie || v.vin || '-');
         var orNum = window.OrModule.getOrNumber(rdv);
-        var totalFromRows = rows.reduce(function(sum, row) {
-            var amount = parseFloat(row.amount);
-            return isNaN(amount) ? sum : (sum + amount * (parseFloat(row.qty) || 1));
-        }, 0);
-        var totalTtc = totalFromRows || (rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime);
+        var totalFromRows = window.OrModule.getEstimateRowsTotal(rows);
+        var totalTtc = window.OrModule.getDisplayedOrAmountValue(rdv, orInfo, etat);
+        if (totalTtc == null) totalTtc = totalFromRows;
         var totalDisplay = window.OrModule.formatEuro(totalTtc);
         var dateLabel = rdv.date_rdv || '-';
         var hourLabel = formatTime(rdv.heure_rdv || '') || '--:--';
@@ -202,6 +311,7 @@ window.OrModule = window.OrModule || {
         var priorityKey = String(etat.priority || '').toLowerCase();
         var priorityLabel = priorityMap[priorityKey] || (rdv.statut === 'en_cours' ? 'Flash / Urgent' : (rdv.statut === 'reserve' ? 'Basse' : 'Standard'));
         var fuelLevel = etat.fuel_level;
+        var isLocked = !!(etat.is_locked || orInfo.signature_client);
         var pointsHtml = etat.points.length ? etat.points.map(function(item) {
             return '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:11px;font-weight:700">✓ ' + escapeHtml(item) + '</span>';
         }).join('') : '<span style="font-size:12px;color:#64748b">Reception a completer lors de la prise en charge.</span>';
@@ -263,7 +373,7 @@ window.OrModule = window.OrModule || {
                     '</div>' +
                 '</div>' +
                 '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">' +
-                    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#64748b">Priorite :</span><span style="padding:6px 10px;border-radius:999px;background:' + orMeta.soft + ';color:' + orMeta.tone + ';font-size:11px;font-weight:800">' + priorityLabel + '</span><span style="padding:6px 10px;border-radius:999px;background:' + orMeta.soft + ';color:' + orMeta.tone + ';font-size:11px;font-weight:800">' + orMeta.label + '</span></div>' +
+                    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#64748b">Priorite :</span><span style="padding:6px 10px;border-radius:999px;background:' + orMeta.soft + ';color:' + orMeta.tone + ';font-size:11px;font-weight:800">' + priorityLabel + '</span><span style="padding:6px 10px;border-radius:999px;background:' + orMeta.soft + ';color:' + orMeta.tone + ';font-size:11px;font-weight:800">' + orMeta.label + '</span>' + (isLocked ? '<span style="padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800">OR verrouille</span>' : '<span style="padding:6px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:800">OR brouillon</span>') + '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#64748b">Niveau carburant :</span>' + window.OrModule.renderFuelGauge(fuelLevel) + '</div>' +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">' +
@@ -371,105 +481,241 @@ window.OrModule = window.OrModule || {
         var container = document.getElementById('or-list');
         if (!container) return;
         var enCours = (rdvs || []).filter(function(r) { return r.statut !== 'annule' && r.statut !== 'non_presente'; });
-        document.getElementById('or-ouverts').textContent = enCours.filter(function(r) { return r.statut !== 'termine' && r.statut !== 'facture' && r.statut !== 'paye'; }).length + ' ouverts';
-        document.getElementById('or-termines').textContent = enCours.filter(function(r) { return r.statut === 'termine' || r.statut === 'facture' || r.statut === 'paye'; }).length + ' termines';
+        var openCount = enCours.filter(function(r) { return r.statut !== 'termine' && r.statut !== 'restitue' && r.statut !== 'facture' && r.statut !== 'paye'; }).length;
+        var completedCount = enCours.filter(function(r) { return r.statut === 'termine' || r.statut === 'restitue' || r.statut === 'facture' || r.statut === 'paye'; }).length;
+        var liveCount = enCours.filter(function(r) { return r.statut === 'en_cours'; }).length;
+        var receptionCount = enCours.filter(function(r) { return r.statut === 'reception'; }).length;
+        var awaitingClientCount = enCours.filter(function(r) { return r.statut === 'reserve' || r.statut === 'en_attente' || r.statut === 'confirme'; }).length;
+        var estimatedTotal = enCours.reduce(function(sum, r) {
+            var currentOr = window.OrModule.getLatestOrdreInfo(r) || {};
+            var etat = window.OrModule.parseEtatVehicule(currentOr.etat_vehicule || r.etat_vehicule);
+            var amount = window.OrModule.getDisplayedOrAmountValue(r, currentOr, etat);
+            return isNaN(amount) ? sum : (sum + amount);
+        }, 0);
+
+        document.getElementById('or-ouverts').textContent = openCount + ' ouverts';
+        document.getElementById('or-termines').textContent = completedCount + ' termines';
 
         enCours.sort(function(a, b) {
-            var order = { 'en_cours': 0, 'reception': 1, 'confirme': 2, 'reserve': 3, 'en_attente': 4, 'termine': 5, 'facture': 6, 'paye': 7, 'non_presente': 8 };
+            var order = { 'en_cours': 0, 'reception': 1, 'confirme': 2, 'reserve': 3, 'en_attente': 4, 'termine': 5, 'restitue': 6, 'facture': 7, 'paye': 8, 'non_presente': 9 };
             return (order[a.statut] || 9) - (order[b.statut] || 9);
         });
 
         if (!enCours.length) {
-            container.innerHTML = '<div class="card" style="padding:24px;text-align:center;color:#94a3b8">Aucun ordre de reparation actif pour le moment.</div>';
+            container.innerHTML = '<div class="card" style="padding:30px;text-align:center;color:#94a3b8;border-radius:18px"><div style="font-size:42px;margin-bottom:8px">🧾</div><div style="font-size:18px;color:#e2e8f0;font-weight:800">Aucun OR actif pour le moment</div><div style="font-size:13px;color:#94a3b8;margin-top:6px">Les nouveaux dossiers receptionnes apparaitront ici automatiquement.</div></div>';
             return;
         }
 
         var etapes = ['Reception', 'Diagnostic', 'Intervention', 'Controle QC', 'Livraison'];
-        var html = '';
+        var html = '<div style="display:grid;gap:14px">' +
+            '<div style="padding:16px 18px;border-radius:22px;border:1px solid rgba(255,210,0,.2);background:linear-gradient(135deg,#161616 0%,#232323 100%);box-shadow:0 18px 36px rgba(0,0,0,.24)">' +
+                '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">' +
+                    '<div style="max-width:520px">' +
+                        '<div style="font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--orange)">Tour atelier OR</div>' +
+                        '<div style="font-size:24px;font-weight:900;color:#fff;line-height:1.1;margin-top:6px">Pilotage instantane des dossiers clients</div>' +
+                        '<div style="font-size:13px;color:#cbd5e1;line-height:1.5;margin-top:8px">Impression, reception, suivi atelier et decisions client regroupes sur une seule vue, pensee pour le comptoir et le chef d\'atelier.</div>' +
+                    '</div>' +
+                    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;flex:1;min-width:260px">' +
+                        '<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px"><div style="font-size:24px;font-weight:900;color:#fff">' + openCount + '</div><div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.08em">Dossiers ouverts</div></div>' +
+                        '<div style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2);border-radius:14px;padding:10px 12px"><div style="font-size:24px;font-weight:900;color:#fdba74">' + liveCount + '</div><div style="font-size:11px;color:#fed7aa;text-transform:uppercase;letter-spacing:.08em">En atelier</div></div>' +
+                        '<div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:10px 12px"><div style="font-size:24px;font-weight:900;color:#86efac">' + receptionCount + '</div><div style="font-size:11px;color:#dcfce7;text-transform:uppercase;letter-spacing:.08em">Prets au diag</div></div>' +
+                        '<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px"><div style="font-size:24px;font-weight:900;color:#fff">' + window.OrModule.formatEuro(estimatedTotal) + '</div><div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.08em">CA estimatif</div></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+                    '<span style="padding:6px 10px;border-radius:999px;background:rgba(255,210,0,.16);color:var(--orange);font-size:11px;font-weight:800">' + liveCount + ' en cours</span>' +
+                    '<span style="padding:6px 10px;border-radius:999px;background:rgba(245,158,11,.14);color:#fcd34d;font-size:11px;font-weight:800">' + awaitingClientCount + ' a receptionner / confirmer</span>' +
+                    '<span style="padding:6px 10px;border-radius:999px;background:rgba(34,197,94,.14);color:#86efac;font-size:11px;font-weight:800">' + completedCount + ' dossiers finalises</span>' +
+                '</div>' +
+            '</div>';
+
         enCours.slice(0, 30).forEach(function(rdv) {
             var meca = rdv.mecanicien || APP.mecaniciens.find(function(m) { return m.id === rdv.mecanicien_id; });
             var pont = rdv.pont || APP.ponts.find(function(p) { return p.id === rdv.pont_id; });
             var v = rdv.vehicule || {};
             var c = rdv.client || {};
             var duree = rdv.temps_estime ? Math.round(rdv.temps_estime / 60 * 10) / 10 + 'h' : 'A estimer';
-            var isTermine = rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye';
+            var isTermine = rdv.statut === 'termine' || rdv.statut === 'restitue' || rdv.statut === 'facture' || rdv.statut === 'paye';
             var currentIdx = window.OrModule.getEtapeIndex(rdv.statut);
             var orNum = window.OrModule.getOrNumber(rdv);
             var orMeta = window.OrModule.getOrStatusMeta(rdv.statut);
-            var totalDisplay = window.OrModule.formatEuro(rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime);
             var currentOr = window.OrModule.getLatestOrdreInfo(rdv);
             var currentOrId = currentOr ? currentOr.id : null;
-            var stepsHtml = '<div style="display:flex;gap:4px;margin-top:14px">';
+            var currentEtat = window.OrModule.parseEtatVehicule((currentOr && currentOr.etat_vehicule) || rdv.etat_vehicule);
+            var totalDisplay = window.OrModule.formatEuro(window.OrModule.getDisplayedOrAmountValue(rdv, currentOr, currentEtat));
+            var hasSupp = (rdv.ordres_reparation || []).some(function(orItem) { return orItem.type_or === 'supplementaire'; });
+            var actionPlan = window.OrModule.getOrActionPlan(rdv, currentOrId);
+            var clientName = ((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-';
+            var workflowHtml = '';
+            if (window.RdvActionsModule && typeof window.RdvActionsModule.actionButtons === 'function') {
+                try {
+                    workflowHtml = window.RdvActionsModule.actionButtons(rdv, false);
+                } catch (e) {
+                    workflowHtml = '';
+                }
+            }
+            var toolsHtml = '';
+            if (c.telephone) {
+                toolsHtml += '<a class="btn btn-ghost" href="tel:' + escapeHtml(c.telephone) + '" style="text-decoration:none">Appeler client</a>';
+            }
+            if (['reception', 'en_cours', 'termine'].indexOf(rdv.statut) !== -1) {
+                toolsHtml += '<button class="btn btn-ghost" onclick="event.stopPropagation();ouvrirDemandeTravauxSupp(' + rdv.id + ')">Travaux supp</button>';
+            }
+            if (['termine', 'restitue', 'facture', 'paye'].indexOf(rdv.statut) !== -1) {
+                toolsHtml += '<button class="btn btn-ghost" onclick="event.stopPropagation();planifierRdvSuite(' + rdv.id + ')">RDV suite</button>';
+            }
+            var stepsHtml = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:14px">';
             etapes.forEach(function(label, i) {
-                var bg = '#1f2937';
+                var bg = 'rgba(148,163,184,.12)';
                 var txtCol = '#94a3b8';
-                if (i < currentIdx || isTermine) { bg = '#22c55e'; txtCol = '#fff'; }
-                else if (i === currentIdx && !isTermine) { bg = '#f97316'; txtCol = '#fff'; }
-                stepsHtml += '<div style="flex:1;text-align:center;padding:7px 4px;font-size:10px;font-weight:800;letter-spacing:.03em;background:' + bg + ';color:' + txtCol + ';border-radius:6px">' + label + '</div>';
+                if (i < currentIdx || isTermine) { bg = 'rgba(34,197,94,.22)'; txtCol = '#dcfce7'; }
+                else if (i === currentIdx && !isTermine) { bg = 'rgba(249,115,22,.24)'; txtCol = '#ffedd5'; }
+                stepsHtml += '<div style="flex:1 1 92px;text-align:center;padding:8px 6px;font-size:10px;font-weight:800;letter-spacing:.03em;background:' + bg + ';color:' + txtCol + ';border-radius:8px">' + label + '</div>';
             });
             stepsHtml += '</div>';
 
-            html += '<div class="or-card" style="margin-bottom:16px;padding:0;overflow:hidden;border-radius:20px;border:1px solid #334155;background:linear-gradient(180deg,#0f172a 0%, #111827 100%);box-shadow:0 16px 32px rgba(15,23,42,.22)">' +
+            html += '<div class="or-card" style="padding:0;overflow:hidden;border-radius:20px;border:1px solid #334155;background:linear-gradient(180deg,#0f172a 0%, #111827 100%);box-shadow:0 16px 32px rgba(15,23,42,.18)">' +
                 '<div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">' +
                     '<div>' +
                         '<div style="font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8">Ordre de reparation</div>' +
-                        '<div style="font-family:Barlow Condensed,sans-serif;font-size:28px;line-height:1;color:#fff;font-weight:700">' + orNum + '</div>' +
-                        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+                        '<div style="font-size:30px;line-height:1;color:#fff;font-weight:800;letter-spacing:-0.5px">' + orNum + '</div>' +
+                        '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
                             '<span style="padding:5px 10px;border-radius:999px;background:' + orMeta.soft + ';color:' + orMeta.tone + ';font-size:11px;font-weight:800">' + orMeta.label + '</span>' +
+                            '<span style="padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);color:#cbd5e1;font-size:11px;font-weight:800">' + (currentOrId ? 'PDF disponible' : 'OR a finaliser') + '</span>' +
+                            (hasSupp ? '<span style="padding:5px 10px;border-radius:999px;background:rgba(245,158,11,.16);color:#fcd34d;font-size:11px;font-weight:800">Travaux supp</span>' : '') +
                             '<span style="font-size:12px;color:#94a3b8">' + escapeHtml(rdv.date_rdv || '-') + ' • ' + escapeHtml(formatTime(rdv.heure_rdv || '') || '--:--') + '</span>' +
                         '</div>' +
                     '</div>' +
-                    '<div style="text-align:right">' +
+                    '<div style="text-align:right;min-width:160px">' +
                         '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em">Montant estimatif</div>' +
                         '<div style="font-size:24px;font-weight:900;color:#fb923c">' + totalDisplay + '</div>' +
                         '<div style="font-size:11px;color:#94a3b8">Temps: ' + duree + '</div>' +
                     '</div>' +
                 '</div>' +
-                '<div style="padding:16px 18px">' +
-                    '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">' +
-                        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Client</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-') + '</div><div style="font-size:12px;color:#94a3b8">' + escapeHtml(c.telephone || '-') + '</div></div>' +
+                '<div style="padding:16px 18px;display:grid;gap:14px">' +
+                    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
+                        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Client</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(clientName) + '</div><div style="font-size:12px;color:#94a3b8">' + escapeHtml(c.telephone || '-') + '</div></div>' +
                         '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Vehicule</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(((v.marque || '') + ' ' + (v.modele || '')).trim() || '-') + '</div><div style="font-size:12px;color:#94a3b8">' + escapeHtml(v.plaque || '-') + '</div></div>' +
                         '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Mecanicien</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(meca ? (meca.prenom + ' ' + meca.nom) : 'Non assigne') + '</div><div style="font-size:12px;color:#94a3b8">' + escapeHtml(pont ? (pont.nom || '-') : 'Pont non defini') + '</div></div>' +
-                        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Intervention</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(rdv.type_intervention || '-') + '</div><div style="font-size:12px;color:#94a3b8">Statut atelier: ' + orMeta.label + '</div></div>' +
+                        '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Intervention</div><div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">' + escapeHtml(rdv.type_intervention || '-') + '</div><div style="font-size:12px;color:#94a3b8">Suivi atelier actif</div></div>' +
                     '</div>' +
                     stepsHtml +
-                    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">' +
-                        '<button class="btn btn-primary" onclick="event.stopPropagation();showOrDetail(' + rdv.id + ')" style="background:#f97316;color:#111">Apercu master</button>' +
-                        '<button class="btn btn-ghost" onclick="event.stopPropagation();imprimerOR(' + rdv.id + ')">Imprimer</button>' +
-                        '<button class="btn btn-ghost" onclick="event.stopPropagation();telechargerOR(' + rdv.id + ',' + (currentOrId || 'null') + ')">PDF</button>' +
-                        '<button class="btn btn-ghost" onclick="event.stopPropagation();ouvrirReception(' + rdv.id + ')">Reception</button>' +
-                        '<button class="btn btn-ghost" onclick="event.stopPropagation();ouvrirDemandeTravauxSupp(' + rdv.id + ')">Travaux supp</button>' +
-                        '<button class="btn btn-ghost" onclick="event.stopPropagation();planifierRdvSuite(' + rdv.id + ')">RDV suite</button>' +
+                    '<div style="display:grid;grid-template-columns:1.2fr .95fr;gap:12px;align-items:start">' +
+                        '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px">' +
+                            '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;font-weight:900">Vue dossier</div>' +
+                            '<div style="font-size:16px;font-weight:800;color:#fff;margin-top:6px">' + escapeHtml(clientName) + ' • ' + escapeHtml(((v.marque || '') + ' ' + (v.modele || '')).trim() || '-') + '</div>' +
+                            '<div style="font-size:12px;color:#cbd5e1;margin-top:6px;line-height:1.5">Le dossier reste prioritaire tant que la reception, le diag ou la validation client ne sont pas boucles. La fiche OR sert ici de poste de commandement rapide.</div>' +
+                        '</div>' +
+                        '<div style="background:linear-gradient(135deg,rgba(35,35,35,.96),rgba(26,26,26,.98));border:1px solid rgba(255,210,0,.18);border-radius:14px;padding:12px">' +
+                            '<div style="font-size:10px;color:var(--orange);text-transform:uppercase;letter-spacing:.14em;font-weight:900">Action recommandee</div>' +
+                            '<div style="font-size:16px;font-weight:900;color:#fff;margin-top:6px">' + escapeHtml(actionPlan.title) + '</div>' +
+                            '<div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-top:6px">' + escapeHtml(actionPlan.helper) + '</div>' +
+                            '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+                                '<button class="btn btn-primary" onclick="event.stopPropagation();showOrDetail(' + rdv.id + ')" style="background:#f97316;color:#111">Apercu master</button>' +
+                                '<button class="btn btn-ghost" onclick="event.stopPropagation();imprimerOR(' + rdv.id + ')">Imprimer</button>' +
+                                (currentOrId ? '<button class="btn btn-ghost" onclick="event.stopPropagation();telechargerOR(' + rdv.id + ',' + currentOrId + ')">PDF</button>' : '') +
+                                toolsHtml +
+                            '</div>' +
+                            (workflowHtml ? '<div style="margin-top:12px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;font-weight:900;margin-bottom:8px">Workflow atelier</div>' + workflowHtml + '</div>' : '') +
+                        '</div>' +
                     '</div>' +
                 '</div>' +
             '</div>';
         });
+        html += '</div>';
         container.innerHTML = html;
     },
 
+    getOrActionPlan: function(rdv, currentOrId) {
+        var statut = (rdv && rdv.statut) || '';
+        var hasGeneratedOr = !!currentOrId;
+        if (statut === 'reserve' || statut === 'en_attente') {
+            return {
+                title: 'Confirmer le RDV',
+                helper: 'Le dossier doit d\'abord etre confirme pour entrer dans le tunnel atelier et preparer la reception.'
+            };
+        }
+        if (statut === 'confirme') {
+            return {
+                title: 'Passer en reception',
+                helper: hasGeneratedOr
+                    ? 'La fiche OR existe : faites la reception client et verrouillez l\'etat vehicule avant lancement.'
+                    : 'Ouvrez la reception pour relever l\'etat du vehicule, faire signer le client et cadrer l\'intervention.'
+            };
+        }
+        if (statut === 'reception') {
+            return {
+                title: 'Demarrer le travail',
+                helper: 'Le vehicule est receptionne. Le mecanicien peut lancer l\'intervention et le chrono atelier.'
+            };
+        }
+        if (statut === 'en_cours') {
+            return {
+                title: 'Terminer le travail',
+                helper: 'Finalisez le checkup, remontez les anomalies ou travaux supp, puis cloturez l\'intervention.'
+            };
+        }
+        if (statut === 'termine') {
+            return {
+                title: 'Restituer le vehicule',
+                helper: 'Le travail est termine : verifiez le compte-rendu, imprimez la fiche si besoin puis cloturez la remise au client.'
+            };
+        }
+        if (statut === 'restitue') {
+            return {
+                title: 'Dossier restitue',
+                helper: 'Le vehicule a ete remis au client. Le dossier atelier reste disponible pour consultation et historique.'
+            };
+        }
+        return {
+            title: 'Dossier archive atelier',
+            helper: 'OR cloture et historique conserve pour les prochains passages a l\'atelier.'
+        };
+    },
+
     getEtapeIndex: function(statut) {
-        var map = { 'reserve': 0, 'en_attente': 0, 'confirme': 0, 'reception': 0, 'en_cours': 2, 'termine': 4, 'facture': 4, 'paye': 4, 'non_presente': 4 };
+        var map = { 'reserve': 0, 'en_attente': 0, 'confirme': 0, 'reception': 0, 'en_cours': 2, 'termine': 4, 'restitue': 4, 'facture': 4, 'paye': 4, 'non_presente': 4 };
         return map[statut] !== undefined ? map[statut] : 0;
     },
 
     showOrDetail: function(rdvId) {
         apiGet('/api/rendez-vous/' + rdvId).then(function(r) { return r.json(); }).then(function(rdv) {
             var overlay = document.createElement('div');
+            var detailOr = window.OrModule.getLatestOrdreInfo(rdv) || null;
+            var detailOrId = detailOr ? detailOr.id : null;
+            var detailWorkflowHtml = '';
+            var detailToolsHtml = '';
+            var detailClient = rdv.client || {};
+            if (window.RdvActionsModule && typeof window.RdvActionsModule.actionButtons === 'function') {
+                try {
+                    detailWorkflowHtml = window.RdvActionsModule.actionButtons(rdv, false);
+                } catch (e) {
+                    detailWorkflowHtml = '';
+                }
+            }
+            if (detailClient.telephone) {
+                detailToolsHtml += '<a class="btn btn-ghost" href="tel:' + escapeHtml(detailClient.telephone) + '" style="text-decoration:none">Appeler client</a>';
+            }
+            if (['reception', 'en_cours', 'termine'].indexOf(rdv.statut) !== -1) {
+                detailToolsHtml += '<button class="btn btn-ghost" onclick="ouvrirDemandeTravauxSupp(' + rdv.id + ')">Travaux supp</button>';
+            }
+            if (['termine', 'restitue', 'facture', 'paye'].indexOf(rdv.statut) !== -1) {
+                detailToolsHtml += '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove();planifierRdvSuite(' + rdv.id + ')">RDV suite</button>';
+            }
             overlay.className = 'modal-overlay';
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(2,6,23,.82);display:flex;align-items:center;justify-content:center;z-index:1000;padding:18px';
             overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
             overlay.innerHTML =
                 '<div style="width:min(1180px,96vw);max-height:92vh;overflow:auto;border-radius:24px">' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;padding:0 4px">' +
-                        '<div style="font-size:12px;color:#cbd5e1;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Apercu OR master</div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;padding:0 4px;flex-wrap:wrap">' +
+                        '<div style="font-size:12px;color:#cbd5e1;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Apercu OR master • poste expert</div>' +
                         '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' +
                             '<button class="btn btn-primary" onclick="imprimerOR(' + rdv.id + ')" style="background:#f97316;color:#111">Imprimer</button>' +
-                            '<button class="btn btn-ghost" onclick="telechargerOR(' + rdv.id + ',' + ((window.OrModule.getLatestOrdreInfo(rdv) || {}).id || 'null') + ')">PDF</button>' +
-                            '<button class="btn btn-ghost" onclick="ouvrirReception(' + rdv.id + ')">Reception</button>' +
-                            '<button class="btn btn-ghost" onclick="ouvrirDemandeTravauxSupp(' + rdv.id + ')">Travaux supp</button>' +
-                            '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove();planifierRdvSuite(' + rdv.id + ')">RDV suite</button>' +
+                            (detailOrId ? '<button class="btn btn-ghost" onclick="telechargerOR(' + rdv.id + ',' + detailOrId + ')">PDF</button>' : '') +
+                            detailToolsHtml +
                             '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Fermer</button>' +
                         '</div>' +
+                        (detailWorkflowHtml ? '<div style="width:100%;margin-top:6px"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;font-weight:900;margin-bottom:8px">Workflow atelier</div>' + detailWorkflowHtml + '</div>' : '') +
                     '</div>' +
                     window.OrModule.getOrSheetHtml(rdv, { compact: true }) +
                 '</div>';
@@ -504,10 +750,21 @@ window.OrModule = window.OrModule || {
             var v = rdv.vehicule || {};
             var c = rdv.client || {};
             var existingEtat = window.OrModule.parseEtatVehicule(rdv.etat_vehicule);
+            var latestOr = window.OrModule.getLatestOrdreInfo(rdv) || {};
+            var receptionEditableStatuses = ['confirme', 'reception'];
+            var orLocked = !!(existingEtat.is_locked || latestOr.signature_client);
+            if (orLocked) {
+                showAlert("L'OR est deja signe et verrouille : la reception n'est plus editable.", 'warning');
+                return;
+            }
+            if (receptionEditableStatuses.indexOf(rdv.statut) === -1) {
+                showAlert("La reception ne peut etre ouverte qu'apres confirmation du RDV.", 'warning');
+                return;
+            }
             _receptionDamagePoints = (existingEtat.body_damages || []).slice();
             _receptionDamagePhotos = (Array.isArray(rdv.photos_etat) && rdv.photos_etat.length ? rdv.photos_etat : existingEtat.photos || []).slice();
 
-            html += '<div style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap">'
+            html += '<div style="background:var(--dark3);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap">'
                 + '<div><div style="font-size:11px;color:#666">Client</div><div style="color:#eee;font-weight:600">' + (escapeHtml(c.prenom) || '') + ' ' + (escapeHtml(c.nom) || '') + '</div></div>'
                 + '<div><div style="font-size:11px;color:#666">Vehicule</div><div style="color:#eee;font-weight:600">' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div></div>'
                 + '<div><div style="font-size:11px;color:#666">Plaque</div><div style="color:#eee;font-weight:600">' + (escapeHtml(v.plaque) || '') + '</div></div>'
@@ -546,7 +803,7 @@ window.OrModule = window.OrModule || {
                 + '<textarea id="reception-obs" class="form-input" rows="3" placeholder="Notes sur l\'etat general...">' + escapeHtml(existingEtat.observations || rdv.commentaire || '') + '</textarea></div>';
 
             html += '<div class="form-group"><label class="form-label" style="color:#ccc">Signature client *</label>'
-                + '<canvas id="reception-signature-canvas" width="400" height="150" style="border:1px solid #444;border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>'
+                + '<canvas id="reception-signature-canvas" width="400" height="150" style="border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>'
                 + '<button class="btn btn-ghost" style="margin-top:6px;font-size:11px" onclick="clearReceptionSignature()">Effacer signature</button></div>';
 
             html += '<button class="btn btn-primary" style="width:100%;margin-top:12px;background:var(--teal)" onclick="validerReception(' + rdvId + ')">Valider la reception</button>';
@@ -560,7 +817,8 @@ window.OrModule = window.OrModule || {
                 window.OrModule.initReceptionSignaturePad();
                 window.OrModule.syncReceptionDamageButtons();
                 window.OrModule.renderReceptionPhotoList();
-                var estimateRows = (existingEtat.estimate_rows && existingEtat.estimate_rows.length) ? existingEtat.estimate_rows : [{ label: rdv.type_intervention || 'Intervention atelier', qty: 1, amount: rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime }];
+                var defaultAmount = existingEtat.booking_price != null ? existingEtat.booking_price : (rdv.prix_final != null ? rdv.prix_final : rdv.prix_estime);
+                var estimateRows = (existingEtat.estimate_rows && existingEtat.estimate_rows.length) ? existingEtat.estimate_rows : [{ label: rdv.type_intervention || 'Intervention atelier', qty: 1, amount: defaultAmount }];
                 estimateRows.forEach(function(row) { window.OrModule.addReceptionEstimateRow(row); });
             }, 100);
         }).catch(function(e) { alert('Erreur: ' + e.message); });
@@ -628,7 +886,7 @@ window.OrModule = window.OrModule || {
             return;
         }
         container.innerHTML = _receptionDamagePhotos.map(function(src, index) {
-            return '<div style="position:relative"><img src="' + src + '" alt="Photo etat" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid #444">' +
+            return '<div style="position:relative"><img src="' + src + '" alt="Photo etat" style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.08)">' +
                 '<button type="button" onclick="removeReceptionPhoto(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:none;border-radius:50%;background:#ef4444;color:#fff;cursor:pointer">×</button></div>';
         }).join('');
     },
@@ -785,9 +1043,22 @@ window.OrModule = window.OrModule || {
         }).then(function() {
             return apiPost('/api/rendez-vous/' + rdvId + '/reception', {});
         }).then(function() {
-            closeModal();
-            window.OrModule.showNotificationToast('Reception validee - OR disponible');
-            refreshCurrentSection();
+            if (window.RdvActionsModule && typeof window.RdvActionsModule.applyImmediateRefresh === 'function') {
+                window.RdvActionsModule.applyImmediateRefresh(
+                    rdvId,
+                    {
+                        statut: 'reception',
+                        kilometrage: parseInt(km, 10),
+                        etat_vehicule: etatVehicule,
+                        commentaire: observations
+                    },
+                    'Reception validee - OR disponible'
+                );
+            } else {
+                closeModal();
+                window.OrModule.showNotificationToast('Reception validee - OR disponible');
+                refreshCurrentSection();
+            }
         }).catch(function(e) { alert('Erreur: ' + e.message); });
     },
 
@@ -807,7 +1078,7 @@ window.OrModule = window.OrModule || {
         Object.keys(categories).sort().forEach(function(cat) {
             html += '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:10px 0 6px;padding:0 2px">' + escapeHtml(cat) + '</div>';
             categories[cat].forEach(function(p) {
-                html += '<label id="ts-presta-' + p.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a22;border:1px solid #333;border-radius:8px;margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="toggleTsPrestation(' + p.id + ',\'' + escapeHtml(p.code || '') + '\',\'' + escapeHtml((p.nom || '').replace(/'/g, '')) + '\')">' +
+                html += '<label id="ts-presta-' + p.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a22;border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="toggleTsPrestation(' + p.id + ',\'' + escapeHtml(p.code || '') + '\',\'' + escapeHtml((p.nom || '').replace(/'/g, '')) + '\')">' +
                     '<div id="ts-check-' + p.id + '" style="width:22px;height:22px;border:2px solid #555;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#22c55e"></div>' +
                     '<div style="flex:1;min-width:0"><div style="font-size:14px;color:#eee;font-weight:500">' + escapeHtml(p.nom) + '</div>' +
                     '<div style="font-size:12px;color:#777">' + escapeHtml(p.code || '') + (p.temps_estime_minutes ? ' • ~' + p.temps_estime_minutes + ' min' : '') + '</div></div>' +
@@ -962,7 +1233,7 @@ window.OrModule = window.OrModule || {
                 var presta = (APP.prestationsConfig || []).find(function(x) { return x.id === p.prestation_id; });
                 var prix = presta ? (presta.prix_base_ttc || 0) : 0;
                 var temps = presta ? (presta.temps_estime_minutes || 0) : 0;
-                prestaHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#1a1a22;border:1px solid #333;border-radius:6px;margin-bottom:4px">' +
+                prestaHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#1a1a22;border:1px solid rgba(255,255,255,.07);border-radius:6px;margin-bottom:4px">' +
                     '<div><div style="font-size:13px;color:#eee;font-weight:500">' + escapeHtml(p.nom || '') + '</div>' +
                     '<div style="font-size:11px;color:#777">' + escapeHtml(p.code || '') + (temps ? ' • ~' + temps + ' min' : '') + '</div></div>' +
                     '<div style="font-size:14px;font-weight:700;color:var(--orange)">' + (prix > 0 ? prix.toFixed(2) + ' €' : '-') + '</div></div>';
@@ -971,10 +1242,10 @@ window.OrModule = window.OrModule || {
         }
 
         overlay.innerHTML =
-            '<div style="background:#1e1e22;border:2px solid #E8480A;border-radius:16px;padding:24px;width:560px;max-width:95vw;color:#eee;box-shadow:0 20px 60px rgba(232,72,10,.3);max-height:90vh;overflow-y:auto">' +
+            '<div style="background:var(--dark3);border:2px solid var(--orange);border-radius:16px;padding:24px;width:560px;max-width:95vw;color:#eee;box-shadow:0 20px 60px rgba(232,72,10,.3);max-height:90vh;overflow-y:auto">' +
                 '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
                     '<div style="width:40px;height:40px;border-radius:50%;background:rgba(232,72,10,.15);display:flex;align-items:center;justify-content:center;font-size:20px">&#9888;</div>' +
-                    '<div><div style="font-family:Barlow Condensed,sans-serif;font-size:20px;font-weight:700">Demande travaux supplementaires</div>' +
+                    '<div><div style="font-size:20px;font-weight:800;letter-spacing:-0.3px">Demande travaux supplementaires</div>' +
                     '<div style="font-size:12px;color:#888">' + (escapeHtml(d.or_numero) || 'OR #' + d.rendez_vous_id) + '</div></div>' +
                     '<span class="badge ' + (d.urgence === 'critique' ? 'red' : d.urgence === 'urgent' ? 'amber' : 'blue') + '" style="font-size:12px;padding:3px 12px;margin-left:auto">' + (d.urgence || 'normal') + '</span>' +
                 '</div>' +
@@ -983,8 +1254,8 @@ window.OrModule = window.OrModule || {
                     '<div>&#128690; ' + (escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '') + '</div>' +
                 '</div>' +
                 prestaHtml +
-                (d.description ? '<div style="background:#16161a;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#ddd;line-height:1.5"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700">Notes du technicien</div>' + escapeHtml(d.description) + '</div>' : '') +
-                '<div style="background:#16161a;border-radius:8px;padding:14px;margin-bottom:14px">' +
+                (d.description ? '<div style="background:var(--dark3);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#ddd;line-height:1.5"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700">Notes du technicien</div>' + escapeHtml(d.description) + '</div>' : '') +
+                '<div style="background:var(--dark3);border-radius:8px;padding:14px;margin-bottom:14px">' +
                     '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700">Devis receptionniste</div>' +
                     '<div style="display:flex;gap:10px;margin-bottom:10px">' +
                         '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:3px">Prix TTC</label>' +
@@ -996,8 +1267,8 @@ window.OrModule = window.OrModule || {
                     '<input type="text" id="travaux-alert-notes-' + d.id + '" class="form-input" placeholder="Explication pour le client..." style="font-size:14px;padding:10px">' +
                 '</div>' +
                 '<div style="display:flex;gap:10px">' +
-                    '<button onclick="traiterAlertTravaux(' + d.id + ', \'approuve\', this)" style="flex:1;padding:14px;background:#22C55E;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:Barlow,sans-serif">Faire signer le client</button>' +
-                    '<button onclick="traiterAlertTravaux(' + d.id + ', \'refuse\', this)" style="flex:1;padding:14px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:Barlow,sans-serif">Refuser</button>' +
+                    '<button onclick="traiterAlertTravaux(' + d.id + ', \'approuve\', this)" style="flex:1;padding:14px;background:#10B981;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Faire signer le client</button>' +
+                    '<button onclick="traiterAlertTravaux(' + d.id + ', \'refuse\', this)" style="flex:1;padding:14px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">Refuser</button>' +
                 '</div>' +
             '</div>';
         document.body.appendChild(overlay);
@@ -1035,7 +1306,7 @@ window.OrModule = window.OrModule || {
         var safeNotes = (notes || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         var html = '<div style="margin-bottom:16px;font-size:13px;color:#aaa">Le client doit signer pour approuver les travaux supplementaires.</div>' +
             '<div class="form-group"><label class="form-label" style="color:#ccc">Signature client *</label>' +
-            '<canvas id="ts-signature-canvas" width="400" height="150" style="border:1px solid #444;border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>' +
+            '<canvas id="ts-signature-canvas" width="400" height="150" style="border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#fff;cursor:crosshair;display:block;width:100%;touch-action:none"></canvas>' +
             '<button class="btn btn-ghost" style="margin-top:6px;font-size:11px" onclick="clearTsSignature()">Effacer signature</button></div>' +
             '<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="confirmerTravauxSuppAvecSignature(' + demandeId + ',' + (prixDevis || 'null') + ',' + (tempsDevis || 'null') + ',\'' + safeNotes + '\')">Confirmer et approuver</button>';
         showModal('Signature client - Travaux supplementaires', html, '480px');

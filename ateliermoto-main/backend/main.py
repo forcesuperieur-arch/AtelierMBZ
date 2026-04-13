@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+RUN_STARTUP_TASKS = os.getenv("RUN_STARTUP_TASKS", "true").strip().lower() in {"1", "true", "yes", "on"}
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
@@ -25,15 +26,24 @@ from routes.frontend_pages import mount_static_files, router as frontend_pages_r
 from routes.public_booking import router as public_booking_router
 from routes.tenant_admin import router as tenant_admin_router
 from services.startup_service import run_startup_tasks
+from services.rappel_service import start_rappel_scheduler, stop_rappel_scheduler
+from services.relance_service import start_relance_scheduler, stop_relance_scheduler
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
     db = SessionLocal()
     try:
-        run_startup_tasks(db)
+        if RUN_STARTUP_TASKS:
+            run_startup_tasks(db)
+        else:
+            logger.info("Startup bootstrap skipped (RUN_STARTUP_TASKS=false)")
+        start_rappel_scheduler()
+        start_relance_scheduler()
         yield
     finally:
+        stop_rappel_scheduler()
+        stop_relance_scheduler()
         db.close()
 
 
@@ -127,6 +137,10 @@ app.include_router(vehicles_router)
 from routes.rendez_vous import router as rendez_vous_router
 app.include_router(rendez_vous_router)
 
+# ========== RAPPELS EMAIL ==========
+from routes.rappels import router as rappels_router
+app.include_router(rappels_router)
+
 # ========== GESTION DES PIÈCES DÉTACHÉES ==========
 from routes.inventory import router as inventory_router
 app.include_router(inventory_router)
@@ -157,6 +171,18 @@ app.include_router(prestations_tarifs_router)
 # ========== ENDPOINTS DEVIS ==========
 from routes.devis import router as devis_router
 app.include_router(devis_router)
+
+# ========== SUIVI CLIENT (public) ==========
+from routes.suivi import router as suivi_router
+app.include_router(suivi_router)
+
+# ========== PHOTOS INTERVENTION ==========
+from routes.photos import router as photos_router
+app.include_router(photos_router)
+
+# ========== ADMIN AVANCÉ ==========
+from routes.admin_avance import router as admin_avance_router
+app.include_router(admin_avance_router)
 
 
 # ==================== ENDPOINTS PUBLICS / TARIFS ====================

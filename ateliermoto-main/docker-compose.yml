@@ -1,54 +1,110 @@
 services:
-  # Backend API
-  backend:
-    build: ./backend
-    container_name: atelier-backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - ./frontend:/app/static
-    environment:
-      - DATABASE_URL=postgresql://atelier:atelier@db:5432/atelier_moto
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # Base de données PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: atelier-db
     environment:
-      - POSTGRES_USER=atelier
-      - POSTGRES_PASSWORD=atelier
-      - POSTGRES_DB=atelier_moto
+      POSTGRES_USER: ${POSTGRES_USER:-atelier}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atelier}
+      POSTGRES_DB: ${POSTGRES_DB:-atelier_moto}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atelier -d atelier_moto"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atelier} -d ${POSTGRES_DB:-atelier_moto}"]
       interval: 5s
       timeout: 5s
       retries: 12
-      start_period: 5s
+      start_period: 10s
     restart: unless-stopped
 
-  # Reverse proxy Caddy
+  init:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: atelier-init
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://atelier:atelier@db:5432/atelier_moto}
+      RUN_STARTUP_TASKS: "true"
+      STATIC_DIR: /app/static
+      SECRET_KEY_FILE: ${SECRET_KEY_FILE:-/app/run/secrets/secret_key}
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && python bootstrap_preprod.py
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend_logos:/app/data/logos
+      - backend_photos:/app/data/photos
+      - backend_signatures:/app/signatures
+      - backend_secrets:/app/run/secrets
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: atelier-backend
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://atelier:atelier@db:5432/atelier_moto}
+      RUN_STARTUP_TASKS: "false"
+      STATIC_DIR: /app/static
+      SECRET_KEY_FILE: ${SECRET_KEY_FILE:-/app/run/secrets/secret_key}
+    depends_on:
+      db:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - ./backups:/app/backups
+      - backend_logos:/app/data/logos
+      - backend_photos:/app/data/photos
+      - backend_signatures:/app/signatures
+      - backend_secrets:/app/run/secrets
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: atelier-mailhog
+    ports:
+      - "8025:8025"
+    restart: unless-stopped
+
   caddy:
-    image: caddy:latest
-    container_name: caddy
+    image: caddy:2-alpine
+    container_name: atelier-caddy
+    depends_on:
+      backend:
+        condition: service_healthy
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./Caddyfile/Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  backend_logos:
+  backend_photos:
+  backend_signatures:
+  backend_secrets:
   caddy_data:
   caddy_config:

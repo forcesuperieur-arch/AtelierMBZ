@@ -14,7 +14,7 @@ window.BillingModule = window.BillingModule || {
         apiGet('/api/rendez-vous/' + rdvId + '/preview-facture').then(function(r) {
             return r.json();
         }).then(function(data) {
-            var html = '<div style="background:#1e1e1e;border-radius:8px;padding:16px">';
+            var html = '<div style="background:var(--dark3);border-radius:8px;padding:16px">';
             var heures = (window.BillingModule.asNumber(data.temps_facture_minutes) / 60).toFixed(2);
 
             html += '<div style="margin-bottom:12px"><div style="color:#9ca3af;font-size:11px;margin-bottom:4px">MAIN D\'OEUVRE</div>';
@@ -127,7 +127,7 @@ window.BillingModule = window.BillingModule || {
             var totalTtc = window.BillingModule.asNumber(facture.total_ttc);
             var montantPaye = window.BillingModule.asNumber(facture.montant_paye);
             var montantRestant = window.BillingModule.asNumber(facture.montant_restant);
-            var html = '<div style="background:#1e1e1e;border-radius:8px;padding:16px">';
+            var html = '<div style="background:var(--dark3);border-radius:8px;padding:16px">';
 
             html += '<div style="display:flex;justify-content:space-between;margin-bottom:16px">';
             html += '<div><div style="color:#9ca3af;font-size:11px">FACTURE</div><div style="color:#e5e7eb;font-size:16px;font-weight:bold">' + (escapeHtml(facture.numero_facture) || '-') + '</div></div>';

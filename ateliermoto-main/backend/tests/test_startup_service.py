@@ -20,6 +20,7 @@ def test_run_startup_tasks_executes_runtime_migrations_before_seeders(monkeypatc
     monkeypatch.setattr(startup_service, "migrate_mecanicien_user_link", lambda db: calls.append("migrate_mecanicien_user_link"))
     monkeypatch.setattr(startup_service, "migrate_atelier_categorie_motos", lambda db: calls.append("migrate_atelier_categorie_motos"))
     monkeypatch.setattr(startup_service, "migrate_moto_technical_specs", lambda db: calls.append("migrate_moto_technical_specs"))
+    monkeypatch.setattr(startup_service, "migrate_token_suivi_rdv", lambda db: calls.append("migrate_token_suivi_rdv"))
     monkeypatch.setattr(startup_service, "init_intervention_types", lambda db: calls.append("init_intervention_types"))
     monkeypatch.setattr(startup_service, "init_base_moto", lambda db: calls.append("init_base_moto"))
     monkeypatch.setattr(startup_service, "init_moto_technical_specs", lambda db: calls.append("init_moto_technical_specs"))
@@ -38,6 +39,7 @@ def test_run_startup_tasks_executes_runtime_migrations_before_seeders(monkeypatc
         "migrate_mecanicien_user_link",
         "migrate_atelier_categorie_motos",
         "migrate_moto_technical_specs",
+        "migrate_token_suivi_rdv",
         "init_intervention_types",
         "init_base_moto",
         "init_moto_technical_specs",

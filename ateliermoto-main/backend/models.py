@@ -1,4 +1,5 @@
 import json
+import secrets
 
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Date, Time, Float, Numeric, Text, ForeignKey, Boolean, event
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base
@@ -111,7 +112,10 @@ class RendezVous(Base):
     pont_id = Column(Integer, ForeignKey("ponts.id"), nullable=True, index=True)
     mecanicien_id = Column(Integer, ForeignKey("mecaniciens.id"), nullable=True, index=True)
     
-    statut = Column(String(50), default="en_attente")  # en_attente, confirme, en_cours, termine, annule, facture, paye
+    statut = Column(String(50), default="en_attente")  # en_attente, confirme, reception, en_cours, termine, restitue, annule, facture, paye
+    
+    # Token public de suivi client (envoyé par email)
+    token_suivi = Column(String(64), unique=True, index=True, default=lambda: secrets.token_urlsafe(32))
     
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -121,6 +125,7 @@ class RendezVous(Base):
     rapport_technicien = relationship("RapportTechnicien", back_populates="rendez_vous", uselist=False)
     demandes_travaux_supp = relationship("DemandeTravauxSupp", back_populates="rendez_vous", cascade="all, delete-orphan")
     ordres_reparation = relationship("OrdreReparation", back_populates="rendez_vous", cascade="all, delete-orphan")
+    photos_intervention = relationship("PhotoIntervention", back_populates="rendez_vous", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -1023,6 +1028,79 @@ class RevokedToken(Base):
     expires_at = Column(DateTime, nullable=False, index=True)
     reason = Column(String(100), nullable=False, default="manual")
     created_at = Column(DateTime, default=datetime.now, nullable=False)
+
+
+class RappelEmail(Base):
+    """Journal des rappels email envoyés/programmés pour les RDV."""
+    __tablename__ = "rappels_email"
+
+    id = Column(Integer, primary_key=True, index=True)
+    atelier_id = Column(Integer, ForeignKey("ateliers.id"), nullable=False, index=True)
+    rdv_id = Column(Integer, ForeignKey("rendez_vous.id"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    type_rappel = Column(String(50), nullable=False)  # confirmation, rappel_j1, rappel_j3, manuel
+    destinataire = Column(String(200), nullable=False)
+    sujet = Column(String(500))
+    statut = Column(String(30), nullable=False, default="programme")  # programme, envoye, erreur
+    erreur = Column(Text)
+    date_envoi_prevu = Column(DateTime, nullable=False, index=True)
+    date_envoi_reel = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.now)
+
+
+# ========== PHOTOS INTERVENTION (mécanicien) ==========
+
+class PhotoIntervention(Base):
+    """Photos prises par le mécanicien pendant une intervention."""
+    __tablename__ = "photos_intervention"
+
+    id = Column(Integer, primary_key=True, index=True)
+    atelier_id = Column(Integer, ForeignKey("ateliers.id"), nullable=True, index=True)
+    rendez_vous_id = Column(Integer, ForeignKey("rendez_vous.id"), nullable=False, index=True)
+    filename = Column(String(300), nullable=False)
+    original_name = Column(String(300))
+    annotation_json = Column(Text)  # JSON des annotations dessinées
+    description = Column(Text)
+    created_at = Column(DateTime, default=datetime.now)
+
+    rendez_vous = relationship("RendezVous", back_populates="photos_intervention")
+
+
+# ========== AUDIT LOGS ==========
+
+class AuditLog(Base):
+    """Journal d'activité pour tracer les actions critiques."""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    atelier_id = Column(Integer, ForeignKey("ateliers.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    username = Column(String(100))
+    action = Column(String(100), nullable=False)  # create, update, delete, login, logout, workflow...
+    entity_type = Column(String(100))  # rdv, client, devis, config, user...
+    entity_id = Column(Integer)
+    details = Column(Text)  # JSON with change details
+    ip_address = Column(String(50))
+    created_at = Column(DateTime, default=datetime.now, index=True)
+
+
+# ========== EMAIL TEMPLATES ==========
+
+class EmailTemplate(Base):
+    """Templates email personnalisables par l'atelier."""
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    atelier_id = Column(Integer, ForeignKey("ateliers.id"), nullable=True, index=True)
+    code = Column(String(50), nullable=False)  # confirmation_rdv, rappel_j1, rappel_j3, envoi_devis
+    nom = Column(String(200), nullable=False)
+    sujet = Column(String(500), nullable=False)
+    corps_html = Column(Text, nullable=False)
+    corps_texte = Column(Text)
+    variables_disponibles = Column(Text)  # JSON list of available variables
+    is_active = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 # Configuration de la base de données

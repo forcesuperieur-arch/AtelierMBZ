@@ -1,44 +1,77 @@
 window.DashboardModule = window.DashboardModule || {
     loadDashboard: function() {
         var today = new Date().toISOString().split('T')[0];
-        var isSrc = APP.currentUser && APP.currentUser.role === 'service_client';
         Promise.all([
             apiGet('/api/rendez-vous?date=' + today).then(function(r) { return r.json(); }).catch(function() { return []; }),
-            apiGet('/api/ponts/status').then(function(r) { return r.json(); }).catch(function() { return []; }),
-            isSrc ? Promise.resolve(null) : apiGet('/api/factures/stats').then(function(r) { return r.json(); }).catch(function() { return null; })
+            apiGet('/api/ponts/status').then(function(r) { return r.json(); }).catch(function() { return []; })
         ]).then(function(results) {
             var rdvs = results[0];
             var pontsStatus = results[1];
-            var facturationStats = results[2];
             APP.rdvs = rdvs;
             if (pontsStatus.length) APP.ponts = pontsStatus;
-            window.DashboardModule.renderDashboardStats(rdvs, pontsStatus, facturationStats);
+            window.DashboardModule.renderDashboardAlerts(rdvs);
+            window.DashboardModule.renderDashboardStats(rdvs, pontsStatus);
             window.DashboardModule.renderDashboardPonts(pontsStatus, rdvs);
             window.DashboardModule.renderDashboardRdv(rdvs);
         });
     },
 
-    renderDashboardStats: function(rdvs, ponts, facturationStats) {
+    renderDashboardAlerts: function(rdvs) {
+        var container = document.getElementById('dashboard-alerts');
+        if (!container) return;
+        var now = new Date();
+        var nowMin = now.getHours() * 60 + now.getMinutes();
+        var todayStr = now.toISOString().split('T')[0];
+        var alerts = [];
+        rdvs.forEach(function(rdv) {
+            if (rdv.date_rdv !== todayStr) return;
+            var hm = formatTime(rdv.heure_rdv || '');
+            if (!hm) return;
+            var parts = hm.split(':');
+            var rdvMin = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            var c = rdv.client || {};
+            var clientName = ((c.prenom || '').charAt(0) + '. ' + (c.nom || '')).trim();
+            if ((rdv.statut === 'confirme' || rdv.statut === 'reserve' || rdv.statut === 'en_attente') && nowMin > rdvMin + 15) {
+                alerts.push({type: 'danger', text: hm + ' — ' + clientName + ' non presente (retard ' + (nowMin - rdvMin) + ' min)'});
+            }
+            if (rdv.statut === 'en_cours') {
+                var dur = rdv.temps_estime ? rdv.temps_estime / 60 : 60;
+                var expectedEnd = rdvMin + dur;
+                if (nowMin > expectedEnd + 10) {
+                    alerts.push({type: 'warning', text: hm + ' — ' + clientName + ' depasse temps estime de ' + Math.round(nowMin - expectedEnd) + ' min'});
+                }
+            }
+        });
+        if (!alerts.length) {
+            container.innerHTML = '';
+            return;
+        }
+        var html = '<div class="suivi-alert-strip" style="margin-bottom:14px">';
+        alerts.forEach(function(a) {
+            html += '<span class="chip ' + a.type + '">' + (a.type === 'danger' ? '⚠ ' : '⏰ ') + escapeHtml(a.text) + '</span>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    },
+
+    renderDashboardStats: function(rdvs, ponts) {
         var container = document.getElementById('dashboard-stats');
         if (!container) return;
         var nbRdv = rdvs.length;
         var enCours = rdvs.filter(function(r) { return r.statut === 'en_cours'; }).length;
         var termines = rdvs.filter(function(r) { return r.statut === 'termine'; }).length;
+        var restitues = rdvs.filter(function(r) { return r.statut === 'restitue' || r.statut === 'facture' || r.statut === 'paye'; }).length;
         var enAttente = rdvs.filter(function(r) { return r.statut === 'en_attente' || r.statut === 'reserve'; }).length;
         var pontsActifs = ponts.filter(function(p) { return p.actif; }).length;
         var pontsOccupes = ponts.filter(function(p) { return p.status === 'occupe'; }).length;
         var tauxOcc = pontsActifs > 0 ? Math.round((pontsOccupes / pontsActifs) * 100) : 0;
-        var orOuverts = rdvs.filter(function(r) { return r.statut !== 'termine' && r.statut !== 'facture' && r.statut !== 'paye' && r.statut !== 'annule' && r.statut !== 'non_presente'; }).length;
-        var caEncaisse = facturationStats && typeof facturationStats.ca_encaisse_mois === 'number'
-            ? Number(facturationStats.ca_encaisse_mois)
-            : 0;
-        var caFormatted = caEncaisse >= 1000 ? (Math.round(caEncaisse / 100) / 10) + 'k' : Math.round(caEncaisse);
+        var orOuverts = rdvs.filter(function(r) { return r.statut !== 'termine' && r.statut !== 'restitue' && r.statut !== 'facture' && r.statut !== 'paye' && r.statut !== 'annule' && r.statut !== 'non_presente'; }).length;
 
         container.innerHTML =
             '<div class="stat-card"><div class="stat-icon" style="float:right;font-size:24px;opacity:.4">&#127949;</div><div class="stat-label">RDV AUJOURD\'HUI</div><div class="stat-value">' + nbRdv + '</div><div class="stat-delta" style="color:var(--green)">' + termines + ' termines | ' + enAttente + ' en attente</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + Math.min(100, nbRdv * 8) + '%;background:var(--orange)"></div></div></div>' +
             '<div class="stat-card"><div class="stat-icon" style="float:right;font-size:24px;opacity:.4">&#128295;</div><div class="stat-label">OR OUVERTS</div><div class="stat-value">' + orOuverts + '</div><div class="stat-delta" style="color:var(--amber)">' + enCours + ' en cours</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + Math.min(100, orOuverts * 12) + '%;background:var(--amber)"></div></div></div>' +
             '<div class="stat-card"><div class="stat-icon" style="float:right;font-size:24px;opacity:.4">&#9889;</div><div class="stat-label">TAUX D\'OCCUPATION</div><div class="stat-value">' + tauxOcc + '<span style="font-size:18px">%</span></div><div class="stat-delta" style="color:var(--green)">Ponts ' + pontsOccupes + '/' + pontsActifs + ' occupes</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + tauxOcc + '%;background:var(--green)"></div></div></div>' +
-            '<div class="stat-card"><div class="stat-icon" style="float:right;font-size:24px;opacity:.4">&#128182;</div><div class="stat-label">CA ENCAISSE</div><div class="stat-value">' + caFormatted + '<span style="font-size:16px">\u20AC</span></div><div class="stat-delta" style="color:var(--green)">Mois en cours</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + Math.min(100, caEncaisse / 50) + '%;background:var(--teal)"></div></div></div>';
+            '<div class="stat-card"><div class="stat-icon" style="float:right;font-size:24px;opacity:.4">&#128230;</div><div class="stat-label">RESTITUTIONS</div><div class="stat-value">' + restitues + '</div><div class="stat-delta" style="color:var(--green)">' + termines + ' prets a remettre</div><div class="stat-bar"><div class="stat-bar-fill" style="width:' + Math.min(100, (restitues + termines) * 12) + '%;background:var(--teal)"></div></div></div>';
     },
 
     renderDashboardPonts: function(ponts, rdvs) {

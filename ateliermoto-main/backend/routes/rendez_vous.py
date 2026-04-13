@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, get_optional_current_user
-from models import Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RapportTechnicien, RendezVous, RolePermission, User, Vehicule, get_db
+from models import Absence, Client, DemandeTravauxSupp, HoraireAtelier, Mecanicien, OrdreReparation, Pont, Prestation, RapportTechnicien, RendezVous, RolePermission, User, Vehicule, get_db
 from schemas.rendez_vous import (
     OrdreReparationSave,
     RapportTechnicienCreate,
@@ -50,7 +50,7 @@ def _user_can_manage_workflow(current_user: User, db: Session, rdv: RendezVous |
     if (
         _user_has_permission(current_user, db, "workflow.manage")
         or _user_has_permission(current_user, db, "or.manage")
-        or _user_has_permission(current_user, db, "rdv.edit")
+        or _user_has_permission(current_user, db, "workshop.manage")
     ):
         return True
     if current_user.role != "mecanicien":
@@ -70,12 +70,15 @@ _ALLOWED_STATUS_TRANSITIONS = {
     "confirme": {"reception", "annule", "non_presente", "en_cours"},
     "reception": {"en_cours", "annule"},
     "en_cours": {"termine"},
-    "termine": {"facture", "paye"},
+    "termine": {"restitue", "facture", "paye"},
+    "restitue": {"facture", "paye"},
     "facture": {"paye"},
     "paye": set(),
     "annule": set(),
     "non_presente": set(),
 }
+
+_FINALIZED_RDV_STATUSES = {"termine", "restitue", "facture", "paye"}
 
 
 def _assert_valid_status_transition(current_status: str | None, new_status: str | None) -> None:
@@ -93,13 +96,232 @@ def _assert_valid_status_transition(current_status: str | None, new_status: str 
         )
 
 
-def _rdv_start_end(rdv: RendezVous) -> tuple[datetime, datetime]:
-    start_dt = datetime.combine(rdv.date_rdv, rdv.heure_rdv or time(9, 0))
-    duration_min = int(rdv.temps_estime or 60)
-    if duration_min <= 0:
-        duration_min = 60
-    end_dt = start_dt + timedelta(minutes=duration_min)
-    return start_dt, end_dt
+_WORKFLOW_ONLY_STATUS_MESSAGES = {
+    "reception": "Transition de statut reservee : utilisez l'action de reception dediee pour valider l'OR et la signature client.",
+    "en_cours": "Transition de statut reservee : utilisez l'action Demarrer apres une reception validee.",
+    "termine": "Transition de statut reservee : utilisez l'action Terminer depuis l'atelier pour cloturer l'intervention.",
+    "restitue": "Transition de statut reservee : utilisez l'action de restitution pour cloturer le rendez-vous.",
+    "facture": "Transition de statut reservee : utilisez le parcours de facturation dedie.",
+    "paye": "Transition de statut reservee : utilisez le parcours d'encaissement dedie.",
+}
+
+
+def _parse_or_meta(raw_value) -> dict:
+    if not raw_value:
+        return {}
+    if isinstance(raw_value, dict):
+        return dict(raw_value)
+    try:
+        data = json.loads(raw_value) if isinstance(raw_value, str) else raw_value
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    text = str(raw_value).strip()
+    return {"observations": text} if text else {}
+
+
+def _get_workflow_history(meta: dict) -> list[dict]:
+    history = meta.get("workflow_history") if isinstance(meta, dict) else None
+    if not isinstance(history, list):
+        return []
+    return [entry for entry in history if isinstance(entry, dict)]
+
+
+def _merge_etat_payload(existing_raw, incoming_raw=None) -> dict:
+    payload = _parse_or_meta(existing_raw)
+    if incoming_raw is None:
+        return payload
+
+    incoming = _parse_or_meta(incoming_raw)
+    if incoming:
+        preserved_history = _get_workflow_history(payload)
+        payload.update(incoming)
+        if preserved_history and not isinstance(payload.get("workflow_history"), list):
+            payload["workflow_history"] = preserved_history
+    elif isinstance(incoming_raw, str):
+        clean = incoming_raw.strip()
+        if clean:
+            payload["observations"] = clean
+    return payload
+
+
+def _as_float_or_none(value) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _get_estimate_rows_total(rows) -> float | None:
+    total = 0.0
+    has_amount = False
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        qty = _as_float_or_none(row.get("qty", row.get("quantite", 1)))
+        amount = _as_float_or_none(row.get("amount", row.get("montant")))
+        if amount is None:
+            continue
+        total += amount * (qty if qty is not None else 1.0)
+        has_amount = True
+    return round(total, 2) if has_amount else None
+
+
+def _ensure_booking_price(payload: dict, rdv: RendezVous) -> dict:
+    if not isinstance(payload, dict):
+        payload = _merge_etat_payload(payload)
+
+    if _as_float_or_none(payload.get("booking_price")) is not None:
+        return payload
+
+    estimate_rows = payload.get("estimate_rows") if isinstance(payload.get("estimate_rows"), list) else []
+    booking_price = _get_estimate_rows_total(estimate_rows)
+    if booking_price is None:
+        booking_price = _as_float_or_none(getattr(rdv, "prix_estime", None))
+
+    if booking_price is not None:
+        payload["booking_price"] = booking_price
+    return payload
+
+
+def _record_workflow_event(
+    rdv: RendezVous,
+    current_user: User | None,
+    *,
+    action: str,
+    from_status: str | None = None,
+    to_status: str | None = None,
+    note: str | None = None,
+    extra: dict | None = None,
+) -> dict:
+    payload = _merge_etat_payload(rdv.etat_vehicule)
+    history = _get_workflow_history(payload)
+    actor = getattr(current_user, "username", None) or getattr(current_user, "email", None) or "system"
+    role = getattr(current_user, "role", None) or "system"
+    entry = {
+        "action": action,
+        "from_status": (from_status or rdv.statut or "").strip().lower() or None,
+        "to_status": (to_status or rdv.statut or "").strip().lower() or None,
+        "by": actor,
+        "role": role,
+        "at": datetime.now().isoformat(),
+    }
+    clean_note = str(note or "").strip()
+    if clean_note:
+        entry["note"] = clean_note
+    if extra:
+        for key, value in extra.items():
+            if value is not None:
+                entry[key] = value
+
+    history.append(entry)
+    payload["workflow_history"] = history[-25:]
+    if entry.get("to_status"):
+        payload["last_status"] = entry["to_status"]
+    payload["last_status_change_at"] = entry["at"]
+    payload["last_status_change_by"] = actor
+    rdv.etat_vehicule = json.dumps(payload)
+    return entry
+
+
+def _get_initial_ordre(db: Session, rdv_id: int) -> OrdreReparation | None:
+    return db.query(OrdreReparation).filter(
+        OrdreReparation.rendez_vous_id == rdv_id,
+        OrdreReparation.type_or == "initial"
+    ).order_by(OrdreReparation.created_at.desc()).first()
+
+
+def _is_ordre_locked(rdv: RendezVous, ordre: OrdreReparation | None) -> bool:
+    if ordre and ordre.signature_client:
+        return True
+    meta = _parse_or_meta((ordre.etat_vehicule if ordre and ordre.etat_vehicule else None) or rdv.etat_vehicule)
+    return bool(meta.get("or_locked"))
+
+
+def _get_pause_window(db: Session, atelier_id: int, rdv_date: date | None) -> tuple[int, int] | None:
+    if not rdv_date:
+        return None
+    horaire = db.query(HoraireAtelier).filter(
+        HoraireAtelier.atelier_id == atelier_id,
+        HoraireAtelier.jour_semaine == rdv_date.weekday(),
+    ).first()
+    if not horaire or not horaire.pause_debut or not horaire.pause_fin:
+        return None
+    try:
+        pause_start = int(str(horaire.pause_debut)[:2]) * 60 + int(str(horaire.pause_debut)[3:5])
+        pause_end = int(str(horaire.pause_fin)[:2]) * 60 + int(str(horaire.pause_fin)[3:5])
+    except Exception:
+        return None
+    if pause_end <= pause_start:
+        return None
+    return pause_start, pause_end
+
+
+def _compute_rdv_segments(
+    db: Session,
+    atelier_id: int,
+    rdv_date: date,
+    rdv_time: time | None,
+    duration_min: int | None,
+) -> list[tuple[datetime, datetime]]:
+    base_time = rdv_time or time(9, 0)
+    start_dt = datetime.combine(rdv_date, base_time)
+    duration = int(duration_min or 60)
+    if duration <= 0:
+        duration = 60
+
+    pause_window = _get_pause_window(db, atelier_id, rdv_date)
+    start_minutes = (base_time.hour * 60) + base_time.minute
+    total_end = start_minutes + duration
+    if pause_window and start_minutes < pause_window[0] and total_end > pause_window[0]:
+        first_end_dt = datetime.combine(rdv_date, time(pause_window[0] // 60, pause_window[0] % 60))
+        remaining = max(0, total_end - pause_window[0])
+        second_start_dt = datetime.combine(rdv_date, time(pause_window[1] // 60, pause_window[1] % 60))
+        second_end_dt = second_start_dt + timedelta(minutes=remaining)
+        segments = [(start_dt, first_end_dt)]
+        if remaining > 0:
+            segments.append((second_start_dt, second_end_dt))
+        return segments
+
+    return [(start_dt, start_dt + timedelta(minutes=duration))]
+
+
+def _rdv_start_end(db: Session, rdv: RendezVous, atelier_id: int) -> tuple[datetime, datetime]:
+    segments = _compute_rdv_segments(db, atelier_id, rdv.date_rdv, rdv.heure_rdv, rdv.temps_estime)
+    return segments[0][0], segments[-1][1]
+
+
+def _validate_rdv_resources(db: Session, rdv: RendezVous, atelier_id: int) -> None:
+    if rdv.pont_id:
+        pont = db.query(Pont).filter(Pont.id == rdv.pont_id, Pont.atelier_id == atelier_id).first()
+        if not pont:
+            raise HTTPException(status_code=400, detail="Pont invalide pour cet atelier")
+        if pont.is_active != 1:
+            raise HTTPException(status_code=400, detail="Pont inactif : selection impossible")
+        if rdv.mecanicien_id and pont.mecanicien_id and pont.mecanicien_id != rdv.mecanicien_id:
+            raise HTTPException(status_code=400, detail="Le pont selectionne est deja affecte a un autre technicien")
+
+    if rdv.mecanicien_id:
+        mecanicien = db.query(Mecanicien).filter(
+            Mecanicien.id == rdv.mecanicien_id,
+            Mecanicien.atelier_id == atelier_id,
+        ).first()
+        if not mecanicien:
+            raise HTTPException(status_code=400, detail="Technicien invalide pour cet atelier")
+        if mecanicien.is_active != 1:
+            raise HTTPException(status_code=400, detail="Technicien inactif : selection impossible")
+        if rdv.date_rdv:
+            absence = db.query(Absence).filter(
+                Absence.atelier_id == atelier_id,
+                Absence.mecanicien_id == rdv.mecanicien_id,
+                Absence.date_debut <= rdv.date_rdv,
+                Absence.date_fin >= rdv.date_rdv,
+            ).first()
+            if absence:
+                raise HTTPException(status_code=409, detail="Technicien indisponible sur ce creneau (absence planifiee)")
 
 
 def _validate_no_conflict(db: Session, rdv: RendezVous, atelier_id: int) -> None:
@@ -123,10 +345,15 @@ def _validate_no_conflict(db: Session, rdv: RendezVous, atelier_id: int) -> None
     else:
         candidates = candidates.filter(RendezVous.mecanicien_id == rdv.mecanicien_id)
 
-    my_start, my_end = _rdv_start_end(rdv)
+    my_segments = _compute_rdv_segments(db, atelier_id, rdv.date_rdv, rdv.heure_rdv, rdv.temps_estime)
+    my_start, my_end = _rdv_start_end(db, rdv, atelier_id)
     for other in candidates.all():
-        other_start, other_end = _rdv_start_end(other)
-        overlap = my_start < other_end and my_end > other_start
+        other_segments = _compute_rdv_segments(db, atelier_id, other.date_rdv, other.heure_rdv, other.temps_estime)
+        overlap = any(
+            seg_start < other_end and seg_end > other_start
+            for seg_start, seg_end in my_segments
+            for other_start, other_end in other_segments
+        )
         if overlap:
             resource = "pont" if (rdv.pont_id and other.pont_id == rdv.pont_id) else "technicien"
             raise HTTPException(
@@ -170,6 +397,8 @@ def _time_in_open_hours(
     if slot < open_min or slot >= close_min:
         return False
 
+    pause_start = None
+    pause_end = None
     if horaire.pause_debut and horaire.pause_fin:
         pause_start = _to_minutes(horaire.pause_debut)
         pause_end = _to_minutes(horaire.pause_fin)
@@ -177,11 +406,110 @@ def _time_in_open_hours(
             return False
     if duration_min and duration_min > 0:
         end_slot = slot + int(duration_min)
+        if pause_start is not None and pause_end is not None and slot < pause_start and end_slot > pause_start:
+            end_slot += max(0, pause_end - pause_start)
         # On autorise un "split" sur la pause midi, mais jamais après fermeture.
         if end_slot > close_min:
             return False
 
     return True
+
+
+def _serialize_rapport_technicien(rapport: RapportTechnicien) -> dict:
+    return {
+        "id": rapport.id,
+        "rendez_vous_id": rapport.rendez_vous_id,
+        "points_controle": json.loads(rapport.points_controle) if rapport.points_controle else {},
+        "alertes": rapport.alertes,
+        "recommandations": rapport.recommandations,
+        "travaux_realises": rapport.travaux_realises,
+        "pieces_utilisees": json.loads(rapport.pieces_utilisees) if rapport.pieces_utilisees else [],
+        "statut": rapport.statut,
+        "date_debut": rapport.date_debut,
+        "date_fin": rapport.date_fin,
+    }
+
+
+def _save_rapport_technicien_record(
+    rdv_id: int,
+    rapport_data: RapportTechnicienCreate,
+    db: Session,
+) -> RapportTechnicien:
+    rapport = db.query(RapportTechnicien).filter(RapportTechnicien.rendez_vous_id == rdv_id).first()
+    now = datetime.now()
+    requested_status = str(rapport_data.statut or "").strip() or (rapport.statut if rapport else "en_cours")
+
+    if not rapport:
+        rapport = RapportTechnicien(
+            rendez_vous_id=rdv_id,
+            points_controle=json.dumps(rapport_data.points_controle) if rapport_data.points_controle is not None else "{}",
+            alertes=rapport_data.alertes,
+            recommandations=rapport_data.recommandations,
+            travaux_realises=rapport_data.travaux_realises,
+            pieces_utilisees=json.dumps(rapport_data.pieces_utilisees) if rapport_data.pieces_utilisees is not None else "[]",
+            statut=requested_status or "en_cours",
+            date_debut=now,
+            date_fin=now if requested_status == "termine" else None,
+        )
+        db.add(rapport)
+        return rapport
+
+    if rapport_data.points_controle is not None:
+        rapport.points_controle = json.dumps(rapport_data.points_controle)
+    if rapport_data.alertes is not None:
+        rapport.alertes = rapport_data.alertes
+    if rapport_data.recommandations is not None:
+        rapport.recommandations = rapport_data.recommandations
+    if rapport_data.travaux_realises is not None:
+        rapport.travaux_realises = rapport_data.travaux_realises
+    if rapport_data.pieces_utilisees is not None:
+        rapport.pieces_utilisees = json.dumps(rapport_data.pieces_utilisees)
+    if rapport_data.statut:
+        rapport.statut = requested_status
+
+    if rapport.statut == "termine":
+        rapport.date_fin = rapport.date_fin or now
+    elif rapport_data.statut and rapport.statut != "termine":
+        rapport.date_fin = None
+
+    return rapport
+
+
+def _terminer_rdv_intervention(rdv: RendezVous, current_user: User | None) -> None:
+    if rdv.statut != "en_cours":
+        raise HTTPException(status_code=400, detail="Le rendez-vous doit être en cours avant cloture")
+    if not rdv.heure_debut_travail:
+        raise HTTPException(status_code=400, detail="Le travail n'a pas été démarré")
+
+    rdv.heure_fin_travail = datetime.now()
+    delta = rdv.heure_fin_travail - rdv.heure_debut_travail
+    rdv.temps_effectif_minutes = max(0, int(delta.total_seconds() / 60))
+    rdv.temps_final = rdv.temps_effectif_minutes
+    rdv.statut = "termine"
+    _record_workflow_event(
+        rdv,
+        current_user,
+        action="terminer_travail",
+        from_status="en_cours",
+        to_status="termine",
+        note="Intervention atelier cloturee",
+        extra={"temps_effectif_minutes": rdv.temps_effectif_minutes},
+    )
+
+
+def _restituer_rdv(rdv: RendezVous, current_user: User | None) -> None:
+    if rdv.statut != "termine":
+        raise HTTPException(status_code=400, detail="Le rendez-vous doit etre termine avant restitution")
+
+    rdv.statut = "restitue"
+    _record_workflow_event(
+        rdv,
+        current_user,
+        action="restitution",
+        from_status="termine",
+        to_status="restitue",
+        note="Vehicule restitue et dossier atelier cloture",
+    )
 
 
 # ========== RENDEZ-VOUS ==========
@@ -252,11 +580,29 @@ def create_rendez_vous(
         statut="en_attente",
         atelier_id=atelier_id
     )
+
+    if rdv.pont_id is not None:
+        new_rdv.pont_id = rdv.pont_id
+    if rdv.mecanicien_id is not None:
+        new_rdv.mecanicien_id = rdv.mecanicien_id
+    if new_rdv.mecanicien_id and not new_rdv.pont_id:
+        pont_du_meca = db.query(Pont).filter(
+            Pont.atelier_id == atelier_id,
+            Pont.mecanicien_id == new_rdv.mecanicien_id,
+            Pont.is_active == 1,
+        ).first()
+        if pont_du_meca:
+            new_rdv.pont_id = pont_du_meca.id
+    elif new_rdv.pont_id and not new_rdv.mecanicien_id:
+        pont = db.query(Pont).filter(Pont.id == new_rdv.pont_id, Pont.atelier_id == atelier_id).first()
+        if pont and pont.mecanicien_id:
+            new_rdv.mecanicien_id = pont.mecanicien_id
     
     db.add(new_rdv)
     db.flush()
     if not _time_in_open_hours(db, atelier_id, new_rdv.date_rdv, new_rdv.heure_rdv, new_rdv.temps_estime):
         raise HTTPException(status_code=400, detail="Creneau en dehors des horaires d'ouverture")
+    _validate_rdv_resources(db, new_rdv, atelier_id)
     _validate_no_conflict(db, new_rdv, atelier_id)
     db.commit()
     db.refresh(new_rdv)
@@ -297,6 +643,8 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
             photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
         except Exception:
             photos = []
+        etat_meta = _parse_or_meta(rdv.etat_vehicule)
+        workflow_history = _get_workflow_history(etat_meta)
         ors = [{
             "id": o.id,
             "numero_or": o.numero_or,
@@ -321,6 +669,7 @@ def get_all_rendez_vous(skip: int = 0, limit: int = 100, date: str = None, db: S
             "notes": rdv.commentaire,
             "statut": rdv.statut,
             "etat_vehicule": rdv.etat_vehicule,
+            "workflow_history": workflow_history,
             "photos_etat": photos,
             "heure_debut_travail": rdv.heure_debut_travail.isoformat() if rdv.heure_debut_travail else None,
             "heure_fin_travail": rdv.heure_fin_travail.isoformat() if rdv.heure_fin_travail else None,
@@ -345,6 +694,7 @@ def get_rendez_vous(
         photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
     except Exception:
         photos = []
+    workflow_history = _get_workflow_history(_parse_or_meta(rdv.etat_vehicule))
     ors = [{
         "id": o.id,
         "numero_or": o.numero_or,
@@ -368,6 +718,7 @@ def get_rendez_vous(
         "temps_estime": rdv.temps_estime,
         "kilometrage": rdv.kilometrage,
         "etat_vehicule": rdv.etat_vehicule,
+        "workflow_history": workflow_history,
         "photos_etat": photos,
         "mecanicien_id": rdv.mecanicien_id,
         "pont_id": rdv.pont_id,
@@ -384,7 +735,7 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
     can_manage_workflow = (
         _user_has_permission(current_user, db, "workflow.manage")
         or _user_has_permission(current_user, db, "or.manage")
-        or can_edit_rdv
+        or _user_has_permission(current_user, db, "workshop.manage")
     )
     wants_workflow_change = any([
         update_data.statut is not None,
@@ -412,14 +763,47 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     
     previous_status = rdv.statut
+    previous_date_rdv = rdv.date_rdv
+    previous_heure_rdv = rdv.heure_rdv
+    requested_status = (update_data.statut or "").strip().lower() if update_data.statut else None
+    status_reason = str(update_data.commentaire or "").strip()
+    or_initial = _get_initial_ordre(db, rdv_id)
+    or_locked = _is_ordre_locked(rdv, or_initial)
+    requested_pont_change = update_data.pont_id is not None and update_data.pont_id != rdv.pont_id
+    requested_mecanicien_change = update_data.mecanicien_id is not None and update_data.mecanicien_id != rdv.mecanicien_id
 
-    if update_data.statut:
-        _assert_valid_status_transition(previous_status, update_data.statut)
-        rdv.statut = update_data.statut
+    if rdv.statut in _FINALIZED_RDV_STATUSES and (requested_pont_change or requested_mecanicien_change):
+        raise HTTPException(
+            status_code=409,
+            detail="Le pont et le technicien sont verrouilles sur un rendez-vous finalise.",
+        )
+
+    if requested_status in _WORKFLOW_ONLY_STATUS_MESSAGES:
+        raise HTTPException(status_code=400, detail=_WORKFLOW_ONLY_STATUS_MESSAGES[requested_status])
+    if requested_status in {"annule", "non_presente"} and not status_reason:
+        raise HTTPException(
+            status_code=400,
+            detail="Un motif/commentaire est obligatoire pour annuler ou marquer un rendez-vous non presente.",
+        )
+
+    locked_reception_edit = any([
+        update_data.kilometrage is not None,
+        update_data.etat_vehicule is not None,
+        update_data.commentaire is not None and requested_status not in {"annule", "non_presente"},
+    ])
+    if or_locked and locked_reception_edit:
+        raise HTTPException(
+            status_code=409,
+            detail="Ordre de reparation verrouille apres signature client : les informations de reception ne sont plus modifiables.",
+        )
+
+    if requested_status:
+        _assert_valid_status_transition(previous_status, requested_status)
+        rdv.statut = requested_status
     if update_data.kilometrage is not None:
         rdv.kilometrage = update_data.kilometrage
-    if update_data.etat_vehicule:
-        rdv.etat_vehicule = update_data.etat_vehicule
+    if update_data.etat_vehicule is not None:
+        rdv.etat_vehicule = json.dumps(_merge_etat_payload(rdv.etat_vehicule, update_data.etat_vehicule))
     if update_data.prix_final is not None:
         rdv.prix_final = update_data.prix_final
     if update_data.temps_final is not None:
@@ -446,7 +830,7 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
                 raise HTTPException(status_code=400, detail="Technicien invalide pour cet atelier")
             rdv.mecanicien_id = mec.id
             # Source de vérité: technicien -> pont. On ne recalcule pas pour les RDV déjà finalisés.
-            if rdv.statut not in {"termine", "facture", "paye"}:
+            if rdv.statut not in _FINALIZED_RDV_STATUSES:
                 pont_du_meca = db.query(Pont).filter(
                     Pont.atelier_id == atelier_id,
                     Pont.mecanicien_id == mec.id,
@@ -457,7 +841,7 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
                 rdv.pont_id = pont_du_meca.id
         else:
             rdv.mecanicien_id = None
-            if rdv.statut not in {"termine", "facture", "paye"}:
+            if rdv.statut not in _FINALIZED_RDV_STATUSES:
                 rdv.pont_id = None
     if update_data.heure_rdv:
         from datetime import datetime
@@ -474,18 +858,47 @@ def update_rendez_vous(rdv_id: int, update_data: RendezVousUpdate, db: Session =
             logger.warning("Invalid date_rdv format for rdv_id=%s value=%s", rdv_id, update_data.date_rdv)
             raise HTTPException(status_code=400, detail="Format date_rdv invalide (YYYY-MM-DD attendu)")
     
+    _validate_rdv_resources(db, rdv, atelier_id)
     _validate_no_conflict(db, rdv, atelier_id)
     if not _time_in_open_hours(db, atelier_id, rdv.date_rdv, rdv.heure_rdv, rdv.temps_estime):
         raise HTTPException(status_code=400, detail="Creneau en dehors des horaires d'ouverture")
 
+    if previous_status != rdv.statut:
+        _record_workflow_event(
+            rdv,
+            current_user,
+            action="status_change",
+            from_status=previous_status,
+            to_status=rdv.statut,
+            note=status_reason or None,
+        )
+
     db.commit()
     db.refresh(rdv)
     if previous_status != "confirme" and rdv.statut == "confirme":
-        logger.info(
-            "TODO email confirmation client: rdv_id=%s atelier_id=%s",
-            rdv.id,
-            atelier_id,
-        )
+        try:
+            from services.rappel_service import envoyer_confirmation, programmer_rappels_rdv
+            envoyer_confirmation(db, rdv.id)
+            programmer_rappels_rdv(db, rdv.id)
+        except Exception:
+            logger.exception("Erreur envoi confirmation/rappels rdv_id=%s", rdv.id)
+    if previous_status != rdv.statut and rdv.statut in ("annule",):
+        try:
+            from services.notification_service import notifier_changement_statut
+            notifier_changement_statut(db, rdv.id, rdv.statut)
+        except Exception:
+            logger.exception("Erreur envoi notification statut=%s rdv_id=%s", rdv.statut, rdv.id)
+    # Notify client when appointment is rescheduled (date or time changed)
+    date_changed = previous_date_rdv != rdv.date_rdv
+    heure_changed = previous_heure_rdv != rdv.heure_rdv
+    if (date_changed or heure_changed) and rdv.statut not in ("annule", "non_presente"):
+        try:
+            from services.notification_service import notifier_deplacement_rdv
+            ancienne_date = previous_date_rdv.strftime("%d/%m/%Y") if previous_date_rdv else ""
+            ancienne_heure = previous_heure_rdv.strftime("%Hh%M") if previous_heure_rdv else ""
+            notifier_deplacement_rdv(db, rdv.id, ancienne_date, ancienne_heure)
+        except Exception:
+            logger.exception("Erreur envoi notification deplacement rdv_id=%s", rdv.id)
     logger.info("RDV updated id=%s by user=%s", rdv.id, current_user.username)
     return {"message": "Rendez-vous mis à jour", "id": rdv.id}
 
@@ -529,9 +942,22 @@ def demarrer_travail(rdv_id: int, db: Session = Depends(get_db), current_user: U
     rdv.heure_fin_travail = None
     rdv.temps_effectif_minutes = None
     rdv.statut = "en_cours"
+    _record_workflow_event(
+        rdv,
+        current_user,
+        action="demarrer_travail",
+        from_status="reception",
+        to_status="en_cours",
+        note="Demarrage de l'intervention atelier",
+    )
 
     db.commit()
     db.refresh(rdv)
+    try:
+        from services.notification_service import notifier_changement_statut
+        notifier_changement_statut(db, rdv.id, "en_cours")
+    except Exception:
+        logger.exception("Erreur envoi notification en_cours rdv_id=%s", rdv_id)
     return {
         "message": "Travail démarré",
         "heure_debut": rdv.heure_debut_travail.isoformat(),
@@ -547,28 +973,48 @@ def terminer_travail(rdv_id: int, db: Session = Depends(get_db), current_user: U
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     if not _user_can_manage_workflow(current_user, db, rdv):
         raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
-    if rdv.statut != "en_cours":
-        raise HTTPException(status_code=400, detail="Le rendez-vous doit être en cours avant cloture")
-    if not rdv.heure_debut_travail:
-        raise HTTPException(status_code=400, detail="Le travail n'a pas été démarré")
 
-    from datetime import datetime
-    rdv.heure_fin_travail = datetime.now()
-
-    # Calcul du temps effectif en minutes
-    delta = rdv.heure_fin_travail - rdv.heure_debut_travail
-    rdv.temps_effectif_minutes = int(delta.total_seconds() / 60)
-    rdv.temps_final = rdv.temps_effectif_minutes  # Pour la facturation
-    rdv.statut = "termine"
+    _terminer_rdv_intervention(rdv, current_user)
 
     db.commit()
     db.refresh(rdv)
+    try:
+        from services.notification_service import notifier_changement_statut, notifier_compte_rendu
+        notifier_changement_statut(db, rdv.id, "termine")
+        notifier_compte_rendu(db, rdv.id)
+    except Exception:
+        logger.exception("Erreur envoi notifications termine rdv_id=%s", rdv_id)
     return {
         "message": "Travail terminé",
         "heure_debut": rdv.heure_debut_travail.isoformat(),
         "heure_fin": rdv.heure_fin_travail.isoformat(),
         "temps_effectif_minutes": rdv.temps_effectif_minutes,
         "statut": rdv.statut
+    }
+
+
+@router.post("/api/rendez-vous/{rdv_id}/restituer")
+def restituer_rendez_vous(rdv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Cloture un RDV une fois le vehicule restitue au client."""
+    if not (
+        _user_has_permission(current_user, db, "or.manage")
+        or _user_has_permission(current_user, db, "workflow.manage")
+    ):
+        raise HTTPException(status_code=403, detail="Permission or.manage ou workflow.manage requise")
+
+    atelier_id = _atelier_id_or_403(current_user)
+    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
+    if not rdv:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+
+    _restituer_rdv(rdv, current_user)
+
+    db.commit()
+    db.refresh(rdv)
+    return {
+        "message": "Vehicule restitue, rendez-vous cloture",
+        "id": rdv.id,
+        "statut": rdv.statut,
     }
 
 @router.get("/api/rendez-vous/{rdv_id}/temps-travail")
@@ -622,7 +1068,6 @@ def save_ordre_reparation(
     if not (
         _user_has_permission(current_user, db, "or.manage")
         or _user_has_permission(current_user, db, "workflow.manage")
-        or _user_has_permission(current_user, db, "rdv.edit")
     ):
         raise HTTPException(status_code=403, detail="Permission or.manage ou workflow.manage requise")
     atelier_id = _atelier_id_or_403(current_user)
@@ -630,13 +1075,12 @@ def save_ordre_reparation(
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     
-    # Mettre à jour les champs enrichis de reception
-    try:
-        etat_payload = json.loads(or_data.etat_vehicule) if or_data.etat_vehicule else {}
-        if not isinstance(etat_payload, dict):
-            etat_payload = {"raw": etat_payload}
-    except Exception:
-        etat_payload = {"observations": or_data.etat_vehicule}
+    or_initial = _get_initial_ordre(db, rdv_id)
+    if _is_ordre_locked(rdv, or_initial):
+        raise HTTPException(status_code=409, detail="Ordre de reparation verrouille apres signature client")
+
+    # Mettre à jour les champs enrichis de reception sans perdre l'historique workflow
+    etat_payload = _merge_etat_payload(rdv.etat_vehicule, or_data.etat_vehicule)
 
     if or_data.priorite is not None:
         etat_payload["priority"] = or_data.priorite
@@ -648,6 +1092,7 @@ def save_ordre_reparation(
         etat_payload["schema_notes"] = or_data.notes_schema
     if or_data.lignes_estimation is not None:
         etat_payload["estimate_rows"] = or_data.lignes_estimation
+    etat_payload = _ensure_booking_price(etat_payload, rdv)
     try:
         existing_photos = json.loads(rdv.photos_etat) if rdv.photos_etat else []
         if not isinstance(existing_photos, list):
@@ -658,6 +1103,23 @@ def save_ordre_reparation(
     if photos_payload:
         etat_payload["photo_count"] = len(photos_payload)
         etat_payload["photos"] = photos_payload
+    if or_data.signature:
+        signed_at = etat_payload.get("or_locked_at") or datetime.now().isoformat()
+        signed_by = getattr(current_user, "username", None) or "system"
+        etat_payload["or_locked"] = True
+        etat_payload["or_locked_at"] = signed_at
+        etat_payload["or_locked_by"] = signed_by
+        history = _get_workflow_history(etat_payload)
+        history.append({
+            "action": "or_signed",
+            "from_status": (rdv.statut or "").strip().lower() or None,
+            "to_status": (rdv.statut or "").strip().lower() or None,
+            "by": signed_by,
+            "role": getattr(current_user, "role", None) or "system",
+            "at": signed_at,
+            "note": "OR signe et verrouille",
+        })
+        etat_payload["workflow_history"] = history[-25:]
 
     etat_json = json.dumps(etat_payload)
     photos_json = json.dumps(photos_payload)
@@ -671,10 +1133,6 @@ def save_ordre_reparation(
     # Historiser l'OR initial en base (idempotent)
     year = rdv.date_rdv.year if rdv.date_rdv else datetime.now().year
     numero_or = f"OR-{year}-{str(rdv_id).zfill(3)}"
-    or_initial = db.query(OrdreReparation).filter(
-        OrdreReparation.rendez_vous_id == rdv_id,
-        OrdreReparation.type_or == "initial"
-    ).order_by(OrdreReparation.created_at.desc()).first()
     if not or_initial:
         or_initial = OrdreReparation(
             rendez_vous_id=rdv_id,
@@ -750,87 +1208,68 @@ def get_rapport_technicien(rdv_id: int, db: Session = Depends(get_db), current_u
     rapport = db.query(RapportTechnicien).filter(RapportTechnicien.rendez_vous_id == rdv_id).first()
     if not rapport:
         raise HTTPException(status_code=404, detail="Rapport non trouvé")
-    
-    import json
-    return {
-        "id": rapport.id,
-        "rendez_vous_id": rapport.rendez_vous_id,
-        "points_controle": json.loads(rapport.points_controle) if rapport.points_controle else {},
-        "alertes": rapport.alertes,
-        "recommandations": rapport.recommandations,
-        "travaux_realises": rapport.travaux_realises,
-        "pieces_utilisees": json.loads(rapport.pieces_utilisees) if rapport.pieces_utilisees else [],
-        "statut": rapport.statut,
-        "date_debut": rapport.date_debut,
-        "date_fin": rapport.date_fin
-    }
+
+    return _serialize_rapport_technicien(rapport)
 
 @router.post("/api/rendez-vous/{rdv_id}/rapport-technicien", response_model=RapportTechnicienResponse)
 def create_or_update_rapport_technicien(
-    rdv_id: int, 
-    rapport_data: RapportTechnicienCreate, 
-    db: Session = Depends(get_db), 
+    rdv_id: int,
+    rapport_data: RapportTechnicienCreate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Crée ou met à jour le rapport technicien d'un RDV"""
-    import json
-    from datetime import datetime
-
-    # Vérifier que le RDV existe
     atelier_id = _atelier_id_or_403(current_user)
     rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
     if not _user_can_manage_workflow(current_user, db, rdv):
         raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
-    
-    # Chercher un rapport existant
-    rapport = db.query(RapportTechnicien).filter(RapportTechnicien.rendez_vous_id == rdv_id).first()
-    
-    if not rapport:
-        # Créer un nouveau rapport
-        rapport = RapportTechnicien(
-            rendez_vous_id=rdv_id,
-            points_controle=json.dumps(rapport_data.points_controle) if rapport_data.points_controle else "{}",
-            alertes=rapport_data.alertes,
-            recommandations=rapport_data.recommandations,
-            travaux_realises=rapport_data.travaux_realises,
-            pieces_utilisees=json.dumps(rapport_data.pieces_utilisees) if rapport_data.pieces_utilisees else "[]",
-            statut=rapport_data.statut or "en_cours",
-            date_debut=datetime.now()
-        )
-        db.add(rapport)
-    else:
-        # Mettre à jour le rapport existant
-        if rapport_data.points_controle is not None:
-            rapport.points_controle = json.dumps(rapport_data.points_controle)
-        if rapport_data.alertes is not None:
-            rapport.alertes = rapport_data.alertes
-        if rapport_data.recommandations is not None:
-            rapport.recommandations = rapport_data.recommandations
-        if rapport_data.travaux_realises is not None:
-            rapport.travaux_realises = rapport_data.travaux_realises
-        if rapport_data.pieces_utilisees is not None:
-            rapport.pieces_utilisees = json.dumps(rapport_data.pieces_utilisees)
-        if rapport_data.statut:
-            rapport.statut = rapport_data.statut
-            if rapport_data.statut == "termine":
-                rapport.date_fin = datetime.now()
-    
+
+    rapport = _save_rapport_technicien_record(rdv_id, rapport_data, db)
     db.commit()
     db.refresh(rapport)
-    
+
+    return _serialize_rapport_technicien(rapport)
+
+
+@router.post("/api/rendez-vous/{rdv_id}/terminer-avec-rapport")
+def terminer_avec_rapport_technicien(
+    rdv_id: int,
+    rapport_data: RapportTechnicienCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Sauvegarde le rapport technicien et termine l'intervention dans une seule transaction."""
+    atelier_id = _atelier_id_or_403(current_user)
+    rdv = db.query(RendezVous).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
+    if not rdv:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouvé")
+    if not _user_can_manage_workflow(current_user, db, rdv):
+        raise HTTPException(status_code=403, detail="Action non autorisée sur ce rendez-vous")
+
+    forced_payload = RapportTechnicienCreate(
+        points_controle=rapport_data.points_controle,
+        alertes=rapport_data.alertes,
+        recommandations=rapport_data.recommandations,
+        travaux_realises=rapport_data.travaux_realises,
+        pieces_utilisees=rapport_data.pieces_utilisees,
+        statut="termine",
+    )
+    rapport = _save_rapport_technicien_record(rdv_id, forced_payload, db)
+    _terminer_rdv_intervention(rdv, current_user)
+
+    db.commit()
+    db.refresh(rdv)
+    db.refresh(rapport)
+
     return {
-        "id": rapport.id,
-        "rendez_vous_id": rapport.rendez_vous_id,
-        "points_controle": json.loads(rapport.points_controle) if rapport.points_controle else {},
-        "alertes": rapport.alertes,
-        "recommandations": rapport.recommandations,
-        "travaux_realises": rapport.travaux_realises,
-        "pieces_utilisees": json.loads(rapport.pieces_utilisees) if rapport.pieces_utilisees else [],
-        "statut": rapport.statut,
-        "date_debut": rapport.date_debut,
-        "date_fin": rapport.date_fin
+        "message": "Intervention terminee et rapport sauvegarde",
+        "heure_debut": rdv.heure_debut_travail.isoformat() if rdv.heure_debut_travail else None,
+        "heure_fin": rdv.heure_fin_travail.isoformat() if rdv.heure_fin_travail else None,
+        "temps_effectif_minutes": rdv.temps_effectif_minutes,
+        "statut": rdv.statut,
+        "rapport": _serialize_rapport_technicien(rapport),
     }
 
 # ========== FACTURE PDF ==========

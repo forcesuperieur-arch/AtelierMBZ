@@ -115,7 +115,7 @@ class TestValidationUtils:
         """Test la validation des statuts de RDV"""
         statuts_valides = [
             "en_attente", "confirme", "en_cours", 
-            "termine", "facture", "paye", "annule"
+            "termine", "restitue", "facture", "paye", "annule"
         ]
         
         for statut in statuts_valides:

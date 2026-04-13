@@ -80,6 +80,7 @@ class AtelierUpdate(BaseModel):
     cp: Optional[str] = None
     ville: Optional[str] = None
     siret: Optional[str] = None
+    tva_intracom: Optional[str] = None
     plan: Optional[str] = None
     actif: Optional[bool] = None
 

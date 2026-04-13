@@ -113,7 +113,7 @@ class TestRendezVous:
     
     def test_rdv_statuts_possibles(self):
         """Test les différents statuts possibles"""
-        statuts = ["en_attente", "confirme", "en_cours", "termine", "facture", "paye", "annule"]
+        statuts = ["en_attente", "confirme", "en_cours", "termine", "restitue", "facture", "paye", "annule"]
         for statut in statuts:
             rdv = RendezVous(statut=statut)
             assert rdv.statut == statut

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+archive
+backups
+download
+node_modules
+playwright-report
+test-results
+frontend/tests
+backend/.pytest_cache
+backend/__pycache__
+backend/**/*.pyc
+backend/**/*.pyo

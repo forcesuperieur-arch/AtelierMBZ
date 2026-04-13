@@ -185,7 +185,7 @@ window.WorkshopModule = window.WorkshopModule || {
             var html = '';
 
             html += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client</div>' +
-                '<div style="background:#16161a;border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
+                '<div style="background:var(--dark3);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
                 '<div><span style="color:#666">Nom:</span> <span style="color:#eee">' + (escapeHtml(c.nom) || '-') + '</span></div>' +
                 '<div><span style="color:#666">Prenom:</span> <span style="color:#eee">' + (escapeHtml(c.prenom) || '-') + '</span></div>' +
                 '<div><span style="color:#666">Tel:</span> <span style="color:#eee">' + (escapeHtml(c.telephone) || '-') + '</span></div>' +
@@ -195,7 +195,7 @@ window.WorkshopModule = window.WorkshopModule || {
                 '</div>';
 
             html += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Vehicule</div>' +
-                '<div style="background:#16161a;border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
+                '<div style="background:var(--dark3);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
                 '<div><span style="color:#666">Plaque:</span> <span style="color:#eee">' + (escapeHtml(v.plaque) || '-') + '</span></div>' +
                 '<div><span style="color:#666">Marque:</span> <span style="color:#eee">' + (escapeHtml(v.marque) || '-') + '</span></div>' +
                 '<div><span style="color:#666">Modele:</span> <span style="color:#eee">' + (escapeHtml(v.modele) || '-') + '</span></div>' +
@@ -207,7 +207,7 @@ window.WorkshopModule = window.WorkshopModule || {
                 '</div>';
 
             html += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Rendez-vous</div>' +
-                '<div style="background:#16161a;border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
+                '<div style="background:var(--dark3);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">' +
                 '<div><span style="color:#666">Date:</span> <span style="color:#eee">' + (rdv.date_rdv || '-') + '</span></div>' +
                 '<div><span style="color:#666">Heure:</span> <span style="color:#eee">' + formatTime(rdv.heure_rdv) + '</span></div>' +
                 '<div><span style="color:#666">Type:</span> <span style="color:#eee">' + (escapeHtml(rdv.type_intervention) || '-') + '</span></div>' +
@@ -215,6 +215,25 @@ window.WorkshopModule = window.WorkshopModule || {
                 '<div><span style="color:#666">Pont:</span> <span style="color:#eee">' + (pont ? pont.nom : 'Non assigne') + '</span></div>' +
                 '<div><span style="color:#666">Meca:</span> <span style="color:#eee">' + (meca ? meca.prenom + ' ' + escapeHtml(meca.nom) : 'Non assigne') + '</span></div>' +
                 '</div></div>';
+
+            var workflowHistory = Array.isArray(rdv.workflow_history) ? rdv.workflow_history.slice().reverse() : [];
+            var historyHtml = workflowHistory.length ? workflowHistory.map(function(entry) {
+                var when = entry && entry.at ? String(entry.at) : '';
+                try {
+                    when = when ? new Date(when).toLocaleString('fr-FR') : '-';
+                } catch (e) {}
+                var transition = escapeHtml((entry && entry.from_status) || 'creation') + ' → ' + escapeHtml((entry && entry.to_status) || (entry && entry.action) || 'mise a jour');
+                var byline = escapeHtml((entry && entry.by) || 'system') + ((entry && entry.role) ? ' • ' + escapeHtml(entry.role) : '');
+                var note = entry && entry.note ? '<div style="font-size:11px;color:#cbd5e1;margin-top:4px">' + escapeHtml(entry.note) + '</div>' : '';
+                return '<div style="background:var(--dark3);border:1px solid #26262c;border-radius:10px;padding:10px 12px">' +
+                    '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+                        '<div><div style="font-size:12px;font-weight:700;color:#f8fafc">' + transition + '</div><div style="font-size:11px;color:#9ca3af">' + byline + '</div></div>' +
+                        '<div style="font-size:11px;color:#9ca3af">' + escapeHtml(when) + '</div>' +
+                    '</div>' + note +
+                '</div>';
+            }).join('') : '<div style="background:var(--dark3);border-radius:8px;padding:12px;color:#9ca3af;font-size:12px">Aucun historique workflow enregistre pour le moment.</div>';
+
+            html += '<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Historique workflow</div>' + historyHtml + '</div>';
 
             html += '<div style="margin-bottom:16px">' +
                 '<div class="form-group"><label class="form-label" style="color:#ccc">Commentaire</label>' +

@@ -250,8 +250,8 @@ def preview_facture(
     ).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="RDV non trouvé")
-    if rdv.statut not in ("termine", "facture"):
-        raise HTTPException(status_code=400, detail="Le RDV doit être terminé pour facturer")
+    if rdv.statut not in ("termine", "restitue", "facture"):
+        raise HTTPException(status_code=400, detail="Le RDV doit etre termine ou restitue pour facturer")
 
     config = db.query(ConfigAtelier).filter(ConfigAtelier.atelier_id == atelier_id).first()
     breakdown = compute_facturation(rdv, config, db)
@@ -277,8 +277,8 @@ def facturer_rdv(
     ).filter(RendezVous.id == rdv_id, RendezVous.atelier_id == atelier_id).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="RDV non trouvé")
-    if rdv.statut != "termine":
-        raise HTTPException(status_code=400, detail=f"Le RDV doit être au statut 'termine' (actuel: {rdv.statut})")
+    if rdv.statut not in ("termine", "restitue"):
+        raise HTTPException(status_code=400, detail=f"Le RDV doit etre au statut 'termine' ou 'restitue' (actuel: {rdv.statut})")
 
     # Vérifier qu'il n'y a pas déjà une facture
     existing = db.query(Facture).filter(Facture.rendez_vous_id == rdv_id, Facture.atelier_id == atelier_id).first()
@@ -394,6 +394,15 @@ def facturer_rdv(
         current_user.username
     )
 
+    # Envoyer email facture avec PDF en PJ
+    try:
+        from services.notification_service import notifier_facture
+        from services.pdf_service import generate_facture_pdf_bytes
+        pdf_bytes = generate_facture_pdf_bytes(db, facture.id, rdv.atelier_id or 1)
+        notifier_facture(db, rdv.id, facture.id, is_paid=False, pdf_bytes=pdf_bytes)
+    except Exception:
+        logger.exception("Erreur envoi email facture rdv_id=%s", rdv.id)
+
     return {
         "message": "Facture créée",
         "numero_facture": numero,
@@ -462,6 +471,16 @@ def encaisser(
         data.mode_paiement,
         current_user.username
     )
+
+    # Envoyer email paiement confirmé si facture entièrement payée
+    if facture.statut == "payee":
+        try:
+            from services.notification_service import notifier_facture
+            from services.pdf_service import generate_facture_pdf_bytes
+            pdf_bytes = generate_facture_pdf_bytes(db, facture.id, atelier_id)
+            notifier_facture(db, facture.rendez_vous_id, facture.id, is_paid=True, pdf_bytes=pdf_bytes)
+        except Exception:
+            logger.exception("Erreur envoi email paiement facture_id=%s", facture.id)
 
     return {
         "message": "Paiement enregistré",

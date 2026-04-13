@@ -101,6 +101,22 @@ def _to_minutes(hhmm: str) -> int:
     return int(h) * 60 + int(m)
 
 
+def _compute_effective_end_min(
+    start_min: int, duration_min: int,
+    pause_start: Optional[int], pause_end: Optional[int],
+) -> int:
+    """Compute effective end time in minutes, pushing past lunch break if needed."""
+    end_min = start_min + duration_min
+    if pause_start is not None and pause_end is not None:
+        if start_min < pause_start and end_min > pause_start:
+            end_min += (pause_end - pause_start)
+    return end_min
+
+
+def _format_heure(minutes: int) -> str:
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
 ACTIVE_PUBLIC_RDV_STATUSES = ["reserve", "en_attente", "confirme", "reception", "en_cours"]
 
 
@@ -134,15 +150,20 @@ def _validate_slot_boundaries(horaire: Optional[HoraireAtelier], start_min: int,
     open_min = _to_minutes(horaire.heure_ouverture)
     close_min = _to_minutes(horaire.heure_fermeture)
     effective_duration = max(15, int(duration_min or 60))
-    end_min = start_min + effective_duration
 
     if start_min < open_min or start_min >= close_min:
         return "Creneau en dehors des horaires d'ouverture"
 
     pause_start = _to_minutes(horaire.pause_debut) if horaire.pause_debut else None
     pause_end = _to_minutes(horaire.pause_fin) if horaire.pause_fin else None
-    if _slot_overlaps_closed_period(start_min, end_min, pause_start, pause_end):
-        return "Duree intervention chevauche une fermeture atelier"
+
+    # Reject starting during lunch break
+    if pause_start is not None and pause_end is not None:
+        if pause_start <= start_min < pause_end:
+            return "Creneau pendant la fermeture midi"
+
+    # Compute effective end accounting for lunch break
+    end_min = _compute_effective_end_min(start_min, effective_duration, pause_start, pause_end)
 
     if end_min > close_min:
         return "Duree intervention depasse l'heure de fermeture"
@@ -429,6 +450,12 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         if len(overlapping_rdvs) >= total_ponts_actifs:
             raise HTTPException(status_code=409, detail="Conflit planning: aucun pont libre sur ce creneau")
 
+    # Compute effective end time accounting for lunch break
+    pause_s = _to_minutes(horaire.pause_debut) if horaire and horaire.pause_debut else None
+    pause_e = _to_minutes(horaire.pause_fin) if horaire and horaire.pause_fin else None
+    effective_end = _compute_effective_end_min(start_min, temps_total, pause_s, pause_e)
+    heure_fin_str = _format_heure(effective_end)
+
     rdv = RendezVous(
         atelier_id=atelier_id,
         client_id=client.id,
@@ -451,6 +478,8 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         "message": "Rendez-vous créé avec succès",
         "date": rdv.date_rdv.isoformat(),
         "heure": rdv.heure_rdv.isoformat() if rdv.heure_rdv else None,
+        "heure_fin": heure_fin_str,
+        "duree_minutes": temps_total,
     }
 
 
@@ -487,6 +516,8 @@ def get_creneaux_disponibles_handler(date_str: str, duree_minutes: int, atelier_
 
     creneaux = []
     is_closed = horaire and not horaire.is_ouvert
+    pause_s = _to_minutes(horaire.pause_debut) if horaire and horaire.pause_debut else None
+    pause_e = _to_minutes(horaire.pause_fin) if horaire and horaire.pause_fin else None
     if not is_closed:
         open_min = _to_minutes(horaire.heure_ouverture) if horaire and horaire.heure_ouverture else _to_minutes("08:00")
         close_min = _to_minutes(horaire.heure_fermeture) if horaire and horaire.heure_fermeture else _to_minutes("18:00")
@@ -499,6 +530,7 @@ def get_creneaux_disponibles_handler(date_str: str, duree_minutes: int, atelier_
             places_restantes = ponts_disponibles - len(overlapping_rdvs)
             creneaux.append({
                 "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
+                "heure_fin": _format_heure(_compute_effective_end_min(start_min, requested_duration, pause_s, pause_e)),
                 "disponible": places_restantes > 0,
                 "places_restantes": max(0, places_restantes),
                 "places_totales": ponts_disponibles,
@@ -545,6 +577,8 @@ def get_creneaux_avec_ponts_handler(date_str: str, duree_minutes: int, atelier_s
 
     creneaux = []
     is_closed = horaire and not horaire.is_ouvert
+    pause_s = _to_minutes(horaire.pause_debut) if horaire and horaire.pause_debut else None
+    pause_e = _to_minutes(horaire.pause_fin) if horaire and horaire.pause_fin else None
     if not is_closed:
         open_min = _to_minutes(horaire.heure_ouverture) if horaire and horaire.heure_ouverture else _to_minutes("08:00")
         close_min = _to_minutes(horaire.heure_fermeture) if horaire and horaire.heure_fermeture else _to_minutes("18:00")
@@ -575,6 +609,7 @@ def get_creneaux_avec_ponts_handler(date_str: str, duree_minutes: int, atelier_s
 
             creneaux.append({
                 "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
+                "heure_fin": _format_heure(_compute_effective_end_min(start_min, requested_duration, pause_s, pause_e)),
                 "disponible": len(ponts_libres) > 0,
                 "nb_ponts_libres": len(ponts_libres),
                 "ponts_disponibles": ponts_libres,

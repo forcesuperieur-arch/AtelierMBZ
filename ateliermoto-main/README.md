@@ -154,6 +154,25 @@ docker compose exec backend bash
 ./scripts/db-restore.sh backup_YYYYMMDD_HHMMSS.sql
 ```
 
+### Tests UI Playwright
+
+```bash
+# 1. Installer les dépendances UI
+npm install
+
+# 2. Installer Chromium pour Playwright
+npm run test:ui:install
+
+# 3. Lancer l'appli (backend déjà démarré sur http://127.0.0.1:8000)
+# puis exécuter les smoke/E2E tests
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:8000 \
+E2E_USERNAME=admin \
+E2E_PASSWORD=motdepasse \
+npm run test:ui
+```
+
+> Les tests publics tournent sans authentification ; le scénario `planning -> fiche client` utilise les variables `E2E_USERNAME` et `E2E_PASSWORD`.
+
 ### Notes de structure
 
 - **Backend** : `main.py` sert désormais de composition root ; la logique métier vit dans `backend/routes/` et `backend/services/`.
@@ -178,5 +197,6 @@ docker compose exec backend bash
 
 - **[`docs/TECHNICAL.md`](docs/TECHNICAL.md)** — référence technique canonique
 - **[`docs/GUIDE_UTILISATEUR.md`](docs/GUIDE_UTILISATEUR.md)** — guide métier et parcours utilisateur
+- **[`docs/GUIDE_INSTALLATION_PREPROD.md`](docs/GUIDE_INSTALLATION_PREPROD.md)** — installation serveur préprod prête à lancer
 - **[`docs/OPERATIONS.md`](docs/OPERATIONS.md)** — exploitation locale, backup/restore, bootstrap BDD
 - **[`docs/PLAN_REFACTOR_TECHNIQUE.md`](docs/PLAN_REFACTOR_TECHNIQUE.md)** — état du refactor et dette restante

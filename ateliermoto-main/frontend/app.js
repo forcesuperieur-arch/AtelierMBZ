@@ -32,8 +32,11 @@ APP._horairesByDay = {};
 APP._horairesLoaded = false;
 APP._planningLoadSeq = 0;
 APP._planningBusyCells = {};
+APP._planningPonts = [];
+APP._planningMecaniciens = [];
+APP._planningAbsences = [];
 APP._planningSlotMinutes = 15;
-APP._planningSlotPx = 8;
+APP._planningSlotPx = 18;
 window.APP = APP;
 
 function callModuleMethod(moduleName, methodName, argsLike, fallbackValue) {
@@ -70,6 +73,7 @@ function doLogin() { return callModuleMethod('AppCoreModule', 'doLogin', argumen
 function logout() { return callModuleMethod('AppCoreModule', 'logout', arguments); }
 function initApp() { return callModuleMethod('AppCoreModule', 'initApp', arguments); }
 function loadBaseData() { return callModuleMethod('AppCoreModule', 'loadBaseData', arguments, Promise.resolve()); }
+function loadAtelierBranding() { return callModuleMethod('AppCoreModule', 'loadAtelierBranding', arguments); }
 
 // ===== ROLE VISIBILITY =====
 function hasPermission(permission) { return callModuleMethod('AppCoreModule', 'hasPermission', arguments, false); }
@@ -97,13 +101,14 @@ function statusBadge(statut) {
         'en_cours': { cls: 'orange', label: 'En cours' },
         'en_attente': { cls: 'amber', label: 'En attente' },
         'termine': { cls: 'green', label: 'Termine' },
+        'restitue': { cls: 'green', label: 'Restitue' },
         'annule': { cls: 'red', label: 'Annule' },
         'non_presente': { cls: 'red', label: 'Non presente' },
-        'facture': { cls: 'purple', label: 'Facturee' },
-        'paye': { cls: 'green', label: 'Payee' }
+        'facture': { cls: 'green', label: 'Cloture' },
+        'paye': { cls: 'green', label: 'Cloture' }
     };
     var s = map[statut] || { cls: 'blue', label: statut || 'N/A' };
-    return '<span class="badge ' + s.cls + '">' + s.label + '</span>';
+    return '<span class="badge ' + s.cls + '" role="status" aria-label="Statut: ' + s.label + '">' + s.label + '</span>';
 }
 
 function getMecaInitials(meca) {
@@ -142,7 +147,7 @@ function showModal(title, content, width) {
     overlay.id = 'app-modal';
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
     overlay.onclick = function(e) { if (e.target === overlay) closeModal(); };
-    overlay.innerHTML = '<div style="background:#1e1e1e;border:1px solid #444;border-radius:12px;padding:24px;width:' + w + ';max-width:95vw;max-height:90vh;overflow-y:auto">' +
+    overlay.innerHTML = '<div style="background:var(--dark3);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:24px;width:' + w + ';max-width:95vw;max-height:90vh;overflow-y:auto">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="font-family:Barlow Condensed,sans-serif;font-size:20px;color:#eee">' + title + '</h3><button onclick="closeModal()" style="background:none;border:none;color:#888;cursor:pointer;font-size:20px">&times;</button></div>' +
         '<div id="modal-body">' + content + '</div></div>';
     document.body.appendChild(overlay);
@@ -231,6 +236,7 @@ function showAlert(message, type) {
 function confirmerRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'confirmerRdv', arguments); }
 function demarrerTravail(rdvId) { return callModuleMethod('RdvActionsModule', 'demarrerTravail', arguments); }
 function terminerTravail(rdvId) { return callModuleMethod('RdvActionsModule', 'terminerTravail', arguments); }
+function restituerRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'restituerRdv', arguments); }
 function annulerRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'annulerRdv', arguments); }
 function toggleCancelOtherReason() { return callModuleMethod('RdvActionsModule', 'toggleCancelOtherReason', arguments); }
 function confirmCancelRdv(rdvId) { return callModuleMethod('RdvActionsModule', 'confirmCancelRdv', arguments); }
@@ -405,6 +411,7 @@ function getWeekNumber(d) { return callModuleMethod('PlanningModule', 'getWeekNu
 
 function planningPrev() { return callModuleMethod('PlanningModule', 'planningPrev', arguments); }
 function planningNext() { return callModuleMethod('PlanningModule', 'planningNext', arguments); }
+function planningToday() { return callModuleMethod('PlanningModule', 'planningToday', arguments); }
 
 // ===== DRAG & DROP PLANNING =====
 function onRdvDragStart(event, rdvId) { return callModuleMethod('PlanningModule', 'onRdvDragStart', arguments); }
@@ -419,6 +426,8 @@ function onPlanningRdvClick(rdvId) { return callModuleMethod('PlanningModule', '
 // ===== CLIC CELLULE VIDE - QUICK CREATE =====
 function onPlanningCellClick(event, dateStr, hour) { return callModuleMethod('PlanningModule', 'onPlanningCellClick', arguments); }
 function ouvrirQuickCreateRdv(dateStr, hour) { return callModuleMethod('PlanningModule', 'ouvrirQuickCreateRdv', arguments); }
+function refreshQuickCreateAvailability(preserveSelection) { return callModuleMethod('PlanningModule', 'refreshQuickCreateAvailability', arguments); }
+function applyQuickCreateSuggestion(dateStr, hour, mecanicienId, pontId) { return callModuleMethod('PlanningModule', 'applyQuickCreateSuggestion', arguments); }
 function searchClientQuickCreate(val) { return callModuleMethod('PlanningModule', 'searchClientQuickCreate', arguments); }
 function selectClientQuickCreate(nom, prenom, tel) { return callModuleMethod('PlanningModule', 'selectClientQuickCreate', arguments); }
 function searchVehiculeQuickCreate(val) { return callModuleMethod('PlanningModule', 'searchVehiculeQuickCreate', arguments); }
@@ -436,6 +445,12 @@ function renderTempsTab() { return callModuleMethod('WorkshopModule', 'renderTem
 // ===== ORDRES DE REPARATION =====
 function loadOrdresReparation() {
     return callModuleMethod('OrModule', 'loadOrdresReparation', arguments);
+}
+function filterOrList() {
+    return callModuleMethod('OrModule', 'filterOrList', arguments);
+}
+function exportOrCsv() {
+    return callModuleMethod('OrModule', 'exportOrCsv', arguments);
 }
 
 function renderOrdresReparation(rdvs) {
@@ -713,6 +728,10 @@ function showClientDetail(clientId) {
     return callModuleMethod('ClientsModule', 'showClientDetail', arguments);
 }
 
+function focusClientFromAnywhere(clientId) {
+    return callModuleMethod('ClientsModule', 'openClientFromAnywhere', arguments);
+}
+
 // ===== DETAIL RDV DEPUIS HISTORIQUE CLIENT =====
 function ouvrirDetailHistoriqueRdv(rdvId, clientId) {
     return callModuleMethod('ClientsModule', 'ouvrirDetailHistoriqueRdv', arguments);
@@ -826,6 +845,22 @@ function switchAdminTab(tabId) {
 
 function loadAdminRoles() {
     return callModuleMethod('AdminModule', 'loadAdminRoles', arguments);
+}
+
+function loadAdminEmail() {
+    return callModuleMethod('AdminModule', 'loadAdminEmail', arguments);
+}
+
+function envoyerEmailTest() {
+    return callModuleMethod('AdminModule', 'envoyerEmailTest', arguments);
+}
+
+function annulerRappel(rappelId) {
+    return callModuleMethod('AdminModule', 'annulerRappel', arguments);
+}
+
+function envoyerRappelRdv(rdvId) {
+    return callModuleMethod('AdminModule', 'envoyerRappelRdv', arguments);
 }
 
 function openRoleEditor(roleName) {
@@ -947,5 +982,45 @@ function deleteAdminPont(pontId) {
 function deleteAdminMecanicien(mecanicienId) {
     return callModuleMethod('AdminModule', 'deleteAdminMecanicien', arguments);
 }
+
+// ========== Admin avancé (SMTP, templates, logs, backup) ==========
+function loadSmtpConfig() { return callModuleMethod('AdminModule', 'loadSmtpConfig', arguments); }
+function saveSmtpConfig(e) { return callModuleMethod('AdminModule', 'saveSmtpConfig', arguments); }
+function testSmtpConfig() { return callModuleMethod('AdminModule', 'testSmtpConfig', arguments); }
+function applySmtpPreset(v) { return callModuleMethod('AdminModule', 'applySmtpPreset', arguments); }
+function loadEmailTemplates() { return callModuleMethod('AdminModule', 'loadEmailTemplates', arguments); }
+function ouvrirNouveauTemplate() { return callModuleMethod('AdminModule', 'ouvrirNouveauTemplate', arguments); }
+function ouvrirEditerTemplate(id) { return callModuleMethod('AdminModule', 'ouvrirEditerTemplate', arguments); }
+function sauverTemplate(e, id) { return callModuleMethod('AdminModule', 'sauverTemplate', arguments); }
+function supprimerTemplate(id) { return callModuleMethod('AdminModule', 'supprimerTemplate', arguments); }
+function loadAdminLogs(page) { return callModuleMethod('AdminModule', 'loadAdminLogs', arguments); }
+function loadBackups() { return callModuleMethod('AdminModule', 'loadBackups', arguments); }
+function creerBackup() { return callModuleMethod('AdminModule', 'creerBackup', arguments); }
+function restaurerBackup(input) { return callModuleMethod('AdminModule', 'restaurerBackup', arguments); }
+// Wizard
+function loadWizardData() { return callModuleMethod('AdminModule', 'loadWizardData', arguments); }
+function wizardNext(step) { return callModuleMethod('AdminModule', 'wizardNext', arguments); }
+function wizardPreviewLogo(input) { return callModuleMethod('AdminModule', 'wizardPreviewLogo', arguments); }
+function wizardApplyProvider(v) { return callModuleMethod('AdminModule', 'wizardApplyProvider', arguments); }
+function wizardSave() { return callModuleMethod('AdminModule', 'wizardSave', arguments); }
+
+// ========== Devis ==========
+function loadDevisList() { return callModuleMethod('DevisModule', 'loadDevisList', arguments); }
+function ouvrirCreerDevis() { return callModuleMethod('DevisModule', 'ouvrirCreerDevis', arguments); }
+function ouvrirDetailDevis(id) { return callModuleMethod('DevisModule', 'ouvrirDetailDevis', arguments); }
+function envoyerDevis(id) { return callModuleMethod('DevisModule', 'envoyerDevis', arguments); }
+function accepterDevis(id) { return callModuleMethod('DevisModule', 'accepterDevis', arguments); }
+function refuserDevis(id) { return callModuleMethod('DevisModule', 'refuserDevis', arguments); }
+function supprimerDevis(id) { return callModuleMethod('DevisModule', 'supprimerDevis', arguments); }
+function ouvrirConvertirDevis(id) { return callModuleMethod('DevisModule', 'ouvrirConvertirDevis', arguments); }
+function convertirDevisSubmit(e, id) { return callModuleMethod('DevisModule', 'convertirDevisSubmit', arguments); }
+function ajouterLigneDevis() { return callModuleMethod('DevisModule', 'ajouterLigneDevis', arguments); }
+function supprimerLigneDevis(idx) { return callModuleMethod('DevisModule', 'supprimerLigneDevis', arguments); }
+function changeLigneTypeDevis(idx) { return callModuleMethod('DevisModule', 'changeLigneTypeDevis', arguments); }
+function recalculerDevis() { return callModuleMethod('DevisModule', 'recalculerDevis', arguments); }
+function rechercherClientDevis(q) { return callModuleMethod('DevisModule', 'rechercherClientDevis', arguments); }
+function selectionnerClientDevis(id, label) { return callModuleMethod('DevisModule', 'selectionnerClientDevis', arguments); }
+function creerDevisSubmit(e) { return callModuleMethod('DevisModule', 'creerDevisSubmit', arguments); }
+function telechargerDevisPdf(id) { return callModuleMethod('DevisModule', 'telechargerDevisPdf', arguments); }
 
 console.log('app.js loaded');

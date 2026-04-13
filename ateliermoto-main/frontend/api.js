@@ -89,6 +89,7 @@ function apiRequest(url, options) {
 function apiGet(url) {
     return apiRequest(url, {
         method: 'GET',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json', 'X-Use-Cookie-Auth': '1' }
     });
 }

@@ -881,8 +881,20 @@ function selectWeekSlot(el, dateStr, heure) {
     RDV.selectedDate = dateStr;
     RDV.selectedHeure = heure;
 
+    // Find heure_fin from créneau data
+    RDV.selectedHeureFin = '';
+    var dayData = WEEK_DATA[dateStr];
+    if (dayData && dayData.creneaux) {
+        var creneau = dayData.creneaux.find(function(c) { return c.heure === heure; });
+        if (creneau && creneau.heure_fin) {
+            RDV.selectedHeureFin = creneau.heure_fin;
+        }
+    }
+
     document.getElementById('pub-selected-slot').style.display = 'block';
-    document.getElementById('pub-slot-label').textContent = formatDate(dateStr) + ' a ' + heure;
+    var slotLabel = formatDate(dateStr) + ' a ' + heure;
+    if (RDV.selectedHeureFin) slotLabel += ' — fin estimee ' + RDV.selectedHeureFin;
+    document.getElementById('pub-slot-label').textContent = slotLabel;
     document.getElementById('pub-btn-step4').disabled = false;
 
     // Show auto-assigned pont and mechanic
@@ -924,7 +936,7 @@ function afficherRecap() {
         if (it) prestaNames.push(it.nom);
     });
     document.getElementById('pub-final-presta').textContent = prestaNames.join(', ');
-    document.getElementById('pub-final-date').textContent = formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure;
+    document.getElementById('pub-final-date').textContent = formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure + (RDV.selectedHeureFin ? ' — fin estimee ' + RDV.selectedHeureFin : '');
 
     var pontName = RDV.selectedPont ? RDV.selectedPont.nom : '-';
     var mecaName = RDV.selectedMeca || '-';
@@ -973,7 +985,7 @@ function confirmerRDV() {
         // Success details
         var detailsHtml = '';
         detailsHtml += '<div class="sd-row"><span>Vehicule</span><span>' + ((escapeHtml(v.marque) || '') + ' ' + (escapeHtml(v.modele) || '')).trim() + '</span></div>';
-        detailsHtml += '<div class="sd-row"><span>Date</span><span>' + formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure + '</span></div>';
+        detailsHtml += '<div class="sd-row"><span>Date</span><span>' + formatDate(RDV.selectedDate) + ' a ' + RDV.selectedHeure + (RDV.selectedHeureFin ? ' — fin estimee ' + RDV.selectedHeureFin : '') + '</span></div>';
         if (RDV.selectedPont) detailsHtml += '<div class="sd-row"><span>Pont</span><span>' + RDV.selectedPont.nom + '</span></div>';
         if (RDV.selectedMeca) detailsHtml += '<div class="sd-row"><span>Mecanicien</span><span>' + RDV.selectedMeca + '</span></div>';
         document.getElementById('pub-success-details').innerHTML = detailsHtml;

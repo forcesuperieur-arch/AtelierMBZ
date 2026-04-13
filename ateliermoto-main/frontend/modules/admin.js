@@ -116,16 +116,66 @@ window.AdminModule = window.AdminModule || {
     },
 
     ouvrirEditAtelier: function(id, nom) {
-        var html = '<div class="form-group"><label class="form-label">Nom</label><input id="edit-atelier-nom" class="form-input" value="' + (nom || '') + '"></div>' +
-            '<button class="btn btn-primary" style="width:100%" onclick="sauverAtelier(' + id + ')">Enregistrer</button>';
-        showModal('Modifier atelier', html, '420px');
+        apiGet('/api/config/atelier-info').then(function(info) {
+            var html = '<div class="form-group"><label class="form-label">Nom</label><input id="edit-atelier-nom" class="form-input" value="' + escapeHtml(info.nom || nom || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">Adresse</label><input id="edit-atelier-adresse" class="form-input" value="' + escapeHtml(info.adresse || '') + '"></div>' +
+                '<div style="display:flex;gap:8px"><div class="form-group" style="flex:1"><label class="form-label">CP</label><input id="edit-atelier-cp" class="form-input" value="' + escapeHtml(info.cp || '') + '"></div>' +
+                '<div class="form-group" style="flex:2"><label class="form-label">Ville</label><input id="edit-atelier-ville" class="form-input" value="' + escapeHtml(info.ville || '') + '"></div></div>' +
+                '<div style="display:flex;gap:8px"><div class="form-group" style="flex:1"><label class="form-label">Telephone</label><input id="edit-atelier-telephone" class="form-input" value="' + escapeHtml(info.telephone || '') + '"></div>' +
+                '<div class="form-group" style="flex:1"><label class="form-label">Email</label><input id="edit-atelier-email" class="form-input" value="' + escapeHtml(info.email || '') + '"></div></div>' +
+                '<div style="display:flex;gap:8px"><div class="form-group" style="flex:1"><label class="form-label">SIRET</label><input id="edit-atelier-siret" class="form-input" value="' + escapeHtml(info.siret || '') + '"></div>' +
+                '</div>' +
+                '<div class="form-group"><label class="form-label">Logo atelier</label>' +
+                '<div style="display:flex;align-items:center;gap:12px">' +
+                (info.logo_url ? '<img id="edit-atelier-logo-preview" src="' + escapeHtml(info.logo_url) + '" style="width:48px;height:48px;border-radius:8px;object-fit:contain;background:var(--dark3);border:1px solid rgba(255,255,255,.08)">' : '<div id="edit-atelier-logo-preview" style="width:48px;height:48px;border-radius:8px;background:var(--dark3);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#666;font-size:20px">M</div>') +
+                '<input type="file" id="edit-atelier-logo-file" accept="image/png,image/jpeg,image/gif,image/webp" style="font-size:12px;color:#bbb">' +
+                '</div></div>' +
+                '<button class="btn btn-primary" style="width:100%" onclick="sauverAtelier(' + id + ')">Enregistrer</button>';
+            showModal('Modifier atelier', html, '520px');
+        }).catch(function() {
+            var html = '<div class="form-group"><label class="form-label">Nom</label><input id="edit-atelier-nom" class="form-input" value="' + (nom || '') + '"></div>' +
+                '<button class="btn btn-primary" style="width:100%" onclick="sauverAtelier(' + id + ')">Enregistrer</button>';
+            showModal('Modifier atelier', html, '420px');
+        });
     },
 
     sauverAtelier: function(id) {
-        apiPut('/api/ateliers/' + id, { nom: document.getElementById('edit-atelier-nom').value }).then(function() {
+        var payload = { nom: document.getElementById('edit-atelier-nom').value };
+        var adresseEl = document.getElementById('edit-atelier-adresse');
+        if (adresseEl) payload.adresse = adresseEl.value;
+        var cpEl = document.getElementById('edit-atelier-cp');
+        if (cpEl) payload.cp = cpEl.value;
+        var villeEl = document.getElementById('edit-atelier-ville');
+        if (villeEl) payload.ville = villeEl.value;
+        var telEl = document.getElementById('edit-atelier-telephone');
+        if (telEl) payload.telephone = telEl.value;
+        var emailEl = document.getElementById('edit-atelier-email');
+        if (emailEl) payload.email = emailEl.value;
+        var siretEl = document.getElementById('edit-atelier-siret');
+        if (siretEl) payload.siret = siretEl.value;
+
+        var fileInput = document.getElementById('edit-atelier-logo-file');
+        var logoPromise = Promise.resolve();
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            logoPromise = fetch(window.API_URL + '/api/config/atelier/logo', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            }).then(function(r) {
+                if (!r.ok) throw new Error('Erreur upload logo');
+                return r.json();
+            }).then(function() {});
+        }
+
+        logoPromise.then(function() {
+            return apiPut('/api/ateliers/' + id, payload);
+        }).then(function() {
             closeModal();
             loadAdminAteliers();
             showNotificationToast('Atelier mis a jour');
+            if (typeof loadAtelierBranding === 'function') loadAtelierBranding();
         }).catch(function(e) { alert('Erreur: ' + e.message); });
     },
 
@@ -311,27 +361,40 @@ window.AdminModule = window.AdminModule || {
             'moto-base': hasPermission('motos.manage'),
             horaires: hasPermission('horaires.manage') || hasPermission('config.manage'),
             prestations: hasPermission('prestations.manage'),
-            roles: hasPermission('roles.manage')
+            roles: hasPermission('roles.manage'),
+            email: hasPermission('config.manage'),
+            smtp: hasPermission('config.manage'),
+            templates: hasPermission('config.manage'),
+            logs: hasPermission('config.manage'),
+            backup: hasPermission('config.manage'),
+            assistant: true
         };
         var visibleTabs = Object.keys(allowedTabs).filter(function(id) { return allowedTabs[id]; });
-        if (!allowedTabs[tabId]) tabId = visibleTabs[0] || 'ateliers';
+        if (!allowedTabs[tabId]) tabId = visibleTabs[0] || 'assistant';
 
-        ['ateliers', 'workshop', 'config', 'moto-base', 'horaires', 'prestations', 'roles'].forEach(function(id) {
+        ['assistant', 'ateliers', 'workshop', 'config', 'moto-base', 'horaires', 'prestations', 'roles', 'email', 'smtp', 'templates', 'logs', 'backup'].forEach(function(id) {
             var tab = document.getElementById('admin-tab-' + id);
             var panel = document.getElementById('admin-panel-' + id);
             var isAllowed = !!allowedTabs[id];
+            if (id === 'assistant') isAllowed = true; // always visible
             if (tab) {
                 tab.classList.toggle('active', isAllowed && id === tabId);
                 tab.style.display = isAllowed ? '' : 'none';
             }
             if (panel) panel.style.display = isAllowed && id === tabId ? '' : 'none';
         });
+        if (tabId === 'assistant') loadWizardData();
         if (tabId === 'workshop') loadAdminWorkshop();
         if (tabId === 'config') loadAdminConfig();
         if (tabId === 'moto-base') loadAdminMotoBase();
         if (tabId === 'horaires') loadAdminHoraires();
         if (tabId === 'prestations') loadAdminPrestations();
         if (tabId === 'roles') loadAdminRoles();
+        if (tabId === 'email') loadAdminEmail();
+        if (tabId === 'smtp') loadSmtpConfig();
+        if (tabId === 'templates') loadEmailTemplates();
+        if (tabId === 'logs') loadAdminLogs();
+        if (tabId === 'backup') loadBackups();
     },
 
     loadAdminRoles: function() {
@@ -928,6 +991,553 @@ window.AdminModule = window.AdminModule || {
                 loadBaseData().then(function() { loadAdminWorkshop(); });
                 showNotificationToast('Technicien supprime');
             }).catch(function(e) { showAlert('Erreur suppression technicien: ' + (e.message || 'suppression'), 'error'); });
+        });
+    },
+
+    // ========== EMAIL & RAPPELS ==========
+    loadAdminEmail: function() {
+        var statsEl = document.getElementById('email-stats');
+        var listEl = document.getElementById('email-pending-list');
+        if (!statsEl || !listEl) return;
+
+        apiGet('/api/rappels/stats').then(function(r) { return r.json(); }).then(function(s) {
+            statsEl.innerHTML =
+                '<div class="card" style="padding:14px 18px;flex:1;min-width:110px"><div style="font-size:24px;font-weight:700;color:#22c55e">' + (s.envoyes || 0) + '</div><div style="color:#888;font-size:12px">Envoyes</div></div>' +
+                '<div class="card" style="padding:14px 18px;flex:1;min-width:110px"><div style="font-size:24px;font-weight:700;color:#3b82f6">' + (s.programmes || 0) + '</div><div style="color:#888;font-size:12px">Programmes</div></div>' +
+                '<div class="card" style="padding:14px 18px;flex:1;min-width:110px"><div style="font-size:24px;font-weight:700;color:#ef4444">' + (s.erreurs || 0) + '</div><div style="color:#888;font-size:12px">Erreurs</div></div>' +
+                '<div class="card" style="padding:14px 18px;flex:1;min-width:110px"><div style="font-size:24px;font-weight:700;color:#eee">' + (s.total || 0) + '</div><div style="color:#888;font-size:12px">Total</div></div>';
+        }).catch(function() {
+            statsEl.innerHTML = '<div style="color:#ef4444">Erreur chargement stats</div>';
+        });
+
+        apiGet('/api/rappels/pending').then(function(r) { return r.json(); }).then(function(items) {
+            if (!items || !items.length) {
+                listEl.innerHTML = '<div style="color:#888;padding:8px">Aucun rappel en attente.</div>';
+                return;
+            }
+            var html = '<table style="width:100%;font-size:13px"><thead><tr style="color:#888;text-align:left"><th style="padding:6px">Client</th><th style="padding:6px">Type</th><th style="padding:6px">Email</th><th style="padding:6px">Prevu le</th><th style="padding:6px"></th></tr></thead><tbody>';
+            items.forEach(function(r) {
+                var d = r.date_envoi_prevu ? new Date(r.date_envoi_prevu).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+                html += '<tr style="border-top:1px solid #2a2a33"><td style="padding:6px;color:#eee">' + escapeHtml(r.client_nom || '') + '</td>' +
+                    '<td style="padding:6px"><span class="badge blue">' + escapeHtml(r.type || '') + '</span></td>' +
+                    '<td style="padding:6px;color:#aaa">' + escapeHtml(r.destinataire || '') + '</td>' +
+                    '<td style="padding:6px;color:#aaa">' + d + '</td>' +
+                    '<td style="padding:6px"><button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#ef4444" onclick="annulerRappel(' + r.id + ')">Annuler</button></td></tr>';
+            });
+            html += '</tbody></table>';
+            listEl.innerHTML = html;
+        }).catch(function() {
+            listEl.innerHTML = '<div style="color:#ef4444">Erreur chargement</div>';
+        });
+    },
+
+    envoyerEmailTest: function() {
+        apiGet('/api/email/test').then(function(r) { return r.json(); }).then(function(data) {
+            showNotificationToast(data.message || 'Email de test envoye');
+        }).catch(function(e) {
+            alert('Erreur: ' + (e.message || 'envoi email test'));
+        });
+    },
+
+    annulerRappel: function(rappelId) {
+        openConfirmDialog('Annuler ce rappel programme ?', function() {
+            apiPost('/api/rappels/' + rappelId + '/annuler', {}).then(function() {
+                showNotificationToast('Rappel annule');
+                loadAdminEmail();
+            }).catch(function(e) { alert('Erreur: ' + (e.message || 'annulation')); });
+        });
+    },
+
+    envoyerRappelRdv: function(rdvId) {
+        openConfirmDialog('Envoyer un rappel email au client pour ce RDV ?', function() {
+            apiPost('/api/rappels/rdv/' + rdvId + '/envoyer', {}).then(function(r) { return r.json(); }).then(function(data) {
+                showNotificationToast(data.message || 'Rappel envoye');
+            }).catch(function(e) {
+                alert('Erreur: ' + (e.message || 'envoi rappel'));
+            });
+        });
+    },
+
+    // ========== SMTP CONFIG ==========
+    loadSmtpConfig: function() {
+        apiGet('/api/admin/smtp').then(function(r) { return r.json(); }).then(function(data) {
+            var el = function(id) { return document.getElementById(id); };
+            if (el('smtp-host')) el('smtp-host').value = data.smtp_host || '';
+            if (el('smtp-port')) el('smtp-port').value = data.smtp_port || '';
+            if (el('smtp-user')) el('smtp-user').value = data.smtp_user || '';
+            if (el('smtp-password')) el('smtp-password').value = '';
+            if (el('smtp-from')) el('smtp-from').value = data.smtp_from || '';
+            // Map tls/ssl booleans to security dropdown
+            var sec = 'none';
+            if (data.smtp_ssl) sec = 'ssl';
+            else if (data.smtp_tls) sec = 'starttls';
+            if (el('smtp-security')) el('smtp-security').value = sec;
+        }).catch(function() {});
+    },
+
+    saveSmtpConfig: function(e) {
+        if (e) e.preventDefault();
+        var sec = (document.getElementById('smtp-security') || {}).value || 'none';
+        var payload = {
+            smtp_host: (document.getElementById('smtp-host') || {}).value || '',
+            smtp_port: parseInt((document.getElementById('smtp-port') || {}).value) || 587,
+            smtp_user: (document.getElementById('smtp-user') || {}).value || '',
+            smtp_from: (document.getElementById('smtp-from') || {}).value || '',
+            smtp_tls: sec === 'starttls',
+            smtp_ssl: sec === 'ssl'
+        };
+        var pwd = (document.getElementById('smtp-password') || {}).value;
+        if (pwd) payload.smtp_password = pwd;
+        apiPut('/api/admin/smtp', payload).then(function(r) { return r.json(); }).then(function(data) {
+            showNotificationToast(data.message || 'Configuration SMTP sauvegardée');
+        }).catch(function(e) { alert('Erreur: ' + (e.message || 'sauvegarde SMTP')); });
+    },
+
+    applySmtpPreset: function(preset) {
+        var el = function(id) { return document.getElementById(id); };
+        var presets = {
+            ovh:       { host: 'ssl0.ovh.net',      port: 465, security: 'ssl',      user_hint: 'votre@domaine.fr' },
+            gmail:     { host: 'smtp.gmail.com',     port: 587, security: 'starttls', user_hint: 'votre@gmail.com' },
+            ionos:     { host: 'smtp.ionos.fr',      port: 465, security: 'ssl',      user_hint: 'votre@domaine.fr' },
+            infomaniak:{ host: 'mail.infomaniak.com', port: 587, security: 'starttls', user_hint: 'votre@domaine.ch' },
+            mailhog:   { host: 'mailhog',            port: 1025, security: 'none',    user_hint: '' }
+        };
+        var p = presets[preset];
+        if (!p) return;
+        if (el('smtp-host')) el('smtp-host').value = p.host;
+        if (el('smtp-port')) el('smtp-port').value = p.port;
+        if (el('smtp-security')) el('smtp-security').value = p.security;
+        if (el('smtp-user') && !el('smtp-user').value) el('smtp-user').placeholder = p.user_hint || '';
+    },
+
+    testSmtpConfig: function() {
+        apiPost('/api/admin/smtp/test', {}).then(function(r) { return r.json(); }).then(function(data) {
+            showNotificationToast(data.message || 'Test envoyé');
+        }).catch(function(e) { alert('Erreur: ' + (e.message || 'test SMTP')); });
+    },
+
+    // ========== EMAIL TEMPLATES ==========
+    loadEmailTemplates: function() {
+        var container = document.getElementById('email-templates-list');
+        if (!container) return;
+        apiGet('/api/admin/email-templates').then(function(r) { return r.json(); }).then(function(templates) {
+            if (!templates.length) { container.innerHTML = '<div style="color:#888">Aucun template configuré</div>'; return; }
+            var html = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
+                '<th style="padding:8px;text-align:left;border-bottom:1px solid #333;color:#888">Code</th>' +
+                '<th style="padding:8px;text-align:left;border-bottom:1px solid #333;color:#888">Nom</th>' +
+                '<th style="padding:8px;text-align:left;border-bottom:1px solid #333;color:#888">Sujet</th>' +
+                '<th style="padding:8px;text-align:left;border-bottom:1px solid #333;color:#888">Actif</th>' +
+                '<th style="padding:8px;border-bottom:1px solid #333"></th></tr></thead><tbody>';
+            templates.forEach(function(t) {
+                html += '<tr>' +
+                    '<td style="padding:6px;color:#ccc"><code>' + escapeHtml(t.code) + '</code></td>' +
+                    '<td style="padding:6px;color:#ccc">' + escapeHtml(t.nom) + '</td>' +
+                    '<td style="padding:6px;color:#aaa">' + escapeHtml(t.sujet) + '</td>' +
+                    '<td style="padding:6px">' + (t.is_active ? '<span style="color:#22c55e">✓</span>' : '<span style="color:#ef4444">✗</span>') + '</td>' +
+                    '<td style="padding:6px;text-align:right">' +
+                    '<button class="btn btn-ghost" style="font-size:11px" onclick="ouvrirEditerTemplate(' + t.id + ')">Éditer</button> ' +
+                    '<button class="btn btn-ghost" style="font-size:11px;color:#ef4444" onclick="supprimerTemplate(' + t.id + ')">Suppr.</button>' +
+                    '</td></tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }).catch(function() { container.innerHTML = '<div style="color:#ef4444">Erreur chargement</div>'; });
+    },
+
+    ouvrirNouveauTemplate: function() {
+        this._ouvrirTemplateModal(null);
+    },
+
+    ouvrirEditerTemplate: function(templateId) {
+        var self = this;
+        apiGet('/api/admin/email-templates').then(function(r) { return r.json(); }).then(function(templates) {
+            var tpl = templates.find(function(t) { return t.id === templateId; });
+            if (tpl) self._ouvrirTemplateModal(tpl);
+        });
+    },
+
+    _ouvrirTemplateModal: function(tpl) {
+        var isEdit = !!tpl;
+        var html = '<form onsubmit="sauverTemplate(event, ' + (tpl ? tpl.id : 'null') + ')">' +
+            '<div class="form-group"><label class="form-label">Code</label><input id="tpl-code" class="form-input" value="' + escapeHtml((tpl && tpl.code) || '') + '" ' + (isEdit ? 'readonly' : '') + ' placeholder="confirmation_rdv"></div>' +
+            '<div class="form-group"><label class="form-label">Nom</label><input id="tpl-nom" class="form-input" value="' + escapeHtml((tpl && tpl.nom) || '') + '" placeholder="Confirmation RDV"></div>' +
+            '<div class="form-group"><label class="form-label">Sujet</label><input id="tpl-sujet" class="form-input" value="' + escapeHtml((tpl && tpl.sujet) || '') + '" placeholder="Votre rendez-vous {atelier_nom}"></div>' +
+            '<div class="form-group"><label class="form-label">Corps HTML</label><textarea id="tpl-corps-html" class="form-input" rows="8" style="font-family:monospace;font-size:12px">' + escapeHtml((tpl && tpl.corps_html) || '') + '</textarea></div>' +
+            '<div class="form-group"><label class="form-label">Corps texte</label><textarea id="tpl-corps-texte" class="form-input" rows="4" style="font-family:monospace;font-size:12px">' + escapeHtml((tpl && tpl.corps_texte) || '') + '</textarea></div>' +
+            '<div class="form-group" style="display:flex;align-items:center;gap:8px"><input id="tpl-active" type="checkbox" ' + ((tpl && tpl.is_active !== false) ? 'checked' : '') + '><label class="form-label" style="margin:0">Actif</label></div>' +
+            '<p style="color:#888;font-size:11px;margin-top:8px">Variables: {client_prenom}, {date_rdv}, {heure_rdv}, {type_intervention}, {atelier_nom}, {atelier_telephone}</p>' +
+            '<button class="btn btn-primary" type="submit" style="width:100%;margin-top:8px">' + (isEdit ? 'Mettre à jour' : 'Créer') + '</button>' +
+            '</form>';
+        showModal(isEdit ? 'Éditer template' : 'Nouveau template', html, '600px');
+    },
+
+    sauverTemplate: function(e, templateId) {
+        if (e) e.preventDefault();
+        var payload = {
+            code: (document.getElementById('tpl-code') || {}).value || '',
+            nom: (document.getElementById('tpl-nom') || {}).value || '',
+            sujet: (document.getElementById('tpl-sujet') || {}).value || '',
+            corps_html: (document.getElementById('tpl-corps-html') || {}).value || '',
+            corps_texte: (document.getElementById('tpl-corps-texte') || {}).value || '',
+            is_active: !!(document.getElementById('tpl-active') || {}).checked
+        };
+        var promise = templateId
+            ? apiPut('/api/admin/email-templates/' + templateId, payload)
+            : apiPost('/api/admin/email-templates', payload);
+        promise.then(function(r) { return r.json(); }).then(function(data) {
+            showNotificationToast(data.message || 'Template sauvegardé');
+            closeModal();
+            AdminModule.loadEmailTemplates();
+        }).catch(function(e) { alert('Erreur: ' + (e.message || 'sauvegarde template')); });
+    },
+
+    supprimerTemplate: function(templateId) {
+        openConfirmDialog('Supprimer ce template email ?', function() {
+            apiDelete('/api/admin/email-templates/' + templateId).then(function() {
+                showNotificationToast('Template supprimé');
+                AdminModule.loadEmailTemplates();
+            }).catch(function(e) { alert('Erreur: ' + (e.message || 'suppression')); });
+        });
+    },
+
+    // ========== AUDIT LOGS ==========
+    _logsPage: 1,
+
+    loadAdminLogs: function(page) {
+        var container = document.getElementById('audit-logs-list');
+        var pagination = document.getElementById('audit-logs-pagination');
+        if (!container) return;
+        var p = page || 1;
+        this._logsPage = p;
+        var action = (document.getElementById('logs-filter-action') || {}).value || '';
+        var entity = (document.getElementById('logs-filter-entity') || {}).value || '';
+        var url = '/api/admin/audit-logs?page=' + p + '&per_page=20';
+        if (action) url += '&action=' + action;
+        if (entity) url += '&entity_type=' + entity;
+        container.innerHTML = '<div style="color:#888">Chargement...</div>';
+        apiGet(url).then(function(r) { return r.json(); }).then(function(data) {
+            var logs = data.logs || [];
+            if (!logs.length) { container.innerHTML = '<div style="color:#888">Aucune activité</div>'; if (pagination) pagination.innerHTML = ''; return; }
+            var html = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888;font-size:12px">Date</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888;font-size:12px">Utilisateur</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888;font-size:12px">Action</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888;font-size:12px">Type</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888;font-size:12px">Détails</th>' +
+                '</tr></thead><tbody>';
+            logs.forEach(function(log) {
+                var d = log.created_at ? new Date(log.created_at).toLocaleString('fr-FR') : '';
+                html += '<tr>' +
+                    '<td style="padding:4px 6px;color:#aaa;font-size:12px">' + d + '</td>' +
+                    '<td style="padding:4px 6px;color:#ccc;font-size:12px">' + escapeHtml(log.username || '-') + '</td>' +
+                    '<td style="padding:4px 6px;font-size:12px"><span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#60a5fa">' + escapeHtml(log.action || '') + '</span></td>' +
+                    '<td style="padding:4px 6px;color:#aaa;font-size:12px">' + escapeHtml(log.entity_type || '') + '</td>' +
+                    '<td style="padding:4px 6px;color:#888;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(log.details || '') + '</td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            // Pagination
+            if (pagination) {
+                var totalPages = Math.ceil((data.total || 0) / (data.per_page || 20)) || 1;
+                var pHtml = '';
+                if (p > 1) pHtml += '<button class="btn btn-ghost" style="font-size:12px" onclick="loadAdminLogs(' + (p - 1) + ')">← Préc</button>';
+                pHtml += '<span style="color:#888;font-size:12px;padding:4px 8px">Page ' + p + '/' + totalPages + '</span>';
+                if (p < totalPages) pHtml += '<button class="btn btn-ghost" style="font-size:12px" onclick="loadAdminLogs(' + (p + 1) + ')">Suiv →</button>';
+                pagination.innerHTML = pHtml;
+            }
+        }).catch(function() { container.innerHTML = '<div style="color:#ef4444">Erreur chargement</div>'; });
+    },
+
+    // ========== BACKUP ==========
+    loadBackups: function() {
+        var container = document.getElementById('backups-list');
+        if (!container) return;
+        container.innerHTML = '<div style="color:#888">Chargement...</div>';
+        apiGet('/api/admin/backups').then(function(r) { return r.json(); }).then(function(data) {
+            var backups = Array.isArray(data) ? data : (data.backups || []);
+            if (!backups.length) { container.innerHTML = '<div style="color:#888">Aucune sauvegarde</div>'; return; }
+            var html = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888">Fichier</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888">Taille</th>' +
+                '<th style="padding:6px;text-align:left;border-bottom:1px solid #333;color:#888">Date</th>' +
+                '<th style="padding:6px;border-bottom:1px solid #333"></th>' +
+                '</tr></thead><tbody>';
+            backups.forEach(function(b) {
+                var sizeMb = (b.size / (1024 * 1024)).toFixed(2);
+                var d = (b.created_at || b.created) ? new Date(b.created_at || b.created).toLocaleString('fr-FR') : '';
+                html += '<tr>' +
+                    '<td style="padding:6px;color:#ccc">' + escapeHtml(b.filename) + '</td>' +
+                    '<td style="padding:6px;color:#aaa">' + sizeMb + ' Mo</td>' +
+                    '<td style="padding:6px;color:#aaa">' + d + '</td>' +
+                    '<td style="padding:6px;text-align:right"><a class="btn btn-ghost" style="font-size:11px" href="/api/admin/backups/' + encodeURIComponent(b.filename) + '" download>Télécharger</a></td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }).catch(function() { container.innerHTML = '<div style="color:#ef4444">Erreur chargement</div>'; });
+    },
+
+    creerBackup: function() {
+        openConfirmDialog('Créer une sauvegarde de la base de données ?', function() {
+            showNotificationToast('Sauvegarde en cours...');
+            apiPost('/api/admin/backup', {}).then(function(r) { return r.json(); }).then(function(data) {
+                showNotificationToast(data.message || 'Sauvegarde créée');
+                AdminModule.loadBackups();
+            }).catch(function(e) { alert('Erreur: ' + (e.message || 'sauvegarde')); });
+        });
+    },
+
+    restaurerBackup: function(input) {
+        if (!input || !input.files || !input.files[0]) return;
+        var file = input.files[0];
+        openConfirmDialog('⚠️ Restaurer la base de données depuis "' + escapeHtml(file.name) + '" ? Cette action écrasera les données actuelles.', function() {
+            var formData = new FormData();
+            formData.append('file', file);
+            showNotificationToast('Restauration en cours...');
+            fetch('/api/admin/restore', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') },
+                body: formData
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                showNotificationToast(data.message || 'Restauration terminée');
+                AdminModule.loadBackups();
+            }).catch(function(e) { alert('Erreur: ' + (e.message || 'restauration')); });
+        });
+        input.value = '';
+    },
+
+    // ========== SETUP WIZARD ==========
+    _wizardAtelierId: null,
+
+    loadWizardData: function() {
+        apiGet('/api/config/atelier-info').then(function(r) { return r.json ? r.json() : r; }).then(function(info) {
+            AdminModule._wizardAtelierId = info.id || 1;
+            var el = function(id) { return document.getElementById(id); };
+            if (el('wiz-nom')) el('wiz-nom').value = info.nom || '';
+            if (el('wiz-adresse')) el('wiz-adresse').value = info.adresse || '';
+            if (el('wiz-cp')) el('wiz-cp').value = info.cp || '';
+            if (el('wiz-ville')) el('wiz-ville').value = info.ville || '';
+            if (el('wiz-telephone')) el('wiz-telephone').value = info.telephone || '';
+            if (el('wiz-email')) el('wiz-email').value = info.email || '';
+            if (el('wiz-siret')) el('wiz-siret').value = info.siret || '';
+            if (el('wiz-tva')) el('wiz-tva').value = info.tva_intracom || '';
+            // Logo preview
+            if (info.logo_url) {
+                var preview = el('wiz-logo-preview');
+                if (preview) preview.outerHTML = '<img id="wiz-logo-preview" src="' + escapeHtml(info.logo_url) + '" style="width:80px;height:80px;border-radius:12px;object-fit:contain;background:#2a2a3e;border:2px solid #555;flex-shrink:0">';
+            }
+            // Load SMTP config
+            return apiGet('/api/admin/smtp');
+        }).then(function(r) { return r.json ? r.json() : r; }).then(function(smtp) {
+            var el = function(id) { return document.getElementById(id); };
+            if (smtp.smtp_user && el('wiz-smtp-user')) el('wiz-smtp-user').value = smtp.smtp_user;
+            if (smtp.smtp_host && smtp.smtp_host !== 'mailhog') {
+                if (el('wiz-smtp-host')) el('wiz-smtp-host').value = smtp.smtp_host;
+                if (el('wiz-smtp-port')) el('wiz-smtp-port').value = smtp.smtp_port;
+                var sec = 'ssl';
+                if (!smtp.smtp_ssl && smtp.smtp_tls) sec = 'starttls';
+                else if (!smtp.smtp_ssl && !smtp.smtp_tls) sec = 'none';
+                if (el('wiz-smtp-security')) el('wiz-smtp-security').value = sec;
+                // Try to detect provider from host
+                if (smtp.smtp_host.includes('ovh')) { if (el('wiz-email-provider')) el('wiz-email-provider').value = 'ovh'; AdminModule.wizardApplyProvider('ovh', true); }
+                else if (smtp.smtp_host.includes('gmail') || smtp.smtp_host.includes('google')) { if (el('wiz-email-provider')) el('wiz-email-provider').value = 'gmail'; AdminModule.wizardApplyProvider('gmail', true); }
+                else if (smtp.smtp_host.includes('ionos')) { if (el('wiz-email-provider')) el('wiz-email-provider').value = 'ionos'; AdminModule.wizardApplyProvider('ionos', true); }
+                else if (smtp.smtp_host.includes('infomaniak')) { if (el('wiz-email-provider')) el('wiz-email-provider').value = 'infomaniak'; AdminModule.wizardApplyProvider('infomaniak', true); }
+                else { if (el('wiz-email-provider')) el('wiz-email-provider').value = 'other'; AdminModule.wizardApplyProvider('other', true); }
+            }
+        }).catch(function() {});
+    },
+
+    wizardNext: function(step) {
+        // Hide all panels
+        for (var i = 1; i <= 4; i++) {
+            var panel = document.getElementById('wizard-step-' + i);
+            if (panel) panel.style.display = i === step ? '' : 'none';
+        }
+        // Update progress indicators
+        var steps = document.querySelectorAll('#wizard-progress .wizard-step');
+        steps.forEach(function(s) {
+            var n = parseInt(s.getAttribute('data-step'));
+            s.classList.remove('active', 'done');
+            if (n === step) s.classList.add('active');
+            else if (n < step) s.classList.add('done');
+        });
+        // Build summary on step 4
+        if (step === 4) AdminModule._buildWizardSummary();
+    },
+
+    wizardPreviewLogo: function(input) {
+        if (!input.files || !input.files[0]) return;
+        var file = input.files[0];
+        var nameEl = document.getElementById('wiz-logo-name');
+        if (nameEl) nameEl.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' Ko)';
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var preview = document.getElementById('wiz-logo-preview');
+            if (preview) preview.outerHTML = '<img id="wiz-logo-preview" src="' + e.target.result + '" style="width:80px;height:80px;border-radius:12px;object-fit:contain;background:#2a2a3e;border:2px solid #22c55e;flex-shrink:0">';
+        };
+        reader.readAsDataURL(file);
+    },
+
+    wizardApplyProvider: function(provider, keepFields) {
+        var el = function(id) { return document.getElementById(id); };
+        var fields = el('wiz-email-fields');
+        var skipEl = el('wiz-skip-email');
+        var helpEl = el('wiz-provider-help');
+        var advEl = el('wiz-smtp-advanced');
+
+        if (provider === 'skip' || !provider) {
+            if (fields) fields.style.display = 'none';
+            if (skipEl) skipEl.style.display = provider === 'skip' ? '' : 'none';
+            return;
+        }
+
+        if (fields) fields.style.display = '';
+        if (skipEl) skipEl.style.display = 'none';
+        if (advEl) advEl.style.display = '';
+
+        var presets = {
+            ovh:        { host: 'ssl0.ovh.net',       port: 465, security: 'ssl',
+                          help: '💡 <b>OVH</b> : utilisez l\'adresse email et le mot de passe de votre boîte OVH. Le serveur et le port sont pré-remplis.' },
+            gmail:      { host: 'smtp.gmail.com',      port: 587, security: 'starttls',
+                          help: '💡 <b>Gmail</b> : vous devez activer les "mots de passe d\'application" dans votre compte Google (<a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:#FB923C">ici</a>) et utiliser le mot de passe généré.' },
+            ionos:      { host: 'smtp.ionos.fr',       port: 465, security: 'ssl',
+                          help: '💡 <b>Ionos</b> : utilisez votre adresse email Ionos et le mot de passe associé.' },
+            infomaniak: { host: 'mail.infomaniak.com',  port: 587, security: 'starttls',
+                          help: '💡 <b>Infomaniak</b> : utilisez votre adresse email et le mot de passe de votre messagerie.' },
+            other:      { host: '',                     port: 587, security: 'starttls',
+                          help: '📋 Renseignez le serveur SMTP dans les paramètres avancés ci-dessous. Contactez votre hébergeur si vous ne connaissez pas ces informations.' }
+        };
+
+        var p = presets[provider];
+        if (p) {
+            if (!keepFields) {
+                if (el('wiz-smtp-host')) el('wiz-smtp-host').value = p.host;
+                if (el('wiz-smtp-port')) el('wiz-smtp-port').value = p.port;
+                if (el('wiz-smtp-security')) el('wiz-smtp-security').value = p.security;
+            }
+            if (helpEl) { helpEl.style.display = ''; helpEl.innerHTML = p.help; }
+            // Show advanced fields only for "other"
+            if (el('wiz-smtp-advanced-fields')) {
+                el('wiz-smtp-advanced-fields').style.display = provider === 'other' ? '' : 'none';
+            }
+        }
+    },
+
+    _buildWizardSummary: function() {
+        var el = function(id) { return (document.getElementById(id) || {}).value || ''; };
+        var nom = el('wiz-nom');
+        var adresse = [el('wiz-adresse'), el('wiz-cp'), el('wiz-ville')].filter(Boolean).join(', ');
+        var tel = el('wiz-telephone');
+        var email = el('wiz-email');
+        var siret = el('wiz-siret');
+        var logoFile = document.getElementById('wiz-logo-file');
+        var hasNewLogo = logoFile && logoFile.files && logoFile.files.length > 0;
+        var logoPreview = document.getElementById('wiz-logo-preview');
+        var hasExistingLogo = logoPreview && logoPreview.tagName === 'IMG';
+
+        var provider = el('wiz-email-provider');
+        var smtpUser = el('wiz-smtp-user');
+
+        var html = '<table style="width:100%;border-collapse:collapse">';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600;width:140px">Nom</td><td style="padding:8px 12px;color:#eee">' + escapeHtml(nom || '—') + '</td></tr>';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600;background:#12121e">Adresse</td><td style="padding:8px 12px;color:#ccc;background:#12121e">' + escapeHtml(adresse || '—') + '</td></tr>';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600">Téléphone</td><td style="padding:8px 12px;color:#ccc">' + escapeHtml(tel || '—') + '</td></tr>';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600;background:#12121e">Email</td><td style="padding:8px 12px;color:#ccc;background:#12121e">' + escapeHtml(email || '—') + '</td></tr>';
+        if (siret) html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600">SIRET</td><td style="padding:8px 12px;color:#ccc">' + escapeHtml(siret) + '</td></tr>';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600;background:#12121e">Logo</td><td style="padding:8px 12px;background:#12121e">' +
+            (hasNewLogo ? '<span style="color:#22c55e">✓ Nouveau logo sélectionné</span>' : (hasExistingLogo ? '<span style="color:#22c55e">✓ Logo existant</span>' : '<span style="color:#f59e0b">⚠ Aucun logo</span>')) + '</td></tr>';
+
+        var emailStatus = '<span style="color:#888">Non configuré</span>';
+        if (provider === 'skip') emailStatus = '<span style="color:#f59e0b">⏭️ Configuré plus tard</span>';
+        else if (smtpUser) emailStatus = '<span style="color:#22c55e">✓ ' + escapeHtml(smtpUser) + ' via ' + escapeHtml(provider.toUpperCase()) + '</span>';
+        html += '<tr><td style="padding:8px 12px;color:#888;font-weight:600">Envoi d\'emails</td><td style="padding:8px 12px">' + emailStatus + '</td></tr>';
+        html += '</table>';
+
+        var summaryEl = document.getElementById('wiz-summary');
+        if (summaryEl) summaryEl.innerHTML = html;
+    },
+
+    wizardSave: function() {
+        var el = function(id) { return (document.getElementById(id) || {}).value || ''; };
+        var statusEl = document.getElementById('wiz-save-status');
+        var btn = document.getElementById('wiz-save-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
+
+        var nom = el('wiz-nom');
+        if (!nom.trim()) {
+            if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444">❌ Le nom de l\'atelier est obligatoire</span>';
+            if (btn) { btn.disabled = false; btn.textContent = '💾 Enregistrer tout'; }
+            return;
+        }
+
+        var atelierId = AdminModule._wizardAtelierId || 1;
+        var steps = [];
+        var errors = [];
+
+        // Step 1: Save atelier info
+        var payload = {
+            nom: nom,
+            adresse: el('wiz-adresse'),
+            cp: el('wiz-cp'),
+            ville: el('wiz-ville'),
+            telephone: el('wiz-telephone'),
+            email: el('wiz-email'),
+            siret: el('wiz-siret'),
+            tva_intracom: el('wiz-tva')
+        };
+
+        if (statusEl) statusEl.innerHTML = '<span style="color:#FB923C">⏳ Étape 1/3 : Enregistrement des infos atelier...</span>';
+
+        apiPut('/api/ateliers/' + atelierId, payload).then(function() {
+            // Step 2: Upload logo if selected
+            var logoFile = document.getElementById('wiz-logo-file');
+            if (logoFile && logoFile.files && logoFile.files.length > 0) {
+                if (statusEl) statusEl.innerHTML = '<span style="color:#FB923C">⏳ Étape 2/3 : Envoi du logo...</span>';
+                var formData = new FormData();
+                formData.append('file', logoFile.files[0]);
+                return fetch(window.API_URL + '/api/config/atelier/logo', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') },
+                    body: formData
+                }).then(function(r) {
+                    if (!r.ok) throw new Error('Erreur upload logo');
+                    return r.json();
+                });
+            }
+            return Promise.resolve(null);
+        }).then(function() {
+            // Step 3: Save SMTP if configured
+            var provider = el('wiz-email-provider');
+            var smtpUser = el('wiz-smtp-user');
+            var smtpPwd = el('wiz-smtp-password');
+            if (provider && provider !== 'skip' && smtpUser) {
+                if (statusEl) statusEl.innerHTML = '<span style="color:#FB923C">⏳ Étape 3/3 : Configuration email...</span>';
+                var sec = el('wiz-smtp-security') || 'ssl';
+                var smtpPayload = {
+                    smtp_host: el('wiz-smtp-host') || 'ssl0.ovh.net',
+                    smtp_port: parseInt(el('wiz-smtp-port')) || 465,
+                    smtp_user: smtpUser,
+                    smtp_from: smtpUser,
+                    smtp_tls: sec === 'starttls',
+                    smtp_ssl: sec === 'ssl'
+                };
+                if (smtpPwd) smtpPayload.smtp_password = smtpPwd;
+                return apiPut('/api/admin/smtp', smtpPayload).then(function(r) { return r.json(); });
+            }
+            return Promise.resolve(null);
+        }).then(function() {
+            if (statusEl) statusEl.innerHTML = '<div style="background:#22c55e22;border:1px solid #22c55e44;border-radius:8px;padding:16px;text-align:center">' +
+                '<div style="font-size:24px;margin-bottom:4px">🎉</div>' +
+                '<div style="color:#22c55e;font-weight:700;font-size:16px">Configuration enregistrée !</div>' +
+                '<div style="color:#999;font-size:13px;margin-top:4px">Vos infos, logo et emails sont configurés.</div></div>';
+            if (btn) { btn.disabled = false; btn.textContent = '✓ Enregistré !'; btn.style.background = '#22c55e'; }
+            // Refresh branding
+            if (typeof loadAtelierBranding === 'function') loadAtelierBranding();
+        }).catch(function(e) {
+            if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444">❌ Erreur : ' + escapeHtml(e.message || 'Problème de sauvegarde') + '</span>';
+            if (btn) { btn.disabled = false; btn.textContent = '💾 Réessayer'; }
         });
     },
 

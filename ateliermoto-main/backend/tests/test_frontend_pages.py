@@ -47,3 +47,17 @@ def test_public_prestations_endpoint_is_accessible_without_auth():
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_index_page_loads_planning_ui_module_before_planning_bundle():
+    import routes.frontend_pages as frontend_pages
+
+    frontend_root = Path(frontend_pages.resolve_static_dir())
+    index_html = (frontend_root / "index.html").read_text(encoding="utf-8")
+
+    planning_ui_src = '/static/modules/planning-ui.js'
+    planning_src = '/static/modules/planning.js'
+
+    assert planning_ui_src in index_html
+    assert planning_src in index_html
+    assert index_html.index(planning_ui_src) < index_html.index(planning_src)

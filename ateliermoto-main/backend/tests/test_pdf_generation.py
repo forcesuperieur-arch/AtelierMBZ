@@ -9,8 +9,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from models import Base, Client, OrdreReparation, Vehicule, RendezVous
-from services.pdf_service import generate_facture_pdf, generate_ordre_reparation_pdf
+from models import Base, Client, DemandeTravauxSupp, OrdreReparation, Vehicule, RendezVous
+from services.pdf_service import (
+    build_ordre_reparation_estimate_rows,
+    generate_facture_pdf,
+    generate_ordre_reparation_pdf,
+    get_ordre_reparation_total_amount,
+)
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -78,4 +83,61 @@ def test_generate_ordre_reparation_pdf_supports_enriched_reception_payload():
     resp = generate_ordre_reparation_pdf(rdv.id, db)
     assert resp.media_type == "application/pdf"
     assert "Content-Disposition" in resp.headers
+    db.close()
+
+
+def test_ordre_reparation_estimates_keep_booking_price_when_supplementary_work_updates_rdv_total():
+    db = TestingSessionLocal()
+    c = Client(nom="Pdf", prenom="Supp", telephone="0600000005")
+    v = Vehicule(plaque="EE555EE", marque="Yamaha", modele="Tracer 9", client=c)
+    db.add_all([c, v])
+    db.flush()
+    rdv = RendezVous(
+        client_id=c.id,
+        vehicule_id=v.id,
+        date_rdv=date.today(),
+        heure_rdv=time(16, 0),
+        type_intervention="Revision atelier",
+        statut="en_cours",
+        prix_estime=300.0,
+    )
+    db.add(rdv)
+    db.flush()
+
+    demande = DemandeTravauxSupp(
+        rendez_vous_id=rdv.id,
+        description="Kit chaine",
+        prix_estime=180.0,
+        statut="approuve",
+    )
+    db.add(demande)
+    db.flush()
+
+    initial_or = OrdreReparation(
+        rendez_vous_id=rdv.id,
+        numero_or=f"OR-{date.today().year}-{str(rdv.id).zfill(3)}",
+        type_or="initial",
+        travaux="Revision atelier",
+    )
+    supp_or = OrdreReparation(
+        rendez_vous_id=rdv.id,
+        numero_or=f"OR-{date.today().year}-{str(rdv.id).zfill(3)}-S1",
+        type_or="supplementaire",
+        travaux="Kit chaine",
+        demande_travaux_supp_id=demande.id,
+    )
+    db.add_all([initial_or, supp_or])
+    db.commit()
+    db.refresh(rdv)
+
+    rdv.prix_estime = 300.0
+    db.commit()
+    db.refresh(rdv)
+
+    rows = build_ordre_reparation_estimate_rows(rdv, initial_or, {})
+
+    assert len(rows) == 1
+    assert rows[0]["label"] == "Revision atelier"
+    assert rows[0]["amount"] == 120.0
+    assert get_ordre_reparation_total_amount(rdv, rows) == 120.0
     db.close()

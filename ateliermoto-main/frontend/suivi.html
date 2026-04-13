@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de votre rendez-vous — Atelier Moto</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d0d1a; color: #e5e7eb; min-height: 100vh; }
+  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+  .header { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 12px; padding: 28px; margin-bottom: 20px; text-align: center; }
+  .header h1 { color: #FB923C; font-size: 22px; margin-bottom: 4px; }
+  .header .sub { color: #888; font-size: 13px; }
+  .card { background: #1e1e2e; border: 1px solid #333; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: .8px; font-weight: 700; margin-bottom: 14px; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #2a2a3a; }
+  .info-row:last-child { border: none; }
+  .info-label { color: #888; font-size: 14px; }
+  .info-value { color: #e5e7eb; font-size: 15px; font-weight: 600; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .badge.en_attente { background: rgba(251,191,36,0.15); color: #fbbf24; }
+  .badge.confirme { background: rgba(59,130,246,0.15); color: #3b82f6; }
+  .badge.reception { background: rgba(20,184,166,0.15); color: #14b8a6; }
+  .badge.en_cours { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .badge.termine { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .badge.restitue { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .badge.annule { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .badge.facture, .badge.paye { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .progress-bar { background: #2a2a3a; border-radius: 8px; height: 6px; margin: 16px 0; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 8px; transition: width .5s ease; }
+  .steps { display: flex; justify-content: space-between; margin: 8px 0 16px; }
+  .step { font-size: 11px; color: #666; text-align: center; flex: 1; position: relative; }
+  .step.active { color: #FB923C; font-weight: 700; }
+  .step.done { color: #22c55e; }
+  .photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+  .photo-thumb { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; cursor: pointer; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .btn { border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
+  .btn-danger { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-danger:disabled { opacity: .4; cursor: not-allowed; }
+  .loading { text-align: center; padding: 60px 20px; color: #888; }
+  .error-msg { text-align: center; padding: 60px 20px; color: #ef4444; }
+  .atelier-info { font-size: 13px; color: #888; line-height: 1.6; }
+  .lightbox { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.9); z-index: 100; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .lightbox img { max-width: 95vw; max-height: 90vh; border-radius: 8px; }
+  .urgence-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .urgence-normal { background: rgba(59,130,246,0.15); color: #3b82f6; }
+  .urgence-urgent { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .urgence-critique { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .decision-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .decision-accepte { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .decision-refuse { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .decision-attente { background: rgba(251,191,36,0.15); color: #fbbf24; }
+  .travaux-supp-item { padding: 12px 0; border-bottom: 1px solid #2a2a3a; }
+  .travaux-supp-item:last-child { border: none; }
+  .travaux-supp-desc { color: #e5e7eb; font-size: 14px; margin-bottom: 6px; }
+  .travaux-supp-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: #888; }
+  @media (max-width: 480px) { .container { padding: 12px; } .card { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1 id="atelier-name">Atelier Moto</h1>
+    <div class="sub">Suivi de votre rendez-vous</div>
+  </div>
+
+  <div id="loading" class="loading">
+    <p>Chargement de votre rendez-vous...</p>
+  </div>
+
+  <div id="error" class="error-msg" style="display:none"></div>
+
+  <div id="content" style="display:none">
+    <!-- Status -->
+    <div class="card">
+      <div class="card-title">Statut</div>
+      <div style="text-align:center;margin-bottom:12px">
+        <span class="badge" id="statut-badge"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="steps" id="steps-row"></div>
+    </div>
+
+    <!-- RDV Info -->
+    <div class="card">
+      <div class="card-title">Votre rendez-vous</div>
+      <div class="info-row"><span class="info-label">Date</span><span class="info-value" id="rdv-date"></span></div>
+      <div class="info-row"><span class="info-label">Heure</span><span class="info-value" id="rdv-heure"></span></div>
+      <div class="info-row"><span class="info-label">Intervention</span><span class="info-value" id="rdv-type"></span></div>
+      <div class="info-row"><span class="info-label">Véhicule</span><span class="info-value" id="rdv-vehicule"></span></div>
+      <div id="rdv-km-row" class="info-row" style="display:none"><span class="info-label">Kilométrage</span><span class="info-value" id="rdv-km"></span></div>
+      <div id="rdv-mecanicien-row" class="info-row" style="display:none"><span class="info-label">Mécanicien</span><span class="info-value" id="rdv-mecanicien"></span></div>
+      <div id="rdv-prix-row" class="info-row" style="display:none"><span class="info-label">Estimation</span><span class="info-value" id="rdv-prix"></span></div>
+      <div id="rdv-commentaire-row" class="info-row" style="display:none"><span class="info-label">Commentaire</span><span class="info-value" id="rdv-commentaire" style="white-space:pre-line"></span></div>
+    </div>
+
+    <!-- Rapport technicien -->
+    <div class="card" id="rapport-card" style="display:none">
+      <div class="card-title">Rapport d'intervention</div>
+      <div id="rapport-travaux-row" class="info-row" style="display:none"><span class="info-label">Travaux réalisés</span><span class="info-value" id="rapport-travaux" style="white-space:pre-line"></span></div>
+      <div id="rapport-recommandations-row" class="info-row" style="display:none"><span class="info-label">Recommandations</span><span class="info-value" id="rapport-recommandations" style="white-space:pre-line"></span></div>
+    </div>
+
+    <!-- Travaux supplémentaires -->
+    <div class="card" id="travaux-supp-card" style="display:none">
+      <div class="card-title">Travaux supplémentaires</div>
+      <div id="travaux-supp-list"></div>
+    </div>
+
+    <!-- Photos -->
+    <div class="card" id="photos-card" style="display:none">
+      <div class="card-title">Photos de l'intervention</div>
+      <div class="photos-grid" id="photos-grid"></div>
+    </div>
+
+    <!-- Atelier -->
+    <div class="card">
+      <div class="card-title">Votre atelier</div>
+      <div class="atelier-info" id="atelier-info"></div>
+    </div>
+
+    <!-- Cancel -->
+    <div class="card" id="cancel-card" style="display:none">
+      <button class="btn btn-danger" id="btn-cancel" onclick="annulerRdv()">Annuler mon rendez-vous</button>
+      <p style="font-size:12px;color:#888;margin-top:8px;text-align:center">L'annulation est possible jusqu'à 48h avant le rendez-vous</p>
+    </div>
+  </div>
+</div>
+
+<script>
+var TOKEN = new URLSearchParams(window.location.search).get('token');
+var DATA = null;
+
+var STATUS_STEPS = ['reserve', 'confirme', 'reception', 'en_cours', 'termine', 'restitue'];
+var STATUS_LABELS = {
+  reserve: 'Réservé', en_attente: 'En attente', confirme: 'Confirmé', reception: 'Réception',
+  en_cours: 'En cours', termine: 'Terminé', restitue: 'Restitué',
+  annule: 'Annulé', facture: 'Clôturé', paye: 'Clôturé'
+};
+
+function getProgressPercent(statut) {
+  var idx = STATUS_STEPS.indexOf(statut);
+  if (statut === 'annule') return 0;
+  if (statut === 'facture' || statut === 'paye') return 100;
+  if (idx < 0) return 0;
+  return Math.round((idx / (STATUS_STEPS.length - 1)) * 100);
+}
+
+function getProgressColor(statut) {
+  if (statut === 'annule') return '#ef4444';
+  if (statut === 'termine' || statut === 'restitue' || statut === 'facture' || statut === 'paye') return '#22c55e';
+  if (statut === 'en_cours') return '#fb923c';
+  return '#3b82f6';
+}
+
+async function loadSuivi() {
+  if (!TOKEN) {
+    showError('Token de suivi manquant. Vérifiez le lien reçu par email.');
+    return;
+  }
+  try {
+    var resp = await fetch('/api/suivi/' + encodeURIComponent(TOKEN));
+    if (!resp.ok) {
+      var err = await resp.json().catch(function() { return {}; });
+      throw new Error(err.detail || 'Rendez-vous introuvable');
+    }
+    DATA = await resp.json();
+    render(DATA);
+  } catch (e) {
+    showError(e.message || 'Erreur de chargement');
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  var el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function esc(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render(d) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+
+  // Atelier name
+  if (d.atelier && d.atelier.nom) {
+    document.getElementById('atelier-name').textContent = d.atelier.nom;
+  }
+
+  // Status badge
+  var badge = document.getElementById('statut-badge');
+  badge.textContent = STATUS_LABELS[d.statut] || d.statut;
+  badge.className = 'badge ' + d.statut;
+
+  // Progress
+  var pct = getProgressPercent(d.statut);
+  var fill = document.getElementById('progress-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = getProgressColor(d.statut);
+
+  // Steps
+  var stepsRow = document.getElementById('steps-row');
+  var currentIdx = STATUS_STEPS.indexOf(d.statut);
+  stepsRow.innerHTML = STATUS_STEPS.map(function(s, i) {
+    var cls = '';
+    if (i < currentIdx) cls = 'done';
+    else if (i === currentIdx) cls = 'active';
+    return '<div class="step ' + cls + '">' + esc(STATUS_LABELS[s]) + '</div>';
+  }).join('');
+
+  // RDV info
+  document.getElementById('rdv-date').textContent = formatDate(d.date_rdv);
+  document.getElementById('rdv-heure').textContent = d.heure_rdv || '-';
+  document.getElementById('rdv-type').textContent = d.type_intervention || '-';
+
+  var veh = d.vehicule || {};
+  document.getElementById('rdv-vehicule').textContent = [veh.marque, veh.modele, veh.plaque].filter(Boolean).join(' — ') || '-';
+
+  if (d.kilometrage) {
+    document.getElementById('rdv-km-row').style.display = '';
+    document.getElementById('rdv-km').textContent = d.kilometrage.toLocaleString('fr-FR') + ' km';
+  }
+
+  if (d.mecanicien) {
+    document.getElementById('rdv-mecanicien-row').style.display = '';
+    document.getElementById('rdv-mecanicien').textContent = d.mecanicien;
+  }
+
+  if (d.prix_estime) {
+    document.getElementById('rdv-prix-row').style.display = '';
+    document.getElementById('rdv-prix').textContent = parseFloat(d.prix_estime).toFixed(2) + ' €';
+  }
+
+  if (d.commentaire) {
+    document.getElementById('rdv-commentaire-row').style.display = '';
+    document.getElementById('rdv-commentaire').textContent = d.commentaire;
+  }
+
+  // Rapport technicien
+  if (d.rapport) {
+    var showRapport = false;
+    if (d.rapport.travaux_realises) {
+      document.getElementById('rapport-travaux-row').style.display = '';
+      document.getElementById('rapport-travaux').textContent = d.rapport.travaux_realises;
+      showRapport = true;
+    }
+    if (d.rapport.recommandations) {
+      document.getElementById('rapport-recommandations-row').style.display = '';
+      document.getElementById('rapport-recommandations').textContent = d.rapport.recommandations;
+      showRapport = true;
+    }
+    if (showRapport) {
+      document.getElementById('rapport-card').style.display = '';
+    }
+  }
+
+  // Travaux supplémentaires
+  if (d.travaux_supplementaires && d.travaux_supplementaires.length > 0) {
+    document.getElementById('travaux-supp-card').style.display = '';
+    var list = document.getElementById('travaux-supp-list');
+    list.innerHTML = d.travaux_supplementaires.map(function(ts) {
+      var urgCls = 'urgence-' + (ts.urgence || 'normal');
+      var decisionHtml = '';
+      if (ts.decision_client === 'accepte') {
+        decisionHtml = '<span class="decision-badge decision-accepte">Accepté</span>';
+      } else if (ts.decision_client === 'refuse') {
+        decisionHtml = '<span class="decision-badge decision-refuse">Refusé</span>';
+      } else {
+        decisionHtml = '<span class="decision-badge decision-attente">En attente</span>';
+      }
+      var prixHtml = ts.prix_estime ? '<span>' + parseFloat(ts.prix_estime).toFixed(2) + ' €</span>' : '';
+      return '<div class="travaux-supp-item">' +
+        '<div class="travaux-supp-desc">' + esc(ts.description || 'Travaux complémentaires') + '</div>' +
+        '<div class="travaux-supp-meta">' +
+        '<span class="urgence-badge ' + urgCls + '">' + esc((ts.urgence || 'normal').charAt(0).toUpperCase() + (ts.urgence || 'normal').slice(1)) + '</span>' +
+        prixHtml + decisionHtml +
+        '</div></div>';
+    }).join('');
+  }
+
+  // Photos
+  if (d.photos && d.photos.length > 0) {
+    document.getElementById('photos-card').style.display = '';
+    var grid = document.getElementById('photos-grid');
+    grid.innerHTML = d.photos.map(function(p) {
+      return '<div class="photo-thumb" data-url="' + esc(p.url) + '">' +
+        '<img src="' + esc(p.url) + '" alt="' + esc(p.description || 'Photo intervention') + '" loading="lazy">' +
+        '</div>';
+    }).join('');
+    grid.addEventListener('click', function(e) {
+      var thumb = e.target.closest('.photo-thumb');
+      if (thumb) openLightbox(thumb.getAttribute('data-url'));
+    });
+  }
+
+  // Atelier info
+  var at = d.atelier || {};
+  var infoEl = document.getElementById('atelier-info');
+  infoEl.innerHTML = '';
+  var strong = document.createElement('strong');
+  strong.textContent = at.nom || 'Atelier Moto';
+  infoEl.appendChild(strong);
+  if (at.adresse) { infoEl.appendChild(document.createElement('br')); infoEl.appendChild(document.createTextNode(at.adresse)); }
+  if (at.ville) { infoEl.appendChild(document.createTextNode(', ' + at.ville)); }
+  if (at.telephone) { infoEl.appendChild(document.createElement('br')); infoEl.appendChild(document.createTextNode('📞 ' + at.telephone)); }
+
+  // Cancel button
+  if (d.can_cancel) {
+    document.getElementById('cancel-card').style.display = '';
+  }
+}
+
+function formatDate(iso) {
+  if (!iso) return '-';
+  var d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function openLightbox(url) {
+  var lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.onclick = function() { lb.remove(); };
+  var img = document.createElement('img');
+  img.src = url;
+  lb.appendChild(img);
+  document.body.appendChild(lb);
+}
+
+async function annulerRdv() {
+  if (!confirm('Êtes-vous sûr de vouloir annuler votre rendez-vous ?')) return;
+  var btn = document.getElementById('btn-cancel');
+  btn.disabled = true;
+  btn.textContent = 'Annulation en cours...';
+  try {
+    var resp = await fetch('/api/suivi/' + encodeURIComponent(TOKEN) + '/annuler', { method: 'POST' });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Erreur');
+    alert('Votre rendez-vous a été annulé.');
+    loadSuivi();
+  } catch (e) {
+    alert(e.message);
+    btn.disabled = false;
+    btn.textContent = 'Annuler mon rendez-vous';
+  }
+}
+
+loadSuivi();
+</script>
+</body>
+</html>

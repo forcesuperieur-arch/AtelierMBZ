@@ -21,7 +21,7 @@ window.SuiviModule = window.SuiviModule || {
             }
         }
         var progress = estimated > 0 ? Math.round((elapsedMin / estimated) * 100) : 0;
-        if (rdv && (rdv.statut === 'termine' || rdv.statut === 'facture' || rdv.statut === 'paye')) {
+        if (rdv && (rdv.statut === 'termine' || rdv.statut === 'restitue' || rdv.statut === 'facture' || rdv.statut === 'paye')) {
             progress = 100;
         }
         var overrun = !!rdv && rdv.statut === 'en_cours' && elapsedMin > estimated;
@@ -39,7 +39,7 @@ window.SuiviModule = window.SuiviModule || {
         var s = rdv ? rdv.statut : '';
         var startMin = timeToMinutes(formatTime((rdv && rdv.heure_rdv) || ''));
         var nowMin = currentTime.getHours() * 60 + currentTime.getMinutes();
-        var started = !!(rdv && rdv.heure_debut_travail) || s === 'en_cours' || s === 'termine' || s === 'facture' || s === 'paye';
+        var started = !!(rdv && rdv.heure_debut_travail) || s === 'en_cours' || s === 'termine' || s === 'restitue' || s === 'facture' || s === 'paye';
         if (startMin >= 0 && !started) {
             if (nowMin > startMin + 10) return { level: 'delay', minutes: nowMin - startMin };
             if (nowMin >= startMin - 10 && nowMin <= startMin + 10) return { level: 'soon', minutes: Math.abs(startMin - nowMin) };

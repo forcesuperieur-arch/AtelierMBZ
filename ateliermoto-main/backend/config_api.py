@@ -5,13 +5,15 @@ Endpoints API pour la paramétrabilité complète
 - Temps interventions
 - Équipements ponts
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-import re
+from pathlib import Path
+import re, os, uuid
 
 from models import (
     get_db, Atelier, ConfigAtelier, HoraireAtelier, TempsIntervention,
@@ -23,6 +25,24 @@ from routes.auth_api import user_has_permission
 import json as _json
 
 router = APIRouter(prefix="/api/config", tags=["Configuration"])
+
+LOGO_DIR = Path(__file__).resolve().parent / "data" / "logos"
+LOGO_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_IMG_TYPES = {"png", "jpeg", "gif", "webp"}
+MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
+
+
+def _detect_image_type(data: bytes) -> str | None:
+    """Detect image type from magic bytes (replaces deprecated imghdr)."""
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return "png"
+    if data[:2] == b'\xff\xd8':
+        return "jpeg"
+    if data[:4] == b'GIF8':
+        return "gif"
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return "webp"
+    return None
 
 
 def _tenant_id(current_user: User) -> int:
@@ -667,3 +687,86 @@ def toggle_atelier_categorie_moto(
 
     db.commit()
     return {"message": "Catégorie mise à jour", "is_active": acm.is_active, "categorie_id": categorie_id}
+
+
+# ========== LOGO ATELIER ==========
+
+@router.post("/atelier/logo")
+async def upload_atelier_logo(
+    file: UploadFile = File(...),
+    atelier_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload un logo pour l'atelier (PNG, JPEG, GIF, WebP, max 2 Mo)."""
+    _ensure_permission(current_user, db, "config.manage")
+    target_atelier_id = _resolve_target_atelier_id(db, current_user, atelier_id=atelier_id)
+
+    content = await file.read()
+    if len(content) > MAX_LOGO_SIZE:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 2 Mo)")
+
+    img_type = _detect_image_type(content)
+    if img_type not in ALLOWED_IMG_TYPES:
+        raise HTTPException(status_code=400, detail="Format non supporté (PNG, JPEG, GIF, WebP)")
+
+    ext = "jpg" if img_type == "jpeg" else img_type
+    filename = f"atelier_{target_atelier_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = LOGO_DIR / filename
+    filepath.write_bytes(content)
+
+    logo_url = f"/api/config/atelier/logo/{filename}"
+
+    atelier = db.query(Atelier).filter(Atelier.id == target_atelier_id).first()
+    if atelier:
+        # Delete old logo file if exists
+        old_url = atelier.logo_url or ""
+        if old_url.startswith("/api/config/atelier/logo/"):
+            old_name = old_url.split("/")[-1]
+            old_path = LOGO_DIR / old_name
+            if old_path.exists():
+                old_path.unlink(missing_ok=True)
+        atelier.logo_url = logo_url
+        db.commit()
+
+    return {"logo_url": logo_url}
+
+
+@router.get("/atelier/logo/{filename}")
+async def serve_atelier_logo(filename: str):
+    """Sert un logo atelier depuis le stockage."""
+    safe_name = Path(filename).name
+    if safe_name != filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Nom de fichier invalide")
+    filepath = LOGO_DIR / safe_name
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Logo introuvable")
+    ext = safe_name.rsplit(".", 1)[-1].lower()
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "gif": "image/gif", "webp": "image/webp"}.get(ext, "application/octet-stream")
+    from fastapi.responses import FileResponse
+    return FileResponse(str(filepath), media_type=mime)
+
+
+# ========== INFO PUBLIQUE ATELIER ==========
+
+@router.get("/atelier-info")
+def get_atelier_info(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Renvoie les infos publiques de l'atelier courant (nom, logo, adresse, etc.)."""
+    target_atelier_id = _resolve_atelier_id_for_config(db, current_user)
+    atelier = db.query(Atelier).filter(Atelier.id == target_atelier_id).first()
+    if not atelier:
+        return {"nom": "Mon Atelier", "logo_url": None}
+    return {
+        "id": atelier.id,
+        "nom": atelier.nom,
+        "logo_url": atelier.logo_url,
+        "adresse": atelier.adresse,
+        "cp": atelier.cp,
+        "ville": atelier.ville,
+        "telephone": atelier.telephone,
+        "email": atelier.email,
+        "siret": atelier.siret,
+    }

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from models import DemandeTravauxSupp, OrdreReparation, RendezVous, User, get_db
 from routes.auth_api import user_has_permission
+from routes.rendez_vous import _ensure_booking_price, _merge_etat_payload, _record_workflow_event
 from schemas.travaux_supp import DemandeTravauxSuppCreate, DemandeTravauxSuppUpdate
 
 router = APIRouter(tags=["travaux-supplementaires"])
@@ -93,6 +94,19 @@ def creer_demande_travaux_supp(
     db.add(nouvelle_demande)
     db.commit()
     db.refresh(nouvelle_demande)
+
+    # Envoyer email de demande de signature OR complémentaire
+    try:
+        from services.notification_service import notifier_signature_or
+        notifier_signature_or(
+            db, rdv_id,
+            description_travaux=demande.description or "Travaux complémentaires",
+            urgence=demande.urgence or "normal",
+        )
+    except Exception:
+        import logging
+        logging.getLogger("ateliermoto.api").exception("Erreur envoi notification signature_or rdv_id=%s", rdv_id)
+
     return {"message": "Demande creee", "id": nouvelle_demande.id}
 
 
@@ -295,7 +309,6 @@ def reception_vehicule(
     if not (
         user_has_permission(current_user, db, "or.manage")
         or user_has_permission(current_user, db, "workflow.manage")
-        or user_has_permission(current_user, db, "rdv.edit")
     ):
         raise HTTPException(status_code=403, detail="Permission or.manage ou workflow.manage requise")
 
@@ -306,8 +319,8 @@ def reception_vehicule(
     ).first()
     if not rdv:
         raise HTTPException(status_code=404, detail="Rendez-vous non trouve")
-    if rdv.statut not in {"reserve", "confirme", "reception"}:
-        raise HTTPException(status_code=400, detail="Statut incompatible avec la reception du vehicule")
+    if rdv.statut not in {"confirme", "reception"}:
+        raise HTTPException(status_code=400, detail="Le RDV doit etre confirme avant la reception du vehicule")
 
     year = rdv.date_rdv.year if rdv.date_rdv else datetime.now().year
     numero_or = f"OR-{year}-{str(rdv_id).zfill(3)}"
@@ -323,12 +336,29 @@ def reception_vehicule(
         )
         db.add(or_initial)
 
+    etat_payload = _ensure_booking_price(_merge_etat_payload(rdv.etat_vehicule), rdv)
+    rdv.etat_vehicule = json.dumps(etat_payload)
     or_initial.kilometrage = rdv.kilometrage
     or_initial.etat_vehicule = rdv.etat_vehicule
     or_initial.travaux = rdv.commentaire
     if not or_initial.signature_client:
         raise HTTPException(status_code=400, detail="Signature client obligatoire avant validation de la reception")
 
+    previous_status = rdv.statut
     rdv.statut = "reception"
+    _record_workflow_event(
+        rdv,
+        current_user,
+        action="reception",
+        from_status=previous_status,
+        to_status="reception",
+        note="Reception vehicule validee avec OR signe",
+    )
     db.commit()
+    try:
+        from services.notification_service import notifier_changement_statut
+        notifier_changement_statut(db, rdv_id, "reception")
+    except Exception:
+        import logging
+        logging.getLogger("ateliermoto.api").exception("Erreur envoi notification reception rdv_id=%s", rdv_id)
     return {"message": "Reception validee et OR cree", "id": rdv_id, "statut": "reception"}

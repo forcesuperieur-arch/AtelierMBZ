@@ -1,16 +1,11 @@
 # Caddyfile — Atelier Moto Pro
-# Reverse proxy vers le backend FastAPI
-#
-# En production, remplacer les hôtes localhost par votre domaine.
+# Preprod simple et robuste : exposition HTTP sur le port 80.
+
 {
-	auto_https disable_redirects
+	auto_https off
 }
 
-http://localhost, http://127.0.0.1, :80 {
-	reverse_proxy backend:8000
-}
-
-https://localhost, https://127.0.0.1 {
-	tls internal
+:80 {
+	encode zstd gzip
 	reverse_proxy backend:8000
 }

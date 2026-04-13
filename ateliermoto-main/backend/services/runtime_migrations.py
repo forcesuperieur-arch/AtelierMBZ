@@ -6,6 +6,7 @@ proper Alembic revisions.
 """
 
 import json
+import secrets
 
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
@@ -410,4 +411,29 @@ __all__ = [
     "migrate_role_permissions",
     "migrate_user_atelier_roles",
     "migrate_vehicule_client_id",
+    "migrate_token_suivi_rdv",
 ]
+
+
+def migrate_token_suivi_rdv(db: Session):
+    """Migration: ajouter colonne token_suivi sur rendez_vous et générer les tokens manquants."""
+    try:
+        inspector = inspect(db.bind)
+        columns = [c["name"] for c in inspector.get_columns("rendez_vous")]
+        if "token_suivi" not in columns:
+            db.execute(text("ALTER TABLE rendez_vous ADD COLUMN token_suivi VARCHAR(64) UNIQUE"))
+            db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_rdv_token_suivi ON rendez_vous(token_suivi)"))
+            db.commit()
+            print("[MIGRATION] Colonne token_suivi ajoutee a rendez_vous")
+
+        # Backfill tokens for existing RDVs without one
+        rows = db.execute(text("SELECT id FROM rendez_vous WHERE token_suivi IS NULL")).fetchall()
+        if rows:
+            for row in rows:
+                token = secrets.token_urlsafe(32)
+                db.execute(text("UPDATE rendez_vous SET token_suivi = :token WHERE id = :id"), {"token": token, "id": row[0]})
+            db.commit()
+            print(f"[MIGRATION] Tokens suivi generees pour {len(rows)} RDV(s)")
+    except Exception as e:
+        db.rollback()
+        print(f"[MIGRATION] token_suivi_rdv: {e}")

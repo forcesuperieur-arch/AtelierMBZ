@@ -1,19 +1,19 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONUNBUFFERED=1 \
+	PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-# Installation des dépendances
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Créer le dossier pour les fichiers statiques
-RUN mkdir -p /app/static
+COPY backend/ /app/
+COPY frontend/ /app/static/
 
-# Copie du code backend
-COPY . .
+RUN mkdir -p /app/backups /app/signatures /app/data/photos /app/data/logos /app/run/secrets
 
-# Exposition du port
 EXPOSE 8000
 
-# Commande de démarrage
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]

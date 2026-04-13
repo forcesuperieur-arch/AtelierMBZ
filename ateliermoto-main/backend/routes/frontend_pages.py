@@ -23,6 +23,7 @@ ALLOWED_PAGES = {
     "clients",
     "motos",
     "login",
+    "suivi",
 }
 
 LEGACY_PAGE_CANDIDATES = {
@@ -39,6 +40,7 @@ LEGACY_PAGE_CANDIDATES = {
     "clients": ["clients.html", "index.html"],
     "motos": ["motos.html", "index.html"],
     "login": ["login.html", "index.html"],
+    "suivi": ["suivi.html"],
 }
 
 

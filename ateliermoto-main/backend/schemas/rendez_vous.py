@@ -29,6 +29,8 @@ class RendezVousCreate(BaseModel):
     heure_rdv: time
     type_intervention: str
     commentaire: Optional[str] = None
+    pont_id: Optional[int] = None
+    mecanicien_id: Optional[int] = None
 
 
 class RendezVousUpdate(BaseModel):
