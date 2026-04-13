@@ -1,3 +1,8 @@
+# DEPRECATED: forfaits_mo.py
+# Les routes de gestion des forfaits MO sont maintenant DEPRECIES.
+# Tout tarifaire doit passer par /api/config/prestations.
+# Toggles par categorie moto: is_active dans GrilleTarifaire.
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException

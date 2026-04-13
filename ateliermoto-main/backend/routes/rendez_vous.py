@@ -15,6 +15,7 @@ from schemas.rendez_vous import (
     RendezVousUpdate,
 )
 from services.pdf_service import generate_facture_pdf, generate_ordre_reparation_pdf
+from services.pricing_rules import PricingConfigError, resolve_prestation_pricing
 
 logger = logging.getLogger("ateliermoto.api")
 router = APIRouter(tags=["rendez-vous"])
@@ -564,8 +565,23 @@ def create_rendez_vous(
         if not vehicule_db.client_id:
             vehicule_db.client_id = client_db.id
     
-    # Récupérer le prix estimé depuis Prestation
+    # Source de vérité tarifaire: configuration des prestations
     prestation = db.query(Prestation).filter(Prestation.nom == rdv.type_intervention, Prestation.atelier_id == atelier_id).first()
+    if not prestation:
+        raise HTTPException(
+            status_code=400,
+            detail="Prestation introuvable: configurez cette intervention dans le catalogue avant de creer le RDV",
+        )
+    try:
+        pricing = resolve_prestation_pricing(
+            db,
+            atelier_id=atelier_id,
+            prestation=prestation,
+            vehicule=vehicule_db,
+            strict=True,
+        )
+    except PricingConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     # Créer le rendez-vous
     new_rdv = RendezVous(
@@ -575,8 +591,8 @@ def create_rendez_vous(
         heure_rdv=rdv.heure_rdv,
         type_intervention=rdv.type_intervention,
         commentaire=rdv.commentaire,
-        prix_estime=prestation.prix_base_ttc if prestation else None,
-        temps_estime=prestation.temps_estime_minutes if prestation else None,
+        prix_estime=pricing.prix_ttc,
+        temps_estime=pricing.temps_minutes,
         statut="en_attente",
         atelier_id=atelier_id
     )

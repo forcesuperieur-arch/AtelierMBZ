@@ -10,7 +10,6 @@ from models import (
     Atelier,
     CategorieMoto,
     ConfigAtelier,
-    ForfaitMO,
     GrilleTarifaire,
     PieceDetachee,
     Prestation,
@@ -18,6 +17,12 @@ from models import (
     get_db,
 )
 from routes.public_booking import get_delais_intervention_handler
+from services.pricing_rules import (
+    PricingConfigError,
+    mode_to_legacy,
+    normalize_mode_tarification,
+    normalize_taux_profile,
+)
 
 router = APIRouter(tags=["prestations-tarifs"])
 
@@ -105,10 +110,29 @@ class GrilleEntry(BaseModel):
     prix_ttc: float
     prix_ht: float
     temps_minutes: int
+    is_active: int = 1
 
 
 class GrilleBulkUpdate(BaseModel):
     entries: List[GrilleEntry]
+
+
+def _validate_and_normalize_prestation_payload(payload: dict, *, partial: bool = False) -> dict:
+    if partial and "type_tarif" not in payload:
+        if "taux_horaire_applique" in payload:
+            payload["taux_horaire_applique"] = normalize_taux_profile(payload.get("taux_horaire_applique"))
+        return payload
+
+    mode = normalize_mode_tarification(payload.get("type_tarif"))
+    payload["type_tarif"] = mode_to_legacy(mode)
+
+    if mode == "taux_horaire":
+        payload["taux_horaire_applique"] = normalize_taux_profile(payload.get("taux_horaire_applique"))
+    elif mode == "sur_devis":
+        payload["prix_base_ht"] = 0.0
+        payload["prix_base_ttc"] = 0.0
+
+    return payload
 
 
 @router.get("/api/interventions")
@@ -142,7 +166,6 @@ def get_config_prestations(
     grilles = db.query(GrilleTarifaire, CategorieMoto.nom).outerjoin(
         CategorieMoto, GrilleTarifaire.categorie_moto_id == CategorieMoto.id,
     ).filter(
-        GrilleTarifaire.is_active == 1,
         GrilleTarifaire.categorie_moto_id.isnot(None),
         GrilleTarifaire.atelier_id == target_atelier_id,
     ).all()
@@ -155,6 +178,7 @@ def get_config_prestations(
             "prix_ht": grille.prix_ht,
             "prix_ttc": grille.prix_ttc,
             "temps_minutes": grille.temps_minutes,
+            "is_active": int(grille.is_active or 0),
         }
 
     return [
@@ -169,6 +193,7 @@ def get_config_prestations(
             "prix_base_ttc": prestation.prix_base_ttc,
             "temps_estime_minutes": prestation.temps_estime_minutes,
             "type_tarif": prestation.type_tarif,
+            "mode_tarification": normalize_mode_tarification(prestation.type_tarif),
             "taux_horaire_applique": prestation.taux_horaire_applique,
             "is_active": prestation.is_active,
             "is_forfait": prestation.is_forfait,
@@ -193,7 +218,11 @@ def create_config_prestation(
     if existing:
         raise HTTPException(status_code=400, detail="Ce code prestation existe déjà")
 
-    new_presta = Prestation(**data.model_dump(), atelier_id=target_atelier_id)
+    try:
+        payload = _validate_and_normalize_prestation_payload(data.model_dump())
+    except PricingConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    new_presta = Prestation(**payload, atelier_id=target_atelier_id)
     db.add(new_presta)
     db.commit()
     db.refresh(new_presta)
@@ -217,7 +246,11 @@ def update_config_prestation(
     if not prestation:
         raise HTTPException(status_code=404, detail="Prestation non trouvée")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    try:
+        updates = _validate_and_normalize_prestation_payload(data.model_dump(exclude_unset=True), partial=True)
+    except PricingConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    for field, value in updates.items():
         setattr(prestation, field, value)
     db.commit()
     return {"message": "Prestation modifiée"}
@@ -266,13 +299,13 @@ def update_grille_prestation(
             GrilleTarifaire.prestation_id == prestation_id,
             GrilleTarifaire.categorie_moto_id == entry.categorie_moto_id,
             GrilleTarifaire.atelier_id == target_atelier_id,
-            GrilleTarifaire.is_active == 1,
         ).first()
 
         if existing:
             existing.prix_ttc = entry.prix_ttc
             existing.prix_ht = entry.prix_ht
             existing.temps_minutes = entry.temps_minutes
+            existing.is_active = 1 if int(entry.is_active or 0) == 1 else 0
         else:
             db.add(
                 GrilleTarifaire(
@@ -283,7 +316,7 @@ def update_grille_prestation(
                     prix_ttc=entry.prix_ttc,
                     temps_minutes=entry.temps_minutes,
                     delai_jours=prestation.delai_intervention_jours or 1,
-                    is_active=1,
+                    is_active=1 if int(entry.is_active or 0) == 1 else 0,
                 )
             )
 
@@ -355,6 +388,7 @@ def get_prestations(
             "temps_formate": f"{prestation.temps_estime_minutes // 60}h{prestation.temps_estime_minutes % 60:02d}",
             "delai_intervention_jours": prestation.delai_intervention_jours,
             "type_tarif": prestation.type_tarif,
+            "mode_tarification": normalize_mode_tarification(prestation.type_tarif),
             "taux_horaire_applique": prestation.taux_horaire_applique,
             "type_vehicule": prestation.type_vehicule,
             "cylindree_min": prestation.cylindree_min,
@@ -400,6 +434,7 @@ def get_prestation(
         "temps_estime_minutes": prestation.temps_estime_minutes,
         "delai_intervention_jours": prestation.delai_intervention_jours,
         "type_tarif": prestation.type_tarif,
+        "mode_tarification": normalize_mode_tarification(prestation.type_tarif),
         "taux_horaire_applique": prestation.taux_horaire_applique,
         "type_vehicule": prestation.type_vehicule,
         "cylindree_min": prestation.cylindree_min,
@@ -440,7 +475,10 @@ def create_prestation(
     if existing:
         raise HTTPException(status_code=400, detail="Ce code prestation existe déjà")
 
-    payload = prestation_data.model_dump()
+    try:
+        payload = _validate_and_normalize_prestation_payload(prestation_data.model_dump())
+    except PricingConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if hasattr(Prestation, "atelier_id"):
         payload.setdefault("atelier_id", int(getattr(current_user, "atelier_id", None) or 1))
 
@@ -468,7 +506,11 @@ def update_prestation(
         if existing:
             raise HTTPException(status_code=400, detail="Ce code prestation existe déjà")
 
-    for field, value in prestation_data.model_dump(exclude_unset=True).items():
+    try:
+        updates = _validate_and_normalize_prestation_payload(prestation_data.model_dump(exclude_unset=True), partial=True)
+    except PricingConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    for field, value in updates.items():
         setattr(prestation, field, value)
 
     db.commit()
@@ -654,34 +696,7 @@ def calculer_tarif_detaille(
     }
 
 
-@router.get("/api/tarifs/forfaits-mo")
-def get_forfaits_mo_actifs(
-    categorie: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    """Récupère les forfaits MO actifs (public)."""
-    query = db.query(ForfaitMO).filter(ForfaitMO.is_active == 1)
-    if categorie:
-        query = query.filter(ForfaitMO.categorie == categorie)
-
-    forfaits = query.order_by(ForfaitMO.categorie, ForfaitMO.nom).all()
-    return [
-        {
-            "id": forfait.id,
-            "code": forfait.code,
-            "nom": forfait.nom,
-            "description": forfait.description,
-            "categorie": forfait.categorie,
-            "temps_base_minutes": forfait.temps_base_minutes,
-            "prix_forfait_mo_ttc": forfait.prix_forfait_mo_ttc,
-            "prix_affichage": forfait.prix_promo_mo_ttc if forfait.is_promo and forfait.prix_promo_mo_ttc else forfait.prix_forfait_mo_ttc,
-            "inclut_pieces": forfait.inclut_pieces,
-            "type_vehicule": forfait.type_vehicule,
-            "is_promo": forfait.is_promo,
-            "prix_promo_mo_ttc": forfait.prix_promo_mo_ttc,
-        }
-        for forfait in forfaits
-    ]
+# Route forfaits-mo DEPRECATED: tout doit passer par Prestation/GrilleTarifaire
 
 
 @router.get("/api/tarifs/delais")
@@ -698,24 +713,15 @@ def get_synthese_tarifs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Synthèse complète des tarifs et forfaits."""
+    """Synthèse complète des tarifs (prestations uniquement, forfaits_mo deprecé)."""
     total_prestations = db.query(Prestation).filter(Prestation.is_active == 1).count()
     prestations_par_categorie = db.query(
         Prestation.categorie,
         func.count(Prestation.id).label("count"),
     ).filter(Prestation.is_active == 1).group_by(Prestation.categorie).all()
 
-    total_forfaits = db.query(ForfaitMO).filter(ForfaitMO.is_active == 1).count()
-    forfaits_promo = db.query(ForfaitMO).filter(
-        ForfaitMO.is_active == 1,
-        ForfaitMO.is_promo == 1,
-    ).count()
-
     prix_moyen_prestation = db.query(func.avg(Prestation.prix_base_ttc)).filter(
         Prestation.is_active == 1
-    ).scalar() or 0
-    prix_moyen_forfait = db.query(func.avg(ForfaitMO.prix_forfait_mo_ttc)).filter(
-        ForfaitMO.is_active == 1
     ).scalar() or 0
     config = db.query(ConfigAtelier).first()
 
@@ -724,11 +730,6 @@ def get_synthese_tarifs(
             "total_actives": total_prestations,
             "par_categorie": [{"categorie": categorie, "count": count} for categorie, count in prestations_par_categorie],
             "prix_moyen_ttc": round(float(prix_moyen_prestation), 2),
-        },
-        "forfaits_mo": {
-            "total_actifs": total_forfaits,
-            "en_promotion": forfaits_promo,
-            "prix_moyen_ttc": round(float(prix_moyen_forfait), 2),
         },
         "taux_horaires": {
             "standard": config.taux_horaire_mo_standard if config else 65.0,

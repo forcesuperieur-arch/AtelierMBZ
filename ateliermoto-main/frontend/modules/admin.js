@@ -852,13 +852,15 @@ window.AdminModule = window.AdminModule || {
         var grille = presta.grille || {};
         var tvaMo = parseFloat(document.getElementById('cfg-tva-mo') ? document.getElementById('cfg-tva-mo').value : '20') || 20;
 
-        var html = '<p style="font-size:13px;color:#9ca3af;margin-bottom:12px">Prix TTC et temps par type de moto.</p>' +
-            '<table><thead><tr><th>Type moto</th><th>Prix TTC (EUR)</th><th>Temps (min)</th></tr></thead><tbody>';
+        var html = '<p style="font-size:13px;color:#9ca3af;margin-bottom:12px">Active/desactive chaque type de moto, puis ajuste le prix/temps.</p>' +
+            '<table><thead><tr><th>Type moto</th><th>Actif</th><th>Prix TTC (EUR)</th><th>Temps (min)</th></tr></thead><tbody>';
 
         (APP.categories || []).forEach(function(cat) {
             var entry = grille[cat.nom] || {};
+            var active = entry.is_active !== 0;
             html += '<tr>' +
                 '<td><b>' + escapeHtml(cat.nom) + '</b></td>' +
+                '<td><input type="checkbox" id="agr-active-' + cat.id + '" ' + (active ? 'checked' : '') + '></td>' +
                 '<td><input type="number" step="0.01" class="form-input" style="width:120px" id="agr-ttc-' + cat.id + '" value="' + Number(entry.prix_ttc || presta.prix_base_ttc || 0).toFixed(2) + '"></td>' +
                 '<td><input type="number" class="form-input" style="width:95px" id="agr-min-' + cat.id + '" value="' + (entry.temps_minutes || presta.temps_estime_minutes || 30) + '"></td>' +
                 '</tr>';
@@ -873,11 +875,13 @@ window.AdminModule = window.AdminModule || {
         (APP.categories || []).forEach(function(cat) {
             var ttc = parseFloat((document.getElementById('agr-ttc-' + cat.id) || {}).value || '0');
             var mins = parseInt((document.getElementById('agr-min-' + cat.id) || {}).value || '30', 10);
+            var active = !!((document.getElementById('agr-active-' + cat.id) || {}).checked);
             entries.push({
                 categorie_moto_id: cat.id,
                 prix_ttc: ttc,
                 prix_ht: parseFloat((ttc / (1 + (tvaMo || 20) / 100)).toFixed(2)),
-                temps_minutes: mins
+                temps_minutes: mins,
+                is_active: active ? 1 : 0
             });
         });
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';

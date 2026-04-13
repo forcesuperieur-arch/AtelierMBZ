@@ -47,7 +47,7 @@ async def lifespan(_: FastAPI):
         db.close()
 
 
-app = FastAPI(title="Atelier Moto API Pro", version="2.0.0", lifespan=lifespan)
+app = FastAPI(title="Atelier Moto API Pro", version="2.0.1", lifespan=lifespan)
 mount_static_files(app)
 app.include_router(frontend_pages_router)
 # Les routes publiques doivent être montées tôt pour éviter qu'un chemin
@@ -144,8 +144,8 @@ app.include_router(rappels_router)
 # ========== GESTION DES PIÈCES DÉTACHÉES ==========
 from routes.inventory import router as inventory_router
 app.include_router(inventory_router)
-from routes.forfaits_mo import router as forfaits_mo_router
-app.include_router(forfaits_mo_router)
+# DEPRECATED: from routes.forfaits_mo import router as forfaits_mo_router
+# DEPRECATED: app.include_router(forfaits_mo_router)
 from routes.moto_base import router as moto_base_router
 app.include_router(moto_base_router)
 from routes.travaux_supp import router as travaux_supp_router

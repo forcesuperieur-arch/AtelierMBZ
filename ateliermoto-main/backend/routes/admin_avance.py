@@ -373,6 +373,8 @@ def create_backup(
                 "-U", user_pass[0],
                 "-d", host_port_db[1] if len(host_port_db) > 1 else "atelier_moto",
                 "-f", str(filepath),
+                "--clean",
+                "--if-exists",
                 "--no-owner",
                 "--no-acl",
             ],
@@ -472,13 +474,39 @@ async def restore_backup(
         env = os.environ.copy()
         env["PGPASSWORD"] = user_pass[1] if len(user_pass) > 1 else ""
 
+        db_name = host_port_db[1] if len(host_port_db) > 1 else "atelier_moto"
+
+        # Nettoie le schema public avant import pour eviter les collisions
+        # sur les objets existants quand un dump sans --clean est fourni.
+        reset_result = subprocess.run(
+            [
+                "psql",
+                "-h", host_port[0],
+                "-p", host_port[1] if len(host_port) > 1 else "5432",
+                "-U", user_pass[0],
+                "-d", db_name,
+                "-v", "ON_ERROR_STOP=1",
+                "-c", "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if reset_result.returncode != 0:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erreur preparation restauration: {reset_result.stderr[:500]}",
+            )
+
         result = subprocess.run(
             [
                 "psql",
                 "-h", host_port[0],
                 "-p", host_port[1] if len(host_port) > 1 else "5432",
                 "-U", user_pass[0],
-                "-d", host_port_db[1] if len(host_port_db) > 1 else "atelier_moto",
+                "-d", db_name,
+                "-v", "ON_ERROR_STOP=1",
                 "-f", str(tmp_path),
             ],
             env=env,
@@ -487,7 +515,7 @@ async def restore_backup(
             timeout=300,
         )
 
-        if result.returncode != 0 and "ERROR" in result.stderr:
+        if result.returncode != 0:
             raise HTTPException(status_code=500, detail=f"Erreur restauration: {result.stderr[:500]}")
 
     except subprocess.TimeoutExpired:

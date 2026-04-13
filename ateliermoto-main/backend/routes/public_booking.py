@@ -23,6 +23,7 @@ from models import (
     Vehicule,
     get_db,
 )
+from services.pricing_rules import PricingConfigError, normalize_mode_tarification, resolve_prestation_pricing
 
 logger = logging.getLogger("ateliermoto.api")
 router = APIRouter(tags=["public-booking"])
@@ -257,6 +258,7 @@ def get_prestations_public_handler(atelier_slug: Optional[str], db: Session):
             "description": prestation.description,
             "categorie": prestation.categorie,
             "type_tarif": prestation.type_tarif,
+            "mode_tarification": normalize_mode_tarification(prestation.type_tarif),
             "prix_base_ttc": prestation.prix_promo_ttc if prestation.is_promo and prestation.prix_promo_ttc else prestation.prix_base_ttc,
             "prix_base_ht": prestation.prix_base_ht,
             "temps_estime_minutes": prestation.temps_estime_minutes,
@@ -405,8 +407,30 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         Prestation.id.in_(rdv_data.prestations),
         Prestation.atelier_id == atelier_id,
     ).all()
+    if len(prestations) != len(set(rdv_data.prestations or [])):
+        raise HTTPException(status_code=400, detail="Une ou plusieurs prestations sont introuvables pour cet atelier")
     types_intervention = ", ".join([prestation.nom for prestation in prestations]) or "Intervention à définir"
-    temps_total = sum(prestation.temps_estime_minutes or 60 for prestation in prestations) or 60
+    temps_total = 0
+    prix_estime_total = 0.0
+    has_sur_devis = False
+    for prestation in prestations:
+        try:
+            pricing = resolve_prestation_pricing(
+                db,
+                atelier_id=atelier_id,
+                prestation=prestation,
+                vehicule=vehicule,
+                strict=True,
+            )
+        except PricingConfigError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        temps_total += int(pricing.temps_minutes or 0)
+        if pricing.mode_tarification == "sur_devis":
+            has_sur_devis = True
+        elif pricing.prix_ttc is not None:
+            prix_estime_total += float(pricing.prix_ttc)
+    if temps_total <= 0:
+        raise HTTPException(status_code=400, detail="Configuration temps manquante pour les prestations selectionnees")
 
     start_min = date_heure.hour * 60 + date_heure.minute
     slot_validation_error = _validate_slot_boundaries(horaire, start_min, temps_total)
@@ -463,7 +487,7 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         date_rdv=date_heure.date(),
         heure_rdv=date_heure.time(),
         type_intervention=types_intervention,
-        prix_estime=rdv_data.montant_estime,
+        prix_estime=None if has_sur_devis else round(prix_estime_total, 2),
         temps_estime=temps_total,
         statut="reserve",
         commentaire=rdv_data.commentaires,

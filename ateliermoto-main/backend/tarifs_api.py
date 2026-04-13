@@ -1,16 +1,19 @@
 # tarifs_api.py - Endpoints pour la gestion des tarifs et temps
+# NOTE: Les vieilles routes GET/POST/PUT/DELETE sur GrilleTarifs sont DEPRECATED.
+# Tout devrait passer par /api/config/prestations (routes/prestations_tarifs.py).
+# Cette file gère seulement le calcul de tarifs et creneaux.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
 from typing import Optional, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 
 from models import (
-    get_db, GrilleTarifs, Vehicule, CategorieMoto, 
-    ModeleMoto, Absence, Pont, RendezVous
+    get_db, Vehicule, CategorieMoto,
+    Absence, Pont, RendezVous, Prestation
 )
 from auth import get_current_user
+from services.pricing_rules import PricingConfigError, resolve_prestation_pricing
 
 router = APIRouter(prefix="/api", tags=["tarifs"])
 
@@ -19,114 +22,37 @@ def _tenant_id(current_user) -> int:
     return int(getattr(current_user, "atelier_id", None) or 1)
 
 
-def _grille_tarifs_query(db: Session, atelier_id: int):
-    query = db.query(GrilleTarifs)
-    if hasattr(GrilleTarifs, "atelier_id"):
-        query = query.filter(GrilleTarifs.atelier_id == atelier_id)
-    return query
-
-# Modèles Pydantic
-class GrilleTarifCreate(BaseModel):
-    categorie_moto_id: int
-    type_intervention: str
-    nom: str
-    description: Optional[str] = None
-    temps_minutes: int
-    prix_mo_ht: float
-    prix_mo_ttc: float
-    pieces_incluses: bool = False
-
 class CalculDevisRequest(BaseModel):
     vehicule_id: int
     prestations: List[dict]
 
-@router.get("/tarifs")
-def get_tarifs(
-    categorie_id: Optional[int] = None,
-    type_intervention: Optional[str] = None,
-    actif: Optional[bool] = True,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """Récupère la grille des tarifs"""
-    atelier_id = _tenant_id(current_user)
-    query = _grille_tarifs_query(db, atelier_id).join(CategorieMoto)
-    
-    if categorie_id:
-        query = query.filter(GrilleTarifs.categorie_moto_id == categorie_id)
-    if type_intervention:
-        query = query.filter(GrilleTarifs.type_intervention == type_intervention)
-    if actif is not None:
-        query = query.filter(GrilleTarifs.actif == actif)
-    
-    tarifs = query.all()
-    
-    return [{
-        "id": t.id,
-        "categorie_moto_id": t.categorie_moto_id,
-        "categorie_nom": t.categorie.nom if t.categorie else None,
-        "type_intervention": t.type_intervention,
-        "nom": t.nom,
-        "description": t.description,
-        "temps_minutes": t.temps_minutes,
-        "temps_formate": f"{t.temps_minutes // 60}h{t.temps_minutes % 60:02d}",
-        "prix_mo_ht": t.prix_mo_ht,
-        "prix_mo_ttc": t.prix_mo_ttc,
-        "pieces_incluses": t.pieces_incluses,
-        "actif": t.actif
-    } for t in tarifs]
 
-@router.post("/tarifs")
-def create_tarif(
-    tarif: GrilleTarifCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """Crée un nouveau tarif"""
-    atelier_id = _tenant_id(current_user)
-    payload = tarif.model_dump()
-    if hasattr(GrilleTarifs, "atelier_id"):
-        payload["atelier_id"] = atelier_id
-    db_tarif = GrilleTarifs(**payload)
-    db.add(db_tarif)
-    db.commit()
-    db.refresh(db_tarif)
-    return {"message": "Tarif créé", "id": db_tarif.id}
+def _resolve_prestation_from_payload(db: Session, atelier_id: int, payload: dict) -> Prestation | None:
+    prestation_id = payload.get("prestation_id")
+    if prestation_id is not None:
+        return db.query(Prestation).filter(
+            Prestation.id == prestation_id,
+            Prestation.atelier_id == atelier_id,
+            Prestation.is_active == 1,
+        ).first()
 
-@router.put("/tarifs/{tarif_id}")
-def update_tarif(
-    tarif_id: int,
-    tarif: GrilleTarifCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """Met à jour un tarif"""
-    atelier_id = _tenant_id(current_user)
-    db_tarif = _grille_tarifs_query(db, atelier_id).filter(GrilleTarifs.id == tarif_id).first()
-    if not db_tarif:
-        raise HTTPException(status_code=404, detail="Tarif non trouvé")
-    
-    for key, value in tarif.model_dump().items():
-        setattr(db_tarif, key, value)
-    
-    db.commit()
-    return {"message": "Tarif mis à jour"}
+    if payload.get("code"):
+        return db.query(Prestation).filter(
+            Prestation.code == str(payload.get("code")),
+            Prestation.atelier_id == atelier_id,
+            Prestation.is_active == 1,
+        ).first()
 
-@router.delete("/tarifs/{tarif_id}")
-def delete_tarif(
-    tarif_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """Désactive un tarif (soft delete)"""
-    atelier_id = _tenant_id(current_user)
-    db_tarif = _grille_tarifs_query(db, atelier_id).filter(GrilleTarifs.id == tarif_id).first()
-    if not db_tarif:
-        raise HTTPException(status_code=404, detail="Tarif non trouvé")
-    
-    db_tarif.actif = 0
-    db.commit()
-    return {"message": "Tarif désactivé"}
+    target_name = payload.get("nom") or payload.get("type_intervention")
+    if target_name:
+        return db.query(Prestation).filter(
+            Prestation.nom == str(target_name),
+            Prestation.atelier_id == atelier_id,
+            Prestation.is_active == 1,
+        ).first()
+
+    return None
+
 
 @router.post("/tarifs/calculer")
 def calculer_devis(
@@ -134,7 +60,12 @@ def calculer_devis(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Calcule le temps et le prix total pour un ensemble de prestations"""
+    """Calcule le temps et le prix total pour un ensemble de prestations.
+    
+    Utilise le moteur centralisé de tarification (resolve_prestation_pricing)
+    qui respecte les toggles par catégorie de véhicule et bloque les prestations
+    désactivées.
+    """
     
     # Récupérer le véhicule et sa catégorie
     atelier_id = _tenant_id(current_user)
@@ -142,77 +73,77 @@ def calculer_devis(
     if not vehicule:
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")
     
-    # Déterminer la catégorie et la cylindrée
-    categorie_id = vehicule.categorie_id
-    cylindree = vehicule.cylindree or 125
-    
-    if not categorie_id and vehicule.modele_id:
-        modele = db.query(ModeleMoto).filter(ModeleMoto.id == vehicule.modele_id).first()
-        if modele:
-            categorie_id = modele.categorie_id
-    
     # Calculer pour chaque prestation
     prestations_detaillees = []
     temps_total = 0
     prix_mo_total_ht = 0
     prix_mo_total_ttc = 0
+    has_sur_devis = False
+    missing = []
     
     for prestation in request.prestations:
-        type_intervention = prestation.get("type_intervention")
-        
-        # Chercher le tarif adapté
-        tarif_query = _grille_tarifs_query(db, atelier_id).filter(
-            GrilleTarifs.categorie_moto_id == categorie_id,
-            GrilleTarifs.type_intervention == type_intervention,
-            GrilleTarifs.actif == True
-        )
-        tarif = tarif_query.first()
-        
-        if tarif:
-            prestations_detaillees.append({
-                "type_intervention": type_intervention,
-                "nom": tarif.nom,
-                "description": tarif.description,
-                "temps_minutes": tarif.temps_minutes,
-                "temps_formate": f"{tarif.temps_minutes // 60}h{tarif.temps_minutes % 60:02d}",
-                "prix_mo_ht": tarif.prix_mo_ht,
-                "prix_mo_ttc": tarif.prix_mo_ttc
-            })
-            temps_total += tarif.temps_minutes
-            prix_mo_total_ht += tarif.prix_mo_ht
-            prix_mo_total_ttc += tarif.prix_mo_ttc
+        prestation_cfg = _resolve_prestation_from_payload(db, atelier_id, prestation)
+        if not prestation_cfg:
+            missing.append(
+                prestation.get("type_intervention")
+                or prestation.get("nom")
+                or prestation.get("code")
+                or str(prestation.get("prestation_id"))
+            )
+            continue
+        try:
+            pricing = resolve_prestation_pricing(
+                db,
+                atelier_id=atelier_id,
+                prestation=prestation_cfg,
+                vehicule=vehicule,
+                strict=True,
+            )
+        except PricingConfigError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        prestations_detaillees.append({
+            "type_intervention": prestation_cfg.code,
+            "nom": prestation_cfg.nom,
+            "description": prestation_cfg.description,
+            "mode_tarification": pricing.mode_tarification,
+            "temps_minutes": pricing.temps_minutes,
+            "temps_formate": f"{pricing.temps_minutes // 60}h{pricing.temps_minutes % 60:02d}",
+            "prix_mo_ht": pricing.prix_ht,
+            "prix_mo_ttc": pricing.prix_ttc,
+        })
+        temps_total += pricing.temps_minutes
+        if pricing.mode_tarification == "sur_devis":
+            has_sur_devis = True
         else:
-            # Tarif par défaut
-            prestations_detaillees.append({
-                "type_intervention": type_intervention,
-                "nom": type_intervention,
-                "description": "Tarif standard",
-                "temps_minutes": 60,
-                "temps_formate": "1h00",
-                "prix_mo_ht": 60.0,
-                "prix_mo_ttc": 72.0
-            })
-            temps_total += 60
-            prix_mo_total_ht += 60.0
-            prix_mo_total_ttc += 72.0
+            prix_mo_total_ht += float(pricing.prix_ht or 0.0)
+            prix_mo_total_ttc += float(pricing.prix_ttc or 0.0)
+
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Prestations non configurees: {', '.join([str(m) for m in missing if m])}",
+        )
     
     return {
         "vehicule_id": request.vehicule_id,
         "vehicule": {
             "marque": vehicule.marque,
             "modele": vehicule.modele,
-            "cylindree": cylindree
+            "cylindree": vehicule.cylindree
         },
         "prestations": prestations_detaillees,
         "temps_total_minutes": temps_total,
         "temps_total_heures": round(temps_total / 60, 2),
         "temps_total_formate": f"{temps_total // 60}h{temps_total % 60:02d}",
         "prix_mo_total_ht": round(prix_mo_total_ht, 2),
-        "prix_mo_total_ttc": round(prix_mo_total_ttc, 2),
+        "prix_mo_total_ttc": None if has_sur_devis else round(prix_mo_total_ttc, 2),
         "total_ht": round(prix_mo_total_ht, 2),
-        "total_ttc": round(prix_mo_total_ttc, 2),
+        "total_ttc": None if has_sur_devis else round(prix_mo_total_ttc, 2),
+        "contient_sur_devis": has_sur_devis,
         "nb_prestations": len(prestations_detaillees)
     }
+
 
 @router.get("/creneaux/par-duree")
 def get_creneaux_par_duree(
