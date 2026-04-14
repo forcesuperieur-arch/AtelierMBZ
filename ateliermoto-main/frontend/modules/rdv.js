@@ -952,15 +952,27 @@ window.RdvModule = window.RdvModule || {
 
     getPrestaTarif: function(it) {
         var RDV = window.RdvModule.getRdvState();
+        var basePrix = Number(it.prix_base_ttc || 0);
+        var baseTemps = parseInt(it.temps_estime_minutes || 30, 10) || 30;
         var catId = RDV.vehicule && RDV.vehicule.categorie_id != null ? String(RDV.vehicule.categorie_id) : '';
         var byCatId = it.tarifs_by_categorie_id && catId ? it.tarifs_by_categorie_id[catId] : null;
-        if (byCatId) return { prix_ttc: byCatId.prix_ttc, temps_minutes: byCatId.temps_minutes };
+        if (byCatId) {
+            var catPrix = byCatId.prix_ttc != null ? Number(byCatId.prix_ttc) : basePrix;
+            var catTemps = parseInt(byCatId.temps_minutes, 10);
+            if (!isFinite(catTemps) || catTemps <= 0) catTemps = baseTemps;
+            return { prix_ttc: catPrix, temps_minutes: catTemps };
+        }
 
         var byTypeLabel = it.tarifs && RDV.motoType ? it.tarifs[RDV.motoType] : null;
-        if (byTypeLabel) return { prix_ttc: byTypeLabel.prix_ttc, temps_minutes: byTypeLabel.temps_minutes };
+        if (byTypeLabel) {
+            var typePrix = byTypeLabel.prix_ttc != null ? Number(byTypeLabel.prix_ttc) : basePrix;
+            var typeTemps = parseInt(byTypeLabel.temps_minutes, 10);
+            if (!isFinite(typeTemps) || typeTemps <= 0) typeTemps = baseTemps;
+            return { prix_ttc: typePrix, temps_minutes: typeTemps };
+        }
 
         if (it.has_tarifs_categorie) return null;
-        return { prix_ttc: it.prix_base_ttc || 0, temps_minutes: it.temps_estime_minutes || 30 };
+        return { prix_ttc: basePrix, temps_minutes: baseTemps };
     },
 
     chargerPrestations: function() {
@@ -1135,7 +1147,9 @@ window.RdvModule = window.RdvModule || {
         var RDV = window.RdvModule.getRdvState();
         if (RDV.weekData[dateStr]) return window.RdvModule.renderJour(dateStr, RDV.weekData[dateStr]);
         var atelierSlug = window.RdvModule.getCurrentAtelierSlug();
-        var duree = Math.max(30, parseInt(RDV.totalTemps || 60, 10));
+        var duree = parseInt(RDV.totalTemps, 10);
+        if (!isFinite(duree) || duree <= 0) duree = 60;
+        duree = Math.max(15, duree);
         apiGet('/api/creneaux/avec-ponts?date_str=' + dateStr + '&duree_minutes=' + encodeURIComponent(duree) + '&atelier_slug=' + encodeURIComponent(atelierSlug)).then(function(r) { return r.json(); }).then(function(data) {
             RDV.weekData[dateStr] = data || {};
             window.RdvModule.renderJour(dateStr, RDV.weekData[dateStr]);

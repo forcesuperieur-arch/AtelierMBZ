@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #f59e0b; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #f59e0b; margin: 0; font-size: 18px; }
+        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
+        .info-col { display: table-cell; width: 50%; vertical-align: top; }
+        .label { font-weight: bold; color: #666; }
+        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.lines th { background: #f59e0b; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
+        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
+        table.lines td.right { text-align: right; }
+        .totals { float: right; width: 280px; margin-top: 20px; }
+        .totals table { width: 100%; }
+        .totals td { padding: 4px 6px; }
+        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
+        .validity { margin-top: 30px; background: #fffbeb; padding: 10px; border: 1px solid #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DEVIS</h1>
+        <p><strong>N° {{ devis.numeroDevis }}</strong> — {{ devis.dateCreation|date('d/m/Y') }}</p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Client</p>
+            <p>{{ devis.client.prenom }} {{ devis.client.nom }}<br>
+               {{ devis.client.telephone }}<br>
+               {% if devis.client.email %}{{ devis.client.email }}{% endif %}</p>
+        </div>
+        <div class="info-col">
+            <p class="label">Véhicule</p>
+            {% if devis.vehicule %}
+            <p>{{ devis.vehicule.marque }} {{ devis.vehicule.modele }}<br>
+               Plaque: {{ devis.vehicule.plaque }}<br>
+               {% if devis.kilometrage %}Km: {{ devis.kilometrage }}{% endif %}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <table class="lines">
+        <thead>
+            <tr>
+                <th>Désignation</th>
+                <th>Type</th>
+                <th>Qté</th>
+                <th>P.U. HT</th>
+                <th>TVA</th>
+                <th>Total TTC</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for ligne in devis.lignes %}
+            <tr>
+                <td>{{ ligne.designation }}{% if ligne.descriptionDetail %}<br><small>{{ ligne.descriptionDetail }}</small>{% endif %}</td>
+                <td>{{ ligne.typeLigne }}</td>
+                <td class="right">{{ ligne.quantite }}</td>
+                <td class="right">{{ ligne.prixUnitaireHt }} €</td>
+                <td class="right">{{ ligne.tauxTva }}%</td>
+                <td class="right">{{ ligne.totalLigneTtc }} €</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr><td>Total MO HT</td><td class="right">{{ devis.totalMoHt }} €</td></tr>
+            <tr><td>Total Pièces HT</td><td class="right">{{ devis.totalPiecesHt }} €</td></tr>
+            <tr><td><strong>Total HT</strong></td><td class="right"><strong>{{ devis.totalHt }} €</strong></td></tr>
+            {% if devis.remiseMontant != '0.00' %}
+            <tr><td>Remise ({{ devis.remisePourcentage }}%)</td><td class="right">-{{ devis.remiseMontant }} €</td></tr>
+            {% endif %}
+            <tr class="total-ttc"><td><strong>TOTAL TTC</strong></td><td class="right"><strong>{{ devis.totalTtc }} €</strong></td></tr>
+            {% if devis.acompteDemande != '0.00' %}
+            <tr><td>Acompte demandé</td><td class="right">{{ devis.acompteDemande }} €</td></tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <div style="clear:both;"></div>
+
+    <div class="validity">
+        <p><strong>Validité du devis :</strong> jusqu'au {{ devis.dateValidite|date('d/m/Y') }}</p>
+    </div>
+
+    {% if devis.notesClient %}
+    <p class="label" style="margin-top: 20px;">Notes</p>
+    <p>{{ devis.notesClient|nl2br }}</p>
+    {% endif %}
+
+    <div style="margin-top: 40px;">
+        <p><strong>Bon pour accord — Signature du client :</strong></p>
+        <p style="height: 60px;">&nbsp;</p>
+    </div>
+</body>
+</html>

@@ -491,6 +491,67 @@ class TestCriticalRoutesRendezVous:
         )
         assert response.status_code == 409
 
+    def test_public_slots_block_afternoon_when_existing_rdv_spans_lunch_break(self):
+        """Un RDV qui traverse la pause midi doit bloquer la plage de l'apres-midi correspondante."""
+        target_day = date.today()
+        while target_day.weekday() >= 5:
+            target_day += timedelta(days=1)
+        atelier_slug = f"public-lunch-overlap-{target_day.strftime('%Y%m%d')}"
+
+        db = TestingSessionLocal()
+        atelier = db.query(Atelier).filter(Atelier.slug == atelier_slug).first()
+        if not atelier:
+            atelier = Atelier(nom="Atelier Public", slug=atelier_slug, plan="starter", actif=True)
+            db.add(atelier)
+            db.flush()
+
+        mecanicien = Mecanicien(atelier_id=atelier.id, nom="Lopez", prenom="Nina", is_active=1)
+        db.add(mecanicien)
+        db.flush()
+
+        pont = Pont(atelier_id=atelier.id, nom="Pont Pause", type_pont="moto", capacite_kg=500, is_active=1, mecanicien_id=mecanicien.id)
+        client_db = Client(atelier_id=atelier.id, nom="Test", prenom="Pause", telephone="0604040404")
+        db.add_all([pont, client_db])
+        db.flush()
+
+        vehicule = Vehicule(atelier_id=atelier.id, plaque="PAUSE01", marque="BMW", modele="F900", client_id=client_db.id)
+        db.add(vehicule)
+        db.flush()
+
+        db.add(HoraireAtelier(
+            atelier_id=atelier.id,
+            jour_semaine=target_day.weekday(),
+            heure_ouverture="08:00",
+            heure_fermeture="18:00",
+            pause_debut="12:00",
+            pause_fin="14:00",
+            is_ouvert=1,
+        ))
+        # 11:00 + 180 min => reprise 14:00 puis fin 16:00 (doit bloquer 14:30)
+        db.add(RendezVous(
+            atelier_id=atelier.id,
+            client_id=client_db.id,
+            vehicule_id=vehicule.id,
+            date_rdv=target_day,
+            heure_rdv=time(11, 0),
+            type_intervention="Intervention longue",
+            statut="confirme",
+            temps_estime=180,
+            pont_id=pont.id,
+            mecanicien_id=mecanicien.id,
+        ))
+        db.commit()
+        db.close()
+
+        response = client.get(
+            "/api/creneaux/avec-ponts",
+            params={"date_str": target_day.isoformat(), "duree_minutes": 30, "atelier_slug": atelier_slug},
+        )
+        assert response.status_code == 200
+
+        creneaux = {item["heure"]: item for item in response.json()["creneaux"]}
+        assert creneaux["14:30"]["disponible"] is False
+
 
 class TestCriticalRoutesClient:
     """Tests critiques pour les routes de clients"""

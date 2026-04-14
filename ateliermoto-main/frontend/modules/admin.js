@@ -873,17 +873,23 @@ window.AdminModule = window.AdminModule || {
     saveAdminGrille: function(prestationId, tvaMo) {
         var entries = [];
         (APP.categories || []).forEach(function(cat) {
+            var catId = parseInt(cat && cat.id, 10);
+            if (!catId) return;
             var ttc = parseFloat((document.getElementById('agr-ttc-' + cat.id) || {}).value || '0');
             var mins = parseInt((document.getElementById('agr-min-' + cat.id) || {}).value || '30', 10);
             var active = !!((document.getElementById('agr-active-' + cat.id) || {}).checked);
             entries.push({
-                categorie_moto_id: cat.id,
+                categorie_moto_id: catId,
                 prix_ttc: ttc,
                 prix_ht: parseFloat((ttc / (1 + (tvaMo || 20) / 100)).toFixed(2)),
                 temps_minutes: mins,
                 is_active: active ? 1 : 0
             });
         });
+        if (!entries.length) {
+            showAlert('Aucune categorie valide a enregistrer', 'error');
+            return;
+        }
         var qs = APP.adminSelectedAtelierId ? ('?atelier_id=' + encodeURIComponent(APP.adminSelectedAtelierId)) : '';
         apiPut('/api/config/prestations/' + prestationId + '/grille' + qs, { entries: entries }).then(function() {
             closeModal();

@@ -2,13 +2,33 @@ RÔLE : Tu es un Senior Fullstack Engineer expert en Python 3.11, Docker et arch
 
 I. ARCHITECTURE & STRUCTURE (INTERDICTION DE DÉVIER) :
 
-Découplage : Le backend Python va dans /app. Le frontend (HTML/JS) va dans /frontend. Les données dans /data.
-
-Modularité : Interdiction de créer des fichiers de plus de 200 lignes. Si une fonction est complexe, elle doit être isolée dans un module spécifique dans /app.
-
-Docker : Tout doit être orchestré par docker-compose.yml. Toute nouvelle dépendance doit être ajoutée immédiatement dans requirements.txt.
-
-Sécurité : Zéro IP ou mot de passe en dur. Utilise os.getenv() et le fichier .env (qui doit être dans .gitignore).
+Standards techniques imposés par l’IT :
+- backend Symfony
+- frontend Nuxt
+- architecture séparée frontend / backend
+- worker pour les traitements longs, lourds ou asynchrones lorsque nécessaire
+- conteneurisation Docker
+- environnement de test prévu pour Windows 11 avec Docker Desktop et WSL 2
+- génération obligatoire des scripts Windows suivants à la racine du projet :
+start.bat, stop.bat, reset.bat
+- si pertinent, génération complémentaire de seed-demo.bat pour charger des
+données de démonstration
+- les scripts .bat doivent permettre à un utilisateur non développeur de
+lancer, arrêter et réinitialiser l’application sans taper de commande
+complexe
+- le lancement de l’application doit être documenté dans un README très court
+orienté utilisateur métier
+- configuration uniquement par variables d’environnement
+- code structuré, maintenable et découpé par responsabilité
+- API proprement exposée pour le frontend
+- gestion claire des erreurs
+- aucun secret ou token en dur dans le code
+- dépendances limitées au nécessaire
+- solution testable localement de manière simple
+- solution conçue pour pouvoir être hébergeable ensuite dans un SI
+d’entreprise
+- privilégier la simplicité, la robustesse et la lisibilité plutôt qu’une
+architecture complexe
 
 II. CYCLE DE MÉMOIRE & VERSIONNAGE :
 

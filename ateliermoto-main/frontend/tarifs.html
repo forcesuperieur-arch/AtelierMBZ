@@ -594,9 +594,16 @@ function continuerVehiculeFound() {
 // ===== STEP 2: PRESTATIONS =====
 function getPrestaTarif(it) {
     // Retourne { prix_ttc, temps_minutes } pour le type moto selectionne
+    var basePrix = Number(it.prix_base_ttc || 0);
+    var baseTemps = parseInt(it.temps_estime_minutes || 30, 10) || 30;
     var t = it.tarifs && it.tarifs[RDV.motoType];
-    if (t) return { prix_ttc: t.prix_ttc, temps_minutes: t.temps_minutes };
-    return { prix_ttc: it.prix_base_ttc || 0, temps_minutes: it.temps_estime_minutes || 30 };
+    if (t) {
+        var prix = t.prix_ttc != null ? Number(t.prix_ttc) : basePrix;
+        var temps = parseInt(t.temps_minutes, 10);
+        if (!isFinite(temps) || temps <= 0) temps = baseTemps;
+        return { prix_ttc: prix, temps_minutes: temps };
+    }
+    return { prix_ttc: basePrix, temps_minutes: baseTemps };
 }
 
 function chargerPrestations() {
@@ -822,7 +829,9 @@ function chargerJour(dateStr) {
         return;
     }
 
-    var duree = Math.max(30, parseInt(RDV.totalTemps || 60, 10));
+    var duree = parseInt(RDV.totalTemps, 10);
+    if (!isFinite(duree) || duree <= 0) duree = 60;
+    duree = Math.max(15, duree);
     fetch(API + '/api/creneaux/avec-ponts?date_str=' + dateStr + '&duree_minutes=' + encodeURIComponent(duree) + '&atelier_slug=' + encodeURIComponent(ATELIER_SLUG)).then(function(r) { return r.json(); }).then(function(data) {
         WEEK_DATA[dateStr] = data;
         renderJour(dateStr, data);

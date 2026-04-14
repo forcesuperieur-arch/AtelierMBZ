@@ -301,6 +301,16 @@ def update_grille_prestation(
     if not prestation:
         raise HTTPException(status_code=404, detail="Prestation non trouvée")
 
+    requested_category_ids = {int(entry.categorie_moto_id) for entry in data.entries}
+    valid_category_ids = {
+        int(row[0])
+        for row in db.query(CategorieMoto.id).filter(CategorieMoto.id.in_(requested_category_ids)).all()
+    }
+    invalid_category_ids = sorted(requested_category_ids - valid_category_ids)
+    if invalid_category_ids:
+        missing = ", ".join(str(cat_id) for cat_id in invalid_category_ids)
+        raise HTTPException(status_code=400, detail=f"La catégorie n'existe pas: {missing}")
+
     for entry in data.entries:
         existing = db.query(GrilleTarifaire).filter(
             GrilleTarifaire.prestation_id == prestation_id,

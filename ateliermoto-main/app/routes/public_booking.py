@@ -173,15 +173,35 @@ def _validate_slot_boundaries(horaire: Optional[HoraireAtelier], start_min: int,
     return None
 
 
-def _find_overlapping_rdvs(rdvs_existants, target_date, start_min: int, duration_min: int):
+def _find_overlapping_rdvs(
+    rdvs_existants,
+    target_date,
+    start_min: int,
+    duration_min: int,
+    pause_start: Optional[int] = None,
+    pause_end: Optional[int] = None,
+):
     slot_start = datetime.combine(target_date, datetime.min.time()) + timedelta(minutes=start_min)
-    slot_end = slot_start + timedelta(minutes=max(15, int(duration_min or 60)))
+    slot_effective_end_min = _compute_effective_end_min(
+        start_min,
+        max(15, int(duration_min or 60)),
+        pause_start,
+        pause_end,
+    )
+    slot_end = datetime.combine(target_date, datetime.min.time()) + timedelta(minutes=slot_effective_end_min)
     overlaps = []
     for rdv in rdvs_existants:
         if not rdv.heure_rdv:
             continue
         rdv_start = datetime.combine(target_date, rdv.heure_rdv)
-        rdv_end = rdv_start + timedelta(minutes=max(15, int(rdv.temps_estime or 60)))
+        rdv_start_min = rdv.heure_rdv.hour * 60 + rdv.heure_rdv.minute
+        rdv_effective_end_min = _compute_effective_end_min(
+            rdv_start_min,
+            max(15, int(rdv.temps_estime or 60)),
+            pause_start,
+            pause_end,
+        )
+        rdv_end = datetime.combine(target_date, datetime.min.time()) + timedelta(minutes=rdv_effective_end_min)
         if slot_start < rdv_end and slot_end > rdv_start:
             overlaps.append(rdv)
     return overlaps
@@ -492,6 +512,8 @@ def create_rendez_vous_public_handler(rdv_data, db: Session):
         date_heure.date(),
         start_min,
         temps_total,
+        pause_s,
+        pause_e,
     )
     if overlapping_rdvs:
         if rdv_data.pont_id and any(existing.pont_id == rdv_data.pont_id for existing in overlapping_rdvs):
@@ -583,7 +605,14 @@ def get_creneaux_disponibles_handler(date_str: str, duree_minutes: int, atelier_
             if _validate_slot_boundaries(horaire, start_min, requested_duration):
                 continue
 
-            overlapping_rdvs = _find_overlapping_rdvs(rdvs_existants, target_date, start_min, requested_duration)
+            overlapping_rdvs = _find_overlapping_rdvs(
+                rdvs_existants,
+                target_date,
+                start_min,
+                requested_duration,
+                pause_s,
+                pause_e,
+            )
             places_restantes = ponts_disponibles - len(overlapping_rdvs)
             creneaux.append({
                 "heure": f"{start_min // 60:02d}:{start_min % 60:02d}",
@@ -644,7 +673,14 @@ def get_creneaux_avec_ponts_handler(date_str: str, duree_minutes: int, atelier_s
             if _validate_slot_boundaries(horaire, start_min, requested_duration):
                 continue
 
-            overlapping_rdvs = _find_overlapping_rdvs(rdvs_existants, target_date, start_min, requested_duration)
+            overlapping_rdvs = _find_overlapping_rdvs(
+                rdvs_existants,
+                target_date,
+                start_min,
+                requested_duration,
+                pause_s,
+                pause_e,
+            )
             occupied_pont_ids = {rdv.pont_id for rdv in overlapping_rdvs if rdv.pont_id}
             occupied_mecanicien_ids = {rdv.mecanicien_id for rdv in overlapping_rdvs if rdv.mecanicien_id}
             floating_overlaps = [rdv for rdv in overlapping_rdvs if not rdv.pont_id and not rdv.mecanicien_id]
