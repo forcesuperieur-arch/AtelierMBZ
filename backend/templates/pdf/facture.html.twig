@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 18px; }
+        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
+        .info-col { display: table-cell; width: 50%; vertical-align: top; }
+        .label { font-weight: bold; color: #666; }
+        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
+        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
+        table.lines td.right { text-align: right; }
+        .totals { float: right; width: 280px; margin-top: 20px; }
+        .totals table { width: 100%; }
+        .totals td { padding: 4px 6px; }
+        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
+        .footer { margin-top: 40px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FACTURE</h1>
+        <p><strong>N° {{ facture.numeroFacture }}</strong> — {{ facture.dateCreation|date('d/m/Y') }}</p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Client</p>
+            <p>{{ facture.client.prenom }} {{ facture.client.nom }}<br>
+               {{ facture.client.telephone }}<br>
+               {% if facture.client.email %}{{ facture.client.email }}{% endif %}<br>
+               {% if facture.client.adresse %}{{ facture.client.adresse }}{% endif %}</p>
+        </div>
+        <div class="info-col">
+            <p class="label">Véhicule</p>
+            {% if facture.vehicule %}
+            <p>{{ facture.vehicule.marque }} {{ facture.vehicule.modele }}<br>
+               Plaque: {{ facture.vehicule.plaque }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <table class="lines">
+        <thead>
+            <tr>
+                <th>Désignation</th>
+                <th>Réf.</th>
+                <th>Qté</th>
+                <th>P.U. HT</th>
+                <th>TVA</th>
+                <th>Total HT</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for ligne in facture.lignes %}
+            <tr>
+                <td>{{ ligne.designation }}</td>
+                <td>{{ ligne.reference }}</td>
+                <td class="right">{{ ligne.quantite }}</td>
+                <td class="right">{{ ligne.prixUnitaireHt }} €</td>
+                <td class="right">{{ ligne.tauxTva }}%</td>
+                <td class="right">{{ ligne.totalLigneHt }} €</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr><td>Total MO HT</td><td class="right">{{ facture.totalMoHt }} €</td></tr>
+            <tr><td>Total Pièces HT</td><td class="right">{{ facture.totalPiecesHt }} €</td></tr>
+            <tr><td><strong>Total HT</strong></td><td class="right"><strong>{{ facture.totalHt }} €</strong></td></tr>
+            {% if facture.remiseMontant != '0.00' %}
+            <tr><td>Remise</td><td class="right">-{{ facture.remiseMontant }} €</td></tr>
+            {% endif %}
+            <tr><td>TVA MO ({{ facture.tvaMoTaux }}%)</td><td class="right">{{ facture.tvaMo }} €</td></tr>
+            <tr><td>TVA Pièces ({{ facture.tvaPiecesTaux }}%)</td><td class="right">{{ facture.tvaPieces }} €</td></tr>
+            <tr class="total-ttc"><td><strong>TOTAL TTC</strong></td><td class="right"><strong>{{ facture.totalTtc }} €</strong></td></tr>
+        </table>
+    </div>
+
+    <div style="clear:both;"></div>
+
+    {% if facture.notes %}
+    <p class="label" style="margin-top: 30px;">Notes</p>
+    <p>{{ facture.notes|nl2br }}</p>
+    {% endif %}
+
+    <div class="footer">
+        <p>Conditions de paiement : à réception. En cas de retard de paiement, des pénalités de 3× le taux d'intérêt légal seront appliquées.</p>
+    </div>
+</body>
+</html>

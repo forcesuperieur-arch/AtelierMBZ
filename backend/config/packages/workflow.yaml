@@ -1,0 +1,51 @@
+framework:
+    workflows:
+        rendez_vous:
+            type: state_machine
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: method
+                property: statut
+            supports:
+                - App\Entity\RendezVous
+            initial_marking: en_attente
+            places:
+                - en_attente
+                - reserve
+                - confirme
+                - reception
+                - en_cours
+                - termine
+                - restitue
+                - facture
+                - paye
+                - annule
+            transitions:
+                reserver:
+                    from: en_attente
+                    to: reserve
+                confirmer:
+                    from: [en_attente, reserve]
+                    to: confirme
+                reception:
+                    from: confirme
+                    to: reception
+                start_travail:
+                    from: reception
+                    to: en_cours
+                terminer:
+                    from: en_cours
+                    to: termine
+                restituer:
+                    from: termine
+                    to: restitue
+                facturer:
+                    from: [termine, restitue]
+                    to: facture
+                payer:
+                    from: facture
+                    to: paye
+                annuler:
+                    from: [en_attente, reserve, confirme]
+                    to: annule

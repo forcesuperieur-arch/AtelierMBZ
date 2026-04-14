@@ -1,0 +1,16 @@
+api_platform:
+    title: Atelier Moto Pro API
+    version: 2.0.0
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    collection:
+        pagination:
+            enabled: true
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+        paginationItemsPerPage: 30
+        paginationClientItemsPerPage: true
+        paginationMaximumItemsPerPage: 200
