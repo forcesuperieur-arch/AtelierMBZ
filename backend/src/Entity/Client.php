@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Entity;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+
+#[ORM\Entity]
+#[ORM\Table(name: 'clients')]
+#[ApiResource(
+    normalizationContext: ['groups' => ['client:read']],
+    denormalizationContext: ['groups' => ['client:write']],
+)]
+#[ApiFilter(SearchFilter::class, properties: ['nom' => 'partial', 'prenom' => 'partial', 'email' => 'partial', 'telephone' => 'partial'])]
+class Client
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    #[Groups(['client:read', 'rdv:read', 'devis:read', 'facture:read'])]
+    private ?int $id = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?int $atelierId = null;
+
+    #[ORM\Column(length: 100)]
+    #[Groups(['client:read', 'client:write', 'rdv:read', 'devis:read', 'facture:read', 'ordre:read'])]
+    private string $nom;
+
+    #[ORM\Column(length: 100)]
+    #[Groups(['client:read', 'client:write', 'rdv:read', 'devis:read', 'facture:read', 'ordre:read'])]
+    private string $prenom;
+
+    #[ORM\Column(length: 20)]
+    #[Groups(['client:read', 'client:write', 'rdv:read'])]
+    private string $telephone;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['client:read', 'client:write', 'rdv:read'])]
+    private ?string $email = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $adresse = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $notes = null;
+
+    #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[Groups(['client:read'])]
+    private \DateTimeInterface $createdAt;
+
+    /** @var Collection<int, Vehicule> */
+    #[ORM\OneToMany(targetEntity: Vehicule::class, mappedBy: 'client')]
+    #[Groups(['client:read'])]
+    private Collection $vehicules;
+
+    /** @var Collection<int, RendezVous> */
+    #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'client')]
+    private Collection $rendezVous;
+
+    public function __construct()
+    {
+        $this->createdAt = new \DateTime();
+        $this->vehicules = new ArrayCollection();
+        $this->rendezVous = new ArrayCollection();
+    }
+
+    public function getId(): ?int { return $this->id; }
+    public function getAtelierId(): ?int { return $this->atelierId; }
+    public function setAtelierId(?int $atelierId): static { $this->atelierId = $atelierId; return $this; }
+    public function getNom(): string { return $this->nom; }
+    public function setNom(string $nom): static { $this->nom = $nom; return $this; }
+    public function getPrenom(): string { return $this->prenom; }
+    public function setPrenom(string $prenom): static { $this->prenom = $prenom; return $this; }
+    public function getTelephone(): string { return $this->telephone; }
+    public function setTelephone(string $telephone): static { $this->telephone = $telephone; return $this; }
+    public function getEmail(): ?string { return $this->email; }
+    public function setEmail(?string $email): static { $this->email = $email; return $this; }
+    public function getAdresse(): ?string { return $this->adresse; }
+    public function setAdresse(?string $adresse): static { $this->adresse = $adresse; return $this; }
+    public function getNotes(): ?string { return $this->notes; }
+    public function setNotes(?string $notes): static { $this->notes = $notes; return $this; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+    public function getVehicules(): Collection { return $this->vehicules; }
+    public function getRendezVous(): Collection { return $this->rendezVous; }
+}

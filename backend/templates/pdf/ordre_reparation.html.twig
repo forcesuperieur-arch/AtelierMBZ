@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 18px; }
+        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
+        .info-col { display: table-cell; width: 50%; vertical-align: top; }
+        .label { font-weight: bold; color: #666; }
+        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; }
+        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
+        .totals { float: right; width: 250px; margin-top: 20px; }
+        .totals table { width: 100%; }
+        .totals td { padding: 3px 5px; }
+        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
+        .signature { margin-top: 50px; border-top: 1px solid #999; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ORDRE DE RÉPARATION</h1>
+        <p><strong>N° {{ or.numeroOr }}</strong> — {{ or.createdAt|date('d/m/Y H:i') }}</p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Client</p>
+            <p>{{ rdv.client.prenom }} {{ rdv.client.nom }}<br>
+               {{ rdv.client.telephone }}<br>
+               {% if rdv.client.email %}{{ rdv.client.email }}{% endif %}</p>
+        </div>
+        <div class="info-col">
+            <p class="label">Véhicule</p>
+            {% if rdv.vehicule %}
+            <p>{{ rdv.vehicule.marque }} {{ rdv.vehicule.modele }}<br>
+               Plaque: {{ rdv.vehicule.plaque }}<br>
+               {% if or.kilometrage %}Km: {{ or.kilometrage }}{% endif %}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="label">Type d'intervention</p>
+    <p>{{ rdv.typeIntervention }}</p>
+
+    {% if or.travaux %}
+    <p class="label">Travaux à effectuer</p>
+    <p>{{ or.travaux|nl2br }}</p>
+    {% endif %}
+
+    {% if or.etatVehicule %}
+    <p class="label">État du véhicule à la réception</p>
+    <p>{{ or.etatVehicule }}</p>
+    {% endif %}
+
+    <div class="signature">
+        <p><strong>Signature du client :</strong></p>
+        {% if or.signatureClient %}
+        <img src="{{ or.signatureClient }}" style="max-width: 200px;">
+        {% else %}
+        <p style="height: 60px;">&nbsp;</p>
+        {% endif %}
+        <p style="font-size: 9px;">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord.</p>
+    </div>
+</body>
+</html>
