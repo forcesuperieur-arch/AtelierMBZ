@@ -7,6 +7,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -23,7 +24,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Get(security: "is_granted('ROLE_ADMIN') or object == user"),
         new Post(security: "is_granted('ROLE_ADMIN')"),
         new Put(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_SUPER_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_ADMIN') and object != user"),
     ]
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface

@@ -28,7 +28,12 @@ class SlotService
         ?int $atelierId = null,
     ): array {
         $slots = [];
-        $period = new \DatePeriod($dateDebut, new \DateInterval('P1D'), $dateFin);
+        $inclusiveEnd = (new \DateTimeImmutable($dateFin->format('Y-m-d')))->modify('+1 day');
+        $period = new \DatePeriod(
+            new \DateTimeImmutable($dateDebut->format('Y-m-d')),
+            new \DateInterval('P1D'),
+            $inclusiveEnd,
+        );
 
         foreach ($period as $date) {
             $daySlots = $this->getSlotsForDay($date, $tempsMinutes, $atelierId);
@@ -66,9 +71,10 @@ class SlotService
             return [];
         }
 
-        // Get active ponts
+        // Get active ponts with an assigned mechanic only
         $pontQb = $this->em->getRepository(Pont::class)->createQueryBuilder('p')
-            ->where('p.isActive = 1');
+            ->where('p.isActive = 1')
+            ->andWhere('p.mecanicien IS NOT NULL');
         if ($atelierId) {
             $pontQb->andWhere('p.atelierId = :atelier')->setParameter('atelier', $atelierId);
         }
@@ -79,29 +85,40 @@ class SlotService
         }
 
         // Get existing RDVs for this day
-        $rdvs = $this->em->getRepository(RendezVous::class)->createQueryBuilder('r')
+        $rdvQb = $this->em->getRepository(RendezVous::class)->createQueryBuilder('r')
             ->where('r.dateRdv = :date')
             ->andWhere('r.statut NOT IN (:excluded)')
             ->setParameter('date', $date->format('Y-m-d'))
-            ->setParameter('excluded', ['annule'])
-            ->getQuery()->getResult();
+            ->setParameter('excluded', ['annule']);
+        if ($atelierId) {
+            $rdvQb->andWhere('r.atelierId = :atelier')->setParameter('atelier', $atelierId);
+        }
+        $rdvs = $rdvQb->getQuery()->getResult();
 
         // Get absences for this day
-        $absences = $this->em->getRepository(Absence::class)->createQueryBuilder('a')
+        $absQb = $this->em->getRepository(Absence::class)->createQueryBuilder('a')
             ->where('a.dateDebut <= :date')
             ->andWhere('a.dateFin >= :date')
-            ->setParameter('date', $date->format('Y-m-d'))
-            ->getQuery()->getResult();
+            ->setParameter('date', $date->format('Y-m-d'));
+        if ($atelierId) {
+            $absQb->andWhere('a.atelierId = :atelier')->setParameter('atelier', $atelierId);
+        }
+        $absences = $absQb->getQuery()->getResult();
 
-        $absentMecanicienIds = array_map(fn(Absence $a) => $a->getMecanicien()->getId(), $absences);
+        $absentMecanicienIds = array_values(array_filter(array_map(
+            fn(Absence $a) => $a->getMecanicien()?->getId(),
+            $absences,
+        )));
 
         // Build occupied slots: pontId => [['start' => HH:MM, 'end' => HH:MM], ...]
         $occupied = [];
         foreach ($rdvs as $rdv) {
-            $pontId = $rdv->getPontId();
-            if (!$pontId) continue;
+            $pontId = $rdv->getPont()?->getId();
+            if (!$pontId) {
+                continue;
+            }
             $start = $rdv->getHeureRdv()->format('H:i');
-            $endMinutes = ((int)$rdv->getHeureRdv()->format('H') * 60 + (int)$rdv->getHeureRdv()->format('i'))
+            $endMinutes = ((int) $rdv->getHeureRdv()->format('H') * 60 + (int) $rdv->getHeureRdv()->format('i'))
                 + ($rdv->getTempsEstime() ?: 60);
             $end = sprintf('%02d:%02d', intdiv($endMinutes, 60), $endMinutes % 60);
             $occupied[$pontId][] = ['start' => $start, 'end' => $end];
@@ -115,24 +132,33 @@ class SlotService
 
         $startMinutes = $this->timeToMinutes($ouverture);
         $endMinutes = $this->timeToMinutes($fermeture);
+        $sameDayMinStart = $this->sameDayMinStartMinutes($date);
         $slots = [];
 
-        for ($t = $startMinutes; $t + $tempsMinutes <= $endMinutes; $t += 30) {
-            $slotStart = sprintf('%02d:%02d', intdiv($t, 60), $t % 60);
-            $slotEnd = sprintf('%02d:%02d', intdiv($t + $tempsMinutes, 60), ($t + $tempsMinutes) % 60);
+        $pStart = $pauseDebut ? $this->timeToMinutes($pauseDebut) : null;
+        $pEnd = $pauseFin ? $this->timeToMinutes($pauseFin) : null;
 
-            // Skip lunch break
-            if ($pauseDebut && $pauseFin) {
-                $pStart = $this->timeToMinutes($pauseDebut);
-                $pEnd = $this->timeToMinutes($pauseFin);
-                if ($t < $pEnd && $t + $tempsMinutes > $pStart) {
-                    continue;
-                }
+        for ($t = $startMinutes; $t < $endMinutes; $t += 30) {
+            if ($sameDayMinStart !== null && $t < $sameDayMinStart) {
+                continue;
             }
+
+            if ($pStart !== null && $pEnd !== null && $t >= $pStart && $t < $pEnd) {
+                continue;
+            }
+
+            $effectiveEnd = $this->computeEffectiveEndMinutes($t, $tempsMinutes, $pStart, $pEnd);
+            if ($effectiveEnd > $endMinutes) {
+                continue;
+            }
+
+            $slotStart = sprintf('%02d:%02d', intdiv($t, 60), $t % 60);
+            $slotEnd = sprintf('%02d:%02d', intdiv($effectiveEnd, 60), $effectiveEnd % 60);
+            $pauseAppliquee = $effectiveEnd > ($t + $tempsMinutes);
 
             foreach ($ponts as $pont) {
                 $pontId = $pont->getId();
-                $mecId = $pont->getMecanicienId();
+                $mecId = $pont->getMecanicien()?->getId();
 
                 // Skip if assigned mechanic is absent
                 if ($mecId && in_array($mecId, $absentMecanicienIds, true)) {
@@ -151,6 +177,9 @@ class SlotService
                 if ($isFree) {
                     $slots[] = [
                         'heure' => $slotStart,
+                        'heure_fin' => $slotEnd,
+                        'pause_appliquee' => $pauseAppliquee,
+                        'disponible' => true,
                         'pont_id' => $pontId,
                         'pont_nom' => $pont->getNom(),
                         'mecanicien_id' => $mecId,
@@ -160,6 +189,30 @@ class SlotService
         }
 
         return $slots;
+    }
+
+    private function sameDayMinStartMinutes(\DateTimeInterface $date): ?int
+    {
+        $now = new \DateTimeImmutable();
+        if ($date->format('Y-m-d') !== $now->format('Y-m-d')) {
+            return null;
+        }
+
+        $minAllowed = ((int) $now->format('H') * 60) + (int) $now->format('i') + 120;
+        return (int) (ceil($minAllowed / 30) * 30);
+    }
+
+    private function computeEffectiveEndMinutes(
+        int $startMinutes,
+        int $tempsMinutes,
+        ?int $pauseStart,
+        ?int $pauseEnd,
+    ): int {
+        $effectiveEnd = $startMinutes + max(15, $tempsMinutes);
+        if ($pauseStart !== null && $pauseEnd !== null && $startMinutes < $pauseStart && $effectiveEnd > $pauseStart) {
+            $effectiveEnd += ($pauseEnd - $pauseStart);
+        }
+        return $effectiveEnd;
     }
 
     private function timeToMinutes(string $time): int

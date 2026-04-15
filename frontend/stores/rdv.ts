@@ -13,16 +13,43 @@ interface RdvFilters {
   search?: string
 }
 
+function normalizeDate(value: unknown): string {
+  const raw = value ? String(value) : ''
+  return raw ? raw.slice(0, 10) : ''
+}
+
+function normalizeTime(value: unknown): string {
+  const raw = value ? String(value) : ''
+  const match = raw.match(/(\d{2}):(\d{2})/)
+  return match ? `${match[1]}:${match[2]}` : ''
+}
+
 /** Normalize API Platform nested response into flat fields expected by templates */
+function resolveRdvId(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+
+  if (typeof value === 'string') {
+    const parsed = Number(value.split('/').pop())
+    if (Number.isFinite(parsed)) return parsed
+  }
+
+  if (value && typeof value === 'object') {
+    const candidate = (value as any).id ?? (value as any)['@id']
+    return resolveRdvId(candidate)
+  }
+
+  throw new Error(`Invalid RDV identifier: ${String(value)}`)
+}
+
 function normalizeRdv(r: any): Rdv {
   if (!r) return r
   return {
     ...r,
     // Flat aliases for nested objects
     status: r.statut ?? r.status,
-    date_rdv: r.date_rdv,
-    heure_debut: r.heure_rdv,
-    type_intervention: r.type_intervention,
+    date_rdv: normalizeDate(r.date_rdv ?? r.dateRdv),
+    heure_debut: normalizeTime(r.heure_rdv ?? r.heureRdv ?? r.heure_debut),
+    type_intervention: r.type_intervention ?? r.typeIntervention,
     client_nom: r.client ? `${r.client.prenom ?? ''} ${r.client.nom ?? ''}`.trim() : (r.client_nom ?? ''),
     client_telephone: r.client?.telephone ?? r.client_telephone,
     client_email: r.client?.email ?? r.client_email,
@@ -30,8 +57,9 @@ function normalizeRdv(r: any): Rdv {
     vehicule_plaque: r.vehicule?.plaque ?? r.vehicule_plaque,
     pont_nom: r.pont?.nom ?? r.pont_nom,
     mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : (r.mecanicien_nom ?? ''),
-    duree_estimee: r.temps_estime ?? r.duree_estimee,
-    description_probleme: r.commentaire ?? r.description_probleme,
+    temps_estime: r.temps_estime ?? r.tempsEstime ?? r.duree_estimee,
+    duree_estimee: r.temps_estime ?? r.tempsEstime ?? r.duree_estimee,
+    description_probleme: r.commentaire ?? r.description_probleme ?? r.descriptionProbleme,
   }
 }
 
@@ -66,9 +94,10 @@ export const useRdvStore = defineStore('rdv', {
       }
     },
 
-    async fetchRdv(id: number) {
+    async fetchRdv(id: number | string | Record<string, any>) {
       const api = useApi()
-      const raw = await api.get(`/rendez-vous/${id}`)
+      const rdvId = resolveRdvId(id)
+      const raw = await api.get(`/rendez-vous/${rdvId}`)
       this.currentRdv = normalizeRdv(raw)
     },
 
@@ -80,21 +109,23 @@ export const useRdvStore = defineStore('rdv', {
       return normalized
     },
 
-    async updateRdv(id: number, data: any) {
+    async updateRdv(id: number | string | Record<string, any>, data: any) {
       const api = useApi()
-      const rdv = await api.put(`/rendez-vous/${id}`, data)
+      const rdvId = resolveRdvId(id)
+      const rdv = await api.put(`/rendez-vous/${rdvId}`, data)
       const normalized = normalizeRdv(rdv)
-      const idx = this.rdvs.findIndex(r => r.id === id)
+      const idx = this.rdvs.findIndex(r => r.id === rdvId)
       if (idx >= 0) this.rdvs[idx] = normalized
-      if (this.currentRdv?.id === id) this.currentRdv = normalized
+      if (this.currentRdv?.id === rdvId) this.currentRdv = normalized
       return normalized
     },
 
-    async transitionRdv(id: number, transition: string) {
+    async transitionRdv(id: number | string | Record<string, any>, transition: string) {
       const api = useApi()
-      const result = await api.post(`/rendez-vous/${id}/transition/${transition}`)
+      const rdvId = resolveRdvId(id)
+      await api.post(`/rendez-vous/${rdvId}/transition/${transition}`)
       // Transition endpoint returns { id, statut, transitions } — re-fetch to get full data
-      await this.fetchRdv(id)
+      await this.fetchRdv(rdvId)
       return this.currentRdv
     },
 

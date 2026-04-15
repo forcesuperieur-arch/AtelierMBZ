@@ -14,10 +14,12 @@ type HydrationStrategies = {
 type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {}, {}, { hydrated: () => void }> & T
 
 
+export const AppModal: typeof import("../components/AppModal.vue")['default']
 export const PlanningGrid: typeof import("../components/PlanningGrid.vue")['default']
 export const SidebarLink: typeof import("../components/SidebarLink.vue")['default']
 export const StatsCard: typeof import("../components/StatsCard.vue")['default']
 export const StatusBadge: typeof import("../components/StatusBadge.vue")['default']
+export const UTable: typeof import("../components/UTable.vue")['default']
 export const UAccordion: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']
 export const UAlert: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']
 export const UApp: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']
@@ -69,7 +71,6 @@ export const USlideover: typeof import("../node_modules/@nuxt/ui/dist/runtime/co
 export const USlider: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Slider.vue")['default']
 export const UStepper: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Stepper.vue")['default']
 export const USwitch: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Switch.vue")['default']
-export const UTable: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Table.vue")['default']
 export const UTabs: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue")['default']
 export const UTextarea: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue")['default']
 export const UTimeline: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Timeline.vue")['default']
@@ -102,10 +103,12 @@ export const Head: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const Html: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
 export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
 export const NuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
+export const LazyAppModal: LazyComponent<typeof import("../components/AppModal.vue")['default']>
 export const LazyPlanningGrid: LazyComponent<typeof import("../components/PlanningGrid.vue")['default']>
 export const LazySidebarLink: LazyComponent<typeof import("../components/SidebarLink.vue")['default']>
 export const LazyStatsCard: LazyComponent<typeof import("../components/StatsCard.vue")['default']>
 export const LazyStatusBadge: LazyComponent<typeof import("../components/StatusBadge.vue")['default']>
+export const LazyUTable: LazyComponent<typeof import("../components/UTable.vue")['default']>
 export const LazyUAccordion: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']>
 export const LazyUAlert: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']>
 export const LazyUApp: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']>
@@ -157,7 +160,6 @@ export const LazyUSlideover: LazyComponent<typeof import("../node_modules/@nuxt/
 export const LazyUSlider: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Slider.vue")['default']>
 export const LazyUStepper: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Stepper.vue")['default']>
 export const LazyUSwitch: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Switch.vue")['default']>
-export const LazyUTable: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Table.vue")['default']>
 export const LazyUTabs: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue")['default']>
 export const LazyUTextarea: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue")['default']>
 export const LazyUTimeline: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Timeline.vue")['default']>

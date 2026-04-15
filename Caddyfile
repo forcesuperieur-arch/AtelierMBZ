@@ -9,6 +9,10 @@
 		reverse_proxy php:8000
 	}
 
+	handle /uploads/* {
+		reverse_proxy php:8000
+	}
+
 	handle {
 		reverse_proxy nuxt:3000
 	}

@@ -83,4 +83,5 @@ class OrdreReparation
     public function setDemandeTravauxSupp(?DemandeTravauxSupp $v): static { $this->demandeTravauxSupp = $v; return $this; }
     public function getSignatureClient(): ?string { return $this->signatureClient; }
     public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
 }

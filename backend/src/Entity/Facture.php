@@ -171,6 +171,10 @@ class Facture
     public function setDateEcheance(?\DateTimeInterface $v): static { $this->dateEcheance = $v; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $v): static { $this->notes = $v; return $this; }
+    public function getTvaMoTaux(): float { return $this->tvaMoTaux; }
+    public function setTvaMoTaux(float $v): static { $this->tvaMoTaux = $v; return $this; }
+    public function getTvaPiecesTaux(): float { return $this->tvaPiecesTaux; }
+    public function setTvaPiecesTaux(float $v): static { $this->tvaPiecesTaux = $v; return $this; }
     public function getPaiements(): Collection { return $this->paiements; }
     public function getLignes(): Collection { return $this->lignes; }
 }

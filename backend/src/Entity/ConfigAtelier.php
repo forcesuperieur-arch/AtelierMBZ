@@ -13,6 +13,23 @@ class ConfigAtelier
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['config:read'])] private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
+    #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private array $featureModules = [
+        'dashboard' => true,
+        'rdv' => true,
+        'planning' => true,
+        'workshop' => true,
+        'suivi' => true,
+        'clients' => true,
+        'or' => true,
+        'motos' => true,
+        'devis' => true,
+        'facturation' => true,
+        'stock' => true,
+        'mecanicien' => true,
+        'absences' => true,
+        'admin' => true,
+        'tarifs' => true,
+    ];
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '65.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoStandard = '65.00';
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '85.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoComplexe = '85.00';
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '95.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoExpert = '95.00';
@@ -31,6 +48,34 @@ class ConfigAtelier
     public function getId(): ?int { return $this->id; }
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
+    public function getFeatureModules(): array { return $this->featureModules ?: self::defaultFeatureModules(); }
+    public function setFeatureModules(?array $v): static {
+        $normalized = self::defaultFeatureModules();
+        foreach (($v ?? []) as $key => $enabled) {
+            $normalized[(string) $key] = !in_array($enabled, [false, 0, '0', 'false'], true);
+        }
+        $this->featureModules = $normalized;
+        return $this;
+    }
+    public static function defaultFeatureModules(): array {
+        return [
+            'dashboard' => true,
+            'rdv' => true,
+            'planning' => true,
+            'workshop' => true,
+            'suivi' => true,
+            'clients' => true,
+            'or' => true,
+            'motos' => true,
+            'devis' => true,
+            'facturation' => true,
+            'stock' => true,
+            'mecanicien' => true,
+            'absences' => true,
+            'admin' => true,
+            'tarifs' => true,
+        ];
+    }
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }
     public function setTauxHoraireMoStandard(string $v): static { $this->tauxHoraireMoStandard = $v; return $this; }
     public function getTauxHoraireMoComplexe(): string { return $this->tauxHoraireMoComplexe; }

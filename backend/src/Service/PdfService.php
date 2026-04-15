@@ -1,9 +1,11 @@
 <?php
 namespace App\Service;
 
+use App\Entity\Atelier;
+use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
-use App\Entity\Devis;
+use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Twig\Environment;
@@ -15,6 +17,7 @@ class PdfService
 {
     public function __construct(
         private Environment $twig,
+        private EntityManagerInterface $em,
         private string $projectDir,
     ) {}
 
@@ -23,9 +26,12 @@ class PdfService
      */
     public function generateOrPdf(OrdreReparation $or): string
     {
+        $atelier = $this->resolveAtelier($or->getRendezVous()?->getAtelierId());
+
         $html = $this->twig->render('pdf/ordre_reparation.html.twig', [
             'or' => $or,
             'rdv' => $or->getRendezVous(),
+            ...$this->buildBrandingContext($atelier),
         ]);
 
         return $this->renderPdf($html, 'OR-' . $or->getNumeroOr());
@@ -36,8 +42,11 @@ class PdfService
      */
     public function generateFacturePdf(Facture $facture): string
     {
+        $atelier = $this->resolveAtelier($facture->getAtelierId());
+
         $html = $this->twig->render('pdf/facture.html.twig', [
             'facture' => $facture,
+            ...$this->buildBrandingContext($atelier),
         ]);
 
         return $this->renderPdf($html, 'FAC-' . $facture->getNumeroFacture());
@@ -48,11 +57,58 @@ class PdfService
      */
     public function generateDevisPdf(Devis $devis): string
     {
+        $atelier = $this->resolveAtelier($devis->getAtelierId());
+
         $html = $this->twig->render('pdf/devis.html.twig', [
             'devis' => $devis,
+            ...$this->buildBrandingContext($atelier),
         ]);
 
         return $this->renderPdf($html, 'DEV-' . $devis->getNumeroDevis());
+    }
+
+    private function buildBrandingContext(?Atelier $atelier): array
+    {
+        return [
+            'atelier' => $atelier,
+            'logo_data_uri' => $this->resolveLogoDataUri($atelier),
+        ];
+    }
+
+    private function resolveAtelier(?int $atelierId = null): ?Atelier
+    {
+        if ($atelierId) {
+            $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
+            if ($atelier) {
+                return $atelier;
+            }
+        }
+
+        return $this->em->getRepository(Atelier::class)->findOneBy([]);
+    }
+
+    private function resolveLogoDataUri(?Atelier $atelier): ?string
+    {
+        $logoUrl = $atelier?->getLogoUrl();
+        if (!$logoUrl) {
+            return null;
+        }
+
+        $relativePath = parse_url($logoUrl, PHP_URL_PATH) ?: $logoUrl;
+        $filePath = $this->projectDir . '/public' . $relativePath;
+
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return null;
+        }
+
+        $contents = file_get_contents($filePath);
+        if ($contents === false) {
+            return null;
+        }
+
+        $mimeType = mime_content_type($filePath) ?: 'image/png';
+
+        return sprintf('data:%s;base64,%s', $mimeType, base64_encode($contents));
     }
 
     /**

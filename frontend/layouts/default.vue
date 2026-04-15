@@ -1,64 +1,65 @@
 <template>
-  <div class="min-h-screen bg-transparent text-gray-100">
+  <div class="app">
     <!-- Mobile sidebar overlay -->
     <div
       v-if="appStore.sidebarOpen"
-      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+      class="sidebar-overlay"
       @click="appStore.toggleSidebar()"
     />
 
-    <!-- Sidebar -->
-    <aside
-      :class="[
-        'fixed top-0 left-0 z-50 h-full w-64 bg-[#10141d]/95 border-r border-white/10 shadow-2xl transition-transform duration-200 backdrop-blur',
-        appStore.sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      ]"
+    <!-- SIDEBAR -->
+    <nav
+      :class="['sidebar', appStore.sidebarOpen ? 'is-open' : '', isDesktop && isSidebarCollapsed ? 'is-collapsed' : '']"
+      @mouseenter="handleSidebarEnter"
+      @mouseleave="handleSidebarLeave"
+      @focusin="handleSidebarEnter"
+      @focusout="handleSidebarFocusOut"
     >
-      <div class="flex items-center gap-3 h-16 px-4 border-b border-white/10">
-        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-yellow-300 to-amber-500 text-black font-black grid place-items-center shadow">A</div>
-        <span class="font-black text-lg tracking-tight text-white">Atelier Moto</span>
+      <button class="sidebar-logo" @click="navigateTo('/')">
+        <img v-if="atelierLogoUrl" :src="atelierLogoUrl" :alt="atelierName" class="sidebar-logo-image" />
+        <span v-else class="sidebar-logo-fallback">{{ atelierInitial }}</span>
+        <span class="sidebar-logo-text">{{ atelierName }}</span>
+      </button>
+
+      <SidebarLink
+        v-for="item in menuItems"
+        :key="item.to"
+        :to="item.to"
+        :icon="item.icon"
+        :label="item.label"
+        :section="item.section"
+      />
+
+      <div class="sidebar-spacer" />
+
+      <div v-if="auth.hasSection('mecanicien')" class="meca-avatar" @click="navigateTo('/mecanicien')">
+        {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
       </div>
+      <button class="nav-btn nav-logout" @click="auth.logout()">
+        <span>⏻</span>
+        <span class="nav-label">Déconnexion</span>
+      </button>
+    </nav>
 
-      <nav class="p-3 space-y-1">
-        <SidebarLink
-          v-for="item in menuItems"
-          :key="item.to"
-          :to="item.to"
-          :icon="item.icon"
-          :label="item.label"
-          :section="item.section"
-        />
-      </nav>
-
-      <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-black/20">
-        <div class="flex items-center gap-3">
-          <UAvatar :text="auth.user.value?.prenom?.charAt(0)" size="sm" />
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium truncate text-white">{{ auth.user.value?.prenom }} {{ auth.user.value?.nom }}</p>
-            <p class="text-xs text-gray-400 truncate">{{ auth.user.value?.role }}</p>
-          </div>
-          <UButton icon="i-heroicons-arrow-right-on-rectangle" variant="ghost" size="xs" @click="auth.logout()" />
+    <!-- MAIN -->
+    <div class="main-area">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <button class="topbar-menu-btn" @click="appStore.toggleSidebar()">☰</button>
+        <div class="topbar-brand">
+          <img v-if="atelierLogoUrl" :src="atelierLogoUrl" :alt="atelierName" class="topbar-brand-logo" />
+          <span v-else class="topbar-brand-fallback">{{ atelierInitial }}</span>
+          <span class="topbar-brand-name">{{ atelierName }}</span>
         </div>
-      </div>
-    </aside>
-
-    <!-- Main content -->
-    <div class="lg:pl-64">
-      <!-- Top bar -->
-      <header class="sticky top-0 z-30 bg-[#0d121a]/80 backdrop-blur border-b border-white/10 h-16 flex items-center px-4 gap-4">
-        <UButton
-          icon="i-heroicons-bars-3"
-          variant="ghost"
-          class="lg:hidden"
-          @click="appStore.toggleSidebar()"
-        />
-        <div class="flex-1" />
-        <span class="text-sm text-gray-300">{{ auth.user.value?.atelier_nom }}</span>
-        <UColorModeButton />
+        <span class="topbar-title">{{ currentSection }}</span>
+        <div class="topbar-spacer" />
+        <div class="live-dot" />
+        <span class="topbar-live">LIVE</span>
+        <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
       </header>
 
-      <!-- Page content -->
-      <main class="p-4 lg:p-6">
+      <!-- CONTENT -->
+      <main class="content">
         <slot />
       </main>
     </div>
@@ -68,22 +69,382 @@
 <script setup lang="ts">
 const auth = useAuth()
 const appStore = useAppStore()
+const atelierStore = useAtelierStore()
+const route = useRoute()
+
+const atelierName = computed(() => atelierStore.branding?.nom || 'Atelier Moto')
+const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '')
+const atelierInitial = computed(() => atelierName.value.trim().charAt(0).toUpperCase() || 'M')
+const isDesktop = ref(false)
+const isSidebarCollapsed = ref(false)
+
+function syncSidebarMode() {
+  if (!process.client) return
+  isDesktop.value = window.innerWidth >= 1024
+  isSidebarCollapsed.value = isDesktop.value
+}
+
+function handleSidebarEnter() {
+  if (isDesktop.value) isSidebarCollapsed.value = false
+}
+
+function handleSidebarLeave() {
+  if (isDesktop.value) isSidebarCollapsed.value = true
+}
+
+function handleSidebarFocusOut(event: FocusEvent) {
+  if (!isDesktop.value) return
+
+  const currentTarget = event.currentTarget as HTMLElement | null
+  const nextTarget = event.relatedTarget as Node | null
+
+  if (!currentTarget || !nextTarget || !currentTarget.contains(nextTarget)) {
+    isSidebarCollapsed.value = true
+  }
+}
+
+onMounted(() => {
+  syncSidebarMode()
+  if (process.client) {
+    window.addEventListener('resize', syncSidebarMode)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (process.client) {
+    window.removeEventListener('resize', syncSidebarMode)
+  }
+})
+
+const sectionNames: Record<string, string> = {
+  '/': 'Dashboard',
+  '/rdv': 'Rendez-vous',
+  '/planning': 'Planning',
+  '/clients': 'Clients',
+  '/workshop': 'Atelier',
+  '/ordres': 'Dossiers atelier',
+  '/devis': 'Devis',
+  '/facturation': 'Facturation',
+  '/stock': 'Stock',
+  '/motos': 'Catalogue',
+  '/suivi': 'Suivi Live',
+  '/tarifs': 'Tarifs',
+  '/mecanicien': 'Espace Mécanicien',
+  '/admin': 'Administration',
+}
+
+const currentSection = computed(() => {
+  const path = route.path
+  if (path === '/') return 'Dashboard'
+  const base = '/' + path.split('/')[1]
+  return sectionNames[base] || 'Atelier Moto'
+})
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: 'i-heroicons-home', label: 'Dashboard', section: 'dashboard' },
-    { to: '/rdv', icon: 'i-heroicons-calendar-days', label: 'Rendez-vous', section: 'rdv' },
-    { to: '/planning', icon: 'i-heroicons-table-cells', label: 'Planning', section: 'planning' },
-    { to: '/clients', icon: 'i-heroicons-users', label: 'Clients', section: 'clients' },
-    { to: '/workshop', icon: 'i-heroicons-wrench', label: 'Atelier', section: 'workshop' },
-    { to: '/ordres', icon: 'i-heroicons-clipboard-document-list', label: 'Ordres', section: 'or' },
-    { to: '/devis', icon: 'i-heroicons-document-text', label: 'Devis', section: 'devis' },
-    { to: '/facturation', icon: 'i-heroicons-banknotes', label: 'Facturation', section: 'facturation' },
-    { to: '/stock', icon: 'i-heroicons-cube', label: 'Stock', section: 'stock' },
-    { to: '/motos', icon: 'i-heroicons-truck', label: 'Catalogue', section: 'motos' },
-    { to: '/mecanicien', icon: 'i-heroicons-user-circle', label: 'Espace Méca', section: 'mecanicien' },
-    { to: '/admin', icon: 'i-heroicons-cog-6-tooth', label: 'Admin', section: 'admin' },
+    { to: '/', icon: '📊', label: 'Dashboard', section: 'dashboard' },
+    { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
+    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
+    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
+    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },
+    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients' },
+    { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or' },
+    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos' },
+    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
+    { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
+    { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
+    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
   ]
   return items.filter(i => auth.hasSection(i.section))
 })
 </script>
+
+<style scoped>
+.app {
+  display: flex;
+  height: 100vh;
+  min-height: 600px;
+}
+
+/* === Sidebar overlay (mobile) === */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+@media (min-width: 1024px) {
+  .sidebar-overlay { display: none; }
+}
+
+/* === SIDEBAR === */
+.sidebar {
+  width: 220px;
+  background: linear-gradient(180deg, #111218 0%, #0E0F15 100%);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  gap: 2px;
+  z-index: 50;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar { width: 0; }
+
+@media (min-width: 1024px) {
+  .sidebar {
+    transition: width 0.22s ease;
+  }
+
+  .sidebar.is-collapsed {
+    width: 76px;
+  }
+
+  .sidebar.is-collapsed .sidebar-logo {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+  }
+
+  .sidebar.is-collapsed .sidebar-logo-text,
+  .sidebar.is-collapsed :deep(.nav-label),
+  .sidebar.is-collapsed .nav-label {
+    display: none;
+  }
+
+  .sidebar.is-collapsed :deep(.nav-btn),
+  .sidebar.is-collapsed .nav-logout {
+    justify-content: center;
+    gap: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar.is-collapsed .meca-avatar {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+}
+
+/* Logo */
+.sidebar-logo {
+  min-height: 58px;
+  background: linear-gradient(135deg, #FFD200, #D97706);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 0 12px 20px;
+  padding: 9px 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 12px rgba(245,158,11,0.2);
+  transition: all 0.2s;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+}
+.sidebar-logo:hover {
+  box-shadow: 0 4px 20px rgba(245,158,11,0.3);
+  transform: translateY(-1px);
+}
+.sidebar-logo-image,
+.topbar-brand-logo {
+  background: rgba(255,255,255,0.92);
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.sidebar-logo-image {
+  width: 38px;
+  height: 38px;
+  padding: 4px;
+}
+.sidebar-logo-fallback,
+.topbar-brand-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 800;
+  background: rgba(17,17,17,0.18);
+  color: #111;
+  flex-shrink: 0;
+}
+.sidebar-logo-fallback {
+  width: 38px;
+  height: 38px;
+}
+.sidebar-logo-text {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.sidebar-spacer { flex: 1; }
+
+/* Mechanic avatar */
+.meca-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #8B5CF6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  color: white;
+  margin-left: 16px;
+  margin-bottom: 4px;
+}
+.meca-avatar:hover { border-color: #8B5CF6; }
+
+/* Logout button */
+.nav-logout {
+  height: 40px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #4B5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  padding: 0 16px;
+  margin: 0 8px;
+  margin-top: 8px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.nav-logout span:first-child { font-size: 14px; width: 24px; text-align: center; }
+.nav-label { font-size: 13px; font-weight: 500; }
+.nav-logout:hover { color: #9CA3AF; background: rgba(255,255,255,0.04); }
+
+/* === MAIN AREA === */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* === TOPBAR === */
+.topbar {
+  height: 56px;
+  background: #11141B;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.topbar-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 16px;
+}
+@media (max-width: 1023px) {
+  .topbar-menu-btn { display: block; }
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  margin-right: 2px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.topbar-brand-logo {
+  width: 30px;
+  height: 30px;
+  padding: 3px;
+}
+.topbar-brand-fallback {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+.topbar-brand-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: #E8E9ED;
+}
+.topbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #E8E9ED;
+  letter-spacing: -0.2px;
+}
+.topbar-spacer { flex: 1; }
+.topbar-live {
+  font-size: 12px;
+  color: #6B7280;
+}
+.topbar-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #FFD200, #D97706);
+  color: #111;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(245,158,11,0.2);
+}
+.topbar-new-btn:hover {
+  background: linear-gradient(135deg, #FBBF24, #FFD200);
+  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+  transform: translateY(-1px);
+}
+
+/* === CONTENT === */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  scroll-behavior: smooth;
+}
+@media (max-width: 768px) {
+  .content { padding: 16px; }
+}
+</style>

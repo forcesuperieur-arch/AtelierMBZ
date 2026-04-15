@@ -14,10 +14,12 @@ type HydrationStrategies = {
 type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {}, {}, { hydrated: () => void }> & T
 
 interface _GlobalComponents {
+  AppModal: typeof import("../../components/AppModal.vue")['default']
   PlanningGrid: typeof import("../../components/PlanningGrid.vue")['default']
   SidebarLink: typeof import("../../components/SidebarLink.vue")['default']
   StatsCard: typeof import("../../components/StatsCard.vue")['default']
   StatusBadge: typeof import("../../components/StatusBadge.vue")['default']
+  UTable: typeof import("../../components/UTable.vue")['default']
   UAccordion: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']
   UAlert: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']
   UApp: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']
@@ -69,7 +71,6 @@ interface _GlobalComponents {
   USlider: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Slider.vue")['default']
   UStepper: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Stepper.vue")['default']
   USwitch: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Switch.vue")['default']
-  UTable: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Table.vue")['default']
   UTabs: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue")['default']
   UTextarea: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue")['default']
   UTimeline: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Timeline.vue")['default']
@@ -102,10 +103,12 @@ interface _GlobalComponents {
   Html: typeof import("../../node_modules/nuxt/dist/head/runtime/components")['Html']
   Body: typeof import("../../node_modules/nuxt/dist/head/runtime/components")['Body']
   NuxtIsland: typeof import("../../node_modules/nuxt/dist/app/components/nuxt-island")['default']
+  LazyAppModal: LazyComponent<typeof import("../../components/AppModal.vue")['default']>
   LazyPlanningGrid: LazyComponent<typeof import("../../components/PlanningGrid.vue")['default']>
   LazySidebarLink: LazyComponent<typeof import("../../components/SidebarLink.vue")['default']>
   LazyStatsCard: LazyComponent<typeof import("../../components/StatsCard.vue")['default']>
   LazyStatusBadge: LazyComponent<typeof import("../../components/StatusBadge.vue")['default']>
+  LazyUTable: LazyComponent<typeof import("../../components/UTable.vue")['default']>
   LazyUAccordion: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']>
   LazyUAlert: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']>
   LazyUApp: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']>
@@ -157,7 +160,6 @@ interface _GlobalComponents {
   LazyUSlider: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Slider.vue")['default']>
   LazyUStepper: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Stepper.vue")['default']>
   LazyUSwitch: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Switch.vue")['default']>
-  LazyUTable: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Table.vue")['default']>
   LazyUTabs: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue")['default']>
   LazyUTextarea: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue")['default']>
   LazyUTimeline: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/Timeline.vue")['default']>

@@ -32,6 +32,7 @@ export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composab
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useApi } from '../composables/useApi';
 export { useAuth } from '../composables/useAuth';
+export { useFormat } from '../composables/useFormat';
 export { defineLocale, extendLocale } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineLocale';
 export { extractShortcuts, defineShortcuts } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts';
 export { avatarGroupInjectionKey, useAvatarGroup } from '../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup';
@@ -45,6 +46,7 @@ export { useOverlay } from '../node_modules/@nuxt/ui/dist/runtime/composables/us
 export { portalTargetInjectionKey, usePortal } from '../node_modules/@nuxt/ui/dist/runtime/composables/usePortal';
 export { useToast } from '../node_modules/@nuxt/ui/dist/runtime/composables/useToast';
 export { useAppStore } from '../stores/app';
+export { DEFAULT_FEATURE_MODULES, DEFAULT_ATELIER_BRANDING, normalizeFeatureModules, normalizeAtelierBranding, useAtelierStore } from '../stores/atelier';
 export { useAuthStore } from '../stores/auth';
 export { useBillingStore } from '../stores/billing';
 export { useRdvStore } from '../stores/rdv';

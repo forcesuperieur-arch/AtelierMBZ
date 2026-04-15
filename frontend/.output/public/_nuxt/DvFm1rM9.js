@@ -1,0 +1,1 @@
+import{_ as o}from"./DlAUqK2U.js";import{o as c,c as s,R as t}from"./BaRp-hlj.js";const r={},n={class:"login-screen"};function a(e,_){return c(),s("div",n,[t(e.$slots,"default",{},void 0,!0)])}const l=o(r,[["render",a],["__scopeId","data-v-fac22003"]]);export{l as default};

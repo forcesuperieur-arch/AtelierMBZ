@@ -38,6 +38,10 @@ class CategorieMoto
     #[Groups(['categorie:read', 'categorie:write'])]
     private ?string $description = null;
 
+    #[ORM\Column(options: ['default' => 1])]
+    #[Groups(['categorie:read', 'categorie:write'])]
+    private int $isActive = 1;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['categorie:read'])]
     private \DateTimeInterface $createdAt;
@@ -53,5 +57,7 @@ class CategorieMoto
     public function setNom(string $v): static { $this->nom = $v; return $this; }
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(?string $v): static { $this->description = $v; return $this; }
+    public function getIsActive(): int { return $this->isActive; }
+    public function setIsActive(int $v): static { $this->isActive = $v; return $this; }
     public function getModeles(): Collection { return $this->modeles; }
 }

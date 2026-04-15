@@ -1,14 +1,16 @@
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-6">Catalogue Motos</h1>
+    <div class="page-header">
+      <div class="page-title">Catalogue Motos</div>
+    </div>
 
-    <UCard class="mb-4">
-      <div class="flex flex-wrap gap-3 items-end">
+    <UCard style="margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
         <UFormField label="Catégorie">
           <USelect v-model="selectedCat" :options="catOptions" placeholder="Toutes" />
         </UFormField>
         <UFormField label="Recherche">
-          <UInput v-model="search" placeholder="Marque, modèle..." icon="i-heroicons-magnifying-glass" />
+          <UInput v-model="search" placeholder="Marque, modèle..." />
         </UFormField>
       </div>
     </UCard>
@@ -16,7 +18,7 @@
     <UCard>
       <UTable :data="filtered" :columns="columns" :loading="loading">
         <template #actions-cell="{ row }">
-          <UButton size="xs" variant="ghost" icon="i-heroicons-eye" @click="selectedModel = row.original" />
+          <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="selectedModel = row.original">Détails</button>
         </template>
       </UTable>
     </UCard>

@@ -10,9 +10,29 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  app: {
+    head: {
+      link: [
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
+      ],
+    },
+  },
+
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
+      apiBase: '/api',
+    },
+  },
+
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
+    classSuffix: '',
+  },
+
+  nitro: {
+    routeRules: {
+      '/api/**': { proxy: 'http://localhost:8000/api/**' },
     },
   },
 
