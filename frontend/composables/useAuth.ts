@@ -1,4 +1,5 @@
 import { useAuthStore } from '~/stores/auth'
+import { useAtelierStore } from '~/stores/atelier'
 
 export function useAuth() {
   const store = useAuthStore()
@@ -15,6 +16,7 @@ export function useAuth() {
       await api.post('/auth/logout')
     } finally {
       store.clearUser()
+      useAtelierStore().clearModules()
       navigateTo('/login')
     }
   }
@@ -26,6 +28,7 @@ export function useAuth() {
       return data
     } catch {
       store.clearUser()
+      useAtelierStore().clearModules()
       return null
     }
   }
@@ -33,9 +36,13 @@ export function useAuth() {
   function hasSection(section: string): boolean {
     const perms = store.user?.role_permissions
     if (!perms) return false
+
     const sections = perms.sections_json
-    if (sections.includes('*')) return true
-    return sections.includes(section)
+    const allowedByRole = sections.includes('*') || sections.includes(section)
+    if (!allowedByRole) return false
+
+    const atelierStore = useAtelierStore()
+    return atelierStore.isModuleEnabled(section)
   }
 
   function hasPerm(perm: string): boolean {

@@ -11,8 +11,35 @@ export function useApi() {
     return { ...defaults, ...opts.headers as Record<string, string> }
   }
 
+  function previewBody(body: unknown): string | null {
+    if (!body) return null
+    if (typeof body === 'string') return body.slice(0, 500)
+    if (body instanceof FormData) return '[FormData]'
+    try {
+      return JSON.stringify(body).slice(0, 500)
+    } catch {
+      return String(body).slice(0, 500)
+    }
+  }
+
+  function logApiIssue(level: 'warn' | 'error', message: string, payload: Record<string, unknown>) {
+    if (typeof console === 'undefined') return
+    console[level](`[API] ${message}`, payload)
+  }
+
   async function $fetch<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
+    const method = String(opts.method ?? 'GET').toUpperCase()
     const url = `${baseURL}${path}`
+
+    if (url.includes('[object Object]')) {
+      logApiIssue('error', 'Invalid object interpolated into API path', {
+        method,
+        path,
+        body: previewBody(opts.body),
+      })
+      throw new Error('Invalid API path: object used instead of identifier')
+    }
+
     const res = await globalThis.fetch(url, {
       credentials: 'include',
       headers: buildHeaders(opts),
@@ -20,7 +47,6 @@ export function useApi() {
     })
 
     if (res.status === 401) {
-      // Try refresh
       const refreshed = await refreshToken()
       if (refreshed) {
         const retry = await globalThis.fetch(url, {
@@ -28,14 +54,34 @@ export function useApi() {
           headers: buildHeaders(opts),
           ...opts,
         })
-        if (!retry.ok) throw createApiError(retry)
+        if (!retry.ok) {
+          const retryText = await retry.text().catch(() => '')
+          logApiIssue('error', 'Retry after refresh failed', {
+            method,
+            path,
+            status: retry.status,
+            response: retryText.slice(0, 500),
+          })
+          throw createApiError(retry, retryText)
+        }
         return retry.status === 204 ? (null as T) : retry.json()
       }
       navigateTo('/login')
       throw new Error('Session expired')
     }
 
-    if (!res.ok) throw createApiError(res)
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => '')
+      logApiIssue('error', 'Request failed', {
+        method,
+        path,
+        status: res.status,
+        body: previewBody(opts.body),
+        response: errorText.slice(0, 500),
+      })
+      throw createApiError(res, errorText)
+    }
+
     return res.status === 204 ? (null as T) : res.json()
   }
 
@@ -51,9 +97,21 @@ export function useApi() {
     }
   }
 
-  function createApiError(res: Response) {
-    const err = new Error(`API Error ${res.status}`) as Error & { status: number }
+  function createApiError(res: Response, details = '') {
+    let message = `API Error ${res.status}`
+
+    if (details) {
+      try {
+        const parsed = JSON.parse(details)
+        message = parsed?.message || parsed?.error || parsed?.detail || message
+      } catch {
+        if (details.trim()) message = details.slice(0, 200)
+      }
+    }
+
+    const err = new Error(message) as Error & { status: number; details?: string }
     err.status = res.status
+    err.details = details
     return err
   }
 
@@ -66,7 +124,7 @@ export function useApi() {
     $fetch<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined })
 
   const patch = <T = any>(path: string, body?: any) =>
-    $fetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined })
+    $fetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, headers: { 'Content-Type': 'application/merge-patch+json' } })
 
   const del = <T = any>(path: string) =>
     $fetch<T>(path, { method: 'DELETE' })

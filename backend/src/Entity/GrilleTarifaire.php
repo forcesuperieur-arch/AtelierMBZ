@@ -16,6 +16,7 @@ class GrilleTarifaire
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixHt;
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixTtc;
     #[ORM\Column] private int $tempsMinutes;
+    #[ORM\Column(length: 50, options: ['default' => 'forfait'])] private string $typeTarif = 'forfait';
     #[ORM\Column(options: ['default' => 1])] private int $delaiJours = 1;
     #[ORM\Column(options: ['default' => 1])] private int $isActive = 1;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] private \DateTimeInterface $createdAt;
@@ -41,6 +42,8 @@ class GrilleTarifaire
     public function setPrixTtc(string $v): static { $this->prixTtc = $v; return $this; }
     public function getTempsMinutes(): int { return $this->tempsMinutes; }
     public function setTempsMinutes(int $v): static { $this->tempsMinutes = $v; return $this; }
+    public function getTypeTarif(): string { return $this->typeTarif; }
+    public function setTypeTarif(string $v): static { $this->typeTarif = $v; return $this; }
     public function getDelaiJours(): int { return $this->delaiJours; }
     public function setDelaiJours(int $v): static { $this->delaiJours = $v; return $this; }
     public function getIsActive(): int { return $this->isActive; }

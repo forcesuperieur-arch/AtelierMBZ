@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\Client;
 use App\Entity\Mecanicien;
+use App\Entity\OrdreReparation;
 use App\Entity\Pont;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
@@ -138,6 +139,16 @@ class RendezVousController extends AbstractController
 
         // Start/stop work time tracking
         if ($transitionName === 'start_travail') {
+            $ordreInitial = $this->em->getRepository(OrdreReparation::class)->findOneBy([
+                'rendezVous' => $rdv,
+            ], ['id' => 'DESC']);
+
+            if (!$ordreInitial || !$ordreInitial->getSignatureClient()) {
+                return $this->json([
+                    'error' => 'Ordre de réparation signé obligatoire avant démarrage',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
             $rdv->setHeureDebutTravail(new \DateTime());
         }
         if (in_array($transitionName, ['terminer', 'pause'])) {
@@ -205,7 +216,7 @@ class RendezVousController extends AbstractController
         // Find mecanicien linked to current user
         $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
         if (!$mecanicien) {
-            return $this->json(['error' => 'No mechanic profile found for this user'], Response::HTTP_NOT_FOUND);
+            return $this->json([]);
         }
 
         $rdvs = $this->em->getRepository(RendezVous::class)

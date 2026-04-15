@@ -54,7 +54,7 @@ class PublicBookingController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         // Validate required fields
-        $required = ['nom', 'prenom', 'telephone', 'date_rdv', 'heure_rdv', 'type_intervention'];
+        $required = ['nom', 'prenom', 'telephone', 'email', 'date_rdv', 'heure_rdv', 'type_intervention'];
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 return $this->json(['error' => "Field '$field' is required"], Response::HTTP_BAD_REQUEST);
@@ -62,6 +62,27 @@ class PublicBookingController extends AbstractController
         }
 
         $atelierId = (int) ($data['atelier_id'] ?? 1);
+        $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
+        $targetDate = new \DateTime($data['date_rdv']);
+        $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);
+        $matchingSlots = array_values(array_filter($availableSlots, static fn(array $slot) => ($slot['heure'] ?? null) === ($data['heure_rdv'] ?? null)));
+
+        if (empty($matchingSlots)) {
+            return $this->json([
+                'error' => 'Le créneau sélectionné n’est plus disponible. Merci d’en choisir un autre.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $selectedSlot = null;
+        if (!empty($data['pont_id'])) {
+            foreach ($matchingSlots as $slot) {
+                if ((int) ($slot['pont_id'] ?? 0) === (int) $data['pont_id']) {
+                    $selectedSlot = $slot;
+                    break;
+                }
+            }
+        }
+        $selectedSlot ??= $matchingSlots[0];
 
         // Find or create client
         $client = $this->em->getRepository(Client::class)->findOneBy([
@@ -104,11 +125,19 @@ class PublicBookingController extends AbstractController
         $rdv->setHeureRdv(new \DateTime($data['heure_rdv']));
         $rdv->setTypeIntervention($data['type_intervention']);
         $rdv->setCommentaire($data['commentaire'] ?? null);
+        $rdv->setTempsEstime($tempsEstime);
+        $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
         $rdv->setStatut('en_attente');
         $rdv->setAtelierId($atelierId);
 
-        if (!empty($data['pont_id'])) {
-            $rdv->setPontId((int) $data['pont_id']);
+        if (!empty($selectedSlot['pont_id'])) {
+            $pont = $this->em->getRepository(\App\Entity\Pont::class)->find((int) $selectedSlot['pont_id']);
+            if ($pont) {
+                $rdv->setPont($pont);
+                if ($pont->getMecanicien()) {
+                    $rdv->setMecanicien($pont->getMecanicien());
+                }
+            }
         }
 
         $this->em->persist($rdv);
@@ -117,7 +146,11 @@ class PublicBookingController extends AbstractController
         return $this->json([
             'id' => $rdv->getId(),
             'token_suivi' => $rdv->getTokenSuivi(),
-            'message' => 'Rendez-vous créé avec succès',
+            'message' => 'Demande de créneau enregistrée. Une confirmation vous sera envoyée par email.',
+            'date' => $rdv->getDateRdv()->format('Y-m-d'),
+            'heure' => $rdv->getHeureRdv()->format('H:i'),
+            'heure_fin' => $selectedSlot['heure_fin'] ?? null,
+            'pause_appliquee' => (bool) ($selectedSlot['pause_appliquee'] ?? false),
         ], Response::HTTP_CREATED);
     }
 }

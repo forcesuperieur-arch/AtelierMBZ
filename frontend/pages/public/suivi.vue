@@ -1,57 +1,66 @@
 <template>
-  <div class="max-w-lg w-full">
-    <UCard>
-      <template #header>
-        <div class="text-center">
-          <UIcon name="i-heroicons-magnifying-glass" class="text-4xl text-primary mb-2" />
-          <h1 class="text-xl font-bold">Suivi de rendez-vous</h1>
-        </div>
-      </template>
+  <div class="public-card">
+    <div class="public-card-header">
+      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <h1 class="text-gradient" style="font-size:22px;font-weight:800;">Suivi de rendez-vous</h1>
+    </div>
 
-      <div v-if="!rdv" class="space-y-4">
-        <UFormField label="Code de suivi">
-          <UInput v-model="token" placeholder="Entrez votre code de suivi..." icon="i-heroicons-ticket" />
-        </UFormField>
-        <UButton label="Rechercher" block @click="lookup" :loading="loading" />
-        <p v-if="error" class="text-sm text-red-500 text-center">{{ error }}</p>
+    <div v-if="!rdv" style="display:flex;flex-direction:column;gap:16px;">
+      <UFormField label="Code de suivi">
+        <UInput v-model="token" placeholder="Entrez votre code de suivi..." />
+      </UFormField>
+      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
+        {{ loading ? 'Recherche...' : 'Rechercher' }}
+      </button>
+      <p v-if="error" style="font-size:13px;color:#FCA5A5;text-align:center;">{{ error }}</p>
+    </div>
+
+    <div v-else style="display:flex;flex-direction:column;gap:16px;">
+      <div style="text-align:center;">
+        <StatusBadge :status="rdv.statut" />
       </div>
 
-      <div v-else class="space-y-4">
-        <div class="text-center mb-4">
-          <StatusBadge :status="rdv.statut" />
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+        <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date_rdv }}</span></div>
+        <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure_rdv }}</span></div>
+        <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
+        <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule ? `${rdv.vehicule.marque} ${rdv.vehicule.modele}` : '' }}</span></div>
+      </div>
 
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div><span class="text-gray-500">Date :</span> {{ rdv.date_rdv }}</div>
-          <div><span class="text-gray-500">Heure :</span> {{ rdv.heure_rdv }}</div>
-          <div><span class="text-gray-500">Type :</span> {{ rdv.type_intervention }}</div>
-          <div><span class="text-gray-500">Véhicule :</span> {{ rdv.vehicule ? `${rdv.vehicule.marque} ${rdv.vehicule.modele}` : '' }}</div>
-        </div>
-
-        <!-- Progress steps -->
-        <div class="mt-6">
-          <div class="flex items-center justify-between">
+      <!-- Progress steps -->
+      <div style="margin-top:24px;">
+        <div class="progress-steps">
+          <div
+            v-for="(step, i) in progressSteps"
+            :key="step.key"
+            class="progress-step"
+          >
             <div
-              v-for="(step, i) in progressSteps"
-              :key="step.key"
-              class="flex flex-col items-center flex-1"
+              :style="{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: '700',
+                background: step.done ? 'linear-gradient(135deg, #FFD200, #D97706)' : 'rgba(255,255,255,0.06)',
+                color: step.done ? '#111' : '#6B7280',
+                transition: 'all 0.3s',
+              }"
             >
-              <div
-                :class="[
-                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold',
-                  step.done ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
-                ]"
-              >
-                {{ i + 1 }}
-              </div>
-              <span class="text-[10px] mt-1 text-center">{{ step.label }}</span>
+              {{ i + 1 }}
             </div>
+            <span style="font-size:10px;margin-top:4px;text-align:center;color:#6B7280;">{{ step.label }}</span>
           </div>
         </div>
-
-        <UButton label="Nouvelle recherche" variant="outline" block @click="rdv = null; token = ''" class="mt-4" />
       </div>
-    </UCard>
+
+      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:rgba(255,255,255,0.06);color:#D1D5DB;margin-top:16px;" @click="rdv = null; token = ''">
+        Nouvelle recherche
+      </button>
+    </div>
   </div>
 </template>
 

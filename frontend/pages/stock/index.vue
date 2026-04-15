@@ -1,25 +1,25 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Stock — Pièces détachées</h1>
-      <UButton label="Nouvelle pièce" icon="i-heroicons-plus" @click="resetForm(); showNew = true" />
+    <div class="page-header">
+      <div class="page-title">Stock — Pièces détachées</div>
+      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
     </div>
 
-    <UCard class="mb-4">
-      <UInput v-model="search" placeholder="Rechercher une pièce..." icon="i-heroicons-magnifying-glass" @input="debouncedFetch" />
+    <UCard style="margin-bottom:16px;">
+      <UInput v-model="search" placeholder="Rechercher une pièce..." @input="debouncedFetch" />
     </UCard>
 
     <!-- Alerts -->
-    <UCard v-if="stockStore.alertes.length" class="mb-4 border-warning">
+    <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:rgba(239,68,68,0.2);">
       <template #header>
-        <h2 class="font-semibold text-warning">
-          <UIcon name="i-heroicons-exclamation-triangle" /> Alertes stock ({{ stockStore.alertes.length }})
-        </h2>
+        <span style="font-size:15px;font-weight:700;color:#FCA5A5;">
+          ⚠ Alertes stock ({{ stockStore.alertes.length }})
+        </span>
       </template>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div v-for="p in stockStore.alertes" :key="p.id" class="flex items-center justify-between text-sm p-2 bg-warning-50 dark:bg-warning-950 rounded">
-          <span>{{ p.designation }}</span>
-          <UBadge color="error" variant="subtle">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</UBadge>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div v-for="p in stockStore.alertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);">
+          <span style="color:#D1D5DB;">{{ p.designation }}</span>
+          <span class="status-badge" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</span>
         </div>
       </div>
     </UCard>
@@ -32,18 +32,18 @@
           </span>
         </template>
         <template #actions-cell="{ row }">
-          <UButton size="xs" variant="ghost" icon="i-heroicons-pencil" @click="editPiece(row.original)" />
+          <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
         </template>
       </UTable>
     </UCard>
 
     <!-- New/Edit modal -->
-    <UModal v-model:open="showNew">
+    <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><h2 class="font-semibold">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</h2></template>
-          <form @submit.prevent="savePiece" class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</span></template>
+          <form @submit.prevent="savePiece" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <UFormField label="Référence"><UInput v-model="pieceForm.reference" required /></UFormField>
               <UFormField label="Désignation"><UInput v-model="pieceForm.designation" required /></UFormField>
               <UFormField label="Prix achat HT"><UInput v-model="pieceForm.prix_achat_ht" type="number" step="0.01" /></UFormField>
@@ -51,14 +51,14 @@
               <UFormField label="Quantité stock"><UInput v-model="pieceForm.quantite_stock" type="number" /></UFormField>
               <UFormField label="Seuil alerte"><UInput v-model="pieceForm.seuil_alerte" type="number" /></UFormField>
             </div>
-            <div class="flex justify-end gap-2">
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
               <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
           </form>
         </UCard>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>
 

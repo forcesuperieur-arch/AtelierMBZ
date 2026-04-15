@@ -1,12 +1,36 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Clients</h1>
-      <UButton label="Nouveau client" icon="i-heroicons-plus" @click="showNew = true" />
+    <div class="page-header">
+      <div class="page-title">Clients</div>
+      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau client</button>
     </div>
 
-    <UCard class="mb-4">
-      <UInput v-model="search" placeholder="Rechercher un client..." icon="i-heroicons-magnifying-glass" @input="debouncedFetch" />
+    <!-- Stat cards -->
+    <div class="grid-4" style="margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="stat-label">👥 Total Clients</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--blue);" :style="{ width: '100%' }"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📅 Avec RDV</div>
+        <div class="stat-value">{{ stats.avec_rdv }}</div>
+        <div class="stat-delta" style="color:#10B981;">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🏍️ Total Véhicules</div>
+        <div class="stat-value">{{ stats.vehicules }}</div>
+        <div class="stat-delta" style="color:#9CA3AF;">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">💰 CA Total</div>
+        <div class="stat-value">{{ formatCA(stats.ca_total) }}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--orange);" :style="{ width: stats.ca_total > 0 ? '65%' : '0%' }"></div></div>
+      </div>
+    </div>
+
+    <UCard style="margin-bottom:16px;">
+      <UInput v-model="search" placeholder="Rechercher un client..." @input="debouncedFetch" />
     </UCard>
 
     <UCard>
@@ -15,32 +39,39 @@
           <span class="text-sm">{{ row.original.vehicules_count ?? 0 }} véhicule(s)</span>
         </template>
         <template #actions-cell="{ row }">
-          <UButton size="xs" variant="ghost" icon="i-heroicons-eye" :to="`/clients/${row.original.id}`" />
+          <NuxtLink :to="`/clients/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
         </template>
       </UTable>
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+        <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; fetchClients()" style="font-size:12px;padding:6px 12px;">← Préc</button>
+        <button v-for="p in visiblePages" :key="p" class="btn" :class="p === page ? 'btn-primary' : 'btn-ghost'" @click="page = p; fetchClients()" style="font-size:12px;padding:6px 12px;min-width:36px;">{{ p }}</button>
+        <button class="btn btn-ghost" :disabled="page >= totalPages" @click="page++; fetchClients()" style="font-size:12px;padding:6px 12px;">Suiv →</button>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#6B7280;margin-top:6px;">{{ totalItems }} client(s) au total</div>
     </UCard>
 
     <!-- New client modal -->
-    <UModal v-model:open="showNew">
+    <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><h2 class="font-semibold">Nouveau client</h2></template>
-          <form @submit.prevent="createClient" class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau client</span></template>
+          <form @submit.prevent="createClient" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <UFormField label="Prénom"><UInput v-model="newClient.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="newClient.nom" required /></UFormField>
               <UFormField label="Téléphone"><UInput v-model="newClient.telephone" required /></UFormField>
               <UFormField label="Email"><UInput v-model="newClient.email" type="email" /></UFormField>
             </div>
             <UFormField label="Adresse"><UInput v-model="newClient.adresse" /></UFormField>
-            <div class="flex justify-end gap-2">
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
               <UButton type="submit" label="Créer" :loading="creating" />
             </div>
           </form>
         </UCard>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>
 
@@ -52,8 +83,26 @@ const clients = ref<any[]>([])
 const search = ref('')
 const showNew = ref(false)
 const creating = ref(false)
+const page = ref(1)
+const pageSize = 50
+const totalItems = ref(0)
+const totalPages = computed(() => Math.ceil(totalItems.value / pageSize) || 1)
+const visiblePages = computed(() => {
+  const pages: number[] = []
+  const start = Math.max(1, page.value - 2)
+  const end = Math.min(totalPages.value, page.value + 2)
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
 
 const newClient = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '' })
+
+const stats = reactive({ total: 0, avec_rdv: 0, vehicules: 0, ca_total: 0 })
+
+function formatCA(val: number) {
+  if (!val) return '0 €'
+  return val >= 1000 ? `${(val / 1000).toFixed(1)}k €` : `${Math.round(val)} €`
+}
 
 const columns = [
   { key: 'nom', label: 'Nom' },
@@ -67,9 +116,13 @@ const columns = [
 async function fetchClients() {
   loading.value = true
   try {
-    const qs = search.value ? `?nom=${encodeURIComponent(search.value)}` : ''
-    const data = await api.get(`/clients${qs}`)
+    const params = new URLSearchParams()
+    if (search.value.trim()) params.set('search', search.value.trim())
+    params.set('page', String(page.value))
+    params.set('limit', String(pageSize))
+    const data = await api.get(`/clients?${params}`)
     const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+    totalItems.value = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
     clients.value = raw.map((c: any) => ({
       ...c,
       vehicules_count: c.vehicules?.length ?? 0,
@@ -82,6 +135,7 @@ async function fetchClients() {
 let timeout: ReturnType<typeof setTimeout>
 function debouncedFetch() {
   clearTimeout(timeout)
+  page.value = 1
   timeout = setTimeout(fetchClients, 300)
 }
 
@@ -100,5 +154,16 @@ async function createClient() {
   }
 }
 
-onMounted(fetchClients)
+onMounted(() => {
+  fetchClients()
+  api.get('/clients/stats').then((s: any) => {
+    if (s) Object.assign(stats, s)
+  }).catch(() => {
+    // stats not available — compute from loaded clients
+    const c = clients.value
+    stats.total = c.length
+    stats.avec_rdv = c.filter((x: any) => x.rdv_count > 0).length
+    stats.vehicules = c.reduce((a: number, x: any) => a + (x.vehicules_count ?? 0), 0)
+  })
+})
 </script>
