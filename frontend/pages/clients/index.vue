@@ -64,9 +64,13 @@
               <UFormField label="Email"><UInput v-model="newClient.email" type="email" /></UFormField>
             </div>
             <UFormField label="Adresse"><UInput v-model="newClient.adresse" /></UFormField>
+            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+              <input type="checkbox" v-model="consentRGPD" style="margin-top:3px;accent-color:#FFD200;" />
+              <span style="font-size:12px;color:#9CA3AF;">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" style="color:#FFD200;">politique de confidentialité</NuxtLink>.</span>
+            </label>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
-              <UButton type="submit" label="Créer" :loading="creating" />
+              <UButton type="submit" label="Créer" :loading="creating" :disabled="!consentRGPD" />
             </div>
           </form>
         </UCard>
@@ -96,6 +100,7 @@ const visiblePages = computed(() => {
 })
 
 const newClient = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '' })
+const consentRGPD = ref(false)
 
 const stats = reactive({ total: 0, avec_rdv: 0, vehicules: 0, ca_total: 0 })
 
@@ -142,11 +147,16 @@ function debouncedFetch() {
 async function createClient() {
   creating.value = true
   try {
-    const c = await api.post('/clients', newClient)
+    const c = await api.post('/clients', {
+      ...newClient,
+      consentDate: new Date().toISOString(),
+      consentSource: 'backoffice_form',
+    })
     clients.value.unshift(c)
     showNew.value = false
     toast.add({ title: 'Client créé', color: 'success' })
     Object.assign(newClient, { prenom: '', nom: '', telephone: '', email: '', adresse: '' })
+    consentRGPD.value = false
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {

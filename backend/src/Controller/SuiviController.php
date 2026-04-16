@@ -26,23 +26,26 @@ class SuiviController extends AbstractController
             return $this->json(['error' => 'Invalid tracking token'], Response::HTTP_NOT_FOUND);
         }
 
-        $client = $rdv->getClient();
+        // RGPD: Token expires 30 days after RDV creation
+        $expiry = (clone $rdv->getCreatedAt())->modify('+30 days');
+        if (new \DateTime() > $expiry) {
+            return $this->json(['error' => 'Tracking token expired'], Response::HTTP_GONE);
+        }
+
         $vehicule = $rdv->getVehicule();
 
+        // RGPD: Only expose non-identifying vehicle info, no client PII
         return $this->json([
             'statut' => $rdv->getStatut(),
             'date_rdv' => $rdv->getDateRdv()->format('Y-m-d'),
             'heure_rdv' => $rdv->getHeureRdv()->format('H:i'),
             'type_intervention' => $rdv->getTypeIntervention(),
-            'client_prenom' => $client->getPrenom(),
             'vehicule' => $vehicule ? [
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
-                'plaque' => $vehicule->getPlaque(),
             ] : null,
             'rapport' => $rdv->getRapportTechnicien() ? [
                 'statut' => $rdv->getRapportTechnicien()->getStatut(),
-                'recommandations' => $rdv->getRapportTechnicien()->getRecommandations(),
             ] : null,
         ]);
     }

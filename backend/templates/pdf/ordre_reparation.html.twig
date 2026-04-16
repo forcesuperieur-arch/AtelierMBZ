@@ -52,15 +52,18 @@
     <div class="info-grid">
         <div class="info-col">
             <p class="label">Client</p>
-            <p>{{ rdv.client.prenom }} {{ rdv.client.nom }}<br>
+            <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}<br>
                {{ rdv.client.telephone }}<br>
                {% if rdv.client.email %}{{ rdv.client.email }}{% endif %}</p>
         </div>
         <div class="info-col">
             <p class="label">Véhicule</p>
-            {% if rdv.vehicule %}
-            <p>{{ rdv.vehicule.marque }} {{ rdv.vehicule.modele }}<br>
-               Plaque: {{ rdv.vehicule.plaque }}<br>
+            {% set vMarque = or.snapVehiculeMarque ?? (rdv.vehicule ? rdv.vehicule.marque : '') %}
+            {% set vModele = or.snapVehiculeModele ?? (rdv.vehicule ? rdv.vehicule.modele : '') %}
+            {% set vPlaque = or.snapVehiculePlaque ?? (rdv.vehicule ? rdv.vehicule.plaque : '') %}
+            {% if vMarque or vModele %}
+            <p>{{ vMarque }} {{ vModele }}<br>
+               Plaque: {{ vPlaque }}<br>
                {% if or.kilometrage %}Km: {{ or.kilometrage }}{% endif %}</p>
             {% endif %}
         </div>

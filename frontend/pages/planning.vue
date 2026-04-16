@@ -1,13 +1,20 @@
 <template>
   <div>
     <div class="page-header">
-      <div class="page-title">Planning</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div class="page-title">Planning</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" :disabled="loading || refreshing" @click="refreshPlanning">
+            {{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}
+          </button>
+          <button v-if="canCreateRdv" class="btn btn-primary" @click="openQuickCreate()">+ RDV rapide</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-shimmer" style="height:400px;border-radius:14px;"></div>
 
     <template v-else>
-      <!-- KPI Cards -->
       <div class="grid-4" style="margin-bottom:20px;">
         <div class="planning-kpi primary">
           <div class="planning-kpi-label">CHARGE VISIBLE</div>
@@ -22,7 +29,7 @@
         <div class="planning-kpi">
           <div class="planning-kpi-label">SANS AFFECTATION</div>
           <div class="planning-kpi-value">{{ kpis.unassigned }}</div>
-          <div class="planning-kpi-sub">RDV non assignés</div>
+          <div class="planning-kpi-sub">RDV actifs non assignés</div>
         </div>
         <div class="planning-kpi" :style="kpis.late > 0 ? 'border-color:rgba(239,68,68,0.3);' : ''">
           <div class="planning-kpi-label">RETARDS</div>
@@ -31,18 +38,19 @@
         </div>
       </div>
 
-      <!-- Status Legend -->
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
-        <span style="color:#6B7280;font-weight:600;">Légende :</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Réservé</span></span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé</span></span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span style="color:#9CA3AF;">En cours</span></span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span style="color:#9CA3AF;">Terminé</span></span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);"></span><span style="color:#9CA3AF;">Facturé</span></span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);"></span><span style="color:#9CA3AF;">Annulé</span></span>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <span style="color:#6B7280;font-weight:600;">Légende :</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Réservé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span style="color:#9CA3AF;">En cours</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span style="color:#9CA3AF;">Terminé / historisé</span></span>
+        </div>
+        <div style="color:#CBD5E1;">
+          Horaires atelier : <strong style="color:#F8FAFC;">{{ hourRangeLabel }}</strong> · {{ openDaysLabel }}
+        </div>
       </div>
 
-      <!-- Mechanic Filter Chips -->
       <div v-if="mecaniciens.length" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
         <span style="font-size:12px;font-weight:600;color:#6B7280;">Mécaniciens :</span>
         <button
@@ -70,65 +78,365 @@
 
       <PlanningGrid
         :ponts="ponts"
-        :rdvs="filteredRdvs"
+        :rdvs="activePlanningRdvs"
+        :horaires="horaires"
+        :can-create="canCreateRdv"
+        :can-drag="canEditRdv"
         @select-rdv="onSelectRdv"
+        @move-rdv="onMoveRdv"
+        @create-at="onCreateAt"
       />
 
-      <!-- RDV Detail Modal -->
-      <div
-        v-if="showRdvModal && selectedRdv"
-        class="detail-modal-overlay"
-        @click.self="showRdvModal = false"
-      >
-        <div class="detail-modal-card">
-          <div class="detail-modal-header">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-weight:700;color:#E8E9ED;font-size:15px;">RDV #{{ selectedRdv.id }}</span>
-              <StatusBadge :status="selectedRdv.status" />
-            </div>
-            <button @click="showRdvModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+      <UCard v-if="historicalRdvs.length" style="margin-top:20px;">
+        <template #header>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Historique figé</span>
+            <span style="font-size:12px;color:#9CA3AF;">Les RDV terminés, facturés ou annulés sont verrouillés ici.</span>
           </div>
+        </template>
 
-          <div class="detail-modal-body">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button
+            v-for="rdv in historicalRdvs"
+            :key="`history-${rdv.id}`"
+            style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);text-align:left;cursor:pointer;"
+            @click="onSelectRdv(rdv)"
+          >
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdv.client_nom || 'Client' }} · {{ rdv.type_intervention }}</div>
+              <div style="font-size:12px;color:#9CA3AF;">{{ formatDateDisplay(rdv.date_rdv) }} à {{ rdv.heure_debut }} · {{ rdv.vehicule_info || 'Véhicule non précisé' }}</div>
+            </div>
+            <StatusBadge :status="rdv.status" />
+          </button>
+        </div>
+      </UCard>
+    </template>
+
+    <AppModal v-model:open="showQuickCreateModal" size="xl">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-weight:700;color:#E8E9ED;">Créer un RDV rapide</span>
+              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false">✕</button>
+            </div>
+          </template>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Date</label>
+                <input v-model="quickForm.date_rdv" type="date" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Heure</label>
+                <input v-model="quickForm.heure_debut" type="time" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prénom client</label>
+                <input v-model="quickForm.client_prenom" class="form-input" placeholder="Jean" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nom client</label>
+                <input v-model="quickForm.client_nom" class="form-input" placeholder="Dupont" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input v-model="quickForm.client_telephone" class="form-input" placeholder="06…" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input v-model="quickForm.client_email" type="email" class="form-input" placeholder="client@email.fr" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Marque</label>
+                <input v-model="quickForm.vehicule_marque" class="form-input" placeholder="Yamaha" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Modèle</label>
+                <input v-model="quickForm.vehicule_modele" class="form-input" placeholder="MT-07" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Plaque</label>
+                <input v-model="quickForm.vehicule_plaque" class="form-input" placeholder="AA-123-BB" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type / prestation libre</label>
+                <input v-model="quickForm.type_intervention" class="form-input" placeholder="Révision / vidange" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mécanicien</label>
+                <select v-model="quickForm.mecanicien_id" class="form-input">
+                  <option :value="null">Non assigné</option>
+                  <option v-for="m in mecaniciens" :key="`create-m-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pont</label>
+                <select v-model="quickForm.pont_id" class="form-input">
+                  <option :value="null">Non assigné</option>
+                  <option v-for="p in ponts" :key="`create-p-${p.id}`" :value="p.id">{{ p.nom }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="prestations.length">
+              <div class="form-label" style="margin-bottom:8px;">Prestations atelier</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:220px;overflow:auto;">
+                <label
+                  v-for="presta in prestations"
+                  :key="presta.id"
+                  style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer;"
+                >
+                  <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
+                  <div>
+                    <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
+                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ presta.temps_estime_minutes || 60 }} min</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Commentaire</label>
+                <textarea v-model="quickForm.commentaire" class="form-input" rows="3" placeholder="Description du besoin client…"></textarea>
+              </div>
+              <div style="min-width:180px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+                <div style="font-size:11px;color:#9CA3AF;">Estimé</div>
+                <div style="font-size:18px;font-weight:800;color:#FFD200;">{{ formatCurrency(quickEstimateTotal) }}</div>
+                <div style="font-size:12px;color:#CBD5E1;">{{ quickEstimateDuration }} min</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button class="btn btn-ghost" @click="showQuickCreateModal = false">Annuler</button>
+              <button class="btn btn-primary" :disabled="quickSubmitting" @click="submitQuickCreate">
+                {{ quickSubmitting ? 'Création…' : 'Créer le RDV' }}
+              </button>
+            </div>
+          </div>
+        </UCard>
+      </template>
+    </AppModal>
+
+    <AppModal v-model:open="showRdvModal" size="xl">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-weight:700;color:#E8E9ED;font-size:15px;">RDV #{{ selectedRdv?.id }}</span>
+                <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
+                <span v-if="selectedIsHistorical" style="font-size:11px;color:#10B981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
+              </div>
+              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showRdvModal = false">✕</button>
+            </div>
+          </template>
+
+          <div v-if="modalLoading" style="padding:16px;color:#9CA3AF;">Chargement du rendez-vous…</div>
+
+          <div v-else-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-              <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ selectedRdv.date_rdv }}</span></div>
+              <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
               <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
-              <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.type_intervention }}</span></div>
-              <div><span style="color:#6B7280;">Durée :</span> <span style="color:#D1D5DB;">{{ selectedRdv.temps_estime ?? '—' }} min</span></div>
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom }}</span></div>
+              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span></div>
               <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule_info || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || '—' }}</span></div>
+              <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
               <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
             </div>
 
-            <div v-if="!selectedRdv.mecanicien_id || !selectedRdv.pont_id" style="margin-top:12px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
-              ⚠️ {{ !selectedRdv.mecanicien_id ? 'Aucun mécanicien assigné' : '' }}{{ !selectedRdv.mecanicien_id && !selectedRdv.pont_id ? ' · ' : '' }}{{ !selectedRdv.pont_id ? 'Aucun pont assigné' : '' }}
+            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Édition rapide / affectation</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label class="form-label">Date</label>
+                  <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Heure</label>
+                  <input v-model="editForm.heure_debut" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Prestation / type</label>
+                  <input v-model="editForm.type_intervention" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Durée estimée (min)</label>
+                  <input v-model.number="editForm.temps_estime" type="number" min="15" step="15" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Mécanicien</label>
+                  <select v-model="editForm.mecanicien_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                    <option :value="null">Non assigné</option>
+                    <option v-for="m in mecaniciens" :key="`edit-m-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Pont</label>
+                  <select v-model="editForm.pont_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                    <option :value="null">Non assigné</option>
+                    <option v-for="p in ponts" :key="`edit-p-${p.id}`" :value="p.id">{{ p.nom }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top:12px;">
+                <label class="form-label">Commentaire</label>
+                <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Notes réception / atelier…"></textarea>
+              </div>
+
+              <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
+                Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
+              </div>
+
+              <div v-if="selectedRdv.status === 'confirme' || selectedRdv.status === 'reserve' || selectedRdv.status === 'reception'" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                <div class="form-group">
+                  <label class="form-label">Kilométrage réception</label>
+                  <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="Optionnel" :disabled="selectedIsHistorical" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">État véhicule</label>
+                  <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Bon état / rayure / etc." :disabled="selectedIsHistorical" />
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                <button class="btn btn-ghost" @click="showRdvModal = false">Fermer</button>
+                <button v-if="canEditRdv && !selectedIsHistorical" class="btn btn-primary" :disabled="editSaving" @click="saveRdvChanges">
+                  {{ editSaving ? 'Sauvegarde…' : 'Enregistrer les modifications' }}
+                </button>
+                <button v-if="canDeleteSelected" class="btn" style="background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);" :disabled="deleting" @click="deleteSelectedRdv">
+                  {{ deleting ? 'Suppression…' : 'Supprimer le RDV' }}
+                </button>
+              </div>
             </div>
 
-            <div v-if="selectedRdv.commentaire" style="margin-top:12px;font-size:13px;">
-              <span style="color:#6B7280;">Description :</span>
-              <p style="color:#D1D5DB;margin-top:4px;">{{ selectedRdv.commentaire }}</p>
+            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Workflow atelier</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button
+                  v-for="transition in availableTransitions"
+                  :key="transition.name"
+                  class="btn"
+                  :style="transitionButtonStyle(transition.color)"
+                  :disabled="transitioning === transition.name || selectedIsHistorical"
+                  @click="applyTransition(transition.name)"
+                >
+                  {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
+                </button>
+              </div>
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
-              <NuxtLink :to="`/rdv/${selectedRdv.id}`" class="btn btn-primary" style="font-size:12px;padding:6px 14px;text-decoration:none;" @click="showRdvModal = false">Ouvrir la fiche →</NuxtLink>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div v-if="selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire }}</div>
+              <NuxtLink :to="`/rdv/${selectedRdv.id}`" class="btn btn-primary" style="text-decoration:none;" @click="showRdvModal = false">Ouvrir la fiche complète →</NuxtLink>
             </div>
           </div>
-        </div>
-      </div>
-    </template>
+        </UCard>
+      </template>
+    </AppModal>
   </div>
 </template>
 
 <script setup lang="ts">
 const api = useApi()
+const toast = useToast()
+const rdvStore = useRdvStore()
+const { hasPerm } = useAuth()
+
 const loading = ref(true)
+const refreshing = ref(false)
+const modalLoading = ref(false)
+const quickSubmitting = ref(false)
+const editSaving = ref(false)
+const deleting = ref(false)
+const transitioning = ref('')
+
 const ponts = ref<any[]>([])
 const rawRdvs = ref<any[]>([])
 const mecaniciens = ref<any[]>([])
+const horaires = ref<any[]>([])
+const prestations = ref<any[]>([])
 const activeMecas = ref<number[]>([])
+const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
+
 const showRdvModal = ref(false)
-const selectedRdv = ref<any>(null)
+const showQuickCreateModal = ref(false)
+const selectedRdv = ref<any | null>(null)
+const quickSelectedPrestas = ref<number[]>([])
+
+const HISTORY_STATUSES = ['termine', 'restitue', 'facture', 'paye', 'annule']
+const PRESTATION_LOCK_STATUSES = ['reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye']
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+const editForm = reactive({
+  date_rdv: '',
+  heure_debut: '09:00',
+  type_intervention: '',
+  temps_estime: 60,
+  commentaire: '',
+  mecanicien_id: null as number | null,
+  pont_id: null as number | null,
+})
+
+const receptionForm = reactive({
+  kilometrage: '',
+  etat_vehicule: '',
+})
+
+const quickForm = reactive({
+  date_rdv: new Date().toISOString().slice(0, 10),
+  heure_debut: '09:00',
+  client_prenom: '',
+  client_nom: '',
+  client_telephone: '',
+  client_email: '',
+  vehicule_marque: '',
+  vehicule_modele: '',
+  vehicule_plaque: '',
+  type_intervention: '',
+  commentaire: '',
+  mecanicien_id: null as number | null,
+  pont_id: null as number | null,
+})
+
+const transitionCatalog: Record<string, { label: string; color: string }> = {
+  reserver: { label: '📌 Réserver', color: 'neutral' },
+  confirmer: { label: '✅ Confirmer', color: 'primary' },
+  reception: { label: '📥 Réceptionner', color: 'warning' },
+  start_travail: { label: '🔧 Démarrer', color: 'warning' },
+  terminer: { label: '✅ Terminer', color: 'success' },
+  restituer: { label: '🚚 Restituer', color: 'info' },
+  facturer: { label: '💶 Facturer', color: 'primary' },
+  payer: { label: '💳 Encaisser', color: 'success' },
+  annuler: { label: '❌ Annuler', color: 'error' },
+}
+
+const canCreateRdv = computed(() => hasPerm('rdv.create'))
+const canEditRdv = computed(() => hasPerm('rdv.edit'))
+const canDeleteRdv = computed(() => hasPerm('rdv.delete'))
+const selectedIsHistorical = computed(() => isHistoricalStatus(selectedRdv.value?.status ?? selectedRdv.value?.statut))
+const prestationLocked = computed(() => PRESTATION_LOCK_STATUSES.includes(selectedRdv.value?.status ?? selectedRdv.value?.statut ?? ''))
+const canDeleteSelected = computed(() => canDeleteRdv.value && !!selectedRdv.value && !selectedIsHistorical.value)
+
+const quickSelectedPrestations = computed(() => prestations.value.filter((presta: any) => quickSelectedPrestas.value.includes(Number(presta.id))))
+const quickEstimateTotal = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.prix_base_ttc ?? presta.prix_base_ht), 0))
+const quickEstimateDuration = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.temps_estime_minutes, 60), 0) || 60)
+
+function unwrapList(data: any) {
+  return data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+}
+
+function toNumber(value: any, fallback = 0) {
+  const parsed = Number(value ?? fallback)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function toNullableNumber(value: any) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
 
 function normalizeDateValue(value: unknown): string {
   const raw = value ? String(value) : ''
@@ -141,69 +449,164 @@ function normalizeTimeValue(value: unknown): string {
   return match ? `${match[1]}:${match[2]}` : ''
 }
 
-const normalizedRdvs = computed(() => rawRdvs.value.map(r => ({
-  ...r,
-  status: r.statut ?? r.status,
-  client_nom: r.client ? `${r.client.prenom ?? ''} ${r.client.nom ?? ''}`.trim() : (r.client_nom ?? ''),
-  vehicule_info: r.vehicule ? `${r.vehicule.marque ?? ''} ${r.vehicule.modele ?? ''}`.trim() : (r.vehicule_info ?? ''),
-  heure_debut: normalizeTimeValue(r.heure_rdv ?? r.heureRdv ?? r.heure_debut),
-  pont_id: r.pont?.id ?? r.pont_id,
-  date_rdv: normalizeDateValue(r.date_rdv ?? r.dateRdv),
-  type_intervention: r.type_intervention ?? r.typeIntervention,
-  temps_estime: r.temps_estime ?? r.tempsEstime ?? r.duree_estimee,
-  mecanicien_id: r.mecanicien?.id ?? r.mecanicien_id,
-  mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : '',
-})))
+function normalizeHoraire(item: any) {
+  return {
+    ...item,
+    jour_semaine: Number(item.jour_semaine ?? item.jourSemaine ?? 0),
+    heure_ouverture: item.heure_ouverture ?? item.heureOuverture ?? '10:00',
+    heure_fermeture: item.heure_fermeture ?? item.heureFermeture ?? '19:00',
+    pause_debut: item.pause_debut ?? item.pauseDebut ?? null,
+    pause_fin: item.pause_fin ?? item.pauseFin ?? null,
+    is_ouvert: Number(item.is_ouvert ?? item.isOuvert ?? 1),
+  }
+}
 
-const filteredRdvs = computed(() => {
-  if (!activeMecas.value.length) return normalizedRdvs.value
-  return normalizedRdvs.value.filter(r => activeMecas.value.includes(r.mecanicien_id))
+function defaultHoraires() {
+  return DAY_LABELS.map((_, index) => ({
+    jour_semaine: index,
+    heure_ouverture: '10:00',
+    heure_fermeture: '19:00',
+    pause_debut: index > 0 && index < 6 ? '12:00' : null,
+    pause_fin: index > 0 && index < 6 ? '13:30' : null,
+    is_ouvert: index !== 0 && index !== 6 ? 1 : 0,
+  }))
+}
+
+function normalizeHoraires(items: any) {
+  const source = Array.isArray(items) ? items : unwrapList(items)
+  const fallback = defaultHoraires()
+  if (!source.length) return fallback
+
+  return DAY_LABELS.map((_, index) => {
+    const found = source.find((h: any) => Number(h.jour_semaine ?? h.jourSemaine) === index)
+    return found
+      ? {
+          ...fallback[index],
+          ...normalizeHoraire(found),
+          jour_semaine: index,
+        }
+      : fallback[index]
+  })
+}
+
+function normalizePrestation(item: any) {
+  return {
+    ...item,
+    prix_base_ht: toNumber(item.prix_base_ht ?? item.prixBaseHt),
+    prix_base_ttc: toNumber(item.prix_base_ttc ?? item.prixBaseTtc),
+    temps_estime_minutes: toNumber(item.temps_estime_minutes ?? item.tempsEstimeMinutes, 60),
+  }
+}
+
+function normalizeRdv(r: any) {
+  if (!r) return null
+  return {
+    ...r,
+    status: r.statut ?? r.status,
+    statut: r.statut ?? r.status,
+    client_nom: r.client ? `${r.client.prenom ?? ''} ${r.client.nom ?? ''}`.trim() : (r.client_nom ?? ''),
+    vehicule_info: r.vehicule ? `${r.vehicule.marque ?? ''} ${r.vehicule.modele ?? ''}`.trim() : (r.vehicule_info ?? ''),
+    heure_debut: normalizeTimeValue(r.heure_rdv ?? r.heureRdv ?? r.heure_debut),
+    pont_id: r.pont?.id ?? toNullableNumber(r.pont_id),
+    date_rdv: normalizeDateValue(r.date_rdv ?? r.dateRdv),
+    type_intervention: r.type_intervention ?? r.typeIntervention ?? '',
+    temps_estime: toNumber(r.temps_estime ?? r.tempsEstime ?? r.duree_estimee, 60),
+    mecanicien_id: r.mecanicien?.id ?? toNullableNumber(r.mecanicien_id),
+    mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : (r.mecanicien_nom ?? ''),
+  }
+}
+
+function isHistoricalStatus(status?: string) {
+  return HISTORY_STATUSES.includes(String(status || ''))
+}
+
+const normalizedRdvs = computed(() => rawRdvs.value.map(normalizeRdv).filter(Boolean))
+
+const activePlanningRdvs = computed(() => {
+  const active = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
+  if (!activeMecas.value.length) return active
+  return active.filter((rdv: any) => activeMecas.value.includes(rdv.mecanicien_id))
+})
+
+const historicalRdvs = computed(() => {
+  const all = normalizedRdvs.value.filter((rdv: any) => isHistoricalStatus(rdv.status))
+  return all.sort((a: any, b: any) => `${b.date_rdv} ${b.heure_debut}`.localeCompare(`${a.date_rdv} ${a.heure_debut}`))
+})
+
+const openDaysLabel = computed(() => {
+  const openDays = horaires.value.filter((horaire: any) => Number(horaire.is_ouvert) === 1).map((horaire: any) => DAY_LABELS[horaire.jour_semaine])
+  return openDays.length ? openDays.join(' · ') : 'jours non configurés'
+})
+
+const hourRangeLabel = computed(() => {
+  const openHours = horaires.value.filter((horaire: any) => Number(horaire.is_ouvert) === 1)
+  if (!openHours.length) return '10:00 → 19:00'
+  const starts = openHours.map((horaire: any) => String(horaire.heure_ouverture || '10:00'))
+  const ends = openHours.map((horaire: any) => String(horaire.heure_fermeture || '19:00'))
+  return `${starts.sort()[0]} → ${ends.sort().slice(-1)[0]}`
 })
 
 const kpis = computed(() => {
-  const rdvs = normalizedRdvs.value
+  const rdvs = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
   const today = new Date().toISOString().slice(0, 10)
-  const todayRdvs = rdvs.filter(r => r.date_rdv === today)
-  const enCours = todayRdvs.filter(r => r.status === 'en_cours').length
+  const todayRdvs = rdvs.filter((rdv: any) => rdv.date_rdv === today)
+  const enCours = todayRdvs.filter((rdv: any) => rdv.status === 'en_cours').length
   const total = todayRdvs.length
-  const unassigned = rdvs.filter(r => !r.mecanicien_id && !['annule', 'paye', 'facture'].includes(r.status)).length
-  const late = todayRdvs.filter(r => {
-    if (!['confirme', 'reception'].includes(r.status)) return false
-    const h = r.heure_debut?.split(':')
-    if (!h) return false
-    const now = new Date()
+  const unassigned = rdvs.filter((rdv: any) => !rdv.mecanicien_id || !rdv.pont_id).length
+  const late = todayRdvs.filter((rdv: any) => {
+    if (!['confirme', 'reserve', 'reception'].includes(rdv.status)) return false
+    const [hour, minute] = String(rdv.heure_debut || '00:00').split(':').map(Number)
     const scheduled = new Date()
-    scheduled.setHours(Number(h[0]), Number(h[1]), 0)
-    return (now.getTime() - scheduled.getTime()) > 600000
+    scheduled.setHours(hour || 0, minute || 0, 0, 0)
+    return Date.now() - scheduled.getTime() > 10 * 60 * 1000
   }).length
 
-  // Detect conflicts: same pont or same mechanic at overlapping times
-  const conflictCount = (() => {
-    let count = 0
-    const active = rdvs.filter(r => !['annule', 'paye', 'facture', 'restitue'].includes(r.status))
-    for (let i = 0; i < active.length; i++) {
-      for (let j = i + 1; j < active.length; j++) {
-        const a = active[i]; const b = active[j]
-        if (a.date_rdv !== b.date_rdv) continue
-        if (!a.heure_debut || !b.heure_debut) continue
-        const aStart = timeToMin(a.heure_debut); const bStart = timeToMin(b.heure_debut)
-        const aEnd = aStart + (a.temps_estime || 60); const bEnd = bStart + (b.temps_estime || 60)
-        const overlaps = aStart < bEnd && bStart < aEnd
-        if (!overlaps) continue
-        if ((a.pont_id && a.pont_id === b.pont_id) || (a.mecanicien_id && a.mecanicien_id === b.mecanicien_id)) count++
-      }
+  let conflicts = 0
+  for (let i = 0; i < rdvs.length; i++) {
+    for (let j = i + 1; j < rdvs.length; j++) {
+      const a = rdvs[i]
+      const b = rdvs[j]
+      if (a.date_rdv !== b.date_rdv) continue
+      const startA = timeToMin(a.heure_debut)
+      const startB = timeToMin(b.heure_debut)
+      const endA = startA + toNumber(a.temps_estime, 60)
+      const endB = startB + toNumber(b.temps_estime, 60)
+      const overlap = startA < endB && startB < endA
+      if (!overlap) continue
+      if ((a.pont_id && a.pont_id === b.pont_id) || (a.mecanicien_id && a.mecanicien_id === b.mecanicien_id)) conflicts += 1
     }
-    return count
-  })()
+  }
 
   return {
     charge: `${enCours}/${total}`,
-    chargeDetail: `${total} RDV planifiés`,
-    conflicts: conflictCount,
+    chargeDetail: `${total} RDV actifs du jour`,
+    conflicts,
     unassigned,
     late,
   }
 })
+
+function transitionButtonStyle(color: string) {
+  if (color === 'error') return 'background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);'
+  if (color === 'success') return 'background:rgba(16,185,129,0.14);color:#6EE7B7;border-color:rgba(16,185,129,0.28);'
+  if (color === 'warning') return 'background:rgba(245,158,11,0.14);color:#FBBF24;border-color:rgba(245,158,11,0.28);'
+  if (color === 'info') return 'background:rgba(59,130,246,0.14);color:#93C5FD;border-color:rgba(59,130,246,0.28);'
+  return 'background:rgba(255,255,255,0.05);color:#E8E9ED;border-color:rgba(255,255,255,0.12);'
+}
+
+function formatCurrency(value: any) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(toNumber(value))
+}
+
+function formatDateDisplay(value: string) {
+  if (!value) return '—'
+  return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function timeToMin(value: string) {
+  const [hours, minutes] = String(value || '00:00').split(':').map(Number)
+  return (hours || 0) * 60 + (minutes || 0)
+}
 
 function toggleMeca(id: number) {
   const idx = activeMecas.value.indexOf(id)
@@ -211,29 +614,272 @@ function toggleMeca(id: number) {
   else activeMecas.value.push(id)
 }
 
-function timeToMin(t: string): number {
-  const [h, m] = (t || '0:0').split(':').map(Number)
-  return (h || 0) * 60 + (m || 0)
+function fallbackTransitionsForStatus(status?: string) {
+  const byStatus: Record<string, string[]> = {
+    en_attente: ['reserver', 'confirmer', 'annuler'],
+    reserve: ['confirmer', 'reception', 'annuler'],
+    confirme: ['reception', 'annuler'],
+    reception: ['start_travail'],
+    en_cours: ['terminer'],
+    termine: ['restituer', 'facturer'],
+    restitue: ['facturer'],
+    facture: ['payer'],
+  }
+
+  return (byStatus[String(status || '')] || []).map((name) => ({
+    name,
+    label: transitionCatalog[name]?.label ?? name,
+    color: transitionCatalog[name]?.color ?? 'neutral',
+  }))
 }
 
-function onSelectRdv(rdv: any) {
-  selectedRdv.value = rdv
+function hydrateEditForms(rdv: any) {
+  if (!rdv) return
+  editForm.date_rdv = rdv.date_rdv || new Date().toISOString().slice(0, 10)
+  editForm.heure_debut = rdv.heure_debut || '09:00'
+  editForm.type_intervention = rdv.type_intervention || ''
+  editForm.temps_estime = toNumber(rdv.temps_estime, 60)
+  editForm.commentaire = rdv.commentaire || ''
+  editForm.mecanicien_id = toNullableNumber(rdv.mecanicien?.id ?? rdv.mecanicien_id)
+  editForm.pont_id = toNullableNumber(rdv.pont?.id ?? rdv.pont_id)
+  receptionForm.kilometrage = rdv.kilometrage ? String(rdv.kilometrage) : ''
+  receptionForm.etat_vehicule = rdv.etat_vehicule || rdv.etatVehicule || ''
+}
+
+function resetQuickForm(prefill?: { date?: string; time?: string }) {
+  quickForm.date_rdv = prefill?.date || new Date().toISOString().slice(0, 10)
+  quickForm.heure_debut = prefill?.time || '09:00'
+  quickForm.client_prenom = ''
+  quickForm.client_nom = ''
+  quickForm.client_telephone = ''
+  quickForm.client_email = ''
+  quickForm.vehicule_marque = ''
+  quickForm.vehicule_modele = ''
+  quickForm.vehicule_plaque = ''
+  quickForm.type_intervention = ''
+  quickForm.commentaire = ''
+  quickForm.mecanicien_id = null
+  quickForm.pont_id = null
+  quickSelectedPrestas.value = []
+}
+
+function openQuickCreate(prefill?: { date?: string; time?: string }) {
+  resetQuickForm(prefill)
+  showQuickCreateModal.value = true
+}
+
+async function refreshPlanning() {
+  refreshing.value = true
+  try {
+    await loadPlanningData()
+    if (selectedRdv.value?.id) {
+      await reloadSelectedRdv(selectedRdv.value.id)
+    }
+  } finally {
+    refreshing.value = false
+  }
+}
+
+async function loadPlanningData() {
+  const [p, r, m, h, prestaData, configData] = await Promise.all([
+    api.get('/ponts').catch(() => []),
+    api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
+    api.get('/mecaniciens').catch(() => []),
+    api.get('/config/horaires').catch(() => []),
+    api.get('/prestations?itemsPerPage=200').catch(() => []),
+    api.get('/config').catch(() => null),
+  ])
+
+  ponts.value = unwrapList(p)
+  rawRdvs.value = unwrapList(r)
+  mecaniciens.value = unwrapList(m)
+  horaires.value = normalizeHoraires(unwrapList(h).length ? h : (configData as any)?.horaires ?? [])
+  prestations.value = unwrapList(prestaData).map(normalizePrestation).filter((item: any) => item.is_active !== false && item.is_active !== 0)
+}
+
+async function loadAvailableTransitions(id: number) {
+  try {
+    const data = await api.get(`/rendez-vous/${id}/transitions`)
+    const transitions = Array.isArray(data?.transitions) ? data.transitions : []
+    availableTransitions.value = transitions.map((name: string) => ({
+      name,
+      label: transitionCatalog[name]?.label ?? name,
+      color: transitionCatalog[name]?.color ?? 'neutral',
+    }))
+  } catch {
+    availableTransitions.value = fallbackTransitionsForStatus(selectedRdv.value?.status)
+  }
+}
+
+async function reloadSelectedRdv(id: number) {
+  await rdvStore.fetchRdv(id)
+  const fresh = normalizeRdv(rdvStore.currentRdv)
+  if (fresh) {
+    selectedRdv.value = fresh
+    hydrateEditForms(fresh)
+    await loadAvailableTransitions(id)
+  }
+}
+
+async function onSelectRdv(rdv: any) {
   showRdvModal.value = true
+  modalLoading.value = true
+  selectedRdv.value = normalizeRdv(rdv)
+  hydrateEditForms(selectedRdv.value)
+  try {
+    await reloadSelectedRdv(Number(rdv.id))
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+async function onMoveRdv(payload: { id: number; date: string; time: string }) {
+  if (!canEditRdv.value) return
+  try {
+    await rdvStore.updateRdv(payload.id, {
+      date_rdv: payload.date,
+      dateRdv: payload.date,
+      heure_rdv: payload.time,
+      heure_debut: payload.time,
+      heureRdv: `${payload.time}:00`,
+    })
+    toast.add({ title: 'RDV déplacé', color: 'success' })
+    await refreshPlanning()
+  } catch (e: any) {
+    toast.add({ title: 'Déplacement impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  }
+}
+
+function onCreateAt(payload: { date: string; time: string }) {
+  if (!canCreateRdv.value) return
+  openQuickCreate(payload)
+}
+
+async function submitQuickCreate() {
+  if (!quickForm.client_nom.trim()) {
+    toast.add({ title: 'Nom client requis', color: 'warning' })
+    return
+  }
+
+  quickSubmitting.value = true
+  try {
+    const typeIntervention = quickSelectedPrestations.value.map((item: any) => item.nom).join(', ') || quickForm.type_intervention || 'entretien'
+
+    const payload = {
+      date_rdv: quickForm.date_rdv,
+      heure_debut: quickForm.heure_debut,
+      client_prenom: quickForm.client_prenom.trim(),
+      client_nom: quickForm.client_nom.trim(),
+      client_telephone: quickForm.client_telephone.trim(),
+      client_email: quickForm.client_email.trim(),
+      vehicule_marque: quickForm.vehicule_marque.trim(),
+      vehicule_modele: quickForm.vehicule_modele.trim(),
+      vehicule_plaque: quickForm.vehicule_plaque.trim(),
+      type_intervention: typeIntervention,
+      description_probleme: quickForm.commentaire,
+      commentaire: quickForm.commentaire,
+      duree_estimee: quickEstimateDuration.value,
+      temps_estime: quickEstimateDuration.value,
+      prix_estime: quickEstimateTotal.value || null,
+      mecanicien_id: toNullableNumber(quickForm.mecanicien_id),
+      pont_id: toNullableNumber(quickForm.pont_id),
+    }
+
+    const created = await rdvStore.createRdv(payload)
+    showQuickCreateModal.value = false
+    toast.add({ title: 'RDV créé', color: 'success' })
+    await refreshPlanning()
+    if (created?.id) await onSelectRdv(created)
+  } catch (e: any) {
+    toast.add({ title: 'Création impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    quickSubmitting.value = false
+  }
+}
+
+async function saveRdvChanges() {
+  if (!selectedRdv.value?.id || !canEditRdv.value || selectedIsHistorical.value) return
+
+  editSaving.value = true
+  try {
+    const payload: any = {
+      date_rdv: editForm.date_rdv,
+      dateRdv: editForm.date_rdv,
+      heure_rdv: editForm.heure_debut,
+      heure_debut: editForm.heure_debut,
+      heureRdv: `${editForm.heure_debut}:00`,
+      commentaire: editForm.commentaire,
+      pont_id: toNullableNumber(editForm.pont_id),
+      mecanicien_id: toNullableNumber(editForm.mecanicien_id),
+      pont: toNullableNumber(editForm.pont_id) ? `/api/ponts/${toNullableNumber(editForm.pont_id)}` : null,
+      mecanicien: toNullableNumber(editForm.mecanicien_id) ? `/api/mecaniciens/${toNullableNumber(editForm.mecanicien_id)}` : null,
+    }
+
+    if (!prestationLocked.value) {
+      payload.type_intervention = editForm.type_intervention
+      payload.typeIntervention = editForm.type_intervention
+      payload.temps_estime = toNumber(editForm.temps_estime, 60)
+      payload.tempsEstime = toNumber(editForm.temps_estime, 60)
+    }
+
+    await rdvStore.updateRdv(selectedRdv.value.id, payload)
+    toast.add({ title: 'RDV mis à jour', color: 'success' })
+    await refreshPlanning()
+  } catch (e: any) {
+    toast.add({ title: 'Modification impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    editSaving.value = false
+  }
+}
+
+async function applyTransition(name: string) {
+  if (!selectedRdv.value?.id || selectedIsHistorical.value) return
+  if (name === 'annuler' && !globalThis.confirm?.('Confirmer l\'annulation du rendez-vous ?')) return
+
+  transitioning.value = name
+  try {
+    const payload: any = {
+      pont_id: toNullableNumber(editForm.pont_id),
+      mecanicien_id: toNullableNumber(editForm.mecanicien_id),
+    }
+
+    if (name === 'reception') {
+      if (receptionForm.kilometrage) payload.kilometrage = toNumber(receptionForm.kilometrage)
+      if (receptionForm.etat_vehicule.trim()) payload.etat_vehicule = receptionForm.etat_vehicule.trim()
+    }
+
+    await api.post(`/rendez-vous/${selectedRdv.value.id}/transition/${name}`, payload)
+    toast.add({ title: 'Transition effectuée', color: 'success' })
+    await refreshPlanning()
+  } catch (e: any) {
+    toast.add({ title: 'Transition impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    transitioning.value = ''
+  }
+}
+
+async function deleteSelectedRdv() {
+  if (!selectedRdv.value?.id || !canDeleteSelected.value) return
+  const confirmed = globalThis.confirm?.('Supprimer définitivement ce rendez-vous ?')
+  if (confirmed === false) return
+
+  deleting.value = true
+  try {
+    await api.del(`/rendez-vous/${selectedRdv.value.id}`)
+    showRdvModal.value = false
+    selectedRdv.value = null
+    toast.add({ title: 'RDV supprimé', color: 'success' })
+    await refreshPlanning()
+  } catch (e: any) {
+    toast.add({ title: 'Suppression impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(async () => {
   try {
-    const [p, r, m] = await Promise.all([
-      api.get('/ponts'),
-      api.get('/rendez-vous?itemsPerPage=200'),
-      api.get('/mecaniciens').catch(() => []),
-    ])
-    const pontItems = Array.isArray(p) ? p : (p['hydra:member'] ?? p['member'] ?? [])
-    const rdvItems = Array.isArray(r) ? r : (r['hydra:member'] ?? r['member'] ?? [])
-    const mecaItems = Array.isArray(m) ? m : (m?.['hydra:member'] ?? m?.member ?? [])
-    ponts.value = pontItems
-    rawRdvs.value = rdvItems
-    mecaniciens.value = mecaItems
+    await loadPlanningData()
   } finally {
     loading.value = false
   }

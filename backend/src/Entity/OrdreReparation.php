@@ -60,11 +60,45 @@ class OrdreReparation
     #[Groups(['ordre:read'])]
     private ?string $signatureClient = null;
 
+    // --- RGPD: Snapshot fields ---
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $snapClientNom = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $snapClientPrenom = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $snapVehiculePlaque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $snapVehiculeMarque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $snapVehiculeModele = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['ordre:read'])]
     private \DateTimeInterface $createdAt;
 
     public function __construct() { $this->createdAt = new \DateTime(); }
+
+    public function snapshotFromRdv(): void {
+        $rdv = $this->rendezVous;
+        if ($rdv->getClient() && !$this->snapClientNom) {
+            $this->snapClientNom = $rdv->getClient()->getNom();
+            $this->snapClientPrenom = $rdv->getClient()->getPrenom();
+        }
+        if ($rdv->getVehicule() && !$this->snapVehiculePlaque) {
+            $this->snapVehiculePlaque = $rdv->getVehicule()->getPlaque();
+            $this->snapVehiculeMarque = $rdv->getVehicule()->getMarque();
+            $this->snapVehiculeModele = $rdv->getVehicule()->getModele();
+        }
+    }
 
     public function getId(): ?int { return $this->id; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
@@ -84,4 +118,17 @@ class OrdreReparation
     public function getSignatureClient(): ?string { return $this->signatureClient; }
     public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+
+    // --- RGPD snapshot getters/setters ---
+    public function getSnapClientNom(): ?string { return $this->snapClientNom; }
+    public function setSnapClientNom(?string $v): static { $this->snapClientNom = $v; return $this; }
+    public function getSnapClientPrenom(): ?string { return $this->snapClientPrenom; }
+    public function setSnapClientPrenom(?string $v): static { $this->snapClientPrenom = $v; return $this; }
+    public function getSnapVehiculePlaque(): ?string { return $this->snapVehiculePlaque; }
+    public function setSnapVehiculePlaque(?string $v): static { $this->snapVehiculePlaque = $v; return $this; }
+    public function getSnapVehiculeMarque(): ?string { return $this->snapVehiculeMarque; }
+    public function setSnapVehiculeMarque(?string $v): static { $this->snapVehiculeMarque = $v; return $this; }
+    public function getSnapVehiculeModele(): ?string { return $this->snapVehiculeModele; }
+    public function setSnapVehiculeModele(?string $v): static { $this->snapVehiculeModele = $v; return $this; }
+    public function hasSnapshot(): bool { return $this->snapClientNom !== null; }
 }

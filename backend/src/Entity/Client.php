@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['client:read']],
     denormalizationContext: ['groups' => ['client:write']],
 )]
-#[ApiFilter(SearchFilter::class, properties: ['nom' => 'partial', 'prenom' => 'partial', 'email' => 'partial', 'telephone' => 'partial'])]
+#[ApiFilter(SearchFilter::class, properties: ['nom' => 'partial', 'prenom' => 'partial'])]
 class Client
 {
     #[ORM\Id]
@@ -57,6 +57,23 @@ class Client
     #[Groups(['client:read'])]
     private \DateTimeInterface $createdAt;
 
+    // --- RGPD fields ---
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?\DateTimeInterface $consentDate = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $consentSource = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['client:read'])]
+    private ?\DateTimeInterface $lastActivityAt = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['client:read'])]
+    private bool $isAnonymized = false;
+
     /** @var Collection<int, Vehicule> */
     #[ORM\OneToMany(targetEntity: Vehicule::class, mappedBy: 'client')]
     #[Groups(['client:read'])]
@@ -91,4 +108,15 @@ class Client
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getVehicules(): Collection { return $this->vehicules; }
     public function getRendezVous(): Collection { return $this->rendezVous; }
+
+    // --- RGPD ---
+    public function getConsentDate(): ?\DateTimeInterface { return $this->consentDate; }
+    public function setConsentDate(?\DateTimeInterface $v): static { $this->consentDate = $v; return $this; }
+    public function getConsentSource(): ?string { return $this->consentSource; }
+    public function setConsentSource(?string $v): static { $this->consentSource = $v; return $this; }
+    public function getLastActivityAt(): ?\DateTimeInterface { return $this->lastActivityAt; }
+    public function setLastActivityAt(?\DateTimeInterface $v): static { $this->lastActivityAt = $v; return $this; }
+    public function getIsAnonymized(): bool { return $this->isAnonymized; }
+    public function setIsAnonymized(bool $v): static { $this->isAnonymized = $v; return $this; }
+    public function touchActivity(): void { $this->lastActivityAt = new \DateTime(); }
 }

@@ -87,6 +87,35 @@ class Devis
     #[Groups(['devis:read', 'devis:write'])]
     private ?int $rendezVousId = null;
 
+    // --- RGPD: Snapshot fields (immutable copy at creation) ---
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapClientNom = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapClientPrenom = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapClientEmail = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapClientTelephone = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapVehiculePlaque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapVehiculeMarque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $snapVehiculeModele = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['devis:read'])]
     private \DateTimeInterface $createdAt;
@@ -100,7 +129,20 @@ class Devis
     private Collection $lignes;
 
     public function __construct() { $this->dateCreation = new \DateTime(); $this->dateValidite = (new \DateTime())->modify('+30 days'); $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); $this->lignes = new ArrayCollection(); }
-    #[ORM\PrePersist] public function prePersist(): void { if (!isset($this->numeroDevis) || $this->numeroDevis === '') { $this->numeroDevis = 'DEV-' . date('Y') . '-' . str_pad((string)random_int(1, 99999), 5, '0', STR_PAD_LEFT); } if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } }
+    #[ORM\PrePersist] public function prePersist(): void { if (!isset($this->numeroDevis) || $this->numeroDevis === '') { $this->numeroDevis = 'DEV-' . date('Y') . '-' . str_pad((string)random_int(1, 99999), 5, '0', STR_PAD_LEFT); } if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } $this->snapshotClientData(); }
+    public function snapshotClientData(): void {
+        if ($this->client && !$this->snapClientNom) {
+            $this->snapClientNom = $this->client->getNom();
+            $this->snapClientPrenom = $this->client->getPrenom();
+            $this->snapClientEmail = $this->client->getEmail();
+            $this->snapClientTelephone = $this->client->getTelephone();
+        }
+        if ($this->vehicule && !$this->snapVehiculePlaque) {
+            $this->snapVehiculePlaque = $this->vehicule->getPlaque();
+            $this->snapVehiculeMarque = $this->vehicule->getMarque();
+            $this->snapVehiculeModele = $this->vehicule->getModele();
+        }
+    }
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -138,4 +180,21 @@ class Devis
     public function getNotesInternes(): ?string { return $this->notesInternes; }
     public function setNotesInternes(?string $v): static { $this->notesInternes = $v; return $this; }
     public function getLignes(): Collection { return $this->lignes; }
+
+    // --- RGPD snapshot getters/setters ---
+    public function getSnapClientNom(): ?string { return $this->snapClientNom; }
+    public function setSnapClientNom(?string $v): static { $this->snapClientNom = $v; return $this; }
+    public function getSnapClientPrenom(): ?string { return $this->snapClientPrenom; }
+    public function setSnapClientPrenom(?string $v): static { $this->snapClientPrenom = $v; return $this; }
+    public function getSnapClientEmail(): ?string { return $this->snapClientEmail; }
+    public function setSnapClientEmail(?string $v): static { $this->snapClientEmail = $v; return $this; }
+    public function getSnapClientTelephone(): ?string { return $this->snapClientTelephone; }
+    public function setSnapClientTelephone(?string $v): static { $this->snapClientTelephone = $v; return $this; }
+    public function getSnapVehiculePlaque(): ?string { return $this->snapVehiculePlaque; }
+    public function setSnapVehiculePlaque(?string $v): static { $this->snapVehiculePlaque = $v; return $this; }
+    public function getSnapVehiculeMarque(): ?string { return $this->snapVehiculeMarque; }
+    public function setSnapVehiculeMarque(?string $v): static { $this->snapVehiculeMarque = $v; return $this; }
+    public function getSnapVehiculeModele(): ?string { return $this->snapVehiculeModele; }
+    public function setSnapVehiculeModele(?string $v): static { $this->snapVehiculeModele = $v; return $this; }
+    public function hasSnapshot(): bool { return $this->snapClientNom !== null; }
 }

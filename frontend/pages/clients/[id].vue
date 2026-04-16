@@ -116,6 +116,25 @@
         <div class="detail-banner">
           📋 Le planning pilote les RDV.<br>Cette fiche conserve la mémoire de l'atelier pour ce client.
         </div>
+
+        <!-- RGPD Actions -->
+        <UCard v-if="!client.isAnonymized">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">🔒 RGPD</span></template>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-ghost" style="font-size:12px;width:100%;" @click="exportClient" :disabled="exporting">
+              📥 {{ exporting ? 'Export...' : 'Exporter les données (portabilité)' }}
+            </button>
+            <button class="btn" style="font-size:12px;width:100%;background:rgba(239,68,68,0.1);color:#F87171;border:1px solid rgba(239,68,68,0.2);" @click="confirmAnonymize">
+              🗑 Anonymiser ce client
+            </button>
+          </div>
+        </UCard>
+        <UCard v-else>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(239,68,68,0.05);border-radius:8px;">
+            <span style="font-size:16px;">⚠️</span>
+            <span style="font-size:13px;color:#F87171;">Client anonymisé (RGPD)</span>
+          </div>
+        </UCard>
       </div>
     </div>
 
@@ -160,6 +179,7 @@ const expandedVehicles = ref<number[]>([])
 const showAllHistory = reactive<Record<number, boolean>>({})
 const showEditClient = ref(false)
 const savingClient = ref(false)
+const exporting = ref(false)
 const editForm = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '', notes: '' })
 
 const caTotal = computed(() => {
@@ -227,6 +247,39 @@ async function saveClient() {
     toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
   } finally {
     savingClient.value = false
+  }
+}
+
+async function exportClient() {
+  exporting.value = true
+  try {
+    const data = await api.get(`/clients/${route.params.id}/export`)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `client-${route.params.id}-export.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.add({ title: 'Export téléchargé', color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur export', description: e?.message, color: 'error' })
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function confirmAnonymize() {
+  if (!confirm('⚠️ ATTENTION : Cette action est IRRÉVERSIBLE.\n\nToutes les données personnelles de ce client seront effacées.\nLes factures et ordres conserveront un snapshot conforme aux obligations légales.\n\nConfirmez-vous l\'anonymisation ?')) {
+    return
+  }
+  try {
+    await api.post(`/clients/${route.params.id}/anonymize`)
+    toast.add({ title: 'Client anonymisé', description: 'Les données personnelles ont été effacées.', color: 'success' })
+    const c = await api.get(`/clients/${route.params.id}`)
+    client.value = c
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
   }
 }
 

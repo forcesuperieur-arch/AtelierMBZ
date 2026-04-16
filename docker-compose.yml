@@ -8,8 +8,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atelier}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT:-5432}:5432"
+    # SECURITY: Do NOT expose DB port in production. Uncomment for local dev only.
+    # ports:
+    #   - "${DB_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atelier} -d ${POSTGRES_DB:-atelier_moto}"]
       interval: 5s
@@ -94,8 +95,10 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     restart: unless-stopped
-    ports:
-      - "${MAILHOG_PORT:-8025}:8025"
+    # SECURITY: Do NOT expose port 8025 in production — it shows all emails sent by the app
+    # Uncomment the ports section only for local development
+    # ports:
+    #   - "${MAILHOG_PORT:-8025}:8025"
 
 volumes:
   postgres_data:

@@ -53,16 +53,19 @@
     <div class="info-grid">
         <div class="info-col">
             <p class="label">Client</p>
-            <p>{{ facture.client.prenom }} {{ facture.client.nom }}<br>
-               {{ facture.client.telephone }}<br>
-               {% if facture.client.email %}{{ facture.client.email }}{% endif %}<br>
-               {% if facture.client.adresse %}{{ facture.client.adresse }}{% endif %}</p>
+            <p>{{ facture.snapClientPrenom ?? facture.client.prenom }} {{ facture.snapClientNom ?? facture.client.nom }}<br>
+               {{ facture.snapClientTelephone ?? facture.client.telephone }}<br>
+               {% if facture.snapClientEmail ?? facture.client.email %}{{ facture.snapClientEmail ?? facture.client.email }}{% endif %}<br>
+               {% if facture.snapClientAdresse ?? facture.client.adresse %}{{ facture.snapClientAdresse ?? facture.client.adresse }}{% endif %}</p>
         </div>
         <div class="info-col">
             <p class="label">Véhicule</p>
-            {% if facture.vehicule %}
-            <p>{{ facture.vehicule.marque }} {{ facture.vehicule.modele }}<br>
-               Plaque: {{ facture.vehicule.plaque }}</p>
+            {% set vMarque = facture.snapVehiculeMarque ?? (facture.vehicule ? facture.vehicule.marque : '') %}
+            {% set vModele = facture.snapVehiculeModele ?? (facture.vehicule ? facture.vehicule.modele : '') %}
+            {% set vPlaque = facture.snapVehiculePlaque ?? (facture.vehicule ? facture.vehicule.plaque : '') %}
+            {% if vMarque or vModele %}
+            <p>{{ vMarque }} {{ vModele }}<br>
+               Plaque: {{ vPlaque }}</p>
             {% endif %}
         </div>
     </div>

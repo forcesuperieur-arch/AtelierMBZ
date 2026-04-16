@@ -33,7 +33,7 @@ class SeedCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('demo', null, InputOption::VALUE_NONE, 'Also seed demo data (clients, vehicules, mecaniciens, ponts, prestations, pieces, email templates)');
+        $this->addOption('demo', null, InputOption::VALUE_NONE, 'Also seed demo data (clients, vehicules, mecaniciens, ponts, pieces, email templates)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -45,12 +45,12 @@ class SeedCommand extends Command
         $this->seedHoraires($io);
         $this->seedConfig($io);
         $this->seedEmailTemplates($io);
+        $this->seedPrestations($io);
 
         if ($input->getOption('demo')) {
             $this->seedMecaniciens($io);
             $this->seedPonts($io);
             $this->seedClients($io);
-            $this->seedPrestations($io);
             $this->seedPieces($io);
         }
 
@@ -251,30 +251,37 @@ class SeedCommand extends Command
         if ($this->em->getRepository(Prestation::class)->count([]) > 0) return;
 
         $prestations = [
-            ['VID-STD', 'Vidange standard', 'entretien', '45.00', '54.00', 45],
-            ['VID-SYNT', 'Vidange synthétique', 'entretien', '65.00', '78.00', 45],
-            ['FREIN-AV', 'Plaquettes frein avant', 'freinage', '35.00', '42.00', 60],
-            ['FREIN-AR', 'Plaquettes frein arrière', 'freinage', '30.00', '36.00', 45],
-            ['PNEU-AV', 'Montage pneu avant', 'pneumatique', '25.00', '30.00', 30],
-            ['PNEU-AR', 'Montage pneu arrière', 'pneumatique', '25.00', '30.00', 30],
-            ['CHAINE', 'Kit chaîne', 'transmission', '40.00', '48.00', 60],
-            ['DIAG', 'Diagnostic électronique', 'diagnostic', '55.00', '66.00', 30],
-            ['REVISION', 'Révision complète', 'entretien', '180.00', '216.00', 180],
-            ['CT-PREP', 'Préparation CT', 'controle', '75.00', '90.00', 90],
+            ['DIAG-45', 'Diagnostic / recherche de panne', 'diagnostic', '49.17', '59.00', 45, 'Lecture défauts, contrôle visuel et premier diagnostic.', 'tous'],
+            ['VID-SCOOT', 'Forfait vidange scooter', 'entretien', '57.50', '69.00', 45, 'Vidange moteur avec contrôle des niveaux et serrages.', 'scooter'],
+            ['VID-MOTO', 'Forfait vidange moto', 'entretien', '74.17', '89.00', 60, 'Vidange standard et contrôle sécurité atelier.', 'moto'],
+            ['REV-INT', 'Révision intermédiaire', 'entretien', '107.50', '129.00', 90, 'Contrôle des points de sécurité et entretien courant.', 'tous'],
+            ['REV-CPL', 'Révision complète', 'entretien', '182.50', '219.00', 180, 'Révision atelier complète avec essai et vérifications.', 'tous'],
+            ['PNEU-AV', 'Forfait pneu avant', 'pneumatique', '29.17', '35.00', 30, 'Montage et équilibrage du pneu avant.', 'moto'],
+            ['PNEU-AR', 'Forfait pneu arrière', 'pneumatique', '32.50', '39.00', 35, 'Montage et équilibrage du pneu arrière.', 'moto'],
+            ['PNEU-SET', 'Forfait train de pneus', 'pneumatique', '62.50', '75.00', 75, 'Montage et équilibrage avant + arrière.', 'moto'],
+            ['FREIN-AV', 'Forfait plaquettes avant', 'freinage', '57.50', '69.00', 60, 'Remplacement plaquettes avant et contrôle du circuit.', 'tous'],
+            ['FREIN-AR', 'Forfait plaquettes arrière', 'freinage', '49.17', '59.00', 45, 'Remplacement plaquettes arrière et contrôle.', 'tous'],
+            ['KIT-CHAINE', 'Forfait kit chaîne', 'transmission', '99.17', '119.00', 75, 'Pose du kit chaîne avec réglage tension et alignement.', 'moto'],
+            ['BATTERIE', 'Forfait batterie / charge', 'electricite', '40.83', '49.00', 30, 'Contrôle charge, tension et remplacement simple.', 'tous'],
+            ['HIVER', 'Forfait hivernage / remise en route', 'saisonnier', '65.83', '79.00', 60, 'Contrôle complet après immobilisation et remise en route.', 'tous'],
         ];
 
-        foreach ($prestations as [$code, $nom, $cat, $prixHt, $prixTtc, $temps]) {
+        foreach ($prestations as [$code, $nom, $cat, $prixHt, $prixTtc, $temps, $description, $typeVehicule]) {
             $p = new Prestation();
             $p->setAtelierId(1);
             $p->setCode($code);
             $p->setNom($nom);
+            $p->setDescription($description);
             $p->setCategorie($cat);
             $p->setPrixBaseHt($prixHt);
             $p->setPrixBaseTtc($prixTtc);
             $p->setTempsEstimeMinutes($temps);
+            $p->setTypeTarif('forfait');
+            $p->setTypeVehicule($typeVehicule);
+            $p->setIsForfait(1);
             $this->em->persist($p);
         }
-        $io->info('Demo prestations seeded.');
+        $io->info('Default forfait prestations seeded.');
     }
 
     private function seedPieces(SymfonyStyle $io): void

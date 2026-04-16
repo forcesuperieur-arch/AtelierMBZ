@@ -61,6 +61,17 @@ class PublicBookingController extends AbstractController
             }
         }
 
+        // RGPD: Validate email format
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->json(['error' => 'Invalid email format'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // RGPD: Validate phone (basic: 10-15 digits)
+        $phone = preg_replace('/[\s\-\.]+/', '', $data['telephone']);
+        if (!preg_match('/^\+?[0-9]{10,15}$/', $phone)) {
+            return $this->json(['error' => 'Invalid phone format'], Response::HTTP_BAD_REQUEST);
+        }
+
         $atelierId = (int) ($data['atelier_id'] ?? 1);
         $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
         $targetDate = new \DateTime($data['date_rdv']);
@@ -97,8 +108,13 @@ class PublicBookingController extends AbstractController
             $client->setTelephone($data['telephone']);
             $client->setEmail($data['email'] ?? null);
             $client->setAtelierId($atelierId);
+            // RGPD: Record consent from public booking form
+            $client->setConsentDate(new \DateTime());
+            $client->setConsentSource('public_booking');
             $this->em->persist($client);
         }
+        // RGPD: Update last activity
+        $client->touchActivity();
 
         // Find or create vehicle if plaque provided
         $vehicule = null;

@@ -53,15 +53,18 @@
     <div class="info-grid">
         <div class="info-col">
             <p class="label">Client</p>
-            <p>{{ devis.client.prenom }} {{ devis.client.nom }}<br>
-               {{ devis.client.telephone }}<br>
-               {% if devis.client.email %}{{ devis.client.email }}{% endif %}</p>
+            <p>{{ devis.snapClientPrenom ?? devis.client.prenom }} {{ devis.snapClientNom ?? devis.client.nom }}<br>
+               {{ devis.snapClientTelephone ?? devis.client.telephone }}<br>
+               {% if devis.snapClientEmail ?? devis.client.email %}{{ devis.snapClientEmail ?? devis.client.email }}{% endif %}</p>
         </div>
         <div class="info-col">
             <p class="label">Véhicule</p>
-            {% if devis.vehicule %}
-            <p>{{ devis.vehicule.marque }} {{ devis.vehicule.modele }}<br>
-               Plaque: {{ devis.vehicule.plaque }}<br>
+            {% set vMarque = devis.snapVehiculeMarque ?? (devis.vehicule ? devis.vehicule.marque : '') %}
+            {% set vModele = devis.snapVehiculeModele ?? (devis.vehicule ? devis.vehicule.modele : '') %}
+            {% set vPlaque = devis.snapVehiculePlaque ?? (devis.vehicule ? devis.vehicule.plaque : '') %}
+            {% if vMarque or vModele %}
+            <p>{{ vMarque }} {{ vModele }}<br>
+               Plaque: {{ vPlaque }}<br>
                {% if devis.kilometrage %}Km: {{ devis.kilometrage }}{% endif %}</p>
             {% endif %}
         </div>
