@@ -16,6 +16,7 @@ export const DEFAULT_FEATURE_MODULES: Record<string, boolean> = {
   absences: true,
   admin: true,
   tarifs: true,
+  vo: false,
 }
 
 export const DEFAULT_ATELIER_BRANDING = {

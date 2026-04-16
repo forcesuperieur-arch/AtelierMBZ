@@ -1,7 +1,7 @@
 import { useAtelierStore } from '~/stores/atelier'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const publicRoutes = ['/login', '/public/booking', '/public/suivi']
+  const publicRoutes = ['/login', '/public/booking', '/public/suivi', '/public/companion']
   if (publicRoutes.some(r => to.path.startsWith(r))) return
 
   const { isAuthenticated, fetchMe } = useAuth()
@@ -30,6 +30,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     ['/devis', 'devis'],
     ['/suivi', 'suivi'],
     ['/motos', 'motos'],
+    ['/vo', 'vo'],
   ]
 
   const sectionLabels: Record<string, string> = {
@@ -38,6 +39,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     devis: 'Devis',
     suivi: 'Suivi live',
     motos: 'Catalogue motos',
+    vo: 'Véhicules d\'Occasion',
   }
 
   const blockedSection = sectionByPrefix.find(([prefix]) => to.path.startsWith(prefix))?.[1]

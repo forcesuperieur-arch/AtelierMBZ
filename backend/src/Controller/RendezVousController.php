@@ -63,6 +63,8 @@ class RendezVousController extends AbstractController
             if (!empty($data['vehicule_marque'])) $vehicule->setMarque($data['vehicule_marque']);
             if (!empty($data['vehicule_modele'])) $vehicule->setModele($data['vehicule_modele']);
             if (!empty($data['vehicule_annee'])) $vehicule->setAnnee((int) $data['vehicule_annee']);
+            if (!empty($data['vehicule_cylindree'])) $vehicule->setCylindree((string) $data['vehicule_cylindree']);
+            if (!empty($data['vehicule_type'])) $vehicule->setTypeMoto((string) $data['vehicule_type']);
             $this->em->persist($vehicule);
         }
 
@@ -78,7 +80,12 @@ class RendezVousController extends AbstractController
 
         if (!empty($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont) $rdv->setPont($pont);
+            if ($pont) {
+                $rdv->setPont($pont);
+                if ($pont->getMecanicien()) {
+                    $rdv->setMecanicien($pont->getMecanicien());
+                }
+            }
         }
         if (!empty($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
@@ -130,11 +137,29 @@ class RendezVousController extends AbstractController
         }
         if (isset($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont) { $rdv->setPont($pont); }
+            if ($pont) {
+                $rdv->setPont($pont);
+                if ($pont->getMecanicien()) {
+                    $rdv->setMecanicien($pont->getMecanicien());
+                }
+            }
         }
         if (isset($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
             if ($meca) { $rdv->setMecanicien($meca); }
+        }
+
+        // Block reception without signed OR
+        if ($transitionName === 'reception') {
+            $ordreReception = $this->em->getRepository(OrdreReparation::class)->findOneBy(
+                ['rendezVous' => $rdv],
+                ['id' => 'DESC']
+            );
+            if (!$ordreReception || !$ordreReception->getSignatureClient()) {
+                return $this->json([
+                    'error' => 'Signature client obligatoire avant validation de la réception. Utilisez le compagnon PDA pour faire signer.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
         }
 
         // Start/stop work time tracking
@@ -258,6 +283,7 @@ class RendezVousController extends AbstractController
             'vehicule_plaque' => $vehicule?->getPlaque(),
             'pont_nom' => $pont?->getNom(),
             'mecanicien_nom' => $r->getMecanicien() ? ($r->getMecanicien()->getPrenom() . ' ' . $r->getMecanicien()->getNom()) : null,
+            'token_suivi' => $r->getTokenSuivi(),
         ];
     }
 }

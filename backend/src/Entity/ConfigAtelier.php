@@ -29,6 +29,7 @@ class ConfigAtelier
         'absences' => true,
         'admin' => true,
         'tarifs' => true,
+        'vo' => false,
     ];
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '65.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoStandard = '65.00';
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '85.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoComplexe = '85.00';
@@ -74,6 +75,7 @@ class ConfigAtelier
             'absences' => true,
             'admin' => true,
             'tarifs' => true,
+            'vo' => false,
         ];
     }
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }

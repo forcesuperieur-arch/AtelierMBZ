@@ -425,6 +425,7 @@ const moduleDefinitions = [
   { key: 'stock', label: 'Stock', icon: '📦', hint: 'Pièces détachées et alertes', impact: 'Supprime les alertes de stock et la gestion des pièces atelier.' },
   { key: 'suivi', label: 'Suivi live', icon: '👁', hint: 'Vue temps réel atelier', impact: 'Cache la vue live et les indicateurs temps réel de l’atelier.' },
   { key: 'motos', label: 'Catalogue motos', icon: '🏍️', hint: 'Référentiel et fiches moto', impact: 'Masque les fiches moto et le catalogue de référence.' },
+  { key: 'vo', label: 'Véhicules d’Occasion', icon: '🏷️', hint: 'Rachat, dépôt-vente, livre de police et facturation VO', impact: 'Masque le menu VO et toutes les opérations d’achat-vente d’occasion.' },
 ]
 
 const activeModuleCount = computed(() => {
@@ -453,6 +454,7 @@ function setFeaturePreset(mode: 'all' | 'light') {
     stock: mode === 'all',
     suivi: mode === 'all',
     motos: true,
+    vo: mode === 'all',
   }
 
   toast.add({

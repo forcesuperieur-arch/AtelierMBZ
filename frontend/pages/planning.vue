@@ -123,15 +123,64 @@
           </template>
 
           <div style="display:flex;flex-direction:column;gap:16px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Date</label>
                 <input v-model="quickForm.date_rdv" type="date" class="form-input" required />
               </div>
               <div class="form-group">
-                <label class="form-label">Heure</label>
+                <label class="form-label">Heure début</label>
                 <input v-model="quickForm.heure_debut" type="time" class="form-input" required />
               </div>
+              <div class="form-group">
+                <label class="form-label">Fin estimée</label>
+                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickEstimatedEnd }}</div>
+              </div>
+            </div>
+
+            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div class="form-label" style="margin-bottom:6px;">Recherche client</div>
+              <input
+                v-model="quickClientSearch"
+                type="text"
+                class="form-input"
+                placeholder="Nom, prénom, téléphone ou email..."
+                @input="searchQuickClients"
+              />
+              <div v-if="quickClientResults.length" style="margin-top:8px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;max-height:160px;overflow:auto;">
+                <button
+                  v-for="client in quickClientResults"
+                  :key="`quick-client-${client.id}`"
+                  type="button"
+                  style="width:100%;text-align:left;padding:10px 12px;background:transparent;border:none;color:#D1D5DB;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);"
+                  @click="selectQuickClient(client)"
+                >
+                  <strong>{{ client.prenom }} {{ client.nom }}</strong> · {{ client.telephone || client.email || '—' }}
+                </button>
+              </div>
+              <div v-if="quickSelectedClient" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(255,210,0,0.08);border:1px solid rgba(255,210,0,0.2);">
+                <span style="font-size:12px;color:#FDE68A;">Client lié : {{ quickSelectedClient.prenom }} {{ quickSelectedClient.nom }}</span>
+                <button type="button" class="btn btn-ghost" style="padding:4px 10px;min-height:30px;" @click="clearQuickClient">Changer</button>
+              </div>
+            </div>
+
+            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div class="form-label" style="margin-bottom:6px;">Recherche véhicule par plaque / VIN</div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
+                <input
+                  v-model="quickVehicleSearch"
+                  type="text"
+                  class="form-input"
+                  placeholder="AA-123-BB ou VIN"
+                  @blur="quickVehicleSearch = formatRegistrationOrVin(quickVehicleSearch)"
+                  @keydown.enter.prevent="searchQuickVehicle"
+                />
+                <button type="button" class="btn btn-ghost" @click="searchQuickVehicle">Rechercher</button>
+              </div>
+              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et prérempli.</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="form-group">
                 <label class="form-label">Prénom client</label>
                 <input v-model="quickForm.client_prenom" class="form-input" placeholder="Jean" />
@@ -158,33 +207,41 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Plaque</label>
-                <input v-model="quickForm.vehicule_plaque" class="form-input" placeholder="AA-123-BB" />
+                <input v-model="quickForm.vehicule_plaque" class="form-input" placeholder="AA-123-BB" @blur="quickForm.vehicule_plaque = formatRegistrationOrVin(quickForm.vehicule_plaque)" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cylindrée</label>
+                <input v-model="quickForm.vehicule_cylindree" class="form-input" placeholder="700" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type moto</label>
+                <select v-model="quickForm.vehicule_type" class="form-input">
+                  <option value="">Tous</option>
+                  <option v-for="type in MOTO_TYPES" :key="`quick-type-${type}`" :value="type">{{ type }}</option>
+                </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Type / prestation libre</label>
                 <input v-model="quickForm.type_intervention" class="form-input" placeholder="Révision / vidange" />
               </div>
               <div class="form-group">
-                <label class="form-label">Mécanicien</label>
-                <select v-model="quickForm.mecanicien_id" class="form-input">
-                  <option :value="null">Non assigné</option>
-                  <option v-for="m in mecaniciens" :key="`create-m-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                <label class="form-label">Pont</label>
+                <select v-model.number="quickForm.pont_id" class="form-input">
+                  <option :value="null">Choisir un pont</option>
+                  <option v-for="p in assignablePonts" :key="`create-p-${p.id}`" :value="p.id">{{ p.nom }} · {{ getPontMecanicienLabel(p) }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Pont</label>
-                <select v-model="quickForm.pont_id" class="form-input">
-                  <option :value="null">Non assigné</option>
-                  <option v-for="p in ponts" :key="`create-p-${p.id}`" :value="p.id">{{ p.nom }}</option>
-                </select>
+                <label class="form-label">Mécanicien affecté</label>
+                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickAssignedMecanicienLabel }}</div>
               </div>
             </div>
 
-            <div v-if="prestations.length">
-              <div class="form-label" style="margin-bottom:8px;">Prestations atelier</div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:220px;overflow:auto;">
+            <div>
+              <div class="form-label" style="margin-bottom:8px;">Prestations atelier <span style="font-size:11px;color:#9CA3AF;">· filtrées selon le type de moto</span></div>
+              <div v-if="filteredQuickPrestations.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:220px;overflow:auto;">
                 <label
-                  v-for="presta in prestations"
+                  v-for="presta in filteredQuickPrestations"
                   :key="presta.id"
                   style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer;"
                 >
@@ -195,6 +252,9 @@
                   </div>
                 </label>
               </div>
+              <div v-else style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);font-size:12px;color:#9CA3AF;">
+                Aucune prestation ne correspond encore au type de moto renseigné.
+              </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
@@ -202,10 +262,11 @@
                 <label class="form-label">Commentaire</label>
                 <textarea v-model="quickForm.commentaire" class="form-input" rows="3" placeholder="Description du besoin client…"></textarea>
               </div>
-              <div style="min-width:180px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div style="min-width:200px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
                 <div style="font-size:11px;color:#9CA3AF;">Estimé</div>
                 <div style="font-size:18px;font-weight:800;color:#FFD200;">{{ formatCurrency(quickEstimateTotal) }}</div>
                 <div style="font-size:12px;color:#CBD5E1;">{{ quickEstimateDuration }} min</div>
+                <div style="font-size:12px;color:#CBD5E1;">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
@@ -254,7 +315,7 @@
                   <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Heure</label>
+                  <label class="form-label">Heure début</label>
                   <input v-model="editForm.heure_debut" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
                 </div>
                 <div class="form-group">
@@ -266,18 +327,15 @@
                   <input v-model.number="editForm.temps_estime" type="number" min="15" step="15" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Mécanicien</label>
-                  <select v-model="editForm.mecanicien_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                  <label class="form-label">Pont</label>
+                  <select v-model.number="editForm.pont_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
                     <option :value="null">Non assigné</option>
-                    <option v-for="m in mecaniciens" :key="`edit-m-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                    <option v-for="p in assignablePonts" :key="`edit-p-${p.id}`" :value="p.id">{{ p.nom }} · {{ getPontMecanicienLabel(p) }}</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Pont</label>
-                  <select v-model="editForm.pont_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
-                    <option :value="null">Non assigné</option>
-                    <option v-for="p in ponts" :key="`edit-p-${p.id}`" :value="p.id">{{ p.nom }}</option>
-                  </select>
+                  <label class="form-label">Mécanicien affecté</label>
+                  <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ editAssignedMecanicienLabel }}</div>
                 </div>
               </div>
 
@@ -290,14 +348,57 @@
                 Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
               </div>
 
-              <div v-if="selectedRdv.status === 'confirme' || selectedRdv.status === 'reserve' || selectedRdv.status === 'reception'" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-                <div class="form-group">
-                  <label class="form-label">Kilométrage réception</label>
-                  <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="Optionnel" :disabled="selectedIsHistorical" />
+              <!-- Enhanced Reception Panel -->
+              <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
+                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus">↻ Statut PDA</button>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">État véhicule</label>
-                  <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Bon état / rayure / etc." :disabled="selectedIsHistorical" />
+
+                <!-- Companion QR + Link -->
+                <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                  <div style="flex:1;">
+                    <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:6px;">📱 Compagnon PDA</div>
+                    <p style="font-size:11px;color:#9CA3AF;margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <input :value="companionUrl" class="form-input" style="font-size:11px;flex:1;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
+                      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl">📋</button>
+                    </div>
+                  </div>
+                  <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
+                    <img :src="companionQrUrl" alt="QR Code" style="width:100px;height:100px;border-radius:8px;background:white;padding:4px;" />
+                    <div style="font-size:10px;color:#6B7280;margin-top:4px;">Scanner avec le tél.</div>
+                  </div>
+                </div>
+
+                <!-- Companion Live Status -->
+                <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+                  <div class="reception-status-pill" :class="{ done: companionStatus.photos_count > 0 }">
+                    📸 {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
+                  </div>
+                  <div class="reception-status-pill" :class="{ done: companionStatus.checkup_done > 0 }">
+                    🔎 Checkup {{ companionStatus.checkup_done || 0 }}/10
+                  </div>
+                  <div class="reception-status-pill" :class="{ done: companionStatus.has_signature }">
+                    ✍️ Signature {{ companionStatus.has_signature ? '✓' : '✗' }}
+                  </div>
+                </div>
+
+                <!-- Reception fields -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="form-group">
+                    <label class="form-label">Kilométrage réception</label>
+                    <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">État véhicule</label>
+                    <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Bon état / rayure…" :disabled="selectedIsHistorical" />
+                  </div>
+                </div>
+
+                <!-- Signature warning -->
+                <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
+                  ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
                 </div>
               </div>
 
@@ -365,14 +466,20 @@ const showRdvModal = ref(false)
 const showQuickCreateModal = ref(false)
 const selectedRdv = ref<any | null>(null)
 const quickSelectedPrestas = ref<number[]>([])
+const quickClientSearch = ref('')
+const quickClientResults = ref<any[]>([])
+const quickSelectedClient = ref<any | null>(null)
+const quickVehicleSearch = ref('')
+const quickVehicleFound = ref(false)
 
 const HISTORY_STATUSES = ['termine', 'restitue', 'facture', 'paye', 'annule']
 const PRESTATION_LOCK_STATUSES = ['reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye']
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+const MOTO_TYPES = ['Roadster', 'Sportive', 'Trail', 'Custom', 'Scooter', 'Enduro', 'Adventure', 'GT']
 
 const editForm = reactive({
   date_rdv: '',
-  heure_debut: '09:00',
+  heure_debut: '10:00',
   type_intervention: '',
   temps_estime: 60,
   commentaire: '',
@@ -387,7 +494,8 @@ const receptionForm = reactive({
 
 const quickForm = reactive({
   date_rdv: new Date().toISOString().slice(0, 10),
-  heure_debut: '09:00',
+  heure_debut: '10:00',
+  client_id: null as number | null,
   client_prenom: '',
   client_nom: '',
   client_telephone: '',
@@ -395,6 +503,8 @@ const quickForm = reactive({
   vehicule_marque: '',
   vehicule_modele: '',
   vehicule_plaque: '',
+  vehicule_cylindree: '',
+  vehicule_type: '',
   type_intervention: '',
   commentaire: '',
   mecanicien_id: null as number | null,
@@ -420,9 +530,109 @@ const selectedIsHistorical = computed(() => isHistoricalStatus(selectedRdv.value
 const prestationLocked = computed(() => PRESTATION_LOCK_STATUSES.includes(selectedRdv.value?.status ?? selectedRdv.value?.statut ?? ''))
 const canDeleteSelected = computed(() => canDeleteRdv.value && !!selectedRdv.value && !selectedIsHistorical.value)
 
-const quickSelectedPrestations = computed(() => prestations.value.filter((presta: any) => quickSelectedPrestas.value.includes(Number(presta.id))))
+function normalizeText(value: unknown): string {
+  return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+function sanitizeAlphaNum(value: string): string {
+  return normalizeText(value).toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+
+function formatRegistrationOrVin(value: string): string {
+  const cleaned = sanitizeAlphaNum(value)
+  if (!cleaned) return ''
+  if (cleaned.length >= 11) return cleaned
+  if (/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(cleaned)) {
+    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 5)}-${cleaned.slice(5, 7)}`
+  }
+  return cleaned
+}
+
+function addMinutesToTime(time: string, minutesToAdd: number): string {
+  const [hours, minutes] = String(time || '00:00').split(':').map(Number)
+  const total = ((hours || 0) * 60) + (minutes || 0) + Math.max(15, toNumber(minutesToAdd, 60))
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+function getRelationId(value: any): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value.split('/').pop())
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  if (value && typeof value === 'object') {
+    return getRelationId(value.id ?? value['@id'])
+  }
+  return null
+}
+
+function findPontById(value: any) {
+  const id = toNullableNumber(value)
+  if (!id) return null
+  return ponts.value.find((pont: any) => Number(pont.id) === id) ?? null
+}
+
+function resolvePontMecanicienId(pontOrId: any): number | null {
+  const pont = typeof pontOrId === 'object' ? pontOrId : findPontById(pontOrId)
+  return toNullableNumber(pont?.mecanicien?.id ?? pont?.mecanicien_id ?? getRelationId(pont?.mecanicien))
+}
+
+function getMecanicienLabelById(value: any): string {
+  const id = toNullableNumber(value)
+  if (!id) return 'Non assigné'
+  const mecanicien = mecaniciens.value.find((item: any) => Number(item.id) === id)
+  return mecanicien ? `${mecanicien.prenom ?? ''} ${mecanicien.nom ?? ''}`.trim() : 'Non assigné'
+}
+
+function getPontMecanicienLabel(pontOrId: any): string {
+  const pont = typeof pontOrId === 'object' ? pontOrId : findPontById(pontOrId)
+  if (!pont) return 'Non assigné'
+  if (pont.mecanicien && typeof pont.mecanicien === 'object') {
+    const label = `${pont.mecanicien.prenom ?? ''} ${pont.mecanicien.nom ?? ''}`.trim()
+    if (label) return label
+  }
+  return getMecanicienLabelById(resolvePontMecanicienId(pont))
+}
+
+function syncMecanicienFromPont(target: { pont_id: any; mecanicien_id: any }) {
+  target.mecanicien_id = resolvePontMecanicienId(target.pont_id)
+}
+
+function prestationMatchesVehicle(prestation: any, source: any = quickForm) {
+  const vehicleType = normalizeText(source.vehicule_type)
+  const rawType = normalizeText(prestation.type_vehicule ?? prestation.typeVehicule ?? 'tous')
+  const allowedTypes = rawType.split(/[;,/|]+/).map((item: string) => item.trim()).filter(Boolean)
+  const typeMatches = !vehicleType
+    || !allowedTypes.length
+    || allowedTypes.includes('tous')
+    || allowedTypes.includes('tout')
+    || allowedTypes.includes('all')
+    || allowedTypes.some((item: string) => item === vehicleType || item.includes(vehicleType) || vehicleType.includes(item))
+
+  const cylindree = toNumber(source.vehicule_cylindree)
+  const min = toNumber(prestation.cylindree_min ?? prestation.cylindreeMin)
+  const max = toNumber(prestation.cylindree_max ?? prestation.cylindreeMax)
+  const cylindreeMatches = (!min || !cylindree || cylindree >= min) && (!max || !cylindree || cylindree <= max)
+
+  return typeMatches && cylindreeMatches
+}
+
+const assignablePonts = computed(() => {
+  return [...ponts.value]
+    .filter((pont: any) => Number(pont.isActive ?? pont.is_active ?? 1) !== 0)
+    .sort((a: any, b: any) => String(a.nom || '').localeCompare(String(b.nom || '')))
+})
+
+const filteredQuickPrestations = computed(() => {
+  return prestations.value.filter((presta: any) => prestationMatchesVehicle(presta, quickForm))
+})
+
+const quickSelectedPrestations = computed(() => filteredQuickPrestations.value.filter((presta: any) => quickSelectedPrestas.value.includes(Number(presta.id))))
 const quickEstimateTotal = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.prix_base_ttc ?? presta.prix_base_ht), 0))
 const quickEstimateDuration = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.temps_estime_minutes, 60), 0) || 60)
+const quickEstimatedEnd = computed(() => addMinutesToTime(quickForm.heure_debut, quickEstimateDuration.value || 60))
+const quickAssignedMecanicienLabel = computed(() => quickForm.pont_id ? getPontMecanicienLabel(quickForm.pont_id) : 'Affectation via le pont')
+const editAssignedMecanicienLabel = computed(() => editForm.pont_id ? getPontMecanicienLabel(editForm.pont_id) : getMecanicienLabelById(editForm.mecanicien_id))
 
 function unwrapList(data: any) {
   return data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
@@ -513,6 +723,7 @@ function normalizeRdv(r: any) {
     temps_estime: toNumber(r.temps_estime ?? r.tempsEstime ?? r.duree_estimee, 60),
     mecanicien_id: r.mecanicien?.id ?? toNullableNumber(r.mecanicien_id),
     mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : (r.mecanicien_nom ?? ''),
+    token_suivi: r.token_suivi ?? r.tokenSuivi ?? null,
   }
 }
 
@@ -648,7 +859,8 @@ function hydrateEditForms(rdv: any) {
 
 function resetQuickForm(prefill?: { date?: string; time?: string }) {
   quickForm.date_rdv = prefill?.date || new Date().toISOString().slice(0, 10)
-  quickForm.heure_debut = prefill?.time || '09:00'
+  quickForm.heure_debut = prefill?.time || '10:00'
+  quickForm.client_id = null
   quickForm.client_prenom = ''
   quickForm.client_nom = ''
   quickForm.client_telephone = ''
@@ -656,16 +868,109 @@ function resetQuickForm(prefill?: { date?: string; time?: string }) {
   quickForm.vehicule_marque = ''
   quickForm.vehicule_modele = ''
   quickForm.vehicule_plaque = ''
+  quickForm.vehicule_cylindree = ''
+  quickForm.vehicule_type = ''
   quickForm.type_intervention = ''
   quickForm.commentaire = ''
   quickForm.mecanicien_id = null
   quickForm.pont_id = null
   quickSelectedPrestas.value = []
+  quickClientSearch.value = ''
+  quickClientResults.value = []
+  quickSelectedClient.value = null
+  quickVehicleSearch.value = ''
+  quickVehicleFound.value = false
 }
 
 function openQuickCreate(prefill?: { date?: string; time?: string }) {
   resetQuickForm(prefill)
   showQuickCreateModal.value = true
+}
+
+let quickClientSearchTimeout: ReturnType<typeof setTimeout>
+function searchQuickClients() {
+  clearTimeout(quickClientSearchTimeout)
+  if (quickClientSearch.value.trim().length < 2) {
+    quickClientResults.value = []
+    return
+  }
+
+  quickClientSearchTimeout = setTimeout(async () => {
+    try {
+      const data = await api.get(`/clients?search=${encodeURIComponent(quickClientSearch.value.trim())}`)
+      quickClientResults.value = unwrapList(data)
+    } catch {
+      quickClientResults.value = []
+    }
+  }, 250)
+}
+
+function selectQuickClient(client: any) {
+  quickSelectedClient.value = client
+  quickClientSearch.value = `${client?.prenom ?? ''} ${client?.nom ?? ''}`.trim()
+  quickClientResults.value = []
+
+  quickForm.client_id = toNullableNumber(client?.id)
+  quickForm.client_prenom = client?.prenom ?? ''
+  quickForm.client_nom = client?.nom ?? ''
+  quickForm.client_telephone = client?.telephone ?? ''
+  quickForm.client_email = client?.email ?? ''
+
+  if (Array.isArray(client?.vehicules) && client.vehicules.length) {
+    const vehicle = client.vehicules[0]
+    quickForm.vehicule_marque = vehicle?.marque ?? ''
+    quickForm.vehicule_modele = vehicle?.modele ?? ''
+    quickForm.vehicule_plaque = formatRegistrationOrVin(vehicle?.plaque ?? '')
+    quickForm.vehicule_cylindree = vehicle?.cylindree ?? ''
+    quickForm.vehicule_type = vehicle?.type_moto ?? vehicle?.typeMoto ?? vehicle?.univers ?? ''
+    quickVehicleSearch.value = quickForm.vehicule_plaque
+    quickVehicleFound.value = !!(quickForm.vehicule_marque || quickForm.vehicule_modele || quickForm.vehicule_plaque)
+  }
+}
+
+function clearQuickClient() {
+  quickSelectedClient.value = null
+  quickClientSearch.value = ''
+  quickClientResults.value = []
+  quickForm.client_id = null
+  quickForm.client_prenom = ''
+  quickForm.client_nom = ''
+  quickForm.client_telephone = ''
+  quickForm.client_email = ''
+}
+
+async function searchQuickVehicle() {
+  const query = formatRegistrationOrVin(quickVehicleSearch.value || quickForm.vehicule_plaque || '')
+  quickVehicleSearch.value = query
+  quickForm.vehicule_plaque = query
+
+  if (!query) {
+    quickVehicleFound.value = false
+    return
+  }
+
+  try {
+    let data: any = null
+    try {
+      data = await api.get(`/vehicule/${encodeURIComponent(query)}`)
+    } catch {
+      const collection = await api.get(`/vehicules?plaque=${encodeURIComponent(query)}`).catch(() => null)
+      data = unwrapList(collection)[0] ?? null
+    }
+
+    if (data && (data.marque || data.modele || data.plaque)) {
+      quickForm.vehicule_marque = data.marque || ''
+      quickForm.vehicule_modele = data.modele || ''
+      quickForm.vehicule_plaque = formatRegistrationOrVin(data.plaque || query)
+      quickForm.vehicule_cylindree = data.cylindree || ''
+      quickForm.vehicule_type = data.type_moto || data.typeMoto || data.univers || ''
+      quickVehicleFound.value = true
+    } else {
+      quickVehicleFound.value = false
+    }
+  } catch {
+    quickVehicleFound.value = false
+  }
 }
 
 async function refreshPlanning() {
@@ -756,16 +1061,24 @@ function onCreateAt(payload: { date: string; time: string }) {
 }
 
 async function submitQuickCreate() {
-  if (!quickForm.client_nom.trim()) {
+  if (!quickSelectedClient.value && !quickForm.client_nom.trim()) {
     toast.add({ title: 'Nom client requis', color: 'warning' })
+    return
+  }
+
+  if (!toNullableNumber(quickForm.pont_id)) {
+    toast.add({ title: 'Pont requis', description: 'Choisissez un pont pour affecter automatiquement le mécanicien.', color: 'warning' })
     return
   }
 
   quickSubmitting.value = true
   try {
     const typeIntervention = quickSelectedPrestations.value.map((item: any) => item.nom).join(', ') || quickForm.type_intervention || 'entretien'
+    const resolvedPontId = toNullableNumber(quickForm.pont_id)
+    const resolvedMecanicienId = resolvePontMecanicienId(resolvedPontId)
 
     const payload = {
+      client_id: toNullableNumber(quickForm.client_id),
       date_rdv: quickForm.date_rdv,
       heure_debut: quickForm.heure_debut,
       client_prenom: quickForm.client_prenom.trim(),
@@ -774,15 +1087,17 @@ async function submitQuickCreate() {
       client_email: quickForm.client_email.trim(),
       vehicule_marque: quickForm.vehicule_marque.trim(),
       vehicule_modele: quickForm.vehicule_modele.trim(),
-      vehicule_plaque: quickForm.vehicule_plaque.trim(),
+      vehicule_plaque: formatRegistrationOrVin(quickForm.vehicule_plaque),
+      vehicule_cylindree: String(quickForm.vehicule_cylindree || '').trim(),
+      vehicule_type: String(quickForm.vehicule_type || '').trim(),
       type_intervention: typeIntervention,
       description_probleme: quickForm.commentaire,
       commentaire: quickForm.commentaire,
       duree_estimee: quickEstimateDuration.value,
       temps_estime: quickEstimateDuration.value,
       prix_estime: quickEstimateTotal.value || null,
-      mecanicien_id: toNullableNumber(quickForm.mecanicien_id),
-      pont_id: toNullableNumber(quickForm.pont_id),
+      mecanicien_id: resolvedMecanicienId,
+      pont_id: resolvedPontId,
     }
 
     const created = await rdvStore.createRdv(payload)
@@ -802,6 +1117,9 @@ async function saveRdvChanges() {
 
   editSaving.value = true
   try {
+    const resolvedPontId = toNullableNumber(editForm.pont_id)
+    const resolvedMecanicienId = resolvePontMecanicienId(resolvedPontId) ?? toNullableNumber(editForm.mecanicien_id)
+
     const payload: any = {
       date_rdv: editForm.date_rdv,
       dateRdv: editForm.date_rdv,
@@ -809,10 +1127,10 @@ async function saveRdvChanges() {
       heure_debut: editForm.heure_debut,
       heureRdv: `${editForm.heure_debut}:00`,
       commentaire: editForm.commentaire,
-      pont_id: toNullableNumber(editForm.pont_id),
-      mecanicien_id: toNullableNumber(editForm.mecanicien_id),
-      pont: toNullableNumber(editForm.pont_id) ? `/api/ponts/${toNullableNumber(editForm.pont_id)}` : null,
-      mecanicien: toNullableNumber(editForm.mecanicien_id) ? `/api/mecaniciens/${toNullableNumber(editForm.mecanicien_id)}` : null,
+      pont_id: resolvedPontId,
+      mecanicien_id: resolvedMecanicienId,
+      pont: resolvedPontId ? `/api/ponts/${resolvedPontId}` : null,
+      mecanicien: resolvedMecanicienId ? `/api/mecaniciens/${resolvedMecanicienId}` : null,
     }
 
     if (!prestationLocked.value) {
@@ -838,9 +1156,12 @@ async function applyTransition(name: string) {
 
   transitioning.value = name
   try {
+    const resolvedPontId = toNullableNumber(editForm.pont_id)
+    const resolvedMecanicienId = resolvePontMecanicienId(resolvedPontId) ?? toNullableNumber(editForm.mecanicien_id)
+
     const payload: any = {
-      pont_id: toNullableNumber(editForm.pont_id),
-      mecanicien_id: toNullableNumber(editForm.mecanicien_id),
+      pont_id: resolvedPontId,
+      mecanicien_id: resolvedMecanicienId,
     }
 
     if (name === 'reception') {
@@ -877,6 +1198,78 @@ async function deleteSelectedRdv() {
   }
 }
 
+watch(() => quickForm.pont_id, () => {
+  syncMecanicienFromPont(quickForm)
+})
+
+watch(() => editForm.pont_id, () => {
+  syncMecanicienFromPont(editForm)
+})
+
+watch(() => `${quickForm.vehicule_type}|${quickForm.vehicule_cylindree}`, () => {
+  quickSelectedPrestas.value = quickSelectedPrestas.value.filter((id) => filteredQuickPrestations.value.some((presta: any) => Number(presta.id) === Number(id)))
+})
+
+// --- Companion / Reception ---
+const companionStatus = reactive({
+  photos_count: 0,
+  checkup_done: 0,
+  has_signature: false,
+})
+
+const isReceptionEligible = computed(() => {
+  const s = selectedRdv.value?.status ?? selectedRdv.value?.statut
+  return ['confirme', 'reserve', 'reception'].includes(s)
+})
+
+const companionUrl = computed(() => {
+  const token = selectedRdv.value?.token_suivi ?? selectedRdv.value?.tokenSuivi
+  if (!token) return ''
+  const origin = globalThis.location?.origin || ''
+  return `${origin}/public/companion?token=${token}`
+})
+
+const companionQrUrl = computed(() => {
+  if (!companionUrl.value) return ''
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(companionUrl.value)}`
+})
+
+function copyCompanionUrl() {
+  if (companionUrl.value) {
+    navigator.clipboard?.writeText(companionUrl.value)
+    toast.add({ title: 'Lien PDA copié', color: 'success' })
+  }
+}
+
+async function refreshCompanionStatus() {
+  const token = selectedRdv.value?.token_suivi ?? selectedRdv.value?.tokenSuivi
+  if (!token) return
+  try {
+    const data = await api.get(`/companion/${token}/status`)
+    companionStatus.photos_count = data.photos_count || 0
+    companionStatus.checkup_done = data.checkup_done || 0
+    companionStatus.has_signature = !!data.has_signature
+  } catch {}
+}
+
+let companionPollInterval: ReturnType<typeof setInterval>
+
+watch(showRdvModal, (open) => {
+  clearInterval(companionPollInterval)
+  if (open && isReceptionEligible.value) {
+    refreshCompanionStatus()
+    companionPollInterval = setInterval(refreshCompanionStatus, 4000)
+  }
+})
+
+watch(isReceptionEligible, (eligible) => {
+  clearInterval(companionPollInterval)
+  if (eligible && showRdvModal.value) {
+    refreshCompanionStatus()
+    companionPollInterval = setInterval(refreshCompanionStatus, 4000)
+  }
+})
+
 onMounted(async () => {
   try {
     await loadPlanningData()
@@ -884,4 +1277,27 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+onUnmounted(() => {
+  clearInterval(companionPollInterval)
+})
 </script>
+
+<style scoped>
+.reception-status-pill {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #6B7280;
+}
+.reception-status-pill.done {
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.25);
+  color: #6EE7B7;
+}
+</style>

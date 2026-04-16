@@ -5,9 +5,11 @@ use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -67,5 +69,43 @@ class PhotoController extends AbstractController
             'id' => $photo->getId(),
             'filename' => $filename,
         ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/file/{filename}', methods: ['GET'])]
+    public function serve(string $filename): Response
+    {
+        $filename = basename($filename);
+        $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . $filename;
+
+        if (!file_exists($path)) {
+            return $this->json(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($path);
+        $response->headers->set('Cache-Control', 'public, max-age=86400');
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $filename);
+        return $response;
+    }
+
+    #[Route('/rdv/{rdvId}', methods: ['GET'])]
+    public function listByRdv(int $rdvId): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $photos = $this->em->getRepository(PhotoIntervention::class)->findBy(
+            ['rendezVous' => $rdv],
+            ['createdAt' => 'DESC']
+        );
+
+        return $this->json(array_map(fn(PhotoIntervention $p) => [
+            'id' => $p->getId(),
+            'filename' => $p->getFilename(),
+            'original_name' => $p->getOriginalName(),
+            'description' => $p->getDescription(),
+            'url' => '/api/photos/file/' . $p->getFilename(),
+        ], $photos));
     }
 }

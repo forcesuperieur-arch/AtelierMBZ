@@ -131,6 +131,7 @@ const sectionNames: Record<string, string> = {
   '/tarifs': 'Tarifs',
   '/mecanicien': 'Espace Mécanicien',
   '/admin': 'Administration',
+  '/vo': 'Véhicules d\'Occasion',
 }
 
 const currentSection = computed(() => {
@@ -153,6 +154,7 @@ const menuItems = computed(() => {
     { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
     { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
     { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
+    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
     { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
   ]
   return items.filter(i => auth.hasSection(i.section))
