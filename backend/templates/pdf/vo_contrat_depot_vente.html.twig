@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .header-table { width: 100%; border-collapse: collapse; }
+        .header-left, .header-right { vertical-align: top; }
+        .header-right { text-align: right; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 16px; }
+        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
+        .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
+        .section { margin-bottom: 15px; }
+        .section-title { background: #2563eb; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 8px; }
+        .info-grid { display: table; width: 100%; margin-bottom: 15px; }
+        .info-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 15px; }
+        .label { font-weight: bold; color: #666; font-size: 10px; }
+        .vehicle-box { background: #f3f4f6; padding: 10px; border-left: 3px solid #2563eb; margin-bottom: 15px; }
+        .clause { margin-bottom: 10px; font-size: 10px; line-height: 1.5; }
+        .clause strong { color: #1e3a5f; }
+        .signatures { margin-top: 40px; display: table; width: 100%; }
+        .sig-col { display: table-cell; width: 50%; text-align: center; }
+        .sig-line { border-top: 1px solid #333; width: 200px; margin: 40px auto 5px; }
+        .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo" class="logo">
+                    {% endif %}
+                    <div class="atelier-meta">
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
+                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
+                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+                    </div>
+                </td>
+                <td class="header-right">
+                    <h1>CONTRAT DE DÉPÔT-VENTE</h1>
+                    <p>N° CDV-{{ depot.id }} — {{ depot.dateDebut|date('d/m/Y') }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Déposant</p>
+            <p>
+                {{ depot.deposant.prenom ?? '' }} {{ depot.deposant.nom }}<br>
+                {% if depot.deposant.adresse %}{{ depot.deposant.adresse }}<br>{% endif %}
+                {% if depot.deposant.telephone %}Tél : {{ depot.deposant.telephone }}<br>{% endif %}
+                {% if depot.deposant.email %}{{ depot.deposant.email }}{% endif %}
+            </p>
+            <p class="label">Pièce d'identité</p>
+            <p>{{ depot.deposantIdType ?? '—' }} n° {{ depot.deposantIdNumber ?? '—' }}
+                {% if depot.deposantIdDate %} du {{ depot.deposantIdDate|date('d/m/Y') }}{% endif %}
+            </p>
+        </div>
+        <div class="info-col">
+            <p class="label">Dépositaire</p>
+            <p>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}<br>
+               {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="vehicle-box">
+        <p class="label">Véhicule confié</p>
+        <p>
+            {{ depot.vehicule.marque }} {{ depot.vehicule.modele }}<br>
+            Immatriculation : {{ depot.vehicule.plaque }}<br>
+            {% if depot.vehicule.cylindree %}Cylindrée : {{ depot.vehicule.cylindree }} cc<br>{% endif %}
+            {% if depot.vehicule.vin %}VIN : {{ depot.vehicule.vin }}<br>{% endif %}
+            {% if depot.vehicule.annee %}Année : {{ depot.vehicule.annee }}<br>{% endif %}
+            {% if depot.vehicule.mileage %}Kilométrage : {{ depot.vehicule.mileage }} km{% endif %}
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">CONDITIONS DU DÉPÔT-VENTE</div>
+
+        <div class="clause">
+            <strong>Prix de vente souhaité :</strong> {{ depot.prixVenteSouhaite|number_format(2, ',', ' ') }} € TTC
+        </div>
+        <div class="clause">
+            <strong>Commission :</strong>
+            {% if depot.commissionType == 'forfait' %}
+                {{ depot.commissionValeur|number_format(2, ',', ' ') }} € (forfait)
+            {% else %}
+                {{ depot.commissionValeur|number_format(2, ',', ' ') }} % du prix de vente effectif
+            {% endif %}
+        </div>
+        <div class="clause">
+            <strong>Durée du mandat :</strong> {{ depot.dureeMandat }} jours à compter du {{ depot.dateDebut|date('d/m/Y') }}
+            {% if depot.dateFin %} — Date de fin prévue : {{ depot.dateFin|date('d/m/Y') }}{% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">CLAUSES</div>
+        <div class="clause">
+            1. Le dépositaire s'engage à exposer le véhicule en vue de sa vente et à en assurer la garde avec diligence.<br>
+            2. Le déposant reste propriétaire du véhicule jusqu'à la réalisation de la vente.<br>
+            3. Le dépositaire ne peut consentir à une vente à un prix inférieur au prix convenu sans accord préalable du déposant.<br>
+            4. En cas de vente, le dépositaire reversera au déposant le prix de vente diminué de la commission convenue, dans un délai de 15 jours.<br>
+            5. Le déposant peut retirer le véhicule à tout moment, sous réserve d'un préavis de 48 heures.
+        </div>
+        {% if depot.conditionsRestitution %}
+        <div class="clause">
+            <strong>Conditions de restitution :</strong> {{ depot.conditionsRestitution }}
+        </div>
+        {% endif %}
+        {% if depot.assuranceInfo %}
+        <div class="clause">
+            <strong>Assurance :</strong> {{ depot.assuranceInfo }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="signatures">
+        <div class="sig-col">
+            <div class="sig-line"></div>
+            <p>Le Déposant<br>Lu et approuvé</p>
+        </div>
+        <div class="sig-col">
+            <div class="sig-line"></div>
+            <p>Le Dépositaire<br>{{ atelier and atelier.nom ? atelier.nom : '' }}</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        Contrat établi en deux exemplaires originaux.
+        {% if depot.notes %}<br>Notes : {{ depot.notes }}{% endif %}
+    </div>
+</body>
+</html>

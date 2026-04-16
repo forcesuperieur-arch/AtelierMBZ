@@ -5,6 +5,10 @@ use App\Entity\Atelier;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
+use App\Entity\VODepotVente;
+use App\Entity\VOFacture;
+use App\Entity\VOLivrePolice;
+use App\Entity\VOPurchase;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -65,6 +69,67 @@ class PdfService
         ]);
 
         return $this->renderPdf($html, 'DEV-' . $devis->getNumeroDevis());
+    }
+
+    /**
+     * Generate VO invoice PDF.
+     */
+    public function generateVoFacturePdf(VOFacture $facture): string
+    {
+        $atelier = $this->resolveAtelier($facture->getAtelierId());
+
+        $html = $this->twig->render('pdf/vo_facture.html.twig', [
+            'facture' => $facture,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'VOF-' . $facture->getNumeroFacture());
+    }
+
+    /**
+     * Generate Livre de Police extract PDF.
+     * @param VOLivrePolice[] $entries
+     */
+    public function generateLivrePolicePdf(array $entries, ?int $atelierId = null): string
+    {
+        $atelier = $this->resolveAtelier($atelierId);
+
+        $html = $this->twig->render('pdf/vo_livre_police.html.twig', [
+            'entries' => $entries,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'LP-' . date('Ymd-His'));
+    }
+
+    /**
+     * Generate contrat de dépôt-vente PDF.
+     */
+    public function generateContratDepotVentePdf(VODepotVente $depot): string
+    {
+        $atelier = $this->resolveAtelier($depot->getAtelierId());
+
+        $html = $this->twig->render('pdf/vo_contrat_depot_vente.html.twig', [
+            'depot' => $depot,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'CDV-' . $depot->getId());
+    }
+
+    /**
+     * Generate PV de rachat (purchase certificate) PDF.
+     */
+    public function generatePvRachatPdf(VOPurchase $purchase): string
+    {
+        $atelier = $this->resolveAtelier($purchase->getAtelierId());
+
+        $html = $this->twig->render('pdf/vo_pv_rachat.html.twig', [
+            'purchase' => $purchase,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'PVR-' . $purchase->getId());
     }
 
     private function buildBrandingContext(?Atelier $atelier): array

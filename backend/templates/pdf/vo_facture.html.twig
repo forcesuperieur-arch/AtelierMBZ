@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .header-table { width: 100%; border-collapse: collapse; }
+        .header-left, .header-right { vertical-align: top; }
+        .header-right { text-align: right; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 18px; }
+        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
+        .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
+        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
+        .info-col { display: table-cell; width: 50%; vertical-align: top; }
+        .label { font-weight: bold; color: #666; }
+        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
+        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
+        table.lines td.right { text-align: right; }
+        .totals { float: right; width: 280px; margin-top: 20px; }
+        .totals table { width: 100%; }
+        .totals td { padding: 4px 6px; }
+        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
+        .vehicle-box { background: #f3f4f6; padding: 10px; margin-bottom: 15px; border-left: 3px solid #2563eb; }
+        .legal-mentions { margin-top: 30px; font-size: 9px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px; }
+        .footer { margin-top: 40px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
+                    {% endif %}
+                    <div class="atelier-meta">
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
+                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
+                        {% if atelier and atelier.telephone %}Tél : {{ atelier.telephone }}<br>{% endif %}
+                        {% if atelier and atelier.email %}{{ atelier.email }}<br>{% endif %}
+                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+                    </div>
+                </td>
+                <td class="header-right">
+                    <h1>FACTURE VO</h1>
+                    <p><strong>N° {{ facture.numeroFacture }}</strong> — {{ facture.dateCreation|date('d/m/Y') }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Client / Acheteur</p>
+            <p>{{ facture.snapClientPrenom ?? '' }} {{ facture.snapClientNom ?? '' }}<br>
+               {{ facture.snapClientTelephone ?? '' }}<br>
+               {% if facture.snapClientEmail %}{{ facture.snapClientEmail }}<br>{% endif %}
+               {% if facture.snapClientAdresse %}{{ facture.snapClientAdresse }}{% endif %}</p>
+        </div>
+        <div class="info-col">
+            <p class="label">Échéance</p>
+            {% if facture.dateEcheance %}
+            <p>{{ facture.dateEcheance|date('d/m/Y') }}</p>
+            {% else %}
+            <p>Comptant</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="vehicle-box">
+        <p class="label">Véhicule</p>
+        <p>
+            {{ facture.snapVehiculeMarque ?? '' }} {{ facture.snapVehiculeModele ?? '' }}<br>
+            Immatriculation : {{ facture.immatriculation ?? facture.snapVehiculePlaque ?? '—' }}<br>
+            {% if facture.vinFacture %}VIN : {{ facture.vinFacture }}<br>{% endif %}
+            {% if facture.kilometrage %}Kilométrage : {{ facture.kilometrage }} km<br>{% endif %}
+            {% if facture.datePremiereMiseEnCirculationFacture %}
+            1ère mise en circulation : {{ facture.datePremiereMiseEnCirculationFacture|date('d/m/Y') }}<br>
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Total HT</td>
+                <td class="right">{{ facture.totalHt|number_format(2, ',', ' ') }} €</td>
+            </tr>
+            <tr>
+                <td>TVA</td>
+                <td class="right">{{ facture.totalTva|number_format(2, ',', ' ') }} €</td>
+            </tr>
+            <tr class="total-ttc">
+                <td><strong>Total TTC</strong></td>
+                <td class="right"><strong>{{ facture.totalTtc|number_format(2, ',', ' ') }} €</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <div class="legal-mentions">
+        {% if facture.mentionTvaMarge %}
+        <p><strong>TVA sur la marge :</strong> Article 297 A du CGI — TVA calculée sur la marge bénéficiaire. Le prix de vente inclut la TVA sur la marge, celle-ci n'est pas récupérable par l'acquéreur.</p>
+        {% endif %}
+
+        {% if facture.mentionGarantieConformite %}
+        <p><strong>Garantie légale de conformité :</strong> Articles L.217-3 et suivants du Code de la consommation. L'acheteur dispose de la garantie légale de conformité (2 ans) et de la garantie des vices cachés (art. 1641 du Code civil).</p>
+        {% endif %}
+
+        {% if facture.notes %}
+        <p>{{ facture.notes }}</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        {{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}
+        {% if atelier and atelier.siret %} — SIRET : {{ atelier.siret }}{% endif %}
+        {% if atelier and atelier.tvaIntracommunautaire %} — TVA Intra : {{ atelier.tvaIntracommunautaire }}{% endif %}
+    </div>
+</body>
+</html>

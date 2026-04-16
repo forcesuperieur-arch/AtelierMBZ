@@ -4,6 +4,10 @@ namespace App\MessageHandler;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
+use App\Entity\VODepotVente;
+use App\Entity\VOFacture;
+use App\Entity\VOLivrePolice;
+use App\Entity\VOPurchase;
 use App\Message\GeneratePdfMessage;
 use App\Service\PdfService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +27,9 @@ class GeneratePdfHandler
             'or' => $this->generateOr($message->entityId),
             'facture' => $this->generateFacture($message->entityId),
             'devis' => $this->generateDevis($message->entityId),
+            'vo_facture' => $this->generateVoFacture($message->entityId),
+            'pv_rachat' => $this->generatePvRachat($message->entityId),
+            'contrat_depot' => $this->generateContratDepot($message->entityId),
             default => throw new \InvalidArgumentException("Unknown PDF type: {$message->type}"),
         };
     }
@@ -48,6 +55,30 @@ class GeneratePdfHandler
         $devis = $this->em->getRepository(Devis::class)->find($id);
         if ($devis) {
             $this->pdfService->generateDevisPdf($devis);
+        }
+    }
+
+    private function generateVoFacture(int $id): void
+    {
+        $facture = $this->em->getRepository(VOFacture::class)->find($id);
+        if ($facture) {
+            $this->pdfService->generateVoFacturePdf($facture);
+        }
+    }
+
+    private function generatePvRachat(int $id): void
+    {
+        $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
+        if ($purchase) {
+            $this->pdfService->generatePvRachatPdf($purchase);
+        }
+    }
+
+    private function generateContratDepot(int $id): void
+    {
+        $depot = $this->em->getRepository(VODepotVente::class)->find($id);
+        if ($depot) {
+            $this->pdfService->generateContratDepotVentePdf($depot);
         }
     }
 }

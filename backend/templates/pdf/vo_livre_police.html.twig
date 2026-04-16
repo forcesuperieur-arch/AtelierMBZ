@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #333; margin: 15px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 16px; }
+        .logo { max-width: 100px; max-height: 50px; margin-bottom: 5px; }
+        .atelier-meta { font-size: 9px; color: #555; }
+        table.register { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }
+        table.register th { background: #1e3a5f; color: white; padding: 4px 5px; text-align: left; }
+        table.register td { padding: 4px 5px; border-bottom: 1px solid #ddd; vertical-align: top; }
+        table.register tr:nth-child(even) { background: #f9fafb; }
+        .mention { margin-top: 20px; font-size: 8px; color: #888; }
+        .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Logo" class="logo">
+        {% endif %}
+        <h1>LIVRE DE POLICE — Extrait</h1>
+        <div class="atelier-meta">
+            {{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}
+            {% if atelier and atelier.siret %} — SIRET : {{ atelier.siret }}{% endif %}
+            <br>Édité le {{ "now"|date('d/m/Y à H:i') }}
+        </div>
+    </div>
+
+    <table class="register">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Type</th>
+                <th>Date acq.</th>
+                <th>Description</th>
+                <th>Immat.</th>
+                <th>Vendeur</th>
+                <th>Pièce id.</th>
+                <th>Prix achat</th>
+                <th>Date vente</th>
+                <th>Acheteur</th>
+                <th>Prix vente</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>{{ e.numeroOrdre }}</td>
+                <td>{{ e.type }}</td>
+                <td>{{ e.dateAcquisition|date('d/m/Y') }}</td>
+                <td>{{ e.descriptionBien }}</td>
+                <td>{{ e.immatriculation }}</td>
+                <td>{{ e.vendeurPrenom }} {{ e.vendeurNom }}</td>
+                <td>{{ e.vendeurIdType }} {{ e.vendeurIdNumber }}</td>
+                <td style="text-align: right;">{{ e.prixAchat|number_format(2, ',', ' ') }} €</td>
+                <td>{{ e.dateVente ? e.dateVente|date('d/m/Y') : '—' }}</td>
+                <td>{{ e.acheteurPrenom ?? '' }} {{ e.acheteurNom ?? '' }}</td>
+                <td style="text-align: right;">{{ e.prixVente ? e.prixVente|number_format(2, ',', ' ') ~ ' €' : '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mention">
+        Registre tenu conformément aux articles 321-7 et 321-8 du Code Pénal et au décret n° 2009-1104.
+        Ce registre doit être conservé pendant 5 ans. Toute modification est interdite.
+    </div>
+
+    <div class="footer">
+        {{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}
+        — Document généré automatiquement
+    </div>
+</body>
+</html>

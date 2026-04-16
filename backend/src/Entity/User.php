@@ -101,6 +101,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roleMap = [
             'super_admin' => 'ROLE_SUPER_ADMIN',
             'admin' => 'ROLE_ADMIN',
+            'vo_manager' => 'ROLE_VO_MANAGER',
             'receptionnaire' => 'ROLE_RECEPTIONNAIRE',
             'mecanicien' => 'ROLE_MECANICIEN',
             'comptable' => 'ROLE_COMPTABLE',
