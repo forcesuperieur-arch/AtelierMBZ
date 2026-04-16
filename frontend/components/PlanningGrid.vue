@@ -1,10 +1,9 @@
 <template>
   <div>
-    <!-- Toolbar -->
     <div class="planning-toolbar" style="margin-bottom: 18px;">
       <div class="planning-toolbar-group">
         <button class="toolbar-btn" @click="prevWeek">◀</button>
-        <div style="display:flex;flex-direction:column;gap:2px;min-width:140px;">
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:160px;">
           <strong style="color:#f8fafc;font-size:14px;line-height:1.1;">Semaine</strong>
           <span style="font-size:12px;color:#cbd5e1;">{{ formatDateRange }}</span>
         </div>
@@ -13,15 +12,17 @@
       <button class="toolbar-btn-today" @click="goToday">Aujourd'hui</button>
     </div>
 
-    <!-- Planning board with time axis -->
-    <div class="planning-board" style="position:relative;">
+    <div v-if="!weekDays.length" class="planning-board" style="padding:18px;">
+      <div style="font-size:13px;color:#9CA3AF;">Aucun jour d'ouverture n'est configuré pour l'atelier.</div>
+    </div>
+
+    <div v-else class="planning-board" style="position:relative;">
       <div style="overflow-x:auto;">
-        <div style="display:grid;grid-template-columns:60px repeat(7, 1fr);min-width:900px;">
-          <!-- Header row -->
+        <div :style="boardStyle">
           <div style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);"></div>
           <div
             v-for="day in weekDays"
-            :key="'h-'+day.date"
+            :key="'h-' + day.date"
             :class="['planning-day-header', day.isToday ? 'is-today' : '']"
             style="border-bottom:1px solid rgba(255,255,255,0.06);border-left:1px solid rgba(255,255,255,0.04);"
           >
@@ -31,26 +32,43 @@
             <div style="font-size:10px;color:#6B7280;margin-top:2px;">{{ countRdvsForDay(day.date) }} RDV</div>
           </div>
 
-          <!-- Time rows -->
           <template v-for="slot in timeSlots" :key="slot.label">
-            <!-- Time label -->
-            <div :style="{ padding: '2px 8px 2px 4px', fontSize: '10px', fontWeight: '600', color: '#6B7280', textAlign: 'right', borderTop: '1px solid rgba(255,255,255,0.04)', height: `${ROW_HEIGHT}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: '3px' }">
+            <div :style="timeLabelStyle">
               {{ slot.label }}
             </div>
-            <!-- Day cells -->
+
             <div
               v-for="day in weekDays"
               :key="`${slot.label}-${day.date}`"
-              :style="[{ position: 'relative', borderTop: '1px solid rgba(255,255,255,0.04)', borderLeft: '1px solid rgba(255,255,255,0.04)', height: `${ROW_HEIGHT}px` }, day.isToday ? { background: 'rgba(255,210,0,0.02)' } : {}]"
+              :class="[
+                'planning-cell',
+                {
+                  'is-clickable': canCreate && isSlotOpen(day.date, slot.minutes),
+                  'is-unavailable': !isSlotOpen(day.date, slot.minutes),
+                  'is-drop-target': isDropTarget(day.date, slot.minutes),
+                },
+              ]"
+              :style="cellStyle(day, slot.minutes)"
+              @click="handleCellClick(day.date, slot.minutes)"
+              @dragover.prevent="handleDragOver(day.date, slot.minutes)"
+              @drop.prevent="handleDrop(day.date, slot.minutes)"
             >
-              <!-- RDV blocks positioned by time -->
+              <div
+                v-if="isPauseSlot(day.date, slot.minutes)"
+                style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:#6B7280;pointer-events:none;"
+              >
+                pause
+              </div>
+
               <div
                 v-for="rdv in getRdvsStartingAt(day.date, slot.minutes)"
                 :key="rdv.id"
-                :class="['rdv-block', rdvStatusClass(rdv.status)]"
-                style="position:absolute;left:2px;right:2px;z-index:2;overflow:hidden;"
-                :style="{ top: '0px', height: rdvHeight(rdv) + 'px', minHeight: `${ROW_HEIGHT}px` }"
-                @click="$emit('select-rdv', rdv)"
+                :class="['rdv-block', rdvStatusClass(rdv.status), { 'is-draggable': canDragRdv(rdv) }]"
+                :draggable="canDragRdv(rdv)"
+                :style="rdvStyle(rdv)"
+                @click.stop="$emit('select-rdv', rdv)"
+                @dragstart="onDragStart($event, rdv)"
+                @dragend="onDragEnd"
               >
                 <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
                   {{ rdv.heure_debut?.slice(0, 5) }}
@@ -66,8 +84,11 @@
           </template>
         </div>
 
-        <!-- Now line -->
-        <div v-if="nowLineTop > 0" style="position:absolute;left:60px;right:0;z-index:10;pointer-events:none;" :style="{ top: nowLineTop + 'px' }">
+        <div
+          v-if="nowLineTop > 0"
+          style="position:absolute;left:60px;right:0;z-index:10;pointer-events:none;"
+          :style="{ top: nowLineTop + 'px' }"
+        >
           <div style="display:flex;align-items:center;">
             <div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div>
             <div style="flex:1;height:2px;background:#EF4444;opacity:0.7;"></div>
@@ -79,21 +100,39 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  ponts: Array<{ id: number; nom: string }>
-  rdvs: Array<any>
-}>()
+const props = withDefaults(defineProps<{
+  ponts?: Array<{ id: number; nom: string }>
+  rdvs?: Array<any>
+  horaires?: Array<any>
+  canCreate?: boolean
+  canDrag?: boolean
+  historicalStatuses?: string[]
+}>(), {
+  ponts: () => [],
+  rdvs: () => [],
+  horaires: () => [],
+  canCreate: false,
+  canDrag: false,
+  historicalStatuses: () => ['termine', 'restitue', 'facture', 'paye', 'annule'],
+})
 
-defineEmits<{
+const emit = defineEmits<{
   'select-rdv': [rdv: any]
+  'move-rdv': [payload: { id: number; date: string; time: string }]
+  'create-at': [payload: { date: string; time: string }]
 }>()
 
 const currentDate = ref(new Date())
-const HEADER_HEIGHT = 72 // approx header row height
+const draggingRdvId = ref<number | null>(null)
+const dropTarget = ref<{ date: string; minutes: number } | null>(null)
+
+const HEADER_HEIGHT = 72
 const TIME_STEP_MINUTES = 15
 const ROW_HEIGHT = 24
-const START_HOUR = 8
-const END_HOUR = 19
+const DEFAULT_START_HOUR = 10
+const DEFAULT_END_HOUR = 19
+const DAY_LABELS = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
+const MONTH_LABELS = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc']
 
 const weekStart = computed(() => {
   const d = new Date(currentDate.value)
@@ -102,34 +141,64 @@ const weekStart = computed(() => {
   return new Date(d.setDate(diff))
 })
 
+const horaireMap = computed(() => {
+  const map = new Map<number, any>()
+  for (const raw of props.horaires || []) {
+    const idx = Number(raw.jour_semaine ?? raw.jourSemaine)
+    if (Number.isFinite(idx)) map.set(idx, raw)
+  }
+  return map
+})
+
+const openDayIndexes = computed(() => {
+  if (!horaireMap.value.size) return [1, 2, 3, 4, 5]
+  return (Array.from(horaireMap.value.entries()) as Array<[number, any]>)
+    .filter(([, horaire]: [number, any]) => Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) === 1)
+    .map(([idx]: [number, any]) => idx)
+    .sort((a: number, b: number) => a - b)
+})
+
 const weekDays = computed(() => {
-  const days = []
-  const labels = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
   const today = new Date().toISOString().slice(0, 10)
-  for (let i = 0; i < 7; i++) {
+  return openDayIndexes.value.map((index: number) => {
     const d = new Date(weekStart.value)
-    d.setDate(d.getDate() + i)
+    d.setDate(d.getDate() + index)
     const date = d.toISOString().slice(0, 10)
-    days.push({
-      label: labels[i],
+    return {
+      label: DAY_LABELS[index],
       date,
       dateNum: d.getDate(),
-      month: ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][d.getMonth()],
+      month: MONTH_LABELS[d.getMonth()],
       isToday: date === today,
-    })
-  }
-  return days
+    }
+  })
+})
+
+const startMinutes = computed(() => {
+  const values = (Array.from(horaireMap.value.values()) as any[])
+    .filter((horaire: any) => Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) === 1)
+    .map((horaire: any) => timeToMinutes(horaire.heure_ouverture ?? horaire.heureOuverture ?? `${String(DEFAULT_START_HOUR).padStart(2, '0')}:00`))
+    .filter((value: number) => Number.isFinite(value))
+
+  return values.length ? Math.min(...values) : DEFAULT_START_HOUR * 60
+})
+
+const endMinutes = computed(() => {
+  const values = (Array.from(horaireMap.value.values()) as any[])
+    .filter((horaire: any) => Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) === 1)
+    .map((horaire: any) => timeToMinutes(horaire.heure_fermeture ?? horaire.heureFermeture ?? `${String(DEFAULT_END_HOUR).padStart(2, '0')}:00`))
+    .filter((value: number) => Number.isFinite(value))
+
+  return values.length ? Math.max(...values) : DEFAULT_END_HOUR * 60
 })
 
 const timeSlots = computed(() => {
   const slots: { label: string; minutes: number }[] = []
-  for (let h = START_HOUR; h < END_HOUR; h++) {
-    for (const m of [0, 15, 30, 45]) {
-      slots.push({
-        label: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-        minutes: h * 60 + m,
-      })
-    }
+  for (let minutes = startMinutes.value; minutes < endMinutes.value; minutes += TIME_STEP_MINUTES) {
+    slots.push({
+      label: minutesToTime(minutes),
+      minutes,
+    })
   }
   return slots
 })
@@ -141,12 +210,77 @@ const formatDateRange = computed(() => {
   return `${start.dateNum} ${start.month} — ${end.dateNum} ${end.month}`
 })
 
+const boardStyle = computed(() => ({
+  display: 'grid',
+  gridTemplateColumns: `60px repeat(${Math.max(weekDays.value.length, 1)}, minmax(140px, 1fr))`,
+  minWidth: `${60 + Math.max(weekDays.value.length, 1) * 140}px`,
+}))
+
+const timeLabelStyle = computed(() => ({
+  padding: '2px 8px 2px 4px',
+  fontSize: '10px',
+  fontWeight: '600',
+  color: '#6B7280',
+  textAlign: 'right',
+  borderTop: '1px solid rgba(255,255,255,0.04)',
+  height: `${ROW_HEIGHT}px`,
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-end',
+  paddingTop: '3px',
+}))
+
 const nowLineTop = computed(() => {
+  if (!weekDays.value.some((day: any) => day.isToday)) return -1
   const now = new Date()
   const minutes = now.getHours() * 60 + now.getMinutes()
-  if (minutes < START_HOUR * 60 || minutes > END_HOUR * 60) return -1
-  const offsetMinutes = minutes - START_HOUR * 60
+  if (minutes < startMinutes.value || minutes > endMinutes.value) return -1
+  const offsetMinutes = minutes - startMinutes.value
   return HEADER_HEIGHT + (offsetMinutes / TIME_STEP_MINUTES) * ROW_HEIGHT
+})
+
+const dayLayouts = computed(() => {
+  const layouts: Record<string, any[]> = {}
+
+  for (const day of weekDays.value) {
+    const dayEvents = (props.rdvs || [])
+      .filter((rdv: any) => rdv.date_rdv === day.date)
+      .map((rdv: any) => {
+        const start = parseTime(rdv.heure_debut)
+        const duration = Number(rdv.duree_estimee || rdv.temps_estime || 60)
+        return {
+          ...rdv,
+          start,
+          end: start + duration,
+        }
+      })
+      .sort((a: any, b: any) => a.start - b.start || a.end - b.end)
+
+    const activeColumns: Array<{ end: number; column: number }> = []
+    const placed = dayEvents.map((rdv: any) => {
+      for (let i = activeColumns.length - 1; i >= 0; i--) {
+        if (activeColumns[i].end <= rdv.start) activeColumns.splice(i, 1)
+      }
+
+      const used = new Set(activeColumns.map((item) => item.column))
+      let column = 0
+      while (used.has(column)) column += 1
+
+      activeColumns.push({ end: rdv.end, column })
+      return { ...rdv, column }
+    })
+
+    layouts[day.date] = placed.map((rdv: any) => {
+      const overlaps = placed.filter((other: any) => rdv.start < other.end && other.start < rdv.end)
+      const overlapCount = Math.max(1, ...overlaps.map((item: any) => item.column + 1))
+      return {
+        ...rdv,
+        overlapCount,
+      }
+    })
+  }
+
+  return layouts
 })
 
 function prevWeek() {
@@ -166,30 +300,142 @@ function goToday() {
 }
 
 function countRdvsForDay(date: string) {
-  return props.rdvs.filter(r => r.date_rdv === date).length
+  return (props.rdvs || []).filter((rdv: any) => rdv.date_rdv === date).length
 }
 
-function parseTime(t: string | undefined): number {
-  if (!t) return START_HOUR * 60
-  const parts = t.split(':')
-  return Number(parts[0]) * 60 + Number(parts[1] || 0)
+function timeToMinutes(time: string | undefined) {
+  const raw = String(time || '00:00')
+  const [hours, minutes] = raw.split(':').map(Number)
+  return (hours || 0) * 60 + (minutes || 0)
+}
+
+function minutesToTime(minutes: number) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+function parseTime(time: string | undefined): number {
+  return timeToMinutes(time)
+}
+
+function getDayHoraire(date: string) {
+  const jsDay = new Date(`${date}T00:00:00`).getDay()
+  const idx = jsDay === 0 ? 6 : jsDay - 1
+  return horaireMap.value.get(idx) || null
+}
+
+function isPauseSlot(date: string, minutes: number) {
+  const horaire = getDayHoraire(date)
+  if (!horaire) return false
+  const pauseStart = horaire.pause_debut ?? horaire.pauseDebut
+  const pauseEnd = horaire.pause_fin ?? horaire.pauseFin
+  if (!pauseStart || !pauseEnd) return false
+  return minutes >= timeToMinutes(pauseStart) && minutes < timeToMinutes(pauseEnd)
+}
+
+function isSlotOpen(date: string, minutes: number) {
+  const horaire = getDayHoraire(date)
+  if (!horaire) return true
+  if (Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) !== 1) return false
+
+  const open = timeToMinutes(horaire.heure_ouverture ?? horaire.heureOuverture ?? '08:00')
+  const close = timeToMinutes(horaire.heure_fermeture ?? horaire.heureFermeture ?? '18:00')
+  if (minutes < open || minutes >= close) return false
+  if (isPauseSlot(date, minutes)) return false
+  return true
+}
+
+function cellStyle(day: { isToday: boolean; date: string }, minutes: number) {
+  return [
+    {
+      position: 'relative',
+      borderTop: '1px solid rgba(255,255,255,0.04)',
+      borderLeft: '1px solid rgba(255,255,255,0.04)',
+      height: `${ROW_HEIGHT}px`,
+      cursor: props.canCreate && isSlotOpen(day.date, minutes) ? 'pointer' : 'default',
+    },
+    day.isToday ? { background: 'rgba(255,210,0,0.02)' } : {},
+    !isSlotOpen(day.date, minutes) ? { background: 'rgba(255,255,255,0.015)' } : {},
+    isPauseSlot(day.date, minutes) ? { background: 'rgba(99,102,241,0.06)' } : {},
+  ]
 }
 
 function getRdvsStartingAt(date: string, slotMinutes: number) {
-  return props.rdvs.filter(r => {
-    if (r.date_rdv !== date) return false
-    const rdvMin = parseTime(r.heure_debut)
-    return rdvMin >= slotMinutes && rdvMin < slotMinutes + TIME_STEP_MINUTES
-  })
+  return (dayLayouts.value[date] || []).filter((rdv: any) => rdv.start >= slotMinutes && rdv.start < slotMinutes + TIME_STEP_MINUTES)
 }
 
 function rdvHeight(rdv: any): number {
-  const duration = rdv.duree_estimee || rdv.temps_estime || 60
+  const duration = Number(rdv.duree_estimee || rdv.temps_estime || 60)
   return Math.max(20, (duration / TIME_STEP_MINUTES) * ROW_HEIGHT)
 }
 
-function rdvStatusClass(status: string): string {
+function rdvStyle(rdv: any) {
+  const overlapCount = Math.max(1, Number(rdv.overlapCount || 1))
+  const width = 100 / overlapCount
+  return {
+    position: 'absolute',
+    top: '0px',
+    left: `calc(${rdv.column * width}% + 2px)`,
+    width: `calc(${width}% - 4px)`,
+    height: `${rdvHeight(rdv)}px`,
+    minHeight: `${ROW_HEIGHT}px`,
+    zIndex: 2,
+    overflow: 'hidden',
+    opacity: isHistoricalStatus(rdv.status) ? 0.72 : 1,
+    cursor: canDragRdv(rdv) ? 'grab' : 'pointer',
+  }
+}
+
+function rdvStatusClass(status: string) {
   return `rdv-status-${status || 'en_attente'}`
+}
+
+function isHistoricalStatus(status: string) {
+  return (props.historicalStatuses || []).includes(status)
+}
+
+function canDragRdv(rdv: any) {
+  return !!props.canDrag && !isHistoricalStatus(rdv.status)
+}
+
+function handleCellClick(date: string, minutes: number) {
+  if (!props.canCreate || !isSlotOpen(date, minutes)) return
+  emit('create-at', { date, time: minutesToTime(minutes) })
+}
+
+function onDragStart(event: DragEvent, rdv: any) {
+  if (!canDragRdv(rdv)) {
+    event.preventDefault()
+    return
+  }
+  draggingRdvId.value = Number(rdv.id)
+  event.dataTransfer?.setData('text/plain', String(rdv.id))
+  event.dataTransfer?.setData('application/json', JSON.stringify({ id: rdv.id }))
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function handleDragOver(date: string, minutes: number) {
+  if (!draggingRdvId.value || !isSlotOpen(date, minutes)) return
+  dropTarget.value = { date, minutes }
+}
+
+function handleDrop(date: string, minutes: number) {
+  if (!draggingRdvId.value || !isSlotOpen(date, minutes)) return
+  emit('move-rdv', {
+    id: draggingRdvId.value,
+    date,
+    time: minutesToTime(minutes),
+  })
+  draggingRdvId.value = null
+  dropTarget.value = null
+}
+
+function isDropTarget(date: string, minutes: number) {
+  return !!dropTarget.value && dropTarget.value.date === date && dropTarget.value.minutes === minutes
+}
+
+function onDragEnd() {
+  draggingRdvId.value = null
+  dropTarget.value = null
 }
 </script>
 
@@ -223,5 +469,15 @@ function rdvStatusClass(status: string): string {
 }
 .toolbar-btn-today:hover {
   background: rgba(255,210,0,0.08);
+}
+.planning-cell.is-clickable:hover {
+  background: rgba(255,210,0,0.05) !important;
+}
+.planning-cell.is-drop-target {
+  box-shadow: inset 0 0 0 1px rgba(255,210,0,0.45);
+  background: rgba(255,210,0,0.08) !important;
+}
+.rdv-block.is-draggable:active {
+  cursor: grabbing;
 }
 </style>

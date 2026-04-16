@@ -3,6 +3,7 @@
 namespace App;
 
 use App\Message\ProcessScheduledRappels;
+use Symfony\Component\Console\Messenger\RunCommandMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule as SymfonySchedule;
@@ -23,6 +24,8 @@ class Schedule implements ScheduleProviderInterface
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)
             ->add(RecurringMessage::cron('0 8 * * *', new ProcessScheduledRappels()))
+            // RGPD: monthly data retention purge (1st of each month at 3:00 AM)
+            ->add(RecurringMessage::cron('0 3 1 * *', new RunCommandMessage('app:rgpd-purge --execute')))
         ;
     }
 }

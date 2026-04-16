@@ -109,6 +109,39 @@ class Facture
     #[Groups(['facture:read', 'facture:write'])]
     private ?string $notes = null;
 
+    // --- RGPD: Snapshot fields (immutable copy at invoice creation) ---
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapClientNom = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapClientPrenom = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapClientEmail = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapClientTelephone = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapClientAdresse = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapVehiculePlaque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapVehiculeMarque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $snapVehiculeModele = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['facture:read'])]
     private \DateTimeInterface $createdAt;
@@ -128,6 +161,20 @@ class Facture
     public function __construct() {
         $this->dateCreation = new \DateTime(); $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime();
         $this->paiements = new ArrayCollection(); $this->lignes = new ArrayCollection();
+    }
+    #[ORM\PrePersist] public function snapshotClientData(): void {
+        if ($this->client && !$this->snapClientNom) {
+            $this->snapClientNom = $this->client->getNom();
+            $this->snapClientPrenom = $this->client->getPrenom();
+            $this->snapClientEmail = $this->client->getEmail();
+            $this->snapClientTelephone = $this->client->getTelephone();
+            $this->snapClientAdresse = $this->client->getAdresse();
+        }
+        if ($this->vehicule && !$this->snapVehiculePlaque) {
+            $this->snapVehiculePlaque = $this->vehicule->getPlaque();
+            $this->snapVehiculeMarque = $this->vehicule->getMarque();
+            $this->snapVehiculeModele = $this->vehicule->getModele();
+        }
     }
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
@@ -177,4 +224,23 @@ class Facture
     public function setTvaPiecesTaux(float $v): static { $this->tvaPiecesTaux = $v; return $this; }
     public function getPaiements(): Collection { return $this->paiements; }
     public function getLignes(): Collection { return $this->lignes; }
+
+    // --- RGPD snapshot getters/setters ---
+    public function getSnapClientNom(): ?string { return $this->snapClientNom; }
+    public function setSnapClientNom(?string $v): static { $this->snapClientNom = $v; return $this; }
+    public function getSnapClientPrenom(): ?string { return $this->snapClientPrenom; }
+    public function setSnapClientPrenom(?string $v): static { $this->snapClientPrenom = $v; return $this; }
+    public function getSnapClientEmail(): ?string { return $this->snapClientEmail; }
+    public function setSnapClientEmail(?string $v): static { $this->snapClientEmail = $v; return $this; }
+    public function getSnapClientTelephone(): ?string { return $this->snapClientTelephone; }
+    public function setSnapClientTelephone(?string $v): static { $this->snapClientTelephone = $v; return $this; }
+    public function getSnapClientAdresse(): ?string { return $this->snapClientAdresse; }
+    public function setSnapClientAdresse(?string $v): static { $this->snapClientAdresse = $v; return $this; }
+    public function getSnapVehiculePlaque(): ?string { return $this->snapVehiculePlaque; }
+    public function setSnapVehiculePlaque(?string $v): static { $this->snapVehiculePlaque = $v; return $this; }
+    public function getSnapVehiculeMarque(): ?string { return $this->snapVehiculeMarque; }
+    public function setSnapVehiculeMarque(?string $v): static { $this->snapVehiculeMarque = $v; return $this; }
+    public function getSnapVehiculeModele(): ?string { return $this->snapVehiculeModele; }
+    public function setSnapVehiculeModele(?string $v): static { $this->snapVehiculeModele = $v; return $this; }
+    public function hasSnapshot(): bool { return $this->snapClientNom !== null; }
 }

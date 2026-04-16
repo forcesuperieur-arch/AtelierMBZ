@@ -40,6 +40,12 @@ class ConfigController extends AbstractController
             $data['atelier'] = $this->serializeAtelier($atelier);
         }
 
+        $horaires = $this->em->getRepository(HoraireAtelier::class)->findBy(
+            $config?->getAtelierId() ? ['atelierId' => $config->getAtelierId()] : [],
+            ['jourSemaine' => 'ASC']
+        );
+        $data['horaires'] = json_decode($this->serializer->serialize($horaires, 'json', ['groups' => ['horaire:read']]), true);
+
         return $this->json($data);
     }
 
@@ -120,6 +126,12 @@ class ConfigController extends AbstractController
         if ($atelier) {
             $result['atelier'] = $this->serializeAtelier($atelier);
         }
+
+        $horaires = $this->em->getRepository(HoraireAtelier::class)->findBy(
+            $config?->getAtelierId() ? ['atelierId' => $config->getAtelierId()] : [],
+            ['jourSemaine' => 'ASC']
+        );
+        $result['horaires'] = json_decode($this->serializer->serialize($horaires, 'json', ['groups' => ['horaire:read']]), true);
 
         return $this->json($result);
     }
