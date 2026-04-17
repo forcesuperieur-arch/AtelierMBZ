@@ -85,9 +85,16 @@ class RapportInterventionController extends AbstractController
 
         $essai = $rapport->getEssaiRoutier();
         if (!$essai) {
+            $essai = $this->em->getRepository(EssaiRoutier::class)->findOneBy(
+                ['rendezVous' => $rapport->getRendezVous()],
+                ['id' => 'DESC'],
+            );
+        }
+        if (!$essai) {
             $essai = new EssaiRoutier();
             $essai->setRendezVous($rapport->getRendezVous());
             $essai->setAtelierId($rapport->getAtelierId());
+            $essai->setKmDebut($rapport->getRendezVous()->getKilometrage());
             $this->em->persist($essai);
         }
 
@@ -95,12 +102,19 @@ class RapportInterventionController extends AbstractController
         if (isset($data['kmFin'])) $essai->setKmFin($data['kmFin']);
         if (isset($data['dureeMinutes'])) $essai->setDureeMinutes($data['dureeMinutes']);
         if (isset($data['pointsControle'])) $essai->setPointsControle($data['pointsControle']);
+        if (isset($data['checkpoints'])) $essai->setCheckpoints($data['checkpoints']);
         if (isset($data['anomalies'])) $essai->setAnomalies($data['anomalies']);
+        if (isset($data['observations'])) $essai->setObservations($data['observations']);
         if (isset($data['actionsCorrectives'])) $essai->setActionsCorrectives($data['actionsCorrectives']);
         if (isset($data['signatureMecanicien'])) $essai->setSignatureMecanicien($data['signatureMecanicien']);
+        if (isset($data['statut'])) $essai->setStatut((string) $data['statut']);
 
         if ($essai->getKmDebut() && $essai->getKmFin()) {
             $essai->setDistance((string)($essai->getKmFin() - $essai->getKmDebut()));
+        }
+        if (($data['valider'] ?? false) === true) {
+            $essai->setStatut($essai->hasAnomalies() ? 'anomalie_detectee' : 'valide');
+            $essai->setValidatedAt(new \DateTime());
         }
         $essai->setRealiseAt(new \DateTime());
 
@@ -115,9 +129,13 @@ class RapportInterventionController extends AbstractController
             'distance' => $essai->getDistance(),
             'dureeMinutes' => $essai->getDureeMinutes(),
             'pointsControle' => $essai->getPointsControle(),
+            'checkpoints' => $essai->getCheckpoints(),
             'anomalies' => $essai->getAnomalies(),
+            'observations' => $essai->getObservations(),
             'actionsCorrectives' => $essai->getActionsCorrectives(),
             'isComplete' => $essai->isComplete(),
+            'statut' => $essai->getStatut(),
+            'isValide' => $essai->isValide(),
         ]);
     }
 
@@ -187,10 +205,11 @@ class RapportInterventionController extends AbstractController
         }
 
         $rdv = $rapport->getRendezVous();
+        $essai = $this->resolveEssai($rapport);
         $html = $this->twig->render('pdf/rapport_intervention.html.twig', [
             'rapport' => $rapport,
             'rdv' => $rdv,
-            'essai' => $rapport->getEssaiRoutier(),
+            'essai' => $essai,
             'client' => $rdv->getClient(),
             'vehicule' => $rdv->getVehicule(),
         ]);
@@ -239,7 +258,7 @@ class RapportInterventionController extends AbstractController
 
     private function serializeRapport(RapportIntervention $r): array
     {
-        $essai = $r->getEssaiRoutier();
+        $essai = $this->resolveEssai($r);
         return [
             'id' => $r->getId(),
             'rdv_id' => $r->getRendezVous()->getId(),
@@ -267,12 +286,25 @@ class RapportInterventionController extends AbstractController
                 'distance' => $essai->getDistance(),
                 'dureeMinutes' => $essai->getDureeMinutes(),
                 'pointsControle' => $essai->getPointsControle(),
+                'checkpoints' => $essai->getCheckpoints(),
                 'anomalies' => $essai->getAnomalies(),
+                'observations' => $essai->getObservations(),
                 'actionsCorrectives' => $essai->getActionsCorrectives(),
                 'isComplete' => $essai->isComplete(),
+                'statut' => $essai->getStatut(),
+                'isValide' => $essai->isValide(),
             ] : null,
             'createdAt' => $r->getCreatedAt()->format('c'),
             'updatedAt' => $r->getUpdatedAt()?->format('c'),
         ];
+    }
+
+    private function resolveEssai(RapportIntervention $rapport): ?EssaiRoutier
+    {
+        return $rapport->getEssaiRoutier()
+            ?? $this->em->getRepository(EssaiRoutier::class)->findOneBy(
+                ['rendezVous' => $rapport->getRendezVous()],
+                ['id' => 'DESC'],
+            );
     }
 }

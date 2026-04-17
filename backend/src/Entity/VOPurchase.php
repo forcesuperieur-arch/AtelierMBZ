@@ -34,7 +34,7 @@ class VOPurchase
     #[ORM\Column(nullable: true)]
     private ?int $atelierId = null;
 
-    #[ORM\OneToOne(targetEntity: Vehicule::class)]
+    #[ORM\ManyToOne(targetEntity: Vehicule::class)]
     #[ORM\JoinColumn(name: 'vehicule_id', nullable: false)]
     #[Groups(['vo:read', 'vo:write'])]
     private Vehicule $vehicule;

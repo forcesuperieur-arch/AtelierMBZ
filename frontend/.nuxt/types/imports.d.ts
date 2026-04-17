@@ -209,6 +209,7 @@ declare global {
   const useTemplateRef: typeof import('../../node_modules/vue').useTemplateRef
   const useToast: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast').useToast
   const useTransitionState: typeof import('../../node_modules/vue').useTransitionState
+  const useVoHelpers: typeof import('../../composables/useVoHelpers').useVoHelpers
   const useVoStore: typeof import('../../stores/vo').useVoStore
   const watch: typeof import('../../node_modules/vue').watch
   const watchEffect: typeof import('../../node_modules/vue').watchEffect
@@ -439,6 +440,7 @@ declare module 'vue' {
     readonly useTemplateRef: UnwrapRef<typeof import('../../node_modules/vue')['useTemplateRef']>
     readonly useToast: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
     readonly useTransitionState: UnwrapRef<typeof import('../../node_modules/vue')['useTransitionState']>
+    readonly useVoHelpers: UnwrapRef<typeof import('../../composables/useVoHelpers')['useVoHelpers']>
     readonly useVoStore: UnwrapRef<typeof import('../../stores/vo')['useVoStore']>
     readonly watch: UnwrapRef<typeof import('../../node_modules/vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchEffect']>

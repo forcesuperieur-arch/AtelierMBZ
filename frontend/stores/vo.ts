@@ -90,6 +90,7 @@ interface VODocument {
   id: number
   type: string
   filePath: string
+  downloadPath?: string
   originalFilename: string
   mimeType: string
   dateExpiration?: string
@@ -97,11 +98,40 @@ interface VODocument {
   uploadedAt: string
 }
 
+interface VOStockItem {
+  id: number
+  source: 'purchase' | 'depot'
+  status: string
+  plaque?: string
+  marque?: string
+  modele?: string
+  annee?: number
+  km?: number
+  couleur?: string
+  prix_achat?: string
+  prix_vente?: string
+  marge?: string
+  total_fre?: string
+  regime_tva?: string
+  jours_stock?: number | null
+  commission_ht?: string
+  commission_ttc?: string
+  deposant_net?: string
+  jours_restants?: number
+  mandat_expire?: boolean
+  missing_docs?: string[]
+  can_sell?: boolean
+  created_at: string
+}
+
 interface VOStats {
   en_stock: number
   vendus: number
   depots_actifs: number
   alerts_count: number
+  stock_total?: number
+  stock_items?: VOStockItem[]
+  mandats_expirant_7j?: number
 }
 
 export const useVoStore = defineStore('vo', {
@@ -111,6 +141,7 @@ export const useVoStore = defineStore('vo', {
     factures: [] as VOFacture[],
     livrePolice: [] as LivrePoliceEntry[],
     documents: [] as VODocument[],
+    stock: [] as VOStockItem[],
     stats: null as VOStats | null,
     alerts: [] as any[],
     loading: false,
@@ -132,6 +163,11 @@ export const useVoStore = defineStore('vo', {
     async fetchPurchase(id: number): Promise<VOPurchase> {
       const api = useApi()
       return await api.get(`/vo/purchases/${id}`)
+    },
+
+    async fetchPurchaseFull(id: number): Promise<VOPurchase & Record<string, any>> {
+      const api = useApi()
+      return await api.get(`/vo/purchases/${id}/full`)
     },
 
     async createPurchase(data: Record<string, any>): Promise<VOPurchase> {
@@ -176,6 +212,11 @@ export const useVoStore = defineStore('vo', {
       return await api.get(`/vo/depots/${id}`)
     },
 
+    async fetchDepotFull(id: number): Promise<VODepot & Record<string, any>> {
+      const api = useApi()
+      return await api.get(`/vo/depots/${id}/full`)
+    },
+
     async createDepot(data: Record<string, any>): Promise<VODepot> {
       const api = useApi()
       const result = await api.post('/vo/depots', data)
@@ -186,6 +227,16 @@ export const useVoStore = defineStore('vo', {
     async updateDepot(id: number, data: Record<string, any>) {
       const api = useApi()
       return await api.patch(`/vo/depots/${id}`, data)
+    },
+
+    async restituerDepot(id: number, data?: { notes?: string }) {
+      const api = useApi()
+      return await api.post(`/vo/depots/${id}/restituer`, data ?? {})
+    },
+
+    async prolongerMandat(id: number, data: { dureeSupplementaire: number }) {
+      const api = useApi()
+      return await api.patch(`/vo/depots/${id}`, { dureeMandat: data.dureeSupplementaire })
     },
 
     async sellDepot(id: number, data: { buyerId: number; salePrice?: string; notes?: string }) {
@@ -228,6 +279,17 @@ export const useVoStore = defineStore('vo', {
       this.alerts = await api.get('/vo/documents/alerts')
     },
 
+    async fetchStock(query?: string, limit?: number) {
+      const api = useApi()
+      const qs = new URLSearchParams()
+      if (query) qs.set('q', query)
+      if (typeof limit === 'number' && limit > 0) qs.set('limit', String(limit))
+
+      const payload = await api.get(`/vo/stock${qs.toString() ? `?${qs.toString()}` : ''}`)
+      this.stock = payload.items ?? []
+      return payload
+    },
+
     // ── Stats ──
 
     async fetchStats() {
@@ -240,6 +302,16 @@ export const useVoStore = defineStore('vo', {
     async calculateMargin(data: { regime: string; purchasePrice: string; salePrice: string }) {
       const api = useApi()
       return await api.post('/vo/margin/calculate', data)
+    },
+
+    async simulateMargin(data: {
+      purchasePrice: string
+      salePrice: string
+      regime: string
+      freItems: Array<{ label: string; amount: string }>
+    }) {
+      const api = useApi()
+      return await api.post('/vo/margin/simulate', data)
     },
   },
 })

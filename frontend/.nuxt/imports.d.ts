@@ -34,6 +34,7 @@ export { useApi } from '../composables/useApi';
 export { useAuth } from '../composables/useAuth';
 export { useFormat } from '../composables/useFormat';
 export { useNotifications } from '../composables/useNotifications';
+export { useVoHelpers } from '../composables/useVoHelpers';
 export { defineLocale, extendLocale } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineLocale';
 export { extractShortcuts, defineShortcuts } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts';
 export { avatarGroupInjectionKey, useAvatarGroup } from '../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup';

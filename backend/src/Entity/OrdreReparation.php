@@ -50,6 +50,22 @@ class OrdreReparation
 
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['ordre:read', 'ordre:write'])]
+    private ?string $mechanicNotes = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $mechanicNotesUpdatedAt = null;
+
+    #[ORM\Column(type: 'text', options: ['default' => '{}'])]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private string $mechanicCheckup = '{}';
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $mechanicCheckupUpdatedAt = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
     private ?string $travaux = null;
 
     #[ORM\ManyToOne(targetEntity: DemandeTravauxSupp::class)] #[ORM\JoinColumn(name: 'demande_travaux_supp_id', nullable: true)]
@@ -149,6 +165,22 @@ class OrdreReparation
     public function setKilometrage(?int $v): static { $this->kilometrage = $v; return $this; }
     public function getEtatVehicule(): ?string { return $this->etatVehicule; }
     public function setEtatVehicule(?string $v): static { $this->etatVehicule = $v; return $this; }
+    public function getMechanicNotes(): ?string { return $this->mechanicNotes; }
+    public function setMechanicNotes(?string $v): static {
+        $this->mechanicNotes = $v;
+        $this->mechanicNotesUpdatedAt = new \DateTime();
+        return $this;
+    }
+    public function getMechanicNotesUpdatedAt(): ?\DateTimeInterface { return $this->mechanicNotesUpdatedAt; }
+    public function getMechanicCheckup(): array { return json_decode($this->mechanicCheckup, true) ?: []; }
+    public function setMechanicCheckup(array $v): static {
+        $this->mechanicCheckup = $v === []
+            ? '{}'
+            : (json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}');
+        $this->mechanicCheckupUpdatedAt = new \DateTime();
+        return $this;
+    }
+    public function getMechanicCheckupUpdatedAt(): ?\DateTimeInterface { return $this->mechanicCheckupUpdatedAt; }
     public function getTravaux(): ?string { return $this->travaux; }
     public function setTravaux(?string $v): static { $this->travaux = $v; return $this; }
     public function getDemandeTravauxSupp(): ?DemandeTravauxSupp { return $this->demandeTravauxSupp; }

@@ -21,6 +21,7 @@ export const SidebarLink: typeof import("../components/SidebarLink.vue")['defaul
 export const StatsCard: typeof import("../components/StatsCard.vue")['default']
 export const StatusBadge: typeof import("../components/StatusBadge.vue")['default']
 export const UTable: typeof import("../components/UTable.vue")['default']
+export const VONav: typeof import("../components/vo/VONav.vue")['default']
 export const UAccordion: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']
 export const UAlert: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']
 export const UApp: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']
@@ -111,6 +112,7 @@ export const LazySidebarLink: LazyComponent<typeof import("../components/Sidebar
 export const LazyStatsCard: LazyComponent<typeof import("../components/StatsCard.vue")['default']>
 export const LazyStatusBadge: LazyComponent<typeof import("../components/StatusBadge.vue")['default']>
 export const LazyUTable: LazyComponent<typeof import("../components/UTable.vue")['default']>
+export const LazyVONav: LazyComponent<typeof import("../components/vo/VONav.vue")['default']>
 export const LazyUAccordion: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']>
 export const LazyUAlert: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']>
 export const LazyUApp: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']>

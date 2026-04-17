@@ -28,7 +28,14 @@ class OrdreReparationFreezeListener
 
         $changeSet = $args->getEntityChangeSet();
 
-        $allowedFields = ['statut'];
+        $allowedFields = [
+            'statut',
+            'mechanicNotes',
+            'mechanicNotesUpdatedAt',
+            'mechanicCheckup',
+            'mechanicCheckupUpdatedAt',
+            'etatVehicule',
+        ];
 
         if (!$wasFrozen && $args->hasChangedField('statut') && $currentStatut === 'signe') {
             $allowedFields = [
