@@ -31,6 +31,29 @@ class AuthController extends AbstractController
             ? $this->em->getRepository(Atelier::class)->find($user->getAtelierId())
             : null;
 
+        // Build structured permissions from RoleMetier
+        $roleMetier = $user->getRoleMetier();
+        $roleMetierData = null;
+        if ($roleMetier && $roleMetier->isActive()) {
+            $perms = [];
+            foreach ($roleMetier->getPermissions() as $entry) {
+                if ($entry->isGranted()) {
+                    $perms[] = [
+                        'module' => $entry->getModule(),
+                        'action' => $entry->getAction(),
+                        'scope' => $entry->getScope(),
+                    ];
+                }
+            }
+            $roleMetierData = [
+                'id' => $roleMetier->getId(),
+                'code' => $roleMetier->getCode(),
+                'libelle' => $roleMetier->getLibelle(),
+                'base_role' => $roleMetier->getBaseRole(),
+                'permissions' => $perms,
+            ];
+        }
+
         return [
             'id' => $user->getId(),
             'username' => $user->getUsername(),
@@ -43,6 +66,7 @@ class AuthController extends AbstractController
                 'sections_json' => $rolePermission->getSections(),
                 'permissions_json' => $rolePermission->getPermissions(),
             ] : null,
+            'role_metier' => $roleMetierData,
         ];
     }
 
