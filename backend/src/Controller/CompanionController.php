@@ -4,14 +4,11 @@ namespace App\Controller;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
-use App\Service\OrdreReparationPolicy;
-use App\Service\PrestationCatalogService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -21,9 +18,6 @@ class CompanionController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
-        private RateLimiterFactory $companionUploadLimiter,
-        private OrdreReparationPolicy $orPolicy,
-        private PrestationCatalogService $catalogService,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
@@ -112,7 +106,7 @@ class CompanionController extends AbstractController
                 'id' => $p->getId(),
                 'filename' => $p->getFilename(),
                 'description' => $p->getDescription(),
-                'url' => '/api/public/photos/' . $token . '/' . $p->getFilename(),
+                'url' => '/api/photos/file/' . $p->getFilename(),
             ], $photos),
             'has_signature' => $or && $or->getSignatureClient() ? true : false,
             'photos_count' => count($photos),
@@ -150,11 +144,6 @@ class CompanionController extends AbstractController
     #[Route('/{token}/photo', methods: ['POST'])]
     public function uploadPhoto(string $token, Request $request): JsonResponse
     {
-        $limiter = $this->companionUploadLimiter->create($token);
-        if (!$limiter->consume()->isAccepted()) {
-            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
-        }
-
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -194,7 +183,7 @@ class CompanionController extends AbstractController
         return $this->json([
             'id' => $photo->getId(),
             'filename' => $filename,
-            'url' => '/api/public/photos/' . $token . '/' . $filename,
+            'url' => '/api/photos/file/' . $filename,
         ], Response::HTTP_CREATED);
     }
 
@@ -228,10 +217,7 @@ class CompanionController extends AbstractController
             $this->em->persist($or);
         }
 
-        if (!$this->orPolicy->canSign($or)) {
-            return $this->json(['error' => 'Cet OR ne peut plus être signé'], Response::HTTP_CONFLICT);
-        }
-
+        $or->setSignatureClient($signatureData);
         if ($rdv->getKilometrage()) {
             $or->setKilometrage($rdv->getKilometrage());
         }
@@ -249,16 +235,9 @@ class CompanionController extends AbstractController
             }
         }
 
-        // Sign via policy: snapshot, hash, freeze
-        $hash = $this->orPolicy->sign($or, $signatureData, $request);
-
         $this->em->flush();
 
-        return $this->json([
-            'success' => true,
-            'message' => 'Signature enregistrée',
-            'hash' => $hash,
-        ]);
+        return $this->json(['success' => true, 'message' => 'Signature enregistrée']);
     }
 
     #[Route('/{token}/vehicule', methods: ['PUT'])]
@@ -354,46 +333,5 @@ class CompanionController extends AbstractController
         $this->em->flush();
 
         return $this->json(['success' => true]);
-    }
-
-    #[Route('/{token}/prestations-disponibles', methods: ['GET'])]
-    public function getPrestationsDisponibles(string $token): JsonResponse
-    {
-        $rdv = $this->findRdvByToken($token);
-        if (!$rdv) {
-            return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
-        }
-
-        $vehicule = $rdv->getVehicule();
-        if (!$vehicule) {
-            return $this->json(['error' => 'Aucun véhicule lié au rendez-vous'], Response::HTTP_BAD_REQUEST);
-        }
-
-        $applicable = $this->catalogService->getApplicablePrestations($vehicule);
-
-        $items = array_map(fn(array $entry) => [
-            'id' => $entry['prestation']->getId(),
-            'code' => $entry['prestation']->getCode(),
-            'libelle' => $entry['prestation']->getLibelle(),
-            'description' => $entry['prestation']->getDescription(),
-            'categorie' => $entry['prestation']->getCategorie(),
-            'prix_ht' => $entry['prix_ht'],
-            'prix_ttc' => $entry['prix_ttc'],
-            'temps_minutes' => $entry['temps_minutes'],
-            'mode' => $entry['mode'],
-            'garantie_jours' => $entry['prestation']->getGarantieJours(),
-            'necessite_essai' => $entry['prestation']->getNecessiteEssai(),
-        ], $applicable);
-
-        return $this->json([
-            'vehicule' => [
-                'plaque' => $vehicule->getPlaque(),
-                'marque' => $vehicule->getMarque(),
-                'modele' => $vehicule->getModele(),
-                'categorie' => $vehicule->getCategorie()?->getNom(),
-            ],
-            'prestations' => $items,
-            'count' => count($items),
-        ]);
     }
 }

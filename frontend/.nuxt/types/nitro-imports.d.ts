@@ -145,5 +145,5 @@ export { getRouteRules } from 'nitropack/runtime/internal/route-rules';
 export { useEvent } from 'nitropack/runtime/internal/context';
 export { defineTask, runTask } from 'nitropack/runtime/internal/task';
 export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils';
-export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from '/root/AtelierMBZ/atelier-v2/frontend/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
-export { defineAppConfig } from '/root/AtelierMBZ/atelier-v2/frontend/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
+export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from '/root/AtelierMBZ/frontend/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
+export { defineAppConfig } from '/root/AtelierMBZ/frontend/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';

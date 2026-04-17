@@ -32,13 +32,13 @@
       </div>
       <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/roles')">
         <div class="admin-card-icon">🛡️</div>
-        <div class="admin-card-label">Rôles</div>
-        <div class="admin-card-desc">CRUD des rôles et permissions</div>
+        <div class="admin-card-label">Profils d'accès</div>
+        <div class="admin-card-desc">Rôles système simples pour les comptes</div>
       </div>
       <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/roles-metier')">
         <div class="admin-card-icon">🎭</div>
-        <div class="admin-card-label">Rôles métier</div>
-        <div class="admin-card-desc">Permissions paramétrables par module</div>
+        <div class="admin-card-label">Rôles métier avancés</div>
+        <div class="admin-card-desc">Matrice détaillée par module et action</div>
       </div>
       <div class="admin-card" @click="navigateTo('/admin/audit')">
         <div class="admin-card-icon">🔍</div>
@@ -49,6 +49,16 @@
         <div class="admin-card-icon">📡</div>
         <div class="admin-card-label">Notifications</div>
         <div class="admin-card-desc">Providers SMS/Email & templates</div>
+      </div>
+      <div class="admin-card" @click="navigateTo('/admin/demandes-travaux-supp')">
+        <div class="admin-card-icon">🛠️</div>
+        <div class="admin-card-label">Demandes complémentaires</div>
+        <div class="admin-card-desc">Travaux supplémentaires à arbitrer</div>
+      </div>
+      <div class="admin-card" @click="navigateTo('/admin/clauses-legales')">
+        <div class="admin-card-icon">⚖️</div>
+        <div class="admin-card-label">Clauses légales</div>
+        <div class="admin-card-desc">CGV, mandat, RGPD, gardiennage…</div>
       </div>
     </div>
   </div>

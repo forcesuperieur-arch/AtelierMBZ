@@ -21,6 +21,8 @@ import { NuxtModule, ModuleDependencyMeta } from '@nuxt/schema'
   }
   interface SharedPublicRuntimeConfig {
    apiBase: string,
+
+   mercureUrl: string,
   }
 declare module '@nuxt/schema' {
   interface ModuleDependencies {

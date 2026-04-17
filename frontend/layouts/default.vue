@@ -54,6 +54,14 @@
         </div>
         <span class="topbar-title">{{ currentSection }}</span>
         <div class="topbar-spacer" />
+        <!-- LOT 6.7 : SuperAdmin atelier switch -->
+        <div v-if="isSuperAdmin" class="topbar-atelier-switch">
+          <span style="font-size:11px;color:#FCD34D;font-weight:700;">SA</span>
+          <select v-model="activeAtelierChoice" @change="onSwitchAtelier" style="background:#1a1d26;color:#E8E9ED;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;font-size:12px;">
+            <option value="all">🌐 Tous les ateliers</option>
+            <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
+          </select>
+        </div>
         <div class="live-dot" />
         <span class="topbar-live">LIVE</span>
         <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
@@ -169,6 +177,51 @@ const menuItems = computed(() => {
   ]
   return items.filter(i => auth.hasSection(i.section))
 })
+
+// ── LOT 6.7 : SuperAdmin atelier switch ──
+const api = useApi()
+const toast = useToast()
+const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
+const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
+const userDefaultAtelierChoice = computed(() => String(auth.user.value?.atelierId || auth.user.value?.atelier_id || 'all'))
+const ateliersList = ref<any[]>([])
+const activeAtelierChoice = ref<any>(activeAtelierCookie.value || userDefaultAtelierChoice.value || 'all')
+
+async function loadAteliers() {
+  if (!isSuperAdmin.value) return
+  try {
+    const res = await api.get('/ateliers')
+    ateliersList.value = Array.isArray(res) ? res : (res?.member || res?.['hydra:member'] || [])
+
+    if (!activeAtelierCookie.value && userDefaultAtelierChoice.value && userDefaultAtelierChoice.value !== 'all') {
+      activeAtelierChoice.value = userDefaultAtelierChoice.value
+      activeAtelierCookie.value = userDefaultAtelierChoice.value
+    }
+  } catch { ateliersList.value = [] }
+}
+
+async function onSwitchAtelier() {
+  try {
+    const res = await api.post('/auth/switch-atelier', { atelier_id: activeAtelierChoice.value })
+    activeAtelierCookie.value = String(res.active_atelier_id ?? 'all')
+    activeAtelierChoice.value = String(res.active_atelier_id ?? 'all')
+    toast.add({
+      title: 'Atelier actif changé',
+      description: res.active_atelier_id === 'all' ? 'Vue globale (tous ateliers)' : res.atelier_nom,
+      color: 'success',
+    })
+    // Reload current page to refresh filtered data
+    window.location.reload()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  }
+}
+
+watch(isSuperAdmin, (v) => { if (v) loadAteliers() }, { immediate: true })
+watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieValue, defaultValue, superAdmin]) => {
+  if (!superAdmin) return
+  activeAtelierChoice.value = cookieValue || defaultValue || 'all'
+}, { immediate: true })
 </script>
 
 <style scoped>

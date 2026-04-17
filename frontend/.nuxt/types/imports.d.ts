@@ -149,6 +149,7 @@ declare global {
   const useLoadingIndicator: typeof import('../../node_modules/nuxt/dist/app/composables/loading-indicator').useLoadingIndicator
   const useLocale: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useLocale').useLocale
   const useModel: typeof import('../../node_modules/vue').useModel
+  const useNotifications: typeof import('../../composables/useNotifications').useNotifications
   const useNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').useNuxtApp
   const useNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useNuxtData
   const useOverlay: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useOverlay').useOverlay
@@ -208,6 +209,7 @@ declare global {
   const useTemplateRef: typeof import('../../node_modules/vue').useTemplateRef
   const useToast: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast').useToast
   const useTransitionState: typeof import('../../node_modules/vue').useTransitionState
+  const useVoStore: typeof import('../../stores/vo').useVoStore
   const watch: typeof import('../../node_modules/vue').watch
   const watchEffect: typeof import('../../node_modules/vue').watchEffect
   const watchPostEffect: typeof import('../../node_modules/vue').watchPostEffect
@@ -377,6 +379,7 @@ declare module 'vue' {
     readonly useLoadingIndicator: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/loading-indicator')['useLoadingIndicator']>
     readonly useLocale: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useLocale')['useLocale']>
     readonly useModel: UnwrapRef<typeof import('../../node_modules/vue')['useModel']>
+    readonly useNotifications: UnwrapRef<typeof import('../../composables/useNotifications')['useNotifications']>
     readonly useNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useNuxtApp']>
     readonly useNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useNuxtData']>
     readonly useOverlay: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useOverlay')['useOverlay']>
@@ -436,6 +439,7 @@ declare module 'vue' {
     readonly useTemplateRef: UnwrapRef<typeof import('../../node_modules/vue')['useTemplateRef']>
     readonly useToast: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
     readonly useTransitionState: UnwrapRef<typeof import('../../node_modules/vue')['useTransitionState']>
+    readonly useVoStore: UnwrapRef<typeof import('../../stores/vo')['useVoStore']>
     readonly watch: UnwrapRef<typeof import('../../node_modules/vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchEffect']>
     readonly watchPostEffect: UnwrapRef<typeof import('../../node_modules/vue')['watchPostEffect']>

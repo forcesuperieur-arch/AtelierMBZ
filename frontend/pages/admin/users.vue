@@ -10,8 +10,11 @@
 
     <UCard>
       <UTable :data="users" :columns="columns" :loading="loading">
+        <template #username-cell="{ row }">
+          <span style="font-family:monospace;font-size:12px;color:#93C5FD;">{{ row.original.username }}</span>
+        </template>
         <template #role-cell="{ row }">
-          <span class="status-badge" style="background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ row.original.role }}</span>
+          <span class="status-badge" style="background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ roleLabel(row.original.role) }}</span>
         </template>
         <template #is_active-cell="{ row }">
           <StatusBadge :status="row.original.is_active ? 'confirme' : 'annule'" />
@@ -37,12 +40,24 @@
               <UFormField label="Prénom"><UInput v-model="userForm.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="userForm.nom" required /></UFormField>
               <UFormField label="Email"><UInput v-model="userForm.email" type="email" required /></UFormField>
-              <UFormField label="Rôle">
-                <USelect v-model="userForm.role" :options="roleOptions" required />
+              <UFormField label="Login / identifiant">
+                <UInput v-model="userForm.username" :placeholder="buildUsername(userForm)" />
+              </UFormField>
+              <UFormField label="Profil d'accès">
+                <USelect
+                  v-model="userForm.role"
+                  :items="roleOptions"
+                  value-key="value"
+                  label-key="label"
+                  required
+                />
               </UFormField>
               <UFormField v-if="!editId" label="Mot de passe">
                 <UInput v-model="userForm.password" type="password" required />
               </UFormField>
+            </div>
+            <div style="font-size:12px;color:#9CA3AF;">
+              Le login sera utilisé pour la connexion si besoin. S'il existe déjà, un suffixe automatique sera ajouté.
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
@@ -64,18 +79,21 @@ const showNew = ref(false)
 const saving = ref(false)
 const editId = ref<number | null>(null)
 
-const userForm = reactive({ prenom: '', nom: '', email: '', role: 'receptionnaire', password: '' })
+const userForm = reactive({ prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', password: '' })
 
-const roleOptions = [
+const defaultRoleOptions = [
   { value: 'admin', label: 'Administrateur' },
   { value: 'receptionnaire', label: 'Réceptionnaire' },
   { value: 'mecanicien', label: 'Mécanicien' },
   { value: 'comptable', label: 'Comptable' },
+  { value: 'super_admin', label: 'Super administrateur' },
 ]
+const roleOptions = ref(defaultRoleOptions)
 
 const columns = [
   { key: 'nom', label: 'Nom' },
   { key: 'prenom', label: 'Prénom' },
+  { key: 'username', label: 'Login' },
   { key: 'email', label: 'Email' },
   { key: 'role', label: 'Rôle' },
   { key: 'is_active', label: 'Actif' },
@@ -100,20 +118,47 @@ function splitUsername(username: string) {
   }
 }
 
+function normalizeRoleValue(role: any) {
+  if (role && typeof role === 'object') {
+    if (role.value) return String(role.value).trim().toLowerCase()
+    const matched = roleOptions.value.find((item: any) => item.label === role.label)
+    return String(matched?.value || 'receptionnaire').trim().toLowerCase()
+  }
+
+  return String(role || 'receptionnaire').trim().toLowerCase()
+}
+
 function normalizeUser(u: any) {
   const derived = splitUsername(u.username || '')
   return {
     ...u,
     prenom: u.prenom ?? derived.prenom,
     nom: u.nom ?? derived.nom,
+    username: u.username || '',
+    role: normalizeRoleValue(u.role),
     is_active: u.is_active ?? u.isActive ?? 0,
   }
 }
 
-function buildUsername(source: { prenom?: string; nom?: string; email?: string } = userForm) {
+function buildUsername(source: { prenom?: string; nom?: string; email?: string; username?: string } = userForm) {
+  if ((source.username || '').trim()) return normalizeNamePart(source.username || '')
   const prenom = normalizeNamePart(source.prenom || 'user')
   const nom = normalizeNamePart(source.nom || 'atelier')
   return [prenom, nom].filter(Boolean).join('.') || ((source.email || '').split('@')[0] || 'utilisateur')
+}
+
+function ensureUniqueUsername(base: string) {
+  const normalizedBase = normalizeNamePart(base || 'utilisateur') || 'utilisateur'
+  const taken = new Set(users.value.filter((u: any) => u.id !== editId.value).map((u: any) => String(u.username || '').toLowerCase()))
+  if (!taken.has(normalizedBase)) return normalizedBase
+  let i = 2
+  while (taken.has(`${normalizedBase}.${i}`)) i += 1
+  return `${normalizedBase}.${i}`
+}
+
+function roleLabel(role: any) {
+  const normalizedRole = normalizeRoleValue(role)
+  return roleOptions.value.find((r: any) => r.value === normalizedRole)?.label || normalizedRole
 }
 
 function getUserActive(user: any) {
@@ -122,13 +167,20 @@ function getUserActive(user: any) {
 
 function resetForm() {
   editId.value = null
-  Object.assign(userForm, { prenom: '', nom: '', email: '', role: 'receptionnaire', password: '' })
+  Object.assign(userForm, { prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', password: '' })
 }
 
 function editUser(u: any) {
   const user = normalizeUser(u)
   editId.value = user.id
-  Object.assign(userForm, { prenom: user.prenom, nom: user.nom, email: user.email, role: user.role, password: '' })
+  Object.assign(userForm, {
+    prenom: user.prenom,
+    nom: user.nom,
+    email: user.email,
+    username: user.username,
+    role: normalizeRoleValue(user.role),
+    password: '',
+  })
   showNew.value = true
 }
 
@@ -170,9 +222,11 @@ async function saveUser() {
     const existing = editId.value ? users.value.find((u: any) => u.id === editId.value) : null
     const activeValue = existing ? (getUserActive(existing) ? 1 : 0) : 1
     const payload: any = {
-      username: buildUsername(userForm),
-      email: userForm.email,
-      role: userForm.role,
+      prenom: userForm.prenom.trim(),
+      nom: userForm.nom.trim(),
+      username: ensureUniqueUsername(buildUsername(userForm)),
+      email: userForm.email.trim(),
+      role: normalizeRoleValue(userForm.role),
       is_active: activeValue,
       isActive: activeValue,
     }
@@ -211,9 +265,27 @@ async function fetchUsers() {
   }
 }
 
+async function fetchRoleOptions() {
+  try {
+    const data = await api.get('/roles')
+    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+    const unique = new Map<string, { value: string; label: string }>()
+    for (const role of raw) {
+      const value = String(role.role || '').trim()
+      if (!value) continue
+      unique.set(value, { value, label: role.label || value })
+    }
+    roleOptions.value = unique.size ? Array.from(unique.values()) : defaultRoleOptions
+  } catch {
+    roleOptions.value = defaultRoleOptions
+  }
+}
+
 watch(showNew, (open) => {
   if (!open) resetForm()
 })
 
-onMounted(fetchUsers)
+onMounted(async () => {
+  await Promise.all([fetchUsers(), fetchRoleOptions()])
+})
 </script>

@@ -154,7 +154,7 @@
   ],
   "exclude": [
     "../node_modules",
-    "../../../node_modules",
+    "../../node_modules",
     "../node_modules/nuxt/node_modules",
     "../node_modules/@nuxt/icon/node_modules",
     "../node_modules/@nuxt/fonts/node_modules",

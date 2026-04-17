@@ -15,6 +15,7 @@ type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {},
 
 
 export const AppModal: typeof import("../components/AppModal.vue")['default']
+export const NotificationPopIn: typeof import("../components/NotificationPopIn.vue")['default']
 export const PlanningGrid: typeof import("../components/PlanningGrid.vue")['default']
 export const SidebarLink: typeof import("../components/SidebarLink.vue")['default']
 export const StatsCard: typeof import("../components/StatsCard.vue")['default']
@@ -104,6 +105,7 @@ export const Html: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
 export const NuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
 export const LazyAppModal: LazyComponent<typeof import("../components/AppModal.vue")['default']>
+export const LazyNotificationPopIn: LazyComponent<typeof import("../components/NotificationPopIn.vue")['default']>
 export const LazyPlanningGrid: LazyComponent<typeof import("../components/PlanningGrid.vue")['default']>
 export const LazySidebarLink: LazyComponent<typeof import("../components/SidebarLink.vue")['default']>
 export const LazyStatsCard: LazyComponent<typeof import("../components/StatsCard.vue")['default']>

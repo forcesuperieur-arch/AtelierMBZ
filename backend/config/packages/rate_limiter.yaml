@@ -2,7 +2,7 @@ framework:
     rate_limiter:
         public_booking:
             policy: 'sliding_window'
-            limit: 30
+            limit: 5
             interval: '1 minute'
             lock_factory: 'lock.factory'
         public_suivi:

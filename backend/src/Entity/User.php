@@ -48,6 +48,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private string $email;
 
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $prenom = null;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $nom = null;
+
     #[ORM\Column(length: 200)]
     private string $hashedPassword;
 
@@ -87,6 +95,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getEmail(): string { return $this->email; }
     public function setEmail(string $email): static { $this->email = $email; return $this; }
+
+    public function getPrenom(): ?string { return $this->prenom; }
+    public function setPrenom(?string $prenom): static { $this->prenom = $prenom; return $this; }
+
+    public function getNom(): ?string { return $this->nom; }
+    public function setNom(?string $nom): static { $this->nom = $nom; return $this; }
 
     public function getPassword(): string { return $this->hashedPassword; }
     public function setPassword(string $hashedPassword): static { $this->hashedPassword = $hashedPassword; return $this; }

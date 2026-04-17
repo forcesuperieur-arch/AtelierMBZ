@@ -81,6 +81,9 @@
             </div>
             <NuxtLink :to="`/ordres/${ordreReparation.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir dossier atelier →</NuxtLink>
           </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);display:flex;gap:10px;flex-wrap:wrap;">
+            <NuxtLink :to="`/rapport/${id}`" style="color:#93C5FD;font-size:12px;font-weight:600;text-decoration:none;">📝 Rapport d'intervention →</NuxtLink>
+          </div>
         </UCard>
 
         <!-- Notes / Travaux -->
@@ -106,14 +109,20 @@
           <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Actions</span></template>
           <div class="detail-action-stack">
             <button
-              v-for="t in availableTransitions.filter(t => t.name !== 'annuler' && (facturationEnabled || t.name !== 'facturer'))"
+              v-for="t in availableTransitions.filter(t => t.name !== 'annuler' && t.name !== 'declarer_no_show' && (facturationEnabled || t.name !== 'facturer'))"
               :key="t.name"
               :class="actionButtonClass(t.color)"
-              @click="t.name === 'annuler' ? showCancelModal = true : applyTransition(t.name)"
+              @click="applyTransition(t.name)"
               :disabled="transitioning === t.name"
             >
               {{ transitioning === t.name ? 'Traitement…' : t.label }}
             </button>
+            <button
+              v-if="availableTransitions.some(t => t.name === 'declarer_no_show')"
+              class="btn btn-block"
+              style="background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);"
+              @click="openCancelModal('client_no_show', 'declarer_no_show')"
+            >🚫 Déclarer no-show</button>
             <button
               v-if="canAssign"
               class="btn btn-ghost btn-block"
@@ -134,7 +143,7 @@
               v-if="availableTransitions.some(t => t.name === 'annuler')"
               class="btn btn-block"
               style="background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);"
-              @click="showCancelModal = true"
+              @click="openCancelModal()"
             >❌ Annuler ce RDV</button>
           </div>
         </UCard>
@@ -178,7 +187,7 @@
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;color:#FCA5A5;">Annuler le RDV</span>
+              <span style="font-weight:600;color:#FCA5A5;">{{ cancelTransitionName === 'declarer_no_show' ? 'Déclarer no-show' : 'Annuler le RDV' }}</span>
               <button @click="showCancelModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
@@ -262,6 +271,7 @@ const showCancelModal = ref(false)
 const showAssignModal = ref(false)
 const cancelReason = ref('')
 const cancelComment = ref('')
+const cancelTransitionName = ref<'annuler' | 'declarer_no_show'>('annuler')
 const cancelling = ref(false)
 const assigning = ref(false)
 const creatingOr = ref(false)
@@ -269,12 +279,13 @@ const allMecaniciens = ref<any[]>([])
 const allPonts = ref<any[]>([])
 const assignForm = reactive({ mecanicien_id: null as number | null, pont_id: null as number | null })
 
+// Must match backend AnnulationRdv::MOTIFS (LOT 3.2)
 const cancelReasons = [
-  { value: 'client_indisponible', label: 'Client indisponible' },
+  { value: 'client_desiste', label: 'Le client se désiste' },
+  { value: 'client_no_show', label: 'Client non présenté (no-show)' },
   { value: 'atelier_indisponible', label: 'Atelier indisponible' },
-  { value: 'piece_non_disponible', label: 'Pièce non disponible' },
-  { value: 'non_presente', label: 'Client non présenté' },
-  { value: 'doublon', label: 'Doublon' },
+  { value: 'force_majeure', label: 'Force majeure' },
+  { value: 'erreur_saisie', label: 'Erreur de saisie' },
   { value: 'autre', label: 'Autre' },
 ]
 
@@ -328,12 +339,23 @@ const transitionCatalog: Record<string, { label: string; color: TransitionColor 
   reserver: { label: '📌 Réserver', color: 'neutral' },
   confirmer: { label: '✅ Confirmer', color: 'primary' },
   reception: { label: '📥 Réceptionner', color: 'warning' },
+  reporter: { label: '↩️ Reporter réception', color: 'neutral' },
   start_travail: { label: '🔧 Démarrer intervention', color: 'warning' },
   terminer: { label: '✅ Terminer', color: 'success' },
   restituer: { label: '🚚 Restituer', color: 'info' },
+  restituer_partiel: { label: '🚚 Restitution partielle', color: 'info' },
   facturer: { label: '💶 Facturer', color: 'primary' },
   payer: { label: '💳 Encaisser', color: 'success' },
   annuler: { label: '❌ Annuler ce RDV', color: 'error' },
+  // LOT 3 — enriched workflow
+  declarer_no_show: { label: '🚫 Déclarer no-show', color: 'error' },
+  attendre_pieces: { label: '📦 Attente pièces', color: 'warning' },
+  reprendre_apres_pieces: { label: '▶️ Reprendre (pièces reçues)', color: 'success' },
+  mettre_en_attente_reprise: { label: '⏸ Mettre en attente reprise', color: 'warning' },
+  reprendre_demain: { label: '▶️ Reprendre', color: 'success' },
+  passer_gardiennage: { label: '🏬 Passer en gardiennage', color: 'warning' },
+  sortir_gardiennage: { label: '📤 Sortir du gardiennage', color: 'info' },
+  retour_garantie: { label: '🔁 Retour garantie/SAV', color: 'warning' },
 }
 
 function actionButtonClass(color: TransitionColor) {
@@ -499,20 +521,32 @@ async function openOrDossier() {
 }
 
 async function confirmCancel() {
+  if (!cancelReason.value) return
   cancelling.value = true
   try {
-    await rdvStore.transitionRdv(id, 'annuler')
-    if (cancelReason.value || cancelComment.value) {
-      const motif = `[${cancelReason.value}] ${cancelComment.value}`.trim()
-      await rdvStore.updateRdv(id, { commentaire: `${notes.value}\n--- Annulation: ${motif}`.trim() })
-    }
+    await rdvStore.transitionRdv(id, cancelTransitionName.value, {
+      motif: cancelReason.value,
+      commentaire: cancelComment.value || null,
+      source: 'atelier',
+    })
+    await loadAvailableTransitions()
     showCancelModal.value = false
-    toast.add({ title: 'RDV annulé', color: 'success' })
+    cancelReason.value = ''
+    cancelComment.value = ''
+    cancelTransitionName.value = 'annuler'
+    toast.add({ title: cancelTransitionName.value === 'declarer_no_show' ? 'No-show enregistré' : 'RDV annulé', color: 'success' })
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     cancelling.value = false
   }
+}
+
+function openCancelModal(defaultReason = '', transitionName: 'annuler' | 'declarer_no_show' = 'annuler') {
+  cancelTransitionName.value = transitionName
+  cancelReason.value = defaultReason
+  cancelComment.value = ''
+  showCancelModal.value = true
 }
 
 async function confirmAssign() {

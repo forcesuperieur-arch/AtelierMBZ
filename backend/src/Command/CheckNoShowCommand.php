@@ -51,6 +51,7 @@ class CheckNoShowCommand extends Command
                 $annulation = new AnnulationRdv();
                 $annulation->setRendezVous($rdv);
                 $annulation->setMotif('no_show');
+                $annulation->setSource('automatique');
                 $annulation->setCommentaire('Auto-détecté par le système (heure RDV + 30min dépassée)');
                 $annulation->setStatutAvantAnnulation($rdv->getStatut());
                 $annulation->setHeureRdvOriginal($rdv->getHeureRdv());

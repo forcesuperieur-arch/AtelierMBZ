@@ -15,6 +15,7 @@ type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {},
 
 interface _GlobalComponents {
   AppModal: typeof import("../../components/AppModal.vue")['default']
+  NotificationPopIn: typeof import("../../components/NotificationPopIn.vue")['default']
   PlanningGrid: typeof import("../../components/PlanningGrid.vue")['default']
   SidebarLink: typeof import("../../components/SidebarLink.vue")['default']
   StatsCard: typeof import("../../components/StatsCard.vue")['default']
@@ -104,6 +105,7 @@ interface _GlobalComponents {
   Body: typeof import("../../node_modules/nuxt/dist/head/runtime/components")['Body']
   NuxtIsland: typeof import("../../node_modules/nuxt/dist/app/components/nuxt-island")['default']
   LazyAppModal: LazyComponent<typeof import("../../components/AppModal.vue")['default']>
+  LazyNotificationPopIn: LazyComponent<typeof import("../../components/NotificationPopIn.vue")['default']>
   LazyPlanningGrid: LazyComponent<typeof import("../../components/PlanningGrid.vue")['default']>
   LazySidebarLink: LazyComponent<typeof import("../../components/SidebarLink.vue")['default']>
   LazyStatsCard: LazyComponent<typeof import("../../components/StatsCard.vue")['default']>
