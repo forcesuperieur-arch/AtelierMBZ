@@ -77,7 +77,8 @@ class OrdreReparationPolicy
      */
     public function computeHash(array $snapshot): string
     {
-        $json = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_SORT_KEYS);
+        ksort($snapshot);
+        $json = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         return hash('sha256', $json);
     }
 

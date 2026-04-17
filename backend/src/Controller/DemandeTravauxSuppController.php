@@ -5,9 +5,11 @@ namespace App\Controller;
 use App\Entity\AuditLog;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\Notification;
+use App\Entity\NotificationEscalation;
 use App\Entity\OrdreReparation;
 use App\Entity\Prestation;
 use App\Entity\RendezVous;
+use App\Service\MercureNotifier;
 use App\Service\OrdreReparationPolicy;
 use App\Service\PrestationCatalogService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +26,7 @@ class DemandeTravauxSuppController extends AbstractController
         private EntityManagerInterface $em,
         private PrestationCatalogService $catalogService,
         private OrdreReparationPolicy $orPolicy,
+        private MercureNotifier $mercureNotifier,
     ) {}
 
     /**
@@ -120,24 +123,36 @@ class DemandeTravauxSuppController extends AbstractController
 
         $notif = new Notification();
         $notif->setAtelierId($rdv->getAtelierId());
-        $notif->setType('demande_travaux_supp');
+        $notif->setType('demande_complementaire');
+        $notif->setSeverity($demande->getUrgence() === 'urgent' ? 'critical' : 'warning');
+        $notif->setTitle('Demande travaux complémentaires');
         $notif->setMessage(sprintf(
             'Nouvelle demande travaux supplémentaires — %s (%s) — %s€ TTC',
             $clientNom,
             $vehiculePlaque,
             $totalPrix,
         ));
-        $notif->setEntityType('DemandeTravauxSupp');
-        $notif->setEntityId($demande->getId());
-        $notif->setTargetRoles(['ROLE_ADMIN', 'receptionniste']);
+        $notif->setRelatedEntityType('DemandeTravauxSupp');
+        $notif->setTargetRoles(['ROLE_ADMIN', 'ROLE_RECEPTIONNAIRE']);
+        $notif->setTargetRole('ROLE_RECEPTIONNAIRE');
         $notif->setPriority($demande->getUrgence() === 'urgent' ? 'high' : 'normal');
         $this->em->persist($notif);
 
         $this->em->flush();
 
         // Update notification entity ID after flush (demande now has its ID)
-        $notif->setEntityId($demande->getId());
+        $notif->setRelatedEntityId($demande->getId());
         $this->em->flush();
+
+        // Create escalation schedule for demande_complementaire
+        $this->createEscalationSchedule($notif);
+
+        // Publish Mercure real-time push
+        try {
+            $this->mercureNotifier->publishToAtelier($rdv->getAtelierId(), $notif);
+        } catch (\Throwable $e) {
+            // Mercure failure is non-blocking
+        }
 
         return $this->json([
             'id' => $demande->getId(),
@@ -321,6 +336,36 @@ class DemandeTravauxSuppController extends AbstractController
         $this->orPolicy->sign($or, $signatureData, $request);
 
         return $or;
+    }
+
+    /**
+     * 5.5 — Create escalation schedule for a demande_complementaire notification.
+     * T+0: push web (ROLE_RECEPTIONNAIRE + ROLE_ADMIN)
+     * T+5min: push web renforcé
+     * T+10min: SMS ROLE_RESPONSABLE_ATELIER
+     * T+30min: SMS ROLE_RESPONSABLE_MAGASIN
+     */
+    private function createEscalationSchedule(Notification $notif): void
+    {
+        $now = new \DateTimeImmutable();
+        $escalations = [
+            ['level' => 1, 'channel' => 'push', 'delay' => 0, 'target' => 'ROLE_RECEPTIONNAIRE,ROLE_ADMIN'],
+            ['level' => 2, 'channel' => 'push', 'delay' => 5, 'target' => 'ROLE_RECEPTIONNAIRE,ROLE_ADMIN (renforcé)'],
+            ['level' => 3, 'channel' => 'sms', 'delay' => 10, 'target' => 'ROLE_RESPONSABLE_ATELIER'],
+            ['level' => 4, 'channel' => 'sms', 'delay' => 30, 'target' => 'ROLE_RESPONSABLE_MAGASIN'],
+        ];
+
+        foreach ($escalations as $esc) {
+            $e = new NotificationEscalation();
+            $e->setNotification($notif);
+            $e->setLevel($esc['level']);
+            $e->setChannel($esc['channel']);
+            $e->setScheduledAt($now->modify("+{$esc['delay']} minutes"));
+            $e->setTargetInfo($esc['target']);
+            $this->em->persist($e);
+        }
+
+        $this->em->flush();
     }
 
     private function findByToken(string $token): ?DemandeTravauxSupp

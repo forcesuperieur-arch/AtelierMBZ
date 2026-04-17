@@ -1,6 +1,10 @@
 {$APP_DOMAIN:localhost} {
 	encode zstd gzip
 
+	handle /.well-known/mercure {
+		reverse_proxy mercure:3000
+	}
+
 	handle /api/* {
 		reverse_proxy php:8000
 	}

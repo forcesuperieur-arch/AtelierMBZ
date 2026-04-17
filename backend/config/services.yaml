@@ -28,3 +28,7 @@ services:
     App\EventListener\TenantSetterListener:
         tags:
             - { name: doctrine.event_listener, event: prePersist }
+
+    App\Service\ConfigEncryptionService:
+        arguments:
+            $appSecret: '%kernel.secret%'

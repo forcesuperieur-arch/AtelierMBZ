@@ -40,7 +40,7 @@ class TenantFilterListener
         // SuperAdmin: session-based atelier selection
         if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
             $request = $this->requestStack->getCurrentRequest();
-            $session = $request?->hasSession() ? $request->getSession() : null;
+            $session = ($request?->hasPreviousSession()) ? $request->getSession() : null;
             $activeAtelierId = $session?->get('active_atelier_id');
 
             if ($activeAtelierId === null || $activeAtelierId === 'all') {

@@ -28,6 +28,7 @@
         :icon="item.icon"
         :label="item.label"
         :section="item.section"
+        :badge-count="item.to === '/planning' ? notifUnreadCount : undefined"
       />
 
       <div class="sidebar-spacer" />
@@ -60,6 +61,7 @@
 
       <!-- CONTENT -->
       <main class="content">
+        <NotificationPopIn filter-type="demande_complementaire" />
         <slot />
       </main>
     </div>
@@ -71,6 +73,7 @@ const auth = useAuth()
 const appStore = useAppStore()
 const atelierStore = useAtelierStore()
 const route = useRoute()
+const { unreadCount: notifUnreadCount, fetchUnreadCount, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
 
 const atelierName = computed(() => atelierStore.branding?.nom || 'Atelier Moto')
 const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '')
@@ -108,12 +111,19 @@ onMounted(() => {
   if (process.client) {
     window.addEventListener('resize', syncSidebarMode)
   }
+  // LOT 5: Start notification system
+  fetchUnreadCount()
+  const atelierId = auth.user.value?.atelierId || auth.user.value?.atelier_id
+  if (atelierId) {
+    connectNotifs(atelierId)
+  }
 })
 
 onBeforeUnmount(() => {
   if (process.client) {
     window.removeEventListener('resize', syncSidebarMode)
   }
+  disconnectNotifs()
 })
 
 const sectionNames: Record<string, string> = {
