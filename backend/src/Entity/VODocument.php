@@ -32,6 +32,8 @@ class VODocument
     public const TYPE_FACTURE_VO = 'facture_vo';
     public const TYPE_PV_RACHAT = 'pv_rachat';
     public const TYPE_NOTICE_GARANTIE = 'notice_garantie';
+    public const TYPE_SIGNATURE_CLIENT = 'signature_client';
+    public const TYPE_PHOTO_VEHICULE = 'photo_vehicule';
     public const TYPE_AUTRE = 'autre';
 
     public const RETENTION_YEARS = [
@@ -45,6 +47,8 @@ class VODocument
         self::TYPE_FACTURE_VO => 10,
         self::TYPE_PV_RACHAT => 5,
         self::TYPE_NOTICE_GARANTIE => 5,
+        self::TYPE_SIGNATURE_CLIENT => 5,
+        self::TYPE_PHOTO_VEHICULE => 5,
         self::TYPE_AUTRE => 5,
     ];
 

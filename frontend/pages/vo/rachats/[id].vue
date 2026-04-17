@@ -62,6 +62,11 @@
           :reload-detail="loadDetail"
         />
 
+        <VOCompanionCard
+          :companion="detail.companion"
+          :generated-documents="detail.generatedDocuments || []"
+        />
+
         <UCard v-if="detail.livrePolice">
           <template #header>
             <div class="vo-card-title">Livre de Police</div>
@@ -162,7 +167,7 @@
           </div>
         </UCard>
 
-        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu'">
+        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu' || detail.confirmationMissingCompanionSteps?.length">
           <template #header>
             <div class="vo-card-head">
               <div class="vo-card-title">Flux de vente</div>
@@ -174,6 +179,11 @@
             <strong>Confirmation requise</strong>
             <span v-if="detail.confirmationMissingDocuments?.length">Documents bloquants: {{ detail.confirmationMissingDocuments.map(documentLabel).join(', ') }}</span>
             <span v-else>Le dossier est prêt pour l'entrée en stock.</span>
+          </div>
+
+          <div v-else-if="detail.confirmationMissingCompanionSteps?.length" class="vo-warning-box">
+            <strong>Parcours PDA incomplet</strong>
+            <span>Étapes restantes: {{ detail.confirmationMissingCompanionSteps.join(', ') }}</span>
           </div>
 
           <div v-if="showSale && detail.canSell" class="vo-sale-box">
@@ -279,6 +289,14 @@ const readinessState = computed(() => {
 
   if (detail.value.canConfirm) {
     return { tone: 'success', label: 'Prêt à confirmer', text: 'Le dossier a toutes les pièces nécessaires pour entrer en stock.' }
+  }
+
+  if (detail.value.confirmationMissingCompanionSteps?.length) {
+    return {
+      tone: 'warning',
+      label: 'Signature PDA attendue',
+      text: `${detail.value.confirmationMissingCompanionSteps.length} étape(s) du parcours vendeur restent à valider.`,
+    }
   }
 
   if (detail.value.confirmationMissingDocuments?.length) {

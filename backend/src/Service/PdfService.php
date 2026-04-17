@@ -111,6 +111,7 @@ class PdfService
 
         $html = $this->twig->render('pdf/vo_contrat_depot_vente.html.twig', [
             'depot' => $depot,
+            'companion_signature' => $depot->getCompanionSignatureData(),
             ...$this->buildBrandingContext($atelier),
         ]);
 
@@ -126,6 +127,7 @@ class PdfService
 
         $html = $this->twig->render('pdf/vo_pv_rachat.html.twig', [
             'purchase' => $purchase,
+            'companion_signature' => $purchase->getCompanionSignatureData(),
             ...$this->buildBrandingContext($atelier),
         ]);
 
