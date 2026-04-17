@@ -5,7 +5,9 @@ use App\Entity\RendezVous;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -15,11 +17,19 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/public/suivi')]
 class SuiviController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private RateLimiterFactory $publicSuiviLimiter,
+    ) {}
 
     #[Route('/{token}', methods: ['GET'])]
-    public function suivi(string $token): JsonResponse
+    public function suivi(string $token, Request $request): JsonResponse
     {
+        $limiter = $this->publicSuiviLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $rdv = $this->em->getRepository(RendezVous::class)->findOneBy(['tokenSuivi' => $token]);
 
         if (!$rdv) {

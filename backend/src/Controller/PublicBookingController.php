@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -22,6 +23,7 @@ class PublicBookingController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private SlotService $slotService,
+        private RateLimiterFactory $publicBookingLimiter,
     ) {}
 
     /**
@@ -30,6 +32,11 @@ class PublicBookingController extends AbstractController
     #[Route('/slots', methods: ['GET'])]
     public function slots(Request $request): JsonResponse
     {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $dateDebut = $request->query->get('date_debut', (new \DateTime())->format('Y-m-d'));
         $dateFin = $request->query->get('date_fin', (new \DateTime('+14 days'))->format('Y-m-d'));
         $tempsMinutes = (int) $request->query->get('temps_minutes', 60);
@@ -51,6 +58,11 @@ class PublicBookingController extends AbstractController
     #[Route('/booking', methods: ['POST'])]
     public function createBooking(Request $request): JsonResponse
     {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $data = json_decode($request->getContent(), true);
 
         // Validate required fields

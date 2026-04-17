@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -18,6 +19,7 @@ class CompanionController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
+        private RateLimiterFactory $companionUploadLimiter,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
@@ -144,6 +146,11 @@ class CompanionController extends AbstractController
     #[Route('/{token}/photo', methods: ['POST'])]
     public function uploadPhoto(string $token, Request $request): JsonResponse
     {
+        $limiter = $this->companionUploadLimiter->create($token);
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);

@@ -90,7 +90,7 @@ class AuthController extends AbstractController
                 ->withPath('/')
                 ->withHttpOnly(true)
                 ->withSameSite('lax')
-                ->withSecure(false) // Set true in production with HTTPS
+                ->withSecure($this->getParameter('kernel.environment') === 'prod')
         );
 
         $response->headers->setCookie(
@@ -100,7 +100,7 @@ class AuthController extends AbstractController
                 ->withPath('/api/auth/refresh')
                 ->withHttpOnly(true)
                 ->withSameSite('lax')
-                ->withSecure(false)
+                ->withSecure($this->getParameter('kernel.environment') === 'prod')
         );
 
         return $response;
@@ -154,7 +154,7 @@ class AuthController extends AbstractController
                 ->withPath('/')
                 ->withHttpOnly(true)
                 ->withSameSite('lax')
-                ->withSecure(false)
+                ->withSecure($this->getParameter('kernel.environment') === 'prod')
         );
 
         return $response;

@@ -1,8 +1,4 @@
-{
-	auto_https off
-}
-
-:80 {
+{$APP_DOMAIN:localhost} {
 	encode zstd gzip
 
 	handle /api/* {
