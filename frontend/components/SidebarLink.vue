@@ -6,6 +6,7 @@
   >
     <span class="nav-icon">{{ icon }}</span>
     <span class="nav-label">{{ label }}</span>
+    <span v-if="badgeCount && badgeCount > 0" class="nav-badge">{{ badgeCount > 99 ? '99+' : badgeCount }}</span>
   </NuxtLink>
 </template>
 
@@ -15,6 +16,7 @@ const props = defineProps<{
   icon: string
   label: string
   section: string
+  badgeCount?: number
 }>()
 
 const route = useRoute()
@@ -80,5 +82,20 @@ const visible = computed(() => auth.hasSection(props.section))
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+}
+.nav-badge {
+  margin-left: auto;
+  background: #EF4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1;
 }
 </style>

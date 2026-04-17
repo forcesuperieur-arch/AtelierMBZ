@@ -21,6 +21,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: '/api',
+      mercureUrl: '/.well-known/mercure',
     },
   },
 

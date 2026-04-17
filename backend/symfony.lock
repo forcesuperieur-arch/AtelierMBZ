@@ -73,6 +73,21 @@
             "config/packages/nelmio_cors.yaml"
         ]
     },
+    "phpunit/phpunit": {
+        "version": "12.5",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "11.1",
+            "ref": "ca0bc067abfb40a8de1b2561b96cbfc2b833c314"
+        },
+        "files": [
+            ".env.test",
+            "phpunit.dist.xml",
+            "tests/bootstrap.php",
+            "bin/phpunit"
+        ]
+    },
     "symfony/console": {
         "version": "7.2",
         "recipe": {
@@ -141,6 +156,27 @@
             "config/packages/mailer.yaml"
         ]
     },
+    "symfony/mailgun-mailer": {
+        "version": "7.2",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "4.4",
+            "ref": "addcb559b32d9dbb4843826b063565e1b15a2a57"
+        }
+    },
+    "symfony/mercure-bundle": {
+        "version": "0.3",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "0.3",
+            "ref": "b682842d20a2e512913e3542c927b371d9ec1962"
+        },
+        "files": [
+            "config/packages/mercure.yaml"
+        ]
+    },
     "symfony/messenger": {
         "version": "7.2",
         "recipe": {
@@ -152,6 +188,27 @@
         "files": [
             "config/packages/messenger.yaml"
         ]
+    },
+    "symfony/notifier": {
+        "version": "7.2",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "5.0",
+            "ref": "178877daf79d2dbd62129dd03612cb1a2cb407cc"
+        },
+        "files": [
+            "config/packages/notifier.yaml"
+        ]
+    },
+    "symfony/ovh-cloud-notifier": {
+        "version": "7.2",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "5.1",
+            "ref": "3021c49f22f8f444550cadb5c1144cbd7a200295"
+        }
     },
     "symfony/routing": {
         "version": "7.2",
@@ -203,6 +260,15 @@
             "config/packages/twig.yaml",
             "templates/base.html.twig"
         ]
+    },
+    "symfony/twilio-notifier": {
+        "version": "7.2",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "5.0",
+            "ref": "295c79af6b41fb4b6aa18f6f63eaa02051ebba5b"
+        }
     },
     "symfony/validator": {
         "version": "7.2",

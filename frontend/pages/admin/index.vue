@@ -45,6 +45,11 @@
         <div class="admin-card-label">Audit</div>
         <div class="admin-card-desc">Journal des actions</div>
       </div>
+      <div class="admin-card" @click="navigateTo('/admin/notifications/providers')">
+        <div class="admin-card-icon">📡</div>
+        <div class="admin-card-label">Notifications</div>
+        <div class="admin-card-desc">Providers SMS/Email & templates</div>
+      </div>
     </div>
   </div>
 </template>
