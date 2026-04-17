@@ -24,6 +24,11 @@
       </button>
     </div>
 
+    <div class="vo-companion-banner">
+      <strong>Mode compagnon PDA activé</strong>
+      <span>Après création du dossier, le QR code du parcours VO est généré automatiquement pour scanner la pièce d’identité et la carte grise, préremplir les documents puis faire signer le vendeur.</span>
+    </div>
+
     <div class="vo-wizard-grid">
       <div>
         <UCard v-if="step === 1">
@@ -250,6 +255,11 @@
             <input id="confirm-after-create" v-model="purchaseForm.createAndConfirm" type="checkbox" :disabled="missingConfirmationDocs.length > 0" />
             <label for="confirm-after-create">Créer puis confirmer immédiatement</label>
           </div>
+
+          <div class="vo-info-box">
+            <strong>Parcours express après création</strong>
+            <span>Le dossier t’ouvrira directement la zone QR compagnon pour scanner les documents du vendeur, vérifier l’OCR et signer sur le PDA.</span>
+          </div>
         </UCard>
 
         <div class="vo-footer-actions">
@@ -295,6 +305,19 @@
             <strong>{{ attachedDocumentCount }}</strong>
           </div>
 
+          <div class="vo-info-box">
+            <strong>Compagnon dès le début</strong>
+            <span v-if="draftCompanion?.companion?.publicPath">Le brouillon rachat est actif. Tu peux déjà scanner les documents sur le PDA pendant que tu termines le dossier.</span>
+            <span v-else>Dès que vendeur + véhicule sont saisis, active le parcours PDA pour lancer le scan avant la finalisation.</span>
+            <div class="vo-inline-actions" style="margin-top: 10px;">
+              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion || !canStartCompanion" @click="activateCompanionNow">
+                {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
+              </button>
+              <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
+            </div>
+            <img v-if="draftQrCodeUrl" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-companion-mini-qr">
+          </div>
+
           <div v-if="missingConfirmationDocs.length" class="vo-warning-box">
             <strong>Confirmation encore bloquée</strong>
             <span>{{ missingConfirmationDocs.map(documentLabel).join(', ') }}</span>
@@ -313,6 +336,11 @@
               <span class="vo-summary-label">Coût total</span>
               <strong>{{ formatPrice(marginSimulation.total_cost) }}</strong>
             </div>
+          </div>
+
+          <div class="vo-info-box">
+            <strong>Ce qui se passe ensuite</strong>
+            <span>1. QR code affiché sur le dossier • 2. scan CG + identité sur PDA • 3. préremplissage automatique • 4. signature électronique et archivage.</span>
           </div>
         </UCard>
       </div>
@@ -337,6 +365,7 @@ const {
   formatRegistrationOrVin,
   documentLabel,
   documentLabels,
+  buildQrCodeUrl,
 } = useVoHelpers()
 
 const steps = [
@@ -359,6 +388,9 @@ const purchaseDocumentOptions = [
 
 const step = ref(1)
 const submitting = ref(false)
+const activatingCompanion = ref(false)
+const draftPurchaseId = ref<number | null>(null)
+const draftCompanion = ref<any | null>(null)
 const sellerSearch = ref('')
 const sellerResults = ref<any[]>([])
 const selectedSeller = ref<any | null>(null)
@@ -415,6 +447,13 @@ const totalFre = computed(() => {
 })
 
 const attachedDocumentCount = computed(() => documentRows.value.filter(row => row.file).length)
+const canStartCompanion = computed(() => !!canGoToNextStep() && step.value >= 2)
+const draftPublicUrl = computed(() => {
+  const path = String(draftCompanion.value?.companion?.publicPath || '').trim()
+  if (!path || !import.meta.client) return ''
+  return new URL(path, window.location.origin).toString()
+})
+const draftQrCodeUrl = computed(() => buildQrCodeUrl(draftPublicUrl.value, 180))
 
 const uploadedDocTypes = computed(() => new Set(documentRows.value.filter(row => row.type && row.file).map(row => row.type)))
 const missingConfirmationDocs = computed(() => requiredPurchaseDocs.filter(type => !uploadedDocTypes.value.has(type)))
@@ -584,6 +623,42 @@ async function uploadDocuments(purchaseId: number) {
   }
 }
 
+async function activateCompanionNow() {
+  activatingCompanion.value = true
+  try {
+    const sellerId = await ensureSeller()
+    const vehiculeId = await ensureVehicle(sellerId)
+
+    if (!draftPurchaseId.value) {
+      const draft = await voStore.createPurchase({
+        sellerId,
+        vehiculeId,
+        purchasePrice: purchaseForm.purchasePrice || '0',
+        targetSalePrice: purchaseForm.targetSalePrice || '0',
+        regimeTva: purchaseForm.regimeTva,
+        purchaseDate: purchaseForm.purchaseDate,
+        sellerIdType: purchaseForm.sellerIdType,
+        sellerIdNumber: purchaseForm.sellerIdNumber,
+        sellerIdDate: purchaseForm.sellerIdDate || null,
+        nonGageDate: purchaseForm.nonGageDate || null,
+        controleTechniqueOk: purchaseForm.controleTechniqueOk,
+        expertId: purchaseForm.expertId,
+        notes: purchaseForm.notes || null,
+        repairEstimates: freItems.value.filter(item => item.label.trim() || item.amount.trim()),
+        status: 'brouillon',
+      })
+      draftPurchaseId.value = draft.id
+    }
+
+    draftCompanion.value = await voStore.fetchPurchaseFull(draftPurchaseId.value)
+    toast.add({ title: 'Parcours compagnon activé', description: 'Le QR code est prêt pour le scan PDA.', color: 'success' })
+  } catch (error: any) {
+    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } finally {
+    activatingCompanion.value = false
+  }
+}
+
 async function submit() {
   if (purchaseForm.createAndConfirm && missingConfirmationDocs.value.length > 0) {
     toast.add({ title: 'Documents manquants', description: 'Ajoutez les documents obligatoires avant confirmation.', color: 'error' })
@@ -594,31 +669,56 @@ async function submit() {
   try {
     const sellerId = await ensureSeller()
     const vehiculeId = await ensureVehicle(sellerId)
-    const purchase = await voStore.createPurchase({
-      sellerId,
-      vehiculeId,
-      purchasePrice: purchaseForm.purchasePrice,
-      targetSalePrice: purchaseForm.targetSalePrice,
-      regimeTva: purchaseForm.regimeTva,
-      purchaseDate: purchaseForm.purchaseDate,
-      sellerIdType: purchaseForm.sellerIdType,
-      sellerIdNumber: purchaseForm.sellerIdNumber,
-      sellerIdDate: purchaseForm.sellerIdDate || null,
-      nonGageDate: purchaseForm.nonGageDate || null,
-      controleTechniqueOk: purchaseForm.controleTechniqueOk,
-      expertId: purchaseForm.expertId,
-      notes: purchaseForm.notes || null,
-      repairEstimates: freItems.value.filter(item => item.label.trim() || item.amount.trim()),
-    })
 
-    await uploadDocuments(purchase.id)
+    let purchaseId = draftPurchaseId.value
 
-    if (purchaseForm.createAndConfirm) {
-      await voStore.confirmPurchase(purchase.id)
+    if (purchaseId) {
+      await voStore.updatePurchase(purchaseId, {
+        purchasePrice: purchaseForm.purchasePrice,
+        targetSalePrice: purchaseForm.targetSalePrice,
+        regimeTva: purchaseForm.regimeTva,
+        purchaseDate: purchaseForm.purchaseDate,
+        sellerIdType: purchaseForm.sellerIdType,
+        sellerIdNumber: purchaseForm.sellerIdNumber,
+        sellerIdDate: purchaseForm.sellerIdDate || null,
+        nonGageDate: purchaseForm.nonGageDate || null,
+        controleTechniqueOk: purchaseForm.controleTechniqueOk,
+        expertId: purchaseForm.expertId,
+        notes: purchaseForm.notes || null,
+        repairEstimates: freItems.value.filter(item => item.label.trim() || item.amount.trim()),
+      })
+    } else {
+      const purchase = await voStore.createPurchase({
+        sellerId,
+        vehiculeId,
+        purchasePrice: purchaseForm.purchasePrice,
+        targetSalePrice: purchaseForm.targetSalePrice,
+        regimeTva: purchaseForm.regimeTva,
+        purchaseDate: purchaseForm.purchaseDate,
+        sellerIdType: purchaseForm.sellerIdType,
+        sellerIdNumber: purchaseForm.sellerIdNumber,
+        sellerIdDate: purchaseForm.sellerIdDate || null,
+        nonGageDate: purchaseForm.nonGageDate || null,
+        controleTechniqueOk: purchaseForm.controleTechniqueOk,
+        expertId: purchaseForm.expertId,
+        notes: purchaseForm.notes || null,
+        repairEstimates: freItems.value.filter(item => item.label.trim() || item.amount.trim()),
+      })
+      purchaseId = purchase.id
     }
 
-    toast.add({ title: 'Dossier créé', color: 'success' })
-    navigateTo(`/vo/rachats/${purchase.id}`)
+    await uploadDocuments(purchaseId)
+
+    if (purchaseForm.createAndConfirm) {
+      await voStore.confirmPurchase(purchaseId)
+    }
+
+    toast.add({
+      title: draftPurchaseId.value ? 'Brouillon finalisé' : 'Dossier créé',
+      description: 'Le parcours compagnon PDA reste actif avec son QR code.',
+      color: 'success',
+    })
+    navigateTo(`/vo/rachats/${purchaseId}?companion=1`)
   } catch (error: any) {
     toast.add({ title: 'Erreur', description: error.message, color: 'error' })
   } finally {
@@ -644,6 +744,31 @@ onMounted(async () => {
   margin-top: 6px;
   color: #9ca3af;
   font-size: 13px;
+}
+
+.vo-companion-banner {
+  margin-bottom: 16px;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgba(245, 158, 11, 0.08);
+  color: #f3f4f6;
+}
+
+.vo-companion-banner span {
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.vo-companion-mini-qr {
+  margin-top: 12px;
+  width: 150px;
+  max-width: 100%;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
 }
 
 .vo-secondary-btn {

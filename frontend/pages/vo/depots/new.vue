@@ -24,6 +24,11 @@
       </button>
     </div>
 
+    <div class="vo-companion-banner">
+      <strong>Mode compagnon PDA activé</strong>
+      <span>Après création du dépôt, le QR code du parcours VO est généré automatiquement pour scanner l’identité, la carte grise, préremplir le mandat puis faire signer le déposant.</span>
+    </div>
+
     <div class="vo-wizard-grid">
       <div>
         <UCard v-if="step === 1">
@@ -224,6 +229,7 @@
 
           <div class="vo-info-box">
             <strong>Le contrat dépôt-vente PDF est généré automatiquement à la création.</strong>
+            <span>Le parcours compagnon s’ouvre ensuite avec le QR code pour scanner les documents et signer sur le PDA.</span>
           </div>
         </UCard>
 
@@ -275,8 +281,21 @@
           </div>
 
           <div class="vo-info-box">
-            <strong>Contrat PDF</strong>
-            <span>Le contrat dépôt-vente sera généré automatiquement à la création du dossier.</span>
+            <strong>Compagnon dès le début</strong>
+            <span v-if="draftCompanion?.companion?.publicPath">Le brouillon dépôt-vente est actif. Tu peux déjà scanner les pièces sur le PDA pendant que tu termines le mandat.</span>
+            <span v-else>Dès que déposant + véhicule sont saisis, active le parcours PDA pour lancer le scan avant la finalisation.</span>
+            <div class="vo-inline-actions" style="margin-top: 10px;">
+              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion || !canStartCompanion" @click="activateCompanionNow">
+                {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
+              </button>
+              <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
+            </div>
+            <img v-if="draftQrCodeUrl" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-companion-mini-qr">
+          </div>
+
+          <div class="vo-info-box">
+            <strong>Contrat PDF + parcours compagnon</strong>
+            <span>Après création, tu arrives directement sur le QR code PDA pour scanner les pièces, contrôler les données et faire signer le déposant.</span>
           </div>
         </UCard>
       </div>
@@ -300,6 +319,7 @@ const {
   formatPrice,
   formatRegistrationOrVin,
   documentLabels,
+  buildQrCodeUrl,
 } = useVoHelpers()
 
 const steps = [
@@ -319,6 +339,9 @@ const depotDocumentOptions = [
 
 const step = ref(1)
 const submitting = ref(false)
+const activatingCompanion = ref(false)
+const draftDepotId = ref<number | null>(null)
+const draftCompanion = ref<any | null>(null)
 const deposantSearch = ref('')
 const deposantResults = ref<any[]>([])
 const selectedDeposant = ref<any | null>(null)
@@ -378,6 +401,13 @@ const commissionPreview = computed(() => {
 })
 
 const attachedDocumentCount = computed(() => documentRows.value.filter(row => row.file).length)
+const canStartCompanion = computed(() => !!canGoToNextStep() && step.value >= 2)
+const draftPublicUrl = computed(() => {
+  const path = String(draftCompanion.value?.companion?.publicPath || '').trim()
+  if (!path || !import.meta.client) return ''
+  return new URL(path, window.location.origin).toString()
+})
+const draftQrCodeUrl = computed(() => buildQrCodeUrl(draftPublicUrl.value, 180))
 
 let deposantSearchTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -501,32 +531,92 @@ async function uploadDocuments(depotId: number) {
   }
 }
 
+async function activateCompanionNow() {
+  activatingCompanion.value = true
+  try {
+    const deposantId = await ensureDeposant()
+    const vehiculeId = await ensureVehicle(deposantId)
+
+    if (!draftDepotId.value) {
+      const draft = await voStore.createDepot({
+        deposantId,
+        vehiculeId,
+        prixVenteSouhaite: depotForm.prixVenteSouhaite || '0',
+        commissionType: depotForm.commissionType,
+        commissionValeur: depotForm.commissionValeur || '0',
+        dateDebut: depotForm.dateDebut,
+        dureeMandat: Number(depotForm.dureeMandat || 90),
+        gestionnaireId: depotForm.gestionnaireId,
+        deposantIdType: depotForm.deposantIdType,
+        deposantIdNumber: depotForm.deposantIdNumber,
+        deposantIdDate: depotForm.deposantIdDate || null,
+        conditionsRestitution: depotForm.conditionsRestitution || null,
+        assuranceInfo: depotForm.assuranceInfo || null,
+        notes: depotForm.notes || null,
+      })
+      draftDepotId.value = draft.id
+    }
+
+    draftCompanion.value = await voStore.fetchDepotFull(draftDepotId.value)
+    toast.add({ title: 'Parcours compagnon activé', description: 'Le QR code dépôt-vente est prêt.', color: 'success' })
+  } catch (error: any) {
+    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } finally {
+    activatingCompanion.value = false
+  }
+}
+
 async function submit() {
   submitting.value = true
   try {
     const deposantId = await ensureDeposant()
     const vehiculeId = await ensureVehicle(deposantId)
-    const depot = await voStore.createDepot({
-      deposantId,
-      vehiculeId,
-      prixVenteSouhaite: depotForm.prixVenteSouhaite,
-      commissionType: depotForm.commissionType,
-      commissionValeur: depotForm.commissionValeur,
-      dateDebut: depotForm.dateDebut,
-      dureeMandat: Number(depotForm.dureeMandat),
-      gestionnaireId: depotForm.gestionnaireId,
-      deposantIdType: depotForm.deposantIdType,
-      deposantIdNumber: depotForm.deposantIdNumber,
-      deposantIdDate: depotForm.deposantIdDate || null,
-      conditionsRestitution: depotForm.conditionsRestitution || null,
-      assuranceInfo: depotForm.assuranceInfo || null,
-      notes: depotForm.notes || null,
+
+    let depotId = draftDepotId.value
+
+    if (depotId) {
+      await voStore.updateDepot(depotId, {
+        prixVenteSouhaite: depotForm.prixVenteSouhaite,
+        commissionType: depotForm.commissionType,
+        commissionValeur: depotForm.commissionValeur,
+        dateDebut: depotForm.dateDebut,
+        dureeMandat: Number(depotForm.dureeMandat),
+        gestionnaireId: depotForm.gestionnaireId,
+        deposantIdType: depotForm.deposantIdType,
+        deposantIdNumber: depotForm.deposantIdNumber,
+        deposantIdDate: depotForm.deposantIdDate || null,
+        conditionsRestitution: depotForm.conditionsRestitution || null,
+        assuranceInfo: depotForm.assuranceInfo || null,
+        notes: depotForm.notes || null,
+      })
+    } else {
+      const depot = await voStore.createDepot({
+        deposantId,
+        vehiculeId,
+        prixVenteSouhaite: depotForm.prixVenteSouhaite,
+        commissionType: depotForm.commissionType,
+        commissionValeur: depotForm.commissionValeur,
+        dateDebut: depotForm.dateDebut,
+        dureeMandat: Number(depotForm.dureeMandat),
+        gestionnaireId: depotForm.gestionnaireId,
+        deposantIdType: depotForm.deposantIdType,
+        deposantIdNumber: depotForm.deposantIdNumber,
+        deposantIdDate: depotForm.deposantIdDate || null,
+        conditionsRestitution: depotForm.conditionsRestitution || null,
+        assuranceInfo: depotForm.assuranceInfo || null,
+        notes: depotForm.notes || null,
+      })
+      depotId = depot.id
+    }
+
+    await uploadDocuments(depotId)
+
+    toast.add({
+      title: draftDepotId.value ? 'Brouillon finalisé' : 'Dépôt créé',
+      description: 'Le parcours compagnon PDA reste actif avec son QR code.',
+      color: 'success',
     })
-
-    await uploadDocuments(depot.id)
-
-    toast.add({ title: 'Dépôt créé', color: 'success' })
-    navigateTo(`/vo/depots/${depot.id}`)
+    navigateTo(`/vo/depots/${depotId}?companion=1`)
   } catch (error: any) {
     toast.add({ title: 'Erreur', description: error.message, color: 'error' })
   } finally {
@@ -552,6 +642,31 @@ onMounted(async () => {
   margin-top: 6px;
   color: #9ca3af;
   font-size: 13px;
+}
+
+.vo-companion-banner {
+  margin-bottom: 16px;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgba(245, 158, 11, 0.08);
+  color: #f3f4f6;
+}
+
+.vo-companion-banner span {
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.vo-companion-mini-qr {
+  margin-top: 12px;
+  width: 150px;
+  max-width: 100%;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
 }
 
 .vo-secondary-btn {

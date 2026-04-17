@@ -16,7 +16,16 @@
 
     <div v-if="!detail" class="vo-loading">Chargement du dossier...</div>
 
-    <div v-else class="vo-detail-grid">
+    <div v-else>
+      <div v-if="route.query.companion === '1'" class="vo-companion-banner">
+        <div>
+          <strong>Parcours compagnon prêt</strong>
+          <span>Scanne le QR code ci-dessous depuis le PDA pour charger la pièce d’identité, la carte grise, vérifier le préremplissage puis faire signer le vendeur.</span>
+        </div>
+        <button type="button" class="vo-link-btn" @click="focusCompanion">Voir le QR code</button>
+      </div>
+
+      <div class="vo-detail-grid">
       <div class="vo-detail-stack">
         <UCard>
           <template #header>
@@ -62,10 +71,12 @@
           :reload-detail="loadDetail"
         />
 
-        <VOCompanionCard
-          :companion="detail.companion"
-          :generated-documents="detail.generatedDocuments || []"
-        />
+        <div id="vo-companion-zone">
+          <VOCompanionCard
+            :companion="detail.companion"
+            :generated-documents="detail.generatedDocuments || []"
+          />
+        </div>
 
         <UCard v-if="detail.livrePolice">
           <template #header>
@@ -237,6 +248,7 @@
         </UCard>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -357,6 +369,11 @@ async function loadDetail() {
   await runSaleSimulation()
 }
 
+function focusCompanion() {
+  if (!import.meta.client) return
+  document.getElementById('vo-companion-zone')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 async function confirmPurchase() {
   try {
     await voStore.confirmPurchase(Number(route.params.id))
@@ -412,7 +429,12 @@ async function sellVehicle() {
   }
 }
 
-onMounted(loadDetail)
+onMounted(async () => {
+  await loadDetail()
+  if (route.query.companion === '1') {
+    nextTick(() => focusCompanion())
+  }
+})
 </script>
 
 <style scoped>
@@ -422,6 +444,29 @@ onMounted(loadDetail)
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.vo-companion-banner {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgba(245, 158, 11, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vo-companion-banner strong {
+  display: block;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.vo-companion-banner span {
+  color: #d1d5db;
+  font-size: 13px;
 }
 
 .vo-back-link {
