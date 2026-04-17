@@ -188,6 +188,23 @@ class VOController extends AbstractController
 
         $body = $request->toArray();
 
+        if (!empty($body['vehiculeId'])) {
+            $vehicule = $this->em->getRepository(Vehicule::class)->find((int) $body['vehiculeId']);
+            if ($vehicule instanceof Vehicule) {
+                $purchase->setVehicule($vehicule);
+            }
+        }
+        if (!empty($body['sellerId'])) {
+            $seller = $this->em->getRepository(Client::class)->find((int) $body['sellerId']);
+            if ($seller instanceof Client) {
+                $purchase->setSeller($seller);
+            }
+        }
+        if (array_key_exists('expertId', $body)) {
+            $expert = !empty($body['expertId']) ? $this->em->getRepository(User::class)->find((int) $body['expertId']) : null;
+            $purchase->setExpert($expert instanceof User ? $expert : null);
+        }
+
         if (isset($body['purchasePrice'])) $purchase->setPurchasePrice((string) $body['purchasePrice']);
         if (isset($body['targetSalePrice'])) $purchase->setTargetSalePrice((string) $body['targetSalePrice']);
         if (isset($body['repairEstimates'])) $purchase->setRepairEstimates($body['repairEstimates']);
@@ -430,6 +447,23 @@ class VOController extends AbstractController
 
         $body = $request->toArray();
 
+        if (!empty($body['vehiculeId'])) {
+            $vehicule = $this->em->getRepository(Vehicule::class)->find((int) $body['vehiculeId']);
+            if ($vehicule instanceof Vehicule) {
+                $depot->setVehicule($vehicule);
+            }
+        }
+        if (!empty($body['deposantId'])) {
+            $deposant = $this->em->getRepository(Client::class)->find((int) $body['deposantId']);
+            if ($deposant instanceof Client) {
+                $depot->setDeposant($deposant);
+            }
+        }
+        if (array_key_exists('gestionnaireId', $body)) {
+            $gestionnaire = !empty($body['gestionnaireId']) ? $this->em->getRepository(User::class)->find((int) $body['gestionnaireId']) : null;
+            $depot->setGestionnaire($gestionnaire instanceof User ? $gestionnaire : null);
+        }
+
         if (isset($body['prixVenteSouhaite'])) $depot->setPrixVenteSouhaite((string) $body['prixVenteSouhaite']);
         if (isset($body['commissionType'])) $depot->setCommissionType($body['commissionType']);
         if (isset($body['commissionValeur'])) $depot->setCommissionValeur((string) $body['commissionValeur']);
@@ -438,8 +472,12 @@ class VOController extends AbstractController
         if (isset($body['conditionsRestitution'])) $depot->setConditionsRestitution($body['conditionsRestitution']);
         if (isset($body['assuranceInfo'])) $depot->setAssuranceInfo($body['assuranceInfo']);
         if (isset($body['notes'])) $depot->setNotes($body['notes']);
+        if (!empty($body['dateDebut'])) $depot->setDateDebut(new \DateTime($body['dateDebut']));
         if (!empty($body['dateFin'])) $depot->setDateFin(new \DateTime($body['dateFin']));
         if (isset($body['prixVenteEffectif'])) $depot->setPrixVenteEffectif((string) $body['prixVenteEffectif']);
+        if (isset($body['deposantIdType'])) $depot->setDeposantIdType($body['deposantIdType']);
+        if (isset($body['deposantIdNumber'])) $depot->setDeposantIdNumber($body['deposantIdNumber']);
+        if (!empty($body['deposantIdDate'])) $depot->setDeposantIdDate(new \DateTime($body['deposantIdDate']));
 
         $this->em->flush();
 

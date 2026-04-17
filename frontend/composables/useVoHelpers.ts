@@ -141,10 +141,11 @@ export function useVoHelpers() {
     return documentLabels[type] || type
   }
 
-  function buildVoDocumentUrl(document: { downloadPath?: string; filePath?: string }) {
-    if (document.downloadPath) return document.downloadPath
+  function buildVoDocumentUrl(document: { downloadPath?: string; download_path?: string; filePath?: string; file_path?: string }) {
+    const downloadPath = document.downloadPath || document.download_path
+    if (downloadPath) return downloadPath
 
-    const filePath = String(document.filePath || '')
+    const filePath = String(document.filePath || document.file_path || '')
     if (!filePath) return '#'
     if (filePath.startsWith('/uploads/')) return filePath
 

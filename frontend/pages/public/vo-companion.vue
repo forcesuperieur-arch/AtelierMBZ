@@ -91,7 +91,7 @@
 
           <div v-if="sellerDocuments.length" class="vo-public-doc-grid">
             <a v-for="document in sellerDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
-              {{ document.originalFilename || documentLabel(document.type) }}
+              {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
             </a>
           </div>
 
@@ -143,7 +143,7 @@
 
           <div v-if="vehicleDocuments.length" class="vo-public-doc-grid">
             <a v-for="document in vehicleDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
-              {{ document.originalFilename || documentLabel(document.type) }}
+              {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
             </a>
           </div>
 
@@ -198,7 +198,7 @@
 
           <div v-if="extraDocuments.length" class="vo-public-doc-grid">
             <a v-for="document in extraDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
-              {{ document.originalFilename || documentLabel(document.type) }}
+              {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
             </a>
           </div>
 

@@ -4,7 +4,7 @@
       <div class="vo-card-head">
         <div>
           <div class="vo-card-title">Parcours PDA {{ partyRoleLabel }}</div>
-          <div class="vo-card-subtitle">Lien tokenisé à flasher pour scanner les pièces, vérifier le véhicule et faire signer le client.</div>
+          <div class="vo-card-subtitle">QR code prêt pour scanner les documents, préremplir le dossier, faire signer le client et archiver automatiquement les pièces.</div>
         </div>
         <div class="vo-chip" :class="companion?.steps?.allComplete ? 'is-done' : 'is-pending'">
           {{ companion?.steps?.completedCount || 0 }}/{{ companion?.steps?.totalCount || 4 }} étapes
@@ -29,8 +29,8 @@
         </div>
 
         <div class="vo-generated-box">
-          <div class="vo-generated-title">Documents générés automatiquement</div>
-          <div class="vo-generated-subtitle">Les documents se pré-remplissent avec les infos du dossier et la signature PDA.</div>
+          <div class="vo-generated-title">Parcours express</div>
+          <div class="vo-generated-subtitle">1. Scanner la pièce d’identité et la carte grise • 2. vérifier les données OCR • 3. faire signer {{ partyRoleLabel }} • 4. archiver les PDF auto-générés.</div>
           <div class="vo-generated-list">
             <a
               v-for="document in generatedDocuments"
@@ -66,7 +66,7 @@
 
       <div class="vo-companion-right">
         <img v-if="qrCodeUrl" :src="qrCodeUrl" alt="QR Code PDA" class="vo-companion-qr">
-        <div class="vo-qr-caption">Scanner depuis le PDA vendeur</div>
+        <div class="vo-qr-caption">Scanner depuis le PDA {{ partyRoleLabel }}</div>
         <div class="vo-qr-meta" v-if="companion?.expiresAt">Expire le {{ formatDate(companion.expiresAt) }}</div>
       </div>
     </div>
