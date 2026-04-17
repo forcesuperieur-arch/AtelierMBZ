@@ -12,6 +12,10 @@ use Symfony\Component\Workflow\Event\CompletedEvent;
  */
 #[AsEventListener(event: 'workflow.rendez_vous.completed.confirmer')]
 #[AsEventListener(event: 'workflow.rendez_vous.completed.terminer')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.attendre_pieces')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.mettre_en_attente_pieces')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.declarer_no_show')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.no_show')]
 class RdvWorkflowListener
 {
     public function __construct(
@@ -27,6 +31,8 @@ class RdvWorkflowListener
         match ($transition) {
             'confirmer' => $this->bus->dispatch(new SendRappelMessage($rdv->getId(), 'confirmation')),
             'terminer' => $this->onTerminer($rdv),
+            'attendre_pieces', 'mettre_en_attente_pieces' => $this->bus->dispatch(new SendRappelMessage($rdv->getId(), 'attente_pieces')),
+            'declarer_no_show', 'no_show' => $this->bus->dispatch(new SendRappelMessage($rdv->getId(), 'no_show')),
             default => null,
         };
     }

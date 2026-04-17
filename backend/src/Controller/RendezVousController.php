@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
+use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
@@ -154,6 +155,22 @@ class RendezVousController extends AbstractController
                     'error' => 'Demande complémentaire en attente de décision client',
                 ], Response::HTTP_CONFLICT);
             }
+
+            $essai = $this->findLatestEssai($rdv);
+            if (!$essai || !$essai->isValide()) {
+                return $this->json([
+                    'error' => 'Essai routier obligatoire avant clôture. Créez et validez un essai routier pour ce RDV.',
+                    'code' => 'ESSAI_ROUTIER_REQUIS',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $ordreInitial = $this->findInitialOrdre($rdv);
+            if ($essai->getStatut() === 'anomalie_detectee' && trim((string) ($ordreInitial?->getMechanicNotes() ?? '')) === '') {
+                return $this->json([
+                    'error' => 'Une anomalie a été détectée à l\'essai routier. Renseignez les notes mécanicien avant de terminer.',
+                    'code' => 'MECHANIC_NOTES_REQUIRED',
+                ], Response::HTTP_BAD_REQUEST);
+            }
         }
 
         if ($transitionName === 'restituer') {
@@ -197,12 +214,27 @@ class RendezVousController extends AbstractController
             if ($meca) { $rdv->setMecanicien($meca); }
         }
 
+        if (in_array($transitionName, ['annuler', 'declarer_no_show', 'no_show'], true)) {
+            $defaultMotif = match ($transitionName) {
+                'declarer_no_show' => 'client_no_show',
+                'no_show' => 'no_show',
+                default => null,
+            };
+
+            $motif = isset($data['motif']) ? (string) $data['motif'] : $defaultMotif;
+            if ($motif !== null && $motif !== '') {
+                $rdv->setMotifAnnulation($motif);
+                $data['motif'] ??= $motif;
+            }
+
+            if (isset($data['commentaire'])) {
+                $rdv->setCommentaireAnnulation((string) $data['commentaire']);
+            }
+        }
+
         // Block reception without signed OR
         if ($transitionName === 'reception') {
-            $ordreReception = $this->em->getRepository(OrdreReparation::class)->findOneBy(
-                ['rendezVous' => $rdv],
-                ['id' => 'DESC']
-            );
+            $ordreReception = $this->findInitialOrdre($rdv);
             if (!$ordreReception || !$ordreReception->getSignatureClient()) {
                 return $this->json([
                     'error' => 'Signature client obligatoire avant validation de la réception. Utilisez le compagnon PDA pour faire signer.',
@@ -212,9 +244,7 @@ class RendezVousController extends AbstractController
 
         // Start/stop work time tracking + LOT 3 side effects
         if ($transitionName === 'start_travail') {
-            $ordreInitial = $this->em->getRepository(OrdreReparation::class)->findOneBy([
-                'rendezVous' => $rdv,
-            ], ['id' => 'DESC']);
+            $ordreInitial = $this->findInitialOrdre($rdv);
 
             if (!$ordreInitial || !$ordreInitial->getSignatureClient()) {
                 return $this->json([
@@ -226,7 +256,7 @@ class RendezVousController extends AbstractController
         $user = $this->getUser();
         $userId = is_object($user) && method_exists($user, 'getId') ? $user->getId() : null;
 
-        if ($transitionName === 'passer_gardiennage') {
+        if (in_array($transitionName, ['passer_gardiennage', 'mettre_en_gardiennage'], true)) {
             $rdv->setGardiennageDebutAt(new \DateTime());
             $rdv->setGardiennageDebutPar($userId);
             $rdv->setGardiennageMotif((string) ($data['gardiennage_motif'] ?? $data['motif'] ?? $data['commentaire'] ?? 'Véhicule non récupéré'));
@@ -305,7 +335,7 @@ class RendezVousController extends AbstractController
             ->where('r.mecanicien = :meca')
             ->andWhere('r.dateRdv = :date')
             ->setParameter('meca', $mecanicien)
-            ->setParameter('date', $date)
+            ->setParameter('date', new \DateTimeImmutable($date))
             ->orderBy('r.heureRdv', 'ASC')
             ->getQuery()
             ->getResult();
@@ -319,6 +349,9 @@ class RendezVousController extends AbstractController
         $client = $r->getClient();
         $vehicule = $r->getVehicule();
         $pont = $r->getPont();
+        $orInitial = $this->findInitialOrdre($r);
+        $essai = $this->findLatestEssai($r);
+        $etatVehiculeReception = $this->decodeJson($r->getEtatVehicule());
 
         return [
             'id' => $r->getId(),
@@ -329,6 +362,7 @@ class RendezVousController extends AbstractController
             'statut' => $r->getStatut(),
             'status' => $r->getStatut(),
             'commentaire' => $r->getCommentaire(),
+            'commentaire_client' => $r->getCommentaire(),
             'description_probleme' => $r->getCommentaire(),
             'temps_estime' => $r->getTempsEstime(),
             'temps_effectif_minutes' => $r->getTempsEffectifMinutes(),
@@ -337,14 +371,55 @@ class RendezVousController extends AbstractController
             'heure_fin_travail' => $r->getHeureFinTravail()?->format('Y-m-d H:i:s'),
             'gardiennage_debut_at' => $r->getGardiennageDebutAt()?->format('Y-m-d H:i:s'),
             'gardiennage_motif' => $r->getGardiennageMotif(),
+            'motif_annulation' => $r->getMotifAnnulation(),
+            'commentaire_annulation' => $r->getCommentaireAnnulation(),
             'client_nom' => $client ? ($client->getPrenom() . ' ' . $client->getNom()) : null,
             'client_telephone' => $client?->getTelephone(),
             'client_email' => $client?->getEmail(),
             'vehicule_info' => $vehicule ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? '')) : null,
             'vehicule_plaque' => $vehicule?->getPlaque(),
+            'vehicule_type' => $vehicule?->getTypeMoto(),
+            'km_reception' => $r->getKilometrage(),
+            'etat_vehicule_reception' => $etatVehiculeReception,
             'pont_nom' => $pont?->getNom(),
             'mecanicien_nom' => $r->getMecanicien() ? ($r->getMecanicien()->getPrenom() . ' ' . $r->getMecanicien()->getNom()) : null,
+            'or_id' => $orInitial?->getId(),
+            'or_mechanic_notes' => $orInitial?->getMechanicNotes(),
+            'or_mechanic_checkup' => $orInitial?->getMechanicCheckup(),
+            'essai_routier_id' => $essai?->getId(),
+            'essai_routier_statut' => $essai?->getStatut(),
+            'essai_routier_valide' => $essai?->isValide() ?? false,
             'token_suivi' => $r->getTokenSuivi(),
         ];
+    }
+
+    private function findInitialOrdre(RendezVous $rdv): ?OrdreReparation
+    {
+        return $this->em->getRepository(OrdreReparation::class)->findOneBy(
+            ['rendezVous' => $rdv, 'typeOr' => 'initial'],
+            ['id' => 'DESC'],
+        ) ?? $this->em->getRepository(OrdreReparation::class)->findOneBy(
+            ['rendezVous' => $rdv],
+            ['id' => 'DESC'],
+        );
+    }
+
+    private function findLatestEssai(RendezVous $rdv): ?EssaiRoutier
+    {
+        return $rdv->getEssaiRoutier()
+            ?? $this->em->getRepository(EssaiRoutier::class)->findOneBy(
+                ['rendezVous' => $rdv],
+                ['id' => 'DESC'],
+            );
+    }
+
+    private function decodeJson(?string $payload): ?array
+    {
+        if ($payload === null || trim($payload) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($payload, true);
+        return is_array($decoded) ? $decoded : null;
     }
 }

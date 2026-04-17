@@ -14,12 +14,14 @@ use App\Service\PdfService;
 use App\Service\VODocumentService;
 use App\Service\VOLivrePoliceService;
 use App\Service\VOMarginService;
+use App\Service\VONumberingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -33,6 +35,7 @@ class VOController extends AbstractController
         private VOLivrePoliceService $livrePoliceService,
         private VODocumentService $documentService,
         private SerializerInterface $serializer,
+        private VONumberingService $numberingService,
     ) {}
 
     // ═══════════════════════════════════════════
@@ -71,6 +74,43 @@ class VOController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/purchases/{id}/full', methods: ['GET'])]
+    public function getPurchaseFull(int $id): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+
+        $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
+        if (!$purchase) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $missingDocuments = $this->documentService->getMissingDocuments($purchase);
+        $confirmationMissingDocuments = array_values(array_diff($missingDocuments, [VODocument::TYPE_PV_RACHAT]));
+        $documents = $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']);
+        $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+
+        $data = $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']);
+        $data['margin'] = $purchase->getMargin();
+        $data['totalFre'] = $purchase->getTotalFre();
+        $data['missingDocuments'] = $missingDocuments;
+        $data['confirmationMissingDocuments'] = $confirmationMissingDocuments;
+        $data['canConfirm'] = count($confirmationMissingDocuments) === 0 && $purchase->getStatus() === 'brouillon';
+        $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true);
+        $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
+        $data['livrePolice'] = $livrePolice
+            ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
+            : null;
+        $data['marginCalculation'] = null;
+
+        if (bccomp($purchase->getPurchasePrice(), '0', 2) > 0 && bccomp($purchase->getTargetSalePrice(), '0', 2) > 0) {
+            $data['marginCalculation'] = $purchase->getRegimeTva() === 'marge'
+                ? $this->marginService->calculateMarginVat($purchase->getPurchasePrice(), $purchase->getTargetSalePrice())
+                : $this->marginService->calculateNormalVat($purchase->getTargetSalePrice());
+        }
+
+        return $this->json($data);
+    }
+
     #[Route('/purchases', methods: ['POST'])]
     public function createPurchase(Request $request): JsonResponse
     {
@@ -85,6 +125,7 @@ class VOController extends AbstractController
         }
 
         $purchase = new VOPurchase();
+        $purchase->setAtelierId($this->resolveAtelierId());
         $purchase->setVehicule($vehicule);
         $purchase->setSeller($seller);
         $purchase->setPurchasePrice((string) ($body['purchasePrice'] ?? '0'));
@@ -169,12 +210,24 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Seuls les rachats en brouillon peuvent être confirmés'], 400);
         }
 
-        try {
-            $entry = $this->livrePoliceService->createEntryForPurchase($purchase);
-            $purchase->setStatus('en_stock');
-            $this->em->flush();
+        $missingDocuments = array_values(array_diff(
+            $this->documentService->getMissingDocuments($purchase),
+            [VODocument::TYPE_PV_RACHAT],
+        ));
 
-            try {
+        if ($missingDocuments !== []) {
+            return $this->json([
+                'error' => 'Des documents obligatoires sont manquants avant confirmation.',
+                'missingDocuments' => $missingDocuments,
+            ], 422);
+        }
+
+        try {
+            $payload = $this->inTransaction(function () use ($purchase) {
+                $entry = $this->livrePoliceService->createEntryForPurchase($purchase);
+                $purchase->setStatus('en_stock');
+                $this->em->flush();
+
                 $pdfPath = $this->pdfService->generatePvRachatPdf($purchase);
                 $this->documentService->archiveGeneratedPdf(
                     $pdfPath,
@@ -185,16 +238,23 @@ class VOController extends AbstractController
                     sprintf('pv-rachat-%d.pdf', $purchase->getId()),
                 );
                 $this->em->flush();
-            } catch (\Throwable) {
-            }
+                return [
+                    'purchase' => $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']),
+                    'livrePoliceId' => $entry->getId(),
+                    'livrePoliceNumero' => $entry->getNumeroOrdre(),
+                    'pdfGenerated' => true,
+                    'pdfError' => null,
+                ];
+            });
 
-            return $this->json([
-                'purchase' => $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']),
-                'livrePoliceId' => $entry->getId(),
-                'livrePoliceNumero' => $entry->getNumeroOrdre(),
-            ]);
+            return $this->json($payload);
         } catch (\InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'La confirmation a échoué pendant la génération du PDF obligatoire.',
+                'details' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -235,6 +295,37 @@ class VOController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/depots/{id}/full', methods: ['GET'])]
+    public function getDepotFull(int $id): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+
+        $depot = $this->em->getRepository(VODepotVente::class)->find($id);
+        if (!$depot) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $documents = $this->em->getRepository(VODocument::class)->findBy(['voDepotVente' => $depot], ['uploadedAt' => 'DESC']);
+        $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
+        $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
+
+        $data = $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
+        $data['commissionAmount'] = $depot->getCommissionAmount();
+        $data['commissionVat'] = $depot->getCommissionVatAmount();
+        $data['commissionTtc'] = $depot->getCommissionTtc();
+        $data['deposantNet'] = $depot->getDeposantNet();
+        $data['mandatExpire'] = $depot->isMandatExpire();
+        $data['joursRestants'] = $depot->getJoursRestantsMandat();
+        $data['missingDocuments'] = $missingDocuments;
+        $data['canSell'] = $depot->getStatus() === 'actif';
+        $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
+        $data['livrePolice'] = $livrePolice
+            ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
+            : null;
+
+        return $this->json($data);
+    }
+
     #[Route('/depots', methods: ['POST'])]
     public function createDepot(Request $request): JsonResponse
     {
@@ -249,6 +340,7 @@ class VOController extends AbstractController
         }
 
         $depot = new VODepotVente();
+        $depot->setAtelierId($this->resolveAtelierId());
         $depot->setVehicule($vehicule);
         $depot->setDeposant($deposant);
         $depot->setPrixVenteSouhaite((string) ($body['prixVenteSouhaite'] ?? '0'));
@@ -275,34 +367,35 @@ class VOController extends AbstractController
             $depot->setGestionnaire($gestionnaire);
         }
 
-        $this->em->persist($depot);
-
         try {
-            $this->livrePoliceService->createEntryForDepotVente($depot);
+            $payload = $this->inTransaction(function () use ($depot) {
+                $this->em->persist($depot);
+                $this->livrePoliceService->createEntryForDepotVente($depot);
+                $this->em->flush();
+
+                $pdfPath = $this->pdfService->generateContratDepotVentePdf($depot);
+                $this->documentService->archiveGeneratedPdf(
+                    $pdfPath,
+                    VODocument::TYPE_CONTRAT_DEPOT_VENTE,
+                    null,
+                    $depot,
+                    $this->getUser(),
+                    sprintf('contrat-depot-%d.pdf', $depot->getId()),
+                );
+                $this->em->flush();
+
+                return $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
+            });
+
+            return $this->json($payload, 201);
         } catch (\InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'La création du dépôt-vente a échoué pendant la génération du PDF obligatoire.',
+                'details' => $e->getMessage(),
+            ], 500);
         }
-
-        $this->em->flush();
-
-        try {
-            $pdfPath = $this->pdfService->generateContratDepotVentePdf($depot);
-            $this->documentService->archiveGeneratedPdf(
-                $pdfPath,
-                VODocument::TYPE_CONTRAT_DEPOT_VENTE,
-                null,
-                $depot,
-                $this->getUser(),
-                sprintf('contrat-depot-%d.pdf', $depot->getId()),
-            );
-            $this->em->flush();
-        } catch (\Throwable) {
-        }
-
-        return $this->json(
-            $this->serializer->normalize($depot, null, ['groups' => 'vo:read']),
-            201,
-        );
     }
 
     #[Route('/depots/{id}', methods: ['PATCH'])]
@@ -450,6 +543,90 @@ class VOController extends AbstractController
         return $this->json($this->documentService->getAlerts($atelierId));
     }
 
+    #[Route('/documents/{id}/download', methods: ['GET'])]
+    public function downloadDocument(int $id): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $atelierId = $this->getUser()?->getAtelierId();
+
+        $document = $this->em->getRepository(VODocument::class)->find($id);
+        if (!$document) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+        if ($atelierId && $document->getAtelierId() !== $atelierId) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $projectDir = (string) $this->getParameter('kernel.project_dir');
+        $relativePath = $document->getFilePath();
+        if (!str_starts_with($relativePath, '/uploads/vo/')) {
+            return $this->json(['error' => 'Document path is not allowed'], 404);
+        }
+
+        $uploadsDir = realpath($projectDir . '/public/uploads/vo');
+        if ($uploadsDir === false) {
+            return $this->json(['error' => 'Document storage unavailable'], 404);
+        }
+
+        $resolvedPath = realpath($projectDir . '/public' . $relativePath);
+        if ($resolvedPath === false || !str_starts_with($resolvedPath, $uploadsDir . '/') || !is_file($resolvedPath)) {
+            return $this->json(['error' => 'File not found'], 404);
+        }
+
+        $response = new BinaryFileResponse($resolvedPath);
+        $response->headers->set('Cache-Control', 'private, max-age=3600');
+        $response->headers->set('Content-Type', $document->getMimeType() ?: 'application/octet-stream');
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $document->getOriginalFilename());
+
+        return $response;
+    }
+
+    #[Route('/purchases/{id}/vehicule', methods: ['PUT'])]
+    public function updatePurchaseVehicule(int $id, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $atelierId = $this->getUser()?->getAtelierId();
+
+        $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
+        if (!$purchase || !$purchase->getVehicule()) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+        if ($atelierId && $purchase->getAtelierId() !== $atelierId) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $this->applyVehiculePayload($purchase->getVehicule(), $request->toArray());
+        $this->em->flush();
+
+        return $this->json([
+            'success' => true,
+            'vehicule' => $this->serializer->normalize($purchase->getVehicule(), null, ['groups' => 'vehicule:read']),
+        ]);
+    }
+
+    #[Route('/depots/{id}/vehicule', methods: ['PUT'])]
+    public function updateDepotVehicule(int $id, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $atelierId = $this->getUser()?->getAtelierId();
+
+        $depot = $this->em->getRepository(VODepotVente::class)->find($id);
+        if (!$depot || !$depot->getVehicule()) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+        if ($atelierId && $depot->getAtelierId() !== $atelierId) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $this->applyVehiculePayload($depot->getVehicule(), $request->toArray());
+        $this->em->flush();
+
+        return $this->json([
+            'success' => true,
+            'vehicule' => $this->serializer->normalize($depot->getVehicule(), null, ['groups' => 'vehicule:read']),
+        ]);
+    }
+
     // ═══════════════════════════════════════════
     // FACTURATION VO
     // ═══════════════════════════════════════════
@@ -498,72 +675,68 @@ class VOController extends AbstractController
         } else {
             $vatCalc = $this->marginService->calculateNormalVat($salePrice);
         }
-
-        // Generate invoice number
-        $year = date('Y');
-        $maxNum = $this->em->getRepository(VOFacture::class)->createQueryBuilder('f')
-            ->select('MAX(f.numeroFacture)')
-            ->where('f.numeroFacture LIKE :prefix')
-            ->setParameter('prefix', "VOF-{$year}-%")
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $seq = $maxNum ? ((int) substr($maxNum, -4)) + 1 : 1;
-        $numero = sprintf('VOF-%s-%04d', $year, $seq);
-
-        // Create facture
-        $facture = new VOFacture();
-        $facture->setNumeroFacture($numero);
-        $facture->setVoPurchase($purchase);
-        $facture->setClient($buyer);
-        $facture->setVehicule($purchase->getVehicule());
-        $facture->setRegimeTva($purchase->getRegimeTva());
-        $facture->setPrixAchatHt($purchase->getPurchasePrice());
-        $facture->setMentionTvaMarge($purchase->getRegimeTva() === 'marge');
-        $facture->setTotalHt($vatCalc['sale_price_ht']);
-        $facture->setTotalTva($vatCalc['vat']);
-        $facture->setTotalTtc($vatCalc['sale_price_ttc']);
-
-        // Vehicle details on facture
-        $v = $purchase->getVehicule();
-        $facture->setImmatriculation($v->getPlaque());
-        $facture->setVinFacture($v->getVin());
-        $facture->setKilometrage($v->getMileage());
-        $facture->setDatePremiereMiseEnCirculationFacture($v->getDatePremiereMiseEnCirculation());
-        $facture->setNotes($body['notes'] ?? null);
-
-        $this->em->persist($facture);
-
-        // Update purchase status
-        $purchase->setStatus('vendu');
-        $purchase->setSaleDate(new \DateTime());
-
-        // Record sale in Livre de Police
-        $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
-        if ($lpEntry) {
-            $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
-        }
-
-        $this->em->flush();
-
         try {
-            $pdfPath = $this->pdfService->generateVoFacturePdf($facture);
-            $this->documentService->archiveGeneratedPdf(
-                $pdfPath,
-                VODocument::TYPE_FACTURE_VO,
-                $purchase,
-                null,
-                $this->getUser(),
-                $numero . '.pdf',
-            );
-            $this->em->flush();
-        } catch (\Throwable) {
-        }
+            $payload = $this->inTransaction(function () use ($purchase, $buyer, $salePrice, $vatCalc, $body) {
+                $numero = $this->numberingService->nextFactureNumber($this->resolveAtelierId($purchase->getAtelierId()));
 
-        return $this->json([
-            'facture' => $this->serializer->normalize($facture, null, ['groups' => 'vofacture:read']),
-            'invoiceNumber' => $numero,
-        ], 201);
+                $facture = new VOFacture();
+                $facture->setAtelierId($this->resolveAtelierId($purchase->getAtelierId()));
+                $facture->setNumeroFacture($numero);
+                $facture->setVoPurchase($purchase);
+                $facture->setClient($buyer);
+                $facture->setVehicule($purchase->getVehicule());
+                $facture->setRegimeTva($purchase->getRegimeTva());
+                $facture->setPrixAchatHt($purchase->getPurchasePrice());
+                $facture->setMentionTvaMarge($purchase->getRegimeTva() === 'marge');
+                $facture->setTotalHt($vatCalc['sale_price_ht']);
+                $facture->setTotalTva($vatCalc['vat']);
+                $facture->setTotalTtc($vatCalc['sale_price_ttc']);
+
+                $vehicule = $purchase->getVehicule();
+                $facture->setImmatriculation($vehicule->getPlaque());
+                $facture->setVinFacture($vehicule->getVin());
+                $facture->setKilometrage($vehicule->getMileage());
+                $facture->setDatePremiereMiseEnCirculationFacture($vehicule->getDatePremiereMiseEnCirculation());
+                $facture->setNotes($body['notes'] ?? null);
+
+                $this->em->persist($facture);
+
+                $purchase->setStatus('vendu');
+                $purchase->setSaleDate(new \DateTime());
+
+                $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+                if ($lpEntry) {
+                    $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
+                }
+
+                $this->em->flush();
+
+                $pdfPath = $this->pdfService->generateVoFacturePdf($facture);
+                $this->documentService->archiveGeneratedPdf(
+                    $pdfPath,
+                    VODocument::TYPE_FACTURE_VO,
+                    $purchase,
+                    null,
+                    $this->getUser(),
+                    $numero . '.pdf',
+                );
+                $this->em->flush();
+
+                return [
+                    'facture' => $this->serializer->normalize($facture, null, ['groups' => 'vofacture:read']),
+                    'invoiceNumber' => $numero,
+                    'pdfGenerated' => true,
+                    'pdfError' => null,
+                ];
+            });
+
+            return $this->json($payload, 201);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'La vente a échoué pendant la génération du PDF obligatoire de facture.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -597,72 +770,69 @@ class VOController extends AbstractController
             $depot->getCommissionType(),
             $depot->getCommissionValeur(),
         );
-
-        // Generate invoice number
-        $year = date('Y');
-        $maxNum = $this->em->getRepository(VOFacture::class)->createQueryBuilder('f')
-            ->select('MAX(f.numeroFacture)')
-            ->where('f.numeroFacture LIKE :prefix')
-            ->setParameter('prefix', "VOF-{$year}-%")
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $seq = $maxNum ? ((int) substr($maxNum, -4)) + 1 : 1;
-        $numero = sprintf('VOF-%s-%04d', $year, $seq);
-
-        // Create facture
-        $facture = new VOFacture();
-        $facture->setNumeroFacture($numero);
-        $facture->setVoDepotVente($depot);
-        $facture->setClient($buyer);
-        $facture->setVehicule($depot->getVehicule());
-        $facture->setRegimeTva('normal');
-        $facture->setMentionTvaMarge(false);
-        $facture->setTotalHt($salePrice);
-        $facture->setTotalTva('0.00');
-        $facture->setTotalTtc($salePrice);
-
-        $v = $depot->getVehicule();
-        $facture->setImmatriculation($v->getPlaque());
-        $facture->setVinFacture($v->getVin());
-        $facture->setKilometrage($v->getMileage());
-        $facture->setDatePremiereMiseEnCirculationFacture($v->getDatePremiereMiseEnCirculation());
-        $facture->setNotes($body['notes'] ?? null);
-
-        $this->em->persist($facture);
-
-        // Update depot
-        $depot->setStatus('vendu');
-        $depot->setPrixVenteEffectif($salePrice);
-        $depot->setDateFin(new \DateTime());
-
-        // Record sale in Livre de Police
-        $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
-        if ($lpEntry) {
-            $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
-        }
-
-        $this->em->flush();
-
         try {
-            $pdfPath = $this->pdfService->generateVoFacturePdf($facture);
-            $this->documentService->archiveGeneratedPdf(
-                $pdfPath,
-                VODocument::TYPE_FACTURE_VO,
-                null,
-                $depot,
-                $this->getUser(),
-                $numero . '.pdf',
-            );
-            $this->em->flush();
-        } catch (\Throwable) {
-        }
+            $payload = $this->inTransaction(function () use ($depot, $buyer, $salePrice, $body, $commCalc) {
+                $numero = $this->numberingService->nextFactureNumber($this->resolveAtelierId($depot->getAtelierId()));
 
-        return $this->json([
-            'facture' => $this->serializer->normalize($facture, null, ['groups' => 'vofacture:read']),
-            'invoiceNumber' => $numero,
-            'commission' => $commCalc,
-        ], 201);
+                $facture = new VOFacture();
+                $facture->setAtelierId($this->resolveAtelierId($depot->getAtelierId()));
+                $facture->setNumeroFacture($numero);
+                $facture->setVoDepotVente($depot);
+                $facture->setClient($buyer);
+                $facture->setVehicule($depot->getVehicule());
+                $facture->setRegimeTva('normal');
+                $facture->setMentionTvaMarge(false);
+                $facture->setTotalHt($salePrice);
+                $facture->setTotalTva('0.00');
+                $facture->setTotalTtc($salePrice);
+
+                $vehicule = $depot->getVehicule();
+                $facture->setImmatriculation($vehicule->getPlaque());
+                $facture->setVinFacture($vehicule->getVin());
+                $facture->setKilometrage($vehicule->getMileage());
+                $facture->setDatePremiereMiseEnCirculationFacture($vehicule->getDatePremiereMiseEnCirculation());
+                $facture->setNotes($body['notes'] ?? null);
+
+                $this->em->persist($facture);
+
+                $depot->setStatus('vendu');
+                $depot->setPrixVenteEffectif($salePrice);
+                $depot->setDateFin(new \DateTime());
+
+                $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
+                if ($lpEntry) {
+                    $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
+                }
+
+                $this->em->flush();
+
+                $pdfPath = $this->pdfService->generateVoFacturePdf($facture);
+                $this->documentService->archiveGeneratedPdf(
+                    $pdfPath,
+                    VODocument::TYPE_FACTURE_VO,
+                    null,
+                    $depot,
+                    $this->getUser(),
+                    $numero . '.pdf',
+                );
+                $this->em->flush();
+
+                return [
+                    'facture' => $this->serializer->normalize($facture, null, ['groups' => 'vofacture:read']),
+                    'invoiceNumber' => $numero,
+                    'commission' => $commCalc,
+                    'pdfGenerated' => true,
+                    'pdfError' => null,
+                ];
+            });
+
+            return $this->json($payload, 201);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'La vente du dépôt a échoué pendant la génération du PDF obligatoire de facture.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     // ═══════════════════════════════════════════
@@ -686,6 +856,44 @@ class VOController extends AbstractController
         }
 
         return $this->json($result);
+    }
+
+    #[Route('/margin/simulate', methods: ['POST'])]
+    public function simulateMargin(Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $body = $request->toArray();
+
+        $purchasePrice = (string) ($body['purchasePrice'] ?? '0');
+        $salePrice = (string) ($body['salePrice'] ?? '0');
+        $regime = (string) ($body['regime'] ?? 'marge');
+        $freItems = is_array($body['freItems'] ?? null) ? $body['freItems'] : [];
+
+        $totalFre = '0.00';
+        foreach ($freItems as $fre) {
+            $amount = is_array($fre) ? (string) ($fre['amount'] ?? '0') : '0';
+            $totalFre = bcadd($totalFre, $amount, 2);
+        }
+
+        $totalCost = bcadd($purchasePrice, $totalFre, 2);
+        $vatCalc = $regime === 'marge'
+            ? $this->marginService->calculateMarginVat($purchasePrice, $salePrice)
+            : $this->marginService->calculateNormalVat($salePrice);
+        $netMargin = bcsub($salePrice, $totalCost, 2);
+        $marginPct = bccomp($totalCost, '0', 2) > 0
+            ? bcdiv(bcmul($netMargin, '100', 4), $totalCost, 2)
+            : '0.00';
+
+        return $this->json([
+            'purchase_price' => $purchasePrice,
+            'total_fre' => $totalFre,
+            'total_cost' => $totalCost,
+            'sale_price' => $salePrice,
+            'net_margin' => $netMargin,
+            'margin_pct' => $marginPct,
+            'vat_detail' => $vatCalc,
+            'is_profitable' => bccomp($netMargin, '0', 2) > 0,
+        ]);
     }
 
     // ═══════════════════════════════════════════
@@ -743,6 +951,17 @@ class VOController extends AbstractController
         ]);
     }
 
+    #[Route('/stock', methods: ['GET'])]
+    public function stock(Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+
+        $search = trim((string) $request->query->get('q', ''));
+        $limit = max(0, min(100, $request->query->getInt('limit', 0)));
+
+        return $this->json($this->buildStockPayload($this->resolveAtelierId(), $search, $limit));
+    }
+
     // ═══════════════════════════════════════════
     // DASHBOARD / STATS
     // ═══════════════════════════════════════════
@@ -751,8 +970,7 @@ class VOController extends AbstractController
     public function stats(Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $user = $this->getUser();
-        $atelierId = $user?->getAtelierId();
+        $atelierId = $this->resolveAtelierId();
 
         $repo = $this->em->getRepository(VOPurchase::class);
 
@@ -770,20 +988,238 @@ class VOController extends AbstractController
 
         $vendus = (int) $buildQb('p')->select('COUNT(p)')
             ->andWhere('p.status = :s')->setParameter('s', 'vendu')
+            ->andWhere('p.saleDate >= :startOfMonth')->setParameter('startOfMonth', new \DateTimeImmutable('first day of this month'))
             ->getQuery()->getSingleScalarResult();
 
-        $depotsActifs = (int) $this->em->getRepository(VODepotVente::class)->createQueryBuilder('d')
+        $depotsQb = $this->em->getRepository(VODepotVente::class)->createQueryBuilder('d')
             ->select('COUNT(d)')
             ->where('d.status = :s')->setParameter('s', 'actif')
-            ->getQuery()->getSingleScalarResult();
+            ->andWhere('d.atelierId = :depotAid')->setParameter('depotAid', $atelierId);
+
+        $depotsActifs = (int) $depotsQb->getQuery()->getSingleScalarResult();
 
         $alerts = $this->documentService->getAlerts($atelierId);
+        $stock = $this->buildStockPayload($atelierId, '', 5);
+        $mandatsExpirant = count(array_filter(
+            $stock['items'],
+            static fn (array $item): bool => ($item['source'] ?? null) === 'depot'
+                && (int) ($item['jours_restants'] ?? 999) <= 7
+                && !(bool) ($item['mandat_expire'] ?? false),
+        ));
 
         return $this->json([
             'en_stock' => $enStock,
             'vendus' => $vendus,
             'depots_actifs' => $depotsActifs,
             'alerts_count' => count($alerts),
+            'stock_total' => $stock['total'],
+            'stock_items' => $stock['items'],
+            'mandats_expirant_7j' => $mandatsExpirant,
         ]);
+    }
+
+    #[Route('/depots/{id}/restituer', methods: ['POST'])]
+    public function restituerDepot(int $id, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $depot = $this->em->getRepository(VODepotVente::class)->find($id);
+
+        if (!$depot) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        if ($depot->getStatus() !== 'actif') {
+            return $this->json(['error' => 'Seul un dépôt actif peut être restitué'], 400);
+        }
+
+        $body = $request->toArray();
+        $depot->setStatus('restitue');
+        $depot->setDateFin(new \DateTime());
+
+        if (!empty($body['notes'])) {
+            $existingNotes = trim((string) $depot->getNotes());
+            $restitutionNote = '[RESTITUTION] ' . trim((string) $body['notes']);
+            $depot->setNotes($existingNotes !== '' ? $existingNotes . "\n" . $restitutionNote : $restitutionNote);
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->serializer->normalize($depot, null, ['groups' => 'vo:read']));
+    }
+
+    private function buildStockPayload(int $atelierId, string $search = '', int $limit = 0): array
+    {
+        $qbPurchases = $this->em->getRepository(VOPurchase::class)->createQueryBuilder('p')
+            ->leftJoin('p.vehicule', 'v')->addSelect('v')
+            ->leftJoin('p.seller', 's')->addSelect('s')
+            ->where('p.status IN (:statuses)')
+            ->andWhere('p.atelierId = :atelierId')
+            ->setParameter('statuses', ['en_stock', 'en_vente', 'reserve'])
+            ->setParameter('atelierId', $atelierId)
+            ->orderBy('p.createdAt', 'ASC');
+
+        if ($search !== '') {
+            $qbPurchases
+                ->andWhere('v.plaque LIKE :purchaseQuery OR v.marque LIKE :purchaseQuery OR v.modele LIKE :purchaseQuery')
+                ->setParameter('purchaseQuery', '%' . $search . '%');
+        }
+
+        if ($limit > 0) {
+            $qbPurchases->setMaxResults($limit);
+        }
+
+        $purchases = $qbPurchases->getQuery()->getResult();
+
+        $qbDepots = $this->em->getRepository(VODepotVente::class)->createQueryBuilder('d')
+            ->leftJoin('d.vehicule', 'v')->addSelect('v')
+            ->leftJoin('d.deposant', 'c')->addSelect('c')
+            ->where('d.status = :status')
+            ->andWhere('d.atelierId = :atelierId')
+            ->setParameter('status', 'actif')
+            ->setParameter('atelierId', $atelierId)
+            ->orderBy('d.dateDebut', 'ASC');
+
+        if ($search !== '') {
+            $qbDepots
+                ->andWhere('v.plaque LIKE :depotQuery OR v.marque LIKE :depotQuery OR v.modele LIKE :depotQuery')
+                ->setParameter('depotQuery', '%' . $search . '%');
+        }
+
+        if ($limit > 0) {
+            $qbDepots->setMaxResults($limit);
+        }
+
+        $depots = $qbDepots->getQuery()->getResult();
+        $items = [];
+
+        foreach ($purchases as $purchase) {
+            $vehicule = $purchase->getVehicule();
+            $missingDocuments = $this->documentService->getMissingDocuments($purchase, true);
+            $joursStock = $purchase->getPurchaseDate()
+                ? (new \DateTime('today'))->diff($purchase->getPurchaseDate())->days
+                : null;
+
+            $items[] = [
+                'id' => $purchase->getId(),
+                'source' => 'purchase',
+                'status' => $purchase->getStatus(),
+                'plaque' => $vehicule->getPlaque(),
+                'marque' => $vehicule->getMarque(),
+                'modele' => $vehicule->getModele(),
+                'annee' => $vehicule->getAnnee(),
+                'km' => $vehicule->getMileage(),
+                'couleur' => $vehicule->getCouleur(),
+                'prix_achat' => $purchase->getPurchasePrice(),
+                'prix_vente' => $purchase->getTargetSalePrice(),
+                'marge' => $purchase->getMargin(),
+                'total_fre' => $purchase->getTotalFre(),
+                'regime_tva' => $purchase->getRegimeTva(),
+                'jours_stock' => $joursStock,
+                'missing_docs' => $missingDocuments,
+                'can_sell' => empty($missingDocuments) || in_array($purchase->getStatus(), ['en_vente', 'reserve'], true),
+                'created_at' => $purchase->getCreatedAt()->format('Y-m-d'),
+            ];
+        }
+
+        foreach ($depots as $depot) {
+            $vehicule = $depot->getVehicule();
+            $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
+
+            $items[] = [
+                'id' => $depot->getId(),
+                'source' => 'depot',
+                'status' => $depot->getStatus(),
+                'plaque' => $vehicule->getPlaque(),
+                'marque' => $vehicule->getMarque(),
+                'modele' => $vehicule->getModele(),
+                'annee' => $vehicule->getAnnee(),
+                'km' => $vehicule->getMileage(),
+                'couleur' => $vehicule->getCouleur(),
+                'prix_vente' => $depot->getPrixVenteSouhaite(),
+                'commission_ht' => $depot->getCommissionAmount(),
+                'commission_ttc' => $depot->getCommissionTtc(),
+                'deposant_net' => $depot->getDeposantNet(),
+                'jours_restants' => $depot->getJoursRestantsMandat(),
+                'mandat_expire' => $depot->isMandatExpire(),
+                'missing_docs' => $missingDocuments,
+                'can_sell' => $depot->getStatus() === 'actif',
+                'created_at' => $depot->getDateDebut()->format('Y-m-d'),
+            ];
+        }
+
+        usort($items, static fn (array $left, array $right): int => strcmp((string) $left['created_at'], (string) $right['created_at']));
+
+        if ($limit > 0) {
+            $items = array_slice($items, 0, $limit);
+        }
+
+        return [
+            'items' => $items,
+            'total_purchases' => count($purchases),
+            'total_depots' => count($depots),
+            'total' => count($items),
+        ];
+    }
+
+    private function inTransaction(callable $operation): mixed
+    {
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+
+        try {
+            $result = $operation();
+            $connection->commit();
+
+            return $result;
+        } catch (\Throwable $throwable) {
+            if ($connection->isTransactionActive()) {
+                $connection->rollBack();
+            }
+            $this->em->clear();
+
+            throw $throwable;
+        }
+    }
+
+    private function applyVehiculePayload(Vehicule $vehicule, array $data): void
+    {
+        if (isset($data['marque'])) {
+            $vehicule->setMarque($this->nullableString($data['marque']));
+        }
+        if (isset($data['modele'])) {
+            $vehicule->setModele($this->nullableString($data['modele']));
+        }
+        if (isset($data['vin'])) {
+            $vin = $this->nullableString($data['vin']);
+            $vehicule->setVin($vin ? strtoupper(substr($vin, 0, 17)) : null);
+        }
+        if (isset($data['annee'])) {
+            $annee = (int) $data['annee'];
+            $vehicule->setAnnee($annee > 0 ? $annee : null);
+        }
+        if (isset($data['cylindree'])) {
+            $vehicule->setCylindree($this->nullableString($data['cylindree']));
+        }
+        if (isset($data['type_moto'])) {
+            $vehicule->setTypeMoto($this->nullableString($data['type_moto']));
+        }
+        if (isset($data['plaque'])) {
+            $plaque = $this->nullableString($data['plaque']);
+            if ($plaque !== null) {
+                $vehicule->setPlaque($plaque);
+            }
+        }
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $normalized = trim((string) ($value ?? ''));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    private function resolveAtelierId(?int $atelierId = null): int
+    {
+        return $atelierId ?? $this->getUser()?->getAtelierId() ?? 0;
     }
 }

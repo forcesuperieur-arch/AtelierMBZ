@@ -156,6 +156,7 @@ const defaultRoleOptions = [
   { value: 'admin', label: 'Administrateur' },
   { value: 'receptionnaire', label: 'Réceptionnaire' },
   { value: 'mecanicien', label: 'Mécanicien' },
+  { value: 'vo_manager', label: 'VO Manager' },
   { value: 'comptable', label: 'Comptable' },
 ]
 const roleOptions = ref(defaultRoleOptions)

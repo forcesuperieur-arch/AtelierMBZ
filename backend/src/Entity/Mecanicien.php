@@ -9,7 +9,10 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'mecaniciens')]
+#[ORM\Table(
+    name: 'mecaniciens',
+    uniqueConstraints: [new ORM\UniqueConstraint(name: 'uniq_mecanicien_user_id', columns: ['user_id'])],
+)]
 #[ApiResource(
     normalizationContext: ['groups' => ['mecanicien:read']],
     denormalizationContext: ['groups' => ['mecanicien:write']],

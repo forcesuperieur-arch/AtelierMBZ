@@ -34,7 +34,7 @@ class VODepotVente
     #[ORM\Column(nullable: true)]
     private ?int $atelierId = null;
 
-    #[ORM\OneToOne(targetEntity: Vehicule::class)]
+    #[ORM\ManyToOne(targetEntity: Vehicule::class)]
     #[ORM\JoinColumn(name: 'vehicule_id', nullable: false)]
     #[Groups(['vo:read', 'vo:write'])]
     private Vehicule $vehicule;
@@ -140,13 +140,23 @@ class VODepotVente
         return bcdiv(bcmul($prix, $this->commissionValeur, 4), '100', 2);
     }
 
+    public function getCommissionVatAmount(?string $prixVente = null): string
+    {
+        return bcdiv(bcmul($this->getCommissionAmount($prixVente), '20', 4), '100', 2);
+    }
+
+    public function getCommissionTtc(?string $prixVente = null): string
+    {
+        return bcadd($this->getCommissionAmount($prixVente), $this->getCommissionVatAmount($prixVente), 2);
+    }
+
     /**
      * Net amount to return to deposant after commission.
      */
     public function getDeposantNet(?string $prixVente = null): string
     {
         $prix = $prixVente ?? $this->prixVenteEffectif ?? $this->prixVenteSouhaite;
-        return bcsub($prix, $this->getCommissionAmount($prixVente), 2);
+        return bcsub($prix, $this->getCommissionTtc($prixVente), 2);
     }
 
     /**
@@ -156,6 +166,18 @@ class VODepotVente
     {
         $expiry = (clone $this->dateDebut)->modify("+{$this->dureeMandat} days");
         return $expiry < new \DateTime('today');
+    }
+
+    public function getJoursRestantsMandat(): int
+    {
+        $expiry = (clone $this->dateDebut)->modify("+{$this->dureeMandat} days");
+        $today = new \DateTime('today');
+
+        if ($expiry <= $today) {
+            return 0;
+        }
+
+        return (int) $today->diff($expiry)->days;
     }
 
     // --- Getters / Setters ---

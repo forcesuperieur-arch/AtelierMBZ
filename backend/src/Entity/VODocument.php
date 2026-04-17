@@ -135,6 +135,12 @@ class VODocument
     public function getFilePath(): string { return $this->filePath; }
     public function setFilePath(string $v): static { $this->filePath = $v; return $this; }
 
+    #[Groups(['vodoc:read'])]
+    public function getDownloadPath(): string
+    {
+        return sprintf('/api/vo/documents/%d/download', $this->id ?? 0);
+    }
+
     public function getOriginalFilename(): string { return $this->originalFilename; }
     public function setOriginalFilename(string $v): static { $this->originalFilename = $v; return $this; }
 

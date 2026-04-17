@@ -16,6 +16,7 @@ framework:
                 - confirme
                 - reception
                 - en_cours
+                - en_pause
                 - termine
                 - restitue
                 - facture
@@ -40,8 +41,14 @@ framework:
                 start_travail:
                     from: reception
                     to: en_cours
-                terminer:
+                mettre_en_pause:
                     from: en_cours
+                    to: en_pause
+                reprendre:
+                    from: en_pause
+                    to: en_cours
+                terminer:
+                    from: [en_cours, en_pause]
                     to: termine
                 restituer:
                     from: termine
@@ -53,10 +60,13 @@ framework:
                     from: facture
                     to: paye
                 annuler:
-                    from: [en_attente, reserve, confirme]
+                    from: [en_attente, reserve, confirme, reception, en_attente_pieces, en_gardiennage]
                     to: annule
                 # LOT 3 — new transitions
                 declarer_no_show:
+                    from: [confirme, reception]
+                    to: no_show
+                no_show:
                     from: [confirme, reception]
                     to: no_show
                 reporter:
@@ -64,6 +74,9 @@ framework:
                     to: confirme
                 attendre_pieces:
                     from: [reception, en_cours]
+                    to: en_attente_pieces
+                mettre_en_attente_pieces:
+                    from: [en_cours, en_pause]
                     to: en_attente_pieces
                 reprendre_apres_pieces:
                     from: en_attente_pieces
@@ -76,6 +89,9 @@ framework:
                     to: en_cours
                 passer_gardiennage:
                     from: [termine, en_attente_pieces, restitue_partiel]
+                    to: en_gardiennage
+                mettre_en_gardiennage:
+                    from: [confirme, reception, en_attente_pieces]
                     to: en_gardiennage
                 sortir_gardiennage:
                     from: en_gardiennage

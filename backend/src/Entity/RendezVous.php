@@ -124,9 +124,21 @@ class RendezVous
     #[Groups(['rdv:read'])]
     private ?RapportTechnicien $rapportTechnicien = null;
 
+    #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: EssaiRoutier::class, cascade: ['persist'])]
+    #[Groups(['rdv:read'])]
+    private ?EssaiRoutier $essaiRoutier = null;
+
     #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
     #[Groups(['rdv:read', 'rdv:write', 'ordre:read'])]
     private string $statut = 'en_attente';
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private ?string $motifAnnulation = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private ?string $commentaireAnnulation = null;
 
     #[ORM\Column(length: 64, unique: true, nullable: true)]
     #[Groups(['rdv:read'])]
@@ -251,10 +263,22 @@ class RendezVous
         }
         return $this;
     }
+    public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }
+    public function setEssaiRoutier(?EssaiRoutier $essaiRoutier): static {
+        $this->essaiRoutier = $essaiRoutier;
+        if ($essaiRoutier !== null && $essaiRoutier->getRendezVous() !== $this) {
+            $essaiRoutier->setRendezVous($this);
+        }
+        return $this;
+    }
     public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
     public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }
+    public function getMotifAnnulation(): ?string { return $this->motifAnnulation; }
+    public function setMotifAnnulation(?string $v): static { $this->motifAnnulation = $v; return $this; }
+    public function getCommentaireAnnulation(): ?string { return $this->commentaireAnnulation; }
+    public function setCommentaireAnnulation(?string $v): static { $this->commentaireAnnulation = $v; return $this; }
 
     // LOT 9 — Stockage & Gardiennage accessors
     public function getEmplacementStockage(): ?string { return $this->emplacementStockage; }

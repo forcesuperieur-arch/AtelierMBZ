@@ -69,7 +69,7 @@ class RapportInterventionService
         $errors = [];
 
         // Essai routier must be complete
-        $essai = $rapport->getEssaiRoutier();
+        $essai = $this->resolveEssai($rapport);
         if (!$essai || !$essai->isComplete()) {
             $errors[] = 'Essai routier incomplet ou manquant';
         }
@@ -148,7 +148,6 @@ class RapportInterventionService
         $newRapport->setProchaineRevisionDate($original->getProchaineRevisionDate());
         $newRapport->setKilometrageRestitution($original->getKilometrageRestitution());
         $newRapport->setGarantie($original->getGarantie());
-        $newRapport->setEssaiRoutier($original->getEssaiRoutier());
         $newRapport->setRectifiedFrom($original);
         $newRapport->setMotifRectification($motif);
         $newRapport->setRectifiedBy($userId);
@@ -178,5 +177,14 @@ class RapportInterventionService
             'signe_client_at' => $rapport->getSigneClientAt()?->format('c'),
             'snapshot_at' => (new \DateTime())->format('c'),
         ];
+    }
+
+    private function resolveEssai(RapportIntervention $rapport): ?EssaiRoutier
+    {
+        return $rapport->getEssaiRoutier()
+            ?? $this->em->getRepository(EssaiRoutier::class)->findOneBy(
+                ['rendezVous' => $rapport->getRendezVous()],
+                ['id' => 'DESC'],
+            );
     }
 }

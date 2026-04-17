@@ -16,6 +16,7 @@ class VOLivrePoliceService
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private VONumberingService $numberingService,
     ) {}
 
     /**
@@ -108,16 +109,7 @@ class VOLivrePoliceService
      */
     private function getNextNumeroOrdre(?int $atelierId): int
     {
-        $qb = $this->em->getRepository(VOLivrePolice::class)->createQueryBuilder('lp')
-            ->select('MAX(lp.numeroOrdre)');
-
-        if ($atelierId) {
-            $qb->where('lp.atelierId = :aid')->setParameter('aid', $atelierId);
-        }
-
-        $max = $qb->getQuery()->getSingleScalarResult();
-
-        return ($max ?? 0) + 1;
+        return $this->numberingService->nextLivrePoliceOrder($atelierId);
     }
 
     private function buildDescription($vehicule): string
