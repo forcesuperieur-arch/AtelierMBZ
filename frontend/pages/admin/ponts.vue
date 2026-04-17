@@ -23,7 +23,7 @@
             <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleActive(row.original)">
               {{ row.original.est_actif ? '🔒 Désactiver' : '🔓 Activer' }}
             </button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePont(row.original)">✖ Supprimer</button>
+            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePont(row.original)">🗄 Archiver</button>
           </div>
         </template>
       </UTable>
@@ -117,14 +117,14 @@ async function toggleActive(p: any) {
 }
 
 async function deletePont(p: any) {
-  if (!confirm(`Supprimer le pont ${p.nom} ?`)) return
+  if (!confirm(`Archiver le pont ${p.nom} ?`)) return
 
   try {
     await api.del(`/ponts/${p.id}`)
-    toast.add({ title: 'Pont supprimé', color: 'success' })
+    toast.add({ title: 'Pont archivé', color: 'success' })
     await fetchPonts()
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Suppression impossible', color: 'error' })
+    toast.add({ title: 'Erreur', description: e?.message || 'Archivage impossible', color: 'error' })
   }
 }
 

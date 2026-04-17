@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
+use App\State\ArchiveResourceProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -25,7 +26,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Post(security: "is_granted('ROLE_ADMIN')"),
         new Put(security: "is_granted('ROLE_ADMIN')"),
         new Patch(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_ADMIN') and object != user"),
+        new Delete(security: "is_granted('ROLE_ADMIN') and object != user", processor: ArchiveResourceProcessor::class),
     ]
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -75,6 +76,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?RoleMetier $roleMetier = null;
 
+    #[ORM\Column(length: 30, options: ['default' => 'local'])]
+    #[Groups(['user:read', 'user:write'])]
+    private string $authProvider = 'local';
+
+    #[ORM\Column(length: 191, unique: true, nullable: true)]
+    #[Groups(['user:read'])]
+    private ?string $googleSub = null;
+
+    #[ORM\Column(length: 30, options: ['default' => 'active'])]
+    #[Groups(['user:read', 'user:write'])]
+    private string $accessStatus = 'active';
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeInterface $validatedAt = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['user:read'])]
+    private ?int $validatedBy = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeInterface $lastLoginAt = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['user:read'])]
     private \DateTimeInterface $createdAt;
@@ -117,37 +142,98 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoleMetier(): ?RoleMetier { return $this->roleMetier; }
     public function setRoleMetier(?RoleMetier $roleMetier): static { $this->roleMetier = $roleMetier; return $this; }
 
+    public function getAuthProvider(): string { return $this->authProvider; }
+    public function setAuthProvider(string $authProvider): static { $this->authProvider = $authProvider; return $this; }
+
+    public function getGoogleSub(): ?string { return $this->googleSub; }
+    public function setGoogleSub(?string $googleSub): static { $this->googleSub = $googleSub; return $this; }
+
+    public function getAccessStatus(): string { return $this->accessStatus; }
+    public function setAccessStatus(string $accessStatus): static
+    {
+        $this->accessStatus = $accessStatus;
+        if (in_array($accessStatus, ['pending_validation', 'disabled', 'archived'], true)) {
+            $this->isActive = 0;
+        } elseif ($accessStatus === 'active') {
+            $this->isActive = 1;
+        }
+        return $this;
+    }
+
+    public function isPendingValidation(): bool { return $this->accessStatus === 'pending_validation'; }
+
+    public function getValidatedAt(): ?\DateTimeInterface { return $this->validatedAt; }
+    public function setValidatedAt(?\DateTimeInterface $validatedAt): static { $this->validatedAt = $validatedAt; return $this; }
+
+    public function getValidatedBy(): ?int { return $this->validatedBy; }
+    public function setValidatedBy(?int $validatedBy): static { $this->validatedBy = $validatedBy; return $this; }
+
+    public function getLastLoginAt(): ?\DateTimeInterface { return $this->lastLoginAt; }
+    public function setLastLoginAt(?\DateTimeInterface $lastLoginAt): static { $this->lastLoginAt = $lastLoginAt; return $this; }
+
+    public function markLoginSuccess(): static
+    {
+        $this->lastLoginAt = new \DateTime();
+        return $this;
+    }
+
     public function getRoles(): array
     {
         $roles = ['ROLE_USER'];
 
-        // Legacy role mapping (backward compatibility)
-        $roleMap = [
+        $legacyRoleMap = [
             'super_admin' => 'ROLE_SUPER_ADMIN',
             'admin' => 'ROLE_ADMIN',
             'vo_manager' => 'ROLE_VO_MANAGER',
             'receptionnaire' => 'ROLE_RECEPTIONNAIRE',
+            'receptionniste' => 'ROLE_RECEPTIONNAIRE',
             'mecanicien' => 'ROLE_MECANICIEN',
             'comptable' => 'ROLE_COMPTABLE',
             'service_client' => 'ROLE_SERVICE_CLIENT',
+            'user' => 'ROLE_USER',
         ];
-        if (isset($roleMap[$this->role])) {
-            $roles[] = $roleMap[$this->role];
+
+        if (isset($legacyRoleMap[$this->role])) {
+            $roles[] = $legacyRoleMap[$this->role];
         }
-        if ($this->role === 'super_admin') {
+
+        if ($this->roleMetier !== null && $this->roleMetier->isActive()) {
+            $roles[] = $this->roleMetier->getBaseRole();
+
+            $roleMetierCodeMap = [
+                'responsable_atelier' => 'ROLE_ADMIN',
+                'responsable_magasin' => 'ROLE_ADMIN',
+                'vo_manager' => 'ROLE_VO_MANAGER',
+                'receptionniste' => 'ROLE_RECEPTIONNAIRE',
+                'mecanicien' => 'ROLE_MECANICIEN',
+                'comptable' => 'ROLE_COMPTABLE',
+                'service_client' => 'ROLE_SERVICE_CLIENT',
+            ];
+
+            $code = $this->roleMetier->getCode();
+            if (isset($roleMetierCodeMap[$code])) {
+                $roles[] = $roleMetierCodeMap[$code];
+            }
+        }
+
+        if (in_array('ROLE_SUPER_ADMIN', $roles, true)) {
             $roles[] = 'ROLE_ADMIN';
         }
 
-        // RoleMetier baseRole
-        if ($this->roleMetier !== null && $this->roleMetier->isActive()) {
-            $roles[] = $this->roleMetier->getBaseRole();
-        }
-
-        return array_unique($roles);
+        return array_values(array_unique($roles));
     }
 
     public function eraseCredentials(): void { $this->plainPassword = null; }
     public function getIsActive(): int { return $this->isActive; }
-    public function setIsActive(int $isActive): static { $this->isActive = $isActive; return $this; }
+    public function setIsActive(int $isActive): static
+    {
+        $this->isActive = $isActive;
+        if ($isActive === 0 && $this->accessStatus === 'active') {
+            $this->accessStatus = 'disabled';
+        } elseif ($isActive === 1 && $this->accessStatus === 'disabled') {
+            $this->accessStatus = 'active';
+        }
+        return $this;
+    }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
 }

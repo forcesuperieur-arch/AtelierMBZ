@@ -53,7 +53,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPrestation(row.original)">✏ Modifier</button>
             <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openTarifModal(row.original)">⚙ Tarifs moto</button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePrestation(row.original.id)">✖ Supprimer</button>
+            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
           </div>
         </template>
       </UTable>
@@ -394,7 +394,7 @@ function openTarifModal(prestation: any) {
 async function deletePrestation(id: number) {
   try {
     await api.del(`/prestations/${id}`)
-    toast.add({ title: 'Prestation supprimée', color: 'success' })
+    toast.add({ title: 'Prestation archivée', color: 'success' })
     await fetchData()
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e?.message, color: 'error' })

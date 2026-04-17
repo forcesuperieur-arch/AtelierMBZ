@@ -199,6 +199,7 @@
               <optgroup v-if="form.channel === 'sms'" label="SMS">
                 <option value="twilio">Twilio</option>
                 <option value="ovh">OVH</option>
+                <option value="log_sms">SMS journalisé (dev)</option>
               </optgroup>
               <optgroup v-if="form.channel === 'email'" label="Email">
                 <option value="mailgun">Mailgun</option>
@@ -241,6 +242,11 @@
               <UFormField label="Consumer Key"><UInput v-model="form.config.consumer_key" type="password" /></UFormField>
               <UFormField label="Service Name"><UInput v-model="form.config.service_name" /></UFormField>
               <UFormField label="Sender"><UInput v-model="form.config.sender" placeholder="AtelierMoto" /></UFormField>
+            </template>
+            <template v-else-if="form.provider === 'log_sms'">
+              <div style="font-size:12px;color:#9CA3AF;">
+                Mode développement : les SMS sont journalisés localement pour validation sans fournisseur externe.
+              </div>
             </template>
             <template v-else-if="form.provider === 'mailgun'">
               <UFormField label="API Key"><UInput v-model="form.config.api_key" type="password" /></UFormField>

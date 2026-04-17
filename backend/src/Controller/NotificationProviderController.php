@@ -80,7 +80,7 @@ class NotificationProviderController extends AbstractController
         if (!in_array($channel, ['sms', 'email'], true)) {
             return $this->json(['error' => 'Channel invalide (sms|email)'], 400);
         }
-        if (!in_array($provider, ['twilio', 'ovh', 'mailgun', 'smtp_custom'], true)) {
+        if (!in_array($provider, ['twilio', 'ovh', 'log_sms', 'mailgun', 'smtp_custom'], true)) {
             return $this->json(['error' => 'Provider invalide'], 400);
         }
 

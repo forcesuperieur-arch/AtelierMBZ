@@ -21,7 +21,13 @@ class RapportTechnicien
 
     public function getId(): ?int { return $this->id; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
-    public function setRendezVous(RendezVous $v): static { $this->rendezVous = $v; return $this; }
+    public function setRendezVous(RendezVous $v): static {
+        $this->rendezVous = $v;
+        if ($v->getRapportTechnicien() !== $this) {
+            $v->setRapportTechnicien($this);
+        }
+        return $this;
+    }
     public function getPointsControle(): string { return $this->pointsControle; }
     public function setPointsControle(string $v): static { $this->pointsControle = $v; return $this; }
     public function getAlertes(): ?string { return $this->alertes; }

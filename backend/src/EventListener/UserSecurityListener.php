@@ -5,8 +5,8 @@ namespace App\EventListener;
 use App\Entity\User;
 use App\Security\UserSecurityGuard;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
-use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Event\PreRemoveEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
 
 #[AsDoctrineListener(event: Events::preUpdate)]
@@ -22,10 +22,16 @@ class UserSecurityListener
             return;
         }
 
-        if ($args->hasChangedField('role')) {
-            $newRole = $args->getNewValue('role');
-            $this->guard->ensureLastSuperAdmin($entity, $newRole);
-            $this->guard->preventEscalation($newRole);
+        if ($args->hasChangedField('role') || $args->hasChangedField('isActive') || $args->hasChangedField('accessStatus')) {
+            $newRole = $args->hasChangedField('role') ? (string) $args->getNewValue('role') : $entity->getRole();
+            $newIsActive = $args->hasChangedField('isActive') ? (int) $args->getNewValue('isActive') : $entity->getIsActive();
+            $newAccessStatus = $args->hasChangedField('accessStatus') ? (string) $args->getNewValue('accessStatus') : $entity->getAccessStatus();
+
+            $this->guard->ensureLastSuperAdmin($entity, $newRole, $newIsActive, $newAccessStatus);
+
+            if ($args->hasChangedField('role')) {
+                $this->guard->preventEscalation($newRole);
+            }
         }
     }
 
@@ -36,7 +42,6 @@ class UserSecurityListener
             return;
         }
 
-        // null signals a delete operation
         $this->guard->ensureLastSuperAdmin($entity, null);
     }
 }

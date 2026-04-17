@@ -64,6 +64,8 @@
             <UFormField label="TVA pièces (%)"><UInput v-model="config.tva_pieces_taux" type="number" step="0.1" /></UFormField>
             <UFormField label="Taux horaire standard"><UInput v-model="config.taux_horaire_mo_standard" type="number" step="0.1" /></UFormField>
             <UFormField label="Acompte (%)"><UInput v-model="config.accompte_pourcentage" type="number" step="1" /></UFormField>
+            <UFormField label="Garantie travaux (jours)"><UInput v-model="config.garantie_travaux_jours" type="number" step="1" /></UFormField>
+            <UFormField label="Gardiennage / jour (€)"><UInput v-model="config.tarif_gardiennage_journalier" type="number" step="0.1" /></UFormField>
           </div>
         </UCard>
 
@@ -96,6 +98,31 @@
                 <input v-model="h.is_ouvert" type="checkbox" />
                 Ouvert
               </label>
+            </div>
+
+            <div style="margin-top:12px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Jours fermés hebdomadaires</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <label v-for="option in closureDayOptions" :key="option.value" style="display:flex;align-items:center;gap:6px;font-size:12px;color:#D1D5DB;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.04);">
+                  <input v-model="config.jours_fermeture_hebdo" type="checkbox" :value="option.value" />
+                  {{ option.label }}
+                </label>
+              </div>
+            </div>
+
+            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Fermetures exceptionnelles</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+                <UInput v-model="newClosureDate" type="date" style="max-width:220px;" />
+                <button type="button" class="btn btn-ghost" @click="addExceptionalClosureDate">Ajouter la date</button>
+              </div>
+              <div v-if="config.dates_fermeture_exceptionnelles?.length" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <span v-for="date in config.dates_fermeture_exceptionnelles" :key="date" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(245,158,11,0.12);color:#FDE68A;">
+                  {{ date }}
+                  <button type="button" style="background:none;border:none;color:inherit;cursor:pointer;" @click="removeExceptionalClosureDate(date)">✕</button>
+                </span>
+              </div>
+              <div v-else style="font-size:12px;color:#9CA3AF;margin-top:10px;">Aucune fermeture exceptionnelle enregistrée.</div>
             </div>
           </div>
         </UCard>
@@ -372,6 +399,10 @@ const config = ref<any>({
   tva_pieces_taux: 20,
   taux_horaire_mo_standard: 65,
   accompte_pourcentage: 30,
+  garantie_travaux_jours: 30,
+  tarif_gardiennage_journalier: 5,
+  jours_fermeture_hebdo: ['sunday'],
+  dates_fermeture_exceptionnelles: [],
   feature_modules: { ...DEFAULT_FEATURE_MODULES },
 })
 
@@ -395,6 +426,16 @@ const selectedPrestation = ref<any | null>(null)
 const tarifRows = ref<any[]>([])
 
 const jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+const closureDayOptions = [
+  { value: 'monday', label: 'Lundi' },
+  { value: 'tuesday', label: 'Mardi' },
+  { value: 'wednesday', label: 'Mercredi' },
+  { value: 'thursday', label: 'Jeudi' },
+  { value: 'friday', label: 'Vendredi' },
+  { value: 'saturday', label: 'Samedi' },
+  { value: 'sunday', label: 'Dimanche' },
+]
+const newClosureDate = ref('')
 function jourLabel(i: number) { return jours[i] || '' }
 
 function toNumber(value: any, fallback = 0) {
@@ -635,6 +676,30 @@ function goNextStep() {
   if (index >= 0 && index < ids.length - 1) {
     step.value = ids[index + 1]
   }
+}
+
+function addExceptionalClosureDate() {
+  if (!newClosureDate.value) return
+
+  const current = Array.isArray(config.value.dates_fermeture_exceptionnelles)
+    ? [...config.value.dates_fermeture_exceptionnelles]
+    : []
+
+  if (!current.includes(newClosureDate.value)) {
+    current.push(newClosureDate.value)
+    current.sort()
+    config.value.dates_fermeture_exceptionnelles = current
+  }
+
+  newClosureDate.value = ''
+}
+
+function removeExceptionalClosureDate(date: string) {
+  const current = Array.isArray(config.value.dates_fermeture_exceptionnelles)
+    ? [...config.value.dates_fermeture_exceptionnelles]
+    : []
+
+  config.value.dates_fermeture_exceptionnelles = current.filter((item: string) => item !== date)
 }
 
 async function saveConfig() {

@@ -4,15 +4,27 @@ interface UserData {
   id: number
   email: string
   username: string
-  nom: string
-  prenom: string
+  nom?: string | null
+  prenom?: string | null
   role: string
-  atelier_id: number
-  atelier_nom: string
-  role_permissions: {
+  roles?: string[]
+  atelier_id?: number | null
+  atelier_nom?: string | null
+  auth_provider?: string
+  access_status?: string
+  is_pending_validation?: boolean
+  needs_atelier_assignment?: boolean
+  role_permissions?: {
     sections_json: string[]
     permissions_json: string[]
-  }
+  } | null
+  role_metier?: {
+    id: number
+    code: string
+    libelle: string
+    base_role?: string
+    permissions?: Array<{ module: string; action: string; scope: string }>
+  } | null
 }
 
 export const useAuthStore = defineStore('auth', {

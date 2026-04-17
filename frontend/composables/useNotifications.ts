@@ -57,10 +57,20 @@ export const useNotifications = () => {
     }
   }
 
-  const connect = (atelierId: number) => {
+  const connect = async (atelierId: number) => {
     disconnect()
 
-    const mercureUrl = config.public.mercureUrl as string
+    await Promise.allSettled([
+      fetchUnreadCount(),
+      fetchNotifications('unacknowledged'),
+    ])
+
+    const mercureUrl = (config.public.mercureUrl as string | undefined)?.trim()
+    if (!mercureUrl) {
+      startPolling()
+      return
+    }
+
     const topic = encodeURIComponent(`atelier/${atelierId}/notifications`)
     const url = `${mercureUrl}?topic=${topic}`
 
@@ -102,6 +112,7 @@ export const useNotifications = () => {
     if (pollInterval) return
     pollInterval = setInterval(() => {
       fetchUnreadCount()
+      fetchNotifications('unacknowledged')
     }, 15000) // Poll every 15s as fallback
   }
 
@@ -115,7 +126,7 @@ export const useNotifications = () => {
     } catch (e: any) {
       if (e.status === 409) {
         // Already acknowledged — refresh
-        await fetchNotifications()
+        await fetchNotifications('unacknowledged')
       }
       throw e
     }

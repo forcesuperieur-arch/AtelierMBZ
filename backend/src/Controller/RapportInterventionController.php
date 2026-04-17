@@ -97,6 +97,7 @@ class RapportInterventionController extends AbstractController
         if (isset($data['pointsControle'])) $essai->setPointsControle($data['pointsControle']);
         if (isset($data['anomalies'])) $essai->setAnomalies($data['anomalies']);
         if (isset($data['actionsCorrectives'])) $essai->setActionsCorrectives($data['actionsCorrectives']);
+        if (isset($data['signatureMecanicien'])) $essai->setSignatureMecanicien($data['signatureMecanicien']);
 
         if ($essai->getKmDebut() && $essai->getKmFin()) {
             $essai->setDistance((string)($essai->getKmFin() - $essai->getKmDebut()));
@@ -157,6 +158,11 @@ class RapportInterventionController extends AbstractController
 
         if (!$rapport->getSignatureMecanicien()) {
             return $this->json(['error' => 'Le mécanicien doit signer en premier'], Response::HTTP_CONFLICT);
+        }
+
+        $errors = $this->rapportService->validateCompleteness($rapport);
+        if (!empty($errors)) {
+            return $this->json(['error' => 'Rapport incomplet', 'validation_errors' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];

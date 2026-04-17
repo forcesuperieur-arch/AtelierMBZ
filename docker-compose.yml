@@ -116,10 +116,9 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     restart: unless-stopped
-    # SECURITY: Do NOT expose port 8025 in production — it shows all emails sent by the app
-    # Uncomment the ports section only for local development
-    # ports:
-    #   - "${MAILHOG_PORT:-8025}:8025"
+    ports:
+      - "127.0.0.1:${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILHOG_UI_PORT:-8025}:8025"
 
 volumes:
   postgres_data:

@@ -146,8 +146,23 @@ class NotificationDispatcher
         return match ($provider) {
             'twilio' => $this->sendSmsTwilio($msg, $credentials),
             'ovh' => $this->sendSmsOvh($msg, $credentials),
+            'log_sms' => $this->sendSmsLogged($msg),
             default => NotificationResult::fail($provider, "Unknown SMS provider: {$provider}"),
         };
+    }
+
+    private function sendSmsLogged(NotificationMessage $msg): NotificationResult
+    {
+        $messageId = 'sms-log-' . bin2hex(random_bytes(6));
+
+        $this->logger->info('SMS dispatch simulated locally', [
+            'recipient' => $msg->getRecipient(),
+            'atelierId' => $msg->getAtelierId(),
+            'body' => $msg->getBody(),
+            'messageId' => $messageId,
+        ]);
+
+        return NotificationResult::ok('log_sms', $messageId);
     }
 
     private function sendSmsTwilio(NotificationMessage $msg, array $credentials): NotificationResult

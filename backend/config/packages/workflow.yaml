@@ -57,13 +57,13 @@ framework:
                     to: annule
                 # LOT 3 — new transitions
                 declarer_no_show:
-                    from: confirme
+                    from: [confirme, reception]
                     to: no_show
                 reporter:
-                    from: [confirme, no_show]
-                    to: en_attente
+                    from: [reception, no_show]
+                    to: confirme
                 attendre_pieces:
-                    from: en_cours
+                    from: [reception, en_cours]
                     to: en_attente_pieces
                 reprendre_apres_pieces:
                     from: en_attente_pieces
@@ -75,14 +75,14 @@ framework:
                     from: en_attente_reprise
                     to: en_cours
                 passer_gardiennage:
-                    from: [termine, restitue_partiel]
+                    from: [termine, en_attente_pieces, restitue_partiel]
                     to: en_gardiennage
                 sortir_gardiennage:
                     from: en_gardiennage
-                    to: restitue
+                    to: en_cours
                 restituer_partiel:
-                    from: termine
+                    from: [en_cours, termine]
                     to: restitue_partiel
                 retour_garantie:
                     from: [restitue, paye]
-                    to: reception
+                    to: en_cours

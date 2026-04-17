@@ -11,6 +11,38 @@ export function useAuth() {
     return data
   }
 
+  async function getGoogleLoginConfig(options?: { mode?: 'login' | 'request', email?: string, prenom?: string, nom?: string }) {
+    const params = new URLSearchParams()
+    if (options?.mode) params.set('mode', options.mode)
+    if (options?.email) params.set('email', options.email)
+    if (options?.prenom) params.set('prenom', options.prenom)
+    if (options?.nom) params.set('nom', options.nom)
+
+    const suffix = params.toString() ? `?${params.toString()}` : ''
+    return await api.get(`/auth/google/url${suffix}`)
+  }
+
+  async function startGoogleLogin(options?: { mode?: 'login' | 'request', email?: string, prenom?: string, nom?: string }) {
+    const data = await getGoogleLoginConfig(options)
+    if (!data?.auth_url) {
+      throw new Error(data?.error || 'Google SSO indisponible')
+    }
+
+    if (process.client) {
+      window.location.href = data.auth_url
+    }
+
+    return data
+  }
+
+  async function exchangeGoogleCode(code: string, state = '') {
+    const data = await api.post('/auth/google/exchange', { code, state })
+    if (data?.user) {
+      store.setUser(data.user)
+    }
+    return data
+  }
+
   async function logout() {
     try {
       await api.post('/auth/logout')
@@ -53,13 +85,31 @@ export function useAuth() {
     return permissions.includes(perm)
   }
 
+  function getAccessStatus(): string {
+    return String(store.user?.access_status || 'active')
+  }
+
+  function isPendingValidation(): boolean {
+    return Boolean(store.user?.is_pending_validation || getAccessStatus() === 'pending_validation')
+  }
+
+  function needsAtelierAssignment(): boolean {
+    return Boolean(store.user?.needs_atelier_assignment)
+  }
+
   return {
     user: computed(() => store.user),
     isAuthenticated: computed(() => store.isAuthenticated),
     login,
+    getGoogleLoginConfig,
+    startGoogleLogin,
+    exchangeGoogleCode,
     logout,
     fetchMe,
     hasSection,
     hasPerm,
+    getAccessStatus,
+    isPendingValidation,
+    needsAtelierAssignment,
   }
 }

@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,6 +19,7 @@ class CompanionController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
+        private OrdreReparationPolicy $ordreReparationPolicy,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
@@ -52,6 +54,25 @@ class CompanionController extends AbstractController
             'checkup_notes' => $notes,
             'checkup_done' => $done,
         ];
+    }
+
+    private function buildPublicPhotoUrl(RendezVous $rdv, PhotoIntervention $photo): string
+    {
+        return '/api/public/photos/' . $rdv->getTokenSuivi() . '/' . $photo->getFilename();
+    }
+
+    private function resolvePhotoExtension($file): string
+    {
+        $extension = strtolower((string) ($file->guessExtension() ?: pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION)));
+
+        return match ($extension) {
+            'jpeg', 'jpg', 'pjpeg' => 'jpg',
+            'png' => 'png',
+            'webp' => 'webp',
+            'heic' => 'heic',
+            'heif' => 'heif',
+            default => 'jpg',
+        };
     }
 
     #[Route('/{token}', methods: ['GET'])]
@@ -98,6 +119,7 @@ class CompanionController extends AbstractController
                 'plaque' => $vehicule->getPlaque(),
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
+                'vin' => $vehicule->getVin(),
                 'annee' => $vehicule->getAnnee(),
                 'cylindree' => $vehicule->getCylindree(),
                 'type_moto' => $vehicule->getTypeMoto(),
@@ -106,9 +128,10 @@ class CompanionController extends AbstractController
                 'id' => $p->getId(),
                 'filename' => $p->getFilename(),
                 'description' => $p->getDescription(),
-                'url' => '/api/photos/file/' . $p->getFilename(),
+                'url' => $this->buildPublicPhotoUrl($rdv, $p),
             ], $photos),
-            'has_signature' => $or && $or->getSignatureClient() ? true : false,
+            'has_signature' => $or?->isSigned() ?? false,
+            'or_status' => $or?->getStatut(),
             'photos_count' => count($photos),
             ...$checkupState,
         ]);
@@ -134,7 +157,8 @@ class CompanionController extends AbstractController
         return $this->json([
             'statut' => $rdv->getStatut(),
             'photos_count' => $photosCount,
-            'has_signature' => $or && $or->getSignatureClient() ? true : false,
+            'has_signature' => $or?->isSigned() ?? false,
+            'or_status' => $or?->getStatut(),
             'kilometrage' => $rdv->getKilometrage(),
             'etat_vehicule' => $rdv->getEtatVehicule(),
             'checkup_done' => $checkupState['checkup_done'],
@@ -154,17 +178,18 @@ class CompanionController extends AbstractController
             return $this->json(['error' => 'Photo requise'], Response::HTTP_BAD_REQUEST);
         }
 
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!in_array($file->getMimeType(), $allowedMimes, true)) {
-            return $this->json(['error' => 'Format non supporté (JPEG, PNG, WebP uniquement)'], Response::HTTP_BAD_REQUEST);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+        if (!in_array((string) $file->getMimeType(), $allowedMimes, true)) {
+            return $this->json(['error' => 'Format non supporté (JPEG, PNG, WebP, HEIC)'], Response::HTTP_BAD_REQUEST);
         }
         if ($file->getSize() > 10 * 1024 * 1024) {
             return $this->json(['error' => 'Fichier trop volumineux (max 10 Mo)'], Response::HTTP_BAD_REQUEST);
         }
 
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName = $this->slugger->slug($originalName);
-        $filename = $safeName . '-' . uniqid() . '.' . $file->guessExtension();
+        $safeName = (string) $this->slugger->slug($originalName ?: 'photo');
+        $extension = $this->resolvePhotoExtension($file);
+        $filename = $safeName . '-' . uniqid() . '.' . $extension;
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/var/photos';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
@@ -183,7 +208,7 @@ class CompanionController extends AbstractController
         return $this->json([
             'id' => $photo->getId(),
             'filename' => $filename,
-            'url' => '/api/photos/file/' . $filename,
+            'url' => $this->buildPublicPhotoUrl($rdv, $photo),
         ], Response::HTTP_CREATED);
     }
 
@@ -217,7 +242,6 @@ class CompanionController extends AbstractController
             $this->em->persist($or);
         }
 
-        $or->setSignatureClient($signatureData);
         if ($rdv->getKilometrage()) {
             $or->setKilometrage($rdv->getKilometrage());
         }
@@ -235,9 +259,23 @@ class CompanionController extends AbstractController
             }
         }
 
+        if (!$this->ordreReparationPolicy->canSign($or)) {
+            return $this->json([
+                'error' => 'Cette signature a déjà été finalisée',
+                'statut' => $or->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $hash = $this->ordreReparationPolicy->sign($or, $signatureData, $request);
+
         $this->em->flush();
 
-        return $this->json(['success' => true, 'message' => 'Signature enregistrée']);
+        return $this->json([
+            'success' => true,
+            'message' => 'Signature enregistrée',
+            'statut' => $or->getStatut(),
+            'signedHash' => $hash,
+        ]);
     }
 
     #[Route('/{token}/vehicule', methods: ['PUT'])]
@@ -257,6 +295,7 @@ class CompanionController extends AbstractController
 
         if (isset($data['marque'])) $vehicule->setMarque($data['marque']);
         if (isset($data['modele'])) $vehicule->setModele($data['modele']);
+        if (isset($data['vin'])) $vehicule->setVin($data['vin'] ? strtoupper(substr((string) $data['vin'], 0, 17)) : null);
         if (isset($data['annee']) && (int)$data['annee'] > 0) $vehicule->setAnnee((int) $data['annee']);
         if (isset($data['cylindree'])) $vehicule->setCylindree((string) $data['cylindree']);
         if (isset($data['type_moto'])) $vehicule->setTypeMoto($data['type_moto']);
@@ -270,6 +309,7 @@ class CompanionController extends AbstractController
                 'plaque' => $vehicule->getPlaque(),
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
+                'vin' => $vehicule->getVin(),
                 'annee' => $vehicule->getAnnee(),
                 'cylindree' => $vehicule->getCylindree(),
                 'type_moto' => $vehicule->getTypeMoto(),

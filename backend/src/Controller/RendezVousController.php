@@ -2,12 +2,17 @@
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\DemandeTravauxSupp;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\AuditService;
+use App\Service\PhotoService;
+use App\Service\RapportInterventionService;
+use App\Service\RendezVousWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +29,9 @@ class RendezVousController extends AbstractController
         private WorkflowInterface $rendezVousStateMachine,
         private AuditService $audit,
         private SerializerInterface $serializer,
+        private RendezVousWorkflowService $workflowService,
+        private PhotoService $photoService,
+        private RapportInterventionService $rapportService,
     ) {}
 
     /**
@@ -128,6 +136,46 @@ class RendezVousController extends AbstractController
             ], Response::HTTP_CONFLICT);
         }
 
+        $missingPhotos = $this->photoService->requirePhotosForTransition($transitionName, $rdv);
+        if (!empty($missingPhotos)) {
+            return $this->json([
+                'error' => 'Photos obligatoires manquantes avant cette transition',
+                'missing_photos' => $missingPhotos,
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($transitionName === 'terminer') {
+            $pendingDemandes = $this->em->getRepository(DemandeTravauxSupp::class)->count([
+                'rendezVous' => $rdv,
+                'statut' => 'en_attente_decision_client',
+            ]);
+            if ($pendingDemandes > 0) {
+                return $this->json([
+                    'error' => 'Demande complémentaire en attente de décision client',
+                ], Response::HTTP_CONFLICT);
+            }
+        }
+
+        if ($transitionName === 'restituer') {
+            $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy([
+                'rendezVous' => $rdv,
+            ], ['id' => 'DESC']);
+
+            if (!$rapport || !$rapport->isSignedByBoth() || !in_array($rapport->getStatut(), ['signe', 'rectifie'], true)) {
+                return $this->json([
+                    'error' => 'Rapport d\'intervention non signé',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $rapportErrors = $this->rapportService->validateCompleteness($rapport);
+            if (!empty($rapportErrors)) {
+                return $this->json([
+                    'error' => 'Rapport d\'intervention incomplet',
+                    'validation_errors' => $rapportErrors,
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
         // Apply additional data based on transition
         if ($transitionName === 'reception' && isset($data['kilometrage'])) {
             $rdv->setKilometrage($data['kilometrage']);
@@ -162,7 +210,7 @@ class RendezVousController extends AbstractController
             }
         }
 
-        // Start/stop work time tracking
+        // Start/stop work time tracking + LOT 3 side effects
         if ($transitionName === 'start_travail') {
             $ordreInitial = $this->em->getRepository(OrdreReparation::class)->findOneBy([
                 'rendezVous' => $rdv,
@@ -173,16 +221,24 @@ class RendezVousController extends AbstractController
                     'error' => 'Ordre de réparation signé obligatoire avant démarrage',
                 ], Response::HTTP_BAD_REQUEST);
             }
-
-            $rdv->setHeureDebutTravail(new \DateTime());
         }
-        if (in_array($transitionName, ['terminer', 'pause'])) {
-            $rdv->setHeureFinTravail(new \DateTime());
-            if ($rdv->getHeureDebutTravail()) {
-                $diff = $rdv->getHeureDebutTravail()->diff(new \DateTime());
-                $minutes = $diff->h * 60 + $diff->i;
-                $rdv->setTempsEffectifMinutes(($rdv->getTempsEffectifMinutes() ?? 0) + $minutes);
+
+        $user = $this->getUser();
+        $userId = is_object($user) && method_exists($user, 'getId') ? $user->getId() : null;
+
+        if ($transitionName === 'passer_gardiennage') {
+            $rdv->setGardiennageDebutAt(new \DateTime());
+            $rdv->setGardiennageDebutPar($userId);
+            $rdv->setGardiennageMotif((string) ($data['gardiennage_motif'] ?? $data['motif'] ?? $data['commentaire'] ?? 'Véhicule non récupéré'));
+        }
+
+        try {
+            $annulation = $this->workflowService->handleTransitionSideEffects($rdv, $transitionName, $data, $userId);
+            if ($annulation) {
+                $this->em->persist($annulation);
             }
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
@@ -268,6 +324,7 @@ class RendezVousController extends AbstractController
             'id' => $r->getId(),
             'date_rdv' => $r->getDateRdv()->format('Y-m-d'),
             'heure_debut' => $r->getHeureRdv()->format('H:i'),
+            'heure_rdv' => $r->getHeureRdv()->format('H:i:s'),
             'type_intervention' => $r->getTypeIntervention(),
             'statut' => $r->getStatut(),
             'status' => $r->getStatut(),
@@ -276,6 +333,10 @@ class RendezVousController extends AbstractController
             'temps_estime' => $r->getTempsEstime(),
             'temps_effectif_minutes' => $r->getTempsEffectifMinutes(),
             'heure_debut_travail' => $r->getHeureDebutTravail()?->format('Y-m-d H:i:s'),
+            'heure_debut_travaux' => $r->getHeureDebutTravail()?->format('Y-m-d H:i:s'),
+            'heure_fin_travail' => $r->getHeureFinTravail()?->format('Y-m-d H:i:s'),
+            'gardiennage_debut_at' => $r->getGardiennageDebutAt()?->format('Y-m-d H:i:s'),
+            'gardiennage_motif' => $r->getGardiennageMotif(),
             'client_nom' => $client ? ($client->getPrenom() . ' ' . $client->getNom()) : null,
             'client_telephone' => $client?->getTelephone(),
             'client_email' => $client?->getEmail(),

@@ -11,7 +11,7 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         public:
-            pattern: ^/api/(auth/login|auth/refresh|public/|companion/|photos/file/|docs|contexts/|\.well-known/)
+            pattern: ^/api/(auth/login|auth/refresh|auth/google|public/|companion/|photos/file/|webhooks/notifications/|docs|contexts/|\.well-known/)
             security: false
         api_root:
             pattern: ^/api$
@@ -26,9 +26,11 @@ security:
     access_control:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/refresh, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/google, roles: PUBLIC_ACCESS }
         - { path: ^/api/public, roles: PUBLIC_ACCESS }
         - { path: ^/api/companion, roles: PUBLIC_ACCESS }
         - { path: ^/api/photos/file, roles: PUBLIC_ACCESS }
+        - { path: ^/api/webhooks/notifications, roles: PUBLIC_ACCESS }
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
