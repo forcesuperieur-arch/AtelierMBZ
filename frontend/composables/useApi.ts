@@ -100,7 +100,11 @@ export function useApi() {
   function createApiError(res: Response, details = '') {
     let message = `API Error ${res.status}`
 
-    if (details) {
+    if (res.status === 403) {
+      message = 'Accès refusé. Vous n\'avez pas les permissions nécessaires pour cette action.'
+    } else if (res.status === 429) {
+      message = 'Trop de requêtes. Attendez quelques secondes avant de réessayer.'
+    } else if (details) {
       try {
         const parsed = JSON.parse(details)
         message = parsed?.message || parsed?.error || parsed?.detail || message

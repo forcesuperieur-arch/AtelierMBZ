@@ -73,8 +73,14 @@ class RendezVousController extends AbstractController
             $this->em->persist($vehicule);
         }
 
+        $currentUser = $this->getUser();
+        $atelierId = method_exists($currentUser, 'getAtelierId') ? $currentUser->getAtelierId() : null;
+
         $rdv = new RendezVous();
         $rdv->setClient($client);
+        if ($atelierId !== null) {
+            $rdv->setAtelierId($atelierId);
+        }
         if ($vehicule) $rdv->setVehicule($vehicule);
         $rdv->setDateRdv(new \DateTime($data['date_rdv'] ?? 'today'));
         $rdv->setHeureRdv(new \DateTime($data['heure_debut'] ?? $data['heure_rdv'] ?? '09:00'));
@@ -85,7 +91,7 @@ class RendezVousController extends AbstractController
 
         if (!empty($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont) {
+            if ($pont && ($atelierId === null || $pont->getAtelierId() === $atelierId)) {
                 $rdv->setPont($pont);
                 if ($pont->getMecanicien()) {
                     $rdv->setMecanicien($pont->getMecanicien());
@@ -94,7 +100,9 @@ class RendezVousController extends AbstractController
         }
         if (!empty($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
-            if ($meca) $rdv->setMecanicien($meca);
+            if ($meca && ($atelierId === null || $meca->getAtelierId() === $atelierId)) {
+                $rdv->setMecanicien($meca);
+            }
         }
 
         $this->em->persist($rdv);
@@ -119,6 +127,8 @@ class RendezVousController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
+
         $data = json_decode($request->getContent(), true) ?? [];
         $transitionName = $transition;
 
@@ -128,7 +138,7 @@ class RendezVousController extends AbstractController
                 $this->rendezVousStateMachine->getEnabledTransitions($rdv)
             );
             return $this->json([
-                'error' => "Transition '$transitionName' not allowed from status '{$rdv->getStatut()}'",
+                'error' => 'Transition not allowed from current status',
                 'allowed_transitions' => $enabledTransitions,
             ], Response::HTTP_CONFLICT);
         }
@@ -138,11 +148,15 @@ class RendezVousController extends AbstractController
             $rdv->setKilometrage($data['kilometrage']);
         }
         if ($transitionName === 'reception' && isset($data['etat_vehicule'])) {
-            $rdv->setEtatVehicule(is_array($data['etat_vehicule']) ? json_encode($data['etat_vehicule']) : $data['etat_vehicule']);
+            $etatVehicule = is_array($data['etat_vehicule']) ? $data['etat_vehicule'] : json_decode($data['etat_vehicule'], true);
+            if ($etatVehicule === null && json_last_error() !== JSON_ERROR_NONE) {
+                return $this->json(['error' => 'Invalid etat_vehicule JSON'], Response::HTTP_BAD_REQUEST);
+            }
+            $rdv->setEtatVehicule(json_encode($etatVehicule));
         }
         if (isset($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont) {
+            if ($pont && $pont->getAtelierId() === $rdv->getAtelierId()) {
                 $rdv->setPont($pont);
                 if ($pont->getMecanicien()) {
                     $rdv->setMecanicien($pont->getMecanicien());
@@ -151,7 +165,9 @@ class RendezVousController extends AbstractController
         }
         if (isset($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
-            if ($meca) { $rdv->setMecanicien($meca); }
+            if ($meca && $meca->getAtelierId() === $rdv->getAtelierId()) {
+                $rdv->setMecanicien($meca);
+            }
         }
 
         // LOT 2 — Block transitions without required photos
@@ -285,6 +301,8 @@ class RendezVousController extends AbstractController
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
+
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
 
         return $this->json([
             'statut' => $rdv->getStatut(),

@@ -58,6 +58,12 @@ class PhotoService
         $photo->setFilename($filename);
         $photo->setOriginalName($file->getClientOriginalName());
         $photo->setDescription($description);
+        if ($annotationJson !== null) {
+            json_decode($annotationJson);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \InvalidArgumentException('annotation_json must be valid JSON');
+            }
+        }
         $photo->setAnnotationJson($annotationJson);
         $photo->setAtelierId($rdv->getAtelierId());
         $photo->setType($type);

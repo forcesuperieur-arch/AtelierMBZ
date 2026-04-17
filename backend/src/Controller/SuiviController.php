@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -54,9 +55,8 @@ class SuiviController extends AbstractController
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
             ] : null,
-            'rapport' => $rdv->getRapportTechnicien() ? [
-                'statut' => $rdv->getRapportTechnicien()->getStatut(),
-            ] : null,
+            'rapport' => $this->em->getRepository(RapportIntervention::class)
+                ->findOneBy(['rendezVous' => $rdv]) ?->getStatut(),
         ]);
     }
 }
