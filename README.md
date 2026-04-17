@@ -1,183 +1,171 @@
 # Atelier Moto Pro v2
 
-Application de gestion d'atelier moto — Backend Symfony 7.2 + Frontend Nuxt 3.
+Application de gestion d’atelier moto pour la réception, le suivi des RDV, les ordres de réparation, les notifications et le pilotage atelier.
+
+> Mise à jour projet : **17 avril 2026**
+
+---
+
+## État actuel du projet
+
+Le socle principal est **opérationnel en local** sur la stack Symfony + Nuxt.
+Le projet a fortement évolué ces derniers jours sur les axes suivants : sécurité, authentification, rôles métier, workflow RDV/OR, notifications, mode compagnon PDA et OCR documents véhicule.
+
+### En production locale aujourd’hui
+- planning atelier et gestion des RDV
+- workflow métier renforcé avec motifs obligatoires sur annulation / no-show
+- OR signés, gelés, vérifiables par empreinte
+- demandes de travaux complémentaires avec validation client
+- notifications web + email + SMS côté application
+- mode compagnon public avec photos, checkup, signature et OCR
+- OCR renforcé pour cartes grises **françaises et belges**, y compris le **VIN**
+
+---
 
 ## Stack technique
 
 | Composant | Technologie |
 |-----------|------------|
 | Backend | Symfony 7.2, PHP 8.3, API Platform 4.1 |
-| ORM | Doctrine ORM 3.6 |
-| Auth | LexikJWT (HttpOnly cookies) |
-| Frontend | Nuxt 3.16, Nuxt UI v3, Pinia |
+| ORM | Doctrine ORM |
+| Frontend | Nuxt 3, Vue 3, Nuxt UI, Pinia |
 | Base de données | PostgreSQL 15 |
-| Async | Symfony Messenger |
-| PDF | DomPDF + Twig templates |
+| Auth | JWT en cookies HttpOnly + Google SSO |
+| Async | Symfony Messenger + worker |
 | Reverse proxy | Caddy 2 |
-| Email (dev) | MailHog |
-| Conteneurisation | Docker Compose (6 services) |
+| Temps réel / diffusion | Mercure |
+| Email dev | MailHog |
+| Conteneurisation | Docker Compose |
 
-## Architecture
+---
 
-```
-atelier-v2/
-├── backend/                # Symfony 7.2
-│   ├── src/
-│   │   ├── Entity/         # 42 entités Doctrine
-│   │   ├── Controller/     # 8 contrôleurs API
-│   │   ├── Service/        # 4 services métier
-│   │   ├── Security/       # JWT auth + voters + tenant filter
-│   │   ├── Command/        # CLI (create-admin, seed)
-│   │   ├── Message/        # Messages async (email, PDF)
-│   │   └── MessageHandler/ # Handlers Messenger
-│   ├── config/             # Symfony config (security, workflow, doctrine)
-│   └── templates/pdf/      # Templates Twig pour PDF
-├── frontend/               # Nuxt 3 SPA
-│   ├── pages/              # 20+ pages (auto-routing)
-│   ├── components/         # Composants réutilisables
-│   ├── composables/        # useApi, useAuth
-│   ├── stores/             # Pinia stores (auth, rdv, billing, stock)
-│   ├── layouts/            # default (sidebar) + public
-│   └── middleware/          # Auth middleware global
-├── docker-compose.yml      # 6 services
-├── Dockerfile.backend      # PHP 8.3 FPM Alpine
-├── Dockerfile.frontend     # Node 20 Alpine
-└── Caddyfile               # Reverse proxy config
-```
+## Changements livrés récemment
+
+### 1. Authentification et rôles
+- passage à **RoleMetier** comme source métier principale des permissions
+- simplification des rôles et protection du dernier super admin
+- ajout du **Google SSO** avec conservation d’un login local de secours pour le dev
+- nouveaux comptes Google créés en mode **en attente de validation** tant que l’atelier et le rôle métier ne sont pas attribués
+- support du changement d’atelier actif pour le super admin
+
+### 2. Sécurité et conformité RGPD
+- sécurisation des accès publics par token
+- exposition sécurisée des photos via routes publiques contrôlées
+- archivage / anonymisation conformes RGPD au lieu d’une suppression brute
+- durcissement des secrets et de la configuration Docker / Caddy
+- limitation de débit sur les points d’entrée publics sensibles
+
+### 3. Workflow RDV / OR
+- enrichissement du workflow RDV avec états métier avancés
+- obligation d’un motif sur annulation et déclaration no-show
+- traçabilité métier des changements critiques
+- OR signés avec hash, snapshot, gel des modifications et rectification encadrée
+- blocages métiers si la chaîne de preuve n’est pas complète
+
+### 4. Notifications
+- notifications **web** dans l’interface
+- notifications **email** et **SMS** avec configuration des providers
+- environnement dev validé avec MailHog
+
+### 5. Mode compagnon / PDA
+- correction du flux de signature client
+- correction des URLs photo publiques sécurisées
+- meilleure remontée des erreurs côté écran mobile
+- amélioration du flux OCR document véhicule
+- support OCR pour :
+  - plaque
+  - marque
+  - modèle
+  - année
+  - cylindrée
+  - type
+  - **VIN**
+- prise en charge des cartes grises **FR + BE**
+
+---
+
+## Modules disponibles
+
+- **Dashboard** — indicateurs atelier
+- **Rendez-vous** — création, suivi, transitions, historique
+- **Planning** — vue atelier et lien compagnon
+- **Clients / véhicules** — fiches et historique
+- **Ordres de réparation** — signature, preuve, contrôle d’intégrité
+- **Rapports / intervention** — workflow mécanicien et contrôle de fin
+- **Notifications** — web, email, SMS
+- **Administration** — utilisateurs, rôles métier, configuration
+- **Public** — réservation, suivi tokenisé, compagnon réception
+
+---
 
 ## Démarrage rapide
-
-### Prérequis
-- Docker + Docker Compose v2
-- (ou) PHP 8.3 + Composer + Node 20 + PostgreSQL 15
 
 ### Avec Docker
 
 ```bash
-cd atelier-v2
-
-# Démarrer tous les services
+cd /root/AtelierMBZ
 docker compose up -d
-
-# Créer le schéma + admin
-docker compose exec php php bin/console doctrine:schema:create
-docker compose exec php php bin/console app:create-admin
-docker compose exec php php bin/console app:seed
-
-# Accès
-# App:    http://localhost
-# API:    http://localhost/api
-# Mail:   http://localhost:8025
 ```
 
-### Sans Docker (développement)
+Accès locaux :
+- application : http://localhost
+- API : http://localhost/api
+- MailHog : http://127.0.0.1:8025
+
+### Commandes utiles
 
 ```bash
-# Backend
-cd backend
-composer install
-php bin/console doctrine:schema:create
-php bin/console app:create-admin
-php bin/console app:seed
-symfony server:start
+# seed démo
+docker compose exec php php bin/console app:seed
 
-# Frontend (autre terminal)
-cd frontend
-npm install
-npm run dev
+# tests backend
+docker compose exec -T -e APP_ENV=test php php bin/phpunit
+
+# frontend
+cd frontend && npm run dev
 ```
 
 ### Windows
+Les scripts suivants sont prévus à la racine :
+- start.bat
+- stop.bat
+- reset.bat
+- seed-demo.bat
 
-```batch
-REM Double-cliquer sur :
-start.bat        REM Démarrer les services
-stop.bat         REM Arrêter les services
-reset.bat        REM Tout réinitialiser
-seed-demo.bat    REM Injecter les données de démo
-```
+---
 
-## Modules fonctionnels
+## Ce qu’il reste à faire
 
-- **Dashboard** — KPIs, RDV du jour, alertes stock
-- **Rendez-vous** — CRUD, workflow 10 états, transitions, historique
-- **Planning** — Vue hebdo par pont, drag & drop ready
-- **Clients** — Fiche client, véhicules, historique RDV
-- **Atelier** — Vue ponts en temps réel (libre/occupé)
-- **Ordres de réparation** — OR liés aux RDV, rapports technicien
-- **Devis** — Création, lignes MO/pièces, export PDF
-- **Facturation** — Factures auto-numérotées, paiements, export PDF
-- **Stock** — Pièces détachées, alertes seuil, fournisseurs
-- **Catalogue motos** — Catégories, modèles, specs techniques
-- **Espace mécanicien** — Interventions du jour, démarrer/terminer
-- **Administration** — Utilisateurs, rôles, config atelier, horaires, absences, audit
-- **Réservation publique** — Booking client sans auth, suivi par token
+Les points suivants restent prioritaires pour la fin de projet :
 
-## Workflow RDV
+### Priorité haute
+- finaliser les derniers écrans et règles métier autour des **pièces / stock / fournisseurs**
+- consolider les flux **stockage / gardiennage** et les cas atelier plus rares
+- renforcer encore les tests E2E sur les parcours critiques
 
-```
-en_attente → réserver → reserve → confirmer → confirme
-→ reception → en_cours → termine → restitue → facture → paye
-                                            ↗
-en_attente/reserve/confirme → annuler → annule
-```
+### Priorité moyenne
+- finaliser les réglages de production pour les providers réels :
+  - Google OAuth
+  - email sortant
+  - SMS
+- compléter la documentation d’exploitation et de mise en service
+- poursuivre le polissage UX sur certains écrans admin et atelier
 
-## Sécurité
+### Priorité basse / amélioration continue
+- couverture de tests plus large
+- optimisation des messages d’erreur et de l’observabilité
+- durcissement supplémentaire pour l’hébergement SI entreprise
 
-- JWT HS256 (access 15min + refresh 7j) via HttpOnly cookies
-- Tenant isolation par `atelier_id` (Doctrine SQL Filter)
-- Rôles hiérarchiques : SUPER_ADMIN > ADMIN > USER
-- Sous-rôles : RECEPTIONNAIRE, MECANICIEN, COMPTABLE
-- Permissions granulaires via `role_permissions`
-- AtelierVoter : vérifie appartenance à l'atelier
-- Audit trail automatique
+---
 
-## API
+## Référence documentaire
 
-L'API est documentée automatiquement via API Platform :
-- Swagger UI : `http://localhost/api`
-- JSON-LD : `http://localhost/api/docs.jsonld`
+La référence technique détaillée reste dans le dossier docs, notamment :
+- docs/TECHNICAL.md
+- SPECIFICATIONS.md
 
-## Variables d'environnement
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `POSTGRES_DB` | `atelier_moto` | Nom de la base |
-| `POSTGRES_USER` | `Standards techniques imposés par l’IT :
-- backend Symfony
-- frontend Nuxt
-- architecture séparée frontend / backend
-- worker pour les traitements longs, lourds ou asynchrones lorsque nécessaire
-- conteneurisation Docker
-- environnement de test prévu pour Windows 11 avec Docker Desktop et WSL 2
-- génération obligatoire des scripts Windows suivants à la racine du projet :
-start.bat, stop.bat, reset.bat
-- si pertinent, génération complémentaire de seed-demo.bat pour charger des
-données de démonstration
-- les scripts .bat doivent permettre à un utilisateur non développeur de
-lancer, arrêter et réinitialiser l’application sans taper de commande
-complexe
-- le lancement de l’application doit être documenté dans un README très court
-orienté utilisateur métier
-- configuration uniquement par variables d’environnement
-- code structuré, maintenable et découpé par responsabilité
-- API proprement exposée pour le frontend
-- gestion claire des erreurs
-- aucun secret ou token en dur dans le code
-- dépendances limitées au nécessaire
-- solution testable localement de manière simple
-- solution conçue pour pouvoir être hébergeable ensuite dans un SI
-d’entreprise
-- privilégier la simplicité, la robustesse et la lisibilité plutôt qu’une
-architecture complexe
-` | Utilisateur PostgreSQL |
-| `POSTGRES_PASSWORD` | `atelier` | Mot de passe PostgreSQL |
-| `APP_ENV` | `dev` | Environnement Symfony |
-| `APP_SECRET` | `change_me_in_production` | Secret Symfony |
-| `JWT_SECRET_KEY` | — | Clé secrète JWT |
-| `ADMIN_PASSWORD` | `Admin123!` | Mot de passe admin initial |
-| `CORS_ALLOW_ORIGIN` | `http://localhost:3000` | CORS |
+---
 
 ## Licence
 
-Propriétaire — Atelier Moto Pro
+Projet propriétaire — Atelier Moto Pro
