@@ -335,6 +335,71 @@
       </div>
     </UCard>
 
+    <!-- Rapport d'intervention (LOT 8 — sign-client flow) -->
+    <UCard v-if="rapport" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:#9CA3AF;">📋 Rapport d'intervention</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span :style="{ fontSize:'11px', padding:'3px 10px', borderRadius:'999px', fontWeight:'700', background: rapport.isSignedByBoth ? 'rgba(16,185,129,0.15)' : rapport.signatureMecanicien ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)', color: rapport.isSignedByBoth ? '#10B981' : rapport.signatureMecanicien ? '#FBBF24' : '#9CA3AF' }">
+              {{ rapport.isSignedByBoth ? '✅ Signé' : rapport.signatureMecanicien ? '⏳ Signature client requise' : '✏️ En cours' }}
+            </span>
+            <a v-if="rapport.isSignedByBoth" :href="`/api/rapport/${rapport.id}/pdf`" target="_blank" class="btn btn-ghost" style="font-size:12px;">📄 PDF</a>
+          </div>
+        </div>
+      </template>
+      <div style="display:grid;gap:12px;font-size:13px;">
+        <div v-if="rapport.travauxRealises">
+          <span style="color:#9CA3AF;">Travaux réalisés :</span>
+          <div style="margin-top:4px;white-space:pre-wrap;color:#E8E9ED;">{{ rapport.travauxRealises }}</div>
+        </div>
+        <div v-if="rapport.alertes">
+          <span style="color:#EF4444;font-weight:600;">⚠️ Alertes :</span>
+          <div style="margin-top:4px;white-space:pre-wrap;color:#FCA5A5;">{{ rapport.alertes }}</div>
+        </div>
+        <div v-if="rapport.recommandations">
+          <span style="color:#9CA3AF;">Recommandations :</span>
+          <div style="margin-top:4px;white-space:pre-wrap;color:#E8E9ED;">{{ rapport.recommandations }}</div>
+        </div>
+        <div v-if="rapport.kilometrageRestitution || rapport.prochaineRevisionKm" style="display:flex;gap:24px;flex-wrap:wrap;">
+          <div v-if="rapport.kilometrageRestitution">
+            <span style="color:#9CA3AF;">Km restitution :</span>
+            <span style="margin-left:6px;color:#E8E9ED;">{{ rapport.kilometrageRestitution.toLocaleString() }} km</span>
+          </div>
+          <div v-if="rapport.prochaineRevisionKm">
+            <span style="color:#9CA3AF;">Prochaine révision :</span>
+            <span style="margin-left:6px;color:#FFD200;">{{ rapport.prochaineRevisionKm.toLocaleString() }} km</span>
+          </div>
+        </div>
+        <div v-if="rapport.essaiRoutier?.isComplete" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
+          <span style="color:#9CA3AF;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Essai routier</span>
+          <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;font-size:12px;">
+            <span>Km {{ rapport.essaiRoutier.kmDebut }} → {{ rapport.essaiRoutier.kmFin }} <span style="color:#9CA3AF;">({{ rapport.essaiRoutier.distance }} km)</span></span>
+            <span v-if="rapport.essaiRoutier.dureeMinutes">{{ rapport.essaiRoutier.dureeMinutes }} min</span>
+          </div>
+          <div v-if="rapport.essaiRoutier.anomalies" style="margin-top:6px;color:#FCA5A5;font-size:12px;">Anomalies : {{ rapport.essaiRoutier.anomalies }}</div>
+        </div>
+        <!-- Client signature -->
+        <div v-if="rapport.signatureMecanicien && !rapport.signatureClient" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+          <div style="font-size:12px;font-weight:600;color:#FBBF24;margin-bottom:8px;">✍️ Signature client requise pour la restitution</div>
+          <canvas ref="sigRapportCanvas" width="400" height="120" style="border:1px dashed rgba(255,210,0,0.3);border-radius:8px;cursor:crosshair;background:rgba(255,255,255,0.02);width:100%;max-width:400px;height:120px;" @mousedown="startRapportDraw($event)" @mousemove="drawRapport($event)" @mouseup="stopRapportDraw" @mouseleave="stopRapportDraw"></canvas>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-ghost" style="font-size:12px;" @click="clearRapportSig">Effacer</button>
+            <button class="btn btn-primary" style="font-size:12px;" @click="signRapportClient" :disabled="!rapportSigDrawn || signingRapport">
+              {{ signingRapport ? 'Signature…' : '✅ Signer le rapport' }}
+            </button>
+          </div>
+        </div>
+        <div v-else-if="rapport.isSignedByBoth" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;display:flex;align-items:center;gap:8px;color:#10B981;">
+          <span style="font-size:18px;">✅</span>
+          <div>
+            <div style="font-weight:600;">Rapport signé par les deux parties</div>
+            <div style="font-size:12px;color:#6B7280;">Mécanicien le {{ rapport.signeMecanicienAt ? new Date(rapport.signeMecanicienAt).toLocaleDateString('fr-FR') : '—' }} · Client le {{ rapport.signeClientAt ? new Date(rapport.signeClientAt).toLocaleDateString('fr-FR') : '—' }}</div>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Actions -->
     <UCard style="margin-bottom:20px;">
       <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">⚡ Actions</span></template>
@@ -525,6 +590,74 @@ async function saveEstimate() {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     savingEstimate.value = false
+  }
+}
+
+// Rapport d'intervention (LOT 8 — sign-client flow)
+const rapport = ref<any>(null)
+const rapportLoading = ref(false)
+const sigRapportCanvas = ref<HTMLCanvasElement | null>(null)
+const rapportSigDrawing = ref(false)
+const rapportSigDrawn = ref(false)
+const signingRapport = ref(false)
+
+async function loadRapport() {
+  const rdvId = rdv.value?.id
+  if (!rdvId) return
+  rapportLoading.value = true
+  try {
+    rapport.value = await api.get(`/rdv/${rdvId}/rapport`)
+  } catch { rapport.value = null }
+  finally { rapportLoading.value = false }
+}
+
+function startRapportDraw(e: MouseEvent) {
+  rapportSigDrawing.value = true
+  const ctx = sigRapportCanvas.value?.getContext('2d')
+  if (!ctx) return
+  const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
+  ctx.beginPath()
+  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
+}
+
+function drawRapport(e: MouseEvent) {
+  if (!rapportSigDrawing.value) return
+  const ctx = sigRapportCanvas.value?.getContext('2d')
+  if (!ctx) return
+  const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = '#E8E9ED'
+  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
+  ctx.stroke()
+  rapportSigDrawn.value = true
+}
+
+function stopRapportDraw() {
+  rapportSigDrawing.value = false
+}
+
+function clearRapportSig() {
+  const canvas = sigRapportCanvas.value
+  const ctx = canvas?.getContext('2d')
+  if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height)
+  rapportSigDrawn.value = false
+}
+
+async function signRapportClient() {
+  const canvas = sigRapportCanvas.value
+  if (!canvas || !rapport.value?.id) return
+  signingRapport.value = true
+  try {
+    const signature = canvas.toDataURL('image/png')
+    rapport.value = await api.post(`/rapport/${rapport.value.id}/sign-client`, { signature })
+    toast.add({ title: 'Rapport signé', description: 'La restitution peut maintenant être effectuée.', color: 'success' })
+    const trans = await api.get(`/rendez-vous/${rdv.value.id}/transitions`)
+    availableTransitions.value = Array.isArray(trans) ? trans : trans?.transitions ?? []
+  } catch (e: any) {
+    toast.add({ title: 'Erreur signature', description: e?.message || 'Échec', color: 'error' })
+  } finally {
+    signingRapport.value = false
   }
 }
 
@@ -747,6 +880,8 @@ async function loadData() {
       } catch { availableTransitions.value = [] }
       // Load travaux supplementaires
       await loadTravauxSupp()
+      // Load rapport d'intervention (LOT 8)
+      await loadRapport()
     }
   } catch {
     ordre.value = null

@@ -37,7 +37,10 @@
       <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
         <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:12px;">3. Prestations</div>
         <div v-if="loadingPrestas" style="font-size:12px;color:#6B7280;">Chargement des prestations…</div>
-        <div v-else-if="prestations.length" style="display:flex;flex-direction:column;gap:8px;">
+        <div v-if="usingFallbackCatalog && !loadingPrestas" style="margin-bottom:8px;padding:8px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18);border-radius:8px;font-size:11px;color:#FDE68A;">
+          Catalogue estimatif — les tarifs exacts seront confirmés à l'atelier.
+        </div>
+        <div v-if="!loadingPrestas && prestations.length" style="display:flex;flex-direction:column;gap:8px;">
           <button
             v-for="p in prestations"
             :key="p.id"
@@ -109,7 +112,21 @@
               {{ slot.heure }}
             </button>
           </div>
-          <p v-else-if="form.date_rdv && !loadingSlots" style="font-size:13px;color:#6B7280;">Aucun créneau disponible ce jour.</p>
+          <div v-else-if="form.date_rdv && !loadingSlots" style="padding:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;text-align:center;">
+            <p style="font-size:13px;color:#6B7280;margin:0 0 8px;">Aucun créneau disponible ce jour.</p>
+            <div v-if="alternativeDays.length" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:12px;color:#9CA3AF;align-self:center;">Essayez :</span>
+              <button
+                v-for="day in alternativeDays.slice(0, 3)"
+                :key="day.date"
+                type="button"
+                @click="selectAlternativeDay(day.date)"
+                style="padding:5px 12px;border-radius:999px;border:1px solid rgba(255,210,0,0.2);background:rgba(255,210,0,0.06);color:#FFD200;font-size:12px;font-weight:600;cursor:pointer;"
+              >
+                {{ formatShortDate(day.date) }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -178,6 +195,7 @@ const prestations = ref<any[]>([])
 const selectedPrestas = ref<Array<number | string>>([])
 const confirmation = ref<any>(null)
 const errorMessage = ref('')
+const usingFallbackCatalog = ref(false)
 
 const fallbackPrestations = [
   { id: 'entretien', nom: 'Entretien / Vidange', description: 'Révision courante et contrôle général', prix_base_ttc: 89, temps_estime_minutes: 60 },
@@ -264,15 +282,20 @@ function selectAlternativeDay(date: string) {
 
 async function loadPrestations() {
   loadingPrestas.value = true
+  usingFallbackCatalog.value = false
   try {
     const res = await fetch(`${baseURL}/prestations`, { headers: { Accept: 'application/json' } })
-    if (!res.ok) throw new Error('Catalogue indisponible')
+    if (!res.ok) throw new Error()
     const data = await res.json()
     const raw = Array.isArray(data) ? data : (data?.['hydra:member'] ?? data?.member ?? [])
     prestations.value = raw.filter((p: any) => p.is_active !== false)
-    if (!prestations.value.length) prestations.value = fallbackPrestations
+    if (!prestations.value.length) {
+      prestations.value = fallbackPrestations
+      usingFallbackCatalog.value = true
+    }
   } catch {
     prestations.value = fallbackPrestations
+    usingFallbackCatalog.value = true
   } finally {
     loadingPrestas.value = false
   }

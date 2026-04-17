@@ -112,7 +112,7 @@ class CompanionController extends AbstractController
                 'id' => $p->getId(),
                 'filename' => $p->getFilename(),
                 'description' => $p->getDescription(),
-                'url' => '/api/photos/file/' . $p->getFilename(),
+                'url' => '/api/public/photos/' . $token . '/' . $p->getFilename(),
             ], $photos),
             'has_signature' => $or && $or->getSignatureClient() ? true : false,
             'photos_count' => count($photos),
@@ -194,7 +194,7 @@ class CompanionController extends AbstractController
         return $this->json([
             'id' => $photo->getId(),
             'filename' => $filename,
-            'url' => '/api/photos/file/' . $filename,
+            'url' => '/api/public/photos/' . $token . '/' . $filename,
         ], Response::HTTP_CREATED);
     }
 

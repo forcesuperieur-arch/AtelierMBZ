@@ -11,19 +11,28 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/photos')]
 class PhotoController extends AbstractController
 {
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
     public function __construct(
         private EntityManagerInterface $em,
         private PhotoService $photoService,
+        private RateLimiterFactory $companionUploadLimiter,
     ) {}
 
     #[Route('/upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
+        $limiter = $this->companionUploadLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $file = $request->files->get('photo');
         $rdvId = $request->request->get('rendez_vous_id');
         $type = $request->request->get('type', 'en_cours');
@@ -36,6 +45,8 @@ class PhotoController extends AbstractController
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
+
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
 
         try {
             $photo = $this->photoService->upload(
@@ -62,13 +73,21 @@ class PhotoController extends AbstractController
     public function serve(string $filename): Response
     {
         $filename = basename($filename);
-        $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . $filename;
 
-        if (!file_exists($path)) {
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
             return $this->json(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $response = new BinaryFileResponse($path);
+        $photoDir = realpath($this->getParameter('kernel.project_dir') . '/var/photos');
+        $path = $photoDir . '/' . $filename;
+        $realPath = realpath($path);
+
+        if ($realPath === false || !str_starts_with($realPath, $photoDir . '/') || !is_file($realPath)) {
+            return $this->json(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($realPath);
         $response->headers->set('Cache-Control', 'public, max-age=86400');
         $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $filename);
         return $response;
@@ -81,6 +100,8 @@ class PhotoController extends AbstractController
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
+
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
 
         $photos = $this->em->getRepository(PhotoIntervention::class)->findBy(
             ['rendezVous' => $rdv],
@@ -107,6 +128,8 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
+
         $missing = $this->photoService->requirePhotosForTransition($transition, $rdv);
 
         return $this->json([
@@ -123,6 +146,8 @@ class PhotoController extends AbstractController
         if (!$photo) {
             return $this->json(['error' => 'Photo not found'], Response::HTTP_NOT_FOUND);
         }
+
+        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $photo->getRendezVous());
 
         $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . basename($photo->getFilename());
         if (file_exists($path)) {

@@ -136,11 +136,7 @@ class RendezVous
     #[Groups(['rdv:read'])]
     private \DateTimeInterface $updatedAt;
 
-    #[ORM\OneToOne(targetEntity: RapportTechnicien::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
-    #[Groups(['rdv:read'])]
-    private ?RapportTechnicien $rapportTechnicien = null;
-
-    /** @var Collection<int, DemandeTravauxSupp> */
+/** @var Collection<int, DemandeTravauxSupp> */
     #[ORM\OneToMany(targetEntity: DemandeTravauxSupp::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
     #[Groups(['rdv:read'])]
     private Collection $demandesTravauxSupp;
@@ -243,9 +239,7 @@ class RendezVous
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
-    public function getRapportTechnicien(): ?RapportTechnicien { return $this->rapportTechnicien; }
-    public function setRapportTechnicien(?RapportTechnicien $rapportTechnicien): static { $this->rapportTechnicien = $rapportTechnicien; return $this; }
-    public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
+public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
     public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }
