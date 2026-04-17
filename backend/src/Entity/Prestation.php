@@ -1,6 +1,9 @@
 <?php
 namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
+use App\Enum\ModeTarification;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -35,10 +38,27 @@ class Prestation
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['prestation:read', 'prestation:write'])] private ?string $descriptionPiecesIncluses = null;
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])] #[Groups(['prestation:read', 'prestation:write'])] private string $coutPiecesInclusesHt = '0.00';
     #[ORM\Column(type: 'float', options: ['default' => 30.0])] #[Groups(['prestation:read', 'prestation:write'])] private float $margePiecesPourcent = 30.0;
+
+    // LOT 7 — new spec fields
+    #[ORM\Column(nullable: true)] #[Groups(['prestation:read', 'prestation:write'])]
+    private ?int $garantieJours = null;
+
+    #[ORM\Column(options: ['default' => true])] #[Groups(['prestation:read', 'prestation:write'])]
+    private bool $necessiteEssai = true;
+
+    /** @var Collection<int, GrilleTarifaire> */
+    #[ORM\OneToMany(targetEntity: GrilleTarifaire::class, mappedBy: 'prestation', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['prestation:read'])]
+    private Collection $tarifsCategorie;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['prestation:read'])] private \DateTimeInterface $createdAt;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['prestation:read'])] private \DateTimeInterface $updatedAt;
 
-    public function __construct() { $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); }
+    public function __construct() {
+        $this->createdAt = new \DateTime();
+        $this->updatedAt = new \DateTime();
+        $this->tarifsCategorie = new ArrayCollection();
+    }
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -84,4 +104,21 @@ class Prestation
     public function setInclutPieces(int $v): static { $this->inclutPieces = $v; return $this; }
     public function getMargePiecesPourcent(): float { return $this->margePiecesPourcent; }
     public function setMargePiecesPourcent(float $v): static { $this->margePiecesPourcent = $v; return $this; }
+
+    // LOT 7 — new fields
+    public function getGarantieJours(): ?int { return $this->garantieJours; }
+    public function setGarantieJours(?int $v): static { $this->garantieJours = $v; return $this; }
+    public function getNecessiteEssai(): bool { return $this->necessiteEssai; }
+    public function setNecessiteEssai(bool $v): static { $this->necessiteEssai = $v; return $this; }
+
+    /** @return Collection<int, GrilleTarifaire> */
+    public function getTarifsCategorie(): Collection { return $this->tarifsCategorie; }
+    public function addTarifCategorie(GrilleTarifaire $t): static { if (!$this->tarifsCategorie->contains($t)) { $this->tarifsCategorie->add($t); $t->setPrestation($this); } return $this; }
+    public function removeTarifCategorie(GrilleTarifaire $t): static { $this->tarifsCategorie->removeElement($t); return $this; }
+
+    // Spec aliases
+    public function getLibelle(): string { return $this->nom; }
+    public function getModeTarification(): ModeTarification { return ModeTarification::tryFrom($this->typeTarif) ?? ModeTarification::FORFAIT; }
+    public function setModeTarification(ModeTarification $v): static { $this->typeTarif = $v->value; return $this; }
+    public function getPrixForfait(): string { return $this->prixBaseTtc; }
 }

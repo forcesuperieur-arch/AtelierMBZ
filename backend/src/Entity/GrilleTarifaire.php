@@ -2,21 +2,22 @@
 namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity] #[ORM\Table(name: 'grille_tarifaire')] #[ApiResource]
 class GrilleTarifaire
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
+    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['prestation:read'])] private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
-    #[ORM\ManyToOne(targetEntity: Prestation::class)] #[ORM\JoinColumn(name: 'prestation_id', nullable: false)] private Prestation $prestation;
-    #[ORM\ManyToOne(targetEntity: CategorieMoto::class)] #[ORM\JoinColumn(name: 'categorie_moto_id', nullable: true)] private ?CategorieMoto $categorieMoto = null;
-    #[ORM\Column(length: 50, options: ['default' => 'tous'])] private string $typeVehicule = 'tous';
-    #[ORM\Column(nullable: true)] private ?int $cylindreeMin = null;
-    #[ORM\Column(nullable: true)] private ?int $cylindreeMax = null;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixHt;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixTtc;
-    #[ORM\Column] private int $tempsMinutes;
-    #[ORM\Column(length: 50, options: ['default' => 'forfait'])] private string $typeTarif = 'forfait';
+    #[ORM\ManyToOne(targetEntity: Prestation::class, inversedBy: 'tarifsCategorie')] #[ORM\JoinColumn(name: 'prestation_id', nullable: false)] private Prestation $prestation;
+    #[ORM\ManyToOne(targetEntity: CategorieMoto::class)] #[ORM\JoinColumn(name: 'categorie_moto_id', nullable: true)] #[Groups(['prestation:read'])] private ?CategorieMoto $categorieMoto = null;
+    #[ORM\Column(length: 50, options: ['default' => 'tous'])] #[Groups(['prestation:read'])] private string $typeVehicule = 'tous';
+    #[ORM\Column(nullable: true)] #[Groups(['prestation:read'])] private ?int $cylindreeMin = null;
+    #[ORM\Column(nullable: true)] #[Groups(['prestation:read'])] private ?int $cylindreeMax = null;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] #[Groups(['prestation:read'])] private string $prixHt;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] #[Groups(['prestation:read'])] private string $prixTtc;
+    #[ORM\Column] #[Groups(['prestation:read'])] private int $tempsMinutes;
+    #[ORM\Column(length: 50, options: ['default' => 'forfait'])] #[Groups(['prestation:read'])] private string $typeTarif = 'forfait';
     #[ORM\Column(options: ['default' => 1])] private int $delaiJours = 1;
     #[ORM\Column(options: ['default' => 1])] private int $isActive = 1;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] private \DateTimeInterface $createdAt;
