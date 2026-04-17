@@ -184,10 +184,10 @@ export const useRdvStore = defineStore('rdv', {
       return normalized
     },
 
-    async transitionRdv(id: number | string | Record<string, any>, transition: string) {
+    async transitionRdv(id: number | string | Record<string, any>, transition: string, body?: Record<string, any>) {
       const api = useApi()
       const rdvId = resolveRdvId(id)
-      await api.post(`/rendez-vous/${rdvId}/transition/${transition}`)
+      await api.post(`/rendez-vous/${rdvId}/transition/${transition}`, body ?? {})
       // Transition endpoint returns { id, statut, transitions } — re-fetch to get full data
       await this.fetchRdv(rdvId)
       return this.currentRdv

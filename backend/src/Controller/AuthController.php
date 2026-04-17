@@ -127,6 +127,23 @@ class AuthController extends AbstractController
                 ->withSecure($this->getParameter('kernel.environment') === 'prod')
         );
 
+        $defaultActiveAtelier = in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)
+            ? ($user->getAtelierId() ? (string) $user->getAtelierId() : 'all')
+            : '';
+
+        if ($defaultActiveAtelier !== '') {
+            $response->headers->setCookie(
+                Cookie::create('active_atelier_id')
+                    ->withValue($defaultActiveAtelier)
+                    ->withPath('/')
+                    ->withHttpOnly(false)
+                    ->withSameSite('lax')
+                    ->withSecure($this->getParameter('kernel.environment') === 'prod')
+            );
+        } else {
+            $response->headers->clearCookie('active_atelier_id', '/');
+        }
+
         return $response;
     }
 
@@ -140,6 +157,59 @@ class AuthController extends AbstractController
         }
 
         return $this->json($this->buildUserPayload($user));
+    }
+
+    /**
+     * SuperAdmin: switch the active atelier for tenant filter (session-based).
+     * Accepts {atelier_id: int|null|'all'}. Null/'all' = no filter (global view).
+     */
+    #[Route('/switch-atelier', methods: ['POST'])]
+    public function switchAtelier(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+        if (!in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
+            return $this->json(['error' => 'SuperAdmin only'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $atelierId = $data['atelier_id'] ?? null;
+
+        if ($atelierId === null || $atelierId === 'all' || $atelierId === '') {
+            $response = $this->json(['active_atelier_id' => 'all']);
+            $response->headers->setCookie(
+                Cookie::create('active_atelier_id')
+                    ->withValue('all')
+                    ->withPath('/')
+                    ->withHttpOnly(false)
+                    ->withSameSite('lax')
+                    ->withSecure($this->getParameter('kernel.environment') === 'prod')
+            );
+            return $response;
+        }
+
+        $atelier = $this->em->getRepository(Atelier::class)->find((int) $atelierId);
+        if (!$atelier) {
+            return $this->json(['error' => 'Atelier not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = $this->json([
+            'active_atelier_id' => (int) $atelierId,
+            'atelier_nom' => $atelier->getNom(),
+        ]);
+        $response->headers->setCookie(
+            Cookie::create('active_atelier_id')
+                ->withValue((string) ((int) $atelierId))
+                ->withPath('/')
+                ->withHttpOnly(false)
+                ->withSameSite('lax')
+                ->withSecure($this->getParameter('kernel.environment') === 'prod')
+        );
+
+        return $response;
     }
 
     #[Route('/refresh', methods: ['POST'])]
@@ -210,6 +280,7 @@ class AuthController extends AbstractController
         // Clear cookies
         $response->headers->clearCookie('access_token', '/');
         $response->headers->clearCookie('refresh_token', '/api/auth/refresh');
+        $response->headers->clearCookie('active_atelier_id', '/');
 
         return $response;
     }

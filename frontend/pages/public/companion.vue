@@ -93,15 +93,11 @@
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <label class="companion-capture-btn" :style="{ opacity: uploading ? 0.6 : 1, pointerEvents: uploading ? 'none' : 'auto' }">
-                <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple :disabled="uploading" @change="onPhotosSelected" style="display:none;" />
+              <label class="companion-capture-btn">
+                <input type="file" accept="image/*" capture="environment" multiple @change="onPhotosSelected" style="display:none;" />
                 <span style="font-size:24px;">📷</span>
                 <span>{{ uploading ? 'Envoi en cours…' : 'Prendre une photo' }}</span>
               </label>
-
-              <div v-if="uploadError" style="padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;color:#FCA5A5;font-size:12px;">
-                {{ uploadError }}
-              </div>
 
               <div v-if="rdv.photos?.length" class="companion-photo-grid">
                 <div v-for="photo in rdv.photos" :key="photo.id" class="companion-photo-thumb">
@@ -120,15 +116,11 @@
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <label class="companion-capture-btn" :style="{ opacity: ocrProcessing ? 0.6 : 1, pointerEvents: ocrProcessing ? 'none' : 'auto' }">
-                <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" :disabled="ocrProcessing" @change="onCarteGriseSelected" style="display:none;" />
+              <label class="companion-capture-btn">
+                <input type="file" accept="image/*" capture="environment" @change="onCarteGriseSelected" style="display:none;" />
                 <span style="font-size:24px;">📷</span>
                 <span>{{ ocrProcessing ? 'Analyse OCR en cours…' : 'Photographier la carte grise' }}</span>
               </label>
-
-              <div v-if="ocrError" style="padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;color:#FDE68A;font-size:12px;">
-                {{ ocrError }}
-              </div>
 
               <div v-if="ocrProcessing" style="text-align:center;padding:20px;">
                 <div class="ocr-spinner"></div>
@@ -163,9 +155,6 @@
                     <label>Type (J.1)</label>
                     <input v-model="ocrResult.type_moto" class="companion-input" />
                   </div>
-                </div>
-                <div v-if="ocrApplyError" style="margin-top:8px;padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;color:#FCA5A5;font-size:12px;">
-                  {{ ocrApplyError }}
                 </div>
                 <button
                   class="companion-validate-btn"
@@ -308,9 +297,6 @@ const resignMode = ref(false)
 const sigCanvas = ref<HTMLCanvasElement | null>(null)
 const checkupSaving = ref(false)
 const checkupNotes = ref('')
-const uploadError = ref('')
-const ocrError = ref('')
-const ocrApplyError = ref('')
 
 const checkupItems = [
   { key: 'pneus', label: 'Pneus' },
@@ -371,50 +357,23 @@ function photoUrl(url: string) {
 }
 
 // --- Photos ---
-const ALLOWED_PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024 // 10 MB
-
 async function onPhotosSelected(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
   if (!files?.length) return
 
-  uploadError.value = ''
-
-  for (const file of Array.from(files)) {
-    if (!ALLOWED_PHOTO_MIMES.includes(file.type)) {
-      uploadError.value = `Format non supporté : ${file.name}. Utilisez JPEG, PNG ou WebP.`
-      input.value = ''
-      return
-    }
-    if (file.size > MAX_PHOTO_SIZE) {
-      uploadError.value = `Fichier trop volumineux : ${file.name} dépasse 10 Mo.`
-      input.value = ''
-      return
-    }
-  }
-
   uploading.value = true
-  const errors: string[] = []
   try {
     for (const file of Array.from(files)) {
       const fd = new FormData()
       fd.append('photo', file)
       fd.append('description', 'Photo réception')
-      const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
+      await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
         method: 'POST',
         body: fd,
       })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        errors.push(body?.error || `Erreur ${res.status} pour ${file.name}`)
-      }
     }
-    if (errors.length) {
-      uploadError.value = errors.join(' · ')
-    } else {
-      await fetchRdv()
-    }
+    await fetchRdv()
   } finally {
     uploading.value = false
     input.value = ''
@@ -427,57 +386,39 @@ async function onCarteGriseSelected(e: Event) {
   const file = input.files?.[0]
   if (!file) return
 
-  if (!ALLOWED_PHOTO_MIMES.includes(file.type)) {
-    ocrError.value = `Format non supporté. Utilisez JPEG, PNG ou WebP.`
-    input.value = ''
-    return
-  }
-  if (file.size > MAX_PHOTO_SIZE) {
-    ocrError.value = `Image trop volumineuse (max 10 Mo).`
-    input.value = ''
-    return
-  }
-
   ocrProcessing.value = true
   ocrResult.value = null
-  ocrError.value = ''
 
   try {
     // Upload as photo too
     const fd = new FormData()
     fd.append('photo', file)
     fd.append('description', 'Carte grise')
-    const uploadRes = await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
+    await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
       method: 'POST',
       body: fd,
     })
-    if (!uploadRes.ok) {
-      const body = await uploadRes.json().catch(() => ({}))
-      ocrError.value = body?.error || `Erreur lors de l'envoi de la photo (${uploadRes.status})`
-      return
-    }
 
     // Client-side OCR with Tesseract.js
-    try {
-      const { createWorker } = await import('tesseract.js')
-      const worker = await createWorker('fra')
-      const { data: { text } } = await worker.recognize(file)
-      await worker.terminate()
-      ocrResult.value = parseCarteGriseText(text)
-    } catch {
-      ocrError.value = 'Lecture OCR impossible. Vérifiez la qualité de l\'image. Les données connues ont été pré-remplies.'
-      ocrResult.value = {
-        plaque: rdv.value?.vehicule?.plaque || '',
-        marque: rdv.value?.vehicule?.marque || '',
-        modele: rdv.value?.vehicule?.modele || '',
-        annee: rdv.value?.vehicule?.annee ? String(rdv.value.vehicule.annee) : '',
-        cylindree: rdv.value?.vehicule?.cylindree || '',
-        type_moto: rdv.value?.vehicule?.type_moto || '',
-      }
-    }
+    const { createWorker } = await import('tesseract.js')
+    const worker = await createWorker('fra')
+    const { data: { text } } = await worker.recognize(file)
+    await worker.terminate()
 
+    ocrResult.value = parseCarteGriseText(text)
     carteGriseScanned.value = true
     await fetchRdv()
+  } catch (err) {
+    console.warn('OCR error, pre-filling with vehicle data:', err)
+    ocrResult.value = {
+      plaque: rdv.value?.vehicule?.plaque || '',
+      marque: rdv.value?.vehicule?.marque || '',
+      modele: rdv.value?.vehicule?.modele || '',
+      annee: rdv.value?.vehicule?.annee ? String(rdv.value.vehicule.annee) : '',
+      cylindree: rdv.value?.vehicule?.cylindree || '',
+      type_moto: rdv.value?.vehicule?.type_moto || '',
+    }
+    carteGriseScanned.value = true
   } finally {
     ocrProcessing.value = false
     input.value = ''
@@ -528,18 +469,12 @@ function parseCarteGriseText(text: string): Record<string, string> {
 async function applyOcrData() {
   if (!ocrResult.value) return
   ocrSaving.value = true
-  ocrApplyError.value = ''
   try {
-    const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/vehicule`, {
+    await globalThis.fetch(`${apiBase}/companion/${token.value}/vehicule`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ocrResult.value),
     })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      ocrApplyError.value = body?.error || `Erreur lors de l'enregistrement (${res.status})`
-      return
-    }
     await fetchRdv()
     activeSection.value = null
   } finally {

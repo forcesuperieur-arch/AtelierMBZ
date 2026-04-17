@@ -11,12 +11,15 @@ class AnnulationRdv
 {
     public const MOTIFS = [
         'client_desiste',
+        'client_no_show',
         'no_show',
         'atelier_indisponible',
         'force_majeure',
         'erreur_saisie',
         'autre',
     ];
+
+    public const SOURCES = ['atelier', 'client', 'automatique'];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -38,6 +41,9 @@ class AnnulationRdv
 
     #[ORM\Column(nullable: true)]
     private ?int $annulePar = null;
+
+    #[ORM\Column(length: 20, options: ['default' => 'atelier'])]
+    private string $source = 'atelier';
 
     #[ORM\Column(type: 'datetime')]
     private \DateTimeInterface $annuleAt;
@@ -64,6 +70,14 @@ class AnnulationRdv
     public function setCommentaire(?string $v): static { $this->commentaire = $v; return $this; }
     public function getAnnulePar(): ?int { return $this->annulePar; }
     public function setAnnulePar(?int $v): static { $this->annulePar = $v; return $this; }
+    public function getSource(): string { return $this->source; }
+    public function setSource(string $v): static {
+        if (!in_array($v, self::SOURCES, true)) {
+            throw new \InvalidArgumentException("Invalid source: $v");
+        }
+        $this->source = $v;
+        return $this;
+    }
     public function getAnnuleAt(): \DateTimeInterface { return $this->annuleAt; }
     public function setAnnuleAt(\DateTimeInterface $v): static { $this->annuleAt = $v; return $this; }
     public function getHeureRdvOriginal(): ?\DateTimeInterface { return $this->heureRdvOriginal; }

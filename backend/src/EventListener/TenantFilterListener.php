@@ -37,14 +37,18 @@ class TenantFilterListener
             return;
         }
 
-        // SuperAdmin: session-based atelier selection
+        // SuperAdmin: default to their assigned atelier, unless they explicitly choose "all"
         if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
             $request = $this->requestStack->getCurrentRequest();
-            $session = ($request?->hasPreviousSession()) ? $request->getSession() : null;
-            $activeAtelierId = $session?->get('active_atelier_id');
+            $selectedAtelierId = $request?->cookies->get('active_atelier_id');
 
-            if ($activeAtelierId === null || $activeAtelierId === 'all') {
-                return; // No filter — global access
+            if ($selectedAtelierId === 'all') {
+                return; // Explicit global access
+            }
+
+            $activeAtelierId = $selectedAtelierId ?: $user->getAtelierId();
+            if ($activeAtelierId === null || $activeAtelierId === '') {
+                return;
             }
 
             $filter = $this->em->getFilters()->enable('tenant_filter');

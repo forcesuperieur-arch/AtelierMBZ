@@ -400,6 +400,160 @@
       </div>
     </UCard>
 
+    <!-- Intégrité & Rectification (LOT 2) -->
+    <UCard v-if="ordre.signed_hash || ordre.signedHash || ordre.signed_at || ordre.signedAt" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:#9CA3AF;">🔒 Intégrité & Traçabilité</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost" style="font-size:12px;" @click="verifyIntegrity" :disabled="verifyingIntegrity">
+              {{ verifyingIntegrity ? 'Vérification…' : '🔍 Vérifier' }}
+            </button>
+            <button class="btn btn-ghost" style="font-size:12px;color:#FCA5A5;" @click="showRectifierModal = true">♻️ Rectifier</button>
+          </div>
+        </div>
+      </template>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;font-size:12px;">
+        <div>
+          <span style="color:#9CA3AF;">Signé le :</span>
+          <div style="color:#E8E9ED;margin-top:2px;">{{ ordre.signed_at || ordre.signedAt ? new Date(ordre.signed_at || ordre.signedAt).toLocaleString('fr-FR') : '—' }}</div>
+        </div>
+        <div>
+          <span style="color:#9CA3AF;">IP signature :</span>
+          <div style="color:#E8E9ED;margin-top:2px;font-family:monospace;">{{ ordre.signed_ip || ordre.signedIp || '—' }}</div>
+        </div>
+        <div style="grid-column:1/-1;">
+          <span style="color:#9CA3AF;">Hash SHA-256 :</span>
+          <div style="color:#E8E9ED;margin-top:2px;font-family:monospace;font-size:11px;word-break:break-all;">{{ ordre.signed_hash || ordre.signedHash || '—' }}</div>
+        </div>
+        <div v-if="integrityResult" style="grid-column:1/-1;padding:10px 12px;border-radius:8px;" :style="integrityResult.integrity_ok ? 'background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#6EE7B7;' : 'background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#FCA5A5;'">
+          {{ integrityResult.integrity_ok ? '✅' : '⚠️' }} {{ integrityResult.message }}
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Photos typées (LOT 2) -->
+    <UCard v-if="rdv?.id" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:#9CA3AF;">📸 Photos ({{ photos.length }})</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select v-model="photoUploadType" class="form-input" style="padding:4px 8px;font-size:12px;">
+              <option v-for="t in PHOTO_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+            </select>
+            <label class="btn btn-primary" style="font-size:12px;cursor:pointer;margin:0;">
+              📤 Upload
+              <input type="file" accept="image/*" multiple style="display:none;" @change="handlePhotoUpload" />
+            </label>
+          </div>
+        </div>
+      </template>
+      <div v-if="uploadingPhoto" style="padding:10px;color:#FBBF24;font-size:12px;">Upload en cours…</div>
+      <div v-if="!photos.length" style="padding:14px;text-align:center;color:#6B7280;font-size:12px;">Aucune photo enregistrée</div>
+      <div v-else style="display:flex;flex-direction:column;gap:12px;">
+        <div v-for="grp in photosByType" :key="grp.type">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#9CA3AF;margin-bottom:6px;">{{ photoTypeLabel(grp.type) }} ({{ grp.photos.length }})</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+            <a v-for="p in grp.photos" :key="p.id" :href="photoUrl(p)" target="_blank" style="display:block;border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);">
+              <img :src="photoUrl(p)" :alt="p.description || ''" style="width:100%;height:100px;object-fit:cover;display:block;" />
+              <div style="font-size:10px;color:#9CA3AF;padding:4px 6px;">{{ p.takenAt ? new Date(p.takenAt).toLocaleDateString('fr-FR') : '' }}</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Commandes pièces (LOT 9) -->
+    <UCard v-if="rdv?.id" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:#9CA3AF;">📦 Commandes de pièces ({{ commandesPieces.length }})</span>
+          <button class="btn btn-ghost" style="font-size:12px;" @click="showCommandeForm = !showCommandeForm">{{ showCommandeForm ? 'Annuler' : '+ Nouvelle commande' }}</button>
+        </div>
+      </template>
+      <div v-if="showCommandeForm" style="border:1px solid rgba(147,197,253,0.2);border-radius:10px;padding:12px;margin-bottom:12px;background:rgba(147,197,253,0.04);display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Désignation *</label>
+          <input v-model="newCommande.designation" class="form-input" placeholder="Plaquettes frein avant" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Référence *</label>
+          <input v-model="newCommande.reference" class="form-input" placeholder="BP-45623" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fournisseur</label>
+          <input v-model="newCommande.fournisseur" class="form-input" placeholder="Brembo" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantité</label>
+          <input v-model.number="newCommande.quantite" type="number" min="1" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Livraison estimée</label>
+          <input v-model="newCommande.dateLivraisonEstimee" type="date" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prix achat (€ HT)</label>
+          <input v-model.number="newCommande.prixAchat" type="number" step="0.01" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prix vente (€ HT)</label>
+          <input v-model.number="newCommande.prixVente" type="number" step="0.01" class="form-input" />
+        </div>
+        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn btn-ghost" @click="showCommandeForm = false">Annuler</button>
+          <button class="btn btn-primary" @click="submitCommande" :disabled="savingCommande || !newCommande.designation || !newCommande.reference">
+            {{ savingCommande ? 'Envoi…' : '📨 Commander' }}
+          </button>
+        </div>
+      </div>
+      <div v-if="!commandesPieces.length && !showCommandeForm" style="padding:14px;text-align:center;color:#6B7280;font-size:12px;">Aucune commande de pièce</div>
+      <div v-for="c in commandesPieces" :key="c.id" style="padding:10px 12px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:240px;">
+          <div style="font-size:13px;color:#E8E9ED;font-weight:600;">{{ c.designation }} <span style="color:#9CA3AF;font-weight:400;">— Réf. {{ c.reference }}</span></div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">
+            <span v-if="c.fournisseur">{{ c.fournisseur }}</span>
+            <span v-if="c.quantite"> · Qté {{ c.quantite }}</span>
+            <span v-if="c.dateLivraisonEstimee"> · Livraison estimée {{ c.dateLivraisonEstimee }}</span>
+            <span v-if="c.dateLivraisonReelle"> · Reçue le {{ c.dateLivraisonReelle }}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span :style="commandeStatusStyle(c.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">{{ commandeStatusLabel(c.statut) }}</span>
+          <button v-if="c.statut !== 'recue' && c.statut !== 'installee' && c.statut !== 'annulee'" class="btn btn-primary" style="font-size:11px;padding:4px 10px;" @click="markCommandeRecue(c.id)">✅ Reçue</button>
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Gardiennage (LOT 9) -->
+    <UCard v-if="rdv?.id && (rdv.statut === 'termine' || rdv.gardiennage_debut_at || rdv.gardiennageDebutAt)" style="margin-bottom:20px;">
+      <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">🏪 Gardiennage</span></template>
+      <div v-if="rdv.gardiennage_debut_at || rdv.gardiennageDebutAt" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:12px;">
+        <div>
+          <span style="color:#9CA3AF;">Début :</span>
+          <div style="color:#E8E9ED;margin-top:2px;">{{ new Date(rdv.gardiennage_debut_at || rdv.gardiennageDebutAt).toLocaleString('fr-FR') }}</div>
+        </div>
+        <div>
+          <span style="color:#9CA3AF;">Motif :</span>
+          <div style="color:#E8E9ED;margin-top:2px;">{{ rdv.gardiennage_motif || rdv.gardiennageMotif || '—' }}</div>
+        </div>
+        <div v-if="gardiennageMontant">
+          <span style="color:#9CA3AF;">Montant estimé :</span>
+          <div style="color:#FFD200;margin-top:2px;font-weight:700;">{{ formatCurrency(Number(gardiennageMontant.montant)) }}</div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="loadGardiennageMontant">🔄 Recalculer</button>
+      </div>
+      <div v-else>
+        <p style="font-size:12px;color:#9CA3AF;margin-bottom:10px;">Le véhicule peut être placé en gardiennage (non-récupération).</p>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input v-model="gardiennageMotif" class="form-input" placeholder="Motif (ex: non-récupération)" style="flex:1;" />
+          <button class="btn btn-primary" style="font-size:12px;" @click="triggerGardiennage" :disabled="triggeringGardiennage">
+            {{ triggeringGardiennage ? '…' : '🏪 Déclencher' }}
+          </button>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Actions -->
     <UCard style="margin-bottom:20px;">
       <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">⚡ Actions</span></template>
@@ -411,6 +565,22 @@
         <span v-if="!availableTransitions.length" style="color:#6B7280;font-size:13px;">Aucune action disponible</span>
       </div>
     </UCard>
+
+    <!-- Modal rectifier OR -->
+    <AppModal :open="showRectifierModal" @update:open="showRectifierModal = $event">
+      <template #header><div style="font-weight:700;color:#FCA5A5;">Rectifier l'ordre de réparation</div></template>
+      <p style="font-size:13px;color:#D1D5DB;margin-bottom:12px;">Une nouvelle version rectifiée de l'OR sera créée. L'ancien reste archivé (traçabilité légale).</p>
+      <div class="form-group">
+        <label class="form-label">Motif de la rectification *</label>
+        <textarea v-model="rectifierMotif" class="form-input" rows="3" placeholder="Ex: Erreur de montant HT / prestation oubliée"></textarea>
+      </div>
+      <template #footer>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost" @click="showRectifierModal = false">Annuler</button>
+          <button class="btn btn-primary" :disabled="!rectifierMotif || rectifying" @click="doRectifierOr">{{ rectifying ? '…' : '♻️ Rectifier' }}</button>
+        </div>
+      </template>
+    </AppModal>
   </div>
 </template>
 
@@ -895,4 +1065,213 @@ onMounted(async () => {
   if (ordre.value?.signature_atelier) atelierSignature.value = ordre.value.signature_atelier
   loading.value = false
 })
+
+// ── LOT 2 : Intégrité & Rectification ──
+const integrityResult = ref<any>(null)
+const verifyingIntegrity = ref(false)
+const showRectifierModal = ref(false)
+const rectifierMotif = ref('')
+const rectifying = ref(false)
+
+async function verifyIntegrity() {
+  if (!ordre.value?.id) return
+  verifyingIntegrity.value = true
+  try {
+    integrityResult.value = await api.get(`/or/${ordre.value.id}/verify-integrity`)
+    toast.add({
+      title: integrityResult.value.integrity_ok ? 'Intégrité OK' : 'Altération détectée',
+      description: integrityResult.value.message,
+      color: integrityResult.value.integrity_ok ? 'success' : 'error',
+    })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } finally {
+    verifyingIntegrity.value = false
+  }
+}
+
+async function doRectifierOr() {
+  if (!ordre.value?.id || !rectifierMotif.value.trim()) return
+  rectifying.value = true
+  try {
+    const res = await api.post(`/or/${ordre.value.id}/rectifier`, { motif: rectifierMotif.value })
+    toast.add({ title: 'OR rectifié', description: `Nouveau n° ${res.numero_or}`, color: 'success' })
+    showRectifierModal.value = false
+    rectifierMotif.value = ''
+    await navigateTo(`/ordres/${res.rectified_or_id}`)
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } finally {
+    rectifying.value = false
+  }
+}
+
+// ── LOT 2 : Photos typées ──
+const PHOTO_TYPES = [
+  { value: 'reception', label: 'Réception' },
+  { value: 'avant_travaux', label: 'Avant travaux' },
+  { value: 'en_cours', label: 'En cours' },
+  { value: 'apres_travaux', label: 'Après travaux' },
+  { value: 'restitution', label: 'Restitution' },
+  { value: 'probleme', label: 'Problème' },
+]
+const photos = ref<any[]>([])
+const photoUploadType = ref('en_cours')
+const uploadingPhoto = ref(false)
+
+const photosByType = computed(() => {
+  const map: Record<string, any[]> = {}
+  for (const p of photos.value) {
+    const t = p.type || 'autre'
+    if (!map[t]) map[t] = []
+    map[t].push(p)
+  }
+  return PHOTO_TYPES.map(t => ({ type: t.value, photos: map[t.value] || [] })).filter(g => g.photos.length)
+})
+
+function photoTypeLabel(t: string): string {
+  return PHOTO_TYPES.find(x => x.value === t)?.label || t
+}
+
+function photoUrl(p: any): string {
+  return p.url?.startsWith('http') ? p.url : `/api${p.url || `/photos/file/${p.filename}`}`
+}
+
+async function loadPhotos() {
+  if (!rdv.value?.id) return
+  try {
+    photos.value = await api.get(`/photos/rdv/${rdv.value.id}`)
+  } catch { photos.value = [] }
+}
+
+async function handlePhotoUpload(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  if (!files.length || !rdv.value?.id) return
+  uploadingPhoto.value = true
+  try {
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('photo', file)
+      fd.append('rendez_vous_id', String(rdv.value.id))
+      fd.append('type', photoUploadType.value)
+      await api.post('/photos/upload', fd)
+    }
+    toast.add({ title: `${files.length} photo(s) uploadée(s)`, color: 'success' })
+    await loadPhotos()
+  } catch (err: any) {
+    toast.add({ title: 'Erreur upload', description: err?.message, color: 'error' })
+  } finally {
+    uploadingPhoto.value = false
+    input.value = ''
+  }
+}
+
+// ── LOT 9 : Commandes de pièces ──
+const commandesPieces = ref<any[]>([])
+const showCommandeForm = ref(false)
+const savingCommande = ref(false)
+const newCommande = reactive({
+  reference: '',
+  designation: '',
+  quantite: 1 as number,
+  fournisseur: '',
+  dateLivraisonEstimee: '',
+  prixAchat: null as number | null,
+  prixVente: null as number | null,
+})
+
+async function loadCommandesPieces() {
+  if (!rdv.value?.id) return
+  try {
+    commandesPieces.value = await api.get(`/rdv/${rdv.value.id}/commandes-pieces`)
+  } catch { commandesPieces.value = [] }
+}
+
+async function submitCommande() {
+  if (!rdv.value?.id || !newCommande.designation || !newCommande.reference) return
+  savingCommande.value = true
+  try {
+    await api.post(`/rdv/${rdv.value.id}/commandes-pieces`, {
+      reference: newCommande.reference,
+      designation: newCommande.designation,
+      quantite: newCommande.quantite,
+      fournisseur: newCommande.fournisseur || undefined,
+      dateLivraisonEstimee: newCommande.dateLivraisonEstimee || undefined,
+      prixAchat: newCommande.prixAchat !== null ? String(newCommande.prixAchat) : undefined,
+      prixVente: newCommande.prixVente !== null ? String(newCommande.prixVente) : undefined,
+      ordreReparationId: ordre.value?.id,
+    })
+    toast.add({ title: 'Commande créée', color: 'success' })
+    showCommandeForm.value = false
+    Object.assign(newCommande, { reference: '', designation: '', quantite: 1, fournisseur: '', dateLivraisonEstimee: '', prixAchat: null, prixVente: null })
+    await loadCommandesPieces()
+    await loadData()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } finally {
+    savingCommande.value = false
+  }
+}
+
+async function markCommandeRecue(id: number) {
+  try {
+    const res = await api.post(`/commandes-pieces/${id}/recue`, {})
+    toast.add({ title: 'Marquée reçue', description: res.allReceived ? 'Toutes les pièces sont là — reprise possible.' : '', color: 'success' })
+    await loadCommandesPieces()
+    await loadData()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  }
+}
+
+function commandeStatusLabel(s: string): string {
+  return { en_attente: 'En attente', commandee: 'Commandée', recue: 'Reçue', installee: 'Installée', annulee: 'Annulée', retour_fournisseur: 'Retour four.' }[s] || s
+}
+
+function commandeStatusStyle(s: string) {
+  return {
+    en_attente: 'background:rgba(251,191,36,0.14);color:#FCD34D;',
+    commandee: 'background:rgba(147,197,253,0.14);color:#93C5FD;',
+    recue: 'background:rgba(16,185,129,0.14);color:#6EE7B7;',
+    installee: 'background:rgba(16,185,129,0.18);color:#10B981;',
+    annulee: 'background:rgba(156,163,175,0.14);color:#9CA3AF;',
+    retour_fournisseur: 'background:rgba(239,68,68,0.14);color:#FCA5A5;',
+  }[s] || 'background:rgba(255,255,255,0.06);color:#9CA3AF;'
+}
+
+// ── LOT 9 : Gardiennage ──
+const gardiennageMotif = ref('Non-récupération du véhicule')
+const triggeringGardiennage = ref(false)
+const gardiennageMontant = ref<any>(null)
+
+async function triggerGardiennage() {
+  if (!rdv.value?.id) return
+  triggeringGardiennage.value = true
+  try {
+    await api.post(`/rdv/${rdv.value.id}/declencher-gardiennage`, { motif: gardiennageMotif.value })
+    toast.add({ title: 'Gardiennage déclenché', color: 'success' })
+    await loadData()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } finally {
+    triggeringGardiennage.value = false
+  }
+}
+
+async function loadGardiennageMontant() {
+  if (!rdv.value?.id) return
+  try {
+    gardiennageMontant.value = await api.get(`/rdv/${rdv.value.id}/gardiennage-montant`)
+  } catch { gardiennageMontant.value = null }
+}
+
+// Watch rdv load for additional data
+watch(() => rdv.value?.id, async (id) => {
+  if (!id) return
+  await Promise.all([loadPhotos(), loadCommandesPieces()])
+  if (rdv.value?.gardiennage_debut_at || rdv.value?.gardiennageDebutAt) {
+    await loadGardiennageMontant()
+  }
+}, { immediate: false })
 </script>

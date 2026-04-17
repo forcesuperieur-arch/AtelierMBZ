@@ -1,17 +1,13 @@
 <?php
 namespace App\Controller;
 
-use App\Entity\AnnulationRdv;
 use App\Entity\Client;
-use App\Entity\DemandeTravauxSupp;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
-use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\AuditService;
-use App\Service\PhotoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,7 +24,6 @@ class RendezVousController extends AbstractController
         private WorkflowInterface $rendezVousStateMachine,
         private AuditService $audit,
         private SerializerInterface $serializer,
-        private PhotoService $photoService,
     ) {}
 
     /**
@@ -73,14 +68,8 @@ class RendezVousController extends AbstractController
             $this->em->persist($vehicule);
         }
 
-        $currentUser = $this->getUser();
-        $atelierId = method_exists($currentUser, 'getAtelierId') ? $currentUser->getAtelierId() : null;
-
         $rdv = new RendezVous();
         $rdv->setClient($client);
-        if ($atelierId !== null) {
-            $rdv->setAtelierId($atelierId);
-        }
         if ($vehicule) $rdv->setVehicule($vehicule);
         $rdv->setDateRdv(new \DateTime($data['date_rdv'] ?? 'today'));
         $rdv->setHeureRdv(new \DateTime($data['heure_debut'] ?? $data['heure_rdv'] ?? '09:00'));
@@ -91,7 +80,7 @@ class RendezVousController extends AbstractController
 
         if (!empty($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont && ($atelierId === null || $pont->getAtelierId() === $atelierId)) {
+            if ($pont) {
                 $rdv->setPont($pont);
                 if ($pont->getMecanicien()) {
                     $rdv->setMecanicien($pont->getMecanicien());
@@ -100,9 +89,7 @@ class RendezVousController extends AbstractController
         }
         if (!empty($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
-            if ($meca && ($atelierId === null || $meca->getAtelierId() === $atelierId)) {
-                $rdv->setMecanicien($meca);
-            }
+            if ($meca) $rdv->setMecanicien($meca);
         }
 
         $this->em->persist($rdv);
@@ -127,8 +114,6 @@ class RendezVousController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
-
         $data = json_decode($request->getContent(), true) ?? [];
         $transitionName = $transition;
 
@@ -138,7 +123,7 @@ class RendezVousController extends AbstractController
                 $this->rendezVousStateMachine->getEnabledTransitions($rdv)
             );
             return $this->json([
-                'error' => 'Transition not allowed from current status',
+                'error' => "Transition '$transitionName' not allowed from status '{$rdv->getStatut()}'",
                 'allowed_transitions' => $enabledTransitions,
             ], Response::HTTP_CONFLICT);
         }
@@ -148,15 +133,11 @@ class RendezVousController extends AbstractController
             $rdv->setKilometrage($data['kilometrage']);
         }
         if ($transitionName === 'reception' && isset($data['etat_vehicule'])) {
-            $etatVehicule = is_array($data['etat_vehicule']) ? $data['etat_vehicule'] : json_decode($data['etat_vehicule'], true);
-            if ($etatVehicule === null && json_last_error() !== JSON_ERROR_NONE) {
-                return $this->json(['error' => 'Invalid etat_vehicule JSON'], Response::HTTP_BAD_REQUEST);
-            }
-            $rdv->setEtatVehicule(json_encode($etatVehicule));
+            $rdv->setEtatVehicule(is_array($data['etat_vehicule']) ? json_encode($data['etat_vehicule']) : $data['etat_vehicule']);
         }
         if (isset($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
-            if ($pont && $pont->getAtelierId() === $rdv->getAtelierId()) {
+            if ($pont) {
                 $rdv->setPont($pont);
                 if ($pont->getMecanicien()) {
                     $rdv->setMecanicien($pont->getMecanicien());
@@ -165,24 +146,7 @@ class RendezVousController extends AbstractController
         }
         if (isset($data['mecanicien_id'])) {
             $meca = $this->em->getRepository(Mecanicien::class)->find($data['mecanicien_id']);
-            if ($meca && $meca->getAtelierId() === $rdv->getAtelierId()) {
-                $rdv->setMecanicien($meca);
-            }
-        }
-
-        // LOT 2 — Block transitions without required photos
-        $missingPhotos = $this->photoService->requirePhotosForTransition($transitionName, $rdv);
-        if (!empty($missingPhotos)) {
-            return $this->json([
-                'error' => sprintf(
-                    'Photos manquantes : %d photo(s) de type "%s" requises (%d/%d)',
-                    $missingPhotos['missing'],
-                    $missingPhotos['type'],
-                    $missingPhotos['current'],
-                    $missingPhotos['required']
-                ),
-                'missing_photos' => $missingPhotos,
-            ], Response::HTTP_BAD_REQUEST);
+            if ($meca) { $rdv->setMecanicien($meca); }
         }
 
         // Block reception without signed OR
@@ -213,62 +177,12 @@ class RendezVousController extends AbstractController
             $rdv->setHeureDebutTravail(new \DateTime());
         }
         if (in_array($transitionName, ['terminer', 'pause'])) {
-            // LOT 4.3 — Block terminer if a demande complémentaire is pending
-            if ($transitionName === 'terminer') {
-                $pendingDemande = $this->em->getRepository(DemandeTravauxSupp::class)->findOneBy([
-                    'rendezVous' => $rdv,
-                    'statut' => 'en_attente_decision_client',
-                ]);
-                if ($pendingDemande) {
-                    return $this->json([
-                        'error' => 'Demande complémentaire en attente de décision client',
-                        'demande_id' => $pendingDemande->getId(),
-                    ], Response::HTTP_CONFLICT);
-                }
-            }
-
             $rdv->setHeureFinTravail(new \DateTime());
             if ($rdv->getHeureDebutTravail()) {
                 $diff = $rdv->getHeureDebutTravail()->diff(new \DateTime());
                 $minutes = $diff->h * 60 + $diff->i;
                 $rdv->setTempsEffectifMinutes(($rdv->getTempsEffectifMinutes() ?? 0) + $minutes);
             }
-        }
-
-        // LOT 8 — Block restituer unless rapport signed by both
-        if ($transitionName === 'restituer') {
-            $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy(
-                ['rendezVous' => $rdv],
-                ['id' => 'DESC'],
-            );
-            if (!$rapport || !$rapport->isSignedByBoth()) {
-                return $this->json([
-                    'error' => 'Rapport d\'intervention signé par le mécanicien ET le client obligatoire avant restitution',
-                ], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
-        // LOT 3 — Require motif for annulation/no_show
-        if (in_array($transitionName, ['annuler', 'declarer_no_show'])) {
-            $motif = $data['motif'] ?? null;
-            if (!$motif || !in_array($motif, AnnulationRdv::MOTIFS, true)) {
-                return $this->json([
-                    'error' => 'Motif obligatoire pour annulation',
-                    'allowed_motifs' => AnnulationRdv::MOTIFS,
-                ], Response::HTTP_BAD_REQUEST);
-            }
-
-            $annulation = new AnnulationRdv();
-            $annulation->setRendezVous($rdv);
-            $annulation->setMotif($motif);
-            $annulation->setCommentaire($data['commentaire'] ?? null);
-            $annulation->setStatutAvantAnnulation($rdv->getStatut());
-            $annulation->setHeureRdvOriginal($rdv->getHeureRdv());
-            $annulation->setAtelierId($rdv->getAtelierId());
-            if ($user = $this->getUser()) {
-                $annulation->setAnnulePar($user->getId());
-            }
-            $this->em->persist($annulation);
         }
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
@@ -301,8 +215,6 @@ class RendezVousController extends AbstractController
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
-
-        $this->denyAccessUnlessGranted('ATELIER_ACCESS', $rdv);
 
         return $this->json([
             'statut' => $rdv->getStatut(),
