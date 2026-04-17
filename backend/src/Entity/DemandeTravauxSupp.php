@@ -26,7 +26,36 @@ class DemandeTravauxSupp
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])] private ?\DateTimeInterface $approvedAt = null;
     #[ORM\Column(nullable: true)] #[Groups(['demande:read'])] private ?int $approvedBy = null;
 
-    public function __construct() { $this->createdAt = new \DateTime(); }
+    // LOT 4 — new fields
+    #[ORM\Column(length: 64, unique: true)] #[Groups(['demande:read'])]
+    private string $tokenValidation;
+
+    #[ORM\Column(type: 'json')] #[Groups(['demande:read'])]
+    private array $prestationsChoisies = [];
+
+    #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read'])]
+    private ?string $photosJustificatives = null;
+
+    #[ORM\Column(length: 45, nullable: true)]
+    private ?string $decisionIp = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $decisionUserAgent = null;
+
+    #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read'])]
+    private ?string $signatureClient = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])]
+    private ?\DateTimeInterface $signedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: OrdreReparation::class)] #[ORM\JoinColumn(name: 'or_complementaire_id', nullable: true)]
+    #[Groups(['demande:read'])]
+    private ?OrdreReparation $orComplementaire = null;
+
+    public function __construct() {
+        $this->createdAt = new \DateTime();
+        $this->tokenValidation = bin2hex(random_bytes(32));
+    }
 
     public function getId(): ?int { return $this->id; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
@@ -53,4 +82,22 @@ class DemandeTravauxSupp
     public function setApprovedAt(?\DateTimeInterface $v): static { $this->approvedAt = $v; return $this; }
     public function getApprovedBy(): ?int { return $this->approvedBy; }
     public function setApprovedBy(?int $v): static { $this->approvedBy = $v; return $this; }
+
+    // LOT 4 — new getters/setters
+    public function getTokenValidation(): string { return $this->tokenValidation; }
+    public function setTokenValidation(string $v): static { $this->tokenValidation = $v; return $this; }
+    public function getPrestationsChoisies(): array { return $this->prestationsChoisies; }
+    public function setPrestationsChoisies(array $v): static { $this->prestationsChoisies = $v; return $this; }
+    public function getPhotosJustificatives(): ?string { return $this->photosJustificatives; }
+    public function setPhotosJustificatives(?string $v): static { $this->photosJustificatives = $v; return $this; }
+    public function getDecisionIp(): ?string { return $this->decisionIp; }
+    public function setDecisionIp(?string $v): static { $this->decisionIp = $v; return $this; }
+    public function getDecisionUserAgent(): ?string { return $this->decisionUserAgent; }
+    public function setDecisionUserAgent(?string $v): static { $this->decisionUserAgent = $v; return $this; }
+    public function getSignatureClient(): ?string { return $this->signatureClient; }
+    public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
+    public function getSignedAt(): ?\DateTimeInterface { return $this->signedAt; }
+    public function setSignedAt(?\DateTimeInterface $v): static { $this->signedAt = $v; return $this; }
+    public function getOrComplementaire(): ?OrdreReparation { return $this->orComplementaire; }
+    public function setOrComplementaire(?OrdreReparation $v): static { $this->orComplementaire = $v; return $this; }
 }

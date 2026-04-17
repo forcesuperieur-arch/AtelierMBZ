@@ -2,6 +2,7 @@
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\DemandeTravauxSupp;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
@@ -177,6 +178,20 @@ class RendezVousController extends AbstractController
             $rdv->setHeureDebutTravail(new \DateTime());
         }
         if (in_array($transitionName, ['terminer', 'pause'])) {
+            // LOT 4.3 — Block terminer if a demande complémentaire is pending
+            if ($transitionName === 'terminer') {
+                $pendingDemande = $this->em->getRepository(DemandeTravauxSupp::class)->findOneBy([
+                    'rendezVous' => $rdv,
+                    'statut' => 'en_attente_decision_client',
+                ]);
+                if ($pendingDemande) {
+                    return $this->json([
+                        'error' => 'Demande complémentaire en attente de décision client',
+                        'demande_id' => $pendingDemande->getId(),
+                    ], Response::HTTP_CONFLICT);
+                }
+            }
+
             $rdv->setHeureFinTravail(new \DateTime());
             if ($rdv->getHeureDebutTravail()) {
                 $diff = $rdv->getHeureDebutTravail()->diff(new \DateTime());
