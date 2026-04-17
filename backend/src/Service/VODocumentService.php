@@ -51,33 +51,61 @@ class VODocumentService
         ?User $user = null,
         ?\DateTimeInterface $dateExpiration = null,
     ): VODocument {
-        $mimeType = $file->getMimeType() ?? $file->getClientMimeType();
-        if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
-            throw new \InvalidArgumentException('Type de fichier non autorisé. Formats acceptés : PDF, JPEG, PNG, WebP.');
+        $uploadDir = $this->projectDir . '/public/uploads/vo';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
         }
+
+        $mimeType = $file->getMimeType() ?? $file->getClientMimeType() ?? 'application/octet-stream';
+        $this->assertAllowedMimeType($mimeType);
+
+        $safeFilename = bin2hex(random_bytes(16)) . '.' . ($file->guessExtension() ?? 'bin');
+        $file->move($uploadDir, $safeFilename);
+
+        return $this->createDocumentRecord(
+            type: $type,
+            filePath: '/uploads/vo/' . $safeFilename,
+            originalFilename: $file->getClientOriginalName(),
+            mimeType: $mimeType,
+            purchase: $purchase,
+            depot: $depot,
+            user: $user,
+            dateExpiration: $dateExpiration,
+        );
+    }
+
+    public function storeRawContent(
+        string $content,
+        string $originalFilename,
+        string $mimeType,
+        string $type,
+        ?VOPurchase $purchase = null,
+        ?VODepotVente $depot = null,
+        ?User $user = null,
+        ?\DateTimeInterface $dateExpiration = null,
+    ): VODocument {
+        $this->assertAllowedMimeType($mimeType);
 
         $uploadDir = $this->projectDir . '/public/uploads/vo';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
 
-        $safeFilename = bin2hex(random_bytes(16)) . '.' . ($file->guessExtension() ?? 'bin');
-        $file->move($uploadDir, $safeFilename);
+        $extension = $this->guessExtensionFromMimeType($mimeType);
+        $safeFilename = bin2hex(random_bytes(16)) . '.' . $extension;
+        $destination = $uploadDir . '/' . $safeFilename;
+        file_put_contents($destination, $content);
 
-        $doc = new VODocument();
-        $doc->setType($type);
-        $doc->setFilePath('/uploads/vo/' . $safeFilename);
-        $doc->setOriginalFilename($file->getClientOriginalName());
-        $doc->setMimeType($mimeType);
-        $doc->setVoPurchase($purchase);
-        $doc->setVoDepotVente($depot);
-        $doc->setDateExpiration($dateExpiration);
-        $doc->setUploadedBy($user);
-        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId());
-
-        $this->em->persist($doc);
-
-        return $doc;
+        return $this->createDocumentRecord(
+            type: $type,
+            filePath: '/uploads/vo/' . $safeFilename,
+            originalFilename: $originalFilename,
+            mimeType: $mimeType,
+            purchase: $purchase,
+            depot: $depot,
+            user: $user,
+            dateExpiration: $dateExpiration,
+        );
     }
 
     public function archiveGeneratedPdf(
@@ -220,5 +248,48 @@ class VODocumentService
         }
 
         return $alerts;
+    }
+
+    private function assertAllowedMimeType(string $mimeType): void
+    {
+        if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
+            throw new \InvalidArgumentException('Type de fichier non autorise. Formats acceptes : PDF, JPEG, PNG, WebP.');
+        }
+    }
+
+    private function guessExtensionFromMimeType(string $mimeType): string
+    {
+        return match ($mimeType) {
+            'application/pdf' => 'pdf',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+    }
+
+    private function createDocumentRecord(
+        string $type,
+        string $filePath,
+        string $originalFilename,
+        string $mimeType,
+        ?VOPurchase $purchase = null,
+        ?VODepotVente $depot = null,
+        ?User $user = null,
+        ?\DateTimeInterface $dateExpiration = null,
+    ): VODocument {
+        $doc = new VODocument();
+        $doc->setType($type);
+        $doc->setFilePath($filePath);
+        $doc->setOriginalFilename($originalFilename);
+        $doc->setMimeType($mimeType);
+        $doc->setVoPurchase($purchase);
+        $doc->setVoDepotVente($depot);
+        $doc->setDateExpiration($dateExpiration);
+        $doc->setUploadedBy($user);
+        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId());
+
+        $this->em->persist($doc);
+
+        return $doc;
     }
 }

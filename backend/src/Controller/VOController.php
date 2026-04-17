@@ -11,6 +11,7 @@ use App\Entity\VOFacture;
 use App\Entity\VOLivrePolice;
 use App\Entity\VOPurchase;
 use App\Service\PdfService;
+use App\Service\VOCompanionWorkflowService;
 use App\Service\VODocumentService;
 use App\Service\VOLivrePoliceService;
 use App\Service\VOMarginService;
@@ -34,6 +35,7 @@ class VOController extends AbstractController
         private VOMarginService $marginService,
         private VOLivrePoliceService $livrePoliceService,
         private VODocumentService $documentService,
+        private VOCompanionWorkflowService $companionWorkflowService,
         private SerializerInterface $serializer,
         private VONumberingService $numberingService,
     ) {}
@@ -86,17 +88,28 @@ class VOController extends AbstractController
 
         $missingDocuments = $this->documentService->getMissingDocuments($purchase);
         $confirmationMissingDocuments = array_values(array_diff($missingDocuments, [VODocument::TYPE_PV_RACHAT]));
+        $tokenUpdated = $this->companionWorkflowService->ensureToken($purchase);
         $documents = $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']);
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+        $companionSteps = $this->companionWorkflowService->buildSteps($purchase, $documents);
+
+        if ($tokenUpdated) {
+            $this->em->flush();
+        }
 
         $data = $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']);
         $data['margin'] = $purchase->getMargin();
         $data['totalFre'] = $purchase->getTotalFre();
         $data['missingDocuments'] = $missingDocuments;
         $data['confirmationMissingDocuments'] = $confirmationMissingDocuments;
-        $data['canConfirm'] = count($confirmationMissingDocuments) === 0 && $purchase->getStatus() === 'brouillon';
+        $data['confirmationMissingCompanionSteps'] = $this->extractIncompleteCompanionSteps($companionSteps);
+        $data['canConfirm'] = count($confirmationMissingDocuments) === 0
+            && $data['confirmationMissingCompanionSteps'] === []
+            && $purchase->getStatus() === 'brouillon';
         $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
+        $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($purchase);
+        $data['companion'] = $this->buildCompanionData($purchase, $documents, $companionSteps);
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -305,9 +318,15 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
+        $tokenUpdated = $this->companionWorkflowService->ensureToken($depot);
         $documents = $this->em->getRepository(VODocument::class)->findBy(['voDepotVente' => $depot], ['uploadedAt' => 'DESC']);
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
         $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
+        $companionSteps = $this->companionWorkflowService->buildSteps($depot, $documents);
+
+        if ($tokenUpdated) {
+            $this->em->flush();
+        }
 
         $data = $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
         $data['commissionAmount'] = $depot->getCommissionAmount();
@@ -317,8 +336,10 @@ class VOController extends AbstractController
         $data['mandatExpire'] = $depot->isMandatExpire();
         $data['joursRestants'] = $depot->getJoursRestantsMandat();
         $data['missingDocuments'] = $missingDocuments;
-        $data['canSell'] = $depot->getStatus() === 'actif';
+        $data['canSell'] = $depot->getStatus() === 'actif' && $companionSteps['allComplete'];
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
+        $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($depot);
+        $data['companion'] = $this->buildCompanionData($depot, $documents, $companionSteps);
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -1159,6 +1180,33 @@ class VOController extends AbstractController
             'total_depots' => count($depots),
             'total' => count($items),
         ];
+    }
+
+    private function buildCompanionData(VOPurchase|VODepotVente $record, array $documents, array $steps): array
+    {
+        return [
+            'mode' => $this->companionWorkflowService->getMode($record),
+            'partyRole' => $this->companionWorkflowService->getPartyRoleLabel($record),
+            'publicPath' => $record->getCompanionPublicPath(),
+            'expiresAt' => $record->getCompanionTokenExpiresAt()?->format(DATE_ATOM),
+            'signedAt' => $record->getCompanionSignedAt()?->format(DATE_ATOM),
+            'steps' => $steps,
+            'generatedDocuments' => $this->companionWorkflowService->getGeneratedDocuments($record),
+            'documentsCount' => count($documents),
+        ];
+    }
+
+    private function extractIncompleteCompanionSteps(array $steps): array
+    {
+        $labels = [];
+
+        foreach (['seller', 'vehicle', 'documents', 'signature'] as $key) {
+            if (($steps[$key]['completed'] ?? false) === false) {
+                $labels[] = (string) ($steps[$key]['label'] ?? $key);
+            }
+        }
+
+        return $labels;
     }
 
     private function inTransaction(callable $operation): mixed

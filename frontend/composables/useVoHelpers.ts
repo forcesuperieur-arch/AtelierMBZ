@@ -15,6 +15,8 @@ export function useVoHelpers() {
     facture_vo: 'Facture VO',
     pv_rachat: 'PV de rachat',
     notice_garantie: 'Notice de garantie',
+    signature_client: 'Signature client',
+    photo_vehicule: 'Photo véhicule',
     autre: 'Autre',
   }
 
@@ -149,6 +151,13 @@ export function useVoHelpers() {
     return `${apiBase}${filePath.startsWith('/') ? filePath : `/${filePath}`}`
   }
 
+  function buildQrCodeUrl(targetUrl: string | null | undefined, size = 220) {
+    const normalized = String(targetUrl || '').trim()
+    if (!normalized) return ''
+
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(normalized)}`
+  }
+
   function purchaseStatusLabel(status: string) {
     return purchaseStatusLabels[status] || status
   }
@@ -172,6 +181,7 @@ export function useVoHelpers() {
     createQuickVehicule,
     documentLabel,
     buildVoDocumentUrl,
+    buildQrCodeUrl,
     purchaseStatusLabel,
     depotStatusLabel,
   }

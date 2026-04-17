@@ -21,6 +21,7 @@
         .signatures { margin-top: 40px; display: table; width: 100%; }
         .sig-col { display: table-cell; width: 50%; text-align: center; }
         .sig-line { border-top: 1px solid #333; width: 200px; margin: 40px auto 5px; }
+        .sig-image { display: block; max-width: 180px; max-height: 80px; margin: 10px auto 5px; }
         .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
     </style>
 </head>
@@ -115,6 +116,9 @@
 
     <div class="signatures">
         <div class="sig-col">
+            {% if companion_signature %}
+            <img src="{{ companion_signature }}" alt="Signature vendeur" class="sig-image">
+            {% endif %}
             <div class="sig-line"></div>
             <p>Le Vendeur<br>Lu et approuvé</p>
         </div>

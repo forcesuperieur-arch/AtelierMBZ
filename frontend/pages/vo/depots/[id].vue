@@ -8,7 +8,7 @@
       </div>
       <div class="vo-header-actions">
         <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
-        <button v-if="detail?.status === 'actif'" class="topbar-new-btn" @click="showSale = true">Vendre</button>
+        <button v-if="detail?.status === 'actif'" class="topbar-new-btn" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
       </div>
     </div>
 
@@ -60,6 +60,11 @@
           :documents="detail.documents || []"
           :missing-documents="detail.missingDocuments || []"
           :reload-detail="loadDetail"
+        />
+
+        <VOCompanionCard
+          :companion="detail.companion"
+          :generated-documents="detail.generatedDocuments || []"
         />
 
         <UCard v-if="detail.livrePolice">
@@ -163,6 +168,11 @@
           <template #header>
             <div class="vo-card-title">Actions mandat</div>
           </template>
+
+          <div v-if="!detail.canSell && detail.companion?.steps && !detail.companion.steps.allComplete" class="vo-warning-box">
+            <strong>Vente verrouillée</strong>
+            <span>Le contrat PDA doit être finalisé avant de vendre le véhicule.</span>
+          </div>
 
           <div class="vo-form-grid">
             <label class="vo-field">
@@ -293,6 +303,14 @@ const mandateState = computed(() => {
 
   if (detail.value.mandatExpire) {
     return { tone: 'warning', label: 'Mandat expiré', text: 'Le mandat doit être prolongé ou le véhicule restitué.' }
+  }
+
+  if (detail.value.companion?.steps && !detail.value.companion.steps.allComplete) {
+    return {
+      tone: 'warning',
+      label: 'Parcours PDA à finir',
+      text: 'Le contrat, les pièces et la signature déposant doivent être validés avant la vente.',
+    }
   }
 
   if (Number(detail.value.joursRestants ?? 999) <= 7) {

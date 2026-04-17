@@ -1,0 +1,360 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Vehicule;
+use App\Entity\VODepotVente;
+use App\Entity\VODocument;
+use App\Entity\VOPurchase;
+use App\Service\VODocumentService;
+use App\Service\VOCompanionWorkflowService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Serializer\SerializerInterface;
+
+#[Route('/api/public/vo-companion')]
+class PublicVoCompanionController extends AbstractController
+{
+    public function __construct(
+        private EntityManagerInterface $em,
+        private SerializerInterface $serializer,
+        private VODocumentService $documentService,
+        private VOCompanionWorkflowService $workflowService,
+    ) {}
+
+    #[Route('/{token}', methods: ['GET'])]
+    public function show(string $token): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->buildPayload($context['record'], $context['documents']));
+    }
+
+    #[Route('/{token}/seller', methods: ['POST'])]
+    public function saveSeller(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $record = $context['record'];
+        $files = $this->extractFiles($request, ['files', 'file']);
+
+        if ($record instanceof VOPurchase) {
+            if ($request->request->has('idType')) {
+                $record->setSellerIdType($this->nullableString($request->request->get('idType')));
+            }
+            if ($request->request->has('idNumber')) {
+                $record->setSellerIdNumber($this->nullableString($request->request->get('idNumber')));
+            }
+            if ($request->request->get('idDate')) {
+                $record->setSellerIdDate(new \DateTime((string) $request->request->get('idDate')));
+            }
+        } else {
+            if ($request->request->has('idType')) {
+                $record->setDeposantIdType($this->nullableString($request->request->get('idType')));
+            }
+            if ($request->request->has('idNumber')) {
+                $record->setDeposantIdNumber($this->nullableString($request->request->get('idNumber')));
+            }
+            if ($request->request->get('idDate')) {
+                $record->setDeposantIdDate(new \DateTime((string) $request->request->get('idDate')));
+            }
+        }
+
+        foreach ($files as $file) {
+            $this->documentService->upload(
+                $file,
+                VODocument::TYPE_PIECE_IDENTITE,
+                $record instanceof VOPurchase ? $record : null,
+                $record instanceof VODepotVente ? $record : null,
+            );
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($record, $this->loadDocuments($record)));
+    }
+
+    #[Route('/{token}/vehicle-document', methods: ['POST'])]
+    public function saveVehicleDocument(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $files = $this->extractFiles($request, ['files', 'file']);
+        if ($files === []) {
+            return $this->json(['error' => 'Document carte grise requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        foreach ($files as $file) {
+            $this->documentService->upload(
+                $file,
+                VODocument::TYPE_CARTE_GRISE,
+                $context['record'] instanceof VOPurchase ? $context['record'] : null,
+                $context['record'] instanceof VODepotVente ? $context['record'] : null,
+            );
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($context['record'], $this->loadDocuments($context['record'])));
+    }
+
+    #[Route('/{token}/vehicle-photo', methods: ['POST'])]
+    public function saveVehiclePhoto(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $files = $this->extractFiles($request, ['files', 'file']);
+        if ($files === []) {
+            return $this->json(['error' => 'Photo vehicule requise'], Response::HTTP_BAD_REQUEST);
+        }
+
+        foreach ($files as $file) {
+            $this->documentService->upload(
+                $file,
+                VODocument::TYPE_PHOTO_VEHICULE,
+                $context['record'] instanceof VOPurchase ? $context['record'] : null,
+                $context['record'] instanceof VODepotVente ? $context['record'] : null,
+            );
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($context['record'], $this->loadDocuments($context['record'])));
+    }
+
+    #[Route('/{token}/vehicle-data', methods: ['PUT'])]
+    public function saveVehicleData(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->applyVehiculePayload($context['record']->getVehicule(), $request->toArray());
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($context['record'], $this->loadDocuments($context['record'])));
+    }
+
+    #[Route('/{token}/document', methods: ['POST'])]
+    public function saveDocument(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $type = $this->nullableString($request->request->get('type'));
+        if ($type === null) {
+            return $this->json(['error' => 'Type de document requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $files = $this->extractFiles($request, ['files', 'file']);
+        if ($files === []) {
+            return $this->json(['error' => 'Document requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        foreach ($files as $file) {
+            $this->documentService->upload(
+                $file,
+                $type,
+                $context['record'] instanceof VOPurchase ? $context['record'] : null,
+                $context['record'] instanceof VODepotVente ? $context['record'] : null,
+            );
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($context['record'], $this->loadDocuments($context['record'])));
+    }
+
+    #[Route('/{token}/signature', methods: ['POST'])]
+    public function saveSignature(string $token, Request $request): JsonResponse
+    {
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $record = $context['record'];
+        $documents = $this->loadDocuments($record);
+        $steps = $this->workflowService->buildSteps($record, $documents);
+        if (!$steps['seller']['completed'] || !$steps['vehicle']['completed'] || !$steps['documents']['completed']) {
+            return $this->json([
+                'error' => 'Completez les etapes vendeur, vehicule et documents avant la signature.',
+                'steps' => $steps,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $signature = trim((string) ($payload['signature'] ?? ''));
+        if (!str_starts_with($signature, 'data:image/')) {
+            return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $content = preg_replace('#^data:image/[^;]+;base64,#', '', $signature);
+        $binary = base64_decode($content ?: '', true);
+        if ($binary === false) {
+            return $this->json(['error' => 'Signature impossible a decoder'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $existingSignature = $this->em->getRepository(VODocument::class)->findOneBy([
+            'type' => VODocument::TYPE_SIGNATURE_CLIENT,
+            'voPurchase' => $record instanceof VOPurchase ? $record : null,
+            'voDepotVente' => $record instanceof VODepotVente ? $record : null,
+        ]);
+        if ($existingSignature === null) {
+            $this->documentService->storeRawContent(
+                $binary,
+                sprintf('signature-%s-%d.png', $this->workflowService->getMode($record), $record->getId()),
+                'image/png',
+                VODocument::TYPE_SIGNATURE_CLIENT,
+                $record instanceof VOPurchase ? $record : null,
+                $record instanceof VODepotVente ? $record : null,
+            );
+        }
+
+        $record->setCompanionSignatureData($signature);
+        $record->setCompanionSignedAt(new \DateTimeImmutable());
+        $this->em->flush();
+
+        return $this->json($this->buildPayload($record, $this->loadDocuments($record)));
+    }
+
+    private function findContextByToken(string $token): ?array
+    {
+        if (strlen($token) < 16) {
+            return null;
+        }
+
+        $purchase = $this->em->getRepository(VOPurchase::class)->findOneBy(['companionToken' => $token]);
+        if ($purchase instanceof VOPurchase && !$purchase->isCompanionTokenExpired()) {
+            return ['record' => $purchase, 'documents' => $this->loadDocuments($purchase)];
+        }
+
+        $depot = $this->em->getRepository(VODepotVente::class)->findOneBy(['companionToken' => $token]);
+        if ($depot instanceof VODepotVente && !$depot->isCompanionTokenExpired()) {
+            return ['record' => $depot, 'documents' => $this->loadDocuments($depot)];
+        }
+
+        return null;
+    }
+
+    private function extractFiles(Request $request, array $keys): array
+    {
+        $files = [];
+
+        foreach ($keys as $key) {
+            $candidate = $request->files->get($key);
+            if ($candidate === null) {
+                continue;
+            }
+
+            if (is_array($candidate)) {
+                foreach ($candidate as $file) {
+                    if ($file !== null) {
+                        $files[] = $file;
+                    }
+                }
+            } else {
+                $files[] = $candidate;
+            }
+        }
+
+        return $files;
+    }
+
+    private function loadDocuments(VOPurchase|VODepotVente $record): array
+    {
+        return $this->em->getRepository(VODocument::class)->findBy(
+            $record instanceof VOPurchase ? ['voPurchase' => $record] : ['voDepotVente' => $record],
+            ['uploadedAt' => 'DESC'],
+        );
+    }
+
+    private function buildPayload(VOPurchase|VODepotVente $record, array $documents): array
+    {
+        $mode = $this->workflowService->getMode($record);
+        $party = $this->workflowService->getParty($record);
+        $steps = $this->workflowService->buildSteps($record, $documents);
+
+        return [
+            'mode' => $mode,
+            'partyRole' => $this->workflowService->getPartyRoleLabel($record),
+            'dossier' => [
+                'id' => $record->getId(),
+                'status' => $record->getStatus(),
+                'publicPath' => $record->getCompanionPublicPath(),
+                'expiresAt' => $record->getCompanionTokenExpiresAt()?->format(DATE_ATOM),
+                'signedAt' => $record->getCompanionSignedAt()?->format(DATE_ATOM),
+                'generatedDocuments' => $this->workflowService->getGeneratedDocuments($record),
+            ],
+            'party' => [
+                'prenom' => $party->getPrenom(),
+                'nom' => $party->getNom(),
+                'telephone' => $party->getTelephone(),
+                'email' => $party->getEmail(),
+                'adresse' => $party->getAdresse(),
+                'idType' => $record instanceof VOPurchase ? $record->getSellerIdType() : $record->getDeposantIdType(),
+                'idNumber' => $record instanceof VOPurchase ? $record->getSellerIdNumber() : $record->getDeposantIdNumber(),
+                'idDate' => ($record instanceof VOPurchase ? $record->getSellerIdDate() : $record->getDeposantIdDate())?->format('Y-m-d'),
+            ],
+            'vehicule' => $this->serializer->normalize($record->getVehicule(), null, ['groups' => 'vehicule:read']),
+            'documents' => $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']),
+            'steps' => $steps,
+        ];
+    }
+
+    private function applyVehiculePayload(Vehicule $vehicule, array $data): void
+    {
+        if (isset($data['marque'])) {
+            $vehicule->setMarque($this->nullableString($data['marque']));
+        }
+        if (isset($data['modele'])) {
+            $vehicule->setModele($this->nullableString($data['modele']));
+        }
+        if (isset($data['vin'])) {
+            $vin = $this->nullableString($data['vin']);
+            $vehicule->setVin($vin ? strtoupper(substr($vin, 0, 17)) : null);
+        }
+        if (isset($data['annee'])) {
+            $annee = (int) $data['annee'];
+            $vehicule->setAnnee($annee > 0 ? $annee : null);
+        }
+        if (isset($data['cylindree'])) {
+            $vehicule->setCylindree($this->nullableString($data['cylindree']));
+        }
+        if (isset($data['type_moto'])) {
+            $vehicule->setTypeMoto($this->nullableString($data['type_moto']));
+        }
+        if (isset($data['plaque'])) {
+            $plaque = $this->nullableString($data['plaque']);
+            if ($plaque !== null) {
+                $vehicule->setPlaque($plaque);
+            }
+        }
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $normalized = trim((string) ($value ?? ''));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+}
