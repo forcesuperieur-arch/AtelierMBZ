@@ -5,6 +5,7 @@ use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
 use App\Service\OrdreReparationPolicy;
+use App\Service\PrestationCatalogService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,6 +23,7 @@ class CompanionController extends AbstractController
         private SluggerInterface $slugger,
         private RateLimiterFactory $companionUploadLimiter,
         private OrdreReparationPolicy $orPolicy,
+        private PrestationCatalogService $catalogService,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
@@ -352,5 +354,46 @@ class CompanionController extends AbstractController
         $this->em->flush();
 
         return $this->json(['success' => true]);
+    }
+
+    #[Route('/{token}/prestations-disponibles', methods: ['GET'])]
+    public function getPrestationsDisponibles(string $token): JsonResponse
+    {
+        $rdv = $this->findRdvByToken($token);
+        if (!$rdv) {
+            return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
+        }
+
+        $vehicule = $rdv->getVehicule();
+        if (!$vehicule) {
+            return $this->json(['error' => 'Aucun véhicule lié au rendez-vous'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $applicable = $this->catalogService->getApplicablePrestations($vehicule);
+
+        $items = array_map(fn(array $entry) => [
+            'id' => $entry['prestation']->getId(),
+            'code' => $entry['prestation']->getCode(),
+            'libelle' => $entry['prestation']->getLibelle(),
+            'description' => $entry['prestation']->getDescription(),
+            'categorie' => $entry['prestation']->getCategorie(),
+            'prix_ht' => $entry['prix_ht'],
+            'prix_ttc' => $entry['prix_ttc'],
+            'temps_minutes' => $entry['temps_minutes'],
+            'mode' => $entry['mode'],
+            'garantie_jours' => $entry['prestation']->getGarantieJours(),
+            'necessite_essai' => $entry['prestation']->getNecessiteEssai(),
+        ], $applicable);
+
+        return $this->json([
+            'vehicule' => [
+                'plaque' => $vehicule->getPlaque(),
+                'marque' => $vehicule->getMarque(),
+                'modele' => $vehicule->getModele(),
+                'categorie' => $vehicule->getCategorie()?->getNom(),
+            ],
+            'prestations' => $items,
+            'count' => count($items),
+        ]);
     }
 }
