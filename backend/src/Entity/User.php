@@ -62,6 +62,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private int $isActive = 1;
 
+    #[ORM\ManyToOne(targetEntity: RoleMetier::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['user:read', 'user:write'])]
+    private ?RoleMetier $roleMetier = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['user:read'])]
     private \DateTimeInterface $createdAt;
@@ -95,9 +100,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRole(): string { return $this->role; }
     public function setRole(string $role): static { $this->role = $role; return $this; }
 
+    public function getRoleMetier(): ?RoleMetier { return $this->roleMetier; }
+    public function setRoleMetier(?RoleMetier $roleMetier): static { $this->roleMetier = $roleMetier; return $this; }
+
     public function getRoles(): array
     {
         $roles = ['ROLE_USER'];
+
+        // Legacy role mapping (backward compatibility)
         $roleMap = [
             'super_admin' => 'ROLE_SUPER_ADMIN',
             'admin' => 'ROLE_ADMIN',
@@ -113,6 +123,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->role === 'super_admin') {
             $roles[] = 'ROLE_ADMIN';
         }
+
+        // RoleMetier baseRole
+        if ($this->roleMetier !== null && $this->roleMetier->isActive()) {
+            $roles[] = $this->roleMetier->getBaseRole();
+        }
+
         return array_unique($roles);
     }
 

@@ -35,6 +35,11 @@
         <div class="admin-card-label">Rôles</div>
         <div class="admin-card-desc">CRUD des rôles et permissions</div>
       </div>
+      <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/roles-metier')">
+        <div class="admin-card-icon">🎭</div>
+        <div class="admin-card-label">Rôles métier</div>
+        <div class="admin-card-desc">Permissions paramétrables par module</div>
+      </div>
       <div class="admin-card" @click="navigateTo('/admin/audit')">
         <div class="admin-card-icon">🔍</div>
         <div class="admin-card-label">Audit</div>

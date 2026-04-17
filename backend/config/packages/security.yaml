@@ -33,11 +33,8 @@ security:
 
     role_hierarchy:
         ROLE_SUPER_ADMIN: [ROLE_ADMIN]
-        ROLE_ADMIN: [ROLE_USER, ROLE_VO_MANAGER]
-        ROLE_VO_MANAGER: [ROLE_USER]
-        ROLE_RECEPTIONNAIRE: [ROLE_USER]
-        ROLE_MECANICIEN: [ROLE_USER]
-        ROLE_COMPTABLE: [ROLE_USER]
+        ROLE_ADMIN: [ROLE_USER]
+        # Les rôles métier sont gérés dynamiquement via RoleMetier
 
 when@test:
     security:
