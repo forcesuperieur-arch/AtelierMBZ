@@ -29,7 +29,7 @@
           <UFormField label="Modèle"><UInput v-model="form.vehicule_modele" required /></UFormField>
           <UFormField label="Plaque"><UInput v-model="form.vehicule_plaque" required @blur="form.vehicule_plaque = form.vehicule_plaque.toUpperCase()" /></UFormField>
           <UFormField label="Type d'intervention">
-            <USelect v-model="form.type_intervention" :options="typeOptions" required />
+            <USelect v-model="form.type_intervention" :options="typeOptions" />
           </UFormField>
         </div>
       </div>
@@ -142,13 +142,13 @@
       </UFormField>
 
       <button type="submit" class="topbar-new-btn" :disabled="!canSubmit || submitting" style="width:100%;justify-content:center;padding:12px;font-size:14px;">
-        {{ submitting ? 'Envoi...' : 'Envoyer ma demande de créneau' }}
+        {{ submitting ? 'Envoi...' : 'Confirmer le rendez-vous' }}
       </button>
     </form>
 
     <div v-if="confirmation" style="margin-top:16px;padding:16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;text-align:center;">
       <div style="font-size:32px;margin-bottom:8px;">✅</div>
-      <p style="font-weight:600;color:#86EFAC;">Demande de créneau enregistrée</p>
+      <p style="font-weight:600;color:#86EFAC;">Rendez-vous confirmé</p>
       <p style="font-size:13px;color:#6EE7B7;margin-top:4px;">
         {{ confirmation.message || 'Une confirmation vous sera envoyée par email.' }}
       </p>

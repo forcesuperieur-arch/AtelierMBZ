@@ -163,6 +163,7 @@ x<template>
           <div
             v-for="p in prestations"
             :key="p.id"
+            data-testid="prestation-card"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;cursor:pointer;transition:all 0.15s;"
             :style="{
               background: selectedPrestas.includes(p.id) ? 'rgba(255,210,0,0.06)' : 'rgba(255,255,255,0.02)',
@@ -475,9 +476,6 @@ const vehicleMissingFields = computed(() => {
     ['vehicule_marque', 'marque'],
     ['vehicule_modele', 'modèle'],
     ['vehicule_plaque', 'plaque'],
-    ['vehicule_annee', 'année'],
-    ['vehicule_cylindree', 'cylindrée'],
-    ['vehicule_type', 'type moto'],
   ] as const
 
   return required

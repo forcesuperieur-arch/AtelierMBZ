@@ -21,6 +21,12 @@ framework:
                 - facture
                 - paye
                 - annule
+                # LOT 3 — new places
+                - en_attente_pieces
+                - en_attente_reprise
+                - en_gardiennage
+                - restitue_partiel
+                - no_show
             transitions:
                 reserver:
                     from: en_attente
@@ -41,7 +47,7 @@ framework:
                     from: termine
                     to: restitue
                 facturer:
-                    from: [termine, restitue]
+                    from: [termine, restitue, restitue_partiel]
                     to: facture
                 payer:
                     from: facture
@@ -49,3 +55,34 @@ framework:
                 annuler:
                     from: [en_attente, reserve, confirme]
                     to: annule
+                # LOT 3 — new transitions
+                declarer_no_show:
+                    from: confirme
+                    to: no_show
+                reporter:
+                    from: [confirme, no_show]
+                    to: en_attente
+                attendre_pieces:
+                    from: en_cours
+                    to: en_attente_pieces
+                reprendre_apres_pieces:
+                    from: en_attente_pieces
+                    to: en_cours
+                mettre_en_attente_reprise:
+                    from: en_cours
+                    to: en_attente_reprise
+                reprendre_demain:
+                    from: en_attente_reprise
+                    to: en_cours
+                passer_gardiennage:
+                    from: [termine, restitue_partiel]
+                    to: en_gardiennage
+                sortir_gardiennage:
+                    from: en_gardiennage
+                    to: restitue
+                restituer_partiel:
+                    from: termine
+                    to: restitue_partiel
+                retour_garantie:
+                    from: [restitue, paye]
+                    to: reception

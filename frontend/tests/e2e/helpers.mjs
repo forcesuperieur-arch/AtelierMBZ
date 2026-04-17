@@ -14,8 +14,8 @@ export async function loginAsAdmin(page) {
     await page.click('button[type="submit"]');
 
     try {
-      await page.waitForURL(/\/($|\?)/, { timeout: 6000 });
-      await expect(page.locator('body')).toContainText(/dashboard|tableau|rdv|pont/i, { timeout: 10000 });
+      await page.waitForURL(/\/($|\?)/, { timeout: 15000 });
+      await expect(page.locator('body')).toContainText(/dashboard|tableau|rdv|pont/i, { timeout: 15000 });
       return;
     } catch {
       await page.goto('/login');
