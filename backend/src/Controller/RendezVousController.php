@@ -1,14 +1,17 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\AnnulationRdv;
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\AuditService;
+use App\Service\PhotoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,6 +28,7 @@ class RendezVousController extends AbstractController
         private WorkflowInterface $rendezVousStateMachine,
         private AuditService $audit,
         private SerializerInterface $serializer,
+        private PhotoService $photoService,
     ) {}
 
     /**
@@ -150,6 +154,21 @@ class RendezVousController extends AbstractController
             if ($meca) { $rdv->setMecanicien($meca); }
         }
 
+        // LOT 2 — Block transitions without required photos
+        $missingPhotos = $this->photoService->requirePhotosForTransition($transitionName, $rdv);
+        if (!empty($missingPhotos)) {
+            return $this->json([
+                'error' => sprintf(
+                    'Photos manquantes : %d photo(s) de type "%s" requises (%d/%d)',
+                    $missingPhotos['missing'],
+                    $missingPhotos['type'],
+                    $missingPhotos['current'],
+                    $missingPhotos['required']
+                ),
+                'missing_photos' => $missingPhotos,
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         // Block reception without signed OR
         if ($transitionName === 'reception') {
             $ordreReception = $this->em->getRepository(OrdreReparation::class)->findOneBy(
@@ -198,6 +217,42 @@ class RendezVousController extends AbstractController
                 $minutes = $diff->h * 60 + $diff->i;
                 $rdv->setTempsEffectifMinutes(($rdv->getTempsEffectifMinutes() ?? 0) + $minutes);
             }
+        }
+
+        // LOT 8 — Block restituer unless rapport signed by both
+        if ($transitionName === 'restituer') {
+            $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy(
+                ['rendezVous' => $rdv],
+                ['id' => 'DESC'],
+            );
+            if (!$rapport || !$rapport->isSignedByBoth()) {
+                return $this->json([
+                    'error' => 'Rapport d\'intervention signé par le mécanicien ET le client obligatoire avant restitution',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        // LOT 3 — Require motif for annulation/no_show
+        if (in_array($transitionName, ['annuler', 'declarer_no_show'])) {
+            $motif = $data['motif'] ?? null;
+            if (!$motif || !in_array($motif, AnnulationRdv::MOTIFS, true)) {
+                return $this->json([
+                    'error' => 'Motif obligatoire pour annulation',
+                    'allowed_motifs' => AnnulationRdv::MOTIFS,
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $annulation = new AnnulationRdv();
+            $annulation->setRendezVous($rdv);
+            $annulation->setMotif($motif);
+            $annulation->setCommentaire($data['commentaire'] ?? null);
+            $annulation->setStatutAvantAnnulation($rdv->getStatut());
+            $annulation->setHeureRdvOriginal($rdv->getHeureRdv());
+            $annulation->setAtelierId($rdv->getAtelierId());
+            if ($user = $this->getUser()) {
+                $annulation->setAnnulePar($user->getId());
+            }
+            $this->em->persist($annulation);
         }
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);

@@ -158,6 +158,29 @@ class RendezVous
     #[ORM\OneToMany(targetEntity: PieceUtilisee::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
     private Collection $piecesUtilisees;
 
+    // LOT 9 — Stockage & Gardiennage
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private ?string $emplacementStockage = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photoStockageFilename = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $misEnStockageAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $misEnStockagePar = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $gardiennageDebutAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $gardiennageDebutPar = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $gardiennageMotif = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -226,4 +249,20 @@ class RendezVous
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
     public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }
+
+    // LOT 9 — Stockage & Gardiennage accessors
+    public function getEmplacementStockage(): ?string { return $this->emplacementStockage; }
+    public function setEmplacementStockage(?string $v): static { $this->emplacementStockage = $v; return $this; }
+    public function getPhotoStockageFilename(): ?string { return $this->photoStockageFilename; }
+    public function setPhotoStockageFilename(?string $v): static { $this->photoStockageFilename = $v; return $this; }
+    public function getMisEnStockageAt(): ?\DateTimeInterface { return $this->misEnStockageAt; }
+    public function setMisEnStockageAt(?\DateTimeInterface $v): static { $this->misEnStockageAt = $v; return $this; }
+    public function getMisEnStockagePar(): ?int { return $this->misEnStockagePar; }
+    public function setMisEnStockagePar(?int $v): static { $this->misEnStockagePar = $v; return $this; }
+    public function getGardiennageDebutAt(): ?\DateTimeInterface { return $this->gardiennageDebutAt; }
+    public function setGardiennageDebutAt(?\DateTimeInterface $v): static { $this->gardiennageDebutAt = $v; return $this; }
+    public function getGardiennageDebutPar(): ?int { return $this->gardiennageDebutPar; }
+    public function setGardiennageDebutPar(?int $v): static { $this->gardiennageDebutPar = $v; return $this; }
+    public function getGardiennageMotif(): ?string { return $this->gardiennageMotif; }
+    public function setGardiennageMotif(?string $v): static { $this->gardiennageMotif = $v; return $this; }
 }

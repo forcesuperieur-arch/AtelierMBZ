@@ -44,6 +44,16 @@ class ConfigAtelier
     #[ORM\Column(type: 'float', options: ['default' => 30.0])] #[Groups(['config:read', 'config:write'])] private float $accomptePourcentage = 30.0;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['config:read'])] private \DateTimeInterface $updatedAt;
 
+    // LOT 9 — Gardiennage & pièces config
+    #[ORM\Column(options: ['default' => 15])] #[Groups(['config:read', 'config:write'])] private int $delaiRelance1JoursOuvres = 15;
+    #[ORM\Column(options: ['default' => 30])] #[Groups(['config:read', 'config:write'])] private int $delaiRelance2JoursOuvres = 30;
+    #[ORM\Column(options: ['default' => 45])] #[Groups(['config:read', 'config:write'])] private int $delaiProposeGardiennageJoursOuvres = 45;
+    #[ORM\Column(options: ['default' => 180])] #[Groups(['config:read', 'config:write'])] private int $delaiProcedureAbandonJoursOuvres = 180;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '5.00'])] #[Groups(['config:read', 'config:write'])] private string $tarifGardiennageJournalier = '5.00';
+    #[ORM\Column(options: ['default' => 30])] #[Groups(['config:read', 'config:write'])] private int $garantieTravauxJours = 30;
+    #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $joursFermetureHebdo = ['sunday'];
+    #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $datesFermetureExceptionnelles = [];
+
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -100,4 +110,22 @@ class ConfigAtelier
     public function setValiditeDevisJours(int $v): static { $this->validiteDevisJours = $v; return $this; }
     public function getAccomptePourcentage(): float { return $this->accomptePourcentage; }
     public function setAccomptePourcentage(float $v): static { $this->accomptePourcentage = $v; return $this; }
+
+    // LOT 9 — Gardiennage & pièces accessors
+    public function getDelaiRelance1JoursOuvres(): int { return $this->delaiRelance1JoursOuvres; }
+    public function setDelaiRelance1JoursOuvres(int $v): static { $this->delaiRelance1JoursOuvres = $v; return $this; }
+    public function getDelaiRelance2JoursOuvres(): int { return $this->delaiRelance2JoursOuvres; }
+    public function setDelaiRelance2JoursOuvres(int $v): static { $this->delaiRelance2JoursOuvres = $v; return $this; }
+    public function getDelaiProposeGardiennageJoursOuvres(): int { return $this->delaiProposeGardiennageJoursOuvres; }
+    public function setDelaiProposeGardiennageJoursOuvres(int $v): static { $this->delaiProposeGardiennageJoursOuvres = $v; return $this; }
+    public function getDelaiProcedureAbandonJoursOuvres(): int { return $this->delaiProcedureAbandonJoursOuvres; }
+    public function setDelaiProcedureAbandonJoursOuvres(int $v): static { $this->delaiProcedureAbandonJoursOuvres = $v; return $this; }
+    public function getTarifGardiennageJournalier(): string { return $this->tarifGardiennageJournalier; }
+    public function setTarifGardiennageJournalier(string $v): static { $this->tarifGardiennageJournalier = $v; return $this; }
+    public function getGarantieTravauxJours(): int { return $this->garantieTravauxJours; }
+    public function setGarantieTravauxJours(int $v): static { $this->garantieTravauxJours = $v; return $this; }
+    public function getJoursFermetureHebdo(): array { return $this->joursFermetureHebdo; }
+    public function setJoursFermetureHebdo(array $v): static { $this->joursFermetureHebdo = $v; return $this; }
+    public function getDatesFermetureExceptionnelles(): array { return $this->datesFermetureExceptionnelles; }
+    public function setDatesFermetureExceptionnelles(array $v): static { $this->datesFermetureExceptionnelles = $v; return $this; }
 }

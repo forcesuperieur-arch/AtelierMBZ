@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #333; margin: 20px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { color: #2563eb; font-size: 18px; margin: 0 0 5px; }
+        .header .subtitle { color: #666; font-size: 12px; }
+        .vehicle-info { background: #f3f4f6; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+        .vehicle-info table { width: 100%; }
+        .vehicle-info td { padding: 2px 8px; }
+        .vehicle-info td:first-child { font-weight: bold; color: #555; width: 30%; }
+        .intervention { border: 1px solid #e5e7eb; border-radius: 5px; margin-bottom: 10px; padding: 10px; page-break-inside: avoid; }
+        .intervention-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .intervention-date { font-weight: bold; color: #1e40af; font-size: 12px; }
+        .intervention-km { color: #666; }
+        .intervention-type { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: inline-block; }
+        .section-label { font-weight: bold; color: #555; font-size: 10px; text-transform: uppercase; margin: 5px 0 2px; }
+        ul { margin: 2px 0; padding-left: 15px; }
+        li { margin: 1px 0; }
+        .alerte { color: #dc2626; }
+        .footer { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #999; text-align: center; }
+        .empty-state { text-align: center; color: #999; padding: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Historique d'entretien</h1>
+        <div class="subtitle">Généré le {{ "now" | date("d/m/Y H:i") }}</div>
+    </div>
+
+    <div class="vehicle-info">
+        <table>
+            <tr>
+                <td>Véhicule</td>
+                <td>{{ vehicule.marque }} {{ vehicule.modele }} {% if vehicule.annee %}({{ vehicule.annee }}){% endif %}</td>
+            </tr>
+            <tr><td>Immatriculation</td><td>{{ vehicule.plaque }}</td></tr>
+            {% if vehicule.cylindree %}<tr><td>Cylindrée</td><td>{{ vehicule.cylindree }}</td></tr>{% endif %}
+            {% if vehicule.typeMoto %}<tr><td>Type</td><td>{{ vehicule.typeMoto }}</td></tr>{% endif %}
+            {% if vehicule.client %}
+            <tr><td>Propriétaire</td><td>{{ vehicule.client.nom }} {{ vehicule.client.prenom | default('') }}</td></tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <p style="font-size: 10px; color: #666;">{{ historique.totalInterventions }} intervention(s) enregistrée(s)</p>
+
+    {% if historique.interventions | length == 0 %}
+        <div class="empty-state">Aucune intervention enregistrée pour ce véhicule.</div>
+    {% else %}
+        {% for intervention in historique.interventions %}
+        <div class="intervention">
+            <div class="intervention-header">
+                <span class="intervention-date">{{ intervention.date | date("d/m/Y") }}</span>
+                {% if intervention.kilometrage %}
+                <span class="intervention-km">{{ intervention.kilometrage }} km</span>
+                {% endif %}
+            </div>
+
+            <span class="intervention-type">{{ intervention.typeIntervention }}</span>
+
+            {% if intervention.mecanicien %}
+            <span style="font-size: 10px; color: #666; margin-left: 10px;">Mécanicien : {{ intervention.mecanicien }}</span>
+            {% endif %}
+
+            {% if intervention.ordres | length > 0 %}
+            <div class="section-label">Ordres de réparation</div>
+            <ul>
+                {% for or in intervention.ordres %}
+                <li>OR n° {{ or.numero }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if intervention.travaux | length > 0 %}
+            <div class="section-label">Travaux</div>
+            <ul>
+                {% for travail in intervention.travaux %}
+                    {% if travail %}<li>{{ travail }}</li>{% endif %}
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if intervention.pieces | length > 0 %}
+            <div class="section-label">Pièces changées</div>
+            <ul>
+                {% for piece in intervention.pieces %}
+                <li>{{ piece.designation }} (Réf: {{ piece.reference }}) × {{ piece.quantite }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if intervention.alertes | length > 0 %}
+            <div class="section-label alerte">Alertes</div>
+            <ul>
+                {% for alerte in intervention.alertes %}
+                <li class="alerte">{{ alerte }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="footer">
+        Certification : {{ historique.generatedAt }}<br>
+        Document généré automatiquement — Atelier MBZ
+    </div>
+</body>
+</html>

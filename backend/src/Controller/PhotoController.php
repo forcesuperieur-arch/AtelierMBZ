@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\PhotoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -11,14 +12,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/api/photos')]
 class PhotoController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private SluggerInterface $slugger,
+        private PhotoService $photoService,
     ) {}
 
     #[Route('/upload', methods: ['POST'])]
@@ -26,6 +26,7 @@ class PhotoController extends AbstractController
     {
         $file = $request->files->get('photo');
         $rdvId = $request->request->get('rendez_vous_id');
+        $type = $request->request->get('type', 'en_cours');
 
         if (!$file || !$rdvId) {
             return $this->json(['error' => 'Photo and rendez_vous_id required'], Response::HTTP_BAD_REQUEST);
@@ -36,38 +37,24 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        // Validate file type
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!in_array($file->getMimeType(), $allowedMimes, true)) {
-            return $this->json(['error' => 'Only JPEG, PNG, and WebP images are allowed'], Response::HTTP_BAD_REQUEST);
+        try {
+            $photo = $this->photoService->upload(
+                $file,
+                $type,
+                $rdv,
+                $request->request->get('description'),
+                $request->request->get('annotation_json'),
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
-
-        // Max 10MB
-        if ($file->getSize() > 10 * 1024 * 1024) {
-            return $this->json(['error' => 'File too large (max 10MB)'], Response::HTTP_BAD_REQUEST);
-        }
-
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName = $this->slugger->slug($originalName);
-        $filename = $safeName . '-' . uniqid() . '.' . $file->guessExtension();
-
-        $uploadDir = $this->getParameter('kernel.project_dir') . '/var/photos';
-        $file->move($uploadDir, $filename);
-
-        $photo = new PhotoIntervention();
-        $photo->setRendezVous($rdv);
-        $photo->setFilename($filename);
-        $photo->setOriginalName($file->getClientOriginalName());
-        $photo->setDescription($request->request->get('description'));
-        $photo->setAnnotationJson($request->request->get('annotation_json'));
-        $photo->setAtelierId($rdv->getAtelierId());
-
-        $this->em->persist($photo);
-        $this->em->flush();
 
         return $this->json([
             'id' => $photo->getId(),
-            'filename' => $filename,
+            'filename' => $photo->getFilename(),
+            'type' => $photo->getType(),
+            'sha256' => $photo->getSha256(),
+            'takenAt' => $photo->getTakenAt()?->format('c'),
         ], Response::HTTP_CREATED);
     }
 
@@ -105,7 +92,46 @@ class PhotoController extends AbstractController
             'filename' => $p->getFilename(),
             'original_name' => $p->getOriginalName(),
             'description' => $p->getDescription(),
+            'type' => $p->getType(),
+            'sha256' => $p->getSha256(),
+            'takenAt' => $p->getTakenAt()?->format('c'),
             'url' => '/api/photos/file/' . $p->getFilename(),
         ], $photos));
+    }
+
+    #[Route('/rdv/{rdvId}/check/{transition}', methods: ['GET'])]
+    public function checkPhotosForTransition(int $rdvId, string $transition): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $missing = $this->photoService->requirePhotosForTransition($transition, $rdv);
+
+        return $this->json([
+            'transition' => $transition,
+            'canProceed' => empty($missing),
+            'missing' => $missing,
+        ]);
+    }
+
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(int $id): JsonResponse
+    {
+        $photo = $this->em->getRepository(PhotoIntervention::class)->find($id);
+        if (!$photo) {
+            return $this->json(['error' => 'Photo not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . basename($photo->getFilename());
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        $this->em->remove($photo);
+        $this->em->flush();
+
+        return $this->json(['deleted' => true]);
     }
 }
