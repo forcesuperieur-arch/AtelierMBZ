@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +21,7 @@ class CompanionController extends AbstractController
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
         private RateLimiterFactory $companionUploadLimiter,
+        private OrdreReparationPolicy $orPolicy,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
@@ -224,7 +226,10 @@ class CompanionController extends AbstractController
             $this->em->persist($or);
         }
 
-        $or->setSignatureClient($signatureData);
+        if (!$this->orPolicy->canSign($or)) {
+            return $this->json(['error' => 'Cet OR ne peut plus être signé'], Response::HTTP_CONFLICT);
+        }
+
         if ($rdv->getKilometrage()) {
             $or->setKilometrage($rdv->getKilometrage());
         }
@@ -242,9 +247,16 @@ class CompanionController extends AbstractController
             }
         }
 
+        // Sign via policy: snapshot, hash, freeze
+        $hash = $this->orPolicy->sign($or, $signatureData, $request);
+
         $this->em->flush();
 
-        return $this->json(['success' => true, 'message' => 'Signature enregistrée']);
+        return $this->json([
+            'success' => true,
+            'message' => 'Signature enregistrée',
+            'hash' => $hash,
+        ]);
     }
 
     #[Route('/{token}/vehicule', methods: ['PUT'])]

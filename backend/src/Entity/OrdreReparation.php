@@ -60,6 +60,44 @@ class OrdreReparation
     #[Groups(['ordre:read'])]
     private ?string $signatureClient = null;
 
+    #[ORM\Column(length: 50, options: ['default' => 'brouillon'])]
+    #[Groups(['ordre:read', 'ordre:write', 'rdv:read'])]
+    private string $statut = 'brouillon';
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $signedSnapshot = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $signedHash = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $signedAt = null;
+
+    #[ORM\Column(length: 45, nullable: true)]
+    private ?string $signedIp = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $signedUserAgent = null;
+
+    #[ORM\ManyToOne(targetEntity: OrdreReparation::class)]
+    #[ORM\JoinColumn(name: 'rectified_from_id', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?OrdreReparation $rectifiedFrom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $motifRectification = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?int $rectifiedBy = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $rectifiedAt = null;
+
     // --- RGPD: Snapshot fields ---
     #[ORM\Column(length: 200, nullable: true)]
     #[Groups(['ordre:read'])]
@@ -118,6 +156,30 @@ class OrdreReparation
     public function getSignatureClient(): ?string { return $this->signatureClient; }
     public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+
+    // --- Statut & Signature fields ---
+    public function getStatut(): string { return $this->statut; }
+    public function setStatut(string $v): static { $this->statut = $v; return $this; }
+    public function getSignedSnapshot(): ?array { return $this->signedSnapshot; }
+    public function setSignedSnapshot(?array $v): static { $this->signedSnapshot = $v; return $this; }
+    public function getSignedHash(): ?string { return $this->signedHash; }
+    public function setSignedHash(?string $v): static { $this->signedHash = $v; return $this; }
+    public function getSignedAt(): ?\DateTimeInterface { return $this->signedAt; }
+    public function setSignedAt(?\DateTimeInterface $v): static { $this->signedAt = $v; return $this; }
+    public function getSignedIp(): ?string { return $this->signedIp; }
+    public function setSignedIp(?string $v): static { $this->signedIp = $v; return $this; }
+    public function getSignedUserAgent(): ?string { return $this->signedUserAgent; }
+    public function setSignedUserAgent(?string $v): static { $this->signedUserAgent = $v; return $this; }
+    public function getRectifiedFrom(): ?OrdreReparation { return $this->rectifiedFrom; }
+    public function setRectifiedFrom(?OrdreReparation $v): static { $this->rectifiedFrom = $v; return $this; }
+    public function getMotifRectification(): ?string { return $this->motifRectification; }
+    public function setMotifRectification(?string $v): static { $this->motifRectification = $v; return $this; }
+    public function getRectifiedBy(): ?int { return $this->rectifiedBy; }
+    public function setRectifiedBy(?int $v): static { $this->rectifiedBy = $v; return $this; }
+    public function getRectifiedAt(): ?\DateTimeInterface { return $this->rectifiedAt; }
+    public function setRectifiedAt(?\DateTimeInterface $v): static { $this->rectifiedAt = $v; return $this; }
+    public function isSigned(): bool { return in_array($this->statut, ['signe', 'execute', 'termine'], true); }
+    public function isFrozen(): bool { return in_array($this->statut, ['signe', 'execute', 'termine', 'rectifie'], true); }
 
     // --- RGPD snapshot getters/setters ---
     public function getSnapClientNom(): ?string { return $this->snapClientNom; }
