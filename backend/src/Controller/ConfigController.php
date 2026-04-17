@@ -7,12 +7,14 @@ use App\Entity\ConfigAtelier;
 use App\Entity\GrilleTarifaire;
 use App\Entity\HoraireAtelier;
 use App\Entity\Prestation;
+use App\Service\AdminConfigValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -23,9 +25,11 @@ class ConfigController extends AbstractController
         private EntityManagerInterface $em,
         private SerializerInterface $serializer,
         private SluggerInterface $slugger,
+        private AdminConfigValidator $configValidator,
     ) {}
 
     #[Route('', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
     public function getConfig(): JsonResponse
     {
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
@@ -50,6 +54,7 @@ class ConfigController extends AbstractController
     }
 
     #[Route('', methods: ['PUT'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function updateConfig(Request $request): JsonResponse
     {
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
@@ -60,6 +65,14 @@ class ConfigController extends AbstractController
         $data = json_decode($request->getContent(), true) ?: [];
         $configData = isset($data['config']) && is_array($data['config']) ? $data['config'] : $data;
         $atelierData = isset($data['atelier']) && is_array($data['atelier']) ? $data['atelier'] : [];
+
+        $errors = $this->configValidator->validateConfigPayload($configData, $data['horaires'] ?? []);
+        if ($errors !== []) {
+            return $this->json([
+                'error' => 'Configuration invalide',
+                'errors' => $errors,
+            ], Response::HTTP_BAD_REQUEST);
+        }
 
         if (isset($configData['taux_horaire_mo_standard'])) $config->setTauxHoraireMoStandard($configData['taux_horaire_mo_standard']);
         if (isset($configData['taux_horaire_mo_complexe'])) $config->setTauxHoraireMoComplexe($configData['taux_horaire_mo_complexe']);
@@ -72,6 +85,10 @@ class ConfigController extends AbstractController
         if (isset($configData['tva_pieces_taux'])) $config->setTvaPiecesTaux($configData['tva_pieces_taux']);
         if (isset($configData['validite_devis_jours'])) $config->setValiditeDevisJours($configData['validite_devis_jours']);
         if (isset($configData['accompte_pourcentage'])) $config->setAccomptePourcentage($configData['accompte_pourcentage']);
+        if (isset($configData['garantie_travaux_jours'])) $config->setGarantieTravauxJours((int) $configData['garantie_travaux_jours']);
+        if (isset($configData['tarif_gardiennage_journalier'])) $config->setTarifGardiennageJournalier((string) $configData['tarif_gardiennage_journalier']);
+        if (isset($configData['jours_fermeture_hebdo']) && is_array($configData['jours_fermeture_hebdo'])) $config->setJoursFermetureHebdo(array_values($configData['jours_fermeture_hebdo']));
+        if (isset($configData['dates_fermeture_exceptionnelles']) && is_array($configData['dates_fermeture_exceptionnelles'])) $config->setDatesFermetureExceptionnelles(array_values($configData['dates_fermeture_exceptionnelles']));
         if (
             isset($configData['feature_modules'])
             && is_array($configData['feature_modules'])
@@ -137,6 +154,7 @@ class ConfigController extends AbstractController
     }
 
     #[Route('/logo', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function uploadLogo(Request $request): JsonResponse
     {
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
@@ -184,6 +202,7 @@ class ConfigController extends AbstractController
     }
 
     #[Route('/seed-tarifs', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function seedTarifs(): JsonResponse
     {
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
@@ -238,6 +257,7 @@ class ConfigController extends AbstractController
     }
 
     #[Route('/horaires', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
     public function getHoraires(): JsonResponse
     {
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);

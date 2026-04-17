@@ -50,6 +50,10 @@
             </div>
           </div>
 
+          <div v-if="statusError || statusMessage" class="companion-card" :style="statusError ? 'border-color:rgba(239,68,68,0.3);color:#FCA5A5;' : 'border-color:rgba(16,185,129,0.3);color:#6EE7B7;'">
+            {{ statusError || statusMessage }}
+          </div>
+
           <!-- Action Buttons (main menu) -->
           <div v-if="!activeSection" class="companion-actions">
             <button class="companion-action-btn" @click="activeSection = 'photos'">
@@ -64,7 +68,7 @@
               <span style="font-size:36px;">🪪</span>
               <div>
                 <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Scanner carte grise</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">OCR auto-remplissage</span>
+                <span style="display:block;font-size:11px;color:#9CA3AF;">OCR FR / BE auto-remplissage</span>
               </div>
             </button>
 
@@ -119,7 +123,7 @@
               <label class="companion-capture-btn">
                 <input type="file" accept="image/*" capture="environment" @change="onCarteGriseSelected" style="display:none;" />
                 <span style="font-size:24px;">📷</span>
-                <span>{{ ocrProcessing ? 'Analyse OCR en cours…' : 'Photographier la carte grise' }}</span>
+                <span>{{ ocrProcessing ? 'Analyse OCR en cours…' : 'Photographier la carte grise / certificat' }}</span>
               </label>
 
               <div v-if="ocrProcessing" style="text-align:center;padding:20px;">
@@ -131,29 +135,24 @@
               <div v-if="ocrResult" class="companion-card" style="border-color:rgba(16,185,129,0.3);">
                 <div style="font-size:13px;font-weight:700;color:#6EE7B7;margin-bottom:10px;">✓ Données extraites — vérifiez et corrigez si besoin</div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
-                  <div class="ocr-field">
-                    <label>Plaque (A)</label>
-                    <input v-model="ocrResult.plaque" class="companion-input" />
-                  </div>
-                  <div class="ocr-field">
-                    <label>Marque (D.1)</label>
-                    <input v-model="ocrResult.marque" class="companion-input" />
-                  </div>
-                  <div class="ocr-field">
-                    <label>Modèle (D.2)</label>
-                    <input v-model="ocrResult.modele" class="companion-input" />
-                  </div>
-                  <div class="ocr-field">
-                    <label>Mise en circulation (B)</label>
-                    <input v-model="ocrResult.annee" class="companion-input" />
-                  </div>
-                  <div class="ocr-field">
-                    <label>Cylindrée (P.1)</label>
-                    <input v-model="ocrResult.cylindree" class="companion-input" />
-                  </div>
-                  <div class="ocr-field">
-                    <label>Type (J.1)</label>
-                    <input v-model="ocrResult.type_moto" class="companion-input" />
+                  <div v-for="field in ocrFields" :key="field.key" class="ocr-field">
+                    <label>{{ field.label }}</label>
+                    <input v-model="ocrResult[field.key]" class="companion-input" />
+                    <div
+                      v-if="ocrComparisons[field.key]"
+                      class="ocr-compare"
+                      :class="`ocr-compare--${ocrComparisons[field.key]?.tone || 'neutral'}`"
+                    >
+                      <span>{{ ocrComparisons[field.key]?.message }}</span>
+                      <button
+                        v-if="ocrComparisons[field.key]?.canUseBase"
+                        type="button"
+                        class="ocr-compare-btn"
+                        @click="useBaseValue(field.key)"
+                      >
+                        Reprendre la base
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -222,10 +221,8 @@
 
             <div v-if="rdv.has_signature && !resignMode" style="text-align:center;padding:20px;">
               <div style="font-size:48px;margin-bottom:12px;">✅</div>
-              <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Signature déjà enregistrée</p>
-              <button class="companion-capture-btn" style="margin-top:16px;" @click="resignMode = true">
-                <span>Refaire la signature</span>
-              </button>
+              <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Signature déjà finalisée</p>
+              <p style="color:#9CA3AF;font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
             </div>
 
             <div v-else style="display:flex;flex-direction:column;gap:12px;">
@@ -263,7 +260,7 @@
           </div>
 
           <!-- All-done summary -->
-          <div v-if="rdv.has_signature && rdv.photos_count > 0 && !activeSection" class="companion-card" style="border-color:rgba(16,185,129,0.3);text-align:center;margin-top:8px;">
+          <div v-if="rdv.has_signature && rdv.photos_count > 0 && checkupDone > 0 && !activeSection" class="companion-card" style="border-color:rgba(16,185,129,0.3);text-align:center;margin-top:8px;">
             <div style="font-size:32px;margin-bottom:8px;">✅</div>
             <p style="color:#6EE7B7;font-weight:700;font-size:14px;">Réception prête à valider</p>
             <p style="color:#9CA3AF;font-size:12px;">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
@@ -291,12 +288,28 @@ const ocrProcessing = ref(false)
 const ocrSaving = ref(false)
 const ocrResult = ref<any>(null)
 const carteGriseScanned = ref(false)
+const statusMessage = ref('')
+const statusError = ref('')
 const sigSaving = ref(false)
 const hasDrawn = ref(false)
 const resignMode = ref(false)
 const sigCanvas = ref<HTMLCanvasElement | null>(null)
 const checkupSaving = ref(false)
 const checkupNotes = ref('')
+
+type OcrFieldKey = 'plaque' | 'marque' | 'modele' | 'vin' | 'annee' | 'cylindree' | 'type_moto'
+
+const ocrFields: Array<{ key: OcrFieldKey; label: string }> = [
+  { key: 'plaque', label: 'Plaque (A)' },
+  { key: 'marque', label: 'Marque (D.1)' },
+  { key: 'modele', label: 'Modèle (D.2)' },
+  { key: 'vin', label: 'VIN (E)' },
+  { key: 'annee', label: 'Mise en circulation (B)' },
+  { key: 'cylindree', label: 'Cylindrée (P.1)' },
+  { key: 'type_moto', label: 'Type (J.1)' },
+]
+
+const knownBrands = ['YAMAHA', 'HONDA', 'KAWASAKI', 'SUZUKI', 'BMW', 'DUCATI', 'KTM', 'HARLEY DAVIDSON', 'HARLEY', 'TRIUMPH', 'APRILIA', 'MV AGUSTA', 'INDIAN', 'HUSQVARNA', 'BENELLI', 'ROYAL ENFIELD', 'MOTO GUZZI', 'PIAGGIO', 'VESPA', 'KYMCO', 'SYM', 'PEUGEOT']
 
 const checkupItems = [
   { key: 'pneus', label: 'Pneus' },
@@ -317,6 +330,11 @@ let drawing = false
 let lastX = 0
 let lastY = 0
 
+function setFeedback(message = '', isError = false) {
+  statusError.value = isError ? message : ''
+  statusMessage.value = isError ? '' : message
+}
+
 function loadSavedCheckup() {
   Object.keys(checkup).forEach((key) => { delete checkup[key] })
   const savedCheckup = rdv.value?.checkup ?? {}
@@ -324,6 +342,236 @@ function loadSavedCheckup() {
     if (value) checkup[key] = String(value)
   })
   checkupNotes.value = rdv.value?.checkup_notes ?? ''
+  carteGriseScanned.value = Array.isArray(rdv.value?.photos)
+    && rdv.value.photos.some((photo: any) => String(photo?.description || '').toLowerCase().includes('carte grise'))
+}
+
+async function readApiError(res: Response, fallback: string) {
+  try {
+    const payload = await res.json()
+    return payload?.error || payload?.message || fallback
+  } catch {
+    return fallback
+  }
+}
+
+async function ensureOk(res: Response, fallback: string) {
+  if (!res.ok) {
+    throw new Error(await readApiError(res, fallback))
+  }
+}
+
+async function normalizeImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file
+  if (/image\/(jpeg|png|webp)/i.test(file.type) && file.size <= 6 * 1024 * 1024) return file
+
+  try {
+    const objectUrl = URL.createObjectURL(file)
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = reject
+      image.src = objectUrl
+    })
+
+    const maxSize = 2200
+    const ratio = Math.min(1, maxSize / Math.max(img.width, img.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.width * ratio))
+    canvas.height = Math.max(1, Math.round(img.height * ratio))
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas indisponible')
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86))
+    URL.revokeObjectURL(objectUrl)
+
+    if (!blob) return file
+
+    const safeName = file.name.replace(/\.[^.]+$/, '') || 'photo'
+    return new File([blob], `${safeName}.jpg`, { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
+function stripAccents(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function normalizeLoose(value: unknown): string {
+  return stripAccents(String(value || ''))
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim()
+}
+
+function toDigitLike(value: string): string {
+  return value
+    .replace(/[OQD]/g, '0')
+    .replace(/[ILT]/g, '1')
+    .replace(/Z/g, '2')
+    .replace(/S/g, '5')
+    .replace(/G/g, '6')
+    .replace(/B/g, '8')
+}
+
+function toLetterLike(value: string): string {
+  return value
+    .replace(/0/g, 'O')
+    .replace(/1/g, 'I')
+    .replace(/2/g, 'Z')
+    .replace(/5/g, 'S')
+    .replace(/6/g, 'G')
+    .replace(/8/g, 'B')
+}
+
+function normalizePlate(value: unknown): string {
+  const cleaned = normalizeLoose(value).replace(/\s+/g, '')
+
+  if (/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(cleaned)) {
+    const left = toLetterLike(cleaned.slice(0, 2))
+    const middle = toDigitLike(cleaned.slice(2, 5))
+    const right = toLetterLike(cleaned.slice(5, 7))
+    return `${left}-${middle}-${right}`
+  }
+
+  if (/^\d[A-Z]{3}\d{3}$/.test(cleaned)) {
+    return `${toDigitLike(cleaned.slice(0, 1))}-${toLetterLike(cleaned.slice(1, 4))}-${toDigitLike(cleaned.slice(4, 7))}`
+  }
+
+  if (/^[A-Z]{3}\d{3}$/.test(cleaned)) {
+    return `${toLetterLike(cleaned.slice(0, 3))}-${toDigitLike(cleaned.slice(3, 6))}`
+  }
+
+  if (/^\d{3}[A-Z]{3}$/.test(cleaned)) {
+    return `${toDigitLike(cleaned.slice(0, 3))}-${toLetterLike(cleaned.slice(3, 6))}`
+  }
+
+  return cleaned
+}
+
+function normalizeCylindree(value: unknown): string {
+  return toDigitLike(normalizeLoose(value)).replace(/[^0-9]/g, '').slice(0, 4)
+}
+
+function normalizeVin(value: unknown): string {
+  return toDigitLike(normalizeLoose(value)).replace(/[^A-Z0-9]/g, '').slice(0, 17)
+}
+
+function normalizeYear(value: unknown): string {
+  const raw = String(value || '')
+  const direct = raw.match(/(19\d{2}|20\d{2})/)
+  if (direct) return direct[1]
+  const compact = toDigitLike(normalizeLoose(raw)).replace(/[^0-9]/g, '')
+  return compact.length >= 4 ? compact.slice(-4) : compact
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0
+  if (!a.length) return b.length
+  if (!b.length) return a.length
+
+  const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i])
+  for (let j = 0; j <= a.length; j += 1) matrix[0][j] = j
+
+  for (let i = 1; i <= b.length; i += 1) {
+    for (let j = 1; j <= a.length; j += 1) {
+      const cost = a[j - 1] === b[i - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost,
+      )
+    }
+  }
+
+  return matrix[b.length][a.length]
+}
+
+function similarityScore(a: string, b: string): number {
+  if (!a || !b) return 0
+  const distance = levenshtein(a, b)
+  return 1 - distance / Math.max(a.length, b.length, 1)
+}
+
+function getFieldNormalizer(key: OcrFieldKey) {
+  if (key === 'plaque') return normalizePlate
+  if (key === 'vin') return normalizeVin
+  if (key === 'cylindree') return normalizeCylindree
+  if (key === 'annee') return normalizeYear
+  return normalizeLoose
+}
+
+function selectBestCandidate(rawValue: string, candidates: string[]): string {
+  const cleanedRaw = normalizeLoose(rawValue)
+  if (!cleanedRaw) return rawValue
+
+  let best = rawValue
+  let bestScore = 0
+
+  for (const candidate of candidates) {
+    const score = similarityScore(cleanedRaw, normalizeLoose(candidate))
+    if (score > bestScore) {
+      best = candidate
+      bestScore = score
+    }
+  }
+
+  return bestScore >= 0.58 ? best : rawValue
+}
+
+function compareOcrField(key: OcrFieldKey, currentValue: unknown, baseValue: unknown) {
+  const current = String(currentValue || '')
+  const base = String(baseValue || '')
+  if (!base) {
+    return { tone: 'neutral', message: 'Aucune valeur atelier existante', canUseBase: false }
+  }
+
+  const normalizer = getFieldNormalizer(key)
+  const normalizedCurrent = normalizer(current)
+  const normalizedBase = normalizer(base)
+
+  if (!normalizedCurrent) {
+    return { tone: 'warn', message: `Base atelier : ${base}`, canUseBase: true }
+  }
+
+  if (normalizedCurrent === normalizedBase) {
+    return { tone: 'ok', message: `Conforme à la base atelier : ${base}`, canUseBase: false }
+  }
+
+  const score = similarityScore(normalizedCurrent, normalizedBase)
+  if (score >= 0.72) {
+    return { tone: 'warn', message: `Lecture proche de la base atelier : ${base}`, canUseBase: true }
+  }
+
+  return { tone: 'diff', message: `Écart détecté avec la base atelier : ${base}`, canUseBase: true }
+}
+
+const ocrComparisons = computed<Partial<Record<OcrFieldKey, { tone: string; message: string; canUseBase: boolean }>>>(() => {
+  if (!ocrResult.value) return {}
+
+  return ocrFields.reduce((acc, field) => {
+    acc[field.key] = compareOcrField(field.key, ocrResult.value?.[field.key], rdv.value?.vehicule?.[field.key])
+    return acc
+  }, {} as Partial<Record<OcrFieldKey, { tone: string; message: string; canUseBase: boolean }>>)
+})
+
+function useBaseValue(key: OcrFieldKey) {
+  if (!ocrResult.value) return
+  ocrResult.value[key] = String(rdv.value?.vehicule?.[key] || '')
+}
+
+function summarizeOcrComparison(result: Record<string, string>) {
+  const diffCount = ocrFields.filter((field) => compareOcrField(field.key, result[field.key], rdv.value?.vehicule?.[field.key]).tone === 'diff').length
+
+  if (diffCount > 0) {
+    setFeedback(`OCR terminé : ${diffCount} champ(s) diffèrent de la base atelier. Vérifiez avant validation.`, true)
+    return
+  }
+
+  setFeedback('OCR cohérent avec la base atelier. Vérifiez puis appliquez.')
 }
 
 function cycleCheckup(key: string) {
@@ -340,7 +588,7 @@ async function fetchRdv() {
   }
   try {
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}`)
-    if (!res.ok) throw new Error('Lien invalide ou expiré')
+    if (!res.ok) throw new Error(await readApiError(res, 'Lien invalide ou expiré'))
     rdv.value = await res.json()
     loadSavedCheckup()
   } catch (e: any) {
@@ -363,17 +611,23 @@ async function onPhotosSelected(e: Event) {
   if (!files?.length) return
 
   uploading.value = true
+  setFeedback('')
   try {
     for (const file of Array.from(files)) {
+      const preparedFile = await normalizeImage(file)
       const fd = new FormData()
-      fd.append('photo', file)
+      fd.append('photo', preparedFile)
       fd.append('description', 'Photo réception')
-      await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
+      const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
         method: 'POST',
         body: fd,
       })
+      await ensureOk(res, 'Impossible d’envoyer la photo')
     }
     await fetchRdv()
+    setFeedback('Photo(s) enregistrée(s).')
+  } catch (e: any) {
+    setFeedback(e?.message || 'Impossible d’envoyer la photo', true)
   } finally {
     uploading.value = false
     input.value = ''
@@ -390,35 +644,41 @@ async function onCarteGriseSelected(e: Event) {
   ocrResult.value = null
 
   try {
+    setFeedback('')
     // Upload as photo too
+    const preparedFile = await normalizeImage(file)
     const fd = new FormData()
-    fd.append('photo', file)
+    fd.append('photo', preparedFile)
     fd.append('description', 'Carte grise')
-    await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
+    const uploadRes = await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
       method: 'POST',
       body: fd,
     })
+    await ensureOk(uploadRes, 'Impossible d’envoyer la carte grise')
 
     // Client-side OCR with Tesseract.js
     const { createWorker } = await import('tesseract.js')
-    const worker = await createWorker('fra')
+    const worker = await createWorker('fra+nld+eng')
     const { data: { text } } = await worker.recognize(file)
     await worker.terminate()
 
     ocrResult.value = parseCarteGriseText(text)
     carteGriseScanned.value = true
     await fetchRdv()
+    summarizeOcrComparison(ocrResult.value)
   } catch (err) {
     console.warn('OCR error, pre-filling with vehicle data:', err)
     ocrResult.value = {
       plaque: rdv.value?.vehicule?.plaque || '',
       marque: rdv.value?.vehicule?.marque || '',
       modele: rdv.value?.vehicule?.modele || '',
+      vin: rdv.value?.vehicule?.vin || '',
       annee: rdv.value?.vehicule?.annee ? String(rdv.value.vehicule.annee) : '',
       cylindree: rdv.value?.vehicule?.cylindree || '',
       type_moto: rdv.value?.vehicule?.type_moto || '',
     }
     carteGriseScanned.value = true
+    setFeedback('La photo est bien enregistrée. L’OCR a échoué, vous pouvez corriger les champs manuellement.', true)
   } finally {
     ocrProcessing.value = false
     input.value = ''
@@ -428,55 +688,110 @@ async function onCarteGriseSelected(e: Event) {
 function parseCarteGriseText(text: string): Record<string, string> {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
   const joined = lines.join(' ')
+  const base = rdv.value?.vehicule || {}
 
-  const result: Record<string, string> = {
-    plaque: rdv.value?.vehicule?.plaque || '',
-    marque: rdv.value?.vehicule?.marque || '',
-    modele: rdv.value?.vehicule?.modele || '',
-    annee: rdv.value?.vehicule?.annee ? String(rdv.value.vehicule.annee) : '',
-    cylindree: rdv.value?.vehicule?.cylindree || '',
-    type_moto: rdv.value?.vehicule?.type_moto || '',
+  const extractFirst = (...patterns: RegExp[]) => {
+    const haystacks = [...lines, joined]
+    for (const source of haystacks) {
+      for (const pattern of patterns) {
+        const match = source.match(pattern)
+        if (match?.[1]) return match[1].trim()
+      }
+    }
+    return ''
   }
 
-  // Plaque: format AA-123-BB or AA 123 BB
-  const plaqueMatch = joined.match(/\b([A-Z]{2}[\s-]?\d{3}[\s-]?[A-Z]{2})\b/i)
-  if (plaqueMatch) result.plaque = plaqueMatch[1].replace(/\s/g, '-').toUpperCase()
+  const plaqueCandidate = extractFirst(
+    /(?:\bA\b\s*[:\-]?)\s*([A-Z0-9\s-]{6,12})/i,
+    /(?:plaque|immatriculation|kenteken)[\s:.-]*([A-Z0-9-]{6,12})/i,
+    /\b([A-Z]{2}[\s-]?\d{3}[\s-]?[A-Z]{2})\b/i,
+    /\b(\d[\s-]?[A-Z]{3}[\s-]?\d{3})\b/i,
+    /\b([A-Z]{3}[\s-]?\d{3})\b/i,
+    /\b(\d{3}[\s-]?[A-Z]{3})\b/i,
+  )
 
-  // Marque: common motorcycle brands
-  const brands = ['YAMAHA', 'HONDA', 'KAWASAKI', 'SUZUKI', 'BMW', 'DUCATI', 'KTM', 'HARLEY', 'TRIUMPH', 'APRILIA', 'MV AGUSTA', 'INDIAN', 'HUSQVARNA', 'BENELLI', 'ROYAL ENFIELD', 'MOTO GUZZI', 'PIAGGIO', 'VESPA', 'KYMCO', 'SYM', 'PEUGEOT']
-  for (const brand of brands) {
-    if (joined.toUpperCase().includes(brand)) {
-      result.marque = brand.charAt(0) + brand.slice(1).toLowerCase()
-      break
+  let marqueCandidate = extractFirst(
+    /(?:\bD[.\s]?1\b\s*[:\-]?)\s*([A-Z][A-Z0-9\s-]{1,24})/i,
+    /(?:marque|merk)[\s:.-]*([A-Z][A-Z0-9\s-]{1,24})/i,
+  )
+  if (!marqueCandidate) {
+    const bestBrand = selectBestCandidate(joined, [...knownBrands, String(base?.marque || '')].filter(Boolean))
+    if (bestBrand && normalizeLoose(bestBrand) !== normalizeLoose(joined)) {
+      marqueCandidate = bestBrand
     }
   }
 
-  // Year
-  const yearMatch = joined.match(/\b(19[9]\d|20[0-3]\d)\b/)
-  if (yearMatch) result.annee = yearMatch[1]
+  const modeleCandidate = extractFirst(
+    /(?:\bD[.\s]?2(?:[.\s]?1)?\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
+    /(?:\bD[.\s]?3\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
+    /(?:modele|model|commerciale?|handelsbenaming)[\s:.-]*([A-Z0-9\s/-]{2,30})/i,
+  )
+  const vinCandidate = extractFirst(
+    /(?:\bE\b\s*[:\-]?)\s*([A-HJ-NPR-Z0-9]{11,17})/i,
+    /(?:chassis(?:nummer)?|num[ée]ro de ch[âa]ssis|n[°o]\s*de\s*s[ée]rie)[\s:.-]*([A-HJ-NPR-Z0-9]{11,17})/i,
+    /\b([A-HJ-NPR-Z0-9]{17})\b/i,
+  )
+  const yearCandidate = extractFirst(
+    /(?:\bB\b\s*[:\-]?)\s*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
+    /(?:\bI\b\s*[:\-]?)\s*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
+    /(?:premi[èe]re immatriculation|eerste inschrijving)[\s:.-]*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
+    /\b(19\d{2}|20\d{2})\b/,
+  )
+  const cylCandidate = extractFirst(
+    /(?:\bP[.\s]?1\b\s*[:\-]?)\s*([0-9OQDISBZ]{2,4})/i,
+    /([0-9OQDISBZ]{2,4})\s*(?:cm[³3]|cc|CM3)/i,
+  )
+  const typeCandidate = extractFirst(
+    /(?:\bJ[.\s]?1\b\s*[:\-]?)\s*([A-Z0-9]{2,8})/i,
+    /(?:genre|carrosserie|voertuigtype)[\s:.-]*([A-Z0-9]{2,8})/i,
+    /\b(MTL|MTT1|MTT2|CL|QM|TM|L3E|L1E)\b/i,
+  )
 
-  // Cylindrée (P.1)
-  const cylMatch = joined.match(/(\d{2,4})\s*(?:cm[³3]|cc|CM3)/i)
-  if (cylMatch) result.cylindree = cylMatch[1]
+  const initial: Record<OcrFieldKey, string> = {
+    plaque: normalizePlate(plaqueCandidate || base?.plaque || ''),
+    marque: marqueCandidate ? selectBestCandidate(marqueCandidate, [...knownBrands, String(base?.marque || '')].filter(Boolean)) : String(base?.marque || ''),
+    modele: String(modeleCandidate || base?.modele || '').trim(),
+    vin: normalizeVin(vinCandidate || base?.vin || ''),
+    annee: normalizeYear(yearCandidate || base?.annee || ''),
+    cylindree: normalizeCylindree(cylCandidate || base?.cylindree || ''),
+    type_moto: normalizeLoose(typeCandidate || base?.type_moto || ''),
+  }
 
-  // Type: MTL, MTT1, MTT2, CL, QM, TM
-  const typeMatch = joined.match(/\b(MTL|MTT1|MTT2|CL|QM|TM)\b/i)
-  if (typeMatch) result.type_moto = typeMatch[1].toUpperCase()
+  const resolved = { ...initial }
 
-  return result
+  ocrFields.forEach((field) => {
+    const baseValue = String(base?.[field.key] || '')
+    const comparison = compareOcrField(field.key, resolved[field.key], baseValue)
+    if (comparison.tone === 'warn' && baseValue) {
+      resolved[field.key] = baseValue
+    }
+  })
+
+  if (resolved.marque) {
+    resolved.marque = resolved.marque
+      .toLowerCase()
+      .replace(/(^|\s)([a-z])/g, (_, prefix, char) => `${prefix}${char.toUpperCase()}`)
+  }
+
+  return resolved
 }
 
 async function applyOcrData() {
   if (!ocrResult.value) return
   ocrSaving.value = true
   try {
-    await globalThis.fetch(`${apiBase}/companion/${token.value}/vehicule`, {
+    setFeedback('')
+    const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/vehicule`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ocrResult.value),
     })
+    await ensureOk(res, 'Impossible de mettre à jour le véhicule')
     await fetchRdv()
     activeSection.value = null
+    setFeedback('Les informations véhicule ont été mises à jour.')
+  } catch (e: any) {
+    setFeedback(e?.message || 'Impossible de mettre à jour le véhicule', true)
   } finally {
     ocrSaving.value = false
   }
@@ -484,6 +799,7 @@ async function applyOcrData() {
 
 async function saveCheckup() {
   checkupSaving.value = true
+  setFeedback('')
   try {
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/reception-data`, {
       method: 'PUT',
@@ -494,12 +810,13 @@ async function saveCheckup() {
       }),
     })
 
-    if (!res.ok) {
-      throw new Error('Erreur enregistrement checkup')
-    }
+    await ensureOk(res, 'Erreur enregistrement checkup')
 
     await fetchRdv()
     activeSection.value = null
+    setFeedback('Checkup enregistré.')
+  } catch (e: any) {
+    setFeedback(e?.message || 'Erreur enregistrement checkup', true)
   } finally {
     checkupSaving.value = false
   }
@@ -555,6 +872,7 @@ function clearSignature() {
 async function submitSignature() {
   if (!sigCanvas.value || !hasDrawn.value) return
   sigSaving.value = true
+  setFeedback('')
   try {
     const dataUrl = sigCanvas.value.toDataURL('image/png')
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/signature`, {
@@ -562,14 +880,15 @@ async function submitSignature() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ signature: dataUrl }),
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erreur signature')
-    }
+    await ensureOk(res, 'Erreur signature')
     rdv.value.has_signature = true
     resignMode.value = false
     activeSection.value = null
+    clearSignature()
     await fetchRdv()
+    setFeedback('Signature client finalisée.')
+  } catch (e: any) {
+    setFeedback(e?.message || 'Erreur signature', true)
   } finally {
     sigSaving.value = false
   }
@@ -677,6 +996,45 @@ onUnmounted(() => {
   border-radius: 14px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.08);
+}
+.ocr-compare {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ocr-compare--ok {
+  background: rgba(16,185,129,0.08);
+  color: #6EE7B7;
+  border: 1px solid rgba(16,185,129,0.2);
+}
+.ocr-compare--warn {
+  background: rgba(245,158,11,0.08);
+  color: #FCD34D;
+  border: 1px solid rgba(245,158,11,0.2);
+}
+.ocr-compare--diff {
+  background: rgba(239,68,68,0.08);
+  color: #FCA5A5;
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.ocr-compare--neutral {
+  background: rgba(255,255,255,0.04);
+  color: #9CA3AF;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.ocr-compare-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  color: #E8E9ED;
 }
 .companion-section-header {
   display: flex;

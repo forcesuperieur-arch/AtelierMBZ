@@ -9,8 +9,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const atelierStore = useAtelierStore()
 
   if (!isAuthenticated.value) {
-    const user = await fetchMe()
-    if (!user) return navigateTo('/login')
+    const fetchedUser = await fetchMe()
+    if (!fetchedUser) return navigateTo('/login')
+  }
+
+  const roles = useAuth().user.value?.roles ?? []
+  const currentRole = String(useAuth().user.value?.role || '')
+  const isAdmin = currentRole === 'admin' || currentRole === 'super_admin' || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')
+
+  if (to.path.startsWith('/admin') && !isAdmin) {
+    if (process.client) {
+      useToast().add({
+        title: 'Accès refusé',
+        description: 'Cette zone est réservée à l’administration.',
+        color: 'error',
+      })
+    }
+    return navigateTo('/')
   }
 
   const missingBranding = !atelierStore.branding?.logo_url

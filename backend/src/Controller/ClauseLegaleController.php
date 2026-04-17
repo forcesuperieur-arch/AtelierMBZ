@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class ClauseLegaleController extends AbstractController
 {
@@ -58,6 +59,7 @@ class ClauseLegaleController extends AbstractController
     }
 
     #[Route('/api/clauses-legales', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true) ?? [];
@@ -99,6 +101,7 @@ class ClauseLegaleController extends AbstractController
     }
 
     #[Route('/api/clauses-legales/{id}', methods: ['PUT'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(int $id, Request $request): JsonResponse
     {
         $clause = $this->em->getRepository(ClauseLegale::class)->find($id);

@@ -21,8 +21,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['role_metier:read']],
     denormalizationContext: ['groups' => ['role_metier:write']],
     operations: [
-        new GetCollection(uriTemplate: '/roles-metier', security: "is_granted('ROLE_SUPER_ADMIN')"),
-        new Get(uriTemplate: '/roles-metier/{id}', security: "is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(uriTemplate: '/roles-metier', security: "is_granted('ROLE_ADMIN')"),
+        new Get(uriTemplate: '/roles-metier/{id}', security: "is_granted('ROLE_ADMIN')"),
         new Post(uriTemplate: '/roles-metier', security: "is_granted('ROLE_SUPER_ADMIN')"),
         new Patch(uriTemplate: '/roles-metier/{id}', security: "is_granted('ROLE_SUPER_ADMIN')"),
         new Delete(uriTemplate: '/roles-metier/{id}', security: "is_granted('ROLE_SUPER_ADMIN') and object.isSystemTemplate() == false"),

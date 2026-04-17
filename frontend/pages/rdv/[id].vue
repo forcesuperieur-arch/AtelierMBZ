@@ -298,7 +298,7 @@ const prestationsTotal = computed(() => {
 
 const progressPct = computed(() => {
   if (!rdv.value?.temps_estime) return 0
-  const startedAt = rdv.value.heure_debut_travaux || rdv.value.started_at
+  const startedAt = rdv.value.heure_debut_travaux || rdv.value.heure_debut_travail || rdv.value.started_at
   if (!startedAt) return 0
   const started = new Date(startedAt)
   if (Number.isNaN(started.getTime())) return 0
@@ -315,7 +315,7 @@ const canAssign = computed(() => {
 const canManageOr = computed(() => {
   if (ordreReparation.value) return true
   if (!rdv.value) return false
-  return ['confirme', 'reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye'].includes(rdv.value.statut)
+  return ['confirme', 'reception', 'en_cours', 'en_attente_pieces', 'en_attente_reprise', 'termine', 'restitue_partiel', 'en_gardiennage', 'restitue', 'facture', 'paye', 'no_show'].includes(rdv.value.statut)
 })
 
 const ordreActionLabel = computed(() => ordreReparation.value ? '📋 Ouvrir dossier atelier' : '📋 Créer dossier atelier')
@@ -329,10 +329,21 @@ const warnings = computed(() => {
   return w
 })
 
-const statusOrder = ['en_attente', 'reserve', 'confirme', 'reception', 'en_cours', 'termine', 'restitue']
+const statusOrder = ['en_attente', 'reserve', 'confirme', 'reception', 'en_cours', 'en_attente_pieces', 'en_attente_reprise', 'termine', 'restitue_partiel', 'en_gardiennage', 'restitue']
 const statusLabels: Record<string, string> = {
-  en_attente: 'En attente', reserve: 'Réservé', confirme: 'Confirmé', reception: 'Réceptionné',
-  en_cours: 'En cours', termine: 'Terminé', restitue: 'Restitué',
+  en_attente: 'En attente',
+  reserve: 'Réservé',
+  confirme: 'Confirmé',
+  reception: 'Réceptionné',
+  en_cours: 'En cours',
+  en_attente_pieces: 'En attente pièces',
+  en_attente_reprise: 'En attente reprise',
+  termine: 'Terminé',
+  restitue_partiel: 'Restitution partielle',
+  en_gardiennage: 'En gardiennage',
+  restitue: 'Restitué',
+  annule: 'Annulé',
+  no_show: 'No-show',
 }
 
 const transitionCatalog: Record<string, { label: string; color: TransitionColor }> = {
@@ -367,12 +378,17 @@ function fallbackTransitionsForStatus(status?: string) {
   const byStatus: Record<string, string[]> = {
     en_attente: ['reserver', 'confirmer', 'annuler'],
     reserve: ['confirmer', 'annuler'],
-    confirme: ['reception', 'annuler'],
-    reception: ['start_travail'],
-    en_cours: ['terminer'],
-    termine: ['restituer', 'facturer'],
-    restitue: ['facturer'],
+    confirme: ['reception', 'declarer_no_show', 'annuler'],
+    reception: ['start_travail', 'declarer_no_show', 'reporter'],
+    en_cours: ['attendre_pieces', 'mettre_en_attente_reprise', 'restituer_partiel', 'terminer'],
+    en_attente_pieces: ['reprendre_apres_pieces', 'passer_gardiennage'],
+    en_attente_reprise: ['reprendre_demain'],
+    termine: ['restituer', 'restituer_partiel', 'passer_gardiennage', 'facturer'],
+    restitue_partiel: ['passer_gardiennage', 'facturer'],
+    en_gardiennage: ['sortir_gardiennage'],
+    restitue: ['retour_garantie', 'facturer'],
     facture: ['payer'],
+    no_show: ['reporter'],
   }
 
   return (byStatus[status || ''] || []).map((name) => ({
@@ -405,11 +421,29 @@ async function loadAvailableTransitions() {
 const workflowSteps = computed(() => {
   if (!rdv.value) return []
   const current = rdv.value.statut
+
+  if (current === 'annule' || current === 'no_show') {
+    return [
+      ...statusOrder.slice(0, 4).map((key) => ({
+        key,
+        label: statusLabels[key] ?? key,
+        done: ['en_attente', 'reserve', 'confirme'].includes(key),
+        active: key === 'reception' && current === 'no_show',
+      })),
+      {
+        key: current,
+        label: statusLabels[current] ?? current,
+        done: false,
+        active: true,
+      },
+    ]
+  }
+
   const currentIdx = statusOrder.indexOf(current)
   return statusOrder.map((key, i) => ({
     key,
     label: statusLabels[key] ?? key,
-    done: i < currentIdx,
+    done: currentIdx >= 0 ? i < currentIdx : false,
     active: i === currentIdx,
   }))
 })
@@ -524,7 +558,8 @@ async function confirmCancel() {
   if (!cancelReason.value) return
   cancelling.value = true
   try {
-    await rdvStore.transitionRdv(id, cancelTransitionName.value, {
+    const transitionName = cancelTransitionName.value
+    await rdvStore.transitionRdv(id, transitionName, {
       motif: cancelReason.value,
       commentaire: cancelComment.value || null,
       source: 'atelier',
@@ -534,7 +569,7 @@ async function confirmCancel() {
     cancelReason.value = ''
     cancelComment.value = ''
     cancelTransitionName.value = 'annuler'
-    toast.add({ title: cancelTransitionName.value === 'declarer_no_show' ? 'No-show enregistré' : 'RDV annulé', color: 'success' })
+    toast.add({ title: transitionName === 'declarer_no_show' ? 'No-show enregistré' : 'RDV annulé', color: 'success' })
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {

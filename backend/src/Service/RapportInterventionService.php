@@ -74,6 +74,10 @@ class RapportInterventionService
             $errors[] = 'Essai routier incomplet ou manquant';
         }
 
+        if ($essai && (($essai->getDureeMinutes() ?? 0) <= 0)) {
+            $errors[] = 'Durée d\'essai routier non renseignée';
+        }
+
         // Travaux réalisés >= 20 chars
         if (!$rapport->getTravauxRealises() || mb_strlen(trim($rapport->getTravauxRealises())) < 20) {
             $errors[] = 'Description des travaux réalisés trop courte (min 20 caractères)';

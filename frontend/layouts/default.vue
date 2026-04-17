@@ -81,7 +81,7 @@ const auth = useAuth()
 const appStore = useAppStore()
 const atelierStore = useAtelierStore()
 const route = useRoute()
-const { unreadCount: notifUnreadCount, fetchUnreadCount, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
+const { unreadCount: notifUnreadCount, fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
 
 const atelierName = computed(() => atelierStore.branding?.nom || 'Atelier Moto')
 const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '')
@@ -121,6 +121,7 @@ onMounted(() => {
   }
   // LOT 5: Start notification system
   fetchUnreadCount()
+  fetchNotifications('unacknowledged')
   const atelierId = auth.user.value?.atelierId || auth.user.value?.atelier_id
   if (atelierId) {
     connectNotifs(atelierId)

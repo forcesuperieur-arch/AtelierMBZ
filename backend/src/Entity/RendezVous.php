@@ -120,6 +120,10 @@ class RendezVous
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?Mecanicien $mecanicien = null;
 
+    #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: RapportTechnicien::class, cascade: ['persist', 'remove'])]
+    #[Groups(['rdv:read'])]
+    private ?RapportTechnicien $rapportTechnicien = null;
+
     #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
     #[Groups(['rdv:read', 'rdv:write', 'ordre:read'])]
     private string $statut = 'en_attente';
@@ -239,7 +243,15 @@ class RendezVous
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
-public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
+    public function getRapportTechnicien(): ?RapportTechnicien { return $this->rapportTechnicien; }
+    public function setRapportTechnicien(?RapportTechnicien $rapportTechnicien): static {
+        $this->rapportTechnicien = $rapportTechnicien;
+        if ($rapportTechnicien !== null && $rapportTechnicien->getRendezVous() !== $this) {
+            $rapportTechnicien->setRendezVous($this);
+        }
+        return $this;
+    }
+    public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
     public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }

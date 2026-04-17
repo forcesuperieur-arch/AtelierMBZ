@@ -17,13 +17,32 @@ class OrdreReparationFreezeListener
             return;
         }
 
-        if (!in_array($entity->getStatut(), ['signe', 'execute', 'termine'], true)) {
+        $currentStatut = $entity->getStatut();
+        $oldStatut = $args->hasChangedField('statut') ? (string) $args->getOldValue('statut') : $currentStatut;
+        $wasFrozen = in_array($oldStatut, ['signe', 'execute', 'termine', 'rectifie'], true);
+        $isFrozen = in_array($currentStatut, ['signe', 'execute', 'termine', 'rectifie'], true);
+
+        if (!$wasFrozen && !$isFrozen) {
             return;
         }
 
         $changeSet = $args->getEntityChangeSet();
-        // Only statut transitions are allowed on frozen ORs
+
         $allowedFields = ['statut'];
+
+        if (!$wasFrozen && $args->hasChangedField('statut') && $currentStatut === 'signe') {
+            $allowedFields = [
+                'statut',
+                'signatureClient',
+                'signedSnapshot',
+                'signedHash',
+                'signedAt',
+                'signedIp',
+                'signedUserAgent',
+                'kilometrage',
+                'etatVehicule',
+            ];
+        }
 
         foreach (array_keys($changeSet) as $field) {
             if (!in_array($field, $allowedFields, true)) {

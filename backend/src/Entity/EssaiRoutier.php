@@ -118,8 +118,25 @@ class EssaiRoutier
 
     public function isComplete(): bool
     {
-        return $this->kmDebut !== null
-            && $this->kmFin !== null
-            && $this->signatureMecanicien !== null;
+        if ($this->kmDebut === null || $this->kmFin === null) {
+            return false;
+        }
+
+        if ($this->kmFin <= $this->kmDebut) {
+            return false;
+        }
+
+        $points = $this->pointsControle ?? [];
+        if (count($points) < 10) {
+            return false;
+        }
+
+        foreach ($points as $point) {
+            if (!array_key_exists('ok', $point) || $point['ok'] === null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

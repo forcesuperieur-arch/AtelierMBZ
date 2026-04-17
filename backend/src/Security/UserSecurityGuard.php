@@ -15,20 +15,25 @@ class UserSecurityGuard
     ) {}
 
     /**
-     * Prevent deleting or downgrading the last super_admin.
+     * Prevent deleting, archiving, disabling or downgrading the last super_admin.
      */
-    public function ensureLastSuperAdmin(User $targetUser, ?string $newRole = null): void
-    {
+    public function ensureLastSuperAdmin(
+        User $targetUser,
+        ?string $newRole = null,
+        ?int $newIsActive = null,
+        ?string $newAccessStatus = null,
+    ): void {
         $isCurrentlySuperAdmin = $targetUser->getRole() === 'super_admin';
         if (!$isCurrentlySuperAdmin) {
             return;
         }
 
-        // If role is being changed away from super_admin, or user is being deleted
         $isDowngrade = $newRole !== null && $newRole !== 'super_admin';
-        $isDelete = $newRole === null;
+        $isDeactivation = ($newIsActive !== null && $newIsActive !== 1)
+            || ($newAccessStatus !== null && $newAccessStatus !== 'active');
+        $isDelete = $newRole === null && $newIsActive === null && $newAccessStatus === null;
 
-        if (!$isDowngrade && !$isDelete) {
+        if (!$isDowngrade && !$isDeactivation && !$isDelete) {
             return;
         }
 
@@ -56,7 +61,6 @@ class UserSecurityGuard
             return;
         }
 
-        // Super admin can assign any role
         if (in_array('ROLE_SUPER_ADMIN', $currentUser->getRoles(), true)) {
             return;
         }

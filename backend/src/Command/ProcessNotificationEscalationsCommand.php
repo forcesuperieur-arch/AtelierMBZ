@@ -2,8 +2,11 @@
 
 namespace App\Command;
 
+use App\Entity\Notification;
 use App\Entity\NotificationEscalation;
 use App\Service\MercureNotifier;
+use App\Service\NotificationDispatcher;
+use App\Service\NotificationMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -20,6 +23,7 @@ class ProcessNotificationEscalationsCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private MercureNotifier $mercureNotifier,
+        private NotificationDispatcher $notificationDispatcher,
         private LoggerInterface $logger,
     ) {
         parent::__construct();
@@ -62,10 +66,10 @@ class ProcessNotificationEscalationsCommand extends Command
                     $this->handlePush($escalation, $notif);
                     break;
                 case 'sms':
-                    $this->handleSms($escalation);
+                    $this->handleSms($escalation, $notif);
                     break;
                 case 'email':
-                    $this->handleEmail($escalation);
+                    $this->handleEmail($escalation, $notif);
                     break;
                 default:
                     $escalation->setResult('failed');
@@ -86,39 +90,81 @@ class ProcessNotificationEscalationsCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function handlePush(NotificationEscalation $escalation, $notif): void
+    private function handlePush(NotificationEscalation $escalation, Notification $notif): void
     {
         try {
             $atelierId = $notif->getAtelierId() ?? 0;
             $this->mercureNotifier->publishToAtelier($atelierId, $notif);
             $escalation->setResult('success');
+            $escalation->setSkipReason(null);
         } catch (\Throwable $e) {
             $this->logger->error('Push escalation failed', [
                 'escalationId' => $escalation->getId(),
                 'error' => $e->getMessage(),
             ]);
             $escalation->setResult('failed');
-            $escalation->setSkipReason($e->getMessage());
+            $escalation->setSkipReason($this->truncateReason($e->getMessage()));
         }
     }
 
-    private function handleSms(NotificationEscalation $escalation): void
+    private function handleSms(NotificationEscalation $escalation, Notification $notif): void
     {
-        // SMS integration placeholder — log for now
-        $this->logger->info('SMS escalation dispatched (placeholder)', [
-            'escalationId' => $escalation->getId(),
-            'target' => $escalation->getTargetInfo(),
-        ]);
-        $escalation->setResult('success');
+        $body = trim(($notif->getTitle() ? $notif->getTitle() . "\n" : '') . $notif->getMessage());
+        $this->dispatchDirectChannel($escalation, $notif, 'sms', $body, null);
     }
 
-    private function handleEmail(NotificationEscalation $escalation): void
+    private function handleEmail(NotificationEscalation $escalation, Notification $notif): void
     {
-        // Email escalation placeholder — log for now
-        $this->logger->info('Email escalation dispatched (placeholder)', [
-            'escalationId' => $escalation->getId(),
-            'target' => $escalation->getTargetInfo(),
-        ]);
-        $escalation->setResult('success');
+        $this->dispatchDirectChannel($escalation, $notif, 'email', $notif->getMessage(), $notif->getTitle());
+    }
+
+    private function dispatchDirectChannel(
+        NotificationEscalation $escalation,
+        Notification $notif,
+        string $channel,
+        string $body,
+        ?string $subject,
+    ): void {
+        $recipient = trim((string) ($escalation->getTargetInfo() ?? ''));
+        if ($recipient === '') {
+            $escalation->setResult('failed');
+            $escalation->setSkipReason('missing_target');
+            return;
+        }
+
+        try {
+            $result = $this->notificationDispatcher->send(new NotificationMessage(
+                $channel,
+                (int) ($notif->getAtelierId() ?? 0),
+                $recipient,
+                $body,
+                $subject,
+                $notif->getType(),
+                $notif->getRelatedEntityType(),
+                $notif->getRelatedEntityId(),
+            ));
+
+            if ($result->isSuccess()) {
+                $escalation->setResult('success');
+                $escalation->setSkipReason(null);
+                return;
+            }
+
+            $escalation->setResult('failed');
+            $escalation->setSkipReason($this->truncateReason($result->getErrorMessage() ?? 'dispatch_failed'));
+        } catch (\Throwable $e) {
+            $this->logger->error('Channel escalation failed', [
+                'escalationId' => $escalation->getId(),
+                'channel' => $channel,
+                'error' => $e->getMessage(),
+            ]);
+            $escalation->setResult('failed');
+            $escalation->setSkipReason($this->truncateReason($e->getMessage()));
+        }
+    }
+
+    private function truncateReason(string $reason): string
+    {
+        return mb_substr($reason, 0, 100);
     }
 }

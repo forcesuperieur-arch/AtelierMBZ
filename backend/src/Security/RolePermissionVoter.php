@@ -1,6 +1,7 @@
 <?php
 namespace App\Security;
 
+use App\Entity\RolePermission;
 use App\Entity\RolePermissionEntry;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -14,6 +15,24 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 class RolePermissionVoter extends Voter
 {
+    private const LEGACY_PERMISSION_MAP = [
+        'rdv.create' => 'perm.rdv.create',
+        'rdv.edit' => 'perm.rdv.edit',
+        'rdv.delete' => 'perm.rdv.delete',
+        'client.create' => 'perm.clients.create',
+        'client.edit' => 'perm.clients.edit',
+        'client.delete' => 'perm.clients.delete',
+        'or.edit' => 'perm.or.edit',
+        'facturation.create' => 'perm.facturation.create',
+        'facturation.edit' => 'perm.facturation.edit',
+        'stock.create' => 'perm.stock.create',
+        'stock.edit' => 'perm.stock.edit',
+        'stock.delete' => 'perm.stock.delete',
+        'admin.users' => 'perm.admin.view',
+        'admin.config' => 'perm.admin.view',
+        'admin.roles' => 'perm.admin.view',
+    ];
+
     public function __construct(private EntityManagerInterface $em) {}
 
     protected function supports(string $attribute, mixed $subject): bool
@@ -96,12 +115,16 @@ class RolePermissionVoter extends Voter
     private function checkLegacyPermission(string $attribute, User $user): bool
     {
         $permission = substr($attribute, 5); // Remove "PERM_" prefix
-        $role = $user->getRole();
 
-        $roleEntity = $this->em->getRepository(\App\Entity\RolePermission::class)->find($role);
+        if (isset(self::LEGACY_PERMISSION_MAP[$permission])) {
+            return $this->checkNewPermission(self::LEGACY_PERMISSION_MAP[$permission], null, $user);
+        }
+
+        $roleEntity = $this->em->getRepository(RolePermission::class)->find($user->getRole());
         if (!$roleEntity) {
             return false;
         }
+
         return in_array($permission, $roleEntity->getPermissions(), true);
     }
 }

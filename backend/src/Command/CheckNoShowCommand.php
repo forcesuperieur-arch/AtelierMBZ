@@ -2,8 +2,8 @@
 
 namespace App\Command;
 
-use App\Entity\AnnulationRdv;
 use App\Entity\RendezVous;
+use App\Service\RendezVousWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,6 +21,7 @@ class CheckNoShowCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private WorkflowInterface $rendezVousStateMachine,
+        private RendezVousWorkflowService $workflowService,
     ) {
         parent::__construct();
     }
@@ -47,15 +48,12 @@ class CheckNoShowCommand extends Command
         $count = 0;
         foreach ($rdvs as $rdv) {
             if ($this->rendezVousStateMachine->can($rdv, 'declarer_no_show')) {
-                // Create annulation record
-                $annulation = new AnnulationRdv();
-                $annulation->setRendezVous($rdv);
-                $annulation->setMotif('no_show');
-                $annulation->setSource('automatique');
-                $annulation->setCommentaire('Auto-détecté par le système (heure RDV + 30min dépassée)');
-                $annulation->setStatutAvantAnnulation($rdv->getStatut());
-                $annulation->setHeureRdvOriginal($rdv->getHeureRdv());
-                $annulation->setAtelierId($rdv->getAtelierId());
+                $annulation = $this->workflowService->recordCancellation(
+                    $rdv,
+                    'no_show',
+                    'automatique',
+                    'Auto-détecté par le système (heure RDV + 30min dépassée)',
+                );
                 $this->em->persist($annulation);
 
                 $this->rendezVousStateMachine->apply($rdv, 'declarer_no_show');
