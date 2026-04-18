@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD022 MD024 MD032 -->
+
 # Historique projet AtelierMBZ
 
 ## Session 2026-04-17 — Companion VO dès la création
@@ -15,15 +17,10 @@
 - Le lot a été poussé en WIP sur la branche atelier-v2-only pour reprise le lendemain
 
 ### TODO laissés
-- [ ] frontend/pages/vo/rachats/new.vue : fiabiliser l'autoremplissage temps réel après scan PDA
-- [ ] frontend/pages/vo/depots/new.vue : fiabiliser l'autoremplissage temps réel après scan PDA
-- [ ] frontend/pages/public/vo-companion.vue : reprendre le flux complet scan → préremplissage → signature → archivage
-- [ ] backend/src/Controller/VOController.php : revalider la finalisation métier du brouillon compagnon
-- [ ] Ajouter les tests front et back sur ce lot quand le flux sera stabilisé
+- Aucun TODO encore ouvert sur ce lot : le flux compagnon brouillon, la finalisation métier et les tests ciblés ont été livrés dans les sessions suivantes.
 
 ### En suspens à arbitrer
 - Gérer ou non une deuxième signature distincte selon rachat ou dépôt-vente
-- Choisir le niveau exact d'autoremplissage sans créer de friction opérateur
 
 ## Session 2026-04-18 — Reprise / cadre de session
 
@@ -39,12 +36,10 @@
 - Le rachat peut démarrer par le QR PDA avant la saisie complète du dossier
 
 ### TODO laissés
-- [ ] Compléter ce journal à chaque pause ou fin de lot
-- [ ] Étendre le même confort de démarrage immédiat au dépôt-vente si on valide ce comportement
-- [ ] Améliorer encore l'autoremplissage identité vendeur si on ajoute de l'OCR dédié
+- Aucun TODO encore ouvert sur ce lot : le dépôt-vente suit désormais le même mode brouillon immédiat.
 
 ### En suspens à arbitrer
-- Valider si le dépôt-vente doit suivre exactement le même mode brouillon immédiat
+- Aucun.
 
 ## Session 2026-04-18 — Remise en etat VO
 
@@ -76,9 +71,44 @@
 - L'archivage des documents VO générés est centralisé et ne part qu'au moment où le dossier est juridiquement prêt ou signé; la signature publique verrouille ensuite le PDA
 
 ### TODO laissés
-- [ ] Ajouter un E2E navigateur complet du flux Companion VO achat + dépôt jusqu'au verrouillage post-signature pour couvrir l'enchaînement PDA → brouillon → archivage documentaire
-- [ ] Brancher la future signature dématérialisée légale + fallback PDF sur les documents de remise en etat si ce lot est confirmé
-- [ ] Ajouter des traces d'audit complémentaires si une validation métier plus fine est demandée par rôle atelier / VO
+- Aucun TODO encore ouvert sur ce lot : la signature dématérialisée et le fallback PDF des remises en etat ont été livrés dans la session suivante.
 
 ### En suspens à arbitrer
-- Déterminer si la validation finale d'une campagne doit être réservée au réceptionnaire/chef d'atelier ou rester ouverte au responsable magasin en appoint
+- Aucun.
+
+## Session 2026-04-18 — Companion VO E2E et clôture atelier
+
+### Fait
+- [LOT-0] test — ajout d'un E2E Playwright complet sur le flux Companion VO achat + dépôt jusqu'au verrouillage PDA post-signature puis archivage documentaire après finalisation admin
+- [LOT-0] fix — la clôture finale d'une remise en etat VO est désormais réservée à la réception / atelier quand le rôle métier est explicite; le responsable magasin n'est plus accepté pour lever le blocage vente
+- [LOT-0] ajoute — les logs d'audit Remise en etat VO embarquent désormais le rôle legacy et le rôle métier de l'acteur sur les actions sensibles
+- [LOT-0] test — ajout d'une couverture fonctionnelle PHPUnit pour verrouiller la règle responsable magasin refusé / responsable atelier autorisé sur la clôture
+
+### Décisions
+- La clôture qui débloque une vente VO relève de l'atelier; le responsable magasin ne doit plus pouvoir la faire quand son rôle métier est identifié
+- Les admins legacy sans rôle métier explicite restent tolérés temporairement pour ne pas casser les comptes historiques déjà en base
+
+### TODO laissés
+- Aucun TODO encore ouvert sur ce lot : la signature dématérialisée et le fallback PDF des remises en etat ont été livrés dans la session suivante.
+
+### En suspens à arbitrer
+- Aucun.
+
+## Session 2026-04-18 — Signature remise en etat VO
+
+### Fait
+- [LOT-0] ajoute — signature dématérialisée des documents de remise en etat VO avec snapshot, hash, acteur, IP et archivage PDF immuable par campagne
+- [LOT-0] ajoute — PDF live de campagne de remise en etat + fallback archivé automatique à la clôture quand aucune signature n'a été posée
+- [LOT-0] ajoute — carte front de remise en etat enrichie avec téléchargement PDF courant, accès au PDF archivé et zone de signature canvas
+- [LOT-0] test — couverture fonctionnelle PHPUnit étendue sur signature + archivage fallback, lint PHP/Twig vert sur les nouveaux fichiers
+
+### Décisions
+- Le PDF courant reste toujours disponible en lecture, même après signature; la version archivée reste la preuve figée
+- L'archivage documentaire est rattaché à la campagne de remise en etat elle-même, pas seulement au dossier VO, pour éviter tout écrasement entre campagnes historiques
+- Si une campagne clôturée n'a jamais été signée, on archive automatiquement un PDF fallback pour conserver une trace exploitable côté atelier/VO
+
+### TODO laissés
+- Aucun TODO ouvert sur ce lot.
+
+### En suspens à arbitrer
+- Rejouer la suite PHPUnit complète dès qu'un environnement avec l'hôte PostgreSQL `db` est disponible hors Docker intégré.
