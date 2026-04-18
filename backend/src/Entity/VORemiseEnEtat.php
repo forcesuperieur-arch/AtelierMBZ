@@ -77,6 +77,28 @@ class VORemiseEnEtat
     #[ORM\JoinColumn(name: 'validated_by', nullable: true, onDelete: 'SET NULL')]
     private ?User $validatedBy = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $signatureData = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $signedSnapshot = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $signedHash = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'signed_by', nullable: true, onDelete: 'SET NULL')]
+    private ?User $signedBy = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $signedAt = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $signedIp = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $signedUserAgent = null;
+
     #[ORM\Column(type: 'datetime')]
     private \DateTimeInterface $requestedAt;
 
@@ -133,6 +155,14 @@ class VORemiseEnEtat
     public function isBlockingSale(): bool
     {
         return !$this->isClosed();
+    }
+
+    public function hasSignedDocument(): bool
+    {
+        return $this->signatureData !== null
+            && $this->signedSnapshot !== null
+            && $this->signedHash !== null
+            && $this->signedAt !== null;
     }
 
     public function getEstimatedMoCost(): string
@@ -257,6 +287,20 @@ class VORemiseEnEtat
     public function setRequestedBy(?User $requestedBy): static { $this->requestedBy = $requestedBy; return $this; }
     public function getValidatedBy(): ?User { return $this->validatedBy; }
     public function setValidatedBy(?User $validatedBy): static { $this->validatedBy = $validatedBy; return $this; }
+    public function getSignatureData(): ?string { return $this->signatureData; }
+    public function setSignatureData(?string $signatureData): static { $this->signatureData = $signatureData; return $this; }
+    public function getSignedSnapshot(): ?array { return $this->signedSnapshot; }
+    public function setSignedSnapshot(?array $signedSnapshot): static { $this->signedSnapshot = $signedSnapshot; return $this; }
+    public function getSignedHash(): ?string { return $this->signedHash; }
+    public function setSignedHash(?string $signedHash): static { $this->signedHash = $signedHash; return $this; }
+    public function getSignedBy(): ?User { return $this->signedBy; }
+    public function setSignedBy(?User $signedBy): static { $this->signedBy = $signedBy; return $this; }
+    public function getSignedAt(): ?\DateTimeInterface { return $this->signedAt; }
+    public function setSignedAt(?\DateTimeInterface $signedAt): static { $this->signedAt = $signedAt; return $this; }
+    public function getSignedIp(): ?string { return $this->signedIp; }
+    public function setSignedIp(?string $signedIp): static { $this->signedIp = $signedIp; return $this; }
+    public function getSignedUserAgent(): ?string { return $this->signedUserAgent; }
+    public function setSignedUserAgent(?string $signedUserAgent): static { $this->signedUserAgent = $signedUserAgent; return $this; }
     public function getRequestedAt(): \DateTimeInterface { return $this->requestedAt; }
     public function setRequestedAt(\DateTimeInterface $requestedAt): static { $this->requestedAt = $requestedAt; return $this; }
     public function getValidatedAt(): ?\DateTimeInterface { return $this->validatedAt; }

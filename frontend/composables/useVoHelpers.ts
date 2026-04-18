@@ -14,6 +14,7 @@ export function useVoHelpers() {
     contrat_depot_vente: 'Contrat dépôt-vente',
     facture_vo: 'Facture VO',
     pv_rachat: 'PV de rachat',
+    remise_en_etat: 'Document remise en état',
     notice_garantie: 'Notice de garantie',
     signature_client: 'Signature client',
     photo_vehicule: 'Photo véhicule',

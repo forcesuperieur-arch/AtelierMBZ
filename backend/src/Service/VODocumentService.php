@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\VODocument;
 use App\Entity\VODepotVente;
 use App\Entity\VOPurchase;
+use App\Entity\VORemiseEnEtat;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -115,6 +116,7 @@ class VODocumentService
         ?VODepotVente $depot = null,
         ?User $user = null,
         ?string $originalFilename = null,
+        ?VORemiseEnEtat $campaign = null,
     ): VODocument {
         if (!is_file($generatedFilePath)) {
             throw new \RuntimeException(sprintf('Fichier PDF introuvable : %s', $generatedFilePath));
@@ -136,6 +138,7 @@ class VODocumentService
             'type' => $type,
             'voPurchase' => $purchase,
             'voDepotVente' => $depot,
+            'voRemiseEnEtat' => $campaign,
         ]) ?? new VODocument();
 
         $doc->setType($type);
@@ -144,8 +147,9 @@ class VODocumentService
         $doc->setMimeType('application/pdf');
         $doc->setVoPurchase($purchase);
         $doc->setVoDepotVente($depot);
+        $doc->setVoRemiseEnEtat($campaign);
         $doc->setUploadedBy($user);
-        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId());
+        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId() ?? $campaign?->getAtelierId());
 
         $this->em->persist($doc);
 
@@ -281,6 +285,7 @@ class VODocumentService
         ?VODepotVente $depot = null,
         ?User $user = null,
         ?\DateTimeInterface $dateExpiration = null,
+        ?VORemiseEnEtat $campaign = null,
     ): VODocument {
         $doc = new VODocument();
         $doc->setType($type);
@@ -289,9 +294,10 @@ class VODocumentService
         $doc->setMimeType($mimeType);
         $doc->setVoPurchase($purchase);
         $doc->setVoDepotVente($depot);
+        $doc->setVoRemiseEnEtat($campaign);
         $doc->setDateExpiration($dateExpiration);
         $doc->setUploadedBy($user);
-        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId());
+        $doc->setAtelierId($purchase?->getAtelierId() ?? $depot?->getAtelierId() ?? $campaign?->getAtelierId());
 
         $this->em->persist($doc);
 

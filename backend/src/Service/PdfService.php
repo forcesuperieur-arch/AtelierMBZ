@@ -134,6 +134,35 @@ class PdfService
         return $this->renderPdf($html, 'PVR-' . $purchase->getId());
     }
 
+    /**
+     * Generate refurbishment document PDF.
+     *
+     * @param array<string, mixed> $document
+     */
+    public function generateVoRemiseEnEtatPdf(array $document, ?int $atelierId = null): string
+    {
+        $atelier = $this->resolveAtelier($atelierId);
+        $snapshot = $document['snapshot'] ?? [];
+        $campaign = is_array($snapshot['campaign'] ?? null) ? $snapshot['campaign'] : [];
+
+        $html = $this->twig->render('pdf/vo_remise_en_etat.html.twig', [
+            'document' => $document,
+            'snapshot' => $snapshot,
+            'campaign' => $campaign,
+            'record' => is_array($snapshot['record'] ?? null) ? $snapshot['record'] : [],
+            'vehicle' => is_array($snapshot['vehicle'] ?? null) ? $snapshot['vehicle'] : [],
+            'notes' => is_array($snapshot['notes'] ?? null) ? $snapshot['notes'] : [],
+            'summary' => is_array($snapshot['summary'] ?? null) ? $snapshot['summary'] : [],
+            'lines' => is_array($snapshot['lines'] ?? null) ? $snapshot['lines'] : [],
+            'pieces' => is_array($snapshot['pieces'] ?? null) ? $snapshot['pieces'] : [],
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        $reference = (string) ($document['reference'] ?? sprintf('REVO-%s', $campaign['label'] ?? date('Ymd-His')));
+
+        return $this->renderPdf($html, $reference);
+    }
+
     private function buildBrandingContext(?Atelier $atelier): array
     {
         return [

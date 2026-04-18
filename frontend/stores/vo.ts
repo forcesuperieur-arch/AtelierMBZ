@@ -130,6 +130,25 @@ interface VORemiseEnEtatPiece {
   updatedAt: string
 }
 
+interface VORemiseEnEtatDocumentState {
+  canSign: boolean
+  signed: boolean
+  signedAt?: string | null
+  signedBy?: any
+  signedHash?: string | null
+  currentHash?: string | null
+  outdatedSinceSignature: boolean
+  livePdfUrl: string
+  archivedDocument?: {
+    id: number
+    type: string
+    originalFilename: string
+    uploadedAt: string
+    url?: string
+    downloadPath?: string
+  } | null
+}
+
 interface VORemiseEnEtat {
   id: number
   atelierId?: number
@@ -153,6 +172,7 @@ interface VORemiseEnEtat {
   createdAt: string
   updatedAt: string
   vehicle?: any
+  document: VORemiseEnEtatDocumentState
   isClosed: boolean
   isBlockingSale: boolean
   pendingPiecesCount: number
@@ -346,6 +366,11 @@ export const useVoStore = defineStore('vo', {
     async updateRefurbishment(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
       const api = useApi()
       return await api.patch(`/vo/remises-en-etat/${id}`, data)
+    },
+
+    async signRefurbishmentDocument(id: number, signature: string): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.post(`/vo/remises-en-etat/${id}/sign`, { signature })
     },
 
     async fetchApplicablePrestationsForRefurbishment(id: number): Promise<{ items: Array<Record<string, any>> }> {

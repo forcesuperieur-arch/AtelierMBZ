@@ -282,6 +282,73 @@
             <span v-if="selectedCampaign.closedAt">Clôturée le {{ formatDate(selectedCampaign.closedAt) }}</span>
           </div>
 
+          <div class="vo-info-box" v-if="selectedCampaign.document">
+            <strong>Document campagne</strong>
+            <span v-if="selectedCampaign.document.signed">
+              Version signée le {{ formatDate(selectedCampaign.document.signedAt) }}
+              <template v-if="selectedCampaign.document.signedBy">
+                par {{ formatUserName(selectedCampaign.document.signedBy) }}
+              </template>
+            </span>
+            <span v-else>
+              Aucune signature archivée. Le PDF courant reste disponible en fallback.
+            </span>
+            <span v-if="selectedCampaign.document.outdatedSinceSignature">
+              Le PDF signé fige une version antérieure. Télécharge aussi le PDF courant si l'atelier a modifié la campagne depuis.
+            </span>
+            <span v-if="selectedCampaign.document.signedHash">
+              Hash: {{ shortHash(selectedCampaign.document.signedHash) }}
+            </span>
+
+            <div class="vo-inline-actions">
+              <button type="button" class="vo-link-btn" @click="openDocument(selectedCampaign.document.livePdfUrl)">
+                PDF courant
+              </button>
+              <a
+                v-if="selectedCampaign.document.archivedDocument"
+                :href="selectedCampaign.document.archivedDocument.url || buildVoDocumentUrl(selectedCampaign.document.archivedDocument)"
+                target="_blank"
+                rel="noopener"
+                class="vo-link-btn"
+              >
+                PDF archivé
+              </a>
+              <button
+                v-if="selectedCampaign.document.canSign"
+                type="button"
+                class="topbar-new-btn"
+                :disabled="signingDocument"
+                @click="toggleSignaturePanel"
+              >
+                {{ showSignaturePanel ? 'Masquer la signature' : 'Signer le document' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="showSignaturePanel && selectedCampaign.document?.canSign" class="vo-info-box">
+            <strong>Signature dématérialisée</strong>
+            <span>La signature archive le chiffrage courant et verrouille son hash documentaire.</span>
+
+            <canvas
+              ref="signatureCanvas"
+              class="vo-signature-canvas"
+              @pointerdown.prevent="startSignature"
+              @pointermove.prevent="moveSignature"
+              @pointerup="stopSignature"
+              @pointerleave="stopSignature"
+              @pointercancel="stopSignature"
+            />
+
+            <span v-if="signatureError" class="vo-error-text">{{ signatureError }}</span>
+
+            <div class="vo-inline-actions">
+              <button type="button" class="vo-link-btn" @click="clearSignature">Effacer</button>
+              <button type="button" class="topbar-new-btn" :disabled="signingDocument" @click="saveSignature">
+                {{ signingDocument ? 'Signature...' : 'Enregistrer la signature' }}
+              </button>
+            </div>
+          </div>
+
           <div class="vo-info-box" v-if="selectedCampaign.vehicle">
             <strong>Véhicule</strong>
             <span>{{ selectedCampaign.vehicle.marque || '—' }} {{ selectedCampaign.vehicle.modele || '' }}</span>
@@ -325,7 +392,7 @@ const props = withDefaults(defineProps<{
 
 const voStore = useVoStore()
 const toast = useToast()
-const { formatDate, formatPrice } = useVoHelpers()
+const { buildVoDocumentUrl, formatDate, formatPrice } = useVoHelpers()
 
 const campaignStatuses = [
   'a_chiffrer',
@@ -354,6 +421,12 @@ const removingLineId = ref<number | null>(null)
 const removingPieceId = ref<number | null>(null)
 const selectedCampaignId = ref<number | null>(null)
 const applicablePrestations = ref<Array<Record<string, any>>>([])
+const signatureCanvas = ref<HTMLCanvasElement | null>(null)
+const showSignaturePanel = ref(false)
+const signingDocument = ref(false)
+const signatureError = ref('')
+const isDrawing = ref(false)
+const hasSignatureStroke = ref(false)
 
 const campaignForm = reactive({
   titre: '',
@@ -388,6 +461,10 @@ const campaigns = computed(() => props.remisesEnEtat || [])
 const canCreateCampaign = computed(() => props.canCreate)
 const selectedCampaign = computed(() => campaigns.value.find(campaign => campaign.id === selectedCampaignId.value) || null)
 
+const signatureResizeHandler = () => {
+  if (showSignaturePanel.value) resizeSignatureCanvas()
+}
+
 watch(campaigns, () => {
   if (!campaigns.value.length) {
     selectedCampaignId.value = null
@@ -404,8 +481,12 @@ watch(campaigns, () => {
 watch(selectedCampaign, async (campaign) => {
   if (!campaign) {
     applicablePrestations.value = []
+    showSignaturePanel.value = false
     return
   }
+
+  showSignaturePanel.value = false
+  signatureError.value = ''
 
   campaignForm.titre = campaign.titre || ''
   campaignForm.status = campaign.status || 'a_chiffrer'
@@ -425,6 +506,23 @@ watch(selectedCampaign, async (campaign) => {
     applicablePrestations.value = []
   }
 }, { immediate: true })
+
+watch(showSignaturePanel, async (open) => {
+  signatureError.value = ''
+  if (!open) return
+  await nextTick()
+  resizeSignatureCanvas()
+})
+
+onMounted(() => {
+  if (!import.meta.client) return
+  window.addEventListener('resize', signatureResizeHandler)
+})
+
+onBeforeUnmount(() => {
+  if (!import.meta.client) return
+  window.removeEventListener('resize', signatureResizeHandler)
+})
 
 async function createCampaign() {
   creatingCampaign.value = true
@@ -581,6 +679,118 @@ async function removePiece(pieceId: number) {
     toast.add({ title: 'Erreur', description: error.message, color: 'error' })
   } finally {
     removingPieceId.value = null
+  }
+}
+
+function toggleSignaturePanel() {
+  showSignaturePanel.value = !showSignaturePanel.value
+}
+
+function formatUserName(user: any) {
+  return [user?.prenom, user?.nom].filter(Boolean).join(' ') || user?.username || 'Utilisateur'
+}
+
+function shortHash(value?: string | null) {
+  const normalized = String(value || '')
+  if (!normalized) return '—'
+  return `${normalized.slice(0, 10)}...${normalized.slice(-6)}`
+}
+
+function openDocument(url?: string | null) {
+  if (!url || !import.meta.client) return
+
+  const popup = window.open(url, '_blank', 'noopener')
+  if (!popup) {
+    toast.add({ title: 'Autorisez les pop-ups', color: 'error' })
+  }
+}
+
+function resizeSignatureCanvas() {
+  const canvas = signatureCanvas.value
+  if (!canvas) return
+
+  const rect = canvas.getBoundingClientRect()
+  if (!rect.width || !rect.height) return
+
+  const ratio = import.meta.client ? window.devicePixelRatio || 1 : 1
+  canvas.width = Math.round(rect.width * ratio)
+  canvas.height = Math.round(rect.height * ratio)
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, rect.width, rect.height)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = '#111827'
+  hasSignatureStroke.value = false
+}
+
+function getSignaturePoint(event: PointerEvent) {
+  const canvas = signatureCanvas.value
+  if (!canvas) return { x: 0, y: 0 }
+
+  const rect = canvas.getBoundingClientRect()
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  }
+}
+
+function startSignature(event: PointerEvent) {
+  const canvas = signatureCanvas.value
+  const ctx = canvas?.getContext('2d')
+  if (!canvas || !ctx) return
+
+  signatureError.value = ''
+  const point = getSignaturePoint(event)
+  isDrawing.value = true
+  hasSignatureStroke.value = true
+  ctx.beginPath()
+  ctx.moveTo(point.x, point.y)
+}
+
+function moveSignature(event: PointerEvent) {
+  if (!isDrawing.value) return
+
+  const canvas = signatureCanvas.value
+  const ctx = canvas?.getContext('2d')
+  if (!canvas || !ctx) return
+
+  const point = getSignaturePoint(event)
+  ctx.lineTo(point.x, point.y)
+  ctx.stroke()
+}
+
+function stopSignature() {
+  isDrawing.value = false
+}
+
+function clearSignature() {
+  signatureError.value = ''
+  resizeSignatureCanvas()
+}
+
+async function saveSignature() {
+  if (!selectedCampaign.value || !signatureCanvas.value) return
+  if (!hasSignatureStroke.value) {
+    signatureError.value = 'Ajoute une signature avant l\'enregistrement.'
+    return
+  }
+
+  signingDocument.value = true
+  try {
+    await voStore.signRefurbishmentDocument(selectedCampaign.value.id, signatureCanvas.value.toDataURL('image/png'))
+    await props.reloadDetail?.()
+    showSignaturePanel.value = false
+    toast.add({ title: 'Document signé', color: 'success' })
+  } catch (error: any) {
+    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } finally {
+    signingDocument.value = false
   }
 }
 
@@ -770,6 +980,20 @@ async function removePiece(pieceId: number) {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.vo-signature-canvas {
+  width: 100%;
+  min-height: 180px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(255,255,255,0.08);
+  touch-action: none;
+}
+
+.vo-error-text {
+  color: #fca5a5;
+  font-size: 12px;
 }
 
 @media (max-width: 960px) {

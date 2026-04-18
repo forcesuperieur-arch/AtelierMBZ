@@ -11,9 +11,11 @@ use App\Entity\VORemiseEnEtatLigne;
 use App\Entity\VORemiseEnEtatPiece;
 use App\Service\AuditService;
 use App\Service\PrestationCatalogService;
+use App\Service\VORemiseEnEtatDocumentService;
 use App\Service\VORemiseEnEtatService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,7 @@ class VORemiseEnEtatController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private VORemiseEnEtatService $service,
+        private VORemiseEnEtatDocumentService $documentService,
         private PrestationCatalogService $catalogService,
         private AuditService $audit,
     ) {}
@@ -59,6 +62,7 @@ class VORemiseEnEtatController extends AbstractController
                 'sourceType' => 'purchase',
                 'sourceId' => $purchase->getId(),
                 'campaignIndex' => $campaign->getCampaignIndex(),
+                ...$this->buildActorAuditContext(),
             ]));
 
             return $this->json($this->service->normalizeCampaign($campaign), 201);
@@ -99,6 +103,7 @@ class VORemiseEnEtatController extends AbstractController
                 'sourceType' => 'depot',
                 'sourceId' => $depot->getId(),
                 'campaignIndex' => $campaign->getCampaignIndex(),
+                ...$this->buildActorAuditContext(),
             ]));
 
             return $this->json($this->service->normalizeCampaign($campaign), 201);
@@ -137,6 +142,90 @@ class VORemiseEnEtatController extends AbstractController
         if (!$campaign) {
             return $this->json(['error' => 'Not found'], 404);
         }
+
+        return $this->json($this->service->normalizeCampaign($campaign));
+    }
+
+    #[Route('/remises-en-etat/{id}/pdf', methods: ['GET'])]
+    public function downloadCampaignPdf(int $id): Response
+    {
+        $this->assertViewAccess();
+
+        $campaign = $this->em->getRepository(VORemiseEnEtat::class)->find($id);
+        if (!$campaign) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $filePath = $this->documentService->generateLivePdf($campaign);
+
+        return new BinaryFileResponse($filePath, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="remise-en-etat-%d.pdf"', $campaign->getId()),
+        ]);
+    }
+
+    #[Route('/remises-en-etat/{id}/document', methods: ['GET'])]
+    public function downloadArchivedCampaignDocument(int $id): Response
+    {
+        $this->assertViewAccess();
+
+        $campaign = $this->em->getRepository(VORemiseEnEtat::class)->find($id);
+        if (!$campaign) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $document = $this->documentService->getArchivedDocument($campaign);
+        if (!$document) {
+            return $this->json(['error' => 'Document archivé introuvable'], 404);
+        }
+
+        $projectDir = (string) $this->getParameter('kernel.project_dir');
+        $uploadsDir = realpath($projectDir . '/public/uploads/vo');
+        $filePath = realpath($projectDir . '/public' . $document->getFilePath());
+
+        if (!$uploadsDir || !$filePath || !str_starts_with($filePath, $uploadsDir)) {
+            return $this->json(['error' => 'Document introuvable'], 404);
+        }
+
+        return new BinaryFileResponse($filePath, 200, [
+            'Content-Type' => $document->getMimeType(),
+            'Content-Disposition' => 'inline; filename="' . $document->getOriginalFilename() . '"',
+        ]);
+    }
+
+    #[Route('/remises-en-etat/{id}/sign', methods: ['POST'])]
+    public function signCampaignDocument(int $id, Request $request): JsonResponse
+    {
+        $this->assertEditorAccess();
+
+        $campaign = $this->em->getRepository(VORemiseEnEtat::class)->find($id);
+        if (!$campaign) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $data = $this->parseBody($request);
+        $signature = trim((string) ($data['signature'] ?? ''));
+        if ($signature === '' || !str_starts_with($signature, 'data:image/')) {
+            return $this->json(['error' => 'Signature invalide'], 422);
+        }
+
+        try {
+            $document = $this->documentService->signCampaignDocument(
+                campaign: $campaign,
+                signatureData: $signature,
+                user: $this->getCurrentUser(),
+                signedIp: $request->getClientIp(),
+                signedUserAgent: $request->headers->get('User-Agent'),
+            );
+        } catch (\DomainException $exception) {
+            return $this->json(['error' => $exception->getMessage()], 409);
+        }
+
+        $this->audit->log('sign_vo_remise_en_etat_document', 'vo_remise_en_etat', $campaign->getId(), json_encode([
+            'documentId' => $document->getId(),
+            'signedHash' => $campaign->getSignedHash(),
+            ...$this->buildActorAuditContext(),
+        ]));
 
         return $this->json($this->service->normalizeCampaign($campaign));
     }
@@ -195,10 +284,16 @@ class VORemiseEnEtatController extends AbstractController
         }
 
         $this->em->flush();
+
+        if ($campaign->getStatus() === VORemiseEnEtat::STATUS_CLOTUREE) {
+            $this->documentService->archiveFallbackDocumentIfMissing($campaign, $this->getCurrentUser());
+        }
+
         $this->audit->log('update_vo_remise_en_etat', 'vo_remise_en_etat', $campaign->getId(), json_encode([
             'oldStatus' => $oldStatus,
             'newStatus' => $campaign->getStatus(),
             'priority' => $campaign->getPriority(),
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($campaign));
@@ -279,6 +374,7 @@ class VORemiseEnEtatController extends AbstractController
             'lineId' => $line->getId(),
             'prestationId' => $prestation->getId(),
             'quantity' => $line->getQuantity(),
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($campaign), 201);
@@ -308,6 +404,7 @@ class VORemiseEnEtatController extends AbstractController
             'lineId' => $line->getId(),
             'status' => $line->getStatus(),
             'quantity' => $line->getQuantity(),
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($line->getRemiseEnEtat()));
@@ -329,6 +426,7 @@ class VORemiseEnEtatController extends AbstractController
         $this->em->flush();
         $this->audit->log('delete_vo_remise_en_etat_ligne', 'vo_remise_en_etat', $campaign->getId(), json_encode([
             'lineId' => $lineId,
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($campaign));
@@ -366,6 +464,7 @@ class VORemiseEnEtatController extends AbstractController
             'pieceId' => $piece->getId(),
             'status' => $piece->getStatus(),
             'quantity' => $piece->getQuantity(),
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($campaign), 201);
@@ -400,6 +499,7 @@ class VORemiseEnEtatController extends AbstractController
             'pieceId' => $piece->getId(),
             'status' => $piece->getStatus(),
             'quantity' => $piece->getQuantity(),
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($piece->getRemiseEnEtat()));
@@ -421,6 +521,7 @@ class VORemiseEnEtatController extends AbstractController
         $this->em->flush();
         $this->audit->log('delete_vo_remise_en_etat_piece', 'vo_remise_en_etat', $campaign->getId(), json_encode([
             'pieceId' => $pieceId,
+            ...$this->buildActorAuditContext(),
         ]));
 
         return $this->json($this->service->normalizeCampaign($campaign));
@@ -469,9 +570,40 @@ class VORemiseEnEtatController extends AbstractController
             return;
         }
 
+        if ($status === VORemiseEnEtat::STATUS_CLOTUREE) {
+            if (!$this->canCloseCampaign()) {
+                throw $this->createAccessDeniedException('Cloture atelier requise pour ce changement de statut.');
+            }
+
+            return;
+        }
+
         if (!$this->isGranted('ROLE_RECEPTIONNAIRE') && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException('Validation atelier requise pour ce changement de statut.');
         }
+    }
+
+    private function canCloseCampaign(): bool
+    {
+        if ($this->isGranted('ROLE_SUPER_ADMIN')) {
+            return true;
+        }
+
+        $roleMetierCode = $this->getCurrentUser()?->getRoleMetier()?->getCode();
+
+        if ($roleMetierCode === 'responsable_magasin') {
+            return false;
+        }
+
+        if (in_array($roleMetierCode, ['responsable_atelier', 'receptionniste'], true)) {
+            return true;
+        }
+
+        if ($this->isGranted('ROLE_RECEPTIONNAIRE')) {
+            return true;
+        }
+
+        return $this->isGranted('ROLE_ADMIN') && $roleMetierCode === null;
     }
 
     private function parseBody(Request $request): array
@@ -514,5 +646,16 @@ class VORemiseEnEtatController extends AbstractController
     {
         $user = $this->getUser();
         return $user instanceof User ? $user : null;
+    }
+
+    private function buildActorAuditContext(): array
+    {
+        $user = $this->getCurrentUser();
+
+        return [
+            'actorUserId' => $user?->getId(),
+            'actorLegacyRole' => $user?->getRole(),
+            'actorRoleMetier' => $user?->getRoleMetier()?->getCode(),
+        ];
     }
 }

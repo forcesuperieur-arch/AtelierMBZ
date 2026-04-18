@@ -31,6 +31,7 @@ class VODocument
     public const TYPE_CONTRAT_DEPOT_VENTE = 'contrat_depot_vente';
     public const TYPE_FACTURE_VO = 'facture_vo';
     public const TYPE_PV_RACHAT = 'pv_rachat';
+    public const TYPE_REMISE_EN_ETAT = 'remise_en_etat';
     public const TYPE_NOTICE_GARANTIE = 'notice_garantie';
     public const TYPE_SIGNATURE_CLIENT = 'signature_client';
     public const TYPE_PHOTO_VEHICULE = 'photo_vehicule';
@@ -46,6 +47,7 @@ class VODocument
         self::TYPE_CONTRAT_DEPOT_VENTE => 5,
         self::TYPE_FACTURE_VO => 10,
         self::TYPE_PV_RACHAT => 5,
+        self::TYPE_REMISE_EN_ETAT => 5,
         self::TYPE_NOTICE_GARANTIE => 5,
         self::TYPE_SIGNATURE_CLIENT => 5,
         self::TYPE_PHOTO_VEHICULE => 5,
@@ -86,6 +88,11 @@ class VODocument
     #[ORM\JoinColumn(name: 'vo_depot_vente_id', nullable: true)]
     #[Groups(['vodoc:read', 'vodoc:write'])]
     private ?VODepotVente $voDepotVente = null;
+
+    #[ORM\ManyToOne(targetEntity: VORemiseEnEtat::class)]
+    #[ORM\JoinColumn(name: 'vo_remise_en_etat_id', nullable: true, onDelete: 'CASCADE')]
+    #[Groups(['vodoc:read'])]
+    private ?VORemiseEnEtat $voRemiseEnEtat = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
     #[Groups(['vodoc:read', 'vodoc:write'])]
@@ -156,6 +163,9 @@ class VODocument
 
     public function getVoDepotVente(): ?VODepotVente { return $this->voDepotVente; }
     public function setVoDepotVente(?VODepotVente $v): static { $this->voDepotVente = $v; return $this; }
+
+    public function getVoRemiseEnEtat(): ?VORemiseEnEtat { return $this->voRemiseEnEtat; }
+    public function setVoRemiseEnEtat(?VORemiseEnEtat $v): static { $this->voRemiseEnEtat = $v; return $this; }
 
     public function getDateExpiration(): ?\DateTimeInterface { return $this->dateExpiration; }
     public function setDateExpiration(?\DateTimeInterface $v): static { $this->dateExpiration = $v; return $this; }

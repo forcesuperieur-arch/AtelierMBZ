@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; margin: 18px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 18px; }
+        .header-table { width: 100%; border-collapse: collapse; }
+        .header-left, .header-right { vertical-align: top; }
+        .header-right { text-align: right; }
+        .header h1 { margin: 0; color: #2563eb; font-size: 16px; }
+        .header p { margin: 4px 0 0; }
+        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
+        .atelier-meta { font-size: 9px; color: #4b5563; line-height: 1.4; }
+        .notice { padding: 8px 10px; border-radius: 8px; margin-bottom: 14px; }
+        .notice-fallback { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+        .notice-signed { background: #ecfccb; color: #166534; border: 1px solid #84cc16; }
+        .section { margin-bottom: 14px; }
+        .section-title { font-size: 11px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; }
+        .meta-grid { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .meta-grid td { width: 50%; vertical-align: top; padding: 4px 8px 4px 0; }
+        .label { display: block; font-weight: bold; color: #6b7280; margin-bottom: 2px; }
+        .vehicle-box, .notes-box, .signature-box { padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #f9fafb; }
+        .summary-table, .items-table { width: 100%; border-collapse: collapse; }
+        .summary-table th, .summary-table td, .items-table th, .items-table td { border: 1px solid #d1d5db; padding: 6px; }
+        .summary-table th, .items-table th { background: #eff6ff; color: #1d4ed8; text-align: left; }
+        .items-table td.numeric { text-align: right; white-space: nowrap; }
+        .muted { color: #6b7280; }
+        .signature-image { display: block; max-width: 180px; max-height: 90px; margin: 8px 0; background: #fff; border: 1px solid #d1d5db; }
+        .footer { margin-top: 18px; padding-top: 8px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo" class="logo">
+                    {% endif %}
+                    <div class="atelier-meta">
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
+                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
+                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+                    </div>
+                </td>
+                <td class="header-right">
+                    <h1>DOCUMENT DE REMISE EN ETAT VO</h1>
+                    <p>{{ campaign.label ?? document.reference }}</p>
+                    <p>Campagne #{{ campaign.index ?? '—' }} • {{ record.typeLabel ?? 'VO' }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% if document.signed %}
+    <div class="notice notice-signed">
+        Version signée archivée le {{ document.signature.signedAt ? document.signature.signedAt|date('d/m/Y H:i') : '—' }}.
+    </div>
+    {% else %}
+    <div class="notice notice-fallback">
+        PDF fallback non signé, généré pour consultation interne.
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <div class="section-title">Contexte campagne</div>
+        <table class="meta-grid">
+            <tr>
+                <td>
+                    <span class="label">Titre</span>
+                    {{ campaign.title ?? '—' }}
+                </td>
+                <td>
+                    <span class="label">Statut / priorité</span>
+                    {{ campaign.status ?? '—' }} / {{ campaign.priority ?? '—' }}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="label">Demandée le</span>
+                    {{ campaign.requestedAt ? campaign.requestedAt|date('d/m/Y H:i') : '—' }}
+                </td>
+                <td>
+                    <span class="label">Validée le</span>
+                    {{ campaign.validatedAt ? campaign.validatedAt|date('d/m/Y H:i') : '—' }}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="label">Dossier source</span>
+                    {{ record.reference ?? '—' }}
+                </td>
+                <td>
+                    <span class="label">Contrepartie</span>
+                    {{ record.counterparty.prenom ?? '' }} {{ record.counterparty.nom ?? '' }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section vehicle-box">
+        <div class="section-title">Véhicule</div>
+        <div>
+            {{ vehicle.marque ?? '—' }} {{ vehicle.modele ?? '' }}<br>
+            Plaque : {{ vehicle.plaque ?? '—' }}<br>
+            VIN : {{ vehicle.vin ?? '—' }}<br>
+            Kilométrage : {{ vehicle.mileage ?? '—' }} km
+            {% if vehicle.cylindree %}<br>Cylindrée : {{ vehicle.cylindree }} cc{% endif %}
+            {% if vehicle.categorieNom %}<br>Catégorie tarifaire : {{ vehicle.categorieNom }}{% endif %}
+            {% if vehicle.typeMoto %}<br>Type atelier : {{ vehicle.typeMoto }}{% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Synthèse coûts</div>
+        <table class="summary-table">
+            <tr>
+                <th>MO estimée</th>
+                <th>Pièces estimées</th>
+                <th>Total estimé</th>
+                <th>Total réel</th>
+                <th>Pièces en attente</th>
+            </tr>
+            <tr>
+                <td>{{ summary.estimatedMoCost ?? '0.00' }} €</td>
+                <td>{{ summary.estimatedPartsCost ?? '0.00' }} €</td>
+                <td>{{ summary.estimatedTotalCost ?? '0.00' }} €</td>
+                <td>{{ summary.actualTotalCost ?? '0.00' }} €</td>
+                <td>{{ summary.pendingPiecesCount ?? 0 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section notes-box">
+        <div class="section-title">Notes</div>
+        <strong>Diagnostic VO</strong><br>
+        <span class="muted">{{ notes.diagnostic ?: 'Aucune note.' }}</span><br><br>
+        <strong>Atelier</strong><br>
+        <span class="muted">{{ notes.workshop ?: 'Aucune note.' }}</span><br><br>
+        <strong>Arbitrage business</strong><br>
+        <span class="muted">{{ notes.business ?: 'Aucune note.' }}</span>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Prestations atelier</div>
+        <table class="items-table">
+            <tr>
+                <th>Libellé</th>
+                <th>Qté</th>
+                <th>Statut</th>
+                <th>Temps estimé</th>
+                <th>Coût estimé HT</th>
+                <th>Coût réel HT</th>
+            </tr>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.libelle }}{% if line.prestationCode %}<br><span class="muted">{{ line.prestationCode }}</span>{% endif %}</td>
+                <td class="numeric">{{ line.quantity }}</td>
+                <td>{{ line.status }}</td>
+                <td class="numeric">{{ line.estimatedMinutes }} min</td>
+                <td class="numeric">{{ line.estimatedTotalHt }} €</td>
+                <td class="numeric">{{ line.actualTotalHt ?? '—' }}{% if line.actualTotalHt %} €{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Aucune prestation ajoutée.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Pièces</div>
+        <table class="items-table">
+            <tr>
+                <th>Libellé</th>
+                <th>Référence</th>
+                <th>Qté</th>
+                <th>Statut</th>
+                <th>Coût estimé HT</th>
+                <th>Coût réel HT</th>
+            </tr>
+            {% for piece in pieces %}
+            <tr>
+                <td>{{ piece.libelle }}</td>
+                <td>{{ piece.reference ?? '—' }}</td>
+                <td class="numeric">{{ piece.quantity }}</td>
+                <td>{{ piece.status }}</td>
+                <td class="numeric">{{ piece.estimatedTotalCostHt }} €</td>
+                <td class="numeric">{{ piece.actualTotalCostHt ?? '—' }}{% if piece.actualTotalCostHt %} €{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Aucune pièce suivie.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    {% if document.signed %}
+    <div class="section signature-box">
+        <div class="section-title">Signature</div>
+        <div>
+            Signé par {{ document.signature.signedBy.prenom ?? '' }} {{ document.signature.signedBy.nom ?? '' }}
+            le {{ document.signature.signedAt ? document.signature.signedAt|date('d/m/Y H:i') : '—' }}
+        </div>
+        {% if document.signature.ip %}
+        <div class="muted">IP : {{ document.signature.ip }}</div>
+        {% endif %}
+        {% if document.signatureData %}
+        <img src="{{ document.signatureData }}" alt="Signature" class="signature-image">
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        Hash documentaire : {{ document.hash ?? '—' }}<br>
+        Généré le {{ document.generatedAt ? document.generatedAt|date('d/m/Y H:i') : '—' }}
+    </div>
+</body>
+</html>

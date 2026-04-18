@@ -16,6 +16,7 @@ class VORemiseEnEtatService
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private VORemiseEnEtatDocumentService $documentService,
     ) {}
 
     /**
@@ -114,6 +115,7 @@ class VORemiseEnEtatService
             'createdAt' => $campaign->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $campaign->getUpdatedAt()->format(DATE_ATOM),
             'vehicle' => $this->normalizeVehicleLite($vehicle),
+            'document' => $this->documentService->normalizeDocumentState($campaign),
             'isClosed' => $campaign->isClosed(),
             'isBlockingSale' => $campaign->isBlockingSale(),
             'pendingPiecesCount' => $campaign->getPendingPiecesCount(),
