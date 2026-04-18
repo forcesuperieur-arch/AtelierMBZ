@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { defineConfig, devices } = require('./frontend/node_modules/@playwright/test');
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'https://localhost';
 
 export default defineConfig({
   testDir: './frontend/tests/e2e',

@@ -25,8 +25,30 @@
     </div>
 
     <div class="vo-companion-banner">
-      <strong>Mode compagnon PDA activé</strong>
-      <span>Après création du dépôt, le QR code du parcours VO est généré automatiquement pour scanner l’identité, la carte grise, préremplir le mandat puis faire signer le déposant.</span>
+      <strong>Mode compagnon PDA prêt dès l'ouverture</strong>
+      <span>Le QR code du parcours dépôt-vente apparaît directement. Tu peux scanner la pièce d’identité et la carte grise tout de suite, puis laisser le mandat se préremplir pendant que tu termines le dossier.</span>
+    </div>
+
+    <div id="companion-qr-hero" class="vo-hero-qr">
+      <div>
+        <strong>QR compagnon immédiat</strong>
+        <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces du déposant et de la moto sans attendre la finalisation métier du dépôt.</p>
+        <div class="vo-inline-actions" style="margin-top: 10px;">
+          <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
+            {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
+          </button>
+          <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
+          <button v-if="draftPublicUrl" type="button" class="vo-link-btn" @click="copyCompanionLink">Copier le lien</button>
+        </div>
+        <p v-if="qrLoadFailed && draftPublicUrl" class="vo-qr-fallback">L'image du QR n'a pas chargé. Le lien PDA reste utilisable immédiatement.</p>
+      </div>
+
+      <div class="vo-hero-qr-box">
+        <img v-if="draftQrCodeUrl && !qrLoadFailed" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-hero-qr-image" @error="qrLoadFailed = true" @load="qrLoadFailed = false">
+        <div v-else class="vo-hero-qr-placeholder">
+          {{ activatingCompanion ? 'Préparation du QR…' : 'QR en attente…' }}
+        </div>
+      </div>
     </div>
 
     <div class="vo-wizard-grid">
@@ -96,7 +118,7 @@
           <div v-if="selectedVehicle" class="vo-selected-box">
             <strong>{{ selectedVehicle.marque || '—' }} {{ selectedVehicle.modele || '' }}</strong>
             <span>{{ selectedVehicle.plaque || 'Sans plaque' }} • {{ selectedVehicle.vin || 'VIN non renseigné' }}</span>
-            <button type="button" class="vo-link-btn" @click="selectedVehicle = null">Saisir un autre véhicule</button>
+            <button type="button" class="vo-link-btn" @click="resetVehicle">Saisir un autre véhicule</button>
           </div>
 
           <div class="vo-divider">ou créer rapidement</div>
@@ -117,6 +139,26 @@
             <label class="vo-field">
               <span>Modèle</span>
               <input v-model="vehicleForm.modele" class="vo-input" />
+            </label>
+            <label class="vo-field">
+              <span>Catégorie tarifaire</span>
+              <select v-model="vehicleForm.categorieId" class="vo-select">
+                <option value="">Non renseignée</option>
+                <option v-for="category in categories" :key="category.id" :value="String(category.id)">{{ category.nom }}</option>
+              </select>
+            </label>
+            <label class="vo-field">
+              <span>Type véhicule atelier</span>
+              <select v-model="vehicleForm.typeMoto" class="vo-select">
+                <option value="">Non renseigné</option>
+                <option value="moto">Moto</option>
+                <option value="scooter">Scooter</option>
+                <option value="tous">Tous</option>
+              </select>
+            </label>
+            <label class="vo-field">
+              <span>Cylindrée</span>
+              <input v-model="vehicleForm.cylindree" class="vo-input" placeholder="ex: 750" />
             </label>
             <label class="vo-field">
               <span>Année</span>
@@ -228,8 +270,8 @@
           </div>
 
           <div class="vo-info-box">
-            <strong>Le contrat dépôt-vente PDF est généré automatiquement à la création.</strong>
-            <span>Le parcours compagnon s’ouvre ensuite avec le QR code pour scanner les documents et signer sur le PDA.</span>
+            <strong>Le contrat dépôt-vente est fiabilisé au fil du brouillon compagnon.</strong>
+            <span>Le PDF archivé est rafraîchi quand le brouillon est finalisé et quand la signature PDA a été capturée sur un dossier complet.</span>
           </div>
         </UCard>
 
@@ -283,19 +325,20 @@
           <div class="vo-info-box">
             <strong>Compagnon dès le début</strong>
             <span v-if="draftCompanion?.companion?.publicPath">Le brouillon dépôt-vente est actif. Tu peux déjà scanner les pièces sur le PDA pendant que tu termines le mandat.</span>
-            <span v-else>Dès que déposant + véhicule sont saisis, active le parcours PDA pour lancer le scan avant la finalisation.</span>
+            <span v-else>Le brouillon PDA se prépare automatiquement pour lancer le scan sans attendre.</span>
             <div class="vo-inline-actions" style="margin-top: 10px;">
-              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion || !canStartCompanion" @click="activateCompanionNow">
+              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow">
                 {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
               </button>
               <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
+              <button v-if="draftPublicUrl" type="button" class="vo-link-btn" @click="copyCompanionLink">Copier le lien</button>
             </div>
             <img v-if="draftQrCodeUrl" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-companion-mini-qr">
           </div>
 
           <div class="vo-info-box">
             <strong>Contrat PDF + parcours compagnon</strong>
-            <span>Après création, tu arrives directement sur le QR code PDA pour scanner les pièces, contrôler les données et faire signer le déposant.</span>
+            <span>Le QR PDA reste le point d'entrée pour scanner les pièces, contrôler les données et faire signer le déposant sans recréer de dossier.</span>
           </div>
         </UCard>
       </div>
@@ -305,6 +348,8 @@
 
 <script setup lang="ts">
 import { useVoStore } from '~/stores/vo'
+import { adoptDraftEntity, syncDraftField, type DraftSyncMemory } from '~/composables/voCompanionDraftSync'
+import { applyVehicleToForm, buildVoVehiclePayload, extractVehicleCategoryId } from '~/composables/voVehicleForm'
 
 definePageMeta({ title: 'Nouveau dépôt VO' })
 
@@ -313,8 +358,10 @@ const toast = useToast()
 const {
   searchClients,
   fetchExperts,
+  fetchMotoCategories,
   createQuickClient,
   createQuickVehicule,
+  updateQuickVehicule,
   findVehiculeByQuery,
   formatPrice,
   formatRegistrationOrVin,
@@ -348,6 +395,11 @@ const selectedDeposant = ref<any | null>(null)
 const selectedVehicle = ref<any | null>(null)
 const vehicleSearch = ref('')
 const experts = ref<any[]>([])
+const categories = ref<any[]>([])
+const qrLoadFailed = ref(false)
+const deposantDraftSync = reactive<DraftSyncMemory>({})
+const vehicleDraftSync = reactive<DraftSyncMemory>({})
+const depotDraftSync = reactive<DraftSyncMemory>({})
 
 const deposantForm = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '' })
 const vehicleForm = reactive({
@@ -355,6 +407,9 @@ const vehicleForm = reactive({
   vin: '',
   marque: '',
   modele: '',
+  categorieId: '',
+  typeMoto: '',
+  cylindree: '',
   annee: '',
   mileage: '',
   couleur: '',
@@ -401,7 +456,6 @@ const commissionPreview = computed(() => {
 })
 
 const attachedDocumentCount = computed(() => documentRows.value.filter(row => row.file).length)
-const canStartCompanion = computed(() => !!canGoToNextStep() && step.value >= 2)
 const draftPublicUrl = computed(() => {
   const path = String(draftCompanion.value?.companion?.publicPath || '').trim()
   if (!path || !import.meta.client) return ''
@@ -410,6 +464,11 @@ const draftPublicUrl = computed(() => {
 const draftQrCodeUrl = computed(() => buildQrCodeUrl(draftPublicUrl.value, 180))
 
 let deposantSearchTimer: ReturnType<typeof setTimeout> | null = null
+let companionPollTimer: ReturnType<typeof setInterval> | null = null
+
+function refreshOnFocus() {
+  refreshDraftCompanion(true)
+}
 
 watch(deposantSearch, (value) => {
   if (deposantSearchTimer) clearTimeout(deposantSearchTimer)
@@ -446,16 +505,11 @@ async function lookupVehicle() {
   }
 
   selectedVehicle.value = found
-  Object.assign(vehicleForm, {
-    plaque: found.plaque || '',
-    vin: found.vin || '',
-    marque: found.marque || '',
-    modele: found.modele || '',
-    annee: found.annee ? String(found.annee) : '',
-    mileage: found.mileage ? String(found.mileage) : '',
-    couleur: found.couleur || '',
-    datePremiereMiseEnCirculation: found.datePremiereMiseEnCirculation ? String(found.datePremiereMiseEnCirculation).slice(0, 10) : '',
-  })
+  applyVehicleToForm(vehicleForm, found)
+}
+
+function resetVehicle() {
+  selectedVehicle.value = null
 }
 
 function addDocumentRow() {
@@ -500,19 +554,12 @@ async function ensureDeposant() {
 }
 
 async function ensureVehicle(deposantId: number) {
-  if (selectedVehicle.value?.id) return selectedVehicle.value.id
+  if (selectedVehicle.value?.id) {
+    selectedVehicle.value = await updateQuickVehicule(selectedVehicle.value.id, buildVoVehiclePayload(vehicleForm))
+    return selectedVehicle.value.id
+  }
 
-  const created = await createQuickVehicule({
-    plaque: vehicleForm.plaque,
-    vin: vehicleForm.vin || null,
-    marque: vehicleForm.marque || null,
-    modele: vehicleForm.modele || null,
-    annee: vehicleForm.annee ? Number(vehicleForm.annee) : null,
-    mileage: vehicleForm.mileage ? Number(vehicleForm.mileage) : null,
-    couleur: vehicleForm.couleur || null,
-    datePremiereMiseEnCirculation: vehicleForm.datePremiereMiseEnCirculation || null,
-    client: `/api/clients/${deposantId}`,
-  })
+  const created = await createQuickVehicule(buildVoVehiclePayload(vehicleForm, `/api/clients/${deposantId}`))
 
   selectedVehicle.value = created
   return created.id
@@ -531,16 +578,70 @@ async function uploadDocuments(depotId: number) {
   }
 }
 
-async function activateCompanionNow() {
+async function copyCompanionLink() {
+  if (!draftPublicUrl.value || !import.meta.client) return
+
+  await navigator.clipboard.writeText(draftPublicUrl.value)
+  toast.add({ title: 'Lien compagnon copié', color: 'success' })
+}
+
+function hydrateFromDraft(full: any) {
+  draftCompanion.value = full
+
+  selectedDeposant.value = adoptDraftEntity(selectedDeposant.value, full?.deposant || null)
+  selectedVehicle.value = adoptDraftEntity(selectedVehicle.value, full?.vehicule || null)
+
+  syncDraftField(deposantForm, 'prenom', full?.deposant?.prenom, deposantDraftSync)
+  syncDraftField(deposantForm, 'nom', full?.deposant?.nom, deposantDraftSync)
+  syncDraftField(deposantForm, 'telephone', full?.deposant?.telephone, deposantDraftSync)
+  syncDraftField(deposantForm, 'email', full?.deposant?.email, deposantDraftSync)
+  syncDraftField(deposantForm, 'adresse', full?.deposant?.adresse, deposantDraftSync)
+
+  syncDraftField(vehicleForm, 'plaque', full?.vehicule?.plaque, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'vin', full?.vehicule?.vin, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'marque', full?.vehicule?.marque, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'modele', full?.vehicule?.modele, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'categorieId', extractVehicleCategoryId(full?.vehicule), vehicleDraftSync)
+  syncDraftField(vehicleForm, 'typeMoto', full?.vehicule?.typeMoto, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'cylindree', full?.vehicule?.cylindree, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'annee', full?.vehicule?.annee ? String(full.vehicule.annee) : '', vehicleDraftSync)
+  syncDraftField(vehicleForm, 'mileage', full?.vehicule?.mileage ? String(full.vehicule.mileage) : '', vehicleDraftSync)
+  syncDraftField(vehicleForm, 'couleur', full?.vehicule?.couleur, vehicleDraftSync)
+  syncDraftField(
+    vehicleForm,
+    'datePremiereMiseEnCirculation',
+    full?.vehicule?.datePremiereMiseEnCirculation ? String(full.vehicule.datePremiereMiseEnCirculation).slice(0, 10) : '',
+    vehicleDraftSync,
+  )
+
+  syncDraftField(depotForm as unknown as Record<string, any>, 'deposantIdType', full?.deposantIdType, depotDraftSync)
+  syncDraftField(depotForm as unknown as Record<string, any>, 'deposantIdNumber', full?.deposantIdNumber, depotDraftSync)
+  syncDraftField(
+    depotForm as unknown as Record<string, any>,
+    'deposantIdDate',
+    full?.deposantIdDate ? String(full.deposantIdDate).slice(0, 10) : '',
+    depotDraftSync,
+  )
+}
+
+async function refreshDraftCompanion(silent = true) {
+  if (!draftDepotId.value) return
+
+  try {
+    const full = await voStore.fetchDepotFull(draftDepotId.value)
+    hydrateFromDraft(full)
+  } catch (error: any) {
+    if (!silent) {
+      toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+    }
+  }
+}
+
+async function activateCompanionNow(showToast = true) {
   activatingCompanion.value = true
   try {
-    const deposantId = await ensureDeposant()
-    const vehiculeId = await ensureVehicle(deposantId)
-
     if (!draftDepotId.value) {
       const draft = await voStore.createDepot({
-        deposantId,
-        vehiculeId,
         prixVenteSouhaite: depotForm.prixVenteSouhaite || '0',
         commissionType: depotForm.commissionType,
         commissionValeur: depotForm.commissionValeur || '0',
@@ -553,12 +654,16 @@ async function activateCompanionNow() {
         conditionsRestitution: depotForm.conditionsRestitution || null,
         assuranceInfo: depotForm.assuranceInfo || null,
         notes: depotForm.notes || null,
+        status: 'brouillon',
       })
       draftDepotId.value = draft.id
     }
 
-    draftCompanion.value = await voStore.fetchDepotFull(draftDepotId.value)
-    toast.add({ title: 'Parcours compagnon activé', description: 'Le QR code dépôt-vente est prêt.', color: 'success' })
+    await refreshDraftCompanion(!showToast)
+
+    if (showToast) {
+      toast.add({ title: 'Parcours compagnon activé', description: 'Le QR code dépôt-vente est prêt.', color: 'success' })
+    }
   } catch (error: any) {
     toast.add({ title: 'Erreur', description: error.message, color: 'error' })
   } finally {
@@ -576,6 +681,8 @@ async function submit() {
 
     if (depotId) {
       await voStore.updateDepot(depotId, {
+        deposantId,
+        vehiculeId,
         prixVenteSouhaite: depotForm.prixVenteSouhaite,
         commissionType: depotForm.commissionType,
         commissionValeur: depotForm.commissionValeur,
@@ -588,6 +695,8 @@ async function submit() {
         conditionsRestitution: depotForm.conditionsRestitution || null,
         assuranceInfo: depotForm.assuranceInfo || null,
         notes: depotForm.notes || null,
+        status: 'actif',
+        finalizeCompanionDraft: true,
       })
     } else {
       const depot = await voStore.createDepot({
@@ -626,6 +735,23 @@ async function submit() {
 
 onMounted(async () => {
   experts.value = await fetchExperts()
+  categories.value = await fetchMotoCategories()
+  await activateCompanionNow(false)
+
+  if (import.meta.client) {
+    companionPollTimer = window.setInterval(() => {
+      refreshDraftCompanion(true)
+    }, 4000)
+    window.addEventListener('focus', refreshOnFocus)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (deposantSearchTimer) clearTimeout(deposantSearchTimer)
+  if (companionPollTimer) clearInterval(companionPollTimer)
+  if (import.meta.client) {
+    window.removeEventListener('focus', refreshOnFocus)
+  }
 })
 </script>
 
@@ -658,6 +784,59 @@ onMounted(async () => {
 .vo-companion-banner span {
   color: #d1d5db;
   font-size: 13px;
+}
+
+.vo-hero-qr {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.vo-hero-qr p {
+  margin: 6px 0 0;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.vo-hero-qr-box {
+  min-width: 180px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vo-hero-qr-image {
+  width: 180px;
+  height: 180px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.vo-hero-qr-placeholder {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.vo-qr-fallback {
+  color: #fbbf24 !important;
 }
 
 .vo-companion-mini-qr {

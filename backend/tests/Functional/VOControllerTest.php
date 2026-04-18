@@ -17,6 +17,89 @@ use Symfony\Component\HttpFoundation\Response;
 
 class VOControllerTest extends WebTestCase
 {
+    public function testSignedPurchaseCompanionArchivesPvBeforeConfirmation(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'purchasePrice' => '6100.00',
+                'targetSalePrice' => '8900.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-SIGN-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-07-11',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'status' => 'brouillon',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'GET',
+            '/api/vo/purchases/' . $purchaseId . '/full',
+            [],
+            [],
+            $this->authHeaders($fixture['user'])
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->assertNotEmpty($purchase->getCompanionToken());
+
+        $client->request(
+            'POST',
+            '/api/public/vo-companion/' . $purchase->getCompanionToken() . '/signature',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['signature' => $this->sampleSignatureDataUrl()], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->assertNotNull($purchase->getCompanionSignedAt());
+
+        $signatureDocument = $em->getRepository(VODocument::class)->findOneBy([
+            'voPurchase' => $purchase,
+            'type' => VODocument::TYPE_SIGNATURE_CLIENT,
+        ]);
+        $this->assertNotNull($signatureDocument);
+
+        $pvDocument = $em->getRepository(VODocument::class)->findOneBy([
+            'voPurchase' => $purchase,
+            'type' => VODocument::TYPE_PV_RACHAT,
+        ]);
+        $this->assertNotNull($pvDocument);
+    }
+
     public function testPurchaseCanBeConfirmedAndSoldThroughWorkflow(): void
     {
         $client = static::createClient();
@@ -202,6 +285,91 @@ class VOControllerTest extends WebTestCase
         $this->assertStringContainsString('[RESTITUTION] Le déposant récupère sa moto.', (string) $depot->getNotes());
     }
 
+    public function testDepotDraftCanBeFinalizedWithoutDoubleCreation(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/depots',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'status' => 'brouillon',
+                'prixVenteSouhaite' => '11900.00',
+                'commissionType' => 'pourcentage',
+                'commissionValeur' => '10.00',
+                'dateDebut' => '2026-04-17',
+                'dureeMandat' => 90,
+                'notes' => 'Brouillon compagnon dépôt.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $creationPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $depotId = (int) ($creationPayload['id'] ?? 0);
+        $this->assertGreaterThan(0, $depotId);
+        $this->assertSame('brouillon', $creationPayload['status'] ?? null);
+
+        $em->clear();
+
+        $depot = $em->getRepository(VODepotVente::class)->find($depotId);
+        $this->assertNotNull($depot);
+        $this->assertNull($depot->getVehicule());
+        $this->assertNull($depot->getDeposant());
+        $this->assertNull($em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]));
+        $this->assertNull($em->getRepository(VODocument::class)->findOneBy([
+            'voDepotVente' => $depot,
+            'type' => VODocument::TYPE_CONTRAT_DEPOT_VENTE,
+        ]));
+
+        $client->request(
+            'PATCH',
+            '/api/vo/depots/' . $depotId,
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'deposantId' => $fixture['deposant']->getId(),
+                'vehiculeId' => $fixture['depotVehicle']->getId(),
+                'prixVenteSouhaite' => '11900.00',
+                'commissionType' => 'pourcentage',
+                'commissionValeur' => '10.00',
+                'dateDebut' => '2026-04-17',
+                'dureeMandat' => 90,
+                'deposantIdType' => 'carte_identite',
+                'deposantIdNumber' => 'CI-DEPOT-DRAFT-' . strtoupper($fixture['suffix']),
+                'deposantIdDate' => '2025-02-14',
+                'status' => 'actif',
+                'finalizeCompanionDraft' => true,
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $depot = $em->getRepository(VODepotVente::class)->find($depotId);
+        $this->assertNotNull($depot);
+        $this->assertSame('actif', $depot->getStatus());
+        $this->assertNotNull($depot->getVehicule());
+        $this->assertNotNull($depot->getDeposant());
+
+        $contractDocument = $em->getRepository(VODocument::class)->findOneBy([
+            'voDepotVente' => $depot,
+            'type' => VODocument::TYPE_CONTRAT_DEPOT_VENTE,
+        ]);
+        $this->assertNotNull($contractDocument);
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
+        $this->assertNotNull($livrePoliceEntry);
+        $this->assertSame('depot_vente', $livrePoliceEntry->getType());
+    }
+
     /**
      * @return array{user: User, seller: Client, buyer: Client, deposant: Client, purchaseVehicle: Vehicule, depotVehicle: Vehicule, suffix: string}
      */
@@ -304,6 +472,11 @@ class VOControllerTest extends WebTestCase
 
             $em->persist($document);
         }
+    }
+
+    private function sampleSignatureDataUrl(): string
+    {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0FYAAAAASUVORK5CYII=';
     }
 
     /**

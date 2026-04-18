@@ -175,6 +175,15 @@
           </div>
         </UCard>
 
+        <VORemiseEnEtatCard
+          source-type="depot"
+          :dossier-id="Number(route.params.id)"
+          :remises-en-etat="detail.remisesEnEtat || []"
+          :active-remise-en-etat="detail.activeRemiseEnEtat || null"
+          :can-create="detail.canCreateRemiseEnEtat !== false"
+          :reload-detail="loadDetail"
+        />
+
         <UCard v-if="detail.status === 'actif'">
           <template #header>
             <div class="vo-card-title">Actions mandat</div>
@@ -183,6 +192,11 @@
           <div v-if="!detail.canSell && detail.companion?.steps && !detail.companion.steps.allComplete" class="vo-warning-box">
             <strong>Vente verrouillée</strong>
             <span>Le contrat PDA doit être finalisé avant de vendre le véhicule.</span>
+          </div>
+
+          <div v-if="detail.saleBlockers?.length" class="vo-warning-box">
+            <strong>Remise en état VO en cours</strong>
+            <span>{{ detail.saleBlockers.join(', ') }}</span>
           </div>
 
           <div class="vo-form-grid">

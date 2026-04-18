@@ -119,6 +119,12 @@ export function useVoHelpers() {
     })
   }
 
+  async function fetchMotoCategories() {
+    const data = await api.get('/motos/categories?itemsPerPage=200').catch(() => [])
+
+    return extractCollection(data).filter((category: any) => Number(category?.is_active ?? category?.isActive ?? 1) === 1)
+  }
+
   async function createQuickClient(payload: {
     prenom: string
     nom: string
@@ -135,6 +141,10 @@ export function useVoHelpers() {
 
   async function createQuickVehicule(payload: Record<string, any>) {
     return await api.post('/vehicules', payload)
+  }
+
+  async function updateQuickVehicule(id: number, payload: Record<string, any>) {
+    return await api.patch(`/vehicules/${id}`, payload)
   }
 
   function documentLabel(type: string) {
@@ -178,8 +188,10 @@ export function useVoHelpers() {
     findVehiculeByQuery,
     searchClients,
     fetchExperts,
+    fetchMotoCategories,
     createQuickClient,
     createQuickVehicule,
+    updateQuickVehicule,
     documentLabel,
     buildVoDocumentUrl,
     buildQrCodeUrl,

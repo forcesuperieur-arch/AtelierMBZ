@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = (process.env.PLAYWRIGHT_BASE_URL || 'http://localhost').replace(/\/$/, '');
+const SECURE_BASE_URL = BASE_URL.startsWith('https://') ? BASE_URL : BASE_URL.replace(/^http:\/\//, 'https://');
 
 export function appUrl(path = '') {
   return `${BASE_URL}${path}`;
@@ -26,6 +27,15 @@ export async function loginAsAdmin(page) {
     } catch {
       await page.goto(appUrl('/login'));
     }
+  }
+
+  try {
+    await page.goto(`${SECURE_BASE_URL}/api/auth/google/dev-simulate?email=admin@atelier.local&mode=login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${SECURE_BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('body')).toContainText(/dashboard|tableau|rdv|pont/i, { timeout: 15000 });
+    return;
+  } catch {
+    // Continue to the explicit failure below.
   }
 
   throw new Error('Admin login failed with all configured passwords');

@@ -38,14 +38,14 @@ class VOPurchase
     private ?int $atelierId = null;
 
     #[ORM\ManyToOne(targetEntity: Vehicule::class)]
-    #[ORM\JoinColumn(name: 'vehicule_id', nullable: false)]
+    #[ORM\JoinColumn(name: 'vehicule_id', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]
-    private Vehicule $vehicule;
+    private ?Vehicule $vehicule = null;
 
     #[ORM\ManyToOne(targetEntity: Client::class)]
-    #[ORM\JoinColumn(name: 'seller_id', nullable: false)]
+    #[ORM\JoinColumn(name: 'seller_id', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]
-    private Client $seller;
+    private ?Client $seller = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'expert_id', nullable: true)]
@@ -159,11 +159,11 @@ class VOPurchase
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
 
-    public function getVehicule(): Vehicule { return $this->vehicule; }
-    public function setVehicule(Vehicule $v): static { $this->vehicule = $v; return $this; }
+    public function getVehicule(): ?Vehicule { return $this->vehicule; }
+    public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }
 
-    public function getSeller(): Client { return $this->seller; }
-    public function setSeller(Client $v): static { $this->seller = $v; return $this; }
+    public function getSeller(): ?Client { return $this->seller; }
+    public function setSeller(?Client $v): static { $this->seller = $v; return $this; }
 
     public function getExpert(): ?User { return $this->expert; }
     public function setExpert(?User $v): static { $this->expert = $v; return $this; }

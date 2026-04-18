@@ -6,6 +6,7 @@ use App\Entity\Vehicule;
 use App\Entity\VODepotVente;
 use App\Entity\VODocument;
 use App\Entity\VOPurchase;
+use App\Service\VOGeneratedDocumentService;
 use App\Service\VODocumentService;
 use App\Service\VOCompanionWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +25,7 @@ class PublicVoCompanionController extends AbstractController
         private SerializerInterface $serializer,
         private VODocumentService $documentService,
         private VOCompanionWorkflowService $workflowService,
+        private VOGeneratedDocumentService $generatedDocumentService,
     ) {}
 
     #[Route('/{token}', methods: ['GET'])]
@@ -146,7 +148,21 @@ class PublicVoCompanionController extends AbstractController
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->applyVehiculePayload($context['record']->getVehicule(), $request->toArray());
+        $payload = $request->toArray();
+        $vehicule = $context['record']->getVehicule();
+
+        if (!$vehicule instanceof Vehicule) {
+            $vehicule = new Vehicule();
+            $vehicule->setAtelierId($context['record']->getAtelierId());
+            $vehicule->setPlaque((string) ($payload['plaque'] ?? $payload['vin'] ?? ('TEMP-VO-' . $context['record']->getId())));
+            $this->em->persist($vehicule);
+            $context['record']->setVehicule($vehicule);
+        }
+
+        $this->applyVehiculePayload($vehicule, $payload);
+        if (trim((string) $vehicule->getPlaque()) === '') {
+            $vehicule->setPlaque('TEMP-VO-' . $context['record']->getId());
+        }
         $this->em->flush();
 
         return $this->json($this->buildPayload($context['record'], $this->loadDocuments($context['record'])));
@@ -231,7 +247,10 @@ class PublicVoCompanionController extends AbstractController
         }
 
         $record->setCompanionSignatureData($signature);
-        $record->setCompanionSignedAt(new \DateTimeImmutable());
+        $record->setCompanionSignedAt(new \DateTime());
+        $this->em->flush();
+
+        $this->generatedDocumentService->archiveCompanionDocumentIfReady($record);
         $this->em->flush();
 
         return $this->json($this->buildPayload($record, $this->loadDocuments($record)));
@@ -306,16 +325,16 @@ class PublicVoCompanionController extends AbstractController
                 'generatedDocuments' => $this->workflowService->getGeneratedDocuments($record),
             ],
             'party' => [
-                'prenom' => $party->getPrenom(),
-                'nom' => $party->getNom(),
-                'telephone' => $party->getTelephone(),
-                'email' => $party->getEmail(),
-                'adresse' => $party->getAdresse(),
+                'prenom' => $party?->getPrenom(),
+                'nom' => $party?->getNom(),
+                'telephone' => $party?->getTelephone(),
+                'email' => $party?->getEmail(),
+                'adresse' => $party?->getAdresse(),
                 'idType' => $record instanceof VOPurchase ? $record->getSellerIdType() : $record->getDeposantIdType(),
                 'idNumber' => $record instanceof VOPurchase ? $record->getSellerIdNumber() : $record->getDeposantIdNumber(),
                 'idDate' => ($record instanceof VOPurchase ? $record->getSellerIdDate() : $record->getDeposantIdDate())?->format('Y-m-d'),
             ],
-            'vehicule' => $this->serializer->normalize($record->getVehicule(), null, ['groups' => 'vehicule:read']),
+            'vehicule' => $record->getVehicule() ? $this->serializer->normalize($record->getVehicule(), null, ['groups' => 'vehicule:read']) : null,
             'documents' => $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']),
             'steps' => $steps,
         ];

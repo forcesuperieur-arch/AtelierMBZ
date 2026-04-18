@@ -237,12 +237,17 @@ class VODocumentService
 
         foreach ($qb->getQuery()->getResult() as $purchase) {
             $missing = $this->getMissingDocuments($purchase);
+            $vehicule = $purchase->getVehicule();
+            $vehiculeLabel = $vehicule?->getPlaque()
+                ?: trim((string) (($vehicule?->getMarque() ?? '') . ' ' . ($vehicule?->getModele() ?? '')))
+                ?: sprintf('rachat #%d', $purchase->getId());
+
             foreach ($missing as $docType) {
                 $alerts[] = [
                     'type' => 'missing',
                     'document_type' => $docType,
                     'purchase_id' => $purchase->getId(),
-                    'message' => sprintf('Document "%s" manquant pour le véhicule %s', $docType, $purchase->getVehicule()->getPlaque()),
+                    'message' => sprintf('Document "%s" manquant pour le véhicule %s', $docType, $vehiculeLabel),
                 ];
             }
         }

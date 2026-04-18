@@ -20,6 +20,7 @@ const items = [
   { to: '/vo', label: 'Dashboard', icon: '🏷️' },
   { to: '/vo/rachats', label: 'Rachats', icon: '🏍️' },
   { to: '/vo/depots', label: 'Dépôts', icon: '📋' },
+  { to: '/vo/remises-en-etat', label: 'Remises en état', icon: '🛠️' },
   { to: '/vo/livre-police', label: 'Livre de Police', icon: '📕' },
   { to: '/vo/factures', label: 'Factures', icon: '💳' },
 ]

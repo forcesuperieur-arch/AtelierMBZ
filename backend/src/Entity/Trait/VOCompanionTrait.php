@@ -92,7 +92,7 @@ trait VOCompanionTrait
             return true;
         }
 
-        return $this->companionTokenExpiresAt < ($now ?? new \DateTimeImmutable());
+        return $this->companionTokenExpiresAt < ($now ?? new \DateTime());
     }
 
     public function ensureCompanionToken(int $ttlDays = 30): bool
@@ -108,11 +108,11 @@ trait VOCompanionTrait
 
     public function regenerateCompanionToken(int $ttlDays = 30): void
     {
-        $createdAt = new \DateTimeImmutable();
+        $createdAt = new \DateTime();
 
         $this->companionToken = bin2hex(random_bytes(32));
         $this->companionTokenCreatedAt = $createdAt;
-        $this->companionTokenExpiresAt = $createdAt->modify(sprintf('+%d days', max(1, $ttlDays)));
+        $this->companionTokenExpiresAt = (clone $createdAt)->modify(sprintf('+%d days', max(1, $ttlDays)));
     }
 
     public function getCompanionPublicPath(): ?string

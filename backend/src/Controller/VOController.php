@@ -10,9 +10,11 @@ use App\Entity\VODocument;
 use App\Entity\VOFacture;
 use App\Entity\VOLivrePolice;
 use App\Entity\VOPurchase;
+use App\Service\VORemiseEnEtatService;
 use App\Service\PdfService;
 use App\Service\VOCompanionWorkflowService;
 use App\Service\VODocumentService;
+use App\Service\VOGeneratedDocumentService;
 use App\Service\VOLivrePoliceService;
 use App\Service\VOMarginService;
 use App\Service\VONumberingService;
@@ -36,8 +38,10 @@ class VOController extends AbstractController
         private VOLivrePoliceService $livrePoliceService,
         private VODocumentService $documentService,
         private VOCompanionWorkflowService $companionWorkflowService,
+        private VOGeneratedDocumentService $generatedDocumentService,
         private SerializerInterface $serializer,
         private VONumberingService $numberingService,
+        private VORemiseEnEtatService $remiseEnEtatService,
     ) {}
 
     // ═══════════════════════════════════════════
@@ -54,7 +58,7 @@ class VOController extends AbstractController
             ->leftJoin('p.seller', 's')->addSelect('s')
             ->orderBy('p.createdAt', 'DESC');
 
-        $data = $this->serializer->normalize($qb->getQuery()->getResult(), null, ['groups' => 'vo:read']);
+        $data = array_map(fn (VOPurchase $purchase): array => $this->normalizePurchaseBase($purchase), $qb->getQuery()->getResult());
 
         return $this->json($data);
     }
@@ -68,7 +72,7 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Purchase not found'], 404);
         }
 
-        $data = $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']);
+        $data = $this->normalizePurchaseBase($purchase);
         $data['margin'] = $purchase->getMargin();
         $data['totalFre'] = $purchase->getTotalFre();
         $data['missingDocuments'] = $this->documentService->getMissingDocuments($purchase);
@@ -92,12 +96,14 @@ class VOController extends AbstractController
         $documents = $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']);
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
         $companionSteps = $this->companionWorkflowService->buildSteps($purchase, $documents);
+        $campaigns = $this->remiseEnEtatService->getCampaignsForRecord($purchase);
+        $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($purchase);
 
         if ($tokenUpdated) {
             $this->em->flush();
         }
 
-        $data = $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']);
+        $data = $this->normalizePurchaseBase($purchase);
         $data['margin'] = $purchase->getMargin();
         $data['totalFre'] = $purchase->getTotalFre();
         $data['missingDocuments'] = $missingDocuments;
@@ -106,10 +112,18 @@ class VOController extends AbstractController
         $data['canConfirm'] = count($confirmationMissingDocuments) === 0
             && $data['confirmationMissingCompanionSteps'] === []
             && $purchase->getStatus() === 'brouillon';
-        $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true);
+        $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true)
+            && !($activeCampaign?->isBlockingSale() ?? false);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($purchase);
         $data['companion'] = $this->buildCompanionData($purchase, $documents, $companionSteps);
+        $data['remisesEnEtat'] = array_map(fn ($campaign): array => $this->remiseEnEtatService->normalizeCampaign($campaign), $campaigns);
+        $data['activeRemiseEnEtat'] = $activeCampaign ? $this->remiseEnEtatService->normalizeCampaign($activeCampaign) : null;
+        $data['canCreateRemiseEnEtat'] = !($activeCampaign instanceof \App\Entity\VORemiseEnEtat);
+        $data['refurbishmentBlockingSale'] = $activeCampaign?->isBlockingSale() ?? false;
+        $data['saleBlockers'] = $activeCampaign instanceof \App\Entity\VORemiseEnEtat
+            ? [sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre())]
+            : [];
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -132,19 +146,24 @@ class VOController extends AbstractController
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
         $seller = $this->em->getRepository(Client::class)->find($body['sellerId'] ?? 0);
+        $status = (string) ($body['status'] ?? 'brouillon');
 
-        if (!$vehicule || !$seller) {
+        if (($vehicule === null || $seller === null) && $status !== 'brouillon') {
             return $this->json(['error' => 'Vehicule and seller are required'], 400);
         }
 
         $purchase = new VOPurchase();
         $purchase->setAtelierId($this->resolveAtelierId());
-        $purchase->setVehicule($vehicule);
-        $purchase->setSeller($seller);
+        if ($vehicule instanceof Vehicule) {
+            $purchase->setVehicule($vehicule);
+        }
+        if ($seller instanceof Client) {
+            $purchase->setSeller($seller);
+        }
         $purchase->setPurchasePrice((string) ($body['purchasePrice'] ?? '0'));
         $purchase->setTargetSalePrice((string) ($body['targetSalePrice'] ?? '0'));
         $purchase->setRepairEstimates($body['repairEstimates'] ?? null);
-        $purchase->setStatus($body['status'] ?? 'brouillon');
+        $purchase->setStatus($status);
         $purchase->setRegimeTva($body['regimeTva'] ?? 'marge');
         $purchase->setNotes($body['notes'] ?? null);
 
@@ -172,7 +191,7 @@ class VOController extends AbstractController
         $this->em->flush();
 
         return $this->json(
-            $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']),
+            $this->normalizePurchaseBase($purchase),
             201,
         );
     }
@@ -187,6 +206,8 @@ class VOController extends AbstractController
         }
 
         $body = $request->toArray();
+        $hadIncompleteSignedDraft = $purchase->hasCompanionSignature()
+            && ($purchase->getSeller() === null || $purchase->getVehicule() === null);
 
         if (!empty($body['vehiculeId'])) {
             $vehicule = $this->em->getRepository(Vehicule::class)->find((int) $body['vehiculeId']);
@@ -221,7 +242,15 @@ class VOController extends AbstractController
 
         $this->em->flush();
 
-        return $this->json($this->serializer->normalize($purchase, null, ['groups' => 'vo:read']));
+        if ($hadIncompleteSignedDraft && $purchase->getSeller() && $purchase->getVehicule()) {
+            $this->generatedDocumentService->archiveCompanionDocumentIfReady(
+                $purchase,
+                $this->getUser() instanceof User ? $this->getUser() : null,
+            );
+            $this->em->flush();
+        }
+
+        return $this->json($this->normalizePurchaseBase($purchase));
     }
 
     /**
@@ -269,7 +298,7 @@ class VOController extends AbstractController
                 );
                 $this->em->flush();
                 return [
-                    'purchase' => $this->serializer->normalize($purchase, null, ['groups' => 'vo:read']),
+                    'purchase' => $this->normalizePurchaseBase($purchase),
                     'livrePoliceId' => $entry->getId(),
                     'livrePoliceNumero' => $entry->getNumeroOrdre(),
                     'pdfGenerated' => true,
@@ -302,7 +331,7 @@ class VOController extends AbstractController
             ->leftJoin('d.deposant', 'c')->addSelect('c')
             ->orderBy('d.createdAt', 'DESC');
 
-        $data = $this->serializer->normalize($qb->getQuery()->getResult(), null, ['groups' => 'vo:read']);
+        $data = array_map(fn (VODepotVente $depot): array => $this->normalizeDepotBase($depot), $qb->getQuery()->getResult());
 
         return $this->json($data);
     }
@@ -316,7 +345,7 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
-        $data = $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
+        $data = $this->normalizeDepotBase($depot);
         $data['commissionAmount'] = $depot->getCommissionAmount();
         $data['deposantNet'] = $depot->getDeposantNet();
         $data['mandatExpire'] = $depot->isMandatExpire();
@@ -340,12 +369,14 @@ class VOController extends AbstractController
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
         $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
         $companionSteps = $this->companionWorkflowService->buildSteps($depot, $documents);
+        $campaigns = $this->remiseEnEtatService->getCampaignsForRecord($depot);
+        $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($depot);
 
         if ($tokenUpdated) {
             $this->em->flush();
         }
 
-        $data = $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
+        $data = $this->normalizeDepotBase($depot);
         $data['commissionAmount'] = $depot->getCommissionAmount();
         $data['commissionVat'] = $depot->getCommissionVatAmount();
         $data['commissionTtc'] = $depot->getCommissionTtc();
@@ -353,10 +384,19 @@ class VOController extends AbstractController
         $data['mandatExpire'] = $depot->isMandatExpire();
         $data['joursRestants'] = $depot->getJoursRestantsMandat();
         $data['missingDocuments'] = $missingDocuments;
-        $data['canSell'] = $depot->getStatus() === 'actif' && $companionSteps['allComplete'];
+        $data['canSell'] = $depot->getStatus() === 'actif'
+            && $companionSteps['allComplete']
+            && !($activeCampaign?->isBlockingSale() ?? false);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($depot);
         $data['companion'] = $this->buildCompanionData($depot, $documents, $companionSteps);
+        $data['remisesEnEtat'] = array_map(fn ($campaign): array => $this->remiseEnEtatService->normalizeCampaign($campaign), $campaigns);
+        $data['activeRemiseEnEtat'] = $activeCampaign ? $this->remiseEnEtatService->normalizeCampaign($activeCampaign) : null;
+        $data['canCreateRemiseEnEtat'] = !($activeCampaign instanceof \App\Entity\VORemiseEnEtat);
+        $data['refurbishmentBlockingSale'] = $activeCampaign?->isBlockingSale() ?? false;
+        $data['saleBlockers'] = $activeCampaign instanceof \App\Entity\VORemiseEnEtat
+            ? [sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre())]
+            : [];
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -372,19 +412,25 @@ class VOController extends AbstractController
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
         $deposant = $this->em->getRepository(Client::class)->find($body['deposantId'] ?? 0);
+        $status = (string) ($body['status'] ?? 'actif');
 
-        if (!$vehicule || !$deposant) {
+        if (($vehicule === null || $deposant === null) && $status !== 'brouillon') {
             return $this->json(['error' => 'Vehicule and deposant are required'], 400);
         }
 
         $depot = new VODepotVente();
         $depot->setAtelierId($this->resolveAtelierId());
-        $depot->setVehicule($vehicule);
-        $depot->setDeposant($deposant);
+        if ($vehicule instanceof Vehicule) {
+            $depot->setVehicule($vehicule);
+        }
+        if ($deposant instanceof Client) {
+            $depot->setDeposant($deposant);
+        }
         $depot->setPrixVenteSouhaite((string) ($body['prixVenteSouhaite'] ?? '0'));
         $depot->setCommissionType($body['commissionType'] ?? 'pourcentage');
         $depot->setCommissionValeur((string) ($body['commissionValeur'] ?? '0'));
         $depot->setDureeMandat($body['dureeMandat'] ?? 90);
+        $depot->setStatus($status);
         $depot->setConditionsRestitution($body['conditionsRestitution'] ?? null);
         $depot->setAssuranceInfo($body['assuranceInfo'] ?? null);
         $depot->setNotes($body['notes'] ?? null);
@@ -408,21 +454,14 @@ class VOController extends AbstractController
         try {
             $payload = $this->inTransaction(function () use ($depot) {
                 $this->em->persist($depot);
-                $this->livrePoliceService->createEntryForDepotVente($depot);
                 $this->em->flush();
 
-                $pdfPath = $this->pdfService->generateContratDepotVentePdf($depot);
-                $this->documentService->archiveGeneratedPdf(
-                    $pdfPath,
-                    VODocument::TYPE_CONTRAT_DEPOT_VENTE,
-                    null,
-                    $depot,
-                    $this->getUser(),
-                    sprintf('contrat-depot-%d.pdf', $depot->getId()),
-                );
-                $this->em->flush();
+                if ($depot->getStatus() !== 'brouillon') {
+                    $this->activateDepotRecord($depot);
+                    $this->em->flush();
+                }
 
-                return $this->serializer->normalize($depot, null, ['groups' => 'vo:read']);
+                return $this->normalizeDepotBase($depot);
             });
 
             return $this->json($payload, 201);
@@ -446,6 +485,7 @@ class VOController extends AbstractController
         }
 
         $body = $request->toArray();
+        $wasDraft = $depot->getStatus() === 'brouillon';
 
         if (!empty($body['vehiculeId'])) {
             $vehicule = $this->em->getRepository(Vehicule::class)->find((int) $body['vehiculeId']);
@@ -479,9 +519,36 @@ class VOController extends AbstractController
         if (isset($body['deposantIdNumber'])) $depot->setDeposantIdNumber($body['deposantIdNumber']);
         if (!empty($body['deposantIdDate'])) $depot->setDeposantIdDate(new \DateTime($body['deposantIdDate']));
 
-        $this->em->flush();
+        $shouldFinalizeDraft = (bool) ($body['finalizeCompanionDraft'] ?? false)
+            || ($wasDraft && $depot->getStatus() !== 'brouillon');
 
-        return $this->json($this->serializer->normalize($depot, null, ['groups' => 'vo:read']));
+        if (!$shouldFinalizeDraft) {
+            $this->em->flush();
+
+            return $this->json($this->normalizeDepotBase($depot));
+        }
+
+        try {
+            $payload = $this->inTransaction(function () use ($depot) {
+                if ($depot->getStatus() === 'brouillon') {
+                    $depot->setStatus('actif');
+                }
+
+                $this->activateDepotRecord($depot);
+                $this->em->flush();
+
+                return $this->normalizeDepotBase($depot);
+            });
+
+            return $this->json($payload);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'La finalisation du brouillon dépôt-vente a échoué.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     // ═══════════════════════════════════════════
@@ -719,6 +786,10 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Le véhicule doit être en stock ou en vente pour être vendu'], 400);
         }
 
+        if ($this->remiseEnEtatService->hasBlockingActiveCampaign($purchase)) {
+            return $this->json(['error' => 'La remise en etat VO active doit etre cloturee avant la vente.'], 422);
+        }
+
         $body = $request->toArray();
 
         $buyer = $this->em->getRepository(Client::class)->find($body['buyerId'] ?? 0);
@@ -812,6 +883,10 @@ class VOController extends AbstractController
 
         if ($depot->getStatus() !== 'actif') {
             return $this->json(['error' => 'Le dépôt-vente doit être actif pour vendre'], 400);
+        }
+
+        if ($this->remiseEnEtatService->hasBlockingActiveCampaign($depot)) {
+            return $this->json(['error' => 'La remise en etat VO active doit etre cloturee avant la vente.'], 422);
         }
 
         $body = $request->toArray();
@@ -1103,7 +1178,7 @@ class VOController extends AbstractController
 
         $this->em->flush();
 
-        return $this->json($this->serializer->normalize($depot, null, ['groups' => 'vo:read']));
+        return $this->json($this->normalizeDepotBase($depot));
     }
 
     private function buildStockPayload(int $atelierId, string $search = '', int $limit = 0): array
@@ -1154,6 +1229,7 @@ class VOController extends AbstractController
         foreach ($purchases as $purchase) {
             $vehicule = $purchase->getVehicule();
             $missingDocuments = $this->documentService->getMissingDocuments($purchase, true);
+            $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($purchase);
             $joursStock = $purchase->getPurchaseDate()
                 ? (new \DateTime('today'))->diff($purchase->getPurchaseDate())->days
                 : null;
@@ -1175,7 +1251,10 @@ class VOController extends AbstractController
                 'regime_tva' => $purchase->getRegimeTva(),
                 'jours_stock' => $joursStock,
                 'missing_docs' => $missingDocuments,
-                'can_sell' => empty($missingDocuments) || in_array($purchase->getStatus(), ['en_vente', 'reserve'], true),
+                'refurbishment_status' => $activeCampaign?->getStatus(),
+                'refurbishment_blocking_sale' => $activeCampaign?->isBlockingSale() ?? false,
+                'can_sell' => (empty($missingDocuments) || in_array($purchase->getStatus(), ['en_vente', 'reserve'], true))
+                    && !($activeCampaign?->isBlockingSale() ?? false),
                 'created_at' => $purchase->getCreatedAt()->format('Y-m-d'),
             ];
         }
@@ -1183,6 +1262,7 @@ class VOController extends AbstractController
         foreach ($depots as $depot) {
             $vehicule = $depot->getVehicule();
             $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
+            $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($depot);
 
             $items[] = [
                 'id' => $depot->getId(),
@@ -1201,7 +1281,9 @@ class VOController extends AbstractController
                 'jours_restants' => $depot->getJoursRestantsMandat(),
                 'mandat_expire' => $depot->isMandatExpire(),
                 'missing_docs' => $missingDocuments,
-                'can_sell' => $depot->getStatus() === 'actif',
+                'refurbishment_status' => $activeCampaign?->getStatus(),
+                'refurbishment_blocking_sale' => $activeCampaign?->isBlockingSale() ?? false,
+                'can_sell' => $depot->getStatus() === 'actif' && !($activeCampaign?->isBlockingSale() ?? false),
                 'created_at' => $depot->getDateDebut()->format('Y-m-d'),
             ];
         }
@@ -1217,6 +1299,112 @@ class VOController extends AbstractController
             'total_purchases' => count($purchases),
             'total_depots' => count($depots),
             'total' => count($items),
+        ];
+    }
+
+    private function normalizeClientLite(?Client $client): ?array
+    {
+        if (!$client instanceof Client) {
+            return null;
+        }
+
+        return [
+            'id' => $client->getId(),
+            'atelierId' => $client->getAtelierId(),
+            'nom' => $client->getNom(),
+            'prenom' => $client->getPrenom(),
+            'telephone' => $client->getTelephone(),
+            'email' => $client->getEmail(),
+            'adresse' => $client->getAdresse(),
+        ];
+    }
+
+    private function normalizeUserLite(?User $user): ?array
+    {
+        if (!$user instanceof User) {
+            return null;
+        }
+
+        return [
+            'id' => $user->getId(),
+            'username' => $user->getUsername(),
+            'nom' => method_exists($user, 'getNom') ? $user->getNom() : null,
+            'prenom' => method_exists($user, 'getPrenom') ? $user->getPrenom() : null,
+        ];
+    }
+
+    private function normalizeVehiculeLite(?Vehicule $vehicule): ?array
+    {
+        if (!$vehicule instanceof Vehicule) {
+            return null;
+        }
+
+        return [
+            'id' => $vehicule->getId(),
+            'atelierId' => $vehicule->getAtelierId(),
+            'plaque' => $vehicule->getPlaque(),
+            'marque' => $vehicule->getMarque(),
+            'modele' => $vehicule->getModele(),
+            'annee' => $vehicule->getAnnee(),
+            'cylindree' => $vehicule->getCylindree(),
+            'typeMoto' => $vehicule->getTypeMoto(),
+            'mileage' => $vehicule->getMileage(),
+            'vin' => $vehicule->getVin(),
+            'couleur' => $vehicule->getCouleur(),
+            'datePremiereMiseEnCirculation' => $vehicule->getDatePremiereMiseEnCirculation()?->format('Y-m-d'),
+        ];
+    }
+
+    private function normalizePurchaseBase(VOPurchase $purchase): array
+    {
+        return [
+            'id' => $purchase->getId(),
+            'atelierId' => $purchase->getAtelierId(),
+            'vehicule' => $this->normalizeVehiculeLite($purchase->getVehicule()),
+            'seller' => $this->normalizeClientLite($purchase->getSeller()),
+            'expert' => $this->normalizeUserLite($purchase->getExpert()),
+            'purchasePrice' => $purchase->getPurchasePrice(),
+            'targetSalePrice' => $purchase->getTargetSalePrice(),
+            'repairEstimates' => $purchase->getRepairEstimates(),
+            'status' => $purchase->getStatus(),
+            'purchaseDate' => $purchase->getPurchaseDate()?->format('Y-m-d'),
+            'saleDate' => $purchase->getSaleDate()?->format('Y-m-d'),
+            'notes' => $purchase->getNotes(),
+            'sellerIdType' => $purchase->getSellerIdType(),
+            'sellerIdNumber' => $purchase->getSellerIdNumber(),
+            'sellerIdDate' => $purchase->getSellerIdDate()?->format('Y-m-d'),
+            'nonGageDate' => $purchase->getNonGageDate()?->format('Y-m-d'),
+            'controleTechniqueOk' => $purchase->getControleTechniqueOk(),
+            'regimeTva' => $purchase->getRegimeTva(),
+            'createdAt' => $purchase->getCreatedAt()->format(DATE_ATOM),
+            'updatedAt' => $purchase->getUpdatedAt()->format(DATE_ATOM),
+        ];
+    }
+
+    private function normalizeDepotBase(VODepotVente $depot): array
+    {
+        return [
+            'id' => $depot->getId(),
+            'atelierId' => $depot->getAtelierId(),
+            'vehicule' => $this->normalizeVehiculeLite($depot->getVehicule()),
+            'deposant' => $this->normalizeClientLite($depot->getDeposant()),
+            'gestionnaire' => $this->normalizeUserLite($depot->getGestionnaire()),
+            'prixVenteSouhaite' => $depot->getPrixVenteSouhaite(),
+            'commissionType' => $depot->getCommissionType(),
+            'commissionValeur' => $depot->getCommissionValeur(),
+            'dateDebut' => $depot->getDateDebut()->format('Y-m-d'),
+            'dateFin' => $depot->getDateFin()?->format('Y-m-d'),
+            'dureeMandat' => $depot->getDureeMandat(),
+            'status' => $depot->getStatus(),
+            'conditionsRestitution' => $depot->getConditionsRestitution(),
+            'assuranceInfo' => $depot->getAssuranceInfo(),
+            'notes' => $depot->getNotes(),
+            'deposantIdType' => $depot->getDeposantIdType(),
+            'deposantIdNumber' => $depot->getDeposantIdNumber(),
+            'deposantIdDate' => $depot->getDeposantIdDate()?->format('Y-m-d'),
+            'prixVenteEffectif' => $depot->getPrixVenteEffectif(),
+            'createdAt' => $depot->getCreatedAt()->format(DATE_ATOM),
+            'updatedAt' => $depot->getUpdatedAt()->format(DATE_ATOM),
         ];
     }
 
@@ -1245,6 +1433,24 @@ class VOController extends AbstractController
         }
 
         return $labels;
+    }
+
+    private function activateDepotRecord(VODepotVente $depot): void
+    {
+        if (!$depot->getVehicule() || !$depot->getDeposant()) {
+            throw new \InvalidArgumentException('Vehicule et deposant requis pour finaliser le dépôt-vente.');
+        }
+
+        $existingEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
+        if (!$existingEntry instanceof VOLivrePolice) {
+            $this->livrePoliceService->createEntryForDepotVente($depot);
+            $this->em->flush();
+        }
+
+        $this->generatedDocumentService->archiveCompanionDocumentIfReady(
+            $depot,
+            $this->getUser() instanceof User ? $this->getUser() : null,
+        );
     }
 
     private function inTransaction(callable $operation): mixed
