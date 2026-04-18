@@ -38,14 +38,14 @@ class VODepotVente
     private ?int $atelierId = null;
 
     #[ORM\ManyToOne(targetEntity: Vehicule::class)]
-    #[ORM\JoinColumn(name: 'vehicule_id', nullable: false)]
+    #[ORM\JoinColumn(name: 'vehicule_id', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]
-    private Vehicule $vehicule;
+    private ?Vehicule $vehicule = null;
 
     #[ORM\ManyToOne(targetEntity: Client::class)]
-    #[ORM\JoinColumn(name: 'deposant_id', nullable: false)]
+    #[ORM\JoinColumn(name: 'deposant_id', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]
-    private Client $deposant;
+    private ?Client $deposant = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'gestionnaire_id', nullable: true)]
@@ -189,11 +189,11 @@ class VODepotVente
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
 
-    public function getVehicule(): Vehicule { return $this->vehicule; }
-    public function setVehicule(Vehicule $v): static { $this->vehicule = $v; return $this; }
+    public function getVehicule(): ?Vehicule { return $this->vehicule; }
+    public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }
 
-    public function getDeposant(): Client { return $this->deposant; }
-    public function setDeposant(Client $v): static { $this->deposant = $v; return $this; }
+    public function getDeposant(): ?Client { return $this->deposant; }
+    public function setDeposant(?Client $v): static { $this->deposant = $v; return $this; }
 
     public function getGestionnaire(): ?User { return $this->gestionnaire; }
     public function setGestionnaire(?User $v): static { $this->gestionnaire = $v; return $this; }

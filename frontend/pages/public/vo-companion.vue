@@ -53,6 +53,10 @@
           </button>
         </div>
 
+        <div v-if="isSigned" class="vo-public-alert is-success">
+          Signature déjà enregistrée. Le dossier est désormais verrouillé sur le PDA.
+        </div>
+
         <section v-if="currentStep === 'seller'" class="vo-public-section">
           <div class="vo-public-section-head">
             <div>
@@ -67,22 +71,22 @@
           <div class="vo-public-form-grid">
             <label class="vo-public-field">
               <span>Type de pièce</span>
-              <input v-model="sellerForm.idType" class="vo-public-input" placeholder="Carte nationale, passeport...">
+              <input v-model="sellerForm.idType" class="vo-public-input" placeholder="Carte nationale, passeport..." :disabled="isSigned">
             </label>
             <label class="vo-public-field">
               <span>Numéro de pièce</span>
-              <input v-model="sellerForm.idNumber" class="vo-public-input" placeholder="Numéro relevé sur le document">
+              <input v-model="sellerForm.idNumber" class="vo-public-input" placeholder="Numéro relevé sur le document" :disabled="isSigned">
             </label>
             <label class="vo-public-field vo-public-field-full">
               <span>Date du document</span>
-              <input v-model="sellerForm.idDate" type="date" class="vo-public-input">
+              <input v-model="sellerForm.idDate" type="date" class="vo-public-input" :disabled="isSigned">
             </label>
           </div>
 
           <label class="vo-public-upload-box">
             <strong>Pièce d'identité</strong>
             <span>Ajoute une ou plusieurs photos ou un PDF du document.</span>
-            <input type="file" multiple accept="image/*,.pdf" @change="onSellerFilesChange">
+            <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onSellerFilesChange">
           </label>
 
           <div v-if="sellerFiles.length" class="vo-public-file-list">
@@ -96,7 +100,7 @@
           </div>
 
           <div class="vo-public-actions">
-            <button type="button" class="vo-public-btn" :disabled="busy.seller" @click="saveSellerStep">
+            <button type="button" class="vo-public-btn" :disabled="busy.seller || isSigned" @click="saveSellerStep">
               {{ busy.seller ? 'Enregistrement...' : 'Valider le vendeur' }}
             </button>
           </div>
@@ -117,13 +121,13 @@
             <label class="vo-public-upload-box">
               <strong>Carte grise</strong>
               <span>Le premier fichier image est utilisé pour l'OCR carte grise.</span>
-              <input type="file" multiple accept="image/*,.pdf" @change="onVehicleDocumentChange">
+              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onVehicleDocumentChange">
             </label>
 
             <label class="vo-public-upload-box">
               <strong>Photos du véhicule</strong>
               <span>Ajoute des vues générales ou des détails utiles au dossier.</span>
-              <input type="file" multiple accept="image/*" capture="environment" @change="onVehiclePhotoChange">
+              <input type="file" multiple accept="image/*" capture="environment" :disabled="isSigned" @change="onVehiclePhotoChange">
             </label>
           </div>
 
@@ -134,7 +138,7 @@
           <div class="vo-public-form-grid">
             <label v-for="field in ocrFields" :key="field.key" class="vo-public-field">
               <span>{{ field.label }}</span>
-              <input v-model="vehicleForm[field.key as OcrFieldKey]" class="vo-public-input">
+              <input v-model="vehicleForm[field.key as OcrFieldKey]" class="vo-public-input" :disabled="isSigned">
               <small :class="`tone-${getVehicleComparison(field.key as OcrFieldKey).tone}`">
                 {{ getVehicleComparison(field.key as OcrFieldKey).message }}
               </small>
@@ -148,7 +152,7 @@
           </div>
 
           <div class="vo-public-actions">
-            <button type="button" class="vo-public-btn" :disabled="busy.vehicle" @click="saveVehicleStep">
+            <button type="button" class="vo-public-btn" :disabled="busy.vehicle || isSigned" @click="saveVehicleStep">
               {{ busy.vehicle ? 'Enregistrement...' : 'Valider le véhicule' }}
             </button>
           </div>
@@ -179,7 +183,7 @@
           <div class="vo-public-form-grid">
             <label class="vo-public-field vo-public-field-full">
               <span>Type de document</span>
-              <select v-model="extraDocumentType" class="vo-public-input">
+              <select v-model="extraDocumentType" class="vo-public-input" :disabled="isSigned">
                 <option value="">Choisir un type</option>
                 <option v-for="type in documentTypeOptions" :key="type" :value="type">{{ documentLabel(type) }}</option>
               </select>
@@ -189,7 +193,7 @@
           <label class="vo-public-upload-box">
             <strong>Document à ajouter</strong>
             <span>Ajoute une photo ou un PDF correspondant au type choisi.</span>
-            <input type="file" multiple accept="image/*,.pdf" @change="onExtraFilesChange">
+            <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onExtraFilesChange">
           </label>
 
           <div v-if="extraFiles.length" class="vo-public-file-list">
@@ -203,7 +207,7 @@
           </div>
 
           <div class="vo-public-actions">
-            <button type="button" class="vo-public-btn" :disabled="busy.documents" @click="saveDocumentsStep">
+            <button type="button" class="vo-public-btn" :disabled="busy.documents || isSigned" @click="saveDocumentsStep">
               {{ busy.documents ? 'Enregistrement...' : 'Valider les documents' }}
             </button>
           </div>
@@ -348,8 +352,10 @@ const documentTypeOptions = computed(() => {
 
 const signatureUnlocked = computed(() => {
   const steps = payload.value?.steps
-  return !!(steps?.seller?.completed && steps?.vehicle?.completed && steps?.documents?.completed)
+  return !isSigned.value && !!(steps?.seller?.completed && steps?.vehicle?.completed && steps?.documents?.completed)
 })
+
+const isSigned = computed(() => !!payload.value?.steps?.signature?.completed)
 
 const stepSequence = computed(() => {
   const steps = payload.value?.steps || {}

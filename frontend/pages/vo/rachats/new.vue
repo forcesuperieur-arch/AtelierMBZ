@@ -25,8 +25,30 @@
     </div>
 
     <div class="vo-companion-banner">
-      <strong>Mode compagnon PDA activé</strong>
-      <span>Après création du dossier, le QR code du parcours VO est généré automatiquement pour scanner la pièce d’identité et la carte grise, préremplir les documents puis faire signer le vendeur.</span>
+      <strong>Mode compagnon PDA prêt dès l'ouverture</strong>
+      <span>Le QR code du parcours VO apparaît directement. Tu peux soit remplir le dossier à la main, soit scanner tout de suite les documents vendeur et moto pour préremplir automatiquement le rachat.</span>
+    </div>
+
+    <div id="companion-qr-hero" class="vo-hero-qr">
+      <div>
+        <strong>QR compagnon immédiat</strong>
+        <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces et laisser le dossier se remplir tout seul.</p>
+        <div class="vo-inline-actions" style="margin-top: 10px;">
+          <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
+            {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
+          </button>
+          <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
+          <button v-if="draftPublicUrl" type="button" class="vo-link-btn" @click="copyCompanionLink">Copier le lien</button>
+        </div>
+        <p v-if="qrLoadFailed && draftPublicUrl" class="vo-qr-fallback">L'image du QR n'a pas chargé. Le lien PDA reste utilisable immédiatement.</p>
+      </div>
+
+      <div class="vo-hero-qr-box">
+        <img v-if="draftQrCodeUrl && !qrLoadFailed" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-hero-qr-image" @error="qrLoadFailed = true" @load="qrLoadFailed = false">
+        <div v-else class="vo-hero-qr-placeholder">
+          {{ activatingCompanion ? 'Préparation du QR…' : 'QR en attente…' }}
+        </div>
+      </div>
     </div>
 
     <div class="vo-wizard-grid">
@@ -120,6 +142,26 @@
               <label class="vo-field">
                 <span>Modèle</span>
                 <input v-model="vehicleForm.modele" class="vo-input" />
+              </label>
+              <label class="vo-field">
+                <span>Catégorie tarifaire</span>
+                <select v-model="vehicleForm.categorieId" class="vo-select">
+                  <option value="">Non renseignée</option>
+                  <option v-for="category in categories" :key="category.id" :value="String(category.id)">{{ category.nom }}</option>
+                </select>
+              </label>
+              <label class="vo-field">
+                <span>Type véhicule atelier</span>
+                <select v-model="vehicleForm.typeMoto" class="vo-select">
+                  <option value="">Non renseigné</option>
+                  <option value="moto">Moto</option>
+                  <option value="scooter">Scooter</option>
+                  <option value="tous">Tous</option>
+                </select>
+              </label>
+              <label class="vo-field">
+                <span>Cylindrée</span>
+                <input v-model="vehicleForm.cylindree" class="vo-input" placeholder="ex: 750" />
               </label>
               <label class="vo-field">
                 <span>Année</span>
@@ -305,19 +347,6 @@
             <strong>{{ attachedDocumentCount }}</strong>
           </div>
 
-          <div class="vo-info-box">
-            <strong>Compagnon dès le début</strong>
-            <span v-if="draftCompanion?.companion?.publicPath">Le brouillon rachat est actif. Tu peux déjà scanner les documents sur le PDA pendant que tu termines le dossier.</span>
-            <span v-else>Dès que vendeur + véhicule sont saisis, active le parcours PDA pour lancer le scan avant la finalisation.</span>
-            <div class="vo-inline-actions" style="margin-top: 10px;">
-              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion || !canStartCompanion" @click="activateCompanionNow">
-                {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
-              </button>
-              <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
-            </div>
-            <img v-if="draftQrCodeUrl" :src="draftQrCodeUrl" alt="QR code compagnon" class="vo-companion-mini-qr">
-          </div>
-
           <div v-if="missingConfirmationDocs.length" class="vo-warning-box">
             <strong>Confirmation encore bloquée</strong>
             <span>{{ missingConfirmationDocs.map(documentLabel).join(', ') }}</span>
@@ -340,7 +369,12 @@
 
           <div class="vo-info-box">
             <strong>Ce qui se passe ensuite</strong>
-            <span>1. QR code affiché sur le dossier • 2. scan CG + identité sur PDA • 3. préremplissage automatique • 4. signature électronique et archivage.</span>
+            <span>1. un seul QR en haut de page • 2. scan CG + identité sur PDA • 3. autoremplissage du dossier • 4. tu complètes seulement le nécessaire.</span>
+          </div>
+
+          <div class="vo-info-box">
+            <strong>Tarifs atelier VO</strong>
+            <span>Renseigne la catégorie tarifaire, le type moto et la cylindrée pour fiabiliser les prestations et prix proposés en remise en état.</span>
           </div>
         </UCard>
       </div>
@@ -350,6 +384,8 @@
 
 <script setup lang="ts">
 import { useVoStore } from '~/stores/vo'
+import { adoptDraftEntity, syncDraftBoolean, syncDraftField, type DraftSyncMemory } from '~/composables/voCompanionDraftSync'
+import { applyVehicleToForm, buildVoVehiclePayload, extractVehicleCategoryId } from '~/composables/voVehicleForm'
 
 definePageMeta({ title: 'Nouveau rachat VO' })
 
@@ -358,8 +394,10 @@ const toast = useToast()
 const {
   searchClients,
   fetchExperts,
+  fetchMotoCategories,
   createQuickClient,
   createQuickVehicule,
+  updateQuickVehicule,
   findVehiculeByQuery,
   formatPrice,
   formatRegistrationOrVin,
@@ -397,7 +435,12 @@ const selectedSeller = ref<any | null>(null)
 const selectedVehicle = ref<any | null>(null)
 const vehicleSearch = ref('')
 const experts = ref<any[]>([])
+const categories = ref<any[]>([])
 const marginSimulation = ref<any | null>(null)
+const qrLoadFailed = ref(false)
+const sellerDraftSync = reactive<DraftSyncMemory>({})
+const vehicleDraftSync = reactive<DraftSyncMemory>({})
+const purchaseDraftSync = reactive<DraftSyncMemory>({})
 
 const sellerForm = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '' })
 const vehicleForm = reactive({
@@ -405,6 +448,9 @@ const vehicleForm = reactive({
   vin: '',
   marque: '',
   modele: '',
+  categorieId: '',
+  typeMoto: '',
+  cylindree: '',
   annee: '',
   mileage: '',
   couleur: '',
@@ -447,7 +493,6 @@ const totalFre = computed(() => {
 })
 
 const attachedDocumentCount = computed(() => documentRows.value.filter(row => row.file).length)
-const canStartCompanion = computed(() => !!canGoToNextStep() && step.value >= 2)
 const draftPublicUrl = computed(() => {
   const path = String(draftCompanion.value?.companion?.publicPath || '').trim()
   if (!path || !import.meta.client) return ''
@@ -460,6 +505,11 @@ const missingConfirmationDocs = computed(() => requiredPurchaseDocs.filter(type 
 
 let sellerSearchTimer: ReturnType<typeof setTimeout> | null = null
 let simulationTimer: ReturnType<typeof setTimeout> | null = null
+let companionPollTimer: ReturnType<typeof setInterval> | null = null
+
+function refreshOnFocus() {
+  refreshDraftCompanion(true)
+}
 
 watch(sellerSearch, (value) => {
   if (sellerSearchTimer) clearTimeout(sellerSearchTimer)
@@ -508,16 +558,7 @@ async function lookupVehicle() {
   }
 
   selectedVehicle.value = found
-  Object.assign(vehicleForm, {
-    plaque: found.plaque || '',
-    vin: found.vin || '',
-    marque: found.marque || '',
-    modele: found.modele || '',
-    annee: found.annee ? String(found.annee) : '',
-    mileage: found.mileage ? String(found.mileage) : '',
-    couleur: found.couleur || '',
-    datePremiereMiseEnCirculation: found.datePremiereMiseEnCirculation ? String(found.datePremiereMiseEnCirculation).slice(0, 10) : '',
-  })
+  applyVehicleToForm(vehicleForm, found)
 }
 
 function resetVehicle() {
@@ -592,19 +633,12 @@ async function ensureSeller() {
 }
 
 async function ensureVehicle(sellerId: number) {
-  if (selectedVehicle.value?.id) return selectedVehicle.value.id
+  if (selectedVehicle.value?.id) {
+    selectedVehicle.value = await updateQuickVehicule(selectedVehicle.value.id, buildVoVehiclePayload(vehicleForm))
+    return selectedVehicle.value.id
+  }
 
-  const created = await createQuickVehicule({
-    plaque: vehicleForm.plaque,
-    vin: vehicleForm.vin || null,
-    marque: vehicleForm.marque || null,
-    modele: vehicleForm.modele || null,
-    annee: vehicleForm.annee ? Number(vehicleForm.annee) : null,
-    mileage: vehicleForm.mileage ? Number(vehicleForm.mileage) : null,
-    couleur: vehicleForm.couleur || null,
-    datePremiereMiseEnCirculation: vehicleForm.datePremiereMiseEnCirculation || null,
-    client: `/api/clients/${sellerId}`,
-  })
+  const created = await createQuickVehicule(buildVoVehiclePayload(vehicleForm, `/api/clients/${sellerId}`))
 
   selectedVehicle.value = created
   return created.id
@@ -623,22 +657,83 @@ async function uploadDocuments(purchaseId: number) {
   }
 }
 
-async function activateCompanionNow() {
+async function copyCompanionLink() {
+  if (!draftPublicUrl.value || !import.meta.client) return
+
+  await navigator.clipboard.writeText(draftPublicUrl.value)
+  toast.add({ title: 'Lien compagnon copié', color: 'success' })
+}
+
+function hydrateFromDraft(full: any) {
+  draftCompanion.value = full
+
+  selectedSeller.value = adoptDraftEntity(selectedSeller.value, full?.seller || null)
+  selectedVehicle.value = adoptDraftEntity(selectedVehicle.value, full?.vehicule || null)
+
+  syncDraftField(sellerForm, 'prenom', full?.seller?.prenom, sellerDraftSync)
+  syncDraftField(sellerForm, 'nom', full?.seller?.nom, sellerDraftSync)
+  syncDraftField(sellerForm, 'telephone', full?.seller?.telephone, sellerDraftSync)
+  syncDraftField(sellerForm, 'email', full?.seller?.email, sellerDraftSync)
+  syncDraftField(sellerForm, 'adresse', full?.seller?.adresse, sellerDraftSync)
+
+  syncDraftField(vehicleForm, 'plaque', full?.vehicule?.plaque, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'vin', full?.vehicule?.vin, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'marque', full?.vehicule?.marque, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'modele', full?.vehicule?.modele, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'categorieId', extractVehicleCategoryId(full?.vehicule), vehicleDraftSync)
+  syncDraftField(vehicleForm, 'typeMoto', full?.vehicule?.typeMoto, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'cylindree', full?.vehicule?.cylindree, vehicleDraftSync)
+  syncDraftField(vehicleForm, 'annee', full?.vehicule?.annee ? String(full.vehicule.annee) : '', vehicleDraftSync)
+  syncDraftField(vehicleForm, 'mileage', full?.vehicule?.mileage ? String(full.vehicule.mileage) : '', vehicleDraftSync)
+  syncDraftField(vehicleForm, 'couleur', full?.vehicule?.couleur, vehicleDraftSync)
+  syncDraftField(
+    vehicleForm,
+    'datePremiereMiseEnCirculation',
+    full?.vehicule?.datePremiereMiseEnCirculation ? String(full.vehicule.datePremiereMiseEnCirculation).slice(0, 10) : '',
+    vehicleDraftSync,
+  )
+
+  syncDraftField(purchaseForm as unknown as Record<string, any>, 'sellerIdType', full?.sellerIdType, purchaseDraftSync)
+  syncDraftField(purchaseForm as unknown as Record<string, any>, 'sellerIdNumber', full?.sellerIdNumber, purchaseDraftSync)
+  syncDraftField(
+    purchaseForm as unknown as Record<string, any>,
+    'sellerIdDate',
+    full?.sellerIdDate ? String(full.sellerIdDate).slice(0, 10) : '',
+    purchaseDraftSync,
+  )
+  syncDraftField(
+    purchaseForm as unknown as Record<string, any>,
+    'nonGageDate',
+    full?.nonGageDate ? String(full.nonGageDate).slice(0, 10) : '',
+    purchaseDraftSync,
+  )
+  syncDraftBoolean(purchaseForm as unknown as Record<string, any>, 'controleTechniqueOk', full?.controleTechniqueOk, purchaseDraftSync)
+}
+
+async function refreshDraftCompanion(silent = true) {
+  if (!draftPurchaseId.value) return
+
+  try {
+    const full = await voStore.fetchPurchaseFull(draftPurchaseId.value)
+    hydrateFromDraft(full)
+  } catch (error: any) {
+    if (!silent) {
+      toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+    }
+  }
+}
+
+async function activateCompanionNow(showToast = true) {
   activatingCompanion.value = true
   try {
-    const sellerId = await ensureSeller()
-    const vehiculeId = await ensureVehicle(sellerId)
-
     if (!draftPurchaseId.value) {
       const draft = await voStore.createPurchase({
-        sellerId,
-        vehiculeId,
         purchasePrice: purchaseForm.purchasePrice || '0',
         targetSalePrice: purchaseForm.targetSalePrice || '0',
         regimeTva: purchaseForm.regimeTva,
         purchaseDate: purchaseForm.purchaseDate,
         sellerIdType: purchaseForm.sellerIdType,
-        sellerIdNumber: purchaseForm.sellerIdNumber,
+        sellerIdNumber: purchaseForm.sellerIdNumber || null,
         sellerIdDate: purchaseForm.sellerIdDate || null,
         nonGageDate: purchaseForm.nonGageDate || null,
         controleTechniqueOk: purchaseForm.controleTechniqueOk,
@@ -650,8 +745,11 @@ async function activateCompanionNow() {
       draftPurchaseId.value = draft.id
     }
 
-    draftCompanion.value = await voStore.fetchPurchaseFull(draftPurchaseId.value)
-    toast.add({ title: 'Parcours compagnon activé', description: 'Le QR code est prêt pour le scan PDA.', color: 'success' })
+    await refreshDraftCompanion(!showToast)
+
+    if (showToast) {
+      toast.add({ title: 'QR compagnon prêt', description: 'Le scan PDA peut démarrer immédiatement.', color: 'success' })
+    }
   } catch (error: any) {
     toast.add({ title: 'Erreur', description: error.message, color: 'error' })
   } finally {
@@ -674,6 +772,8 @@ async function submit() {
 
     if (purchaseId) {
       await voStore.updatePurchase(purchaseId, {
+        sellerId,
+        vehiculeId,
         purchasePrice: purchaseForm.purchasePrice,
         targetSalePrice: purchaseForm.targetSalePrice,
         regimeTva: purchaseForm.regimeTva,
@@ -728,6 +828,24 @@ async function submit() {
 
 onMounted(async () => {
   experts.value = await fetchExperts()
+  categories.value = await fetchMotoCategories()
+  await activateCompanionNow(false)
+
+  if (import.meta.client) {
+    companionPollTimer = window.setInterval(() => {
+      refreshDraftCompanion(true)
+    }, 4000)
+    window.addEventListener('focus', refreshOnFocus)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (sellerSearchTimer) clearTimeout(sellerSearchTimer)
+  if (simulationTimer) clearTimeout(simulationTimer)
+  if (companionPollTimer) clearInterval(companionPollTimer)
+  if (import.meta.client) {
+    window.removeEventListener('focus', refreshOnFocus)
+  }
 })
 </script>
 
@@ -760,6 +878,59 @@ onMounted(async () => {
 .vo-companion-banner span {
   color: #d1d5db;
   font-size: 13px;
+}
+
+.vo-hero-qr {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.vo-hero-qr p {
+  margin: 6px 0 0;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.vo-hero-qr-box {
+  min-width: 180px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vo-hero-qr-image {
+  width: 180px;
+  height: 180px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.vo-hero-qr-placeholder {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.vo-qr-fallback {
+  color: #fbbf24 !important;
 }
 
 .vo-companion-mini-qr {

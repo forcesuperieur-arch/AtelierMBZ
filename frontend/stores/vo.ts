@@ -98,6 +98,77 @@ interface VODocument {
   uploadedAt: string
 }
 
+interface VORemiseEnEtatLine {
+  id: number
+  prestation?: { id: number; code?: string; nom?: string } | null
+  libelle: string
+  quantity: number
+  estimatedUnitHt: string
+  estimatedTotalHt: string
+  actualTotalHt?: string | null
+  estimatedMinutes: number
+  actualMinutes?: number | null
+  status: string
+  notes?: string | null
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface VORemiseEnEtatPiece {
+  id: number
+  libelle: string
+  reference?: string | null
+  quantity: number
+  supplier?: string | null
+  estimatedUnitCostHt: string
+  estimatedTotalCostHt: string
+  actualTotalCostHt?: string | null
+  status: string
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface VORemiseEnEtat {
+  id: number
+  atelierId?: number
+  sourceType: 'purchase' | 'depot'
+  sourceId: number
+  campaignIndex: number
+  titre: string
+  status: string
+  priority: string
+  diagnosticNotes?: string | null
+  workshopNotes?: string | null
+  businessNotes?: string | null
+  requestedBy?: any
+  validatedBy?: any
+  requestedAt: string
+  validatedAt?: string | null
+  plannedFor?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  closedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  vehicle?: any
+  isClosed: boolean
+  isBlockingSale: boolean
+  pendingPiecesCount: number
+  costSummary: {
+    estimatedMoCost: string
+    estimatedPartsCost: string
+    estimatedTotalCost: string
+    actualMoCost: string
+    actualPartsCost: string
+    actualTotalCost: string
+    varianceTotal: string
+  }
+  lignes: VORemiseEnEtatLine[]
+  pieces: VORemiseEnEtatPiece[]
+}
+
 interface VOStockItem {
   id: number
   source: 'purchase' | 'depot'
@@ -142,6 +213,7 @@ export const useVoStore = defineStore('vo', {
     livrePolice: [] as LivrePoliceEntry[],
     documents: [] as VODocument[],
     stock: [] as VOStockItem[],
+    refurbishmentQueue: [] as VORemiseEnEtat[],
     stats: null as VOStats | null,
     alerts: [] as any[],
     loading: false,
@@ -242,6 +314,80 @@ export const useVoStore = defineStore('vo', {
     async sellDepot(id: number, data: { buyerId: number; salePrice?: string; notes?: string }) {
       const api = useApi()
       return await api.post(`/vo/depots/${id}/sell`, data)
+    },
+
+    // ── Remises en état VO ──
+
+    async fetchPurchaseRefurbishments(id: number): Promise<{ items: VORemiseEnEtat[]; activeCampaignId?: number | null; canCreate?: boolean }> {
+      const api = useApi()
+      return await api.get(`/vo/purchases/${id}/remises-en-etat`)
+    },
+
+    async createPurchaseRefurbishment(id: number, data: Record<string, any> = {}): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.post(`/vo/purchases/${id}/remises-en-etat`, data)
+    },
+
+    async fetchDepotRefurbishments(id: number): Promise<{ items: VORemiseEnEtat[]; activeCampaignId?: number | null; canCreate?: boolean }> {
+      const api = useApi()
+      return await api.get(`/vo/depots/${id}/remises-en-etat`)
+    },
+
+    async createDepotRefurbishment(id: number, data: Record<string, any> = {}): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.post(`/vo/depots/${id}/remises-en-etat`, data)
+    },
+
+    async fetchRefurbishment(id: number): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.get(`/vo/remises-en-etat/${id}`)
+    },
+
+    async updateRefurbishment(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.patch(`/vo/remises-en-etat/${id}`, data)
+    },
+
+    async fetchApplicablePrestationsForRefurbishment(id: number): Promise<{ items: Array<Record<string, any>> }> {
+      const api = useApi()
+      return await api.get(`/vo/remises-en-etat/${id}/prestations-applicables`)
+    },
+
+    async addRefurbishmentLine(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.post(`/vo/remises-en-etat/${id}/lignes`, data)
+    },
+
+    async updateRefurbishmentLine(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.patch(`/vo/remises-en-etat/lignes/${id}`, data)
+    },
+
+    async deleteRefurbishmentLine(id: number): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.del(`/vo/remises-en-etat/lignes/${id}`)
+    },
+
+    async addRefurbishmentPiece(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.post(`/vo/remises-en-etat/${id}/pieces`, data)
+    },
+
+    async updateRefurbishmentPiece(id: number, data: Record<string, any>): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.patch(`/vo/remises-en-etat/pieces/${id}`, data)
+    },
+
+    async deleteRefurbishmentPiece(id: number): Promise<VORemiseEnEtat> {
+      const api = useApi()
+      return await api.del(`/vo/remises-en-etat/pieces/${id}`)
+    },
+
+    async fetchRefurbishmentQueue() {
+      const api = useApi()
+      const payload = await api.get('/vo/remises-en-etat/queue')
+      this.refurbishmentQueue = payload.items ?? []
+      return payload
     },
 
     // ── Factures ──

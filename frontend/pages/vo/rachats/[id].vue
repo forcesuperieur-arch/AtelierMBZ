@@ -178,7 +178,16 @@
           </div>
         </UCard>
 
-        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu' || detail.confirmationMissingCompanionSteps?.length">
+        <VORemiseEnEtatCard
+          source-type="purchase"
+          :dossier-id="Number(route.params.id)"
+          :remises-en-etat="detail.remisesEnEtat || []"
+          :active-remise-en-etat="detail.activeRemiseEnEtat || null"
+          :can-create="detail.canCreateRemiseEnEtat !== false"
+          :reload-detail="loadDetail"
+        />
+
+        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu' || detail.confirmationMissingCompanionSteps?.length || detail.saleBlockers?.length">
           <template #header>
             <div class="vo-card-head">
               <div class="vo-card-title">Flux de vente</div>
@@ -195,6 +204,11 @@
           <div v-else-if="detail.confirmationMissingCompanionSteps?.length" class="vo-warning-box">
             <strong>Parcours PDA incomplet</strong>
             <span>Étapes restantes: {{ detail.confirmationMissingCompanionSteps.join(', ') }}</span>
+          </div>
+
+          <div v-else-if="detail.saleBlockers?.length" class="vo-warning-box">
+            <strong>Vente verrouillée</strong>
+            <span>{{ detail.saleBlockers.join(', ') }}</span>
           </div>
 
           <div v-if="showSale && detail.canSell" class="vo-sale-box">

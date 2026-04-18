@@ -25,7 +25,7 @@ class VOCompanionWorkflowService
         return $record instanceof VOPurchase ? 'vendeur' : 'deposant';
     }
 
-    public function getParty(VOPurchase|VODepotVente $record): Client
+    public function getParty(VOPurchase|VODepotVente $record): ?Client
     {
         return $record instanceof VOPurchase ? $record->getSeller() : $record->getDeposant();
     }
@@ -107,7 +107,7 @@ class VOCompanionWorkflowService
                     'type' => $identityType,
                     'number' => $identityNumber,
                     'date' => $identityDate?->format('Y-m-d'),
-                    'nom' => trim(($party->getPrenom() ?: '') . ' ' . $party->getNom()),
+                    'nom' => trim((($party?->getPrenom()) ?: '') . ' ' . (($party?->getNom()) ?: '')),
                 ],
             ],
             'vehicle' => [
@@ -134,8 +134,12 @@ class VOCompanionWorkflowService
         ];
     }
 
-    private function hasVehicleCoreData(Vehicule $vehicule): bool
+    private function hasVehicleCoreData(?Vehicule $vehicule): bool
     {
+        if (!$vehicule instanceof Vehicule) {
+            return false;
+        }
+
         return trim((string) $vehicule->getMarque()) !== ''
             && trim((string) $vehicule->getModele()) !== ''
             && (trim((string) $vehicule->getPlaque()) !== '' || trim((string) $vehicule->getVin()) !== '');
