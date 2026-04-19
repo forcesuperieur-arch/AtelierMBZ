@@ -182,7 +182,11 @@
     </div>
 
     <!-- Add/Edit Provider Modal -->
-    <AppModal v-if="showAddModal || showEditModal" @close="closeModals">
+    <AppModal
+      :open="showAddModal || showEditModal"
+      size="lg"
+      @update:open="(value) => { if (!value) closeModals() }"
+    >
       <template #header>{{ showEditModal ? 'Modifier le provider' : 'Ajouter un provider' }}</template>
       <form @submit.prevent="showEditModal ? saveEdit() : saveNew()" style="display:flex;flex-direction:column;gap:12px;">
         <div v-if="!showEditModal" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -225,6 +229,13 @@
               <span style="font-size:13px;color:#E8E9ED;">Oui</span>
             </label>
           </UFormField>
+        </div>
+
+        <div
+          v-if="showEditModal && form.hasExistingConfig"
+          style="padding:10px 12px;border-radius:6px;background:rgba(96,165,250,0.08);color:#BFDBFE;font-size:12px;"
+        >
+          Des identifiants sont déjà enregistrés pour ce provider. Laissez un champ vide pour conserver la valeur actuelle.
         </div>
 
         <!-- Dynamic config fields based on provider -->
@@ -273,7 +284,7 @@
     </AppModal>
 
     <!-- Test Modal -->
-    <AppModal v-if="showTestModal" @close="showTestModal = false">
+    <AppModal v-model:open="showTestModal" size="sm">
       <template #header>Tester le provider {{ testTarget?.provider }}</template>
       <form @submit.prevent="runTest" style="display:flex;flex-direction:column;gap:12px;">
         <UFormField :label="testTarget?.channel === 'sms' ? 'Numéro de téléphone' : 'Adresse email'">
@@ -317,7 +328,7 @@ const editId = ref(null);
 const form = ref(emptyForm());
 
 function emptyForm() {
-  return { channel: '', provider: '', isPrimary: false, isFallback: false, priority: 1, config: {} };
+  return { channel: '', provider: '', isPrimary: false, isFallback: false, priority: 1, config: {}, hasExistingConfig: false };
 }
 
 function closeModals() {
@@ -400,6 +411,7 @@ function editProvider(p) {
     isFallback: p.isFallback,
     priority: p.priority,
     config: {},
+    hasExistingConfig: !!p.hasConfig,
     channel: p.channel,
     provider: p.provider,
   };

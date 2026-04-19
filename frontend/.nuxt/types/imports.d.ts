@@ -6,7 +6,12 @@ declare global {
   const abortNavigation: typeof import('../../node_modules/nuxt/dist/app/composables/router').abortNavigation
   const acceptHMRUpdate: typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables').acceptHMRUpdate
   const addRouteMiddleware: typeof import('../../node_modules/nuxt/dist/app/composables/router').addRouteMiddleware
+  const adoptDraftEntity: typeof import('../../composables/voCompanionDraftSync').adoptDraftEntity
+  const applyVehicleToForm: typeof import('../../composables/voVehicleForm').applyVehicleToForm
   const avatarGroupInjectionKey: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup').avatarGroupInjectionKey
+  const buildRefurbishmentLineForms: typeof import('../../composables/voRefurbishmentCard').buildRefurbishmentLineForms
+  const buildRefurbishmentPieceForms: typeof import('../../composables/voRefurbishmentCard').buildRefurbishmentPieceForms
+  const buildVoVehiclePayload: typeof import('../../composables/voVehicleForm').buildVoVehiclePayload
   const buttonGroupInjectionKey: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useButtonGroup').buttonGroupInjectionKey
   const callOnce: typeof import('../../node_modules/nuxt/dist/app/composables/once').callOnce
   const cancelIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback').cancelIdleCallback
@@ -35,6 +40,7 @@ declare global {
   const effectScope: typeof import('../../node_modules/vue').effectScope
   const extendLocale: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/defineLocale').extendLocale
   const extractShortcuts: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts').extractShortcuts
+  const extractVehicleCategoryId: typeof import('../../composables/voVehicleForm').extractVehicleCategoryId
   const formBusInjectionKey: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField').formBusInjectionKey
   const formErrorsInjectionKey: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField').formErrorsInjectionKey
   const formFieldInjectionKey: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField').formFieldInjectionKey
@@ -67,6 +73,7 @@ declare global {
   const nextTick: typeof import('../../node_modules/vue').nextTick
   const normalizeAtelierBranding: typeof import('../../stores/atelier').normalizeAtelierBranding
   const normalizeFeatureModules: typeof import('../../stores/atelier').normalizeFeatureModules
+  const ocrFields: typeof import('../../composables/useCarteGriseOcr').ocrFields
   const onActivated: typeof import('../../node_modules/vue').onActivated
   const onBeforeMount: typeof import('../../node_modules/vue').onBeforeMount
   const onBeforeRouteLeave: typeof import('../../node_modules/vue-router').onBeforeRouteLeave
@@ -101,6 +108,7 @@ declare global {
   const reloadNuxtApp: typeof import('../../node_modules/nuxt/dist/app/composables/chunk').reloadNuxtApp
   const requestIdleCallback: typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback').requestIdleCallback
   const resolveComponent: typeof import('../../node_modules/vue').resolveComponent
+  const selectRefurbishmentCampaignId: typeof import('../../composables/voRefurbishmentCard').selectRefurbishmentCampaignId
   const setInterval: typeof import('../../node_modules/nuxt/dist/app/compat/interval').setInterval
   const setPageLayout: typeof import('../../node_modules/nuxt/dist/app/composables/router').setPageLayout
   const setResponseStatus: typeof import('../../node_modules/nuxt/dist/app/composables/ssr').setResponseStatus
@@ -109,9 +117,12 @@ declare global {
   const shallowRef: typeof import('../../node_modules/vue').shallowRef
   const showError: typeof import('../../node_modules/nuxt/dist/app/composables/error').showError
   const storeToRefs: typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables').storeToRefs
+  const syncDraftBoolean: typeof import('../../composables/voCompanionDraftSync').syncDraftBoolean
+  const syncDraftField: typeof import('../../composables/voCompanionDraftSync').syncDraftField
   const toRaw: typeof import('../../node_modules/vue').toRaw
   const toRef: typeof import('../../node_modules/vue').toRef
   const toRefs: typeof import('../../node_modules/vue').toRefs
+  const toRefurbishmentDateTimeLocal: typeof import('../../composables/voRefurbishmentCard').toRefurbishmentDateTimeLocal
   const toValue: typeof import('../../node_modules/vue').toValue
   const triggerRef: typeof import('../../node_modules/vue').triggerRef
   const tryUseNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').tryUseNuxtApp
@@ -128,6 +139,7 @@ declare global {
   const useAvatarGroup: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup').useAvatarGroup
   const useBillingStore: typeof import('../../stores/billing').useBillingStore
   const useButtonGroup: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useButtonGroup').useButtonGroup
+  const useCarteGriseOcr: typeof import('../../composables/useCarteGriseOcr').useCarteGriseOcr
   const useColorMode: typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables').useColorMode
   const useComponentIcons: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useComponentIcons').useComponentIcons
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie').useCookie
@@ -227,6 +239,15 @@ declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from '../../node_modules/vue'
   import('../../node_modules/vue')
+  // @ts-ignore
+  export type { OcrFieldKey, CarteGriseOcrResult, OcrComparison } from '../../composables/useCarteGriseOcr'
+  import('../../composables/useCarteGriseOcr')
+  // @ts-ignore
+  export type { DraftSyncMemory } from '../../composables/voCompanionDraftSync'
+  import('../../composables/voCompanionDraftSync')
+  // @ts-ignore
+  export type { VoVehicleFormState } from '../../composables/voVehicleForm'
+  import('../../composables/voVehicleForm')
 }
 // for vue template auto import
 import { UnwrapRef } from 'vue'
@@ -237,7 +258,12 @@ declare module 'vue' {
     readonly abortNavigation: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['abortNavigation']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables')['acceptHMRUpdate']>
     readonly addRouteMiddleware: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['addRouteMiddleware']>
+    readonly adoptDraftEntity: UnwrapRef<typeof import('../../composables/voCompanionDraftSync')['adoptDraftEntity']>
+    readonly applyVehicleToForm: UnwrapRef<typeof import('../../composables/voVehicleForm')['applyVehicleToForm']>
     readonly avatarGroupInjectionKey: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup')['avatarGroupInjectionKey']>
+    readonly buildRefurbishmentLineForms: UnwrapRef<typeof import('../../composables/voRefurbishmentCard')['buildRefurbishmentLineForms']>
+    readonly buildRefurbishmentPieceForms: UnwrapRef<typeof import('../../composables/voRefurbishmentCard')['buildRefurbishmentPieceForms']>
+    readonly buildVoVehiclePayload: UnwrapRef<typeof import('../../composables/voVehicleForm')['buildVoVehiclePayload']>
     readonly buttonGroupInjectionKey: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useButtonGroup')['buttonGroupInjectionKey']>
     readonly callOnce: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/once')['callOnce']>
     readonly cancelIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['cancelIdleCallback']>
@@ -266,6 +292,7 @@ declare module 'vue' {
     readonly effectScope: UnwrapRef<typeof import('../../node_modules/vue')['effectScope']>
     readonly extendLocale: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/defineLocale')['extendLocale']>
     readonly extractShortcuts: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts')['extractShortcuts']>
+    readonly extractVehicleCategoryId: UnwrapRef<typeof import('../../composables/voVehicleForm')['extractVehicleCategoryId']>
     readonly formBusInjectionKey: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField')['formBusInjectionKey']>
     readonly formErrorsInjectionKey: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField')['formErrorsInjectionKey']>
     readonly formFieldInjectionKey: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useFormField')['formFieldInjectionKey']>
@@ -298,6 +325,7 @@ declare module 'vue' {
     readonly nextTick: UnwrapRef<typeof import('../../node_modules/vue')['nextTick']>
     readonly normalizeAtelierBranding: UnwrapRef<typeof import('../../stores/atelier')['normalizeAtelierBranding']>
     readonly normalizeFeatureModules: UnwrapRef<typeof import('../../stores/atelier')['normalizeFeatureModules']>
+    readonly ocrFields: UnwrapRef<typeof import('../../composables/useCarteGriseOcr')['ocrFields']>
     readonly onActivated: UnwrapRef<typeof import('../../node_modules/vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('../../node_modules/vue')['onBeforeMount']>
     readonly onBeforeRouteLeave: UnwrapRef<typeof import('../../node_modules/vue-router')['onBeforeRouteLeave']>
@@ -332,6 +360,7 @@ declare module 'vue' {
     readonly reloadNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/chunk')['reloadNuxtApp']>
     readonly requestIdleCallback: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/idle-callback')['requestIdleCallback']>
     readonly resolveComponent: UnwrapRef<typeof import('../../node_modules/vue')['resolveComponent']>
+    readonly selectRefurbishmentCampaignId: UnwrapRef<typeof import('../../composables/voRefurbishmentCard')['selectRefurbishmentCampaignId']>
     readonly setInterval: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/compat/interval')['setInterval']>
     readonly setPageLayout: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/router')['setPageLayout']>
     readonly setResponseStatus: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/ssr')['setResponseStatus']>
@@ -340,9 +369,12 @@ declare module 'vue' {
     readonly shallowRef: UnwrapRef<typeof import('../../node_modules/vue')['shallowRef']>
     readonly showError: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/error')['showError']>
     readonly storeToRefs: UnwrapRef<typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables')['storeToRefs']>
+    readonly syncDraftBoolean: UnwrapRef<typeof import('../../composables/voCompanionDraftSync')['syncDraftBoolean']>
+    readonly syncDraftField: UnwrapRef<typeof import('../../composables/voCompanionDraftSync')['syncDraftField']>
     readonly toRaw: UnwrapRef<typeof import('../../node_modules/vue')['toRaw']>
     readonly toRef: UnwrapRef<typeof import('../../node_modules/vue')['toRef']>
     readonly toRefs: UnwrapRef<typeof import('../../node_modules/vue')['toRefs']>
+    readonly toRefurbishmentDateTimeLocal: UnwrapRef<typeof import('../../composables/voRefurbishmentCard')['toRefurbishmentDateTimeLocal']>
     readonly toValue: UnwrapRef<typeof import('../../node_modules/vue')['toValue']>
     readonly triggerRef: UnwrapRef<typeof import('../../node_modules/vue')['triggerRef']>
     readonly tryUseNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['tryUseNuxtApp']>
@@ -359,6 +391,7 @@ declare module 'vue' {
     readonly useAvatarGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup')['useAvatarGroup']>
     readonly useBillingStore: UnwrapRef<typeof import('../../stores/billing')['useBillingStore']>
     readonly useButtonGroup: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useButtonGroup')['useButtonGroup']>
+    readonly useCarteGriseOcr: UnwrapRef<typeof import('../../composables/useCarteGriseOcr')['useCarteGriseOcr']>
     readonly useColorMode: UnwrapRef<typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables')['useColorMode']>
     readonly useComponentIcons: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useComponentIcons')['useComponentIcons']>
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>

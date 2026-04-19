@@ -678,6 +678,42 @@ Signale et explique avant d'appliquer.
 - Laisser un **numéro LP sauté ou modifié**
 - Commiter de vraies données clients
 - Commiter des tests qui ne passent pas sans le signaler
+- **Hardcoder des valeurs** — c'est une faute systématique à traquer. Règle absolue :
+
+### Règle anti-hardcode
+
+**Rien ne doit être écrit en dur dans le code si ça peut changer entre ateliers, entre environnements ou dans le temps.**
+
+Exemples de ce qui ne doit **JAMAIS** être hardcodé :
+
+| Hardcode interdit | Source correcte |
+|---|---|
+| Nom de l'atelier ("PRO MOTO") | `atelier.nom` depuis la base |
+| Adresse, SIRET, TVA intra | `atelier.adresse`, `atelier.siret`, `atelier.tvaIntra` |
+| Téléphone, email | `atelier.telephone`, `atelier.email` |
+| Logo | `atelier.logo` (chemin ou base64 en base) |
+| Taux TVA (20%) | `ConfigAtelier.tauxTva` ou constante nommée `TVA_RATE_STANDARD = '20.00'` |
+| Durée garantie (12 mois) | `ConfigAtelier.garantieVoMois` |
+| Durée mandat dépôt-vente (90j) | `ConfigAtelier.dureeMandat` |
+| Durée garantie atelier (30j) | `ConfigAtelier.garantieAtelierJours` |
+| Délai reversement déposant (15j) | `ConfigAtelier.delaiReversementJours` |
+| Seuil devis obligatoire (150€) | `ConfigAtelier.seuilDevisObligatoire` |
+| URL de l'API, domaine, port | `.env` / `nuxt.config.ts` / variables d'environnement |
+| Couleurs de l'UI | Variables CSS (`--accent`, `--dark2`) |
+| Textes de SMS/emails | Templates configurables en base ou fichiers de traduction |
+| Catégories de motos, types de prestation | Tables de référence en base |
+| Mentions légales sur factures/PDF | Template Twig + données atelier dynamiques |
+| Numéro de téléphone d'urgence / escalade | `ConfigAtelier.telResponsable`, `ConfigAtelier.telMagasin` |
+
+**Comment repérer un hardcode** : si tu vois une string ou un nombre qui n'est pas une clé technique (nom de colonne, nom de route, nom de variable), c'est probablement un hardcode.
+
+**Quand un hardcode est OK** :
+- Constantes techniques stables : nom de rôles (`ROLE_ADMIN`), noms de transitions workflow, codes HTTP
+- Noms de champs Doctrine, noms de routes API
+- Clés de traduction i18n
+- Formules mathématiques (calcul TVA = `bcmul(ht, tauxTva) / 100`)
+
+**Réflexe** : avant d'écrire une valeur en dur, demande-toi "est-ce que ça change si un autre atelier utilise l'app ?" Si oui → config/base de données.
 
 ---
 

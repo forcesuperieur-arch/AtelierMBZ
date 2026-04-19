@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\ClauseLegale;
 use App\Service\AuditService;
+use App\Service\ClauseLegaleVisibilityService;
+use App\Service\CurrentAtelierResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,24 +19,15 @@ class ClauseLegaleController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private AuditService $audit,
+        private CurrentAtelierResolver $currentAtelierResolver,
+        private ClauseLegaleVisibilityService $visibilityService,
     ) {}
 
     #[Route('/api/clauses-legales', methods: ['GET'])]
     public function list(Request $request): JsonResponse
     {
         $activeOnly = $request->query->getBoolean('active', true);
-
-        $qb = $this->em->createQueryBuilder()
-            ->select('c')
-            ->from(ClauseLegale::class, 'c')
-            ->orderBy('c.code', 'ASC')
-            ->addOrderBy('c.version', 'DESC');
-
-        if ($activeOnly) {
-            $qb->andWhere('c.isActive = true');
-        }
-
-        $clauses = $qb->getQuery()->getResult();
+        $clauses = $this->visibilityService->pickVisibleClauses($this->findScopedClauses(), $activeOnly);
 
         return $this->json(array_map(fn($c) => $this->serialize($c), $clauses));
     }
@@ -46,12 +39,9 @@ class ClauseLegaleController extends AbstractController
             return $this->json(['error' => 'Code invalide', 'allowed' => ClauseLegale::CODES], Response::HTTP_BAD_REQUEST);
         }
 
-        $clause = $this->em->getRepository(ClauseLegale::class)->findOneBy(
-            ['code' => $code, 'isActive' => true],
-            ['version' => 'DESC'],
-        );
+        $clause = $this->visibilityService->pickPreferredClause($this->findScopedClauses($code));
 
-        if (!$clause) {
+        if (!$clause || !$clause->isActive()) {
             return $this->json(['error' => 'Aucune clause active pour ce code'], Response::HTTP_NOT_FOUND);
         }
 
@@ -73,20 +63,18 @@ class ClauseLegaleController extends AbstractController
             return $this->json(['error' => 'libelle et texte requis'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Determine next version
-        $maxVersion = $this->em->createQueryBuilder()
-            ->select('MAX(c.version)')
-            ->from(ClauseLegale::class, 'c')
-            ->where('c.code = :code')
-            ->setParameter('code', $code)
-            ->getQuery()
-            ->getSingleScalarResult();
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if ($atelierId === null) {
+            return $this->json(['error' => 'Aucun atelier actif sélectionné'], Response::HTTP_BAD_REQUEST);
+        }
 
         $clause = new ClauseLegale();
         $clause->setCode($code);
         $clause->setLibelle($data['libelle']);
         $clause->setTexte($data['texte']);
-        $clause->setVersion(($maxVersion ?? 0) + 1);
+        $clause->setVersion($this->getNextVersionForScope($code, $atelierId));
+        $clause->setAtelierId($atelierId);
+        $clause->setIsActive((bool) ($data['isActive'] ?? true));
 
         if (isset($data['effectiveFrom'])) {
             $clause->setEffectiveFrom(new \DateTime($data['effectiveFrom']));
@@ -95,7 +83,10 @@ class ClauseLegaleController extends AbstractController
         $this->em->persist($clause);
         $this->em->flush();
 
-        $this->audit->log('create_clause_legale', 'clause_legale', $clause->getId());
+        $this->audit->log('create_clause_legale', 'clause_legale', $clause->getId(), json_encode([
+            'atelier_id' => $atelierId,
+            'code' => $code,
+        ]));
 
         return $this->json($this->serialize($clause), Response::HTTP_CREATED);
     }
@@ -104,44 +95,75 @@ class ClauseLegaleController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function update(int $id, Request $request): JsonResponse
     {
-        $clause = $this->em->getRepository(ClauseLegale::class)->find($id);
+        $clause = $this->runWithoutTenantFilter(
+            fn () => $this->em->getRepository(ClauseLegale::class)->find($id)
+        );
+
         if (!$clause) {
             return $this->json(['error' => 'Clause not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $data = json_decode($request->getContent(), true) ?? [];
+        $currentAtelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if ($currentAtelierId === null) {
+            return $this->json(['error' => 'Aucun atelier actif sélectionné'], Response::HTTP_BAD_REQUEST);
+        }
 
-        // If texte changed, create new version instead of modifying
-        if (isset($data['texte']) && $data['texte'] !== $clause->getTexte()) {
-            // Deactivate current
-            $clause->setIsActive(false);
+        $data = json_decode($request->getContent(), true) ?? [];
+        $editingScopedOverride = $clause->getAtelierId() !== $currentAtelierId;
+
+        if ($editingScopedOverride) {
+            $newClause = new ClauseLegale();
+            $newClause->setCode($clause->getCode());
+            $newClause->setLibelle($data['libelle'] ?? $clause->getLibelle());
+            $newClause->setTexte($data['texte'] ?? $clause->getTexte());
+            $newClause->setVersion($this->getNextVersionForScope($clause->getCode(), $currentAtelierId));
+            $newClause->setAtelierId($currentAtelierId);
+            $newClause->setIsActive((bool) ($data['isActive'] ?? $clause->isActive()));
+            $newClause->setEffectiveFrom(isset($data['effectiveFrom']) ? new \DateTime($data['effectiveFrom']) : \DateTimeImmutable::createFromInterface($clause->getEffectiveFrom()));
+
+            $this->em->persist($newClause);
             $this->em->flush();
 
-            // Create new version
+            $this->audit->log('override_clause_legale', 'clause_legale', $newClause->getId(), json_encode([
+                'source_clause_id' => $clause->getId(),
+                'atelier_id' => $currentAtelierId,
+            ]));
+
+            return $this->json($this->serialize($newClause));
+        }
+
+        if (isset($data['texte']) && $data['texte'] !== $clause->getTexte()) {
+            $clause->setIsActive(false);
+
             $newClause = new ClauseLegale();
             $newClause->setCode($clause->getCode());
             $newClause->setLibelle($data['libelle'] ?? $clause->getLibelle());
             $newClause->setTexte($data['texte']);
-            $newClause->setVersion($clause->getVersion() + 1);
-            $newClause->setAtelierId($clause->getAtelierId());
-
-            if (isset($data['effectiveFrom'])) {
-                $newClause->setEffectiveFrom(new \DateTime($data['effectiveFrom']));
-            }
+            $newClause->setVersion($this->getNextVersionForScope($clause->getCode(), $currentAtelierId));
+            $newClause->setAtelierId($currentAtelierId);
+            $newClause->setIsActive((bool) ($data['isActive'] ?? true));
+            $newClause->setEffectiveFrom(isset($data['effectiveFrom']) ? new \DateTime($data['effectiveFrom']) : \DateTimeImmutable::createFromInterface($clause->getEffectiveFrom()));
 
             $this->em->persist($newClause);
             $this->em->flush();
 
             $this->audit->log('update_clause_legale_new_version', 'clause_legale', $newClause->getId(), json_encode([
                 'previous_version' => $clause->getVersion(),
+                'atelier_id' => $currentAtelierId,
             ]));
 
             return $this->json($this->serialize($newClause));
         }
 
-        // Only metadata update (libelle, isActive)
-        if (isset($data['libelle'])) $clause->setLibelle($data['libelle']);
-        if (isset($data['isActive'])) $clause->setIsActive((bool) $data['isActive']);
+        if (isset($data['libelle'])) {
+            $clause->setLibelle($data['libelle']);
+        }
+        if (isset($data['isActive'])) {
+            $clause->setIsActive((bool) $data['isActive']);
+        }
+        if (isset($data['effectiveFrom'])) {
+            $clause->setEffectiveFrom(new \DateTime($data['effectiveFrom']));
+        }
 
         $this->em->flush();
 
@@ -156,11 +178,8 @@ class ClauseLegaleController extends AbstractController
 
         $clauses = [];
         foreach ($codes as $code) {
-            $clause = $this->em->getRepository(ClauseLegale::class)->findOneBy(
-                ['code' => $code, 'isActive' => true],
-                ['version' => 'DESC'],
-            );
-            if ($clause) {
+            $clause = $this->visibilityService->pickPreferredClause($this->findScopedClauses($code));
+            if ($clause && $clause->isActive()) {
                 $clauses[$code] = [
                     'version' => $clause->getVersion(),
                     'hash' => hash('sha256', $clause->getTexte()),
@@ -172,6 +191,80 @@ class ClauseLegaleController extends AbstractController
             'clauses' => $clauses,
             'globalHash' => hash('sha256', json_encode($clauses)),
         ]);
+    }
+
+    /**
+     * @return ClauseLegale[]
+     */
+    private function findScopedClauses(?string $code = null): array
+    {
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+
+        return $this->runWithoutTenantFilter(function () use ($atelierId, $code) {
+            $qb = $this->em->createQueryBuilder()
+                ->select('c')
+                ->from(ClauseLegale::class, 'c')
+                ->orderBy('c.code', 'ASC')
+                ->addOrderBy('c.version', 'DESC');
+
+            if ($code !== null) {
+                $qb->andWhere('c.code = :code')
+                    ->setParameter('code', $code);
+            }
+
+            if ($atelierId !== null) {
+                $qb->andWhere('c.atelierId = :atelierId OR c.atelierId IS NULL')
+                    ->setParameter('atelierId', $atelierId);
+            } else {
+                $qb->andWhere('c.atelierId IS NULL');
+            }
+
+            return $qb->getQuery()->getResult();
+        });
+    }
+
+    private function getNextVersionForScope(string $code, ?int $atelierId): int
+    {
+        $maxVersion = $this->runWithoutTenantFilter(function () use ($code, $atelierId) {
+            $qb = $this->em->createQueryBuilder()
+                ->select('MAX(c.version)')
+                ->from(ClauseLegale::class, 'c')
+                ->where('c.code = :code')
+                ->setParameter('code', $code);
+
+            if ($atelierId !== null) {
+                $qb->andWhere('c.atelierId = :atelierId')
+                    ->setParameter('atelierId', $atelierId);
+            } else {
+                $qb->andWhere('c.atelierId IS NULL');
+            }
+
+            return $qb->getQuery()->getSingleScalarResult();
+        });
+
+        return ((int) ($maxVersion ?? 0)) + 1;
+    }
+
+    private function runWithoutTenantFilter(callable $callback): mixed
+    {
+        $filters = $this->em->getFilters();
+        $wasEnabled = $filters->isEnabled('tenant_filter');
+
+        if ($wasEnabled) {
+            $filters->disable('tenant_filter');
+        }
+
+        try {
+            return $callback();
+        } finally {
+            if ($wasEnabled) {
+                $restoredFilter = $filters->enable('tenant_filter');
+                $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+                if ($atelierId !== null) {
+                    $restoredFilter->setParameter('atelier_id', $atelierId);
+                }
+            }
+        }
     }
 
     private function serialize(ClauseLegale $c): array

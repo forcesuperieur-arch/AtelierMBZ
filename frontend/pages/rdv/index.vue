@@ -54,11 +54,25 @@
       </div>
     </div>
 
-    <div v-if="rdvStore.loading" class="panel" style="display:flex;justify-content:center;padding:32px;">
-      <span style="color:#6B7280;">Chargement...</span>
-    </div>
+    <AppLoadingState
+      v-if="rdvStore.loading"
+      compact
+      title="Chargement des rendez-vous"
+      description="La liste atelier est en cours de récupération."
+    />
+
+    <AppErrorState
+      v-else-if="errorMessage"
+      title="Liste des rendez-vous indisponible"
+      :description="errorMessage"
+      @retry="fetchData"
+    />
 
     <div v-else class="rdv-list">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#9CA3AF;padding:0 4px;">
+        <span>{{ filteredRdvs.length }} RDV visible(s)</span>
+        <span v-if="filters.status">Filtre actif : {{ statusOptions.find(o => o.value === filters.status)?.label }}</span>
+      </div>
       <div v-for="rdv in filteredRdvs" :key="rdv.id" class="rdv-card">
         <div class="rdv-card-time">
           <div class="rdv-time">{{ rdv.heure_debut?.slice(0, 5) || '—' }}</div>
@@ -88,17 +102,21 @@
         </div>
       </div>
 
-      <div v-if="!filteredRdvs.length" class="panel rdv-empty-state">
-        <div style="font-size:34px;margin-bottom:10px;">📭</div>
-        <div style="font-size:16px;font-weight:700;color:#E8E9ED;">Aucun rendez-vous trouvé</div>
-        <div style="font-size:13px;color:#6B7280;margin-top:4px;">Essaie un autre filtre ou crée un nouveau rendez-vous.</div>
-      </div>
+      <AppEmptyState
+        v-if="!filteredRdvs.length"
+        title="Aucun rendez-vous trouvé"
+        description="Essaie un autre filtre ou crée un nouveau rendez-vous."
+        action-label="Réinitialiser"
+        @action="resetFilters"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const rdvStore = useRdvStore()
+const toast = useToast()
+const errorMessage = ref('')
 
 const filters = reactive({
   date: new Date().toISOString().slice(0, 10),
@@ -166,8 +184,14 @@ function formatDisplayDate(d: string) {
   }
 }
 
-function fetchData() {
-  rdvStore.fetchRdvs({ date: filters.date, status: filters.status })
+async function fetchData() {
+  errorMessage.value = ''
+  try {
+    await rdvStore.fetchRdvs({ date: filters.date, status: filters.status })
+  } catch (e: any) {
+    errorMessage.value = e?.message || 'Les rendez-vous n’ont pas pu être chargés.'
+    toast.add({ title: 'Erreur RDV', description: errorMessage.value, color: 'error' })
+  }
 }
 
 function resetFilters() {
@@ -177,8 +201,8 @@ function resetFilters() {
   fetchData()
 }
 
-watch(() => [filters.date, filters.status], fetchData)
-onMounted(fetchData)
+watch(() => [filters.date, filters.status], () => { void fetchData() })
+onMounted(() => { void fetchData() })
 </script>
 
 <style scoped>

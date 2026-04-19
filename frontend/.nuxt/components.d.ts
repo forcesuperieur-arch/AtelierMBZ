@@ -14,6 +14,9 @@ type HydrationStrategies = {
 type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {}, {}, { hydrated: () => void }> & T
 
 
+export const AppEmptyState: typeof import("../components/AppEmptyState.vue")['default']
+export const AppErrorState: typeof import("../components/AppErrorState.vue")['default']
+export const AppLoadingState: typeof import("../components/AppLoadingState.vue")['default']
 export const AppModal: typeof import("../components/AppModal.vue")['default']
 export const NotificationPopIn: typeof import("../components/NotificationPopIn.vue")['default']
 export const PlanningGrid: typeof import("../components/PlanningGrid.vue")['default']
@@ -21,7 +24,10 @@ export const SidebarLink: typeof import("../components/SidebarLink.vue")['defaul
 export const StatsCard: typeof import("../components/StatsCard.vue")['default']
 export const StatusBadge: typeof import("../components/StatusBadge.vue")['default']
 export const UTable: typeof import("../components/UTable.vue")['default']
+export const VOCompanionCard: typeof import("../components/vo/VOCompanionCard.vue")['default']
+export const VODossierMotoCard: typeof import("../components/vo/VODossierMotoCard.vue")['default']
 export const VONav: typeof import("../components/vo/VONav.vue")['default']
+export const VORemiseEnEtatCard: typeof import("../components/vo/VORemiseEnEtatCard.vue")['default']
 export const UAccordion: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']
 export const UAlert: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']
 export const UApp: typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']
@@ -105,6 +111,9 @@ export const Head: typeof import("../node_modules/nuxt/dist/head/runtime/compone
 export const Html: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Html']
 export const Body: typeof import("../node_modules/nuxt/dist/head/runtime/components")['Body']
 export const NuxtIsland: typeof import("../node_modules/nuxt/dist/app/components/nuxt-island")['default']
+export const LazyAppEmptyState: LazyComponent<typeof import("../components/AppEmptyState.vue")['default']>
+export const LazyAppErrorState: LazyComponent<typeof import("../components/AppErrorState.vue")['default']>
+export const LazyAppLoadingState: LazyComponent<typeof import("../components/AppLoadingState.vue")['default']>
 export const LazyAppModal: LazyComponent<typeof import("../components/AppModal.vue")['default']>
 export const LazyNotificationPopIn: LazyComponent<typeof import("../components/NotificationPopIn.vue")['default']>
 export const LazyPlanningGrid: LazyComponent<typeof import("../components/PlanningGrid.vue")['default']>
@@ -112,7 +121,10 @@ export const LazySidebarLink: LazyComponent<typeof import("../components/Sidebar
 export const LazyStatsCard: LazyComponent<typeof import("../components/StatsCard.vue")['default']>
 export const LazyStatusBadge: LazyComponent<typeof import("../components/StatusBadge.vue")['default']>
 export const LazyUTable: LazyComponent<typeof import("../components/UTable.vue")['default']>
+export const LazyVOCompanionCard: LazyComponent<typeof import("../components/vo/VOCompanionCard.vue")['default']>
+export const LazyVODossierMotoCard: LazyComponent<typeof import("../components/vo/VODossierMotoCard.vue")['default']>
 export const LazyVONav: LazyComponent<typeof import("../components/vo/VONav.vue")['default']>
+export const LazyVORemiseEnEtatCard: LazyComponent<typeof import("../components/vo/VORemiseEnEtatCard.vue")['default']>
 export const LazyUAccordion: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Accordion.vue")['default']>
 export const LazyUAlert: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/Alert.vue")['default']>
 export const LazyUApp: LazyComponent<typeof import("../node_modules/@nuxt/ui/dist/runtime/components/App.vue")['default']>

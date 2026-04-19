@@ -8,6 +8,7 @@ use App\Entity\GrilleTarifaire;
 use App\Entity\HoraireAtelier;
 use App\Entity\Prestation;
 use App\Service\AdminConfigValidator;
+use App\Service\CurrentAtelierResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,13 +27,14 @@ class ConfigController extends AbstractController
         private SerializerInterface $serializer,
         private SluggerInterface $slugger,
         private AdminConfigValidator $configValidator,
+        private CurrentAtelierResolver $currentAtelierResolver,
     ) {}
 
     #[Route('', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getConfig(): JsonResponse
     {
-        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        $config = $this->findCurrentConfig(true);
         if (!$config) {
             return $this->json(['error' => 'No configuration found'], Response::HTTP_NOT_FOUND);
         }
@@ -57,7 +59,7 @@ class ConfigController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function updateConfig(Request $request): JsonResponse
     {
-        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        $config = $this->findCurrentConfig(true);
         if (!$config) {
             return $this->json(['error' => 'No configuration found'], Response::HTTP_NOT_FOUND);
         }
@@ -157,7 +159,7 @@ class ConfigController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function uploadLogo(Request $request): JsonResponse
     {
-        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        $config = $this->findCurrentConfig(true);
         if (!$config) {
             return $this->json(['error' => 'No configuration found'], Response::HTTP_NOT_FOUND);
         }
@@ -205,7 +207,7 @@ class ConfigController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function seedTarifs(): JsonResponse
     {
-        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        $config = $this->findCurrentConfig(true);
         $atelierId = $config?->getAtelierId();
 
         $categories = $this->em->getRepository(CategorieMoto::class)->findBy(['isActive' => 1], ['nom' => 'ASC']);
@@ -219,7 +221,7 @@ class ConfigController extends AbstractController
         }
 
         $existing = [];
-        foreach ($this->em->getRepository(GrilleTarifaire::class)->findBy([]) as $row) {
+        foreach ($this->em->getRepository(GrilleTarifaire::class)->findBy($atelierId ? ['atelierId' => $atelierId] : []) as $row) {
             $existing[$row->getPrestation()->getId() . '-' . ($row->getCategorieMoto()?->getId() ?? '0')] = true;
         }
 
@@ -260,7 +262,7 @@ class ConfigController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function getHoraires(): JsonResponse
     {
-        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        $config = $this->findCurrentConfig(true);
         $atelierId = $config?->getAtelierId();
 
         $horaires = $this->em->getRepository(HoraireAtelier::class)->findBy(
@@ -274,14 +276,38 @@ class ConfigController extends AbstractController
 
     private function resolveAtelier(?ConfigAtelier $config): ?Atelier
     {
-        if ($config?->getAtelierId()) {
-            $atelier = $this->em->getRepository(Atelier::class)->find($config->getAtelierId());
+        $atelierId = $config?->getAtelierId() ?? $this->currentAtelierResolver->resolveAtelierId();
+
+        if ($atelierId) {
+            $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
             if ($atelier) {
                 return $atelier;
             }
         }
 
         return $this->em->getRepository(Atelier::class)->findOneBy([]);
+    }
+
+    private function findCurrentConfig(bool $createIfMissing = false): ?ConfigAtelier
+    {
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+
+        if ($atelierId) {
+            $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+            if ($config instanceof ConfigAtelier) {
+                return $config;
+            }
+
+            if ($createIfMissing) {
+                $config = (new ConfigAtelier())->setAtelierId($atelierId);
+                $this->em->persist($config);
+                $this->em->flush();
+
+                return $config;
+            }
+        }
+
+        return $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
     }
 
     private function serializeAtelier(Atelier $atelier): array

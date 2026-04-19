@@ -8,6 +8,7 @@
       </div>
       <div class="vo-header-actions">
         <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
+        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
         <button v-if="detail?.status === 'actif'" class="topbar-new-btn" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
       </div>
     </div>
@@ -140,12 +141,26 @@
               {{ stepItem.label }}
             </div>
           </div>
+
+          <div v-if="legalChecklist.length" class="vo-lines" style="margin-top: 14px;">
+            <div v-for="item in legalChecklist" :key="item.key" class="vo-line-detail">
+              <span>{{ item.label }}</span>
+              <strong :style="{ color: item.completed ? '#22c55e' : item.blocking ? '#ef4444' : '#f59e0b' }">{{ item.completed ? 'OK' : item.blocking ? 'Bloquant' : 'À prévoir' }}</strong>
+            </div>
+          </div>
         </UCard>
 
         <UCard>
           <template #header>
             <div class="vo-card-title">Mandat & commission</div>
           </template>
+
+          <div class="vo-lines" style="margin-bottom: 14px;">
+            <div class="vo-line-detail">
+              <span>Mandat immat prérempli</span>
+              <strong :style="{ color: (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? '#22c55e' : '#9ca3af' }">{{ (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? 'Archivé' : 'Disponible au téléchargement' }}</strong>
+            </div>
+          </div>
 
           <div class="vo-kpi-grid">
             <div>
@@ -288,6 +303,7 @@ const saleForm = reactive({
 })
 
 const depotRequiredDocs = ['contrat_depot_vente', 'carte_grise', 'piece_identite']
+const legalChecklist = computed(() => detail.value?.legalChecklist || [])
 
 const netDeposantPreview = computed(() => {
   const salePrice = Number.parseFloat(String(saleForm.salePrice || '0').replace(',', '.')) || 0
@@ -329,6 +345,10 @@ const mandateState = computed(() => {
 
   if (detail.value.mandatExpire) {
     return { tone: 'warning', label: 'Mandat expiré', text: 'Le mandat doit être prolongé ou le véhicule restitué.' }
+  }
+
+  if (detail.value.saleBlockers?.length) {
+    return { tone: 'warning', label: 'Dossier à régulariser', text: detail.value.saleBlockers.join(' ') }
   }
 
   if (detail.value.companion?.steps && !detail.value.companion.steps.allComplete) {
@@ -383,6 +403,11 @@ function focusCompanion() {
 
 function downloadContrat() {
   window.open(`${apiBase}/vo/depots/${route.params.id}/contrat/pdf`, '_blank')
+}
+
+function downloadMandat() {
+  const buyerId = selectedBuyer.value?.id ? `?buyerId=${selectedBuyer.value.id}` : ''
+  window.open(`${apiBase}/vo/depots/${route.params.id}/mandat-immat/pdf${buyerId}`, '_blank')
 }
 
 async function extendMandate() {
@@ -679,6 +704,8 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .vo-inline-actions.split {

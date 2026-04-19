@@ -56,7 +56,9 @@ export function useApi() {
       ...opts,
     })
 
-    if (res.status === 401) {
+    const isAuthEndpoint = /\/auth\/(login|refresh|google\/exchange)/.test(normalizedPath)
+
+    if (res.status === 401 && !isAuthEndpoint) {
       const refreshed = await refreshToken()
       if (refreshed) {
         const retry = await globalThis.fetch(url, {

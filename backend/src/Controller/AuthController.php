@@ -7,6 +7,7 @@ use App\Entity\Notification;
 use App\Entity\RevokedToken;
 use App\Entity\RoleMetier;
 use App\Entity\User;
+use App\Service\UserRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ class AuthController extends AbstractController
         private UserPasswordHasherInterface $passwordHasher,
         private HttpClientInterface $httpClient,
         private MailerInterface $mailer,
+        private UserRoleMapper $userRoleMapper,
     ) {}
 
     private function expandLegacyPermissionAliases(string $module, string $action): array
@@ -52,12 +54,51 @@ class AuthController extends AbstractController
         return array_values(array_unique($aliases));
     }
 
+    private function resolveEffectiveRoleMetier(User $user): ?RoleMetier
+    {
+        $roleMetier = $user->getRoleMetier();
+        if ($roleMetier?->isActive()) {
+            return $roleMetier;
+        }
+
+        if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
+            return null;
+        }
+
+        $targetCode = $this->userRoleMapper->mapLegacyRoleToRoleMetierCode($user->getRole());
+        if ($targetCode === null) {
+            return null;
+        }
+
+        $repo = $this->em->getRepository(RoleMetier::class);
+
+        if ($user->getAtelierId()) {
+            $atelierRole = $repo->findOneBy([
+                'atelierId' => $user->getAtelierId(),
+                'code' => $targetCode,
+                'isActive' => true,
+            ]);
+
+            if ($atelierRole instanceof RoleMetier) {
+                return $atelierRole;
+            }
+        }
+
+        $sharedRole = $repo->findOneBy([
+            'atelierId' => null,
+            'code' => $targetCode,
+            'isActive' => true,
+        ]);
+
+        return $sharedRole instanceof RoleMetier ? $sharedRole : null;
+    }
+
     private function buildRolePermissionsCompatibility(User $user, ?RoleMetier $roleMetier): ?array
     {
         if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
             return [
                 'sections_json' => ['*'],
-                'permissions_json' => ['*'],
+                'permissions_json' => ['*.*'],
             ];
         }
 
@@ -98,7 +139,7 @@ class AuthController extends AbstractController
             ? $this->em->getRepository(Atelier::class)->find($user->getAtelierId())
             : null;
 
-        $roleMetier = $user->getRoleMetier();
+        $roleMetier = $this->resolveEffectiveRoleMetier($user);
         $roleMetierData = null;
         if ($roleMetier && $roleMetier->isActive()) {
             $perms = [];
@@ -177,13 +218,13 @@ class AuthController extends AbstractController
         );
 
         $defaultActiveAtelier = in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)
-            ? ($user->getAtelierId() ? (string) $user->getAtelierId() : 'all')
-            : '';
+            ? $this->findDefaultActiveAtelier($user)
+            : null;
 
-        if ($defaultActiveAtelier !== '') {
+        if ($defaultActiveAtelier instanceof Atelier) {
             $response->headers->setCookie(
                 Cookie::create('active_atelier_id')
-                    ->withValue($defaultActiveAtelier)
+                    ->withValue((string) $defaultActiveAtelier->getId())
                     ->withPath('/')
                     ->withHttpOnly(false)
                     ->withSameSite('lax')
@@ -194,6 +235,19 @@ class AuthController extends AbstractController
         }
 
         return $response;
+    }
+
+    private function findDefaultActiveAtelier(User $user): ?Atelier
+    {
+        if ($user->getAtelierId()) {
+            $atelier = $this->em->getRepository(Atelier::class)->find($user->getAtelierId());
+            if ($atelier instanceof Atelier) {
+                return $atelier;
+            }
+        }
+
+        return $this->em->getRepository(Atelier::class)->findOneBy(['actif' => true], ['id' => 'ASC'])
+            ?? $this->em->getRepository(Atelier::class)->findOneBy([], ['id' => 'ASC']);
     }
 
     private function getGoogleConfig(): array
@@ -647,8 +701,8 @@ class AuthController extends AbstractController
     }
 
     /**
-     * SuperAdmin: switch the active atelier for tenant filter (session-based).
-     * Accepts {atelier_id: int|null|'all'}. Null/'all' = no filter (global view).
+     * SuperAdmin: switch the active atelier for tenant filter.
+     * Global cross-atelier mode is intentionally disabled.
      */
     #[Route('/switch-atelier', methods: ['POST'])]
     public function switchAtelier(Request $request): JsonResponse
@@ -665,31 +719,30 @@ class AuthController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? [];
         $atelierId = $data['atelier_id'] ?? null;
 
-        if ($atelierId === null || $atelierId === 'all' || $atelierId === '') {
-            $response = $this->json(['active_atelier_id' => 'all']);
-            $response->headers->setCookie(
-                Cookie::create('active_atelier_id')
-                    ->withValue('all')
-                    ->withPath('/')
-                    ->withHttpOnly(false)
-                    ->withSameSite('lax')
-                    ->withSecure($this->getParameter('kernel.environment') === 'prod')
-            );
-            return $response;
+        if ($atelierId === 'all') {
+            $atelierId = null;
         }
 
-        $atelier = $this->em->getRepository(Atelier::class)->find((int) $atelierId);
-        if (!$atelier) {
-            return $this->json(['error' => 'Atelier not found'], Response::HTTP_NOT_FOUND);
+        $atelier = null;
+        if ($atelierId !== null && $atelierId !== '') {
+            $atelier = $this->em->getRepository(Atelier::class)->find((int) $atelierId);
+            if (!$atelier) {
+                return $this->json(['error' => 'Atelier not found'], Response::HTTP_NOT_FOUND);
+            }
+        } else {
+            $atelier = $this->findDefaultActiveAtelier($user);
+            if (!$atelier) {
+                return $this->json(['error' => 'Aucun atelier disponible'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
         $response = $this->json([
-            'active_atelier_id' => (int) $atelierId,
+            'active_atelier_id' => (int) $atelier->getId(),
             'atelier_nom' => $atelier->getNom(),
         ]);
         $response->headers->setCookie(
             Cookie::create('active_atelier_id')
-                ->withValue((string) ((int) $atelierId))
+                ->withValue((string) $atelier->getId())
                 ->withPath('/')
                 ->withHttpOnly(false)
                 ->withSameSite('lax')

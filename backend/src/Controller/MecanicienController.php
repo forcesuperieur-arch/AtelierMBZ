@@ -183,6 +183,12 @@ class MecanicienController extends AbstractController
         if (isset($data['km_fin'])) {
             $essai->setKmFin((int) $data['km_fin']);
         }
+        if (isset($data['dureeMinutes'])) {
+            $essai->setDureeMinutes((int) $data['dureeMinutes']);
+        }
+        if (isset($data['duree_minutes'])) {
+            $essai->setDureeMinutes((int) $data['duree_minutes']);
+        }
 
         if (isset($data['checkpoints']) && is_array($data['checkpoints'])) {
             $essai->setCheckpoints($data['checkpoints']);
@@ -193,9 +199,15 @@ class MecanicienController extends AbstractController
         if (isset($data['observations'])) {
             $essai->setObservations((string) $data['observations']);
         }
+        if (isset($data['anomalies'])) {
+            $essai->setAnomalies((string) $data['anomalies']);
+        }
 
         if (isset($data['actions_correctives'])) {
             $essai->setActionsCorrectives((string) $data['actions_correctives']);
+        }
+        if (isset($data['actionsCorrectives'])) {
+            $essai->setActionsCorrectives((string) $data['actionsCorrectives']);
         }
 
         if ($essai->getKmDebut() !== null && $essai->getKmFin() !== null) {
@@ -214,6 +226,10 @@ class MecanicienController extends AbstractController
 
             if ($essai->getKmFin() <= $essai->getKmDebut()) {
                 return $this->json(['error' => 'km_fin doit être supérieur à km_debut'], Response::HTTP_BAD_REQUEST);
+            }
+
+            if (($essai->getDureeMinutes() ?? 0) <= 0) {
+                return $this->json(['error' => 'dureeMinutes obligatoire pour valider'], Response::HTTP_BAD_REQUEST);
             }
 
             $checkpoints = $essai->getCheckpoints();

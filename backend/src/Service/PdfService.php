@@ -2,6 +2,7 @@
 namespace App\Service;
 
 use App\Entity\Atelier;
+use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
@@ -132,6 +133,45 @@ class PdfService
         ]);
 
         return $this->renderPdf($html, 'PVR-' . $purchase->getId());
+    }
+
+    /**
+     * Generate a prefilled SIV declaration preparation PDF.
+     */
+    public function generateDaSivPreparationPdf(VOPurchase $purchase, array $blockers = []): string
+    {
+        $atelier = $this->resolveAtelier($purchase->getAtelierId());
+
+        $html = $this->twig->render('pdf/vo_da_siv.html.twig', [
+            'purchase' => $purchase,
+            'blockers' => $blockers,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'DA-SIV-' . $purchase->getId());
+    }
+
+    /**
+     * Generate a prefilled immatriculation mandate PDF support.
+     */
+    public function generateMandatImmatriculationPdf(VOPurchase|VODepotVente $record, ?Client $buyer = null): string
+    {
+        $atelierId = $record instanceof VOPurchase ? $record->getAtelierId() : $record->getAtelierId();
+        $atelier = $this->resolveAtelier($atelierId);
+        $vehicle = $record->getVehicule();
+        $seller = $record instanceof VOPurchase ? $record->getSeller() : $record->getDeposant();
+
+        $html = $this->twig->render('pdf/vo_mandat_immatriculation.html.twig', [
+            'record' => $record,
+            'vehicle' => $vehicle,
+            'seller' => $seller,
+            'buyer' => $buyer,
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        $reference = $record instanceof VOPurchase ? 'MANDAT-IMMAT-ACHAT-' . $record->getId() : 'MANDAT-IMMAT-DEPOT-' . $record->getId();
+
+        return $this->renderPdf($html, $reference);
     }
 
     /**

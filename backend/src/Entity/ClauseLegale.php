@@ -10,7 +10,17 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['atelier_id', 'code', 'is_active'], name: 'idx_clause_active')]
 class ClauseLegale
 {
-    public const CODES = ['accessoires', 'garantie', 'essai', 'gardiennage', 'cgv'];
+    public const CODES = [
+        'accessoires',
+        'cgv',
+        'essai',
+        'garantie',
+        'gardiennage',
+        'mandat_reparation',
+        'mentions_legales',
+        'retention',
+        'rgpd',
+    ];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

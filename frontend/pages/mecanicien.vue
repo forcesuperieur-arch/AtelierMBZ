@@ -52,20 +52,41 @@
                 <a :href="`tel:${activeRdv.client_telephone}`" style="color:#6B7280;text-decoration:none;">📞 Appeler</a>
               </span>
               <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" style="font-size:12px;color:#FFD200;text-decoration:none;font-weight:600;">📋 Dossier atelier</NuxtLink>
+              <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
               <UButton label="💾 Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
-              <UButton label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" />
+              <UButton label="🏍 Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
+              <UButton label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
             </div>
           </div>
         </template>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;font-size:13px;">
           <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ activeRdv.client_nom }}</span></div>
           <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ activeRdv.vehicule_info }}</span></div>
           <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ activeRdv.type_intervention }}</span></div>
           <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ activeRdv.pont_nom }}</span></div>
         </div>
-        <div v-if="activeRdv.description_probleme || activeRdv.commentaire" style="margin-top:12px;font-size:13px;">
-          <span style="color:#6B7280;">Description :</span>
-          <p style="color:#D1D5DB;">{{ activeRdv.description_probleme || activeRdv.commentaire }}</p>
+        <div v-if="activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire" style="margin-top:12px;font-size:13px;">
+          <span style="color:#6B7280;">Motif client :</span>
+          <p style="color:#D1D5DB;">{{ activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire }}</p>
+        </div>
+
+        <div v-if="receptionPoints.length || receptionObservations || receptionFuelLevel || receptionPriority || activeRdv.vehicule_plaque || activeRdv.km_reception !== null" style="margin-top:14px;padding:12px;border-radius:10px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.18);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;color:#BFDBFE;">📥 Contexte réception</span>
+            <span style="font-size:11px;padding:3px 8px;border-radius:999px;" :style="{ background: activeRdv.or_signe ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: activeRdv.or_signe ? '#6EE7B7' : '#FCA5A5' }">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px;">
+            <div v-if="activeRdv.vehicule_plaque"><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ activeRdv.vehicule_plaque }}</span></div>
+            <div v-if="activeRdv.km_reception !== null"><span style="color:#6B7280;">Km réception :</span> <span style="color:#D1D5DB;">{{ activeRdv.km_reception }}</span></div>
+            <div v-if="receptionPriority"><span style="color:#6B7280;">Priorité :</span> <span style="color:#D1D5DB;">{{ receptionPriority }}</span></div>
+            <div v-if="receptionFuelLevel"><span style="color:#6B7280;">Carburant :</span> <span style="color:#D1D5DB;">{{ receptionFuelLevel }}</span></div>
+          </div>
+          <div v-if="receptionPoints.length" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+            <span v-for="(point, idx) in receptionPoints" :key="`${idx}-${point}`" style="padding:4px 8px;border-radius:999px;font-size:11px;background:rgba(255,255,255,0.05);color:#D1D5DB;">{{ point }}</span>
+          </div>
+          <div v-if="receptionObservations" style="margin-top:10px;font-size:12px;color:#D1D5DB;">
+            <span style="color:#6B7280;">Observations :</span> {{ receptionObservations }}
+          </div>
         </div>
 
         <!-- Live Chrono -->
@@ -104,6 +125,52 @@
               <span v-else style="color:#6B7280;">⬜</span>
               <span style="color:#D1D5DB;">{{ item.label }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Essai routier atelier -->
+        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <label style="font-size:13px;font-weight:600;color:#E8E9ED;display:block;">🏍 Essai routier atelier</label>
+            <span style="font-size:11px;color:#6B7280;">{{ essaiFilledCount }}/{{ essaiPoints.length }} points renseignés</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km départ</label>
+              <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" />
+            </div>
+            <div>
+              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km retour</label>
+              <input v-model.number="essaiForm.kmFin" type="number" class="form-input" />
+            </div>
+            <div>
+              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Durée (min)</label>
+              <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;">
+            <button
+              v-for="pt in essaiPoints" :key="`active-${pt.key}`"
+              type="button"
+              style="padding:6px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;"
+              :style="{
+                background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
+                border: essaiForm.pointsControle[pt.key] === 'ok' ? '1px solid rgba(16,185,129,0.25)' : essaiForm.pointsControle[pt.key] === 'nok' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.06)',
+                color: essaiForm.pointsControle[pt.key] === 'ok' ? '#6EE7B7' : essaiForm.pointsControle[pt.key] === 'nok' ? '#FCA5A5' : '#9CA3AF',
+              }"
+              @click="cycleEssaiPoint(pt.key)"
+            >
+              <span>{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
+              {{ pt.label }}
+            </button>
+          </div>
+          <div v-if="essaiHasNok" style="margin-top:8px;">
+            <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Actions correctives</label>
+            <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="2" placeholder="Décrire les corrections effectuées…" />
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+            <span style="font-size:11px;color:#6B7280;">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
+            <button class="btn btn-ghost" style="font-size:12px;" @click="saveActiveRoadTest" :disabled="savingRoadTest || essaiRoutierValide || !canValidateRoadTest">{{ savingRoadTest ? 'Validation…' : (essaiRoutierValide ? 'Essai validé' : 'Valider l’essai') }}</button>
           </div>
         </div>
 
@@ -304,8 +371,8 @@ const loading = ref(true)
 const finishing = ref(false)
 const savingNotes = ref(false)
 const persistingCheckup = ref(false)
+const savingRoadTest = ref(false)
 const myRdvs = ref<any[]>([])
-const ordresByRdvId = ref<Record<number, any>>({})
 const interventionNotes = ref('')
 const now = ref(Date.now())
 let chronoTimer: ReturnType<typeof setInterval> | null = null
@@ -354,10 +421,51 @@ const essaiForm = reactive({
 })
 
 const essaiHasNok = computed(() => Object.values(essaiForm.pointsControle).some(v => v === 'nok'))
+const essaiFilledCount = computed(() => Object.values(essaiForm.pointsControle).filter(v => v === 'ok' || v === 'nok').length)
 
 function cycleEssaiPoint(key: string) {
   const cur = essaiForm.pointsControle[key]
   essaiForm.pointsControle[key] = !cur ? 'ok' : cur === 'ok' ? 'nok' : ''
+}
+
+function resetEssaiForm() {
+  essaiForm.kmDebut = activeRdv.value?.km_reception ?? null
+  essaiForm.kmFin = null
+  essaiForm.dureeMinutes = null
+  essaiForm.actionsCorrectives = ''
+  Object.keys(essaiForm.pointsControle).forEach((key) => { delete essaiForm.pointsControle[key] })
+}
+
+function normalizeEssaiPoints(raw: any): Record<string, string> {
+  if (!raw) return {}
+  if (Array.isArray(raw)) {
+    return raw.reduce((acc: Record<string, string>, item: any) => {
+      const key = String(item?.key ?? item?.label ?? '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+      const status = item?.statut ?? (item?.ok === true ? 'ok' : item?.ok === false ? 'nok' : '')
+      if (key && status) acc[key] = status
+      return acc
+    }, {})
+  }
+  if (typeof raw === 'object') {
+    return Object.entries(raw).reduce((acc: Record<string, string>, [key, value]) => {
+      if (value === 'ok' || value === 'nok') acc[key] = value
+      return acc
+    }, {})
+  }
+  return {}
+}
+
+function buildEssaiCheckpoints() {
+  return essaiPoints.map((point) => ({
+    key: point.key,
+    label: point.label,
+    statut: essaiForm.pointsControle[point.key] || null,
+  }))
 }
 
 function fillRapportForm(r: any) {
@@ -366,11 +474,12 @@ function fillRapportForm(r: any) {
   rapportForm.recommandations = r.recommandations ?? ''
   rapportForm.kilometrageRestitution = r.kilometrageRestitution ?? null
   rapportForm.prochaineRevisionKm = r.prochaineRevisionKm ?? null
+  resetEssaiForm()
   if (r.essaiRoutier) {
     essaiForm.kmDebut = r.essaiRoutier.kmDebut ?? null
     essaiForm.kmFin = r.essaiRoutier.kmFin ?? null
     essaiForm.dureeMinutes = r.essaiRoutier.dureeMinutes ?? null
-    Object.assign(essaiForm.pointsControle, r.essaiRoutier.pointsControle ?? {})
+    Object.assign(essaiForm.pointsControle, normalizeEssaiPoints(r.essaiRoutier.pointsControle ?? r.essaiRoutier.checkpoints))
     essaiForm.actionsCorrectives = r.essaiRoutier.actionsCorrectives ?? ''
   }
 }
@@ -413,10 +522,12 @@ async function saveRapport() {
         kmDebut: essaiForm.kmDebut,
         kmFin: essaiForm.kmFin,
         dureeMinutes: essaiForm.dureeMinutes,
-        pointsControle: { ...essaiForm.pointsControle },
+        checkpoints: buildEssaiCheckpoints(),
         actionsCorrectives: essaiForm.actionsCorrectives,
+        valider: canValidateRoadTest.value,
       }),
     ])
+    await fetchMyRdvs()
     toast.add({ title: 'Rapport enregistré', color: 'success' })
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
@@ -434,6 +545,7 @@ async function signRapport() {
     const sig = sigRapportCanvas.value.toDataURL('image/png')
     const updated = await api.post(`/rapport/${rapport.value.id}/sign-mecanicien`, { signature: sig })
     rapport.value = updated
+    await fetchMyRdvs()
     toast.add({ title: 'Rapport signé', color: 'success' })
   } catch (e: any) {
     rapportSignError.value = e.message || 'Erreur lors de la signature'
@@ -499,15 +611,27 @@ const initials = computed(() => {
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
 
 const activeRdv = computed(() => myRdvs.value.find(r => r.status === 'en_cours'))
-const activeOr = computed(() => activeRdv.value ? ordresByRdvId.value[activeRdv.value.id] ?? null : null)
-const activeOrId = computed(() => activeRdv.value?.or_id ?? activeOr.value?.id ?? null)
-const activeVehiculeState = computed(() => parseEtatVehicule(activeOr.value?.etat_vehicule))
+const activeOrId = computed(() => activeRdv.value?.or_id ?? null)
+const activeVehiculeState = computed(() => parseEtatVehicule(activeRdv.value?.etat_reception))
+const essaiRoutierValide = computed(() => Boolean(activeRdv.value?.essai_routier_valide || rapport.value?.essaiRoutier?.isValide))
+const essaiStatusLabel = computed(() => {
+  if (essaiRoutierValide.value) return 'Essai validé'
+  if (essaiHasNok.value) return 'Anomalie détectée'
+  if (canValidateRoadTest.value) return 'Prêt à valider'
+  return 'Essai à renseigner'
+})
 const receptionPoints = computed(() => Array.isArray(activeVehiculeState.value?.points) ? activeVehiculeState.value.points : [])
 const receptionObservations = computed(() => activeVehiculeState.value?.observations ?? '')
 const receptionFuelLevel = computed(() => activeVehiculeState.value?.fuel_level ?? '')
 const receptionPriority = computed(() => activeVehiculeState.value?.priority ?? '')
 const todoRdvs = computed(() => myRdvs.value.filter(r => ['en_attente', 'reserve', 'confirme', 'reception'].includes(r.status)))
 const doneRdvs = computed(() => myRdvs.value.filter(r => ['termine', 'restitue', 'facture', 'paye'].includes(r.status)))
+const canValidateRoadTest = computed(() => {
+  const kmDebut = Number(essaiForm.kmDebut ?? 0)
+  const kmFin = Number(essaiForm.kmFin ?? 0)
+  const duree = Number(essaiForm.dureeMinutes ?? 0)
+  return kmDebut > 0 && kmFin > kmDebut && duree > 0 && essaiFilledCount.value >= 5
+})
 
 const kpis = computed(() => ({
   enCours: activeRdv.value ? 1 : 0,
@@ -518,8 +642,9 @@ const kpis = computed(() => ({
 
 const priorityAction = computed(() => {
   const receptions = todoRdvs.value.filter(r => r.status === 'reception')
-  if (receptions.length) return `Réceptionner : ${receptions[0].client_nom} — ${receptions[0].vehicule_info}`
+  if (receptions.length) return `Démarrer : ${receptions[0].client_nom} — ${receptions[0].vehicule_info}`
   if (activeRdv.value && progressPct.value > 100) return `⚠️ Intervention en cours en retard — terminer rapidement`
+  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
   if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
   return null
 })
@@ -527,7 +652,7 @@ const priorityAction = computed(() => {
 const elapsedMin = computed(() => {
   const rdv = activeRdv.value
   if (!rdv) return 0
-  const started = rdv.heure_debut_travaux || rdv.started_at
+  const started = rdv.heure_debut_travail || rdv.heure_debut_travaux || rdv.started_at
   if (!started) return 0
   const startTime = new Date(started)
   if (isNaN(startTime.getTime())) return 0
@@ -551,21 +676,10 @@ const chronoDisplay = computed(() => {
 function getStartTime(): number {
   const rdv = activeRdv.value
   if (!rdv) return Date.now()
-  const started = rdv.heure_debut_travaux || rdv.started_at
+  const started = rdv.heure_debut_travail || rdv.heure_debut_travaux || rdv.started_at
   if (!started) return Date.now()
   const t = new Date(started).getTime()
   return isNaN(t) ? Date.now() : t
-}
-
-function extractRdvIdFromOrdre(item: any): number | null {
-  const rdvRef = item?.rendez_vous ?? item?.rendezVous ?? null
-  if (!rdvRef) return null
-  if (typeof rdvRef === 'string') {
-    const parsed = Number(rdvRef.split('/').pop())
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  const parsed = Number(rdvRef?.id ?? rdvRef?.['@id']?.split?.('/')?.pop?.())
-  return Number.isFinite(parsed) ? parsed : null
 }
 
 function parseEtatVehicule(raw: any) {
@@ -578,57 +692,38 @@ function parseEtatVehicule(raw: any) {
 
 function applySavedWorkshopReport() {
   Object.keys(checkup).forEach((key) => { delete checkup[key] })
-  const saved = parseEtatVehicule(activeOr.value?.etat_vehicule)
-  const savedCheckup = saved?.mechanic_checkup ?? {}
+  const savedCheckup = activeRdv.value?.or_mechanic_checkup ?? {}
   Object.entries(savedCheckup).forEach(([key, value]) => {
     if (value) checkup[key] = String(value)
   })
-  interventionNotes.value = saved?.mechanic_notes ?? activeRdv.value?.commentaire ?? ''
-}
-
-async function ensureOrForRdv(rdvItem: any) {
-  if (!rdvItem?.id) return null
-  const existing = ordresByRdvId.value[rdvItem.id]
-  if (existing) return existing
-
-  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const payload = {
-    rendez_vous: `/api/rendez-vous/${rdvItem.id}`,
-    numero_or: `OR-${datePart}-${String(rdvItem.id).padStart(4, '0')}`,
-    type_or: 'initial',
-    travaux: rdvItem.description_probleme || rdvItem.commentaire || rdvItem.type_intervention || '',
+  interventionNotes.value = activeRdv.value?.or_mechanic_notes ?? ''
+  if (essaiForm.kmDebut == null && activeRdv.value?.km_reception != null) {
+    essaiForm.kmDebut = Number(activeRdv.value.km_reception)
   }
-
-  const created = await api.post('/ordres-reparation', payload)
-  ordresByRdvId.value = { ...ordresByRdvId.value, [rdvItem.id]: created }
-  return created
 }
 
 async function persistWorkshopReport(showToast = true) {
   if (!activeRdv.value) return
   persistingCheckup.value = true
   try {
-    const orItem = await ensureOrForRdv(activeRdv.value)
-    const current = parseEtatVehicule(orItem?.etat_vehicule)
-    const updated = {
-      ...current,
+    const orId = activeOrId.value
+    if (!orId) {
+      toast.add({ title: 'OR introuvable', description: "L'ordre de réparation n'a pas encore été créé par la réception.", color: 'warning' })
+      return
+    }
+
+    await api.patch(`/mecanicien/me/rapport/${orId}`, {
       mechanic_checkup: { ...checkup },
       mechanic_notes: interventionNotes.value,
-      last_mechanic_update_at: new Date().toISOString(),
-    }
+    })
 
-    if (orItem?.id) {
-      await api.put(`/ordres-reparation/${orItem.id}`, { etat_vehicule: updated })
-      ordresByRdvId.value = {
-        ...ordresByRdvId.value,
-        [activeRdv.value.id]: {
-          ...orItem,
-          etat_vehicule: updated,
-        },
-      }
-    }
-
-    await rdvStore.updateRdv(activeRdv.value.id, { commentaire: interventionNotes.value })
+    myRdvs.value = myRdvs.value.map((rdv: any) => rdv.id === activeRdv.value?.id
+      ? {
+          ...rdv,
+          or_mechanic_checkup: { ...checkup },
+          or_mechanic_notes: interventionNotes.value,
+        }
+      : rdv)
 
     if (showToast) {
       toast.add({ title: 'Rapport atelier sauvegardé', color: 'success' })
@@ -637,6 +732,39 @@ async function persistWorkshopReport(showToast = true) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     persistingCheckup.value = false
+  }
+}
+
+async function saveActiveRoadTest() {
+  if (!activeRdv.value) return
+  if (!canValidateRoadTest.value) {
+    toast.add({
+      title: 'Essai routier incomplet',
+      description: 'Renseignez km départ/retour, durée et au moins 5 points avant validation.',
+      color: 'warning',
+    })
+    return
+  }
+
+  savingRoadTest.value = true
+  try {
+    const result = await api.post('/mecanicien/me/essai-routier', {
+      rdv_id: activeRdv.value.id,
+      km_debut: essaiForm.kmDebut,
+      km_fin: essaiForm.kmFin,
+      dureeMinutes: essaiForm.dureeMinutes,
+      checkpoints: buildEssaiCheckpoints(),
+      observations: interventionNotes.value || null,
+      actions_correctives: essaiForm.actionsCorrectives || null,
+      actionsCorrectives: essaiForm.actionsCorrectives || null,
+      valider: true,
+    })
+    await fetchMyRdvs()
+    toast.add({ title: result?.valide ? 'Essai routier validé' : 'Essai routier enregistré', color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur essai routier', description: e.message, color: 'error' })
+  } finally {
+    savingRoadTest.value = false
   }
 }
 
@@ -656,6 +784,10 @@ async function finishWork() {
     toast.add({ title: 'Rapport atelier requis', description: 'Ajoutez au moins un point de contrôle ou une note avant de terminer.', color: 'warning' })
     return
   }
+  if (!essaiRoutierValide.value) {
+    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l’essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
+    return
+  }
   finishing.value = true
   try {
     await persistWorkshopReport(false)
@@ -664,6 +796,8 @@ async function finishWork() {
     await fetchMyRdvs()
     toast.add({ title: 'Intervention terminée', color: 'success' })
     openRapport(terminatedId)
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     finishing.value = false
   }
@@ -682,18 +816,7 @@ async function saveInterventionNotes() {
 
 async function fetchMyRdvs() {
   const today = new Date().toISOString().slice(0, 10)
-  const [rdvData, ordresData] = await Promise.all([
-    api.get(`/rendez-vous/mecanicien?date=${today}`),
-    api.get('/ordres-reparation').catch(() => []),
-  ])
-
-  const ordres = Array.isArray(ordresData) ? ordresData : (ordresData?.['hydra:member'] ?? ordresData?.member ?? [])
-  const rdvOrderMap: Record<number, any> = {}
-  for (const item of ordres) {
-    const rdvId = extractRdvIdFromOrdre(item)
-    if (rdvId) rdvOrderMap[rdvId] = item
-  }
-  ordresByRdvId.value = rdvOrderMap
+  const rdvData = await api.get(`/rendez-vous/mecanicien?date=${today}`)
 
   const items = Array.isArray(rdvData) ? rdvData : (rdvData?.['hydra:member'] ?? rdvData?.member ?? [])
   myRdvs.value = items.map((r: any) => ({
@@ -701,11 +824,15 @@ async function fetchMyRdvs() {
     status: r.statut ?? r.status,
     heure_debut: r.heure_rdv ?? r.heure_debut,
     temps_estime: r.temps_estime ?? r.duree_estimee ?? 60,
-    or_id: rdvOrderMap[r.id]?.id ?? r.or_id ?? null,
+    or_id: r.or_id ?? null,
+    commentaire_client: r.commentaire_client ?? r.commentaire ?? '',
   }))
 }
 
-watch(activeRdv, () => {
+watch(activeRdv, (next, prev) => {
+  if (next?.id !== prev?.id) {
+    resetEssaiForm()
+  }
   applySavedWorkshopReport()
 })
 

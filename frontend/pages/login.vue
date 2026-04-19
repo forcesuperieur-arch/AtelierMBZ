@@ -7,11 +7,35 @@
       {{ googleLoading ? 'Connexion Google...' : 'Continuer avec Google' }}
     </button>
 
+    <div class="login-divider">
+      <span>ou accès local de secours</span>
+    </div>
+
+    <form @submit.prevent="handleLogin" class="login-form">
+      <input
+        v-model="email"
+        type="email"
+        placeholder="admin@atelier.local"
+        required
+        autofocus
+      />
+      <input
+        v-model="password"
+        type="password"
+        placeholder="Mot de passe"
+        required
+      />
+      <button type="submit" :disabled="loading || googleLoading">
+        {{ loading ? 'Connexion...' : 'Se connecter' }}
+      </button>
+    </form>
+
     <div v-if="showDevSso" class="dev-sso-box">
       <p class="dev-sso-title">Tests SSO dev</p>
       <input
         v-model="devSsoEmail"
-        type="email"
+        type="text"
+        inputmode="email"
         placeholder="nouveau.google.test@atelier.local"
       />
       <div class="dev-sso-name-grid">
@@ -35,29 +59,6 @@
         </button>
       </div>
     </div>
-
-    <div class="login-divider">
-      <span>ou accès local de secours</span>
-    </div>
-
-    <form @submit.prevent="handleLogin" class="login-form">
-      <input
-        v-model="email"
-        type="email"
-        placeholder="admin@atelier.local"
-        required
-        autofocus
-      />
-      <input
-        v-model="password"
-        type="password"
-        placeholder="Mot de passe"
-        required
-      />
-      <button type="submit" :disabled="loading || googleLoading">
-        {{ loading ? 'Connexion...' : 'Se connecter' }}
-      </button>
-    </form>
 
     <div v-if="info" class="login-info">{{ info }}</div>
     <div v-if="error" class="login-error">{{ error }}</div>

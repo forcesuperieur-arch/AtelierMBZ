@@ -158,6 +158,7 @@ class VOControllerTest extends WebTestCase
         $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
         $this->assertNotNull($purchase);
         $this->assertSame('en_stock', $purchase->getStatus());
+        $this->assertSame(VOPurchase::SIV_STATUS_EN_COURS, $purchase->getSivStatus());
 
         $pvDocument = $em->getRepository(VODocument::class)->findOneBy([
             'voPurchase' => $purchase,
@@ -165,10 +166,31 @@ class VOControllerTest extends WebTestCase
         ]);
         $this->assertNotNull($pvDocument);
 
+        $daDocument = $em->getRepository(VODocument::class)->findOneBy([
+            'voPurchase' => $purchase,
+            'type' => VODocument::TYPE_DA_SIV,
+        ]);
+        $this->assertNotNull($daDocument);
+
         $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
         $this->assertNotNull($livrePoliceEntry);
         $this->assertSame('achat', $livrePoliceEntry->getType());
         $this->assertSame('6500.00', $livrePoliceEntry->getPrixAchat());
+
+        $client->request(
+            'PATCH',
+            '/api/vo/purchases/' . $purchaseId,
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'sivStatus' => 'enregistree',
+                'sivReference' => 'DA-' . strtoupper($fixture['suffix']),
+                'sivRecordedAt' => '2026-04-18',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
 
         $client->request(
             'POST',
@@ -210,6 +232,94 @@ class VOControllerTest extends WebTestCase
         $this->assertNotNull($livrePoliceEntry);
         $this->assertSame('9200.00', $livrePoliceEntry->getPrixVente());
         $this->assertSame($fixture['buyer']->getNom(), $livrePoliceEntry->getAcheteurNom());
+    }
+
+    public function testPurchaseRequiresSivDeclarationBeforeSale(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'purchasePrice' => '6400.00',
+                'targetSalePrice' => '9100.00',
+                'purchaseDate' => '2026-04-18',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-SIV-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-08-20',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'status' => 'brouillon',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request('POST', '/api/vo/purchases/' . $purchaseId . '/confirm', [], [], $this->authHeaders($fixture['user']));
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/api/vo/purchases/' . $purchaseId . '/full', [], [], $this->authHeaders($fixture['user']));
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $fullPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_cours', $fullPayload['siv']['status'] ?? null);
+        $this->assertTrue((bool) ($fullPayload['siv']['daDocumentGenerated'] ?? false));
+        $this->assertFalse((bool) ($fullPayload['canSell'] ?? true));
+        $this->assertContains('DA SIV non enregistrée.', $fullPayload['saleBlockers'] ?? []);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/siv/prepare',
+            [],
+            [],
+            $this->authHeaders($fixture['user'])
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $preparePayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_cours', $preparePayload['siv']['status'] ?? null);
+        $this->assertTrue((bool) ($preparePayload['pdfGenerated'] ?? false));
+
+        $em->clear();
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->assertSame(VOPurchase::SIV_STATUS_EN_COURS, $purchase->getSivStatus());
+        $daDocument = $em->getRepository(VODocument::class)->findOneBy([
+            'voPurchase' => $purchase,
+            'type' => VODocument::TYPE_DA_SIV,
+        ]);
+        $this->assertNotNull($daDocument);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/sell',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'buyerId' => $fixture['buyer']->getId(),
+                'salePrice' => '9100.00',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $this->assertStringContainsString('DA SIV', (string) $client->getResponse()->getContent());
     }
 
     public function testDepotCanBeCreatedAndRestitutedThroughWorkflow(): void

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; margin: 22px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 18px; }
+        .header-table { width: 100%; border-collapse: collapse; }
+        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
+        h1 { margin: 0; color: #1d4ed8; font-size: 18px; }
+        .sub { color: #666; font-size: 10px; }
+        .box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+        .grid { width: 100%; border-collapse: collapse; }
+        .grid td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .grid td:first-child { width: 35%; color: #666; font-weight: bold; }
+        .section-title { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
+        .footer { margin-top: 24px; font-size: 9px; color: #777; border-top: 1px solid #ddd; padding-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td>
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo" class="logo">
+                    {% endif %}
+                    <div>
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
+                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
+                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+                    </div>
+                </td>
+                <td style="text-align:right">
+                    <h1>Préparation mandat d'immatriculation</h1>
+                    <div class="sub">Support prérempli pour la vente VO</div>
+                    <div class="sub">Édité le {{ 'now'|date('d/m/Y H:i') }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="box">
+        <div class="section-title">Mandant / futur titulaire</div>
+        <table class="grid">
+            <tr><td>Nom / prénom</td><td>{% if buyer %}{{ buyer.prenom }} {{ buyer.nom }}{% else %}À compléter lors de la vente{% endif %}</td></tr>
+            <tr><td>Adresse</td><td>{% if buyer and buyer.adresse %}{{ buyer.adresse }}{% else %}À compléter{% endif %}</td></tr>
+            <tr><td>Téléphone</td><td>{% if buyer and buyer.telephone %}{{ buyer.telephone }}{% else %}À compléter{% endif %}</td></tr>
+            <tr><td>Email</td><td>{% if buyer and buyer.email %}{{ buyer.email }}{% else %}À compléter{% endif %}</td></tr>
+        </table>
+    </div>
+
+    <div class="box">
+        <div class="section-title">Véhicule concerné</div>
+        <table class="grid">
+            <tr><td>Immatriculation</td><td>{{ vehicle.plaque ?? 'À compléter' }}</td></tr>
+            <tr><td>VIN</td><td>{{ vehicle.vin ?? 'À compléter' }}</td></tr>
+            <tr><td>Marque / modèle</td><td>{{ vehicle.marque ?? '—' }} {{ vehicle.modele ?? '' }}</td></tr>
+            <tr><td>Première MEC</td><td>{% if vehicle.datePremiereMiseEnCirculation %}{{ vehicle.datePremiereMiseEnCirculation|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>
+            <tr><td>Kilométrage</td><td>{{ vehicle.mileage ?? 'À compléter' }} km</td></tr>
+        </table>
+    </div>
+
+    <div class="box">
+        <div class="section-title">Professionnel mandaté</div>
+        <table class="grid">
+            <tr><td>Raison sociale</td><td>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</td></tr>
+            <tr><td>Adresse</td><td>{{ atelier and atelier.adresse ? atelier.adresse : 'À compléter' }}</td></tr>
+            <tr><td>SIRET</td><td>{{ atelier and atelier.siret ? atelier.siret : 'À compléter' }}</td></tr>
+            <tr><td>Contact</td><td>{{ atelier and atelier.telephone ? atelier.telephone : 'À compléter' }}</td></tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Support interne de préparation AtelierMBZ. À faire signer selon le circuit SIV réellement utilisé par l'atelier.
+    </div>
+</body>
+</html>

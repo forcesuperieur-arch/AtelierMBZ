@@ -32,9 +32,13 @@ export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composab
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useApi } from '../composables/useApi';
 export { useAuth } from '../composables/useAuth';
+export { ocrFields, useCarteGriseOcr, OcrFieldKey, CarteGriseOcrResult, OcrComparison } from '../composables/useCarteGriseOcr';
 export { useFormat } from '../composables/useFormat';
 export { useNotifications } from '../composables/useNotifications';
 export { useVoHelpers } from '../composables/useVoHelpers';
+export { syncDraftField, syncDraftBoolean, adoptDraftEntity, DraftSyncMemory } from '../composables/voCompanionDraftSync';
+export { selectRefurbishmentCampaignId, buildRefurbishmentLineForms, buildRefurbishmentPieceForms, toRefurbishmentDateTimeLocal } from '../composables/voRefurbishmentCard';
+export { extractVehicleCategoryId, applyVehicleToForm, buildVoVehiclePayload, VoVehicleFormState } from '../composables/voVehicleForm';
 export { defineLocale, extendLocale } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineLocale';
 export { extractShortcuts, defineShortcuts } from '../node_modules/@nuxt/ui/dist/runtime/composables/defineShortcuts';
 export { avatarGroupInjectionKey, useAvatarGroup } from '../node_modules/@nuxt/ui/dist/runtime/composables/useAvatarGroup';

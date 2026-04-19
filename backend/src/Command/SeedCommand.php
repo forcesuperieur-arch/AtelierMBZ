@@ -12,6 +12,7 @@ use App\Entity\Pont;
 use App\Entity\Prestation;
 use App\Entity\RolePermission;
 use App\Entity\User;
+use App\Service\NotificationTemplateCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -27,6 +28,7 @@ class SeedCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $hasher,
+        private NotificationTemplateCatalog $notificationTemplateCatalog,
     ) {
         parent::__construct();
     }
@@ -45,6 +47,8 @@ class SeedCommand extends Command
         $this->seedHoraires($io);
         $this->seedConfig($io);
         $this->seedEmailTemplates($io);
+        $this->notificationTemplateCatalog->ensureDefaultsForAtelier(1);
+        $io->info('Notification templates seeded.');
         $this->seedPrestations($io);
 
         if ($input->getOption('demo')) {

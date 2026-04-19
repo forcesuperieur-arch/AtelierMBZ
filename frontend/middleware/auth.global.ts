@@ -4,17 +4,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const publicRoutes = ['/login', '/public/booking', '/public/suivi', '/public/companion', '/public/vo-companion']
   if (publicRoutes.some(r => to.path.startsWith(r))) return
 
-  const { isAuthenticated, fetchMe } = useAuth()
+  const auth = useAuth()
+  const { isAuthenticated, fetchMe } = auth
   const api = useApi()
   const atelierStore = useAtelierStore()
+  const authBootstrapDone = useState<boolean>('auth-bootstrap-done', () => false)
 
-  if (!isAuthenticated.value) {
+  const shouldRefreshAuthContext = !authBootstrapDone.value || !auth.user.value?.role_permissions
+  if (!isAuthenticated.value || shouldRefreshAuthContext) {
     const fetchedUser = await fetchMe()
+    authBootstrapDone.value = Boolean(fetchedUser)
     if (!fetchedUser) return navigateTo('/login')
   }
 
-  const roles = useAuth().user.value?.roles ?? []
-  const currentRole = String(useAuth().user.value?.role || '')
+  const roles = auth.user.value?.roles ?? []
+  const currentRole = String(auth.user.value?.role || '')
   const isAdmin = currentRole === 'admin' || currentRole === 'super_admin' || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')
 
   if (to.path.startsWith('/admin') && !isAdmin) {

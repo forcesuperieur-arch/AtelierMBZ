@@ -4,6 +4,7 @@ namespace App\EventSubscriber;
 
 use App\Entity\RoleMetier;
 use App\Entity\User;
+use App\Service\CurrentAtelierResolver;
 use App\Service\UserRoleMapper;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +16,10 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::preUpdate)]
 final class UserRoleMetierSyncSubscriber
 {
-    public function __construct(private UserRoleMapper $roleMapper) {}
+    public function __construct(
+        private UserRoleMapper $roleMapper,
+        private CurrentAtelierResolver $currentAtelierResolver,
+    ) {}
 
     public function prePersist(PrePersistEventArgs $args): void
     {
@@ -40,6 +44,13 @@ final class UserRoleMetierSyncSubscriber
     {
         if (!$entity instanceof User || !$objectManager instanceof EntityManagerInterface) {
             return;
+        }
+
+        if ($entity->getAtelierId() === null) {
+            $resolvedAtelierId = $this->currentAtelierResolver->resolveAtelierId();
+            if ($resolvedAtelierId !== null) {
+                $entity->setAtelierId($resolvedAtelierId);
+            }
         }
 
         if ($entity->getAccessStatus() === 'pending_validation') {

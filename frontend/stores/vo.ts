@@ -282,6 +282,11 @@ export const useVoStore = defineStore('vo', {
       return await api.post(`/vo/purchases/${id}/confirm`)
     },
 
+    async preparePurchaseSiv(id: number) {
+      const api = useApi()
+      return await api.post(`/vo/purchases/${id}/siv/prepare`, {})
+    },
+
     async sellPurchase(id: number, data: { buyerId: number; salePrice?: string; notes?: string }) {
       const api = useApi()
       return await api.post(`/vo/purchases/${id}/sell`, data)
@@ -468,12 +473,19 @@ export const useVoStore = defineStore('vo', {
       this.stats = await api.get('/vo/stats')
     },
 
-    // ── Margin calculation ──
+    // ── SIV status update ──
 
-    async calculateMargin(data: { regime: string; purchasePrice: string; salePrice: string }) {
+    async updatePurchaseSiv(id: number, data: {
+      sivStatus?: string
+      sivReference?: string
+      sivNotes?: string
+      sivRecordedAt?: string | null
+    }) {
       const api = useApi()
-      return await api.post('/vo/margin/calculate', data)
+      return await api.patch(`/vo/purchases/${id}`, data)
     },
+
+    // ── Margin calculation ──
 
     async simulateMargin(data: {
       purchasePrice: string

@@ -93,13 +93,15 @@ const editing = ref<any>(null)
 const activeOnly = ref(true)
 
 const CODES = [
+  'accessoires',
   'cgv',
-  'mandat_reparation',
-  'retention',
-  'gardiennage',
+  'essai',
   'garantie',
-  'rgpd',
+  'gardiennage',
+  'mandat_reparation',
   'mentions_legales',
+  'retention',
+  'rgpd',
 ]
 
 const statusFilters = [

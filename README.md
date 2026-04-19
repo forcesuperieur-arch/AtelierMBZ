@@ -162,6 +162,7 @@ Les points suivants restent prioritaires pour la fin de projet :
 
 La référence technique détaillée reste dans le dossier docs, notamment :
 - docs/TECHNICAL.md
+- docs/DEPLOIEMENT-SERVEUR-WEBHOOK.md
 - SPECIFICATIONS.md
 
 ---

@@ -8,6 +8,7 @@
       </div>
       <div class="vo-header-actions">
         <button class="topbar-new-btn vo-secondary-btn" @click="downloadPv">PV de rachat</button>
+        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Préparer dossier SIV' }}</button>
         <button v-if="detail?.canConfirm" class="topbar-new-btn" @click="confirmPurchase">Confirmer</button>
       </div>
     </div>
@@ -139,6 +140,70 @@
             >
               {{ stepItem.label }}
             </div>
+          </div>
+
+          <div v-if="legalChecklist.length" class="vo-lines" style="margin-top: 14px;">
+            <div v-for="item in legalChecklist" :key="item.key" class="vo-line-detail">
+              <span>{{ item.label }}</span>
+              <strong :style="{ color: item.completed ? '#22c55e' : item.blocking ? '#ef4444' : '#f59e0b' }">{{ item.completed ? 'OK' : item.blocking ? 'Bloquant' : 'À prévoir' }}</strong>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="vo-card-title">Déclaration d'achat SIV</div>
+          </template>
+
+          <div class="vo-health-box" :class="detail?.siv?.isComplete ? 'is-success' : 'is-warning'">
+            <strong>{{ detail?.siv?.label || 'À préparer' }}</strong>
+            <span>{{ detail?.siv?.isComplete ? 'La DA est tracée et la vente peut continuer si le reste du dossier est conforme.' : 'La moto reste invendable tant que la DA n’est pas enregistrée.' }}</span>
+          </div>
+
+          <div class="vo-lines" style="margin: 14px 0 0;">
+            <div class="vo-line-detail">
+              <span>DA PDF préremplie</span>
+              <strong :style="{ color: detail?.siv?.daDocumentGenerated ? '#22c55e' : '#f59e0b' }">{{ detail?.siv?.daDocumentGenerated ? 'Prête' : 'À générer' }}</strong>
+            </div>
+            <div class="vo-line-detail">
+              <span>Récépissé DA</span>
+              <strong :style="{ color: detail?.siv?.recepisseUploaded ? '#22c55e' : '#f59e0b' }">{{ detail?.siv?.recepisseUploaded ? 'Archivé' : 'À déposer' }}</strong>
+            </div>
+            <div class="vo-line-detail">
+              <span>Mandat immat</span>
+              <strong :style="{ color: detail?.siv?.mandatReady ? '#22c55e' : '#9ca3af' }">{{ detail?.siv?.mandatReady ? 'Prêt' : 'Préparé à la vente' }}</strong>
+            </div>
+          </div>
+
+          <div class="vo-inline-actions vo-inline-actions-start">
+            <button class="topbar-new-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Générer la DA PDF' }}</button>
+            <button class="topbar-new-btn vo-secondary-btn" @click="downloadDaSiv">Voir la DA</button>
+            <button class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+          </div>
+
+          <div class="vo-form-grid">
+            <label class="vo-field">
+              <span>Statut DA</span>
+              <select v-model="sivForm.status" class="vo-select">
+                <option v-for="option in sivStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="vo-field">
+              <span>Référence DA</span>
+              <input v-model="sivForm.reference" class="vo-input" placeholder="Référence SIV / récépissé" />
+            </label>
+            <label class="vo-field">
+              <span>Date enregistrement</span>
+              <input v-model="sivForm.recordedAt" type="date" class="vo-input" />
+            </label>
+            <label class="vo-field vo-field-full">
+              <span>Note interne</span>
+              <textarea v-model="sivForm.notes" class="vo-textarea" rows="3" placeholder="Retour ANTS, précision opérateur, suivi du dossier…" />
+            </label>
+          </div>
+
+          <div class="vo-inline-actions">
+            <button class="topbar-new-btn" :disabled="savingSiv" @click="saveSivState">{{ savingSiv ? 'Enregistrement...' : 'Enregistrer l’état SIV' }}</button>
           </div>
         </UCard>
 
@@ -279,10 +344,19 @@ const { apiBase, formatDate, formatPrice, documentLabel, searchClients } = useVo
 const detail = ref<any | null>(null)
 const showSale = ref(route.query.sell === '1')
 const selling = ref(false)
+const savingSiv = ref(false)
+const preparingSiv = ref(false)
 const buyerSearch = ref('')
 const buyerResults = ref<any[]>([])
 const selectedBuyer = ref<any | null>(null)
 const saleSimulation = ref<any | null>(null)
+
+const sivForm = reactive({
+  status: 'a_preparer',
+  reference: '',
+  recordedAt: '',
+  notes: '',
+})
 
 const saleForm = reactive({
   salePrice: '',
@@ -291,8 +365,16 @@ const saleForm = reactive({
 
 const purchaseRequiredDocs = ['cerfa_cession_achat', 'carte_grise', 'non_gage', 'piece_identite', 'pv_rachat']
 const saleRequiredDocs = ['cerfa_cession_vente', 'facture_vo', 'notice_garantie']
+const sivStatusOptions = [
+  { value: 'a_preparer', label: 'À préparer' },
+  { value: 'en_cours', label: 'En cours de saisie' },
+  { value: 'enregistree', label: 'Enregistrée' },
+  { value: 'rejetee', label: 'Rejetée' },
+  { value: 'expiree', label: 'Expirée' },
+]
 
 const presentDocumentTypes = computed(() => new Set((detail.value?.documents || []).map((document: any) => document.type)))
+const legalChecklist = computed(() => detail.value?.legalChecklist || [])
 
 const purchaseDocumentCompletion = computed(() => {
   const completed = purchaseRequiredDocs.filter(type => presentDocumentTypes.value.has(type)).length
@@ -300,8 +382,8 @@ const purchaseDocumentCompletion = computed(() => {
 })
 
 const saleDocumentCompletion = computed(() => {
-  const completed = saleRequiredDocs.filter(type => presentDocumentTypes.value.has(type)).length
-  return Math.round((completed / saleRequiredDocs.length) * 100)
+  const completed = saleRequiredDocs.filter(type => presentDocumentTypes.value.has(type)).length + (detail.value?.siv?.isComplete ? 1 : 0)
+  return Math.round((completed / (saleRequiredDocs.length + 1)) * 100)
 })
 
 const readinessState = computed(() => {
@@ -315,6 +397,14 @@ const readinessState = computed(() => {
 
   if (detail.value.canConfirm) {
     return { tone: 'success', label: 'Prêt à confirmer', text: 'Le dossier a toutes les pièces nécessaires pour entrer en stock.' }
+  }
+
+  if (['en_stock', 'en_vente', 'reserve'].includes(detail.value.status) && detail.value?.siv?.isComplete === false) {
+    return {
+      tone: 'warning',
+      label: 'DA SIV à faire',
+      text: 'Le rachat est en stock mais la vente reste bloquée tant que la DA n’est pas enregistrée.',
+    }
   }
 
   if (detail.value.confirmationMissingCompanionSteps?.length) {
@@ -380,12 +470,36 @@ watch(() => saleForm.salePrice, () => {
 async function loadDetail() {
   detail.value = await voStore.fetchPurchaseFull(Number(route.params.id))
   saleForm.salePrice = detail.value?.targetSalePrice || ''
+  sivForm.status = detail.value?.siv?.status || detail.value?.sivStatus || 'a_preparer'
+  sivForm.reference = detail.value?.siv?.reference || detail.value?.sivReference || ''
+  sivForm.recordedAt = String(detail.value?.siv?.recordedAt || detail.value?.sivRecordedAt || '').slice(0, 10)
+  sivForm.notes = detail.value?.siv?.notes || detail.value?.sivNotes || ''
   await runSaleSimulation()
 }
 
 function focusCompanion() {
   if (!import.meta.client) return
   document.getElementById('vo-companion-zone')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+async function saveSivState() {
+  if (!detail.value) return
+
+  savingSiv.value = true
+  try {
+    await voStore.updatePurchase(Number(route.params.id), {
+      sivStatus: sivForm.status,
+      sivReference: sivForm.reference || null,
+      sivRecordedAt: sivForm.recordedAt || null,
+      sivNotes: sivForm.notes || null,
+    })
+    toast.add({ title: 'État SIV enregistré', color: 'success' })
+    await loadDetail()
+  } catch (error: any) {
+    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } finally {
+    savingSiv.value = false
+  }
 }
 
 async function confirmPurchase() {
@@ -400,6 +514,37 @@ async function confirmPurchase() {
 
 function downloadPv() {
   window.open(`${apiBase}/vo/purchases/${route.params.id}/pv-rachat/pdf`, '_blank')
+}
+
+function downloadDaSiv() {
+  window.open(`${apiBase}/vo/purchases/${route.params.id}/da-siv/pdf`, '_blank')
+}
+
+function downloadMandat() {
+  const buyerId = selectedBuyer.value?.id ? `?buyerId=${selectedBuyer.value.id}` : ''
+  window.open(`${apiBase}/vo/purchases/${route.params.id}/mandat-immat/pdf${buyerId}`, '_blank')
+}
+
+async function prepareSivDossier() {
+  preparingSiv.value = true
+  try {
+    const response = await voStore.preparePurchaseSiv(Number(route.params.id))
+    toast.add({
+      title: response?.ready ? 'Dossier SIV préparé' : 'DA PDF générée',
+      description: response?.blockers?.length ? response.blockers.join(' · ') : 'Le support prérempli a été archivé.',
+      color: response?.ready ? 'success' : 'warning',
+    })
+
+    if (response?.pdfUrl && import.meta.client) {
+      window.open(`${apiBase}${response.pdfUrl}`, '_blank')
+    }
+
+    await loadDetail()
+  } catch (error: any) {
+    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } finally {
+    preparingSiv.value = false
+  }
 }
 
 async function runSaleSimulation() {
@@ -681,6 +826,12 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vo-inline-actions-start {
+  justify-content: flex-start;
 }
 
 .vo-document-item,

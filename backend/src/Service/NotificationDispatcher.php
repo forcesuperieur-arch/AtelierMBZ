@@ -21,6 +21,7 @@ class NotificationDispatcher
         private ConfigEncryptionService $encryption,
         private MailerInterface $mailer,
         private LoggerInterface $logger,
+        private NotificationTemplateCatalog $templateCatalog,
     ) {}
 
     /**
@@ -72,6 +73,8 @@ class NotificationDispatcher
         ?string $relatedEntityType = null,
         ?int $relatedEntityId = null,
     ): NotificationResult {
+        $this->templateCatalog->ensureDefaultsForAtelier($atelierId);
+
         $template = $this->em->getRepository(NotificationTemplate::class)->findOneBy([
             'atelierId' => $atelierId,
             'code' => $templateCode,

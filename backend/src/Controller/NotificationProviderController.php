@@ -5,7 +5,10 @@ namespace App\Controller;
 use App\Entity\NotificationLog;
 use App\Entity\NotificationProviderConfig;
 use App\Service\ConfigEncryptionService;
+use App\Service\CurrentAtelierResolver;
 use App\Service\NotificationDispatcher;
+use App\Service\NotificationProviderConfigSanitizer;
+use App\Service\NotificationTemplateCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +23,9 @@ class NotificationProviderController extends AbstractController
         private EntityManagerInterface $em,
         private ConfigEncryptionService $encryption,
         private NotificationDispatcher $dispatcher,
+        private CurrentAtelierResolver $atelierResolver,
+        private NotificationProviderConfigSanitizer $configSanitizer,
+        private NotificationTemplateCatalog $templateCatalog,
     ) {}
 
     // ─── Admin: Provider CRUD ───
@@ -31,16 +37,16 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function listProviders(): JsonResponse
     {
-        $user = $this->getUser();
-        $atelierId = method_exists($user, 'getAtelierId') ? $user->getAtelierId() : null;
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json([]);
+        }
 
         $qb = $this->em->getRepository(NotificationProviderConfig::class)->createQueryBuilder('p')
+            ->where('p.atelierId = :atelierId')
+            ->setParameter('atelierId', $atelierId)
             ->orderBy('p.channel', 'ASC')
             ->addOrderBy('p.priority', 'ASC');
-
-        if ($atelierId) {
-            $qb->where('p.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
-        }
 
         $configs = $qb->getQuery()->getResult();
 
@@ -67,11 +73,10 @@ class NotificationProviderController extends AbstractController
     public function createProvider(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true) ?? [];
-        $user = $this->getUser();
-        $atelierId = $data['atelierId'] ?? (method_exists($user, 'getAtelierId') ? $user->getAtelierId() : null);
+        $atelierId = $this->atelierResolver->resolveAtelierId();
 
         if (!$atelierId) {
-            return $this->json(['error' => 'atelierId requis'], 400);
+            return $this->json(['error' => 'Atelier actif requis'], 400);
         }
 
         $channel = $data['channel'] ?? '';
@@ -120,7 +125,7 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function updateProvider(int $id, Request $request): JsonResponse
     {
-        $config = $this->em->getRepository(NotificationProviderConfig::class)->find($id);
+        $config = $this->findScopedProvider($id);
         if (!$config) {
             return $this->json(['error' => 'Provider introuvable'], 404);
         }
@@ -133,7 +138,14 @@ class NotificationProviderController extends AbstractController
         if (isset($data['isActive'])) $config->setIsActive($data['isActive']);
 
         if (isset($data['config']) && is_array($data['config'])) {
-            $config->setConfigEncrypted($this->encryption->encrypt($data['config']));
+            $existingConfig = $config->getConfigEncrypted() !== ''
+                ? $this->encryption->decrypt($config->getConfigEncrypted())
+                : [];
+
+            $mergedConfig = $this->configSanitizer->merge($existingConfig, $data['config']);
+            if ($mergedConfig !== []) {
+                $config->setConfigEncrypted($this->encryption->encrypt($mergedConfig));
+            }
         }
 
         $config->setUpdatedAt(new \DateTime());
@@ -149,7 +161,7 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function deleteProvider(int $id): JsonResponse
     {
-        $config = $this->em->getRepository(NotificationProviderConfig::class)->find($id);
+        $config = $this->findScopedProvider($id);
         if (!$config) {
             return $this->json(['error' => 'Provider introuvable'], 404);
         }
@@ -167,7 +179,7 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function testProvider(int $id, Request $request): JsonResponse
     {
-        $config = $this->em->getRepository(NotificationProviderConfig::class)->find($id);
+        $config = $this->findScopedProvider($id);
         if (!$config) {
             return $this->json(['error' => 'Provider introuvable'], 404);
         }
@@ -201,16 +213,19 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function listLogs(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        $atelierId = method_exists($user, 'getAtelierId') ? $user->getAtelierId() : null;
-
-        $qb = $this->em->getRepository(NotificationLog::class)->createQueryBuilder('l')
-            ->orderBy('l.sentAt', 'DESC');
-
-        if ($atelierId) {
-            $qb->where('l.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json([
+                'items' => [],
+                'page' => 1,
+                'limit' => 50,
+            ]);
         }
 
+        $qb = $this->em->getRepository(NotificationLog::class)->createQueryBuilder('l')
+            ->where('l.atelierId = :atelierId')
+            ->setParameter('atelierId', $atelierId)
+            ->orderBy('l.sentAt', 'DESC');
         $channel = $request->query->get('channel');
         if ($channel) {
             $qb->andWhere('l.channel = :channel')->setParameter('channel', $channel);
@@ -254,17 +269,18 @@ class NotificationProviderController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function listTemplates(): JsonResponse
     {
-        $user = $this->getUser();
-        $atelierId = method_exists($user, 'getAtelierId') ? $user->getAtelierId() : null;
-
-        $qb = $this->em->getRepository(\App\Entity\NotificationTemplate::class)->createQueryBuilder('t')
-            ->orderBy('t.code', 'ASC')
-            ->addOrderBy('t.channel', 'ASC');
-
-        if ($atelierId) {
-            $qb->where('t.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json([]);
         }
 
+        $this->templateCatalog->ensureDefaultsForAtelier($atelierId);
+
+        $qb = $this->em->getRepository(\App\Entity\NotificationTemplate::class)->createQueryBuilder('t')
+            ->where('t.atelierId = :atelierId')
+            ->setParameter('atelierId', $atelierId)
+            ->orderBy('t.code', 'ASC')
+            ->addOrderBy('t.channel', 'ASC');
         $templates = $qb->getQuery()->getResult();
 
         return $this->json(array_map(fn(\App\Entity\NotificationTemplate $t) => [
@@ -300,6 +316,19 @@ class NotificationProviderController extends AbstractController
             'mailgun' => $this->handleMailgunWebhook($request, $payload),
             default => $this->json(['error' => 'Unsupported'], 400),
         };
+    }
+
+    private function findScopedProvider(int $id): ?NotificationProviderConfig
+    {
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return null;
+        }
+
+        return $this->em->getRepository(NotificationProviderConfig::class)->findOneBy([
+            'id' => $id,
+            'atelierId' => $atelierId,
+        ]);
     }
 
     private function handleTwilioWebhook(Request $request): JsonResponse

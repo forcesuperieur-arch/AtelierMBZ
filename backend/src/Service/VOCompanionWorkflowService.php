@@ -56,20 +56,42 @@ class VOCompanionWorkflowService
     public function getGeneratedDocuments(VOPurchase|VODepotVente $record): array
     {
         if ($record instanceof VOPurchase) {
-            return [[
-                'type' => VODocument::TYPE_PV_RACHAT,
-                'label' => 'PV de rachat auto-rempli',
-                'url' => sprintf('/api/vo/purchases/%d/pv-rachat/pdf', $record->getId()),
-                'description' => 'Genere a partir des infos vendeur, vehicule et signature PDA.',
-            ]];
+            return [
+                [
+                    'type' => VODocument::TYPE_PV_RACHAT,
+                    'label' => 'PV de rachat auto-rempli',
+                    'url' => sprintf('/api/vo/purchases/%d/pv-rachat/pdf', $record->getId()),
+                    'description' => 'Genere a partir des infos vendeur, vehicule et signature PDA.',
+                ],
+                [
+                    'type' => VODocument::TYPE_DA_SIV,
+                    'label' => 'DA SIV préremplie',
+                    'url' => sprintf('/api/vo/purchases/%d/da-siv/pdf', $record->getId()),
+                    'description' => 'Prépare la déclaration d’achat avec les champs déjà connus du dossier.',
+                ],
+                [
+                    'type' => VODocument::TYPE_MANDAT_IMMATRICULATION,
+                    'label' => 'Mandat immatriculation prérempli',
+                    'url' => sprintf('/api/vo/purchases/%d/mandat-immat/pdf', $record->getId()),
+                    'description' => 'Support de signature prêt pour la phase vente.',
+                ],
+            ];
         }
 
-        return [[
-            'type' => VODocument::TYPE_CONTRAT_DEPOT_VENTE,
-            'label' => 'Contrat depot-vente auto-rempli',
-            'url' => sprintf('/api/vo/depots/%d/contrat/pdf', $record->getId()),
-            'description' => 'Genere a partir des infos deposant, vehicule et signature PDA.',
-        ]];
+        return [
+            [
+                'type' => VODocument::TYPE_CONTRAT_DEPOT_VENTE,
+                'label' => 'Contrat depot-vente auto-rempli',
+                'url' => sprintf('/api/vo/depots/%d/contrat/pdf', $record->getId()),
+                'description' => 'Genere a partir des infos deposant, vehicule et signature PDA.',
+            ],
+            [
+                'type' => VODocument::TYPE_MANDAT_IMMATRICULATION,
+                'label' => 'Mandat immatriculation prérempli',
+                'url' => sprintf('/api/vo/depots/%d/mandat-immat/pdf', $record->getId()),
+                'description' => 'Support de signature prêt pour la phase vente.',
+            ],
+        ];
     }
 
     public function buildSteps(VOPurchase|VODepotVente $record, array $documents): array
