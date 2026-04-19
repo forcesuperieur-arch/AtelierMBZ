@@ -52,6 +52,9 @@
           <span v-else class="topbar-brand-fallback">{{ atelierInitial }}</span>
           <span class="topbar-brand-name">{{ atelierName }}</span>
         </div>
+        <div class="topbar-center-brand" aria-hidden="true">
+          <img :src="topbarLogoUrl" alt="Paddock" class="topbar-center-logo" />
+        </div>
         <span class="topbar-title">{{ currentSection }}</span>
         <div class="topbar-spacer" />
         <!-- LOT 6.7 : SuperAdmin atelier switch -->
@@ -82,9 +85,10 @@ const atelierStore = useAtelierStore()
 const route = useRoute()
 const { unreadCount: notifUnreadCount, fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
 
-const atelierName = computed(() => atelierStore.branding?.nom || 'Atelier Moto')
-const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '')
-const atelierInitial = computed(() => atelierName.value.trim().charAt(0).toUpperCase() || 'M')
+const atelierName = computed(() => atelierStore.branding?.nom || 'Paddock')
+const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '/branding/paddock-logo-symbol.svg')
+const topbarLogoUrl = computed(() => '/branding/paddock-logo-horizontal.svg')
+const atelierInitial = computed(() => atelierName.value.trim().charAt(0).toUpperCase() || 'P')
 const isDesktop = ref(false)
 const isSidebarCollapsed = ref(false)
 let notificationsConnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -142,7 +146,7 @@ onBeforeUnmount(() => {
 })
 
 const sectionNames: Record<string, string> = {
-  '/': 'Dashboard',
+  '/': 'Stat',
   '/rdv': 'Rendez-vous',
   '/planning': 'Planning',
   '/clients': 'Clients',
@@ -161,14 +165,14 @@ const sectionNames: Record<string, string> = {
 
 const currentSection = computed(() => {
   const path = route.path
-  if (path === '/') return 'Dashboard'
+  if (path === '/') return 'Stat'
   const base = '/' + path.split('/')[1]
-  return sectionNames[base] || 'Atelier Moto'
+  return sectionNames[base] || 'Paddock'
 })
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: '📊', label: 'Dashboard', section: 'dashboard' },
+    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard' },
     { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
     { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
     { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
@@ -182,7 +186,7 @@ const menuItems = computed(() => {
     { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
     { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
   ]
-  return items.filter(i => auth.hasSection(i.section))
+  return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
 })
 
 // ── LOT 6.7 : SuperAdmin atelier switch ──
@@ -206,11 +210,21 @@ async function loadAteliers() {
     const res = await api.get('/ateliers')
     ateliersList.value = Array.isArray(res) ? res : (res?.member || res?.['hydra:member'] || [])
 
+    const validChoices = new Set(
+      ateliersList.value
+        .map((atelier: any) => normalizeAtelierChoice(atelier?.id))
+        .filter(Boolean)
+    )
+    const requestedChoice = normalizeAtelierChoice(activeAtelierCookie.value)
     const fallbackChoice = userDefaultAtelierChoice.value || normalizeAtelierChoice(ateliersList.value[0]?.id)
-    if (!normalizeAtelierChoice(activeAtelierCookie.value) && fallbackChoice) {
+
+    if ((!requestedChoice || !validChoices.has(requestedChoice)) && fallbackChoice) {
       activeAtelierChoice.value = fallbackChoice
       activeAtelierCookie.value = fallbackChoice
+      return
     }
+
+    activeAtelierChoice.value = requestedChoice || fallbackChoice
   } catch { ateliersList.value = [] }
 }
 
@@ -441,6 +455,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieVal
 
 /* === TOPBAR === */
 .topbar {
+  position: relative;
   height: 56px;
   background: #11141B;
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -470,11 +485,29 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieVal
   padding-right: 12px;
   margin-right: 2px;
   border-right: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  z-index: 1;
 }
 .topbar-brand-logo {
   width: 30px;
   height: 30px;
   padding: 3px;
+}
+.topbar-center-brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.topbar-center-logo {
+  width: 124px;
+  height: 28px;
+  object-fit: contain;
+  background: transparent;
 }
 .topbar-brand-fallback {
   width: 30px;
@@ -489,6 +522,22 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieVal
   font-size: 12px;
   font-weight: 700;
   color: #E8E9ED;
+}
+
+@media (max-width: 900px) {
+  .topbar-brand-name {
+    display: none;
+  }
+
+  .topbar-center-logo {
+    width: 108px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar-center-brand {
+    display: none;
+  }
 }
 .topbar-title {
   font-size: 16px;

@@ -3,7 +3,7 @@
     <div class="page-header" style="justify-content:space-between;">
       <div>
         <div class="page-title">Atelier</div>
-        <div class="page-sub">Vue instantanée des ponts, mécaniciens et absences du jour.</div>
+        <div class="page-sub">Pilotage des ponts, affectations mécaniciens et charge du jour.</div>
       </div>
     </div>
 
@@ -21,6 +21,15 @@
     />
 
     <template v-else>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
+          <NuxtLink class="btn btn-primary" to="/planning" style="text-decoration:none;">Ouvrir le planning</NuxtLink>
+          <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" style="text-decoration:none;">+ RDV rapide</NuxtLink>
+        </div>
+        <div style="font-size:12px;color:#9CA3AF;">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
+      </div>
+
       <!-- KPI Bar -->
       <div class="workshop-kpi-bar">
         <div class="workshop-kpi">
@@ -50,33 +59,143 @@
       </div>
 
       <!-- PONTS TAB -->
-      <div v-if="activeTab === 'ponts'" class="pont-grid">
-        <div v-for="pont in ponts" :key="pont.id" class="pont-card" :class="pont.current_rdv ? 'pont-occupe' : 'pont-libre'">
-          <div class="pont-card-header">
-            <span class="pont-name">{{ pont.nom }}</span>
-            <StatusBadge :status="pont.current_rdv ? 'en_cours' : 'termine'" />
-          </div>
-          <div v-if="pont.current_rdv" class="pont-card-body">
-            <p style="font-weight:600;color:#E8E9ED;font-size:14px;">{{ pont.current_rdv.client_nom }}</p>
-            <p style="color:#6B7280;font-size:12px;">{{ pont.current_rdv.vehicule_info }}</p>
-            <p style="color:#6B7280;font-size:12px;">{{ pont.current_rdv.type_intervention }}</p>
-            <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status" /></div>
-            <NuxtLink :to="`/rdv/${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir RDV →</NuxtLink>
-            <!-- Progress bar -->
-            <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
-              <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
-                <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
+      <div v-if="activeTab === 'ponts'">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <p style="margin:0;color:#9CA3AF;font-size:13px;">Ici tu actives ou désactives un pont et tu changes le mécanicien rattaché sans passer par l’admin.</p>
+          <NuxtLink to="/planning" style="color:#FFD200;font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
+        </div>
+
+        <div v-if="enrichedPonts.length" class="pont-grid">
+          <div
+            v-for="pont in enrichedPonts"
+            :key="pont.id"
+            class="pont-card"
+            :class="!isActiveFlag(pont.is_active ?? pont.est_actif) ? 'pont-maintenance' : (pont.current_rdv || pont.day_schedule.length ? 'pont-occupe' : 'pont-libre')"
+          >
+            <div class="pont-card-header">
+              <span class="pont-name">{{ pont.nom }}</span>
+              <span class="status-badge" :style="pontBadgeStyle(pont)">{{ pontBadgeLabel(pont) }}</span>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#9CA3AF;margin-bottom:10px;">
+              <span>Type {{ (pont.type_pont || 'atelier').toString().toUpperCase() }}</span>
+              <span>•</span>
+              <span>{{ pont.capacite_kg ? `${pont.capacite_kg} kg` : 'Capacité n.c.' }}</span>
+            </div>
+
+            <div class="pont-card-body">
+              <div style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;display:grid;gap:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                  <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;">Configuration pont</div>
+                  <button
+                    class="btn btn-ghost"
+                    style="padding:5px 10px;min-height:32px;"
+                    :disabled="pontSettingSaving[pont.id]"
+                    @click="togglePontActivation(pont)"
+                  >
+                    {{ pontSettings[pont.id]?.is_active ? 'Désactiver' : 'Activer' }}
+                  </button>
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">Mécanicien rattaché</div>
+                  <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input" style="min-height:38px;">
+                    <option :value="null">Aucun</option>
+                    <option v-for="m in activeMecaniciens" :key="`pont-meca-${pont.id}-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                  </select>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;">
+                  <button class="btn btn-primary" style="padding:6px 12px;min-height:34px;" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
+                    {{ pontSettingSaving[pont.id] ? 'Enregistrement…' : 'Enregistrer l’affectation' }}
+                  </button>
+                </div>
               </div>
-              <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ pont.current_rdv.temps_estime }}min</div>
+
+              <div style="padding:8px 10px;border-radius:8px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.14);margin-bottom:10px;font-size:12px;color:#E8E9ED;">
+                👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
+              </div>
+
+              <div v-if="pont.current_rdv" style="margin-bottom:10px;">
+                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
+                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
+                <p style="color:#9CA3AF;font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
+                <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
+                <NuxtLink :to="`/rdv/${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
+                <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
+                  <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
+                    <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
+                  </div>
+                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ pont.current_rdv.temps_estime }} min estimées</div>
+                </div>
+              </div>
+
+              <div v-else-if="pont.next_rdv" style="margin-bottom:10px;">
+                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
+                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
+                <p style="color:#9CA3AF;font-size:12px;margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
+              </div>
+
+              <div v-else style="margin-bottom:10px;">
+                <p style="color:#9CA3AF;font-size:13px;margin:0;">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourd’hui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
+              </div>
+
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;">
+                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
+                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">RDV jour</div>
+                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.total_rdvs_today }}</div>
+                </div>
+                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
+                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Charge</div>
+                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.planned_minutes }} min</div>
+                </div>
+                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
+                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">File</div>
+                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.next_count ?? 0 }}</div>
+                </div>
+              </div>
+
+              <div v-if="pont.day_schedule.length" style="padding-top:8px;border-top:1px solid rgba(107,114,128,0.2);">
+                <div style="font-size:11px;color:#9CA3AF;font-weight:700;margin-bottom:6px;">Planning du jour</div>
+                <div v-for="rdv in pont.day_schedule.slice(0, 3)" :key="rdv.id" style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:4px;">
+                  <span style="color:#FFD200;min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
+                  <span style="flex:1;color:#E5E7EB;">{{ rdvClientName(rdv) }}</span>
+                  <span style="color:#9CA3AF;white-space:nowrap;">{{ rdv.type_intervention || 'atelier' }}</span>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button
+                  v-if="getPontQuickAction(pont)?.transition"
+                  class="btn btn-primary"
+                  style="flex:1;min-width:140px;"
+                  :disabled="actioningByPont[pont.id] === getPontQuickAction(pont)?.transition"
+                  @click="runPontQuickAction(pont)"
+                >
+                  {{ actioningByPont[pont.id] === getPontQuickAction(pont)?.transition ? 'Traitement…' : getPontQuickAction(pont)?.label }}
+                </button>
+                <NuxtLink
+                  v-else-if="getPontQuickAction(pont)?.to"
+                  :to="getPontQuickAction(pont)!.to"
+                  class="btn btn-primary"
+                  style="flex:1;min-width:140px;text-decoration:none;text-align:center;"
+                >
+                  {{ getPontQuickAction(pont)?.label }}
+                </NuxtLink>
+              </div>
+            </div>
+
+            <div class="pont-card-footer">
+              {{ pont.total_rdvs_today ? `${pont.total_rdvs_today} RDV planifiés aujourd’hui` : 'Pont libre aujourd’hui' }}
             </div>
           </div>
-          <div v-else class="pont-card-body">
-            <p style="color:#6B7280;font-size:13px;">Aucune intervention en cours</p>
-          </div>
-          <div class="pont-card-footer">
-            Prochains: {{ pont.next_count ?? 0 }} RDV aujourd'hui
-          </div>
         </div>
+        <AppEmptyState
+          v-else
+          icon="🔧"
+          title="Aucun pont visible"
+          description="Aucun pont n’est remonté pour l’atelier actif. Vérifie la configuration atelier ou recharge la page."
+        />
       </div>
 
       <!-- MECAS TAB -->
@@ -154,6 +273,7 @@ const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
+const refreshing = ref(false)
 const errorMessage = ref('')
 const validTabs = ['ponts', 'mecas', 'temps', 'absences']
 const activeTab = ref('ponts')
@@ -161,6 +281,10 @@ const ponts = ref<any[]>([])
 const mecaniciens = ref<any[]>([])
 const absences = ref<any[]>([])
 const rdvs = ref<any[]>([])
+const lastUpdatedAt = ref('')
+const actioningByPont = reactive<Record<number, string>>({})
+const pontSettings = reactive<Record<number, { mecanicien_id: number | null; is_active: boolean }>>({})
+const pontSettingSaving = reactive<Record<number, boolean>>({})
 
 const absenceCols = [
   { key: 'mecanicien_nom', label: 'Mécanicien' },
@@ -169,27 +293,189 @@ const absenceCols = [
   { key: 'motif', label: 'Motif' },
 ]
 
+function isActiveFlag(value: any): boolean {
+  return value !== false && Number(value ?? 1) !== 0
+}
+
+function extractDateKey(value: any): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value.slice(0, 10)
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
+function formatHourLabel(value: any): string {
+  if (!value) return '--:--'
+  if (typeof value === 'string') {
+    const match = value.match(/(\d{2}):(\d{2})/)
+    if (match) return `${match[1]}:${match[2]}`
+  }
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '--:--' : date.toISOString().slice(11, 16)
+}
+
+function getRdvStatus(rdv: any): string {
+  return String(rdv?.status ?? rdv?.statut ?? '').toLowerCase()
+}
+
+function isFinalStatus(status: string): boolean {
+  return ['termine', 'restitue', 'annule', 'facture', 'paye'].includes(status)
+}
+
+function rdvClientName(rdv: any): string {
+  if (rdv?.client_nom) return rdv.client_nom
+  const prenom = rdv?.client?.prenom ?? ''
+  const nom = rdv?.client?.nom ?? ''
+  return `${prenom} ${nom}`.trim() || 'Client non renseigné'
+}
+
+function rdvVehicleLabel(rdv: any): string {
+  if (rdv?.vehicule_info) return rdv.vehicule_info
+  const parts = [rdv?.vehicule?.marque, rdv?.vehicule?.modele, rdv?.vehicule_plaque ?? rdv?.vehicule?.plaque].filter(Boolean)
+  return parts.join(' • ') || 'Véhicule non renseigné'
+}
+
+function asId(value: any): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value.split('/').pop())
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  }
+  if (value && typeof value === 'object') {
+    return asId(value.id ?? value['@id'])
+  }
+  return null
+}
+
+function normalizeSpecialites(value: any): string[] {
+  if (Array.isArray(value)) return value.filter(Boolean)
+  if (typeof value === 'string') {
+    return value.split(/[;,]/).map((item: string) => item.trim()).filter(Boolean)
+  }
+  return []
+}
+
+const activeMecaniciens = computed(() => {
+  return mecaniciens.value
+    .filter((m: any) => isActiveFlag(m.is_active ?? m.isActive))
+    .sort((a: any, b: any) => `${a.prenom ?? ''} ${a.nom ?? ''}`.localeCompare(`${b.prenom ?? ''} ${b.nom ?? ''}`))
+})
+
+function syncPontSettings() {
+  for (const pont of ponts.value) {
+    pontSettings[pont.id] = {
+      mecanicien_id: asId(pont?.mecanicien?.id ?? pont?.mecanicien_id),
+      is_active: isActiveFlag(pont?.is_active ?? pont?.est_actif),
+    }
+  }
+}
+
+async function savePontSettings(pont: any) {
+  if (!pont?.id) return
+  const settings = pontSettings[pont.id] ?? {
+    mecanicien_id: asId(pont?.mecanicien?.id ?? pont?.mecanicien_id),
+    is_active: isActiveFlag(pont?.is_active ?? pont?.est_actif),
+  }
+
+  pontSettingSaving[pont.id] = true
+  try {
+    const mecanicienId = asId(settings.mecanicien_id)
+    await api.patch(`/ponts/${pont.id}`, {
+      mecanicien_id: mecanicienId,
+      mecanicien: mecanicienId ? `/api/mecaniciens/${mecanicienId}` : null,
+      est_actif: settings.is_active,
+      is_active: settings.is_active ? 1 : 0,
+    })
+    toast.add({ title: 'Pont mis à jour', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({ title: 'Mise à jour impossible', description: e?.message || 'Vérifie les droits admin de l’atelier.', color: 'error' })
+  } finally {
+    pontSettingSaving[pont.id] = false
+  }
+}
+
+async function togglePontActivation(pont: any) {
+  const current = pontSettings[pont.id]
+  if (!current) return
+  current.is_active = !current.is_active
+  await savePontSettings(pont)
+}
+
+function countConflicts(todayRdvs: any[]): number {
+  const seen = new Map<string, number>()
+  let conflicts = 0
+
+  for (const rdv of todayRdvs) {
+    const hour = formatHourLabel(rdv?.heure_rdv)
+    const pontId = rdv?.pont?.id ?? rdv?.pont_id
+    const mecaId = rdv?.mecanicien?.id ?? rdv?.mecanicien_id
+    const keys = [pontId ? `pont:${pontId}:${hour}` : '', mecaId ? `meca:${mecaId}:${hour}` : ''].filter(Boolean)
+
+    for (const key of keys) {
+      const next = (seen.get(key) ?? 0) + 1
+      seen.set(key, next)
+      if (next === 2) conflicts += 1
+    }
+  }
+
+  return conflicts
+}
+
+const enrichedPonts = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  const todayRdvs = rdvs.value
+    .filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
+    .sort((a: any, b: any) => formatHourLabel(a?.heure_rdv).localeCompare(formatHourLabel(b?.heure_rdv)))
+
+  return ponts.value.map((pont: any) => {
+    const daySchedule = todayRdvs.filter((r: any) => (r?.pont?.id ?? r?.pont_id) === pont.id)
+    const currentFromPlanning = daySchedule.find((r: any) => ['en_cours', 'reception'].includes(getRdvStatus(r)))
+    const currentRdv = pont.current_rdv ?? currentFromPlanning ?? null
+    const nextRdv = daySchedule.find((r: any) => r.id !== currentRdv?.id) ?? null
+    const plannedMinutes = daySchedule.reduce((sum: number, r: any) => sum + Number(r?.temps_estime ?? 60), 0)
+    const assignedMecaId = pont?.mecanicien?.id ?? pont?.mecanicien_id ?? null
+    const assignedMeca = pont?.mecanicien ?? mecaniciens.value.find((m: any) => m.id === assignedMecaId) ?? null
+
+    return {
+      ...pont,
+      current_rdv: currentRdv,
+      next_rdv: nextRdv,
+      day_schedule: daySchedule,
+      total_rdvs_today: daySchedule.length,
+      planned_minutes: plannedMinutes,
+      assigned_meca: assignedMeca,
+    }
+  })
+})
+
 const kpis = computed(() => {
-  const total = ponts.value.length
-  const occupied = ponts.value.filter(p => p.current_rdv).length
+  const total = enrichedPonts.value.filter((p: any) => isActiveFlag(p.is_active ?? p.est_actif)).length
+  const occupied = enrichedPonts.value.filter((p: any) => isActiveFlag(p.is_active ?? p.est_actif) && (p.current_rdv || p.day_schedule.length)).length
   const occupation = total ? Math.round(occupied / total * 100) : 0
   const today = new Date().toISOString().slice(0, 10)
-  const todayRdvs = rdvs.value.filter((r: any) => r.date_rdv === today)
-  const mecaIds = new Set(ponts.value.filter(p => p.current_rdv?.mecanicien_id).map(p => p.current_rdv.mecanicien_id))
+  const todayRdvs = rdvs.value.filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
+  const absentIds = new Set(absences.value.filter((a: any) => {
+    const start = extractDateKey(a?.date_debut)
+    const end = extractDateKey(a?.date_fin)
+    return start <= today && end >= today
+  }).map((a: any) => a.mecanicien?.id ?? a.mecanicien_id))
+  const activeMecas = mecaniciens.value.filter((m: any) => isActiveFlag(m.is_active ?? m.isActive) && !absentIds.has(m.id)).length
+
   return {
     occupation,
     rdvsToday: todayRdvs.length,
-    activeMecas: mecaIds.size,
-    conflicts: 0,
+    activeMecas,
+    conflicts: countConflicts(todayRdvs),
   }
 })
 
 const enrichedMecas = computed(() => {
   const today = new Date().toISOString().slice(0, 10)
-  const todayRdvs = rdvs.value.filter((r: any) => r.date_rdv === today)
+  const todayRdvs = rdvs.value.filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
   const absentIds = new Set(absences.value.filter((a: any) => {
-    const start = a.date_debut?.slice?.(0, 10) ?? ''
-    const end = a.date_fin?.slice?.(0, 10) ?? ''
+    const start = extractDateKey(a?.date_debut)
+    const end = extractDateKey(a?.date_fin)
     return start <= today && end >= today
   }).map((a: any) => a.mecanicien?.id ?? a.mecanicien_id))
 
@@ -198,7 +484,7 @@ const enrichedMecas = computed(() => {
       const mid = r.mecanicien?.id ?? r.mecanicien_id
       return mid === m.id
     })
-    const currentRdv = mecaRdvs.find((r: any) => r.statut === 'en_cours' || r.status === 'en_cours')
+    const currentRdv = mecaRdvs.find((r: any) => ['en_cours', 'reception'].includes(getRdvStatus(r)))
     const isAbsent = absentIds.has(m.id)
     const isWorking = !!currentRdv
     let progressPct = 0
@@ -215,14 +501,37 @@ const enrichedMecas = computed(() => {
       progressPct,
       statusLabel: isAbsent ? 'Absent' : isWorking ? 'En intervention' : 'Disponible',
       statusColor: isAbsent ? '#EF4444' : isWorking ? '#F59E0B' : '#22C55E',
-      specialites: m.specialites ?? m.competences ?? [],
+      specialites: normalizeSpecialites(m.specialites ?? m.competences),
     }
   })
 })
 
+function pontBadgeLabel(pont: any): string {
+  if (!isActiveFlag(pont.is_active ?? pont.est_actif)) return 'Hors service'
+  if (pont.current_rdv) return 'En cours'
+  if (pont.day_schedule?.length) return 'Planifié'
+  return 'Disponible'
+}
+
+function pontBadgeStyle(pont: any) {
+  if (!isActiveFlag(pont.is_active ?? pont.est_actif)) {
+    return { background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }
+  }
+  if (pont.current_rdv) {
+    return { background: 'rgba(20,184,166,0.12)', color: '#5EEAD4' }
+  }
+  if (pont.day_schedule?.length) {
+    return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
+  }
+  return { background: 'rgba(34,197,94,0.12)', color: '#86EFAC' }
+}
+
 function pontProgress(pont: any) {
   const rdv = pont.current_rdv
   if (!rdv?.temps_estime) return 0
+  if (typeof rdv?.temps_ecoule_minutes === 'number') {
+    return Math.round(rdv.temps_ecoule_minutes / rdv.temps_estime * 100)
+  }
   const started = rdv.heure_debut_travaux || rdv.started_at
   if (!started) return 0
   const startTime = new Date(started)
@@ -234,12 +543,77 @@ function normalizeCollection(payload: any) {
   return Array.isArray(payload) ? payload : (payload?.['hydra:member'] ?? payload?.member ?? [])
 }
 
+function normalizePont(item: any) {
+  return {
+    ...item,
+    is_active: item?.is_active ?? item?.est_actif ?? item?.isActive ?? 1,
+    current_rdv: item?.current_rdv ?? null,
+    next_count: Number(item?.next_count ?? 0),
+  }
+}
+
+function addMinutesToTime(time: string, minutesToAdd: number): string {
+  const [hours, minutes] = String(time || '09:00').split(':').map(Number)
+  const total = ((hours || 0) * 60) + (minutes || 0) + Math.max(15, Number(minutesToAdd || 0))
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+function buildPlanningCreateLink(pont?: any): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const suggestedTime = pont?.day_schedule?.length
+    ? addMinutesToTime(formatHourLabel(pont.day_schedule[pont.day_schedule.length - 1]?.heure_rdv), Number(pont.day_schedule[pont.day_schedule.length - 1]?.temps_estime ?? 60))
+    : '10:00'
+
+  const params = new URLSearchParams({ create: '1', date: today, time: suggestedTime })
+  if (pont?.id) params.set('pontId', String(pont.id))
+  return `/planning?${params.toString()}`
+}
+
+function getPontQuickAction(pont: any): { label: string; transition?: string; to?: string } | null {
+  const status = getRdvStatus(pont?.current_rdv)
+  if (status === 'reserve' || status === 'confirme') return { label: 'Réceptionner', transition: 'reception' }
+  if (status === 'reception') return { label: 'Démarrer', transition: 'start_travail' }
+  if (status === 'en_cours') return { label: 'Voir intervention', to: `/rdv/${pont.current_rdv.id}` }
+  if (pont?.next_rdv?.id) return { label: 'Ouvrir prochain', to: `/rdv/${pont.next_rdv.id}` }
+  return { label: '+ Nouveau RDV', to: buildPlanningCreateLink(pont) }
+}
+
+async function runPontQuickAction(pont: any) {
+  const action = getPontQuickAction(pont)
+  if (!action?.transition || !pont?.current_rdv?.id) return
+
+  actioningByPont[pont.id] = action.transition
+  try {
+    await api.post(`/rendez-vous/${pont.current_rdv.id}/transition/${action.transition}`, {
+      pont_id: pont.id,
+      mecanicien_id: pont.assigned_meca?.id ?? pont.mecanicien?.id ?? null,
+    })
+    toast.add({ title: 'Action atelier effectuée', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({ title: 'Action impossible', description: e?.message || 'Ouvre le dossier atelier pour compléter la transition.', color: 'error' })
+  } finally {
+    delete actioningByPont[pont.id]
+  }
+}
+
+async function fetchPontsWithFallback() {
+  const statusPayload = await api.get('/ponts/status').catch(() => null)
+  const statusPonts = normalizeCollection(statusPayload).map(normalizePont)
+  if (statusPonts.length) {
+    return statusPonts
+  }
+
+  const rawPayload = await api.get('/ponts').catch(() => [])
+  return normalizeCollection(rawPayload).map((item: any) => normalizePont(item))
+}
+
 async function loadWorkshop() {
   loading.value = true
   errorMessage.value = ''
 
   const [p, m, a, r] = await Promise.allSettled([
-    api.get('/ponts/status'),
+    fetchPontsWithFallback(),
     api.get('/mecaniciens'),
     api.get('/absences'),
     api.get('/rendez-vous?itemsPerPage=200'),
@@ -248,7 +622,10 @@ async function loadWorkshop() {
   const issues: string[] = []
 
   if (p.status === 'fulfilled') {
-    ponts.value = normalizeCollection(p.value)
+    ponts.value = Array.isArray(p.value) ? p.value : normalizeCollection(p.value).map(normalizePont)
+    if (!ponts.value.length) {
+      issues.push('ponts')
+    }
   } else {
     ponts.value = []
     issues.push('ponts')
@@ -289,7 +666,18 @@ async function loadWorkshop() {
     })
   }
 
+  syncPontSettings()
+  lastUpdatedAt.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   loading.value = false
+}
+
+async function refreshWorkshop() {
+  refreshing.value = true
+  try {
+    await loadWorkshop()
+  } finally {
+    refreshing.value = false
+  }
 }
 
 onMounted(() => {

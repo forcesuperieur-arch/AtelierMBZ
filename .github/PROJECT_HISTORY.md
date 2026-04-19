@@ -134,3 +134,24 @@
 
 ### En suspens à arbitrer
 - Décider plus tard si le récépissé DA doit aussi être généré via modèle interne ou seulement archivé après retour opérateur.
+
+## Session 2026-04-19 — Pilotage atelier, Stat et branding Paddock
+
+### Fait
+- [LOT-0] fix — la vue atelier / ponts a été rendue exploitable pour piloter la charge du jour avec visibilité des ponts, des affectations et du raccourci RDV rapide
+- [LOT-0] ajoute — transformation de l’accueil en vraie page Stat de pilotage avec comparatifs de période, charge, perf mécanos, mix activité et catégories de prestations
+- [LOT-0] fix — renommage visible de l’app en Paddock et du dashboard en Stat sur la navigation, la page login et le branding global
+- [LOT-0] fix — accès à la page Stat restreint au responsable atelier et profils supérieurs côté front et API
+- [LOT-0] ajoute — intégration des logos Paddock sur le login, le favicon et la top bar avec logo atelier conservé à gauche et logo Paddock centré
+- Vérification live après rebuild Nuxt : header conforme, atelier à gauche et logo Paddock centré
+
+### Décisions
+- La page d’accueil devient un outil de pilotage, plus un dashboard générique
+- Le logo atelier reste visible dans le chrome applicatif; la marque Paddock est recentrée dans la top bar
+- La visibilité Stat suit la hiérarchie atelier et ne doit pas gêner les profils opérationnels plus bas
+
+### TODO laissés
+- Aucun TODO bloquant laissé sur ce lot.
+
+### En suspens à arbitrer
+- Aucun.

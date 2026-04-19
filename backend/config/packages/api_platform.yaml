@@ -1,5 +1,5 @@
 api_platform:
-    title: Atelier Moto Pro API
+    title: Paddock API
     version: 2.0.0
     formats:
         jsonld: ['application/ld+json']

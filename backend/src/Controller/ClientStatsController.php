@@ -2,6 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\Client;
+use App\Entity\Facture;
+use App\Entity\RendezVous;
+use App\Entity\Vehicule;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,13 +16,36 @@ final class ClientStatsController extends AbstractController
     #[Route('/api/clients/stats', methods: ['GET'], priority: 20)]
     public function __invoke(EntityManagerInterface $entityManager): JsonResponse
     {
-        $connection = $entityManager->getConnection();
+        $total = (int) $entityManager->getRepository(Client::class)
+            ->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $avecRdv = (int) $entityManager->getRepository(RendezVous::class)
+            ->createQueryBuilder('r')
+            ->select('COUNT(DISTINCT r.client)')
+            ->where('r.client IS NOT NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $vehicules = (int) $entityManager->getRepository(Vehicule::class)
+            ->createQueryBuilder('v')
+            ->select('COUNT(v.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $caTotal = (float) $entityManager->getRepository(Facture::class)
+            ->createQueryBuilder('f')
+            ->select('COALESCE(SUM(f.totalTtc), 0)')
+            ->getQuery()
+            ->getSingleScalarResult();
 
         return $this->json([
-            'total' => (int) $connection->fetchOne('SELECT COUNT(*) FROM clients'),
-            'avec_rdv' => (int) $connection->fetchOne('SELECT COUNT(DISTINCT client_id) FROM rendez_vous WHERE client_id IS NOT NULL'),
-            'vehicules' => (int) $connection->fetchOne('SELECT COUNT(*) FROM vehicules'),
-            'ca_total' => (float) $connection->fetchOne('SELECT COALESCE(SUM(total_ttc), 0) FROM factures'),
+            'total' => $total,
+            'avec_rdv' => $avecRdv,
+            'vehicules' => $vehicules,
+            'ca_total' => $caTotal,
         ]);
     }
 }

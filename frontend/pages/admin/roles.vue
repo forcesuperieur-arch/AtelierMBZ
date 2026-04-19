@@ -177,7 +177,7 @@ const { user, fetchMe } = useAuth()
 
 const availableSections: ToggleOption[] = [
   { key: '*', label: 'Toutes les sections', hint: 'Accès complet' },
-  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'dashboard', label: 'Stat' },
   { key: 'rdv', label: 'Rendez-vous' },
   { key: 'planning', label: 'Planning' },
   { key: 'workshop', label: 'Atelier / ponts' },
