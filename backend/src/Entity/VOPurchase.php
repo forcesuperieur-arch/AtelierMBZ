@@ -28,6 +28,20 @@ class VOPurchase
 {
     use VOCompanionTrait;
 
+    public const SIV_STATUS_A_PREPARER = 'a_preparer';
+    public const SIV_STATUS_EN_COURS = 'en_cours';
+    public const SIV_STATUS_ENREGISTREE = 'enregistree';
+    public const SIV_STATUS_REJETEE = 'rejetee';
+    public const SIV_STATUS_EXPIREE = 'expiree';
+
+    public const SIV_STATUSES = [
+        self::SIV_STATUS_A_PREPARER,
+        self::SIV_STATUS_EN_COURS,
+        self::SIV_STATUS_ENREGISTREE,
+        self::SIV_STATUS_REJETEE,
+        self::SIV_STATUS_EXPIREE,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -107,6 +121,22 @@ class VOPurchase
     #[ORM\Column(length: 10, options: ['default' => 'marge'])]
     #[Groups(['vo:read', 'vo:write'])]
     private string $regimeTva = 'marge';
+
+    #[ORM\Column(length: 20, options: ['default' => self::SIV_STATUS_A_PREPARER])]
+    #[Groups(['vo:read', 'vo:write'])]
+    private string $sivStatus = self::SIV_STATUS_A_PREPARER;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Groups(['vo:read', 'vo:write'])]
+    private ?string $sivReference = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['vo:read', 'vo:write'])]
+    private ?\DateTimeInterface $sivRecordedAt = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['vo:read', 'vo:write'])]
+    private ?string $sivNotes = null;
 
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['vo:read'])]
@@ -206,6 +236,27 @@ class VOPurchase
 
     public function getRegimeTva(): string { return $this->regimeTva; }
     public function setRegimeTva(string $v): static { $this->regimeTva = $v; return $this; }
+
+    public function getSivStatus(): string { return $this->sivStatus; }
+    public function setSivStatus(string $v): static
+    {
+        $this->sivStatus = in_array($v, self::SIV_STATUSES, true) ? $v : self::SIV_STATUS_A_PREPARER;
+        return $this;
+    }
+
+    public function getSivReference(): ?string { return $this->sivReference; }
+    public function setSivReference(?string $v): static { $this->sivReference = $v; return $this; }
+
+    public function getSivRecordedAt(): ?\DateTimeInterface { return $this->sivRecordedAt; }
+    public function setSivRecordedAt(?\DateTimeInterface $v): static { $this->sivRecordedAt = $v; return $this; }
+
+    public function getSivNotes(): ?string { return $this->sivNotes; }
+    public function setSivNotes(?string $v): static { $this->sivNotes = $v; return $this; }
+
+    public function isSivRegistered(): bool
+    {
+        return $this->sivStatus === self::SIV_STATUS_ENREGISTREE;
+    }
 
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }

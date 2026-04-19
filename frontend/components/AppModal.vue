@@ -1,10 +1,28 @@
 <template>
   <Teleport to="body">
     <div v-if="open" class="app-modal-overlay" @click.self="open = false">
-      <div :class="modalClass">
-        <slot name="content">
-          <slot />
-        </slot>
+      <div :class="modalClass" @click.stop>
+        <div v-if="$slots.header" class="app-modal-header">
+          <slot name="header" />
+          <button
+            type="button"
+            style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer"
+            aria-label="Fermer la modale"
+            @click="open = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="app-modal-body">
+          <slot name="content">
+            <slot />
+          </slot>
+        </div>
+
+        <div v-if="$slots.footer" class="app-modal-footer">
+          <slot name="footer" />
+        </div>
       </div>
     </div>
   </Teleport>

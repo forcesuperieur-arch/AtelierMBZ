@@ -1,10 +1,24 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-title">Atelier</div>
+    <div class="page-header" style="justify-content:space-between;">
+      <div>
+        <div class="page-title">Atelier</div>
+        <div class="page-sub">Vue instantanée des ponts, mécaniciens et absences du jour.</div>
+      </div>
     </div>
 
-    <div v-if="loading" class="loading-shimmer" style="height:400px;border-radius:14px;"></div>
+    <AppLoadingState
+      v-if="loading"
+      title="Chargement de l’atelier"
+      description="Les statuts des ponts et de l’équipe sont en cours de récupération."
+    />
+
+    <AppErrorState
+      v-else-if="errorMessage"
+      title="Atelier temporairement indisponible"
+      :description="errorMessage"
+      @retry="loadWorkshop"
+    />
 
     <template v-else>
       <!-- KPI Bar -->
@@ -100,7 +114,12 @@
             <span>{{ m.rdvCount }} RDV aujourd'hui</span>
           </div>
         </div>
-        <div v-if="!mecaniciens.length" style="color:#6B7280;padding:24px;text-align:center;">Aucun mécanicien configuré</div>
+        <AppEmptyState
+          v-if="!mecaniciens.length"
+          icon="👤"
+          title="Aucun mécanicien configuré"
+          description="Ajoute un mécanicien depuis l’administration pour alimenter cette vue."
+        />
       </div>
 
       <!-- TEMPS TAB -->
@@ -117,7 +136,12 @@
       <div v-if="activeTab === 'absences'">
         <UCard>
           <UTable v-if="absences.length" :data="absences" :columns="absenceCols" />
-          <div v-else style="color:#6B7280;padding:16px;text-align:center;">Aucune absence enregistrée</div>
+          <AppEmptyState
+            v-else
+            icon="📅"
+            title="Aucune absence enregistrée"
+            description="L’équipe est complète sur la période affichée."
+          />
         </UCard>
       </div>
     </template>
@@ -126,7 +150,12 @@
 
 <script setup lang="ts">
 const api = useApi()
+const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
+const errorMessage = ref('')
+const validTabs = ['ponts', 'mecas', 'temps', 'absences']
 const activeTab = ref('ponts')
 const ponts = ref<any[]>([])
 const mecaniciens = ref<any[]>([])
@@ -201,25 +230,78 @@ function pontProgress(pont: any) {
   return Math.round((Date.now() - startTime.getTime()) / 60000 / rdv.temps_estime * 100)
 }
 
-onMounted(async () => {
-  try {
-    const [p, m, a, r] = await Promise.all([
-      api.get('/ponts/status').catch(() => []),
-      api.get('/mecaniciens').catch(() => []),
-      api.get('/absences').catch(() => []),
-      api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
-    ])
-    ponts.value = Array.isArray(p) ? p : (p?.['hydra:member'] ?? p?.member ?? [])
-    const mecaRaw = Array.isArray(m) ? m : (m?.['hydra:member'] ?? m?.member ?? [])
-    mecaniciens.value = mecaRaw
-    const absRaw = Array.isArray(a) ? a : (a?.['hydra:member'] ?? a?.member ?? [])
+function normalizeCollection(payload: any) {
+  return Array.isArray(payload) ? payload : (payload?.['hydra:member'] ?? payload?.member ?? [])
+}
+
+async function loadWorkshop() {
+  loading.value = true
+  errorMessage.value = ''
+
+  const [p, m, a, r] = await Promise.allSettled([
+    api.get('/ponts/status'),
+    api.get('/mecaniciens'),
+    api.get('/absences'),
+    api.get('/rendez-vous?itemsPerPage=200'),
+  ])
+
+  const issues: string[] = []
+
+  if (p.status === 'fulfilled') {
+    ponts.value = normalizeCollection(p.value)
+  } else {
+    ponts.value = []
+    issues.push('ponts')
+  }
+
+  if (m.status === 'fulfilled') {
+    mecaniciens.value = normalizeCollection(m.value)
+  } else {
+    mecaniciens.value = []
+    issues.push('mécaniciens')
+  }
+
+  if (a.status === 'fulfilled') {
+    const absRaw = normalizeCollection(a.value)
     absences.value = absRaw.map((ab: any) => ({
       ...ab,
       mecanicien_nom: ab.mecanicien ? `${ab.mecanicien.prenom ?? ''} ${ab.mecanicien.nom ?? ''}`.trim() : '–',
     }))
-    rdvs.value = Array.isArray(r) ? r : (r?.['hydra:member'] ?? r?.member ?? [])
-  } finally {
-    loading.value = false
+  } else {
+    absences.value = []
+    issues.push('absences')
   }
+
+  if (r.status === 'fulfilled') {
+    rdvs.value = normalizeCollection(r.value)
+  } else {
+    rdvs.value = []
+    issues.push('rendez-vous')
+  }
+
+  if (issues.length === 4) {
+    errorMessage.value = 'Aucune donnée atelier n’a pu être chargée. Vérifie la connexion API puis réessaie.'
+  } else if (issues.length > 0) {
+    toast.add({
+      title: 'Chargement partiel',
+      description: `Certaines sections sont indisponibles : ${issues.join(', ')}.`,
+      color: 'warning',
+    })
+  }
+
+  loading.value = false
+}
+
+onMounted(() => {
+  const queryTab = typeof route.query.tab === 'string' ? route.query.tab : ''
+  if (validTabs.includes(queryTab)) {
+    activeTab.value = queryTab
+  }
+  loadWorkshop()
+})
+
+watch(activeTab, (tab) => {
+  if (route.query.tab === tab) return
+  router.replace({ query: { ...route.query, tab } })
 })
 </script>

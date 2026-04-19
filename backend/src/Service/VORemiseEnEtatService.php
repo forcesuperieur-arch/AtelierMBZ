@@ -16,7 +16,7 @@ class VORemiseEnEtatService
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private VORemiseEnEtatDocumentService $documentService,
+        private ?VORemiseEnEtatDocumentService $documentService = null,
     ) {}
 
     /**
@@ -115,7 +115,7 @@ class VORemiseEnEtatService
             'createdAt' => $campaign->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $campaign->getUpdatedAt()->format(DATE_ATOM),
             'vehicle' => $this->normalizeVehicleLite($vehicle),
-            'document' => $this->documentService->normalizeDocumentState($campaign),
+            'document' => $this->normalizeDocumentState($campaign),
             'isClosed' => $campaign->isClosed(),
             'isBlockingSale' => $campaign->isBlockingSale(),
             'pendingPiecesCount' => $campaign->getPendingPiecesCount(),
@@ -214,6 +214,25 @@ class VORemiseEnEtatService
             'cylindree' => $vehicle->getCylindree(),
             'categorieId' => $vehicle->getCategorie()?->getId(),
             'categorieNom' => $vehicle->getCategorie()?->getNom(),
+        ];
+    }
+
+    private function normalizeDocumentState(VORemiseEnEtat $campaign): array
+    {
+        if ($this->documentService instanceof VORemiseEnEtatDocumentService) {
+            return $this->documentService->normalizeDocumentState($campaign);
+        }
+
+        return [
+            'canSign' => !$campaign->isClosed() && !$campaign->hasSignedDocument(),
+            'signed' => $campaign->hasSignedDocument(),
+            'signedAt' => $campaign->getSignedAt()?->format(DATE_ATOM),
+            'signedBy' => $this->normalizeUserLite($campaign->getSignedBy()),
+            'signedHash' => $campaign->getSignedHash(),
+            'currentHash' => null,
+            'outdatedSinceSignature' => false,
+            'livePdfUrl' => $campaign->getId() ? sprintf('/api/vo/remises-en-etat/%d/pdf', $campaign->getId()) : null,
+            'archivedDocument' => null,
         ];
     }
 

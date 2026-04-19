@@ -112,3 +112,25 @@
 
 ### En suspens à arbitrer
 - Rejouer la suite PHPUnit complète dès qu'un environnement avec l'hôte PostgreSQL `db` est disponible hors Docker intégré.
+
+## Session 2026-04-18 — Dossier SIV VO ultra-assisté
+
+### Fait
+- [LOT-0] ajoute — statut DA/SIV persistant sur les rachats VO avec blocage légal de vente tant que la DA n'est pas enregistrée
+- [LOT-0] ajoute — checklist légale dossier VO côté rachat et dépôt avec visibilité des blocants métier
+- [LOT-0] ajoute — génération PDF préremplie de la DA SIV et du mandat d'immatriculation avec archivage auto dans le dossier
+- [LOT-0] fix — la confirmation d'un rachat prépare maintenant automatiquement le dossier SIV et fait passer le statut à en cours
+- [LOT-0] ajoute — actions rapides front sur les fiches rachat et dépôt pour générer / ouvrir DA et mandat sans ressaisie
+- [LOT-0] test — couverture PHPUnit VO étendue sur le flux DA obligatoire avant vente puis vérifiée avec succès
+- [LOT-0] test — vérification Vitest ciblée sur le store VO après branchement des nouvelles actions
+
+### Décisions
+- La DA SIV reste un préremplissage et une traçabilité interne; la saisie officielle se fait toujours hors app sur le circuit SIV habilité
+- Le mode flemmard validé consiste à tout préparer à la confirmation du rachat, pas à laisser vendre sans DA enregistrée
+- Le mandat d'immatriculation est préparé dès le flux vente pour éviter la ressaisie comptoir
+
+### TODO laissés
+- Aucun TODO bloquant laissé sur ce lot.
+
+### En suspens à arbitrer
+- Décider plus tard si le récépissé DA doit aussi être généré via modèle interne ou seulement archivé après retour opérateur.

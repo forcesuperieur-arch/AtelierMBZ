@@ -35,6 +35,34 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
     await expect(page.locator('body')).toContainText(/provider|notification|SMS|Email/i, { timeout: 10000 });
   });
 
+  test('Provider action buttons open their modals', async ({ page }) => {
+    await page.goto('/admin/notifications/providers');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: /ajouter un provider/i }).click();
+    await expect(page.locator('.app-modal-overlay')).toBeVisible();
+    await expect(page.locator('text=Canal')).toBeVisible();
+    await page.getByLabel('Fermer la modale').click();
+
+    await page.locator('.provider-row .btn', { hasText: '⚙️' }).first().click();
+    await expect(page.locator('.app-modal-overlay')).toBeVisible();
+    await expect(page.locator('text=Modifier le provider')).toBeVisible();
+    await page.getByLabel('Fermer la modale').click();
+
+    await page.locator('.provider-row .btn', { hasText: '🧪' }).first().click();
+    await expect(page.locator('text=Envoyer le test')).toBeVisible();
+  });
+
+  test('Templates tab shows default notification templates', async ({ page }) => {
+    await page.goto('/admin/notifications/providers');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: /templates/i }).click();
+    await expect(page.locator('text=Aucun template configuré')).toHaveCount(0);
+    await expect(page.locator('table')).toContainText('rdv_confirmation');
+    await expect(page.locator('table')).toContainText('travaux_termines');
+  });
+
   // ─── API endpoints ───
 
   test('API: list providers returns array', async ({ page }) => {

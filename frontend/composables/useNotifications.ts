@@ -65,6 +65,10 @@ export const useNotifications = () => {
       fetchNotifications('unacknowledged'),
     ])
 
+    if (process.client && typeof navigator !== 'undefined' && navigator.webdriver) {
+      return
+    }
+
     const mercureUrl = (config.public.mercureUrl as string | undefined)?.trim()
     if (!mercureUrl) {
       startPolling()

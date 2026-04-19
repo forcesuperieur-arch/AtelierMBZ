@@ -15,7 +15,7 @@ class VOGeneratedDocumentService
         private VOCompanionWorkflowService $workflowService,
     ) {}
 
-    public function archiveCompanionDocumentIfReady(VOPurchase|VODepotVente $record, ?User $user = null): bool
+    public function archiveCompanionDocumentIfReady(VOPurchase|VODepotVente $record, ?User $user = null, bool $prepareSiv = false): bool
     {
         if ($record->getVehicule() === null || $this->workflowService->getParty($record) === null) {
             return false;
@@ -32,6 +32,10 @@ class VOGeneratedDocumentService
                 sprintf('pv-rachat-%d.pdf', $record->getId()),
             );
 
+            if ($this->canPreparePurchaseSiv($record)) {
+                $this->archivePurchaseSivPreparation($record, $user, $prepareSiv);
+            }
+
             return true;
         }
 
@@ -46,5 +50,47 @@ class VOGeneratedDocumentService
         );
 
         return true;
+    }
+
+    public function archivePurchaseSivPreparation(VOPurchase $purchase, ?User $user = null, bool $markAsInProgress = false): bool
+    {
+        if ($purchase->getVehicule() === null || $purchase->getSeller() === null) {
+            return false;
+        }
+
+        if ($markAsInProgress && in_array($purchase->getSivStatus(), [
+            VOPurchase::SIV_STATUS_A_PREPARER,
+            VOPurchase::SIV_STATUS_REJETEE,
+            VOPurchase::SIV_STATUS_EXPIREE,
+        ], true)) {
+            $purchase->setSivStatus(VOPurchase::SIV_STATUS_EN_COURS);
+        }
+
+        $blockers = array_values(array_filter(
+            $this->documentService->getPurchaseSaleBlockers($purchase),
+            static fn (string $message): bool => $message !== 'DA SIV non enregistrée.',
+        ));
+
+        $pdfPath = $this->pdfService->generateDaSivPreparationPdf($purchase, $blockers);
+        $this->documentService->archiveGeneratedPdf(
+            $pdfPath,
+            VODocument::TYPE_DA_SIV,
+            $purchase,
+            null,
+            $user,
+            sprintf('da-siv-%d.pdf', $purchase->getId()),
+        );
+
+        return true;
+    }
+
+    private function canPreparePurchaseSiv(VOPurchase $purchase): bool
+    {
+        $missingDocuments = array_values(array_diff(
+            $this->documentService->getMissingDocuments($purchase),
+            [VODocument::TYPE_PV_RACHAT],
+        ));
+
+        return $missingDocuments === [];
     }
 }

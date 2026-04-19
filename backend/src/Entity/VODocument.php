@@ -29,6 +29,9 @@ class VODocument
     public const TYPE_CONTROLE_TECHNIQUE = 'controle_technique';
     public const TYPE_PIECE_IDENTITE = 'piece_identite';
     public const TYPE_CONTRAT_DEPOT_VENTE = 'contrat_depot_vente';
+    public const TYPE_DA_SIV = 'da_siv';
+    public const TYPE_RECEPISSE_DA = 'recepisse_da';
+    public const TYPE_MANDAT_IMMATRICULATION = 'mandat_immatriculation';
     public const TYPE_FACTURE_VO = 'facture_vo';
     public const TYPE_PV_RACHAT = 'pv_rachat';
     public const TYPE_REMISE_EN_ETAT = 'remise_en_etat';
@@ -45,6 +48,9 @@ class VODocument
         self::TYPE_CONTROLE_TECHNIQUE => 5,
         self::TYPE_PIECE_IDENTITE => 0, // destroy after transcription (RGPD)
         self::TYPE_CONTRAT_DEPOT_VENTE => 5,
+        self::TYPE_DA_SIV => 5,
+        self::TYPE_RECEPISSE_DA => 5,
+        self::TYPE_MANDAT_IMMATRICULATION => 5,
         self::TYPE_FACTURE_VO => 10,
         self::TYPE_PV_RACHAT => 5,
         self::TYPE_REMISE_EN_ETAT => 5,

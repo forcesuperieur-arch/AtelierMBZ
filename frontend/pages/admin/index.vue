@@ -22,13 +22,18 @@
       </div>
       <div class="admin-card" @click="navigateTo('/admin/ponts')">
         <div class="admin-card-icon">🔧</div>
-        <div class="admin-card-label">Ponts</div>
-        <div class="admin-card-desc">Gérer les postes de travail</div>
+        <div class="admin-card-label">Ponts & mécanos</div>
+        <div class="admin-card-desc">Affectations atelier et postes de travail</div>
       </div>
       <div class="admin-card" @click="navigateTo('/admin/prestations')">
         <div class="admin-card-icon">📋</div>
         <div class="admin-card-label">Prestations</div>
         <div class="admin-card-desc">Tarifs et grilles</div>
+      </div>
+      <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/ateliers')">
+        <div class="admin-card-icon">🏢</div>
+        <div class="admin-card-label">Ateliers</div>
+        <div class="admin-card-desc">Créer et piloter les sites multiatelier</div>
       </div>
       <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/roles')">
         <div class="admin-card-icon">🛡️</div>

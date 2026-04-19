@@ -1,6 +1,7 @@
 <?php
 namespace App\EventListener;
 
+use App\Entity\Atelier;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -10,7 +11,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 
 /**
  * Activates the TenantFilter on every request based on the authenticated user's atelier_id.
- * Super admins: use session-based atelier selection (null/'all' = no filter).
+ * Super admins must also work inside a concrete atelier context.
  */
 #[AsEventListener(event: 'kernel.request', priority: -10)]
 class TenantFilterListener
@@ -37,17 +38,30 @@ class TenantFilterListener
             return;
         }
 
-        // SuperAdmin: default to their assigned atelier, unless they explicitly choose "all"
+        // SuperAdmin: always resolve to one concrete atelier, never to a global cross-atelier scope.
         if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
             $request = $this->requestStack->getCurrentRequest();
             $selectedAtelierId = $request?->cookies->get('active_atelier_id');
 
-            if ($selectedAtelierId === 'all') {
-                return; // Explicit global access
+            $activeAtelierId = null;
+            if (is_string($selectedAtelierId) && ctype_digit($selectedAtelierId)) {
+                $parsedAtelierId = (int) $selectedAtelierId;
+                if ($parsedAtelierId > 0) {
+                    $activeAtelierId = $parsedAtelierId;
+                }
             }
 
-            $activeAtelierId = $selectedAtelierId ?: $user->getAtelierId();
-            if ($activeAtelierId === null || $activeAtelierId === '') {
+            if ($activeAtelierId === null) {
+                $activeAtelierId = $user->getAtelierId();
+            }
+
+            if ($activeAtelierId === null) {
+                $fallbackAtelier = $this->em->getRepository(Atelier::class)->findOneBy(['actif' => true], ['id' => 'ASC'])
+                    ?? $this->em->getRepository(Atelier::class)->findOneBy([], ['id' => 'ASC']);
+                $activeAtelierId = $fallbackAtelier?->getId();
+            }
+
+            if ($activeAtelierId === null) {
                 return;
             }
 

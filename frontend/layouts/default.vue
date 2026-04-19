@@ -58,7 +58,6 @@
         <div v-if="isSuperAdmin" class="topbar-atelier-switch">
           <span style="font-size:11px;color:#FCD34D;font-weight:700;">SA</span>
           <select v-model="activeAtelierChoice" @change="onSwitchAtelier" style="background:#1a1d26;color:#E8E9ED;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;font-size:12px;">
-            <option value="all">🌐 Tous les ateliers</option>
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
         </div>
@@ -88,6 +87,7 @@ const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '')
 const atelierInitial = computed(() => atelierName.value.trim().charAt(0).toUpperCase() || 'M')
 const isDesktop = ref(false)
 const isSidebarCollapsed = ref(false)
+let notificationsConnectTimer: ReturnType<typeof setTimeout> | null = null
 
 function syncSidebarMode() {
   if (!process.client) return
@@ -119,18 +119,24 @@ onMounted(() => {
   if (process.client) {
     window.addEventListener('resize', syncSidebarMode)
   }
-  // LOT 5: Start notification system
+  // Keep first paint/navigation responsive, then start realtime notifications.
   fetchUnreadCount()
   fetchNotifications('unacknowledged')
   const atelierId = auth.user.value?.atelierId || auth.user.value?.atelier_id
   if (atelierId) {
-    connectNotifs(atelierId)
+    notificationsConnectTimer = setTimeout(() => {
+      connectNotifs(atelierId)
+    }, 1500)
   }
 })
 
 onBeforeUnmount(() => {
   if (process.client) {
     window.removeEventListener('resize', syncSidebarMode)
+  }
+  if (notificationsConnectTimer) {
+    clearTimeout(notificationsConnectTimer)
+    notificationsConnectTimer = null
   }
   disconnectNotifs()
 })
@@ -184,9 +190,15 @@ const api = useApi()
 const toast = useToast()
 const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
 const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
-const userDefaultAtelierChoice = computed(() => String(auth.user.value?.atelierId || auth.user.value?.atelier_id || 'all'))
+
+function normalizeAtelierChoice(value: any): string {
+  const normalized = String(value ?? '').trim()
+  return normalized && normalized !== 'all' ? normalized : ''
+}
+
+const userDefaultAtelierChoice = computed(() => normalizeAtelierChoice(auth.user.value?.atelierId || auth.user.value?.atelier_id))
 const ateliersList = ref<any[]>([])
-const activeAtelierChoice = ref<any>(activeAtelierCookie.value || userDefaultAtelierChoice.value || 'all')
+const activeAtelierChoice = ref<any>(normalizeAtelierChoice(activeAtelierCookie.value) || userDefaultAtelierChoice.value || '')
 
 async function loadAteliers() {
   if (!isSuperAdmin.value) return
@@ -194,21 +206,27 @@ async function loadAteliers() {
     const res = await api.get('/ateliers')
     ateliersList.value = Array.isArray(res) ? res : (res?.member || res?.['hydra:member'] || [])
 
-    if (!activeAtelierCookie.value && userDefaultAtelierChoice.value && userDefaultAtelierChoice.value !== 'all') {
-      activeAtelierChoice.value = userDefaultAtelierChoice.value
-      activeAtelierCookie.value = userDefaultAtelierChoice.value
+    const fallbackChoice = userDefaultAtelierChoice.value || normalizeAtelierChoice(ateliersList.value[0]?.id)
+    if (!normalizeAtelierChoice(activeAtelierCookie.value) && fallbackChoice) {
+      activeAtelierChoice.value = fallbackChoice
+      activeAtelierCookie.value = fallbackChoice
     }
   } catch { ateliersList.value = [] }
 }
 
 async function onSwitchAtelier() {
   try {
-    const res = await api.post('/auth/switch-atelier', { atelier_id: activeAtelierChoice.value })
-    activeAtelierCookie.value = String(res.active_atelier_id ?? 'all')
-    activeAtelierChoice.value = String(res.active_atelier_id ?? 'all')
+    const requestedAtelierId = normalizeAtelierChoice(activeAtelierChoice.value)
+    if (!requestedAtelierId) {
+      throw new Error('Aucun atelier sélectionné')
+    }
+
+    const res = await api.post('/auth/switch-atelier', { atelier_id: requestedAtelierId })
+    activeAtelierCookie.value = String(res.active_atelier_id ?? requestedAtelierId)
+    activeAtelierChoice.value = String(res.active_atelier_id ?? requestedAtelierId)
     toast.add({
       title: 'Atelier actif changé',
-      description: res.active_atelier_id === 'all' ? 'Vue globale (tous ateliers)' : res.atelier_nom,
+      description: res.atelier_nom || 'Contexte atelier mis à jour',
       color: 'success',
     })
     // Reload current page to refresh filtered data
@@ -221,7 +239,7 @@ async function onSwitchAtelier() {
 watch(isSuperAdmin, (v) => { if (v) loadAteliers() }, { immediate: true })
 watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieValue, defaultValue, superAdmin]) => {
   if (!superAdmin) return
-  activeAtelierChoice.value = cookieValue || defaultValue || 'all'
+  activeAtelierChoice.value = normalizeAtelierChoice(cookieValue) || normalizeAtelierChoice(defaultValue) || normalizeAtelierChoice(ateliersList.value[0]?.id) || ''
 }, { immediate: true })
 </script>
 
