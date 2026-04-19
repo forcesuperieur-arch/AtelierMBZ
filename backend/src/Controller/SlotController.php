@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Service\CurrentAtelierResolver;
 use App\Service\SlotService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -9,7 +10,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class SlotController extends AbstractController
 {
-    public function __construct(private SlotService $slotService) {}
+    public function __construct(
+        private SlotService $slotService,
+        private CurrentAtelierResolver $currentAtelierResolver,
+    ) {}
 
     /**
      * Get available slots for a date range.
@@ -22,8 +26,7 @@ class SlotController extends AbstractController
         $dateFin = $request->query->get('date_fin', (new \DateTime('+7 days'))->format('Y-m-d'));
         $tempsMinutes = (int) $request->query->get('temps_minutes', 60);
 
-        $user = $this->getUser();
-        $atelierId = $user?->getAtelierId();
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
 
         $slots = $this->slotService->getAvailableSlots(
             new \DateTime($dateDebut),
@@ -41,8 +44,7 @@ class SlotController extends AbstractController
         $date = $request->query->get('date_str', (new \DateTime())->format('Y-m-d'));
         $tempsMinutes = (int) $request->query->get('duree_minutes', 60);
 
-        $user = $this->getUser();
-        $atelierId = $user?->getAtelierId();
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
 
         $slots = $this->slotService->getAvailableSlots(
             new \DateTime($date),

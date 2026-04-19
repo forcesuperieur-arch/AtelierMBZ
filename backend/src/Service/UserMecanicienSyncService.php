@@ -13,7 +13,7 @@ final class UserMecanicienSyncService
         private CurrentAtelierResolver $currentAtelierResolver,
     ) {}
 
-    public function syncForUser(User $user): ?Mecanicien
+    public function syncForUser(User $user, bool $allowCreate = true): ?Mecanicien
     {
         $userId = $user->getId();
         if ($userId === null) {
@@ -32,6 +32,10 @@ final class UserMecanicienSyncService
         }
 
         if (!$mecanicien instanceof Mecanicien) {
+            if (!$allowCreate) {
+                return null;
+            }
+
             $mecanicien = new Mecanicien();
             $mecanicien->setUserId($userId);
             $this->em->persist($mecanicien);

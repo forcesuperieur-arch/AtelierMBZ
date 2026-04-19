@@ -48,6 +48,7 @@ class VOCompanionWorkflowService
     public function getAdditionalDocumentOptions(VOPurchase|VODepotVente $record): array
     {
         return [
+            VODocument::TYPE_JUSTIFICATIF_DOMICILE,
             VODocument::TYPE_CONTROLE_TECHNIQUE,
             VODocument::TYPE_AUTRE,
         ];

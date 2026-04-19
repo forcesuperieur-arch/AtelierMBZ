@@ -11,6 +11,7 @@ export function useVoHelpers() {
     non_gage: 'Certificat non-gage',
     controle_technique: 'Contrôle technique',
     piece_identite: 'Pièce d’identité',
+    justificatif_domicile: 'Justificatif de domicile',
     contrat_depot_vente: 'Contrat dépôt-vente',
     da_siv: 'DA SIV préremplie',
     recepisse_da: 'Récépissé DA',

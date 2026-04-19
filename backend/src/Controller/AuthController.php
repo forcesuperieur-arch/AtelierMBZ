@@ -7,6 +7,7 @@ use App\Entity\Notification;
 use App\Entity\RevokedToken;
 use App\Entity\RoleMetier;
 use App\Entity\User;
+use App\Service\BookingAtelierAccessService;
 use App\Service\UserRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -31,7 +32,13 @@ class AuthController extends AbstractController
         private HttpClientInterface $httpClient,
         private MailerInterface $mailer,
         private UserRoleMapper $userRoleMapper,
+        private ?BookingAtelierAccessService $bookingAtelierAccess = null,
     ) {}
+
+    private function bookingAtelierAccess(): BookingAtelierAccessService
+    {
+        return $this->bookingAtelierAccess ??= new BookingAtelierAccessService($this->em);
+    }
 
     private function expandLegacyPermissionAliases(string $module, string $action): array
     {
@@ -700,9 +707,29 @@ class AuthController extends AbstractController
         return $this->json($this->buildUserPayload($user));
     }
 
+    #[Route('/rdv-ateliers', methods: ['GET'])]
+    public function bookingAteliers(): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $ateliers = array_map(
+            static fn (Atelier $atelier): array => [
+                'id' => (int) $atelier->getId(),
+                'nom' => $atelier->getNom(),
+                'actif' => $atelier->isActif(),
+            ],
+            $this->bookingAtelierAccess()->getAllowedAteliers($user)
+        );
+
+        return $this->json($ateliers);
+    }
+
     /**
-     * SuperAdmin: switch the active atelier for tenant filter.
-     * Global cross-atelier mode is intentionally disabled.
+     * Switch the active atelier for tenant-filtered screens.
      */
     #[Route('/switch-atelier', methods: ['POST'])]
     public function switchAtelier(Request $request): JsonResponse
@@ -712,8 +739,12 @@ class AuthController extends AbstractController
         if (!$user) {
             return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
-        if (!in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
-            return $this->json(['error' => 'SuperAdmin only'], Response::HTTP_FORBIDDEN);
+
+        $canSwitchContext = $this->bookingAtelierAccess()->isSuperAdmin($user)
+            || $this->bookingAtelierAccess()->isServiceClient($user);
+
+        if (!$canSwitchContext) {
+            return $this->json(['error' => 'Atelier switch not allowed'], Response::HTTP_FORBIDDEN);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -723,16 +754,25 @@ class AuthController extends AbstractController
             $atelierId = null;
         }
 
-        $atelier = null;
         if ($atelierId !== null && $atelierId !== '') {
-            $atelier = $this->em->getRepository(Atelier::class)->find((int) $atelierId);
+            $atelierId = (int) $atelierId;
+            if (!$this->bookingAtelierAccess()->canAccessAtelier($user, $atelierId)) {
+                return $this->json(['error' => 'Atelier not allowed'], Response::HTTP_FORBIDDEN);
+            }
+
+            $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
             if (!$atelier) {
                 return $this->json(['error' => 'Atelier not found'], Response::HTTP_NOT_FOUND);
             }
         } else {
-            $atelier = $this->findDefaultActiveAtelier($user);
-            if (!$atelier) {
+            $resolvedAtelierId = $this->bookingAtelierAccess()->resolvePreferredAtelierId($user);
+            if (!$resolvedAtelierId) {
                 return $this->json(['error' => 'Aucun atelier disponible'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $atelier = $this->em->getRepository(Atelier::class)->find($resolvedAtelierId);
+            if (!$atelier) {
+                return $this->json(['error' => 'Atelier not found'], Response::HTTP_NOT_FOUND);
             }
         }
 

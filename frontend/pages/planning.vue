@@ -199,11 +199,33 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Marque</label>
-                <input v-model="quickForm.vehicule_marque" class="form-input" placeholder="Yamaha" />
+                <input v-model="quickForm.vehicule_marque" class="form-input" placeholder="Yamaha" @input="onQuickMarqueInput" @blur="hideQuickMarqueSuggestions" />
+                <div v-if="quickMarqueSuggestions.length" style="margin-top:6px;display:grid;gap:4px;">
+                  <button
+                    v-for="item in quickMarqueSuggestions"
+                    :key="`quick-brand-${item}`"
+                    type="button"
+                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                    @mousedown.prevent="selectQuickMarque(item)"
+                  >
+                    {{ item }}
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Modèle</label>
-                <input v-model="quickForm.vehicule_modele" class="form-input" placeholder="MT-07" />
+                <input v-model="quickForm.vehicule_modele" class="form-input" placeholder="MT-07" @input="onQuickModeleInput" @blur="hideQuickModeleSuggestions" />
+                <div v-if="quickModeleSuggestions.length" style="margin-top:6px;display:grid;gap:4px;">
+                  <button
+                    v-for="item in quickModeleSuggestions"
+                    :key="`quick-model-${item.id || item.modele}`"
+                    type="button"
+                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                    @mousedown.prevent="selectQuickModele(item)"
+                  >
+                    {{ quickSuggestionLabel(item) }}
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Plaque</label>
@@ -511,6 +533,24 @@ const quickForm = reactive({
   commentaire: '',
   mecanicien_id: null as number | null,
   pont_id: null as number | null,
+})
+
+const {
+  marqueSuggestions: quickMarqueSuggestions,
+  modeleSuggestions: quickModeleSuggestions,
+  onMarqueInput: onQuickMarqueInput,
+  onModeleInput: onQuickModeleInput,
+  selectMarque: selectQuickMarque,
+  selectModele: selectQuickModele,
+  deferHideMarqueSuggestions: hideQuickMarqueSuggestions,
+  deferHideModeleSuggestions: hideQuickModeleSuggestions,
+  suggestionLabel: quickSuggestionLabel,
+} = useMotoAutocomplete({
+  form: quickForm,
+  marqueKey: 'vehicule_marque',
+  modeleKey: 'vehicule_modele',
+  cylindreeKey: 'vehicule_cylindree',
+  typeKey: 'vehicule_type',
 })
 
 const transitionCatalog: Record<string, { label: string; color: string }> = {

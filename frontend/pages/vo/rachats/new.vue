@@ -137,11 +137,34 @@
               </label>
               <label class="vo-field">
                 <span>Marque</span>
-                <input v-model="vehicleForm.marque" class="vo-input" />
+                <input v-model="vehicleForm.marque" class="vo-input" @input="onVehicleMarqueInput" @blur="hideVehicleMarqueSuggestions" />
+                <div v-if="vehicleMarqueSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+                  <button
+                    v-for="item in vehicleMarqueSuggestions"
+                    :key="`purchase-brand-${item}`"
+                    type="button"
+                    class="vo-search-item"
+                    @mousedown.prevent="selectVehicleMarque(item)"
+                  >
+                    <strong>{{ item }}</strong>
+                  </button>
+                </div>
               </label>
               <label class="vo-field">
                 <span>Modèle</span>
-                <input v-model="vehicleForm.modele" class="vo-input" />
+                <input v-model="vehicleForm.modele" class="vo-input" @input="onVehicleModeleInput" @blur="hideVehicleModeleSuggestions" />
+                <div v-if="vehicleModeleSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+                  <button
+                    v-for="item in vehicleModeleSuggestions"
+                    :key="`purchase-model-${item.id || item.modele}`"
+                    type="button"
+                    class="vo-search-item"
+                    @mousedown.prevent="selectVehicleModele(item)"
+                  >
+                    <strong>{{ item.modele }}</strong>
+                    <span>{{ vehicleSuggestionLabel(item) }}</span>
+                  </button>
+                </div>
               </label>
               <label class="vo-field">
                 <span>Catégorie tarifaire</span>
@@ -455,6 +478,27 @@ const vehicleForm = reactive({
   mileage: '',
   couleur: '',
   datePremiereMiseEnCirculation: '',
+})
+
+const {
+  marqueSuggestions: vehicleMarqueSuggestions,
+  modeleSuggestions: vehicleModeleSuggestions,
+  onMarqueInput: onVehicleMarqueInput,
+  onModeleInput: onVehicleModeleInput,
+  selectMarque: selectVehicleMarque,
+  selectModele: selectVehicleModele,
+  deferHideMarqueSuggestions: hideVehicleMarqueSuggestions,
+  deferHideModeleSuggestions: hideVehicleModeleSuggestions,
+  suggestionLabel: vehicleSuggestionLabel,
+} = useMotoAutocomplete({
+  form: vehicleForm,
+  marqueKey: 'marque',
+  modeleKey: 'modele',
+  cylindreeKey: 'cylindree',
+  typeKey: 'typeMoto',
+  anneeKey: 'annee',
+  categorieKey: 'categorieId',
+  typeTransform: (value: string) => value.toLowerCase().includes('scooter') ? 'scooter' : 'moto',
 })
 const purchaseForm = reactive({
   purchasePrice: '',

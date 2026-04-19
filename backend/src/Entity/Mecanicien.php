@@ -30,11 +30,11 @@ class Mecanicien
 
     #[ORM\Column(length: 100)]
     #[Groups(['mecanicien:read', 'mecanicien:write', 'rdv:read', 'pont:read', 'absence:read'])]
-    private string $nom;
+    private string $nom = '';
 
     #[ORM\Column(length: 100)]
     #[Groups(['mecanicien:read', 'mecanicien:write', 'rdv:read', 'pont:read', 'absence:read'])]
-    private string $prenom;
+    private string $prenom = '';
 
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['mecanicien:read', 'mecanicien:write'])]
