@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 export const DEFAULT_FEATURE_MODULES: Record<string, boolean> = {
   dashboard: true,
   rdv: true,
+  rdv_siege: false,
   planning: true,
   workshop: true,
   suivi: true,

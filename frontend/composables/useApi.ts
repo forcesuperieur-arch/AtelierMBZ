@@ -50,13 +50,25 @@ export function useApi() {
       throw new Error('Invalid API path: object used instead of identifier')
     }
 
-    const res = await globalThis.fetch(url, {
-      credentials: 'include',
-      headers: buildHeaders(opts),
-      ...opts,
-    })
+    let res: Response
+    try {
+      res = await globalThis.fetch(url, {
+        credentials: 'include',
+        headers: buildHeaders(opts),
+        ...opts,
+      })
+    } catch (error: any) {
+      const isLocalCertIssue = /cert|certificate|failed to fetch|networkerror/i.test(String(error?.message || ''))
+        && /localhost/.test(url)
 
-    const isAuthEndpoint = /\/auth\/(login|refresh|google\/exchange)/.test(normalizedPath)
+      throw new Error(
+        isLocalCertIssue
+          ? 'Connexion API impossible : certificat local non approuvé sur https://localhost.'
+          : 'Connexion API impossible. Vérifiez que le serveur répond bien.'
+      )
+    }
+
+    const isAuthEndpoint = /\/auth(\/|$)/.test(normalizedPath)
 
     if (res.status === 401 && !isAuthEndpoint) {
       const refreshed = await refreshToken()
@@ -84,13 +96,17 @@ export function useApi() {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => '')
-      logApiIssue('error', 'Request failed', {
-        method,
-        path,
-        status: res.status,
-        body: previewBody(opts.body),
-        response: errorText.slice(0, 500),
-      })
+      const isExpectedVehicleMiss = method === 'GET' && res.status === 404 && /^\/vehicule\//.test(normalizedPath)
+
+      if (!(isAuthEndpoint && res.status === 401) && !isExpectedVehicleMiss) {
+        logApiIssue('error', 'Request failed', {
+          method,
+          path,
+          status: res.status,
+          body: previewBody(opts.body),
+          response: errorText.slice(0, 500),
+        })
+      }
       throw createApiError(res, errorText)
     }
 

@@ -229,7 +229,8 @@ class MecanicienController extends AbstractController
             }
 
             if (($essai->getDureeMinutes() ?? 0) <= 0) {
-                return $this->json(['error' => 'dureeMinutes obligatoire pour valider'], Response::HTTP_BAD_REQUEST);
+                $computedDuration = max(5, (int) ceil(max(0, ($essai->getKmFin() ?? 0) - ($essai->getKmDebut() ?? 0)) * 2));
+                $essai->setDureeMinutes($computedDuration > 0 ? $computedDuration : 10);
             }
 
             $checkpoints = $essai->getCheckpoints();

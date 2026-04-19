@@ -41,7 +41,7 @@ final class UserMecanicienSyncSubscriber
         $needsFlush = false;
 
         foreach ($this->queuedUsers as $user) {
-            if ($this->syncService->syncForUser($user) !== null) {
+            if ($this->syncService->syncForUser($user, false) !== null) {
                 $needsFlush = true;
             }
         }

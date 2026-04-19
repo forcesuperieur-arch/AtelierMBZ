@@ -109,7 +109,7 @@ x<template>
               <div class="form-label" style="margin-bottom:4px;">MODÈLE</div>
               <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
               <div v-if="modeleSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-height:150px;overflow-y:auto;">
-                <div v-for="s in modeleSuggestions" :key="s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ s }}</div>
+                <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
               </div>
             </div>
             <div>
@@ -385,6 +385,7 @@ const atelierOptions = ref<AtelierOption[]>([])
 const selectedAtelierId = ref<number | null>(authStore.user?.atelier_id ?? null)
 const selectedAtelier = computed(() => atelierOptions.value.find(atelier => atelier.id === selectedAtelierId.value) || null)
 const canSelectAtelier = computed(() => atelierOptions.value.length > 1)
+const canSwitchAtelierContext = computed(() => ((authStore.user?.roles || []) as string[]).some(role => role === 'ROLE_SUPER_ADMIN' || role === 'ROLE_SERVICE_CLIENT'))
 const atelierDisplayName = computed(() => {
   return selectedAtelier.value?.nom?.trim() || atelierStore.branding?.nom?.trim() || authStore.user?.atelier_nom?.trim() || 'Atelier Moto'
 })
@@ -404,7 +405,7 @@ const vehiculeFound = ref(false)
 const showManualVehicle = ref(false)
 const motoTypes = ['Roadster', 'Sportive', 'Trail', 'Custom', 'Scooter', 'Enduro']
 const marqueSuggestions = ref<string[]>([])
-const modeleSuggestions = ref<string[]>([])
+const modeleSuggestions = ref<any[]>([])
 const allMarques = ref<string[]>([])
 
 type SlotItem = {
@@ -590,7 +591,7 @@ function prestationMatchesVehicle(prestation: any) {
 
 async function loadAteliers() {
   try {
-    const data = await api.get('/ateliers').catch(() => null)
+    const data = await api.get('/auth/rdv-ateliers').catch(() => null)
     const items = extractCollection<AtelierOption>(data)
     atelierOptions.value = items
       .filter((atelier: any) => atelier?.actif !== false && atelier?.actif !== 0)
@@ -808,7 +809,9 @@ async function searchVehicule() {
 async function loadPrestations() {
   loadingPrestas.value = true
   try {
-    const data = await api.get('/prestations').catch(() => null)
+    const atelierId = selectedAtelierId.value ?? form.atelier_id ?? authStore.user?.atelier_id ?? null
+    const atelierParam = atelierId ? `?atelier_id=${atelierId}` : ''
+    const data = await api.get(`/prestations${atelierParam}`).catch(() => null)
     const items = extractCollection(data)
     prestations.value = items
       .map((p: any) => normalizePrestation(p))
@@ -850,8 +853,22 @@ function selectMarque(m: string) {
   modeleSuggestions.value = []
 }
 
-function selectModele(modele: string) {
-  form.vehicule_modele = modele
+function selectModele(modele: any) {
+  const item = typeof modele === 'string'
+    ? (modeleSuggestions.value.find((entry: any) => (entry?.modele || entry) === modele) ?? { modele })
+    : modele
+
+  form.vehicule_modele = item?.modele || ''
+  if (item?.marque && !form.vehicule_marque) form.vehicule_marque = item.marque
+  if ((item?.cylindree_min || item?.cylindree_display) && !form.vehicule_cylindree) {
+    form.vehicule_cylindree = item.cylindree_min || item.cylindree_display
+  }
+  if ((item?.annee_fin || item?.annee_debut) && !form.vehicule_annee) {
+    form.vehicule_annee = String(item.annee_fin || item.annee_debut)
+  }
+  if (item?.categorie_nom && !form.vehicule_type) {
+    form.vehicule_type = item.categorie_nom
+  }
   modeleSuggestions.value = []
 }
 
@@ -875,7 +892,7 @@ function onModeleInput() {
     if (q.length < 1 || !form.vehicule_marque) { modeleSuggestions.value = []; return }
     try {
       const data = await api.get(`/motos/autocomplete?marque=${encodeURIComponent(form.vehicule_marque)}&query=${encodeURIComponent(q)}&limit=10`)
-      modeleSuggestions.value = Array.isArray(data) ? data.map((d: any) => typeof d === 'string' ? d : d.modele || d.nom) : []
+      modeleSuggestions.value = Array.isArray(data) ? data : []
     } catch { modeleSuggestions.value = [] }
   }, 250)
 }
@@ -924,10 +941,32 @@ watch(dureeEstimee, (value, previousValue) => {
   }
 }, { immediate: true })
 
+async function syncAtelierContext(value: number | null) {
+  const resolvedAtelierId = value ?? authStore.user?.atelier_id ?? null
+  form.atelier_id = resolvedAtelierId
+
+  if (canSwitchAtelierContext.value && resolvedAtelierId) {
+    try {
+      await api.post('/auth/switch-atelier', { atelier_id: resolvedAtelierId })
+      const config = await api.get(`/config?atelier_id=${resolvedAtelierId}`).catch(() => null)
+      if (config) {
+        atelierStore.setConfig(config)
+      }
+    } catch (error: any) {
+      toast.add({
+        title: 'Atelier indisponible',
+        description: error?.message || 'Impossible de changer de contexte atelier.',
+        color: 'error',
+      })
+    }
+  }
+
+  if (step.value >= 2) await loadPrestations()
+  if (step.value >= 3) await loadCreneaux()
+}
+
 watch(selectedAtelierId, (value) => {
-  form.atelier_id = value ?? authStore.user?.atelier_id ?? null
-  if (step.value >= 2) loadPrestations()
-  if (step.value >= 3) loadCreneaux()
+  void syncAtelierContext(value)
 }, { immediate: true })
 
 watch(() => `${form.vehicule_type}|${form.vehicule_cylindree}`, () => {

@@ -156,7 +156,9 @@ export const useRdvStore = defineStore('rdv', {
 
     async createRdv(data: any) {
       const api = useApi()
-      const rdv = await api.post('/rendez-vous', data)
+      const atelierId = Number(data?.atelier_id ?? data?.atelierId ?? 0)
+      const suffix = atelierId > 0 ? `?atelier_id=${atelierId}` : ''
+      const rdv = await api.post(`/rendez-vous${suffix}`, data)
       const normalized = normalizeRdv(rdv)
       this.rdvs.unshift(normalized)
       return normalized

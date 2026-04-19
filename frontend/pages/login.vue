@@ -19,6 +19,7 @@
         v-model="email"
         type="email"
         placeholder="admin@atelier.local"
+        autocomplete="username"
         required
         autofocus
       />
@@ -26,6 +27,7 @@
         v-model="password"
         type="password"
         placeholder="Mot de passe"
+        autocomplete="current-password"
         required
       />
       <button type="submit" :disabled="loading || googleLoading">

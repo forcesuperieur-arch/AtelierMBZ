@@ -11,6 +11,7 @@ class CurrentAtelierResolver
     public function __construct(
         private Security $security,
         private RequestStack $requestStack,
+        private BookingAtelierAccessService $bookingAtelierAccess,
     ) {}
 
     public function resolveAtelierId(): ?int
@@ -20,17 +21,29 @@ class CurrentAtelierResolver
             return null;
         }
 
-        if ($this->isSuperAdmin($user)) {
-            $selectedAtelierId = $this->requestStack->getCurrentRequest()?->cookies->get('active_atelier_id');
-            if (is_string($selectedAtelierId) && ctype_digit($selectedAtelierId)) {
-                $atelierId = (int) $selectedAtelierId;
-                if ($atelierId > 0) {
-                    return $atelierId;
+        $request = $this->requestStack->getCurrentRequest();
+        $bodyAtelierId = null;
+
+        if ($request) {
+            $contentType = strtolower((string) $request->headers->get('Content-Type', ''));
+            if (str_contains($contentType, 'json')) {
+                $payload = json_decode($request->getContent(), true);
+                if (is_array($payload)) {
+                    $bodyAtelierId = $payload['atelier_id'] ?? $payload['atelierId'] ?? null;
                 }
             }
         }
 
-        $atelierId = $user->getAtelierId();
+        $requestedValue = $request?->query->get('atelier_id')
+            ?? $request?->request->get('atelier_id')
+            ?? $bodyAtelierId
+            ?? $request?->cookies->get('active_atelier_id');
+
+        $requestedAtelierId = is_scalar($requestedValue) && ctype_digit((string) $requestedValue)
+            ? (int) $requestedValue
+            : null;
+
+        $atelierId = $this->bookingAtelierAccess->resolvePreferredAtelierId($user, $requestedAtelierId);
 
         return $atelierId && $atelierId > 0 ? $atelierId : null;
     }
@@ -38,10 +51,5 @@ class CurrentAtelierResolver
     public function isGlobalScopeRequested(): bool
     {
         return false;
-    }
-
-    private function isSuperAdmin(User $user): bool
-    {
-        return in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true);
     }
 }

@@ -57,9 +57,8 @@
         </div>
         <span class="topbar-title">{{ currentSection }}</span>
         <div class="topbar-spacer" />
-        <!-- LOT 6.7 : SuperAdmin atelier switch -->
-        <div v-if="isSuperAdmin" class="topbar-atelier-switch">
-          <span style="font-size:11px;color:#FCD34D;font-weight:700;">SA</span>
+        <div v-if="canSwitchAtelierContext" class="topbar-atelier-switch">
+          <span style="font-size:11px;color:#FCD34D;font-weight:700;">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
           <select v-model="activeAtelierChoice" @change="onSwitchAtelier" style="background:#1a1d26;color:#E8E9ED;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;font-size:12px;">
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
@@ -189,11 +188,12 @@ const menuItems = computed(() => {
   return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
 })
 
-// ── LOT 6.7 : SuperAdmin atelier switch ──
 const api = useApi()
 const toast = useToast()
 const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
 const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
+const isServiceClient = computed(() => (auth.user.value?.roles || []).includes('ROLE_SERVICE_CLIENT'))
+const canSwitchAtelierContext = computed(() => isSuperAdmin.value || isServiceClient.value)
 
 function normalizeAtelierChoice(value: any): string {
   const normalized = String(value ?? '').trim()
@@ -205,9 +205,9 @@ const ateliersList = ref<any[]>([])
 const activeAtelierChoice = ref<any>(normalizeAtelierChoice(activeAtelierCookie.value) || userDefaultAtelierChoice.value || '')
 
 async function loadAteliers() {
-  if (!isSuperAdmin.value) return
+  if (!canSwitchAtelierContext.value) return
   try {
-    const res = await api.get('/ateliers')
+    const res = await api.get('/auth/rdv-ateliers')
     ateliersList.value = Array.isArray(res) ? res : (res?.member || res?.['hydra:member'] || [])
 
     const validChoices = new Set(
@@ -250,9 +250,9 @@ async function onSwitchAtelier() {
   }
 }
 
-watch(isSuperAdmin, (v) => { if (v) loadAteliers() }, { immediate: true })
-watch([activeAtelierCookie, userDefaultAtelierChoice, isSuperAdmin], ([cookieValue, defaultValue, superAdmin]) => {
-  if (!superAdmin) return
+watch(canSwitchAtelierContext, (enabled) => { if (enabled) loadAteliers() }, { immediate: true })
+watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], ([cookieValue, defaultValue, canSwitch]) => {
+  if (!canSwitch) return
   activeAtelierChoice.value = normalizeAtelierChoice(cookieValue) || normalizeAtelierChoice(defaultValue) || normalizeAtelierChoice(ateliersList.value[0]?.id) || ''
 }, { immediate: true })
 </script>

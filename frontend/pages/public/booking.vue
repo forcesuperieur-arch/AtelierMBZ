@@ -25,8 +25,38 @@
       <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
         <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:12px;">2. Votre moto</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <UFormField label="Marque"><UInput v-model="form.vehicule_marque" required /></UFormField>
-          <UFormField label="Modèle"><UInput v-model="form.vehicule_modele" required /></UFormField>
+          <UFormField label="Marque">
+            <div>
+              <UInput v-model="form.vehicule_marque" required @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
+              <div v-if="marqueSuggestions.length" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+                <button
+                  v-for="item in marqueSuggestions"
+                  :key="`booking-brand-${item}`"
+                  type="button"
+                  style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                  @mousedown.prevent="selectMarque(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+            </div>
+          </UFormField>
+          <UFormField label="Modèle">
+            <div>
+              <UInput v-model="form.vehicule_modele" required @input="onModeleInput" @blur="deferHideModeleSuggestions" />
+              <div v-if="modeleSuggestions.length" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+                <button
+                  v-for="item in modeleSuggestions"
+                  :key="`booking-model-${item.id || item.modele}`"
+                  type="button"
+                  style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                  @mousedown.prevent="selectModele(item)"
+                >
+                  {{ suggestionLabel(item) }}
+                </button>
+              </div>
+            </div>
+          </UFormField>
           <UFormField label="Plaque"><UInput v-model="form.vehicule_plaque" required @blur="form.vehicule_plaque = form.vehicule_plaque.toUpperCase()" /></UFormField>
           <UFormField label="Type d'intervention">
             <USelect v-model="form.type_intervention" :options="typeOptions" />
@@ -211,6 +241,22 @@ const form = reactive({
   vehicule_marque: '', vehicule_modele: '', vehicule_plaque: '',
   type_intervention: 'entretien', date_rdv: minDate, heure_debut: '',
   description_probleme: '',
+})
+
+const {
+  marqueSuggestions,
+  modeleSuggestions,
+  onMarqueInput,
+  onModeleInput,
+  selectMarque,
+  selectModele,
+  deferHideMarqueSuggestions,
+  deferHideModeleSuggestions,
+  suggestionLabel,
+} = useMotoAutocomplete({
+  form,
+  marqueKey: 'vehicule_marque',
+  modeleKey: 'vehicule_modele',
 })
 
 const typeOptions = [

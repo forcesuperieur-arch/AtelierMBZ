@@ -8,6 +8,11 @@ export interface OcrComparison {
   canUseBase: boolean
 }
 
+export interface OcrImagePickResult {
+  file: File | null
+  warning: string
+}
+
 export const ocrFields: Array<{ key: OcrFieldKey; label: string }> = [
   { key: 'plaque', label: 'Plaque (A)' },
   { key: 'marque', label: 'Marque (D.1)' },
@@ -197,6 +202,37 @@ function createFallbackOcrResult(baseVehicule: Record<string, any> | null | unde
   }
 }
 
+let ocrWorkerPromise: Promise<any> | null = null
+
+async function getOcrWorker() {
+  if (!ocrWorkerPromise) {
+    ocrWorkerPromise = import('tesseract.js')
+      .then(({ createWorker }) => createWorker(['fra', 'nld', 'eng']))
+      .catch((error) => {
+        ocrWorkerPromise = null
+        throw error
+      })
+  }
+
+  return ocrWorkerPromise
+}
+
+function pickOcrImageFile(files: File[]): OcrImagePickResult {
+  const firstImage = files.find(file => file.type.startsWith('image/')) || null
+  if (firstImage) {
+    return { file: firstImage, warning: '' }
+  }
+
+  if (!files.length) {
+    return { file: null, warning: '' }
+  }
+
+  return {
+    file: null,
+    warning: 'L OCR carte grise fonctionne uniquement avec une photo prise depuis le PDA. Un PDF peut etre archive, mais il ne pre-remplit pas les champs vehicule.',
+  }
+}
+
 export function useCarteGriseOcr() {
   async function normalizeImage(file: File): Promise<File> {
     if (!file.type.startsWith('image/')) return file
@@ -345,14 +381,14 @@ export function useCarteGriseOcr() {
   }
 
   async function recognizeCarteGrise(file: File, baseVehicule: Record<string, any> | null | undefined = {}): Promise<CarteGriseOcrResult> {
-    const { createWorker } = await import('tesseract.js')
-    const worker = await createWorker('fra+nld+eng')
+    const worker = await getOcrWorker()
 
     try {
       const { data: { text } } = await worker.recognize(file)
       return parseCarteGriseText(text, baseVehicule)
-    } finally {
-      await worker.terminate()
+    } catch (error) {
+      ocrWorkerPromise = null
+      throw error
     }
   }
 
@@ -398,6 +434,7 @@ export function useCarteGriseOcr() {
     normalizeImage,
     compareOcrField,
     parseCarteGriseText,
+    pickOcrImageFile,
     recognizeCarteGrise,
     summarizeOcrComparison,
     toVehicleUpdatePayload,

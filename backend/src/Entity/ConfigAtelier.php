@@ -30,6 +30,7 @@ class ConfigAtelier
     #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private array $featureModules = [
         'dashboard' => true,
         'rdv' => true,
+        'rdv_siege' => false,
         'planning' => true,
         'workshop' => true,
         'suivi' => true,
@@ -86,6 +87,7 @@ class ConfigAtelier
         return [
             'dashboard' => true,
             'rdv' => true,
+            'rdv_siege' => false,
             'planning' => true,
             'workshop' => true,
             'suivi' => true,

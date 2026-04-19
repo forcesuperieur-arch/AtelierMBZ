@@ -1,1 +1,0 @@
-import{a9 as u,s as t}from"./DRNHc48H.js";const e=Symbol("nuxt-ui.button-group");function r(n){const o=u(e,void 0);return{orientation:t(()=>o?.value.orientation),size:t(()=>n?.size??o?.value.size)}}export{r as u};

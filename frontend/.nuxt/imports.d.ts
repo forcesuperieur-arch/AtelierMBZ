@@ -32,8 +32,9 @@ export { definePageMeta } from '../node_modules/nuxt/dist/pages/runtime/composab
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useApi } from '../composables/useApi';
 export { useAuth } from '../composables/useAuth';
-export { ocrFields, useCarteGriseOcr, OcrFieldKey, CarteGriseOcrResult, OcrComparison } from '../composables/useCarteGriseOcr';
+export { ocrFields, useCarteGriseOcr, OcrFieldKey, CarteGriseOcrResult, OcrComparison, OcrImagePickResult } from '../composables/useCarteGriseOcr';
 export { useFormat } from '../composables/useFormat';
+export { useMotoAutocomplete } from '../composables/useMotoAutocomplete';
 export { useNotifications } from '../composables/useNotifications';
 export { useVoHelpers } from '../composables/useVoHelpers';
 export { syncDraftField, syncDraftBoolean, adoptDraftEntity, DraftSyncMemory } from '../composables/voCompanionDraftSync';

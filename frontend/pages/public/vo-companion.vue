@@ -61,7 +61,7 @@
           <div class="vo-public-section-head">
             <div>
               <h2>{{ roleLabel }}</h2>
-              <p>Scanne la pièce d'identité puis complète les références relevées sur le document.</p>
+              <p>Scanne la pièce d'identité et, si besoin, le justificatif de domicile. Les infos utiles sont retranscrites dans le dossier.</p>
             </div>
             <div class="vo-public-state" :class="payload.steps.seller.completed ? 'is-done' : 'is-pending'">
               {{ payload.steps.seller.completed ? 'Étape validée' : 'Étape à compléter' }}
@@ -83,14 +83,26 @@
             </label>
           </div>
 
-          <label class="vo-public-upload-box">
-            <strong>Pièce d'identité</strong>
-            <span>Ajoute une ou plusieurs photos ou un PDF du document.</span>
-            <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onSellerFilesChange">
-          </label>
+          <div class="vo-public-upload-grid">
+            <label class="vo-public-upload-box">
+              <strong>Pièce d'identité</strong>
+              <span>Ajoute une ou plusieurs photos ou un PDF du document.</span>
+              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onSellerFilesChange">
+            </label>
 
-          <div v-if="sellerFiles.length" class="vo-public-file-list">
-            <span v-for="file in sellerFiles" :key="file.name + file.size">{{ file.name }}</span>
+            <label class="vo-public-upload-box">
+              <strong>Justificatif de domicile</strong>
+              <span>Facultatif selon le dossier. Photo ou PDF accepté.</span>
+              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onDomicileFilesChange">
+            </label>
+          </div>
+
+          <div v-if="sellerFiles.length || domicileFiles.length" class="vo-public-file-list">
+            <span v-for="file in [...sellerFiles, ...domicileFiles]" :key="file.name + file.size">{{ file.name }}</span>
+          </div>
+
+          <div class="vo-public-alert is-warning">
+            Pièce d'identité et justificatif servent uniquement à la retranscription légale du dossier.
           </div>
 
           <div v-if="sellerDocuments.length" class="vo-public-doc-grid">
@@ -120,8 +132,8 @@
           <div class="vo-public-upload-grid">
             <label class="vo-public-upload-box">
               <strong>Carte grise</strong>
-              <span>Le premier fichier image est utilisé pour l'OCR carte grise.</span>
-              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onVehicleDocumentChange">
+              <span>Prends une photo depuis le PDA pour lancer l'OCR et préremplir le véhicule.</span>
+              <input type="file" multiple accept="image/*" capture="environment" :disabled="isSigned" @change="onVehicleDocumentChange">
             </label>
 
             <label class="vo-public-upload-box">
@@ -273,6 +285,7 @@ const {
   ocrFields,
   normalizeImage,
   compareOcrField,
+  pickOcrImageFile,
   recognizeCarteGrise,
   summarizeOcrComparison,
   toVehicleUpdatePayload,
@@ -287,6 +300,7 @@ const ocrNotice = ref<{ tone: 'warning' | 'success' | 'neutral'; message: string
 const busy = reactive({ seller: false, vehicle: false, documents: false, signature: false })
 
 const sellerFiles = ref<File[]>([])
+const domicileFiles = ref<File[]>([])
 const vehicleDocumentFiles = ref<File[]>([])
 const vehiclePhotoFiles = ref<File[]>([])
 const extraFiles = ref<File[]>([])
@@ -338,11 +352,11 @@ const vehicleLine = computed(() => {
 
 const uploadedDocuments = computed(() => payload.value?.documents || [])
 
-const sellerDocuments = computed(() => uploadedDocuments.value.filter((document: any) => document.type === 'piece_identite'))
+const sellerDocuments = computed(() => uploadedDocuments.value.filter((document: any) => ['piece_identite', 'justificatif_domicile'].includes(document.type)))
 
 const vehicleDocuments = computed(() => uploadedDocuments.value.filter((document: any) => ['carte_grise', 'photo_vehicule'].includes(document.type)))
 
-const extraDocuments = computed(() => uploadedDocuments.value.filter((document: any) => !['piece_identite', 'carte_grise', 'photo_vehicule', 'signature_client'].includes(document.type)))
+const extraDocuments = computed(() => uploadedDocuments.value.filter((document: any) => !['piece_identite', 'justificatif_domicile', 'carte_grise', 'photo_vehicule', 'signature_client'].includes(document.type)))
 
 const documentTypeOptions = computed(() => {
   const required = payload.value?.steps?.documents?.required || []
@@ -435,15 +449,22 @@ function onSellerFilesChange(event: Event) {
   sellerFiles.value = extractFiles(event)
 }
 
+function onDomicileFilesChange(event: Event) {
+  domicileFiles.value = extractFiles(event)
+}
+
 async function onVehicleDocumentChange(event: Event) {
   vehicleDocumentFiles.value = extractFiles(event)
   ocrNotice.value = null
 
-  const firstImage = vehicleDocumentFiles.value.find(file => file.type.startsWith('image/'))
-  if (!firstImage) return
+  const { file: ocrFile, warning } = pickOcrImageFile(vehicleDocumentFiles.value)
+  if (warning) {
+    ocrNotice.value = { tone: 'warning', message: warning }
+  }
+  if (!ocrFile) return
 
   try {
-    const normalized = await normalizeImage(firstImage)
+    const normalized = await normalizeImage(ocrFile)
     const ocrResult = await recognizeCarteGrise(normalized, payload.value?.vehicule || {})
     Object.assign(vehicleForm, ocrResult)
     ocrNotice.value = summarizeOcrComparison(ocrResult, payload.value?.vehicule || {})
@@ -490,12 +511,24 @@ async function saveSellerStep() {
     if (sellerForm.idDate) formData.append('idDate', sellerForm.idDate)
     sellerFiles.value.forEach(file => formData.append('files[]', file))
 
-    const result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/seller`, {
+    let result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/seller`, {
       method: 'POST',
       body: formData,
     })
 
+    if (domicileFiles.value.length) {
+      const domicileData = new FormData()
+      domicileData.append('type', 'justificatif_domicile')
+      domicileFiles.value.forEach(file => domicileData.append('files[]', file))
+
+      result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/document`, {
+        method: 'POST',
+        body: domicileData,
+      })
+    }
+
     sellerFiles.value = []
+    domicileFiles.value = []
     applyPayload(result)
     toast.add({ title: `${roleLabel.value} validé`, color: 'success' })
   } catch (error: any) {

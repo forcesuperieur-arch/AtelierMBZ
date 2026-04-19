@@ -481,6 +481,7 @@ class VODocumentService
             VODocument::TYPE_NON_GAGE => 'certificat de situation administrative',
             VODocument::TYPE_CONTROLE_TECHNIQUE => 'contrôle technique',
             VODocument::TYPE_PIECE_IDENTITE => 'pièce d’identité',
+            VODocument::TYPE_JUSTIFICATIF_DOMICILE => 'justificatif de domicile',
             VODocument::TYPE_CONTRAT_DEPOT_VENTE => 'contrat dépôt-vente',
             VODocument::TYPE_DA_SIV => 'DA SIV',
             VODocument::TYPE_RECEPISSE_DA => 'récépissé DA',
