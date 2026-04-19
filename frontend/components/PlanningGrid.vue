@@ -158,9 +158,32 @@ const openDayIndexes = computed(() => {
     .sort((a: number, b: number) => a - b)
 })
 
+const rdvDayIndexesInWeek = computed(() => {
+  const start = new Date(weekStart.value)
+  const end = new Date(weekStart.value)
+  end.setDate(end.getDate() + 6)
+
+  const indexes = new Set<number>()
+  for (const rdv of props.rdvs || []) {
+    const rawDate = String(rdv?.date_rdv || '')
+    if (!rawDate) continue
+    const date = new Date(`${rawDate}T00:00:00`)
+    if (Number.isNaN(date.getTime()) || date < start || date > end) continue
+    const jsDay = date.getDay()
+    indexes.add(jsDay === 0 ? 6 : jsDay - 1)
+  }
+
+  return Array.from(indexes).sort((a, b) => a - b)
+})
+
+const displayedDayIndexes = computed(() => {
+  const merged = new Set<number>([...openDayIndexes.value, ...rdvDayIndexesInWeek.value])
+  return Array.from(merged).sort((a, b) => a - b)
+})
+
 const weekDays = computed(() => {
   const today = new Date().toISOString().slice(0, 10)
-  return openDayIndexes.value.map((index: number) => {
+  return displayedDayIndexes.value.map((index: number) => {
     const d = new Date(weekStart.value)
     d.setDate(d.getDate() + index)
     const date = d.toISOString().slice(0, 10)
@@ -174,13 +197,28 @@ const weekDays = computed(() => {
   })
 })
 
+const visibleWeekRdvRanges = computed(() => {
+  const visibleDates = new Set(weekDays.value.map((day: any) => day.date))
+  return (props.rdvs || [])
+    .filter((rdv: any) => visibleDates.has(String(rdv?.date_rdv || '')))
+    .map((rdv: any) => {
+      const start = timeToMinutes(rdv?.heure_debut)
+      const duration = Number(rdv?.duree_estimee || rdv?.temps_estime || 60)
+      return { start, end: start + Math.max(15, duration) }
+    })
+    .filter((range: any) => Number.isFinite(range.start) && Number.isFinite(range.end))
+})
+
 const startMinutes = computed(() => {
   const values = (Array.from(horaireMap.value.values()) as any[])
     .filter((horaire: any) => Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) === 1)
     .map((horaire: any) => timeToMinutes(horaire.heure_ouverture ?? horaire.heureOuverture ?? `${String(DEFAULT_START_HOUR).padStart(2, '0')}:00`))
     .filter((value: number) => Number.isFinite(value))
 
-  return values.length ? Math.min(...values) : DEFAULT_START_HOUR * 60
+  const rdvStarts = visibleWeekRdvRanges.value.map((range: any) => Math.max(0, range.start - (TIME_STEP_MINUTES * 2)))
+  const minValue = [...values, ...rdvStarts]
+  const resolved = minValue.length ? Math.min(...minValue) : DEFAULT_START_HOUR * 60
+  return Math.floor(resolved / TIME_STEP_MINUTES) * TIME_STEP_MINUTES
 })
 
 const endMinutes = computed(() => {
@@ -189,7 +227,10 @@ const endMinutes = computed(() => {
     .map((horaire: any) => timeToMinutes(horaire.heure_fermeture ?? horaire.heureFermeture ?? `${String(DEFAULT_END_HOUR).padStart(2, '0')}:00`))
     .filter((value: number) => Number.isFinite(value))
 
-  return values.length ? Math.max(...values) : DEFAULT_END_HOUR * 60
+  const rdvEnds = visibleWeekRdvRanges.value.map((range: any) => range.end + (TIME_STEP_MINUTES * 2))
+  const maxValue = [...values, ...rdvEnds]
+  const resolved = maxValue.length ? Math.max(...maxValue) : DEFAULT_END_HOUR * 60
+  return Math.ceil(resolved / TIME_STEP_MINUTES) * TIME_STEP_MINUTES
 })
 
 const timeSlots = computed(() => {

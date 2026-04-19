@@ -85,6 +85,17 @@ export function useAuth() {
     return permissions.includes(perm)
   }
 
+  function hasStatsAccess(): boolean {
+    const roles = store.user?.roles ?? []
+    const legacyRole = String(store.user?.role || '').trim().toLowerCase()
+    const roleMetierCode = String(store.user?.role_metier?.code || '').trim().toLowerCase()
+
+    if (roles.includes('ROLE_SUPER_ADMIN') || legacyRole === 'super_admin') return true
+    if (['responsable_atelier', 'responsable_magasin'].includes(roleMetierCode)) return true
+
+    return (roles.includes('ROLE_ADMIN') || legacyRole === 'admin') && !roleMetierCode
+  }
+
   function getAccessStatus(): string {
     return String(store.user?.access_status || 'active')
   }
@@ -108,6 +119,7 @@ export function useAuth() {
     fetchMe,
     hasSection,
     hasPerm,
+    hasStatsAccess,
     getAccessStatus,
     isPendingValidation,
     needsAtelierAssignment,

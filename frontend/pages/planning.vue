@@ -444,6 +444,8 @@
 const api = useApi()
 const toast = useToast()
 const rdvStore = useRdvStore()
+const route = useRoute()
+const router = useRouter()
 const { hasPerm } = useAuth()
 
 const loading = ref(true)
@@ -736,7 +738,7 @@ const normalizedRdvs = computed(() => rawRdvs.value.map(normalizeRdv).filter(Boo
 const activePlanningRdvs = computed(() => {
   const active = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
   if (!activeMecas.value.length) return active
-  return active.filter((rdv: any) => activeMecas.value.includes(rdv.mecanicien_id))
+  return active.filter((rdv: any) => !rdv.mecanicien_id || activeMecas.value.includes(rdv.mecanicien_id))
 })
 
 const historicalRdvs = computed(() => {
@@ -758,7 +760,7 @@ const hourRangeLabel = computed(() => {
 })
 
 const kpis = computed(() => {
-  const rdvs = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
+  const rdvs = activePlanningRdvs.value
   const today = new Date().toISOString().slice(0, 10)
   const todayRdvs = rdvs.filter((rdv: any) => rdv.date_rdv === today)
   const enCours = todayRdvs.filter((rdv: any) => rdv.status === 'en_cours').length
@@ -857,7 +859,7 @@ function hydrateEditForms(rdv: any) {
   receptionForm.etat_vehicule = rdv.etat_vehicule || rdv.etatVehicule || ''
 }
 
-function resetQuickForm(prefill?: { date?: string; time?: string }) {
+function resetQuickForm(prefill?: { date?: string; time?: string; pontId?: number | null }) {
   quickForm.date_rdv = prefill?.date || new Date().toISOString().slice(0, 10)
   quickForm.heure_debut = prefill?.time || '10:00'
   quickForm.client_id = null
@@ -873,7 +875,7 @@ function resetQuickForm(prefill?: { date?: string; time?: string }) {
   quickForm.type_intervention = ''
   quickForm.commentaire = ''
   quickForm.mecanicien_id = null
-  quickForm.pont_id = null
+  quickForm.pont_id = prefill?.pontId ?? null
   quickSelectedPrestas.value = []
   quickClientSearch.value = ''
   quickClientResults.value = []
@@ -882,9 +884,27 @@ function resetQuickForm(prefill?: { date?: string; time?: string }) {
   quickVehicleFound.value = false
 }
 
-function openQuickCreate(prefill?: { date?: string; time?: string }) {
+function openQuickCreate(prefill?: { date?: string; time?: string; pontId?: number | null }) {
   resetQuickForm(prefill)
+  syncMecanicienFromPont(quickForm)
   showQuickCreateModal.value = true
+}
+
+function consumeWorkshopQuickCreateQuery() {
+  if (String(route.query.create ?? '') !== '1') return
+
+  openQuickCreate({
+    date: normalizeDateValue(route.query.date) || new Date().toISOString().slice(0, 10),
+    time: normalizeTimeValue(route.query.time) || '10:00',
+    pontId: toNullableNumber(route.query.pontId),
+  })
+
+  const nextQuery = { ...route.query }
+  delete nextQuery.create
+  delete nextQuery.date
+  delete nextQuery.time
+  delete nextQuery.pontId
+  router.replace({ query: nextQuery }).catch(() => {})
 }
 
 let quickClientSearchTimeout: ReturnType<typeof setTimeout>
@@ -1273,6 +1293,7 @@ watch(isReceptionEligible, (eligible) => {
 onMounted(async () => {
   try {
     await loadPlanningData()
+    consumeWorkshopQuickCreateQuery()
   } finally {
     loading.value = false
   }

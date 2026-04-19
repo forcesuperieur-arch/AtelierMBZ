@@ -23,59 +23,323 @@ class StatistiquesController extends AbstractController
     #[Route('/dashboard', methods: ['GET'])]
     public function dashboard(Request $request): JsonResponse
     {
+        $this->assertStatsAccess();
+
         $user = $this->getUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 
-        // Today's RDVs count
-        $today = (new \DateTime())->format('Y-m-d');
+        [$fromDate, $toDate, $periodKey] = $this->resolveDateRange($request);
+        $from = $fromDate->format('Y-m-d');
+        $to = $toDate->format('Y-m-d');
+        $days = max(1, (int) $fromDate->diff($toDate)->days + 1);
+        $prevFromDate = $fromDate->modify(sprintf('-%d days', $days));
+        $prevToDate = $fromDate->modify('-1 day');
+        $prevFrom = $prevFromDate->format('Y-m-d');
+        $prevTo = $prevToDate->format('Y-m-d');
+
+        $today = (new \DateTimeImmutable('today'))->format('Y-m-d');
+        $weekStart = (new \DateTimeImmutable('monday this week'))->format('Y-m-d');
+        $weekEnd = (new \DateTimeImmutable('sunday this week'))->format('Y-m-d');
+        $monthStart = (new \DateTimeImmutable('first day of this month'))->format('Y-m-d');
+        $monthEnd = (new \DateTimeImmutable('last day of this month'))->format('Y-m-d');
+
         $rdvsToday = $conn->fetchOne(
             'SELECT COUNT(*) FROM rendez_vous WHERE date_rdv = :date AND atelier_id = :a AND statut != :s',
             ['date' => $today, 'a' => $atelierId, 's' => 'annule']
         );
 
-        // Week's RDVs count
-        $weekStart = (new \DateTime('monday this week'))->format('Y-m-d');
-        $weekEnd = (new \DateTime('sunday this week'))->format('Y-m-d');
         $rdvsWeek = $conn->fetchOne(
             'SELECT COUNT(*) FROM rendez_vous WHERE date_rdv BETWEEN :s AND :e AND atelier_id = :a AND statut != :st',
             ['s' => $weekStart, 'e' => $weekEnd, 'a' => $atelierId, 'st' => 'annule']
         );
 
-        // Month's CA (Chiffre d'Affaires)
-        $monthStart = (new \DateTime('first day of this month'))->format('Y-m-d');
-        $monthEnd = (new \DateTime('last day of this month'))->format('Y-m-d');
         $caMonth = $conn->fetchOne(
-            'SELECT COALESCE(SUM(total_ttc), 0) FROM factures WHERE date_creation BETWEEN :s AND :e AND atelier_id = :a AND statut != :st',
+            "SELECT COALESCE(SUM(total_ttc), 0) FROM factures WHERE DATE(date_creation) BETWEEN :s AND :e AND atelier_id = :a AND statut != :st",
             ['s' => $monthStart, 'e' => $monthEnd, 'a' => $atelierId, 'st' => 'annulee']
         );
 
-        // Unpaid invoices
         $impayees = $conn->fetchOne(
             'SELECT COUNT(*) FROM factures WHERE statut IN (:s1, :s2) AND atelier_id = :a',
             ['s1' => 'emise', 's2' => 'partiellement_payee', 'a' => $atelierId]
         );
 
-        // Active RDVs by status
         $activeByStatus = $conn->fetchAllAssociative(
-            'SELECT statut, COUNT(*) as count FROM rendez_vous WHERE date_rdv >= :d AND atelier_id = :a GROUP BY statut',
-            ['d' => $today, 'a' => $atelierId]
+            'SELECT statut, COUNT(*) as count FROM rendez_vous WHERE date_rdv BETWEEN :s AND :e AND atelier_id = :a GROUP BY statut',
+            ['s' => $from, 'e' => $to, 'a' => $atelierId]
         );
 
-        // Stock alerts (low stock pieces)
         $stockAlerts = $conn->fetchOne(
             'SELECT COUNT(*) FROM pieces_detachees WHERE quantite_stock <= quantite_minimale AND is_active = 1 AND atelier_id = :a',
             ['a' => $atelierId]
         );
 
+        $orOuverts = $conn->fetchOne(
+            "SELECT COUNT(o.id)
+             FROM ordres_reparation o
+             INNER JOIN rendez_vous r ON r.id = o.rendez_vous_id
+             WHERE r.atelier_id = :a
+               AND o.statut NOT IN ('termine', 'execute', 'rectifie')",
+            ['a' => $atelierId]
+        );
+
+        $restitutions = $conn->fetchOne(
+            "SELECT COUNT(*)
+             FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut IN ('termine', 'restitue', 'facture', 'paye')",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId]
+        );
+
+        $rdvsEnCours = $conn->fetchOne(
+            "SELECT COUNT(*)
+             FROM rendez_vous
+             WHERE atelier_id = :a
+               AND statut IN ('reception', 'en_cours')",
+            ['a' => $atelierId]
+        );
+
+        $plannedMinutesToday = $conn->fetchOne(
+            "SELECT COALESCE(SUM(COALESCE(temps_estime, 60)), 0)
+             FROM rendez_vous
+             WHERE date_rdv = :date
+               AND atelier_id = :a
+               AND statut != :st",
+            ['date' => $today, 'a' => $atelierId, 'st' => 'annule']
+        );
+
+        $rdvsPeriod = (int) $conn->fetchOne(
+            'SELECT COUNT(*) FROM rendez_vous WHERE date_rdv BETWEEN :s AND :e AND atelier_id = :a AND statut != :st',
+            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annule']
+        );
+        $rdvsPrev = (int) $conn->fetchOne(
+            'SELECT COUNT(*) FROM rendez_vous WHERE date_rdv BETWEEN :s AND :e AND atelier_id = :a AND statut != :st',
+            ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId, 'st' => 'annule']
+        );
+
+        $plannedMinutes = (int) $conn->fetchOne(
+            "SELECT COALESCE(SUM(COALESCE(temps_estime, 60)), 0)
+             FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annule']
+        );
+        $plannedMinutesPrev = (int) $conn->fetchOne(
+            "SELECT COALESCE(SUM(COALESCE(temps_estime, 60)), 0)
+             FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st",
+            ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId, 'st' => 'annule']
+        );
+
+        $completedCurrent = (int) $conn->fetchOne(
+            "SELECT COUNT(*) FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut IN ('termine', 'restitue', 'facture', 'paye')",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId]
+        );
+        $completedPrev = (int) $conn->fetchOne(
+            "SELECT COUNT(*) FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut IN ('termine', 'restitue', 'facture', 'paye')",
+            ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId]
+        );
+
+        $activePonts = (int) $conn->fetchOne(
+            'SELECT COUNT(*) FROM ponts WHERE atelier_id = :a AND is_active = 1',
+            ['a' => $atelierId]
+        );
+        $occupationCurrent = $activePonts > 0 ? min(100, round($plannedMinutes / max(1, $activePonts * $days * 480) * 100)) : 0;
+        $occupationPrev = $activePonts > 0 ? min(100, round($plannedMinutesPrev / max(1, $activePonts * $days * 480) * 100)) : 0;
+
+        $revenueMix = $conn->fetchAssociative(
+            "SELECT COALESCE(SUM(total_mo_ht), 0) AS mo_ht,
+                    COALESCE(SUM(total_pieces_ht), 0) AS pieces_ht,
+                    COALESCE(SUM(total_ht), 0) AS total_ht,
+                    COALESCE(SUM(total_ttc), 0) AS total_ttc,
+                    COUNT(*) AS nb_factures
+             FROM factures
+             WHERE DATE(date_creation) BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annulee']
+        ) ?: [];
+
+        $caPeriod = (float) ($revenueMix['total_ttc'] ?? 0);
+        $nbFactures = (int) ($revenueMix['nb_factures'] ?? 0);
+
+        $revenueMixPrev = $conn->fetchAssociative(
+            "SELECT COALESCE(SUM(total_ttc), 0) AS total_ttc,
+                    COUNT(*) AS nb_factures
+             FROM factures
+             WHERE DATE(date_creation) BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st",
+            ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId, 'st' => 'annulee']
+        ) ?: [];
+
+        $caPrev = (float) ($revenueMixPrev['total_ttc'] ?? 0);
+        $nbFacturesPrev = (int) ($revenueMixPrev['nb_factures'] ?? 0);
+
+        $avgTicket = $nbFactures > 0 ? round($caPeriod / $nbFactures, 2) : 0.0;
+        $avgTicketPrev = $nbFacturesPrev > 0 ? round($caPrev / $nbFacturesPrev, 2) : 0.0;
+
+        $topServices = $conn->fetchAllAssociative(
+            "SELECT COALESCE(NULLIF(type_intervention, ''), 'Atelier') AS label,
+                    COUNT(*) AS count,
+                    COALESCE(SUM(COALESCE(temps_estime, 60)), 0) AS minutes,
+                    COALESCE(SUM(COALESCE(prix_final, prix_estime, 0)), 0) AS revenue
+             FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st
+             GROUP BY COALESCE(NULLIF(type_intervention, ''), 'Atelier')
+             ORDER BY revenue DESC, count DESC, minutes DESC
+             LIMIT 8",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annule']
+        );
+
+        $trendRows = $conn->fetchAllAssociative(
+            "SELECT TO_CHAR(date_rdv, 'YYYY-MM-DD') AS day,
+                    COUNT(*) AS rdvs,
+                    COALESCE(SUM(COALESCE(prix_final, prix_estime, 0)), 0) AS revenue,
+                    COALESCE(SUM(COALESCE(temps_estime, 60)), 0) AS minutes
+             FROM rendez_vous
+             WHERE date_rdv BETWEEN :s AND :e
+               AND atelier_id = :a
+               AND statut != :st
+             GROUP BY date_rdv
+             ORDER BY date_rdv ASC",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annule']
+        );
+
+        $trendByDay = [];
+        foreach ($trendRows as $row) {
+            $trendByDay[$row['day']] = [
+                'date' => $row['day'],
+                'rdvs' => (int) ($row['rdvs'] ?? 0),
+                'revenue' => round((float) ($row['revenue'] ?? 0), 2),
+                'minutes' => (int) ($row['minutes'] ?? 0),
+            ];
+        }
+
+        $dailyTrend = [];
+        for ($cursor = $fromDate; $cursor <= $toDate; $cursor = $cursor->modify('+1 day')) {
+            $key = $cursor->format('Y-m-d');
+            $dailyTrend[] = $trendByDay[$key] ?? [
+                'date' => $key,
+                'rdvs' => 0,
+                'revenue' => 0.0,
+                'minutes' => 0,
+            ];
+        }
+
         return $this->json([
+            'period' => [
+                'key' => $periodKey,
+                'from' => $from,
+                'to' => $to,
+                'days' => $days,
+                'compare_from' => $prevFrom,
+                'compare_to' => $prevTo,
+            ],
             'rdvs_today' => (int) $rdvsToday,
             'rdvs_week' => (int) $rdvsWeek,
             'ca_month' => round((float) $caMonth, 2),
             'impayees_count' => (int) $impayees,
             'stock_alerts' => (int) $stockAlerts,
+            'or_ouverts' => (int) $orOuverts,
+            'restitutions' => (int) $restitutions,
+            'rdvs_en_cours' => (int) $rdvsEnCours,
+            'planned_minutes_today' => (int) $plannedMinutesToday,
             'active_by_status' => $activeByStatus,
+            'top_services' => $topServices,
+            'daily_trend' => $dailyTrend,
+            'revenue_mix' => [
+                'mo_ht' => round((float) ($revenueMix['mo_ht'] ?? 0), 2),
+                'pieces_ht' => round((float) ($revenueMix['pieces_ht'] ?? 0), 2),
+                'total_ht' => round((float) ($revenueMix['total_ht'] ?? 0), 2),
+                'total_ttc' => round((float) ($revenueMix['total_ttc'] ?? 0), 2),
+                'nb_factures' => $nbFactures,
+            ],
+            'comparison' => [
+                'rdvs' => $this->compareMetric($rdvsPeriod, $rdvsPrev),
+                'ca' => $this->compareMetric($caPeriod, $caPrev),
+                'avg_ticket' => $this->compareMetric($avgTicket, $avgTicketPrev),
+                'planned_minutes' => $this->compareMetric($plannedMinutes, $plannedMinutesPrev),
+                'completed' => $this->compareMetric($completedCurrent, $completedPrev),
+                'occupation' => $this->compareMetric($occupationCurrent, $occupationPrev),
+            ],
         ]);
+    }
+
+    private function assertStatsAccess(): void
+    {
+        if ($this->isGranted('ROLE_SUPER_ADMIN')) {
+            return;
+        }
+
+        $roleMetierCode = $this->getUser()?->getRoleMetier()?->getCode();
+
+        if (in_array($roleMetierCode, ['responsable_atelier', 'responsable_magasin'], true)) {
+            return;
+        }
+
+        if ($this->isGranted('ROLE_ADMIN') && $roleMetierCode === null) {
+            return;
+        }
+
+        throw $this->createAccessDeniedException('La page Stat est réservée au responsable atelier et aux profils supérieurs.');
+    }
+
+    private function resolveDateRange(Request $request): array
+    {
+        $periodKey = (string) $request->query->get('period', '30d');
+        $today = new \DateTimeImmutable('today');
+
+        try {
+            $fromInput = $request->query->get('from');
+            $toInput = $request->query->get('to');
+
+            if ($fromInput && $toInput) {
+                $fromDate = new \DateTimeImmutable((string) $fromInput);
+                $toDate = new \DateTimeImmutable((string) $toInput);
+
+                if ($fromDate > $toDate) {
+                    [$fromDate, $toDate] = [$toDate, $fromDate];
+                }
+
+                return [$fromDate, $toDate, 'custom'];
+            }
+        } catch (\Throwable) {
+        }
+
+        return match ($periodKey) {
+            'today' => [$today, $today, 'today'],
+            '7d' => [$today->modify('-6 days'), $today, '7d'],
+            '90d' => [$today->modify('-89 days'), $today, '90d'],
+            default => [$today->modify('-29 days'), $today, '30d'],
+        };
+    }
+
+    private function compareMetric(float|int $current, float|int $previous): array
+    {
+        $delta = $current - $previous;
+        $deltaPct = $previous !== 0.0 && $previous !== 0
+            ? round(($delta / $previous) * 100, 1)
+            : ($current > 0 ? 100.0 : 0.0);
+
+        return [
+            'current' => round((float) $current, 2),
+            'previous' => round((float) $previous, 2),
+            'delta' => round((float) $delta, 2),
+            'delta_pct' => $deltaPct,
+        ];
     }
 
     /**
@@ -84,6 +348,8 @@ class StatistiquesController extends AbstractController
     #[Route('/ca', methods: ['GET'])]
     public function chiffreAffaires(Request $request): JsonResponse
     {
+        $this->assertStatsAccess();
+
         $user = $this->getUser();
         $atelierId = $user?->getAtelierId();
         $year = (int) $request->query->get('year', date('Y'));
@@ -116,26 +382,31 @@ class StatistiquesController extends AbstractController
     #[Route('/mecaniciens', methods: ['GET'])]
     public function mecaniciens(Request $request): JsonResponse
     {
+        $this->assertStatsAccess();
+
         $user = $this->getUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 
-        $monthStart = (new \DateTime('first day of this month'))->format('Y-m-d');
-        $monthEnd = (new \DateTime('last day of this month'))->format('Y-m-d');
+        [$fromDate, $toDate] = $this->resolveDateRange($request);
+        $from = $fromDate->format('Y-m-d');
+        $to = $toDate->format('Y-m-d');
 
         $stats = $conn->fetchAllAssociative(
             "SELECT m.id, m.nom, m.prenom,
                     COUNT(r.id) as nb_rdvs,
-                    COALESCE(SUM(r.temps_effectif_minutes), 0) as total_minutes,
-                    COALESCE(AVG(r.temps_effectif_minutes), 0) as avg_minutes
+                    COALESCE(SUM(COALESCE(r.temps_effectif_minutes, r.temps_estime, 0)), 0) as total_minutes,
+                    COALESCE(AVG(NULLIF(COALESCE(r.temps_effectif_minutes, r.temps_estime, 0), 0)), 0) as avg_minutes,
+                    COALESCE(SUM(COALESCE(r.temps_estime, 0)), 0) as planned_minutes,
+                    COALESCE(SUM(COALESCE(r.prix_final, r.prix_estime, 0)), 0) as ca_genere
              FROM mecaniciens m
              LEFT JOIN rendez_vous r ON r.mecanicien_id = m.id
                 AND r.date_rdv BETWEEN :s AND :e
                 AND r.statut NOT IN ('annule', 'en_attente')
              WHERE m.atelier_id = :a AND m.is_active = 1
              GROUP BY m.id, m.nom, m.prenom
-             ORDER BY nb_rdvs DESC",
-            ['s' => $monthStart, 'e' => $monthEnd, 'a' => $atelierId]
+             ORDER BY ca_genere DESC, nb_rdvs DESC, total_minutes DESC",
+            ['s' => $from, 'e' => $to, 'a' => $atelierId]
         );
 
         return $this->json($stats);

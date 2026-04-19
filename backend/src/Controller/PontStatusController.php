@@ -18,10 +18,8 @@ class PontStatusController extends AbstractController
     #[Route('/status', methods: ['GET'], priority: 10)]
     public function status(): JsonResponse
     {
-        $ponts = $this->em->getRepository(Pont::class)->findBy(
-            ['isActive' => 1],
-            ['ordreAffichage' => 'ASC']
-        );
+        $pontRepository = $this->em->getRepository(Pont::class);
+        $ponts = $pontRepository->findBy([], ['ordreAffichage' => 'ASC', 'id' => 'ASC']);
 
         $result = [];
         foreach ($ponts as $pont) {
@@ -40,6 +38,7 @@ class PontStatusController extends AbstractController
                 'nom' => $pont->getNom(),
                 'type_pont' => $pont->getTypePont(),
                 'capacite_kg' => $pont->getCapaciteKg(),
+                'is_active' => $pont->getIsActive(),
                 'mecanicien' => null,
                 'current_rdv' => null,
                 'next_count' => 0,

@@ -32,6 +32,26 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/')
   }
 
+  if (to.path === '/' && !auth.hasStatsAccess()) {
+    const fallbackPath = [
+      ['planning', '/planning'],
+      ['workshop', '/workshop'],
+      ['rdv', '/rdv'],
+      ['mecanicien', '/mecanicien'],
+      ['suivi', '/suivi'],
+    ].find(([section]) => auth.hasSection(section))?.[1] || '/login'
+
+    if (process.client) {
+      useToast().add({
+        title: 'Accès restreint',
+        description: 'La page Stat est réservée au responsable atelier et aux profils supérieurs.',
+        color: 'warning',
+      })
+    }
+
+    return navigateTo(fallbackPath)
+  }
+
   const missingBranding = !atelierStore.branding?.logo_url
 
   if (!atelierStore.loaded || missingBranding) {

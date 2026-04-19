@@ -1,6 +1,9 @@
 <template>
   <div class="login-box">
-    <h2 class="login-title">Atelier Moto Pro</h2>
+    <div class="login-brand">
+      <img src="/branding/paddock-logo-horizontal.svg" alt="Paddock" class="login-logo" />
+    </div>
+    <h2 class="login-title">Paddock</h2>
     <p class="login-sub">Connexion à votre espace atelier</p>
 
     <button class="google-btn" @click="handleGoogleLogin()" :disabled="loading || googleLoading">
@@ -225,6 +228,18 @@ onMounted(async () => {
   animation: loginFadeIn 0.6s ease;
   position: relative;
   z-index: 1;
+}
+
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.login-logo {
+  width: min(100%, 280px);
+  height: auto;
+  display: block;
 }
 
 .login-title {

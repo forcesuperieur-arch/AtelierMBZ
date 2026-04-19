@@ -51,8 +51,22 @@ class TenantFilterListener
                 }
             }
 
+            if ($activeAtelierId !== null) {
+                $selectedAtelier = $this->em->getRepository(Atelier::class)->find($activeAtelierId);
+                if (!$selectedAtelier instanceof Atelier) {
+                    $activeAtelierId = null;
+                }
+            }
+
             if ($activeAtelierId === null) {
                 $activeAtelierId = $user->getAtelierId();
+            }
+
+            if ($activeAtelierId !== null) {
+                $selectedAtelier = $this->em->getRepository(Atelier::class)->find($activeAtelierId);
+                if (!$selectedAtelier instanceof Atelier) {
+                    $activeAtelierId = null;
+                }
             }
 
             if ($activeAtelierId === null) {

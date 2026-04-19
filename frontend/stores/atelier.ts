@@ -20,8 +20,8 @@ export const DEFAULT_FEATURE_MODULES: Record<string, boolean> = {
 }
 
 export const DEFAULT_ATELIER_BRANDING = {
-  nom: 'Atelier Moto',
-  logo_url: '',
+  nom: 'Paddock',
+  logo_url: '/branding/paddock-logo-symbol.svg',
   adresse: '',
   cp: '',
   ville: '',
@@ -59,6 +59,10 @@ export function normalizeAtelierBranding(value?: Record<string, any> | null) {
 
   if (!branding.nom) {
     branding.nom = DEFAULT_ATELIER_BRANDING.nom
+  }
+
+  if (!branding.logo_url) {
+    branding.logo_url = DEFAULT_ATELIER_BRANDING.logo_url
   }
 
   return branding
