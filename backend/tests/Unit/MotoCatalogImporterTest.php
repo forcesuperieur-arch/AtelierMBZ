@@ -2,16 +2,16 @@
 
 namespace App\Tests\Unit;
 
-use App\Service\NgkMotoCatalogImporter;
+use App\Service\MotoCatalogImporter;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
-class NgkMotoCatalogImporterTest extends TestCase
+class MotoCatalogImporterTest extends TestCase
 {
     public function testPrepareCatalogRowsGroupsSparkPlugsAndSortsByCcAndYears(): void
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $importer = new NgkMotoCatalogImporter($em, '/tmp');
+        $importer = new MotoCatalogImporter($em, '/tmp');
 
         $rows = [
             [
@@ -21,7 +21,7 @@ class NgkMotoCatalogImporterTest extends TestCase
                 'designation' => 'Supersonic',
                 'annee_debut' => '2000',
                 'annee_fin' => '2010',
-                'sparkplug' => 'NGK BPR7HS',
+                'sparkplug' => 'BPR7HS',
             ],
             [
                 'marque' => 'ADLY',
@@ -30,7 +30,7 @@ class NgkMotoCatalogImporterTest extends TestCase
                 'designation' => 'Supersonic',
                 'annee_debut' => '2000',
                 'annee_fin' => '2010',
-                'sparkplug' => 'NGK BR8HS',
+                'sparkplug' => 'BR8HS',
             ],
             [
                 'marque' => 'ADLY',
@@ -39,7 +39,7 @@ class NgkMotoCatalogImporterTest extends TestCase
                 'designation' => 'Supersonic',
                 'annee_debut' => '1998',
                 'annee_fin' => '1999',
-                'sparkplug' => 'NGK BPR7HS',
+                'sparkplug' => 'BPR7HS',
             ],
             [
                 'marque' => 'YAMAHA',
@@ -48,7 +48,7 @@ class NgkMotoCatalogImporterTest extends TestCase
                 'designation' => '',
                 'annee_debut' => '2006',
                 'annee_fin' => '2012',
-                'sparkplug' => 'NGK LMAR8A-9',
+                'sparkplug' => 'LMAR8A-9',
             ],
         ];
 
@@ -60,7 +60,7 @@ class NgkMotoCatalogImporterTest extends TestCase
         self::assertSame('Roadster', $payload[0]['categorie']);
 
         self::assertSame('RS 50 - Supersonic', $payload[1]['modele']);
-        self::assertSame(['NGK BPR7HS', 'NGK BR8HS'], $payload[1]['bougies']);
+        self::assertSame(['BPR7HS', 'BR8HS'], $payload[1]['bougies']);
         self::assertSame('Scooter', $payload[2]['categorie']);
         self::assertSame('2006-2012', $payload[2]['periode_label']);
     }

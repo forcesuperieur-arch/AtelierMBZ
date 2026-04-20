@@ -2,7 +2,7 @@
 namespace App\Controller;
 
 use App\Entity\ModeleMoto;
-use App\Service\NgkMotoCatalogImporter;
+use App\Service\MotoCatalogImporter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +14,7 @@ class MotosLookupController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private NgkMotoCatalogImporter $importer,
+        private MotoCatalogImporter $importer,
     ) {
     }
 
@@ -27,7 +27,7 @@ class MotosLookupController extends AbstractController
         try {
             $this->importer->importFromDefaultFile();
         } catch (\Throwable) {
-            // L’autocomplétion reste vide si le fichier NGK est indisponible.
+            // L’autocomplétion reste vide si le fichier source est indisponible.
         }
     }
 

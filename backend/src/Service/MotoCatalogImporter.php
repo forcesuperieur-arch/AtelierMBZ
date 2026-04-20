@@ -7,8 +7,16 @@ use App\Entity\ModeleMoto;
 use App\Entity\MotoTechnicalSpec;
 use Doctrine\ORM\EntityManagerInterface;
 
-class NgkMotoCatalogImporter
+class MotoCatalogImporter
 {
+    private const CATALOG_SOURCE = 'catalogue_interne';
+
+    private const DEFAULT_FILES = [
+        '/var/catalogue_moto.xlsx',
+        '/var/imports/catalogue_moto.xlsx',
+        '/docs/catalogue_moto.xlsx',
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
         private string $projectDir,
@@ -17,12 +25,12 @@ class NgkMotoCatalogImporter
 
     public function importFromDefaultFile(): array
     {
-        $candidates = [
-            $this->projectDir . '/var/ngk_sparkplugs.xlsx',
-            $this->projectDir . '/var/imports/ngk_sparkplugs.xlsx',
-            $this->projectDir . '/docs/ngk_sparkplugs.xlsx',
-            dirname($this->projectDir) . '/docs/ngk_sparkplugs.xlsx',
-        ];
+        $candidates = array_map(
+            fn(string $path): string => str_starts_with($path, '/docs/')
+                ? dirname($this->projectDir) . $path
+                : $this->projectDir . $path,
+            self::DEFAULT_FILES,
+        );
 
         foreach ($candidates as $candidate) {
             if (is_file($candidate)) {
@@ -52,7 +60,7 @@ class NgkMotoCatalogImporter
             $cylindree = $this->extractInt($row['cylindree'] ?? $row['CC'] ?? null);
             $anneeDebut = $this->extractYear($row['annee_debut'] ?? $row['From'] ?? null);
             $anneeFin = $this->extractYear($row['annee_fin'] ?? $row['To'] ?? null);
-            $sparkPlug = $this->normalizeText($row['sparkplug'] ?? $row['Sparkplug'] ?? '');
+            $sparkPlug = $this->normalizeSparkPlug($row['sparkplug'] ?? $row['Sparkplug'] ?? '');
 
             if ($marque === '' || $modeleBase === '') {
                 continue;
@@ -189,7 +197,7 @@ class NgkMotoCatalogImporter
             if (!$spec instanceof MotoTechnicalSpec) {
                 $spec = new MotoTechnicalSpec();
                 $spec->setModele($modele);
-                $spec->setSource('ngk');
+                $spec->setSource(self::CATALOG_SOURCE);
                 $spec->setAnneeDebut($anneeDebut);
                 $spec->setAnneeFin($row['annee_fin']);
                 $spec->setVariante($row['designation'] ?: null);
@@ -210,7 +218,7 @@ class NgkMotoCatalogImporter
             $entretien['spark_plugs'] = $row['bougies'];
             $entretien['spark_plug_count'] = count($row['bougies']);
             $spec->setEntretienJson((string) json_encode($entretien, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-            $spec->setNotes($row['bougies'] ? 'Bougies NGK : ' . implode(', ', $row['bougies']) : null);
+            $spec->setNotes($row['bougies'] ? 'Références bougies : ' . implode(', ', $row['bougies']) : null);
         }
 
         $this->em->flush();
@@ -245,12 +253,12 @@ class NgkMotoCatalogImporter
     private function loadRowsFromXlsx(string $filePath): array
     {
         if (!is_file($filePath)) {
-            throw new \RuntimeException(sprintf('Fichier NGK introuvable: %s', $filePath));
+            throw new \RuntimeException(sprintf('Fichier catalogue introuvable: %s', $filePath));
         }
 
         $zip = new \ZipArchive();
         if ($zip->open($filePath) !== true) {
-            throw new \RuntimeException('Impossible d’ouvrir le fichier NGK.');
+            throw new \RuntimeException('Impossible d’ouvrir le fichier catalogue.');
         }
 
         $namespace = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -275,7 +283,7 @@ class NgkMotoCatalogImporter
         $zip->close();
 
         if (!is_string($sheetContent)) {
-            throw new \RuntimeException('Feuille NGK introuvable dans le fichier.');
+            throw new \RuntimeException('Feuille catalogue introuvable dans le fichier.');
         }
 
         $sheetDom = new \DOMDocument();
@@ -338,7 +346,7 @@ class NgkMotoCatalogImporter
                 $modele->getAnneeDebut(),
                 $modele->getAnneeFin(),
             ),
-            (string) ($spec->getSource() ?? 'ngk'),
+            (string) ($spec->getSource() ?? self::CATALOG_SOURCE),
             (string) $spec->getAnneeDebut(),
             (string) ($spec->getAnneeFin() ?? 0),
         ]);
@@ -355,7 +363,7 @@ class NgkMotoCatalogImporter
                 $row['annee_debut'],
                 $row['annee_fin'],
             ),
-            'ngk',
+            self::CATALOG_SOURCE,
             (string) ($row['annee_debut'] ?? 1900),
             (string) ($row['annee_fin'] ?? 0),
         ]);
@@ -364,6 +372,13 @@ class NgkMotoCatalogImporter
     private function normalizeText(mixed $value): string
     {
         return trim(preg_replace('/\s+/', ' ', (string) $value) ?: '');
+    }
+
+    private function normalizeSparkPlug(mixed $value): string
+    {
+        $normalized = $this->normalizeText($value);
+
+        return trim((string) preg_replace('/^[A-Z]{2,10}\s+(?=[A-Z0-9-]{4,}$)/u', '', $normalized));
     }
 
     private function extractInt(mixed $value): ?int
