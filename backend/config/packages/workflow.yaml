@@ -102,3 +102,39 @@ framework:
                 retour_garantie:
                     from: [restitue, paye]
                     to: en_cours
+
+        vo_purchase:
+            type: state_machine
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: method
+                property: status
+            supports:
+                - App\Entity\VOPurchase
+            initial_marking: brouillon
+            places:
+                - brouillon
+                - en_stock
+                - en_vente
+                - reserve
+                - vendu
+            transitions:
+                confirmer:
+                    from: brouillon
+                    to: en_stock
+                mettre_en_vente:
+                    from: en_stock
+                    to: en_vente
+                retirer_de_la_vente:
+                    from: en_vente
+                    to: en_stock
+                reserver:
+                    from: en_vente
+                    to: reserve
+                liberer:
+                    from: reserve
+                    to: en_vente
+                vendre:
+                    from: [en_stock, en_vente, reserve]
+                    to: vendu

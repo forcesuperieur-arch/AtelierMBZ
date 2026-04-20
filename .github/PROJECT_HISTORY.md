@@ -2,6 +2,38 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-06-05 — Workflows : DTS constantes + VOPurchase state machine
+
+### Fait
+- [LOT-6] fix — DemandeTravauxSupp : ajout constantes `STATUT_*` + tableau `STATUTS` + validation whitelist dans `setStatut()`
+- [LOT-6] fix — DemandeTravauxSuppController : remplacement de toutes les raw strings par constantes `DemandeTravauxSupp::STATUT_*`
+- [LOT-6] ajoute — Symfony Workflow `vo_purchase` (state_machine) dans workflow.yaml : places brouillon/en_stock/en_vente/reserve/vendu, 6 transitions, audit_trail activé
+- [LOT-6] ajoute — VOPurchase : constantes `STATUS_*` + tableau `STATUSES` + validation whitelist dans `setStatus()`
+- [LOT-6] fix — VOPurchase.status retiré du groupe `vo:write` (status non modifiable via PATCH API Platform)
+- [LOT-6] fix — VOController : injection `WorkflowInterface` via `#[Target('vo_purchase')]`
+- [LOT-6] fix — VOController::createPurchase : suppression du `setStatus($body['status'])` (nouveau = brouillon, toujours)
+- [LOT-6] fix — VOController::updatePurchase : suppression du `setStatus($body['status'])` libre (faille critique : permettait de forcer n'importe quel statut)
+- [LOT-6] fix — VOController::confirmPurchase : `setStatus('en_stock')` → `workflow->apply('confirmer')` + guard par `workflow->can()`
+- [LOT-6] fix — VOController::sellPurchase : `setStatus('vendu')` → `workflow->apply('vendre')` + guard par `workflow->can()`
+- [LOT-6] ajoute — VOController::transitionPurchase : endpoint POST `/purchases/{id}/transition` pour transitions simples (mettre_en_vente, retirer_de_la_vente, reserver, liberer) avec audit
+- [LOT-6] ajoute — store VO frontend : `transitionPurchase(id, transition)` pour appeler le nouvel endpoint
+- PHPUnit via Docker : 168/168 OK
+- Build Nuxt production : OK
+
+### Décisions
+- **DemandeTravauxSupp : constantes + whitelist, pas de workflow Symfony** — le flux linéaire (5 statuts, pas de side-effects complexes) ne justifie pas un state machine. La validation dans le setter suffit.
+- **VOPurchase : workflow Symfony complet** — choisi pour les side-effects (LP, facture, DA SIV) et la traçabilité audit_trail native.
+- `confirmer` et `vendre` conservent leurs endpoints dédiés (logique métier transactionnelle : LP, facture, PV rachat).
+- Les transitions simples (mettre_en_vente, reserver, liberer, retirer_de_la_vente) passent par un endpoint générique `/transition`.
+
+### TODO laissés
+- [ ] Ajouter EventSubscriber `VOPurchaseWorkflowSubscriber` pour side-effects futurs sur les transitions (notifications, SMS, etc.)
+- [ ] Restant window.open : VORemiseEnEtatCard.vue `openDocument()` (fichiers statiques, acceptable)
+- [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn`
+
+### En suspens à arbitrer
+- (aucun)
+
 ## Session 2026-06-04 — Remédiation audit : reste lots 7 + mineurs
 
 ### Fait
@@ -26,13 +58,13 @@
 
 ### TODO laissés
 - [ ] Restant window.open : VORemiseEnEtatCard.vue `openDocument()` (fichiers statiques, acceptable)
-- [ ] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)
-- [ ] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)
+- [x] ~~Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)~~ — fait session 2026-06-05
+- [x] ~~Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)~~ — fait session 2026-06-05
 - [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn`
 
 ### En suspens à arbitrer
-- Faut-il un workflow Symfony pour les transitions de statut VO (achat → FRE → en vente → vendu) ?
-- Faut-il un workflow pour DemandeTravauxSupp ?
+- ~~Faut-il un workflow Symfony pour les transitions de statut VO ?~~ → OUI, implémenté session 2026-06-05
+- ~~Faut-il un workflow pour DemandeTravauxSupp ?~~ → NON, constantes + whitelist suffit, fait session 2026-06-05
 
 ## Session 2026-06-04 — Implémentation audit Lots 4-7
 
