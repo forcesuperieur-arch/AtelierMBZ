@@ -1,9 +1,11 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\Devis;
 use App\Entity\RendezVous;
 use App\Service\AuditService;
+use App\Service\CurrentAtelierResolver;
 use App\Service\PdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +26,18 @@ class DevisController extends AbstractController
         private AuditService $audit,
         private MailerInterface $mailer,
         private PdfService $pdfService,
+        private CurrentAtelierResolver $atelierResolver,
     ) {}
+
+    private function resolveAtelierBranding(): array
+    {
+        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
+        return [
+            'from' => $atelier?->getEmail() ?? 'noreply@paddock.fr',
+            'nom' => $atelier?->getNom() ?? 'Paddock',
+        ];
+    }
 
     #[Route('/{id}/envoyer', methods: ['POST'])]
     public function envoyer(int $id): JsonResponse
@@ -44,16 +57,18 @@ class DevisController extends AbstractController
         $client = $devis->getClient();
         if ($client && $client->getEmail()) {
             try {
+                $branding = $this->resolveAtelierBranding();
                 $email = (new Email())
-                    ->from('noreply@atelier-moto.fr')
+                    ->from($branding['from'])
                     ->to($client->getEmail())
-                    ->subject('Devis ' . $devis->getNumeroDevis() . ' — Atelier Moto')
+                    ->subject('Devis ' . $devis->getNumeroDevis() . ' — ' . $branding['nom'])
                     ->html(sprintf(
-                        '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre devis <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Le devis est valable jusqu\'au %s.</p><p>Cordialement,<br>L\'équipe Atelier Moto</p>',
+                        '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre devis <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Le devis est valable jusqu\'au %s.</p><p>Cordialement,<br>L\'équipe %s</p>',
                         htmlspecialchars($client->getPrenom() ?? ''),
                         htmlspecialchars($devis->getNumeroDevis()),
                         number_format((float) $devis->getTotalTtc(), 2, ',', ' '),
                         $devis->getDateValidite()->format('d/m/Y'),
+                        htmlspecialchars($branding['nom']),
                     ));
                 $this->mailer->send($email);
             } catch (\Exception $e) {
@@ -79,16 +94,18 @@ class DevisController extends AbstractController
             return $this->json(['error' => 'Aucune adresse email client'], Response::HTTP_BAD_REQUEST);
         }
 
+        $branding = $this->resolveAtelierBranding();
         $email = (new Email())
-            ->from('noreply@atelier-moto.fr')
+            ->from($branding['from'])
             ->to($client->getEmail())
-            ->subject('Devis ' . $devis->getNumeroDevis() . ' — Atelier Moto')
+            ->subject('Devis ' . $devis->getNumeroDevis() . ' — ' . $branding['nom'])
             ->html(sprintf(
-                '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre devis <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Le devis est valable jusqu\'au %s.</p><p>Cordialement,<br>L\'équipe Atelier Moto</p>',
+                '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre devis <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Le devis est valable jusqu\'au %s.</p><p>Cordialement,<br>L\'équipe %s</p>',
                 htmlspecialchars($client->getPrenom() ?? ''),
                 htmlspecialchars($devis->getNumeroDevis()),
                 number_format((float) $devis->getTotalTtc(), 2, ',', ' '),
                 $devis->getDateValidite()->format('d/m/Y'),
+                htmlspecialchars($branding['nom']),
             ));
 
         $this->mailer->send($email);

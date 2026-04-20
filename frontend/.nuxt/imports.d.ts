@@ -33,6 +33,7 @@ export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
 export { useApi } from '../composables/useApi';
 export { useAuth } from '../composables/useAuth';
 export { ocrFields, useCarteGriseOcr, OcrFieldKey, CarteGriseOcrResult, OcrComparison, OcrImagePickResult } from '../composables/useCarteGriseOcr';
+export { useDebounceFn } from '../composables/useDebounceFn';
 export { useFormat } from '../composables/useFormat';
 export { useMotoAutocomplete } from '../composables/useMotoAutocomplete';
 export { useNotifications } from '../composables/useNotifications';

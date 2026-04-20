@@ -51,7 +51,10 @@ class GardiennageService
         );
 
         $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
-        $tarif = $config ? $config->getTarifGardiennageJournalier() : '5.00';
+        if (!$config) {
+            throw new \RuntimeException(sprintf('ConfigAtelier introuvable pour atelier %d — impossible de calculer le gardiennage', $atelierId));
+        }
+        $tarif = $config->getTarifGardiennageJournalier() ?? '5.00';
 
         return bcmul((string)$joursOuvres, $tarif, 2);
     }

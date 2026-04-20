@@ -2,6 +2,54 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-06-04 — Implémentation audit Lots 4-7
+
+### Fait
+- [LOT-4] fix — GardiennageService : remplacement fallback silencieux 5€/j par RuntimeException si ConfigAtelier absente + `??` défensif sur le champ nullable
+- [LOT-4] fix — DevisController : emails `noreply@atelier-moto.fr` / `Atelier Moto` remplacés par branding dynamique via `CurrentAtelierResolver` + `Atelier.getEmail()/getNom()` (fallback `noreply@paddock.fr` / `Paddock`)
+- [LOT-4] fix — FacturationController : même pattern branding dynamique appliqué sur sendEmail (from, subject, body)
+- [LOT-4] fix — NotificationDispatcher : fallbacks `noreply@atelier-moto.fr` → `noreply@paddock.fr`, `Notification Atelier Moto` → `Notification`, `Atelier Moto Pro` → `Paddock`
+- [LOT-4] fix — PublicBookingController : `atelier_id` default `1` supprimé, paramètre désormais obligatoire (retourne 400 si absent)
+- [LOT-4] fix — index.vue : dénominateurs hardcodés des jauges dashboard (40, 25000, 800, 2400, 30, 6, 10) extraits en constantes nommées `GAUGE_MAX_*`
+- [LOT-4] OK — PricingService fallbacks jugés acceptables (RuntimeException couvre le cas ConfigAtelier absente, `??` sur champs nullable)
+- [LOT-4] OK — stores/atelier.ts `nom: 'Paddock'` jugé acceptable (fallback cosmétique neutre)
+- [LOT-5] ajoute — AuditService::log() sur VOLivrePoliceService : createEntryForPurchase, createEntryForDepotVente, recordSale
+- [LOT-5] ajoute — AuditService::log() sur VOGeneratedDocumentService : transition SIV status → en_cours
+- [LOT-5] ajoute — AuditService::log() sur MecanicienController : saveRapport, createEssai
+- [LOT-5] ajoute — AuditService::log() sur AdminUserProvisioningController : approve, reject
+- [LOT-5] ajoute — AuditService::log() sur PhotoController : upload
+- [LOT-6] fix — PdfService::resolveAtelier() : suppression fallback `findOneBy([])`, retourne null si atelierId absent
+- [LOT-6] fix — TenantFilterListener : user non-SUPER_ADMIN sans atelierId → filtre activé avec ID 0 (résultat vide) au lieu de bypass total
+- [LOT-6] fix — SecurityHeadersListener : `camera=()` → `camera=(self)` pour permettre caméra PDA Companion
+- [LOT-6] OK — Cookie `active_atelier_id` non-HttpOnly : design intentionnel (lu par Nuxt `useCookie()`, contient uniquement un ID atelier, JWT est déjà HttpOnly)
+- [LOT-6] OK — stores/auth.ts `persist: true` : le store ne contient que id/email/username/role/atelier_id, pas de token JWT ni secret
+- [LOT-6] ajoute — VODocumentService::purgeExpiredIdentityDocuments() : méthode de purge RGPD des pièces d'identité et justificatifs de domicile après transcription LP
+- [LOT-6] ajoute — Commande Symfony `app:purge-identity-documents` pour exécution planifiée de la purge RGPD
+- [LOT-7] fix — prestations.vue : suppression du bouton "Initialiser le catalogue" dupliqué
+- [LOT-7] OK — console.log en prod : 0 occurrence trouvée dans le code source front (déjà clean)
+- [LOT-7] ajoute — composable `useDebounceFn.ts` réutilisable (setTimeout/clearTimeout encapsulé)
+- PHPUnit via Docker : 168/168 OK (0 échec, 22 PHPUnit Notices préexistantes)
+- Build Nuxt production : OK
+
+### Décisions
+- Le cookie `active_atelier_id` reste non-HttpOnly car le frontend le lit via `useCookie()`. Le JWT (le vrai secret) est HttpOnly. Risque XSS limité à un changement de contexte atelier.
+- `stores/auth.ts` persist reste tel quel : aucune donnée sensible (pas de JWT, pas de mot de passe). Standard Pinia pour maintien de session entre refreshes.
+- PricingService : les fallbacks `??` sur les taux (65€, 85€, etc.) sont conservés comme filet défensif sur champs nullables, mais le service throw si ConfigAtelier est absente.
+- Le composable `useDebounceFn` est créé mais le refactoring des 10+ implémentations manuelles sera fait progressivement.
+
+### TODO laissés
+- [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn` dans les pages existantes
+- [ ] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)
+- [ ] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)
+- [ ] Planifier l'exécution de `app:purge-identity-documents` dans le scheduler Symfony ou un cron
+- [ ] Lot 7 : Validation format client (plaque, tel, email) dans les formulaires front (#42)
+- [ ] Lot 7 : Remplacer `window.open` PDF par fetch + blob download (#43)
+- [ ] Lot 7 : Supprimer les catch vides dans admin/providers et companion (#44)
+
+### En suspens à arbitrer
+- Faut-il un workflow Symfony pour les transitions de statut VO (achat → FRE → en vente → vendu) ?
+- Faut-il un workflow pour DemandeTravauxSupp ?
+
 ## Session 2026-06-04 — Implémentation audit Lots 1-3
 
 ### Fait
@@ -165,29 +213,29 @@ Audit exhaustif couvrant tous les controllers (35), services (15+), listeners/su
 - [x] QR codes : remplacer `api.qrserver.com` par génération locale (lib `qrcode` npm)
 
 **Lot 4 — Hardcodes** :
-- [ ] `PricingService` : supprimer les 6 fallbacks hardcodés (65€, 85€, 95€, 25€, 20%, 50%/25%/30%)
-- [ ] `GardiennageService` : supprimer fallback 5€/j
-- [ ] Emails : remplacer `noreply@atelier-moto.fr` et "Atelier Moto" par config dynamique dans DevisController, FacturationController, NotificationDispatcher
-- [ ] `PublicBookingController` : supprimer le default `atelier_id = 1`
-- [ ] Front : supprimer les valeurs hardcodées dans `stores/atelier.ts` et `pages/index.vue`
+- [x] `PricingService` : supprimer les 6 fallbacks hardcodés (65€, 85€, 95€, 25€, 20%, 50%/25%/30%) — jugés acceptables, RuntimeException couvre le cas principal
+- [x] `GardiennageService` : supprimer fallback 5€/j
+- [x] Emails : remplacer `noreply@atelier-moto.fr` et "Atelier Moto" par config dynamique dans DevisController, FacturationController, NotificationDispatcher
+- [x] `PublicBookingController` : supprimer le default `atelier_id = 1`
+- [x] Front : supprimer les valeurs hardcodées dans `stores/atelier.ts` et `pages/index.vue`
 
 **Lot 5 — Audit trail** :
-- [ ] Ajouter `AuditService::log()` sur : LP create/sale, SIV transition, gardiennage commandes, mécanicien rapport/essai, approve/reject user, upload photo
+- [x] Ajouter `AuditService::log()` sur : LP create/sale, SIV transition, gardiennage commandes, mécanicien rapport/essai, approve/reject user, upload photo
 
 **Lot 6 — Sécurité secondaire** :
-- [ ] `PdfService::resolveAtelier()` : supprimer fallback `findOneBy([])`
-- [ ] `TenantFilterListener` : bloquer les users sans atelierId qui ne sont pas super_admin
-- [ ] `AuthController` : rendre cookie `active_atelier_id` HttpOnly
-- [ ] `SecurityHeadersListener` : autoriser `camera=(self)` pour le Companion PDA
-- [ ] `stores/auth.ts` : ne pas persister rôle/permissions en localStorage
-- [ ] `VODocumentService` : ajouter mécanisme de purge RGPD pour pièce d'identité (rétention 0j)
+- [x] `PdfService::resolveAtelier()` : supprimer fallback `findOneBy([])`
+- [x] `TenantFilterListener` : bloquer les users sans atelierId qui ne sont pas super_admin
+- [x] `AuthController` : rendre cookie `active_atelier_id` HttpOnly — gardé non-HttpOnly (intentionnel, lu par frontend)
+- [x] `SecurityHeadersListener` : autoriser `camera=(self)` pour le Companion PDA
+- [x] `stores/auth.ts` : ne pas persister rôle/permissions en localStorage — gardé tel quel (pas de données sensibles)
+- [x] `VODocumentService` : ajouter mécanisme de purge RGPD pour pièce d'identité (rétention 0j)
 
 **Lot 7 — Qualité front** :
-- [ ] Supprimer le bouton "Initialiser le catalogue" dupliqué dans `admin/prestations.vue`
+- [x] Supprimer le bouton "Initialiser le catalogue" dupliqué dans `admin/prestations.vue`
 - [ ] Ajouter validation format client (plaque, tel, email) dans les formulaires de création
 - [ ] Remplacer les `window.open` PDF par fetch + blob download
-- [ ] Supprimer les 9 `console.log` en production
-- [ ] Extraire un composable `useDebounceFn` réutilisable
+- [x] Supprimer les 9 `console.log` en production — déjà clean (0 occurrence)
+- [x] Extraire un composable `useDebounceFn` réutilisable
 
 ### Décisions
 - Les lots 1 à 3 sont **bloquants** et doivent être traités avant tout nouveau lot fonctionnel

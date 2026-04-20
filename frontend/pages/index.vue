@@ -51,19 +51,19 @@
         <div class="stat-label">RDV SUR PÉRIODE</div>
         <div class="stat-value">{{ Math.round(Number(comparison.rdvs?.current ?? 0)) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.rdvs) }">{{ metricDeltaText(comparison.rdvs) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / 40 * 100, 100) + '%', background: '#FFD200' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / GAUGE_MAX_RDV * 100, 100) + '%', background: '#FFD200' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">CA SUR PÉRIODE</div>
         <div class="stat-value">{{ formatCurrency(comparison.ca?.current ?? 0) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.ca) }">{{ metricDeltaText(comparison.ca) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / 25000 * 100, 100) + '%', background: '#14B8A6' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / GAUGE_MAX_CA * 100, 100) + '%', background: '#14B8A6' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">PANIER MOYEN</div>
         <div class="stat-value">{{ formatCurrency(comparison.avg_ticket?.current ?? 0) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.avg_ticket) }">{{ metricDeltaText(comparison.avg_ticket) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.avg_ticket?.current ?? 0) / 800 * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.avg_ticket?.current ?? 0) / GAUGE_MAX_PANIER * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">OCCUPATION CAPACITÉ</div>
@@ -78,25 +78,25 @@
         <div class="stat-label">CHARGE PLANIFIÉE</div>
         <div class="stat-value">{{ formatDuration(comparison.planned_minutes?.current ?? plannedMinutes) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.planned_minutes) }">{{ metricDeltaText(comparison.planned_minutes) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.planned_minutes?.current ?? plannedMinutes) / 2400 * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.planned_minutes?.current ?? plannedMinutes) / GAUGE_MAX_PLANNED_MIN * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">DOSSIERS CLÔTURÉS</div>
         <div class="stat-value">{{ Math.round(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday)) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.completed) }">{{ metricDeltaText(comparison.completed) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday) / 30 * 100, 100) + '%', background: '#34D399' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday) / GAUGE_MAX_COMPLETED * 100, 100) + '%', background: '#34D399' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">ALERTES PILOTAGE</div>
         <div class="stat-value">{{ alerts.length }}</div>
         <div class="stat-delta" :style="{ color: alerts.length ? '#FCA5A5' : '#9CA3AF' }">⏰ retards, attentes, restitutions</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(alerts.length / 6 * 100, 100) + '%', background: alerts.length ? '#EF4444' : '#6B7280' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(alerts.length / GAUGE_MAX_ALERTS * 100, 100) + '%', background: alerts.length ? '#EF4444' : '#6B7280' }"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">IMPAYÉS / STOCK</div>
         <div class="stat-value">{{ stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0) }}</div>
         <div class="stat-delta" style="color:#FBBF24;">{{ stockModuleEnabled ? '📦 pièces sous mini' : '💸 relances comptables' }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)) / 10 * 100, 100) + '%', background: '#FBBF24' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)) / GAUGE_MAX_STOCK * 100, 100) + '%', background: '#FBBF24' }"></div></div>
       </div>
     </div>
 
@@ -364,6 +364,16 @@ const todayDate = computed(() => {
 })
 
 const comparison = computed(() => stats.value?.comparison ?? {})
+
+// Gauge maximums — cosmetic targets for progress bars, adjustable per business
+const GAUGE_MAX_RDV = 40
+const GAUGE_MAX_CA = 25000
+const GAUGE_MAX_PANIER = 800
+const GAUGE_MAX_PLANNED_MIN = 2400
+const GAUGE_MAX_COMPLETED = 30
+const GAUGE_MAX_ALERTS = 6
+const GAUGE_MAX_STOCK = 10
+
 const revenueMix = computed(() => stats.value?.revenue_mix ?? {})
 const dailyTrend = computed(() => Array.isArray(stats.value?.daily_trend) ? stats.value.daily_trend : [])
 const dailyTrendMax = computed(() => Math.max(1, ...dailyTrend.value.map((item: any) => Number(item.rdvs ?? 0))))

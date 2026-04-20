@@ -271,12 +271,12 @@ class NotificationDispatcher
     private function sendEmail(NotificationMessage $msg, string $provider, array $credentials): NotificationResult
     {
         try {
-            $from = $credentials['from'] ?? $credentials['sender'] ?? 'noreply@atelier-moto.fr';
+            $from = $credentials['from'] ?? $credentials['sender'] ?? 'noreply@paddock.fr';
 
             $email = (new Email())
                 ->from($from)
                 ->to($msg->getRecipient())
-                ->subject($msg->getSubject() ?? 'Notification Atelier Moto')
+                ->subject($msg->getSubject() ?? 'Notification')
                 ->html($msg->getBody());
 
             // For mailgun / smtp_custom, the Symfony Mailer is already configured via DSN
@@ -320,7 +320,7 @@ class NotificationDispatcher
             $config->getChannel(),
             $config->getAtelierId(),
             $testRecipient,
-            'Test de connexion — Atelier Moto Pro',
+            'Test de connexion — Paddock',
             'Test Provider',
         );
 

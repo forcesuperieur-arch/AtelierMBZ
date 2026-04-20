@@ -539,4 +539,57 @@ class VODocumentService
 
         return $doc;
     }
+
+    /**
+     * Purge identity documents (retention = 0 days) that have been transcribed to the Livre de Police.
+     * RGPD: pièce d'identité et justificatif de domicile doivent être détruits après transcription.
+     *
+     * @return int Number of documents purged
+     */
+    public function purgeExpiredIdentityDocuments(): int
+    {
+        $typesToPurge = [
+            VODocument::TYPE_PIECE_IDENTITE,
+            VODocument::TYPE_JUSTIFICATIF_DOMICILE,
+        ];
+
+        $docs = $this->em->getRepository(VODocument::class)->createQueryBuilder('d')
+            ->where('d.type IN (:types)')
+            ->setParameter('types', $typesToPurge)
+            ->getQuery()
+            ->getResult();
+
+        $count = 0;
+        foreach ($docs as $doc) {
+            // Only purge if the associated purchase/depot has a Livre de Police entry
+            $purchase = $doc->getVoPurchase();
+            $depot = $doc->getVoDepotVente();
+
+            $hasLpEntry = false;
+            if ($purchase) {
+                $hasLpEntry = !empty($this->em->getRepository(\App\Entity\VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]));
+            } elseif ($depot) {
+                $hasLpEntry = !empty($this->em->getRepository(\App\Entity\VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]));
+            }
+
+            if (!$hasLpEntry) {
+                continue;
+            }
+
+            // Delete the physical file
+            $filePath = $this->projectDir . '/public' . $doc->getFilePath();
+            if (is_file($filePath)) {
+                @unlink($filePath);
+            }
+
+            $this->em->remove($doc);
+            $count++;
+        }
+
+        if ($count > 0) {
+            $this->em->flush();
+        }
+
+        return $count;
+    }
 }

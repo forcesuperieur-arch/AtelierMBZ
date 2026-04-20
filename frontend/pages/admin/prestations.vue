@@ -7,7 +7,6 @@
       </div>
       <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
       <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
-      <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">

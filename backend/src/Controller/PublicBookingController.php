@@ -37,10 +37,13 @@ class PublicBookingController extends AbstractController
             return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
+        $atelierId = $request->query->getInt('atelier_id');
+        if (!$atelierId) {
+            return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
+        }
         $dateDebut = $request->query->get('date_debut', (new \DateTime())->format('Y-m-d'));
         $dateFin = $request->query->get('date_fin', (new \DateTime('+14 days'))->format('Y-m-d'));
         $tempsMinutes = (int) $request->query->get('temps_minutes', 60);
-        $atelierId = (int) $request->query->get('atelier_id', 1);
 
         $slots = $this->slotService->getAvailableSlots(
             new \DateTime($dateDebut),
@@ -84,7 +87,10 @@ class PublicBookingController extends AbstractController
             return $this->json(['error' => 'Invalid phone format'], Response::HTTP_BAD_REQUEST);
         }
 
-        $atelierId = (int) ($data['atelier_id'] ?? 1);
+        $atelierId = (int) ($data['atelier_id'] ?? 0);
+        if (!$atelierId) {
+            return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
+        }
         $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
         $targetDate = new \DateTime($data['date_rdv']);
         $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);

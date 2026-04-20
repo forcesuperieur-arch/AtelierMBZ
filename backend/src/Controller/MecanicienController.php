@@ -16,7 +16,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/mecanicien')]
 class MecanicienController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private \App\Service\AuditService $auditService,
+    ) {}
 
     #[Route('/me', methods: ['GET'])]
     public function me(): JsonResponse
@@ -119,6 +122,13 @@ class MecanicienController extends AbstractController
         $this->syncLegacyWorkshopState($ordre);
 
         $this->em->flush();
+
+        $this->auditService->log(
+            'mecanicien_save_rapport',
+            'OrdreReparation',
+            $ordre->getId(),
+            sprintf('Rapport OR #%d mis à jour par mécanicien #%d', $ordre->getId(), $mecanicien->getId()),
+        );
 
         return $this->json([
             'id' => $ordre->getId(),
@@ -247,6 +257,13 @@ class MecanicienController extends AbstractController
         }
 
         $this->em->flush();
+
+        $this->auditService->log(
+            'mecanicien_create_essai',
+            'EssaiRoutier',
+            $essai->getId(),
+            sprintf('Essai routier #%d RDV #%d — statut: %s', $essai->getId(), $rdv->getId(), $essai->getStatut()),
+        );
 
         return $this->json([
             'id' => $essai->getId(),

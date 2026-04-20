@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\ConfigAtelier;
 use App\Entity\Facture;
 use App\Entity\LigneFacture;
@@ -45,6 +46,16 @@ class FacturationController extends AbstractController
             return null;
         }
         return $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+    }
+
+    private function resolveAtelierBranding(): array
+    {
+        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
+        return [
+            'from' => $atelier?->getEmail() ?? 'noreply@paddock.fr',
+            'nom' => $atelier?->getNom() ?? 'Paddock',
+        ];
     }
 
     private function buildRdvInvoicePreview(RendezVous $rdv, string $remisePourcent = '0'): array
@@ -352,15 +363,17 @@ class FacturationController extends AbstractController
 
         $filePath = $this->pdfService->generateFacturePdf($facture);
 
+        $branding = $this->resolveAtelierBranding();
         $email = (new Email())
-            ->from('noreply@atelier-moto.fr')
+            ->from($branding['from'])
             ->to($client->getEmail())
-            ->subject('Votre facture ' . $facture->getNumeroFacture() . ' — Atelier Moto')
+            ->subject('Votre facture ' . $facture->getNumeroFacture() . ' — ' . $branding['nom'])
             ->html(sprintf(
-                '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre facture <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Cordialement,<br>L\'équipe Atelier Moto</p>',
+                '<p>Bonjour %s,</p><p>Veuillez trouver ci-joint votre facture <strong>%s</strong> d\'un montant de <strong>%s €</strong>.</p><p>Cordialement,<br>L\'équipe %s</p>',
                 htmlspecialchars($client->getPrenom() ?? ''),
                 htmlspecialchars($facture->getNumeroFacture()),
-                number_format((float) $facture->getTotalTtc(), 2, ',', ' ')
+                number_format((float) $facture->getTotalTtc(), 2, ',', ' '),
+                htmlspecialchars($branding['nom']),
             ))
             ->attachFromPath($filePath);
 
