@@ -49,8 +49,8 @@ export const useBillingStore = defineStore('billing', {
     },
 
     downloadPdf(factureId: number) {
-      const config = useRuntimeConfig()
-      window.open(`${config.public.apiBase}/facturation/${factureId}/pdf`, '_blank')
+      const { openPdf } = usePdfDownload()
+      openPdf(`/facturation/${factureId}/pdf`)
     },
   },
 })

@@ -340,6 +340,7 @@ const route = useRoute()
 const voStore = useVoStore()
 const toast = useToast()
 const { apiBase, formatDate, formatPrice, documentLabel, searchClients } = useVoHelpers()
+const { openPdf } = usePdfDownload()
 
 const detail = ref<any | null>(null)
 const showSale = ref(route.query.sell === '1')
@@ -513,16 +514,16 @@ async function confirmPurchase() {
 }
 
 function downloadPv() {
-  window.open(`${apiBase}/vo/purchases/${route.params.id}/pv-rachat/pdf`, '_blank')
+  openPdf(`/vo/purchases/${route.params.id}/pv-rachat/pdf`)
 }
 
 function downloadDaSiv() {
-  window.open(`${apiBase}/vo/purchases/${route.params.id}/da-siv/pdf`, '_blank')
+  openPdf(`/vo/purchases/${route.params.id}/da-siv/pdf`)
 }
 
 function downloadMandat() {
   const buyerId = selectedBuyer.value?.id ? `?buyerId=${selectedBuyer.value.id}` : ''
-  window.open(`${apiBase}/vo/purchases/${route.params.id}/mandat-immat/pdf${buyerId}`, '_blank')
+  openPdf(`/vo/purchases/${route.params.id}/mandat-immat/pdf${buyerId}`)
 }
 
 async function prepareSivDossier() {
@@ -536,7 +537,7 @@ async function prepareSivDossier() {
     })
 
     if (response?.pdfUrl && import.meta.client) {
-      window.open(`${apiBase}${response.pdfUrl}`, '_blank')
+      openPdf(response.pdfUrl)
     }
 
     await loadDetail()

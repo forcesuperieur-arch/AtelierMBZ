@@ -911,7 +911,9 @@ onMounted(async () => {
           rdv.value.checkup_done = status.checkup_done || 0
         }
       }
-    } catch {}
+    } catch {
+      // Polling silencieux — erreur réseau non bloquante
+    }
   }, 5000)
 })
 

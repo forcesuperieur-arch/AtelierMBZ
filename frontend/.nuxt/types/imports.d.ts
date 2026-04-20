@@ -168,6 +168,7 @@ declare global {
   const useNuxtApp: typeof import('../../node_modules/nuxt/dist/app/nuxt').useNuxtApp
   const useNuxtData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useNuxtData
   const useOverlay: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useOverlay').useOverlay
+  const usePdfDownload: typeof import('../../composables/usePdfDownload').usePdfDownload
   const usePinia: typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables').usePinia
   const usePortal: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/usePortal').usePortal
   const usePreviewMode: typeof import('../../node_modules/nuxt/dist/app/composables/preview').usePreviewMode
@@ -225,6 +226,7 @@ declare global {
   const useTemplateRef: typeof import('../../node_modules/vue').useTemplateRef
   const useToast: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast').useToast
   const useTransitionState: typeof import('../../node_modules/vue').useTransitionState
+  const useValidation: typeof import('../../composables/useValidation').useValidation
   const useVoHelpers: typeof import('../../composables/useVoHelpers').useVoHelpers
   const useVoStore: typeof import('../../stores/vo').useVoStore
   const watch: typeof import('../../node_modules/vue').watch
@@ -424,6 +426,7 @@ declare module 'vue' {
     readonly useNuxtApp: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/nuxt')['useNuxtApp']>
     readonly useNuxtData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useNuxtData']>
     readonly useOverlay: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useOverlay')['useOverlay']>
+    readonly usePdfDownload: UnwrapRef<typeof import('../../composables/usePdfDownload')['usePdfDownload']>
     readonly usePinia: UnwrapRef<typeof import('../../node_modules/@pinia/nuxt/dist/runtime/composables')['usePinia']>
     readonly usePortal: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/usePortal')['usePortal']>
     readonly usePreviewMode: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/preview')['usePreviewMode']>
@@ -481,6 +484,7 @@ declare module 'vue' {
     readonly useTemplateRef: UnwrapRef<typeof import('../../node_modules/vue')['useTemplateRef']>
     readonly useToast: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useToast')['useToast']>
     readonly useTransitionState: UnwrapRef<typeof import('../../node_modules/vue')['useTransitionState']>
+    readonly useValidation: UnwrapRef<typeof import('../../composables/useValidation')['useValidation']>
     readonly useVoHelpers: UnwrapRef<typeof import('../../composables/useVoHelpers')['useVoHelpers']>
     readonly useVoStore: UnwrapRef<typeof import('../../stores/vo')['useVoStore']>
     readonly watch: UnwrapRef<typeof import('../../node_modules/vue')['watch']>

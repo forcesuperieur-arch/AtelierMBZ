@@ -40,6 +40,7 @@ definePageMeta({ title: 'Livre de Police VO' })
 
 const voStore = useVoStore()
 const { formatPrice, formatDate, normalizeText, apiBase } = useVoHelpers()
+const { openPdf } = usePdfDownload()
 
 const search = ref('')
 
@@ -73,7 +74,7 @@ const filteredEntries = computed(() => {
 })
 
 function downloadPdf() {
-  window.open(`${apiBase}/vo/livre-police/pdf`, '_blank')
+  openPdf('/vo/livre-police/pdf')
 }
 
 onMounted(async () => {

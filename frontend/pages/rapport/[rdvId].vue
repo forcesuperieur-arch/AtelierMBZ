@@ -161,6 +161,7 @@ const router = useRouter()
 const api = useApi()
 const toast = useToast()
 const config = useRuntimeConfig()
+const { openPdf: openPdfBlob } = usePdfDownload()
 
 const rdvId = computed(() => Number(route.params.rdvId))
 const loading = ref(true)
@@ -349,8 +350,7 @@ async function signClient() {
 
 function openPdf() {
   if (!rapport.value) return
-  const base = config.public.apiBase as string
-  window.open(`${base}/rapport/${rapport.value.id}/pdf`, '_blank')
+  openPdfBlob(`/rapport/${rapport.value.id}/pdf`)
 }
 
 function askRectifier() {

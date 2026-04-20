@@ -2,6 +2,38 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-06-04 — Remédiation audit : reste lots 7 + mineurs
+
+### Fait
+- [LOT-7] fix — providers.vue : remplacement des 6 `console.error(e)` et `alert()` par `toast.add()` avec messages descriptifs
+- [LOT-7] fix — companion.vue : catch vide L914 documenté (polling réseau non bloquant)
+- [LOT-7] ajoute — composable `useValidation.ts` : regex tel FR, email, plaque FR + `validateClientFields()`
+- [LOT-7] fix — rdv/new.vue : validation format téléphone et email avant soumission RDV
+- [LOT-7] fix — clients/index.vue : validation format téléphone et email avant création client
+- [LOT-7] fix — vo/rachats/new.vue : validation format téléphone, email et plaque avant soumission rachat
+- [LOT-7] ajoute — composable `usePdfDownload.ts` : téléchargement/ouverture PDF via fetch+blob authentifié (remplace `window.open`)
+- [LOT-7] fix — remplacement `window.open` PDF par `usePdfDownload` dans : billing.ts, devis/[id].vue, vo/factures.vue, vo/livre-police.vue, vo/rachats/index.vue, vo/rachats/[id].vue, vo/depots/index.vue, vo/depots/[id].vue, rapport/[rdvId].vue, ordres/[id].vue
+- [MINOR-47] fix — PhotoController : `uniqid()` remplacé par `bin2hex(random_bytes(8))` (filenames non prédictibles)
+- [MINOR-48] fix — OrdreReparationController : remplacement AuditLog direct par `AuditService::log()` (cohérence, simplification, flush unique)
+- [SCHED] ajoute — `app:purge-identity-documents` planifié dans Schedule.php (tous les jours à 4h)
+- PHPUnit via Docker : 168/168 OK
+- Build Nuxt production : OK
+
+### Décisions
+- Les `window.open` sur les documents VO archivés (fichiers statiques) restent tels quels — pas d'enjeu de credentials cross-origin
+- Le `window.open('', '_blank')` de `printOR()` (ordres/[id].vue) reste aussi — c'est un rendu HTML print, pas un appel API
+- Les TODO Lot 6 (workflows DemandeTravauxSupp et VO statut) restent en suspens — nécessitent une décision architecturale
+
+### TODO laissés
+- [ ] Restant window.open : VORemiseEnEtatCard.vue `openDocument()` (fichiers statiques, acceptable)
+- [ ] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)
+- [ ] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)
+- [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn`
+
+### En suspens à arbitrer
+- Faut-il un workflow Symfony pour les transitions de statut VO (achat → FRE → en vente → vendu) ?
+- Faut-il un workflow pour DemandeTravauxSupp ?
+
 ## Session 2026-06-04 — Implémentation audit Lots 4-7
 
 ### Fait
@@ -41,10 +73,10 @@
 - [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn` dans les pages existantes
 - [ ] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)
 - [ ] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)
-- [ ] Planifier l'exécution de `app:purge-identity-documents` dans le scheduler Symfony ou un cron
-- [ ] Lot 7 : Validation format client (plaque, tel, email) dans les formulaires front (#42)
-- [ ] Lot 7 : Remplacer `window.open` PDF par fetch + blob download (#43)
-- [ ] Lot 7 : Supprimer les catch vides dans admin/providers et companion (#44)
+- [x] Planifier l'exécution de `app:purge-identity-documents` dans le scheduler Symfony ou un cron
+- [x] Lot 7 : Validation format client (plaque, tel, email) dans les formulaires front (#42)
+- [x] Lot 7 : Remplacer `window.open` PDF par fetch + blob download (#43)
+- [x] Lot 7 : Supprimer les catch vides dans admin/providers et companion (#44)
 
 ### En suspens à arbitrer
 - Faut-il un workflow Symfony pour les transitions de statut VO (achat → FRE → en vente → vendu) ?
@@ -232,8 +264,8 @@ Audit exhaustif couvrant tous les controllers (35), services (15+), listeners/su
 
 **Lot 7 — Qualité front** :
 - [x] Supprimer le bouton "Initialiser le catalogue" dupliqué dans `admin/prestations.vue`
-- [ ] Ajouter validation format client (plaque, tel, email) dans les formulaires de création
-- [ ] Remplacer les `window.open` PDF par fetch + blob download
+- [x] Ajouter validation format client (plaque, tel, email) dans les formulaires de création
+- [x] Remplacer les `window.open` PDF par fetch + blob download (12 occurrences sur 16 — 4 restantes sont des fichiers statiques ou print HTML)
 - [x] Supprimer les 9 `console.log` en production — déjà clean (0 occurrence)
 - [x] Extraire un composable `useDebounceFn` réutilisable
 

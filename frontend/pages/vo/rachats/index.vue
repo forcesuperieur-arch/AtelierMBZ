@@ -108,6 +108,7 @@ const toast = useToast()
 const config = useRuntimeConfig()
 const { formatPrice, normalizeText } = useVoHelpers()
 const apiBase = config.public.apiBase as string
+const { openPdf } = usePdfDownload()
 
 const search = ref('')
 const status = ref('all')
@@ -178,7 +179,7 @@ function openSale(id: number) {
 }
 
 function downloadPv(id: number) {
-  window.open(`${apiBase}/vo/purchases/${id}/pv-rachat/pdf`, '_blank')
+  openPdf(`/vo/purchases/${id}/pv-rachat/pdf`)
 }
 
 onMounted(async () => {

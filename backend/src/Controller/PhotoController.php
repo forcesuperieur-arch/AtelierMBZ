@@ -52,7 +52,7 @@ class PhotoController extends AbstractController
 
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeName = $this->slugger->slug($originalName);
-        $filename = $safeName . '-' . uniqid() . '.' . $file->guessExtension();
+        $filename = $safeName . '-' . bin2hex(random_bytes(8)) . '.' . $file->guessExtension();
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/var/photos';
         $file->move($uploadDir, $filename);

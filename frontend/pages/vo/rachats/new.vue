@@ -414,6 +414,7 @@ definePageMeta({ title: 'Nouveau rachat VO' })
 
 const voStore = useVoStore()
 const toast = useToast()
+const { validateClientFields } = useValidation()
 const {
   searchClients,
   fetchExperts,
@@ -805,6 +806,16 @@ async function activateCompanionNow(showToast = true) {
 async function submit() {
   if (purchaseForm.createAndConfirm && missingConfirmationDocs.value.length > 0) {
     toast.add({ title: 'Documents manquants', description: 'Ajoutez les documents obligatoires avant confirmation.', color: 'error' })
+    return
+  }
+
+  const formatErrors = validateClientFields({
+    telephone: sellerForm.telephone,
+    email: sellerForm.email,
+    plaque: vehicleForm.plaque,
+  })
+  if (formatErrors.length) {
+    toast.add({ title: 'Format invalide', description: formatErrors.join(' — '), color: 'error' })
     return
   }
 

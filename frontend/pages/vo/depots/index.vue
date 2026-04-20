@@ -99,6 +99,7 @@ const voStore = useVoStore()
 const config = useRuntimeConfig()
 const { formatPrice, normalizeText } = useVoHelpers()
 const apiBase = config.public.apiBase as string
+const { openPdf } = usePdfDownload()
 
 const search = ref('')
 const status = ref('all')
@@ -157,7 +158,7 @@ function openSale(id: number) {
 }
 
 function downloadContrat(id: number) {
-  window.open(`${apiBase}/vo/depots/${id}/contrat/pdf`, '_blank')
+  openPdf(`/vo/depots/${id}/contrat/pdf`)
 }
 
 onMounted(async () => {

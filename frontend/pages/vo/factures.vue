@@ -36,6 +36,7 @@ definePageMeta({ title: 'Factures VO' })
 
 const voStore = useVoStore()
 const { formatPrice, formatDate, normalizeText, apiBase } = useVoHelpers()
+const { openPdf } = usePdfDownload()
 
 const search = ref('')
 
@@ -67,7 +68,7 @@ const filteredFactures = computed(() => {
 })
 
 function downloadFacture(id: number) {
-  window.open(`${apiBase}/vo/factures/${id}/pdf`, '_blank')
+  openPdf(`/vo/factures/${id}/pdf`)
 }
 
 onMounted(async () => {
