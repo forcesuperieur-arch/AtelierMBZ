@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Notification;
+use App\Service\CurrentAtelierResolver;
 use App\Service\MercureNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,7 @@ class NotificationController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private MercureNotifier $mercureNotifier,
+        private CurrentAtelierResolver $currentAtelierResolver,
     ) {}
 
     /**
@@ -31,10 +33,15 @@ class NotificationController extends AbstractController
         $qb = $this->em->getRepository(Notification::class)->createQueryBuilder('n')
             ->orderBy('n.createdAt', 'DESC');
 
-        // Filter by atelier
-        if (method_exists($user, 'getAtelierId') && $user->getAtelierId()) {
+        // Filter by current atelier context
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if (!$atelierId && method_exists($user, 'getAtelierId') && $user->getAtelierId()) {
+            $atelierId = (int) $user->getAtelierId();
+        }
+
+        if ($atelierId) {
             $qb->andWhere('n.atelierId = :atelierId')
-                ->setParameter('atelierId', $user->getAtelierId());
+                ->setParameter('atelierId', $atelierId);
         }
 
         // Filter by status
@@ -83,9 +90,14 @@ class NotificationController extends AbstractController
             ->andWhere('n.expiresAt IS NULL OR n.expiresAt > :now')
             ->setParameter('now', new \DateTime());
 
-        if (method_exists($user, 'getAtelierId') && $user->getAtelierId()) {
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if (!$atelierId && method_exists($user, 'getAtelierId') && $user->getAtelierId()) {
+            $atelierId = (int) $user->getAtelierId();
+        }
+
+        if ($atelierId) {
             $qb->andWhere('n.atelierId = :atelierId')
-                ->setParameter('atelierId', $user->getAtelierId());
+                ->setParameter('atelierId', $atelierId);
         }
 
         $count = (int) $qb->getQuery()->getSingleScalarResult();

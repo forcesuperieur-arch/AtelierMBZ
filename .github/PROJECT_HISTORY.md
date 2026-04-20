@@ -2,6 +2,25 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-20 — Catalogue atelier et notifications
+
+### Fait
+- [LOT-0] fix — correction du chargement admin des prestations multi-atelier via le bon filtre tenant et le bootstrap catalogue
+- [LOT-0] fix — la page admin prestations recharge désormais le catalogue de l’atelier actif sélectionné
+- [LOT-0] ajoute — cloche d’historique des notifications dans la top bar avec compteur et lecture rapide
+- [LOT-0] fix — le scope des notifications web suit désormais l’atelier actif pour super-admin et service client
+- Vérifications exécutées : PHPUnit ciblé vert et build Nuxt production OK
+
+### Décisions
+- L’historique des notifications doit être visible directement dans le chrome applicatif, pas caché dans l’admin
+- Le contexte atelier actif reste la source unique pour les prestations, la prise de RDV et les notifications
+
+### TODO laissés
+- Aucun TODO bloquant laissé sur ce lot.
+
+### En suspens à arbitrer
+- Aucun.
+
 ## Session 2026-04-17 — Companion VO dès la création
 
 ### Fait

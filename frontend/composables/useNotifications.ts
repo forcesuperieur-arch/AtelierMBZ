@@ -20,23 +20,41 @@ const notifications = ref<NotificationItem[]>([])
 const unreadCount = ref(0)
 let eventSource: EventSource | null = null
 let pollInterval: ReturnType<typeof setInterval> | null = null
+let currentAtelierId: number | null = null
 
 export const useNotifications = () => {
   const { get, post } = useApi()
   const config = useRuntimeConfig()
 
-  const fetchNotifications = async (status = 'unread') => {
+  const buildQuerySuffix = (atelierId?: number | null) => {
+    const params = new URLSearchParams()
+    if (atelierId && atelierId > 0) {
+      params.set('atelier_id', String(atelierId))
+    }
+    const query = params.toString()
+    return query ? `?${query}` : ''
+  }
+
+  const fetchNotifications = async (status = 'unread', atelierId?: number | null) => {
     try {
-      const data = await get<{ items: NotificationItem[] }>(`/notifications?status=${status}&limit=50`)
+      const params = new URLSearchParams({ limit: '50' })
+      if (status) {
+        params.set('status', status)
+      }
+      if (atelierId && atelierId > 0) {
+        params.set('atelier_id', String(atelierId))
+      }
+
+      const data = await get<{ items: NotificationItem[] }>(`/notifications?${params.toString()}`)
       notifications.value = data.items || []
     } catch (e) {
       console.warn('[Notifications] Failed to fetch', e)
     }
   }
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = async (atelierId?: number | null) => {
     try {
-      const data = await get<{ count: number }>('/notifications/unread-count')
+      const data = await get<{ count: number }>(`/notifications/unread-count${buildQuerySuffix(atelierId)}`)
       unreadCount.value = data.count
     } catch (e) {
       console.warn('[Notifications] Failed to fetch count', e)
@@ -59,10 +77,11 @@ export const useNotifications = () => {
 
   const connect = async (atelierId: number) => {
     disconnect()
+    currentAtelierId = atelierId
 
     await Promise.allSettled([
-      fetchUnreadCount(),
-      fetchNotifications('unacknowledged'),
+      fetchUnreadCount(atelierId),
+      fetchNotifications('unacknowledged', atelierId),
     ])
 
     if (process.client && typeof navigator !== 'undefined' && navigator.webdriver) {
@@ -115,8 +134,8 @@ export const useNotifications = () => {
   const startPolling = () => {
     if (pollInterval) return
     pollInterval = setInterval(() => {
-      fetchUnreadCount()
-      fetchNotifications('unacknowledged')
+      fetchUnreadCount(currentAtelierId)
+      fetchNotifications('unacknowledged', currentAtelierId)
     }, 15000) // Poll every 15s as fallback
   }
 
@@ -130,7 +149,7 @@ export const useNotifications = () => {
     } catch (e: any) {
       if (e.status === 409) {
         // Already acknowledged — refresh
-        await fetchNotifications('unacknowledged')
+        await fetchNotifications('unacknowledged', currentAtelierId)
       }
       throw e
     }

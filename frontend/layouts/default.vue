@@ -63,6 +63,7 @@
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
         </div>
+        <AppNotificationBell :atelier-id="currentNotificationAtelierId" />
         <div class="live-dot" />
         <span class="topbar-live">LIVE</span>
         <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
@@ -123,12 +124,11 @@ onMounted(() => {
     window.addEventListener('resize', syncSidebarMode)
   }
   // Keep first paint/navigation responsive, then start realtime notifications.
-  fetchUnreadCount()
-  fetchNotifications('unacknowledged')
-  const atelierId = auth.user.value?.atelierId || auth.user.value?.atelier_id
-  if (atelierId) {
+  fetchUnreadCount(currentNotificationAtelierId.value)
+  fetchNotifications('unacknowledged', currentNotificationAtelierId.value)
+  if (currentNotificationAtelierId.value) {
     notificationsConnectTimer = setTimeout(() => {
-      connectNotifs(atelierId)
+      connectNotifs(currentNotificationAtelierId.value as number)
     }, 1500)
   }
 })
@@ -191,6 +191,13 @@ const menuItems = computed(() => {
 const api = useApi()
 const toast = useToast()
 const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
+const currentNotificationAtelierId = computed(() => {
+  const cookieValue = Number(activeAtelierCookie.value ?? 0)
+  if (Number.isFinite(cookieValue) && cookieValue > 0) return cookieValue
+
+  const userValue = Number(auth.user.value?.atelierId || auth.user.value?.atelier_id || 0)
+  return Number.isFinite(userValue) && userValue > 0 ? userValue : null
+})
 const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
 const isServiceClient = computed(() => (auth.user.value?.roles || []).includes('ROLE_SERVICE_CLIENT'))
 const canSwitchAtelierContext = computed(() => isSuperAdmin.value || isServiceClient.value)
@@ -251,6 +258,15 @@ async function onSwitchAtelier() {
 }
 
 watch(canSwitchAtelierContext, (enabled) => { if (enabled) loadAteliers() }, { immediate: true })
+watch(currentNotificationAtelierId, (atelierId) => {
+  fetchUnreadCount(atelierId)
+  fetchNotifications('unacknowledged', atelierId)
+  if (atelierId) {
+    connectNotifs(atelierId)
+  } else {
+    disconnectNotifs()
+  }
+}, { immediate: false })
 watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], ([cookieValue, defaultValue, canSwitch]) => {
   if (!canSwitch) return
   activeAtelierChoice.value = normalizeAtelierChoice(cookieValue) || normalizeAtelierChoice(defaultValue) || normalizeAtelierChoice(ateliersList.value[0]?.id) || ''

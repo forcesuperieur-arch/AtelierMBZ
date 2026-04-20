@@ -656,7 +656,18 @@ async function fetchCategories() {
 }
 
 async function fetchPrestations() {
-  prestations.value = normalizePrestations(unwrapList(await api.get('/prestations?itemsPerPage=200')))
+  let data = await api.get('/prestations?itemsPerPage=200')
+  prestations.value = normalizePrestations(unwrapList(data))
+
+  if (!prestations.value.length) {
+    try {
+      await api.post('/config/prestations/bootstrap', {})
+      data = await api.get('/prestations?itemsPerPage=200')
+      prestations.value = normalizePrestations(unwrapList(data))
+    } catch {
+      // aucun catalogue source disponible
+    }
+  }
 }
 
 async function fetchGrilles() {

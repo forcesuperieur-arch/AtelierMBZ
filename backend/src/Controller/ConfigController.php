@@ -8,6 +8,7 @@ use App\Entity\GrilleTarifaire;
 use App\Entity\HoraireAtelier;
 use App\Entity\Prestation;
 use App\Service\AdminConfigValidator;
+use App\Service\AtelierCatalogBootstrapService;
 use App\Service\CurrentAtelierResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +29,7 @@ class ConfigController extends AbstractController
         private SluggerInterface $slugger,
         private AdminConfigValidator $configValidator,
         private CurrentAtelierResolver $currentAtelierResolver,
+        private AtelierCatalogBootstrapService $atelierCatalogBootstrapService,
     ) {}
 
     #[Route('', methods: ['GET'])]
@@ -53,6 +55,24 @@ class ConfigController extends AbstractController
         $data['horaires'] = json_decode($this->serializer->serialize($horaires, 'json', ['groups' => ['horaire:read']]), true);
 
         return $this->json($data);
+    }
+
+    #[Route('/prestations/bootstrap', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function bootstrapPrestations(): JsonResponse
+    {
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Contexte atelier introuvable'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $created = $this->atelierCatalogBootstrapService->ensurePrestationsForAtelier($atelierId);
+
+        return $this->json([
+            'success' => true,
+            'atelier_id' => $atelierId,
+            'created' => $created,
+        ]);
     }
 
     #[Route('', methods: ['PUT'])]
