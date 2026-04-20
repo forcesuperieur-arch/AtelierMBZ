@@ -235,7 +235,7 @@ class NotificationDispatcher
             ]);
 
             $timestamp = time();
-            $toSign = $appSecret . '+' . $consumerKey . '+GET+' . $url . '+' . $body . '+' . $timestamp;
+            $toSign = $appSecret . '+' . $consumerKey . '+POST+' . $url . '+' . $body . '+' . $timestamp;
             $signature = '$1$' . sha1($toSign);
 
             $ch = curl_init($url);

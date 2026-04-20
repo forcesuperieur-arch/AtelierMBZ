@@ -1289,10 +1289,12 @@ const companionUrl = computed(() => {
   return `${origin}/public/companion?token=${token}`
 })
 
-const companionQrUrl = computed(() => {
-  if (!companionUrl.value) return ''
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(companionUrl.value)}`
-})
+const companionQrUrl = ref('')
+watch(companionUrl, async (url) => {
+  if (!url) { companionQrUrl.value = ''; return }
+  const { generateQrDataUrl } = await import('~/composables/useQrCode')
+  companionQrUrl.value = await generateQrDataUrl(url, 200)
+}, { immediate: true })
 
 function copyCompanionUrl() {
   if (companionUrl.value) {

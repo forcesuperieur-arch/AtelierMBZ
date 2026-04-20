@@ -89,7 +89,14 @@ class VOLivrePoliceService
 
     /**
      * Record sale information on existing Livre de Police entry.
-     * Creates a NEW entry (immutability) with sale data.
+     *
+     * This COMPLETES the existing acquisition entry by filling initially-null sale fields
+     * (dateVente, prixVente, acheteurNom/Prenom/Adresse). This is NOT a mutation of
+     * immutable data — the acquisition fields remain unchanged.
+     *
+     * Conformité LP (Art. 321-7 CP) : une seule ligne par objet, avec entrée ET sortie.
+     * La numérotation et les champs d'acquisition sont immuables ; seuls les champs de
+     * vente (initialement null) sont renseignés lors de la cession.
      */
     public function recordSale(
         VOLivrePolice $acquisitionEntry,
