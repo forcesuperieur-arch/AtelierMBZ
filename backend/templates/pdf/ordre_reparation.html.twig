@@ -21,6 +21,11 @@
         .totals table { width: 100%; }
         .totals td { padding: 3px 5px; }
         .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
+        .photos-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .photos-table td { width: 33%; padding: 6px; vertical-align: top; }
+        .photo-card { border: 1px solid #ddd; background: #fafafa; padding: 6px; }
+        .photo-card img { width: 100%; max-height: 120px; object-fit: cover; }
+        .photo-caption { font-size: 9px; color: #555; margin-top: 4px; }
         .signature { margin-top: 50px; border-top: 1px solid #999; padding-top: 10px; }
     </style>
 </head>
@@ -80,6 +85,25 @@
     {% if or.etatVehicule %}
     <p class="label">État du véhicule à la réception</p>
     <p>{{ or.etatVehicule }}</p>
+    {% endif %}
+
+    {% if reception_photos is defined and reception_photos|length > 0 %}
+    <p class="label">Photos de réception</p>
+    <table class="photos-table">
+        <tr>
+            {% for photo in reception_photos %}
+                <td>
+                    <div class="photo-card">
+                        <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo réception') }}">
+                        <div class="photo-caption">
+                            {{ photo.label|default('Photo réception') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+                        </div>
+                    </div>
+                </td>
+                {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+            {% endfor %}
+        </tr>
+    </table>
     {% endif %}
 
     <div class="signature">

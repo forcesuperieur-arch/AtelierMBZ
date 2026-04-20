@@ -65,6 +65,11 @@
         <div class="admin-card-label">Clauses légales</div>
         <div class="admin-card-desc">CGV, mandat, RGPD, gardiennage…</div>
       </div>
+      <div class="admin-card" @click="navigateTo('/admin/templates-documents')">
+        <div class="admin-card-icon">📄</div>
+        <div class="admin-card-label">Templates documents</div>
+        <div class="admin-card-desc">Prévisualiser les PDF (OR, factures, VO…)</div>
+      </div>
     </div>
   </div>
 </template>
