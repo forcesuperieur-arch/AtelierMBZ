@@ -287,6 +287,7 @@ const route = useRoute()
 const voStore = useVoStore()
 const toast = useToast()
 const { apiBase, formatDate, formatPrice, searchClients } = useVoHelpers()
+const { openPdf } = usePdfDownload()
 
 const detail = ref<any | null>(null)
 const showSale = ref(route.query.sell === '1')
@@ -402,12 +403,12 @@ function focusCompanion() {
 }
 
 function downloadContrat() {
-  window.open(`${apiBase}/vo/depots/${route.params.id}/contrat/pdf`, '_blank')
+  openPdf(`/vo/depots/${route.params.id}/contrat/pdf`)
 }
 
 function downloadMandat() {
   const buyerId = selectedBuyer.value?.id ? `?buyerId=${selectedBuyer.value.id}` : ''
-  window.open(`${apiBase}/vo/depots/${route.params.id}/mandat-immat/pdf${buyerId}`, '_blank')
+  openPdf(`/vo/depots/${route.params.id}/mandat-immat/pdf${buyerId}`)
 }
 
 async function extendMandate() {

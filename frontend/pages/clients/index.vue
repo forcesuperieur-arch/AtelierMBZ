@@ -82,6 +82,7 @@
 <script setup lang="ts">
 const api = useApi()
 const toast = useToast()
+const { validateClientFields } = useValidation()
 const loading = ref(true)
 const clients = ref<any[]>([])
 const search = ref('')
@@ -147,6 +148,14 @@ function debouncedFetch() {
 async function createClient() {
   creating.value = true
   try {
+    const formatErrors = validateClientFields({
+      telephone: newClient.telephone,
+      email: newClient.email,
+    })
+    if (formatErrors.length) {
+      toast.add({ title: 'Format invalide', description: formatErrors.join(' — '), color: 'error' })
+      return
+    }
     const c = await api.post('/clients', {
       ...newClient,
       consentDate: new Date().toISOString(),

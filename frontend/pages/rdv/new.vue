@@ -373,6 +373,7 @@ const rdvStore = useRdvStore()
 const toast = useToast()
 const atelierStore = useAtelierStore()
 const authStore = useAuthStore()
+const { validateClientFields } = useValidation()
 
 type AtelierOption = {
   id: number
@@ -1011,6 +1012,14 @@ async function confirmRdv() {
 
     if (clientMissingFields.value.length) {
       throw new Error(`Client incomplet : ${clientMissingFields.value.join(', ')}`)
+    }
+
+    const formatErrors = validateClientFields({
+      telephone: form.client_telephone,
+      email: form.client_email,
+    })
+    if (formatErrors.length) {
+      throw new Error(formatErrors.join(' — '))
     }
 
     const typeIntervention = selectedPrestaItems.value.map(p => p.nom).join(', ') || form.type_intervention

@@ -588,6 +588,7 @@
 const route = useRoute()
 const api = useApi()
 const toast = useToast()
+const { openPdf: openPdfBlob } = usePdfDownload()
 const atelierStore = useAtelierStore()
 const facturationEnabled = computed(() => atelierStore.isModuleEnabled('facturation'))
 
@@ -1018,9 +1019,8 @@ async function applyTransition(transition: string) {
 
 async function downloadPdf() {
   try {
-    const rdvId = rdv.value?.id
     const orId = ordre.value?.id
-    window.open(`/api/ordres-reparation/${orId}/pdf`, '_blank')
+    await openPdfBlob(`/ordres-reparation/${orId}/pdf`)
   } catch {
     toast.add({ title: 'Erreur PDF', color: 'error' })
   }

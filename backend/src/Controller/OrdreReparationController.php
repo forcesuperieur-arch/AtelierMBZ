@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\AuditLog;
 use App\Entity\OrdreReparation;
 use App\Entity\User;
+use App\Service\AuditService;
 use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +20,7 @@ class OrdreReparationController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private OrdreReparationPolicy $orPolicy,
+        private AuditService $auditService,
     ) {}
 
     #[Route('/{id}/rectifier', methods: ['POST'])]
@@ -49,34 +50,13 @@ class OrdreReparationController extends AbstractController
 
         $rectified = $this->orPolicy->rectify($or, $user, $motif);
         $this->em->persist($rectified);
-
-        // Audit log
-        $log = new AuditLog();
-        $log->setAtelierId($user->getAtelierId());
-        $log->setUserId($user->getId());
-        $log->setUsername($user->getUsername());
-        $log->setAction('or_rectification');
-        $log->setEntityType('OrdreReparation');
-        $log->setEntityId($or->getId());
-        $log->setDetails(json_encode([
-            'original_id' => $or->getId(),
-            'rectified_id' => 'pending',
-            'motif' => $motif,
-            'ip' => $request->getClientIp(),
-        ], JSON_UNESCAPED_UNICODE));
-        $log->setIpAddress($request->getClientIp());
-        $this->em->persist($log);
-
         $this->em->flush();
 
-        // Update audit log with rectified ID
-        $log->setDetails(json_encode([
+        $this->auditService->log('or_rectification', 'OrdreReparation', $or->getId(), json_encode([
             'original_id' => $or->getId(),
             'rectified_id' => $rectified->getId(),
             'motif' => $motif,
-            'ip' => $request->getClientIp(),
         ], JSON_UNESCAPED_UNICODE));
-        $this->em->flush();
 
         return $this->json([
             'success' => true,

@@ -110,6 +110,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const toast = useToast()
+const { openPdf } = usePdfDownload()
 
 const loading = ref(true)
 const acting = ref(false)
@@ -146,7 +147,7 @@ function formatDate(d: string) {
 }
 
 function downloadPdf() {
-  window.open(`/api/devis/${devis.value.id}/pdf`, '_blank')
+  openPdf(`/devis/${devis.value.id}/pdf`)
 }
 
 async function sendDevisEmail() {

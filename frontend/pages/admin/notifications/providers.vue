@@ -308,6 +308,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 const { apiFetch } = useApi();
+const toast = useToast();
 
 const tab = ref('providers');
 const providers = ref([]);
@@ -353,7 +354,7 @@ async function fetchProviders() {
   try {
     const data = await apiFetch('/api/admin/notification-providers');
     providers.value = data;
-  } catch (e) { console.error(e); }
+  } catch (e) { toast.add({ title: 'Erreur chargement providers', description: e?.message, color: 'error' }); }
   loadingProviders.value = false;
 }
 
@@ -362,7 +363,7 @@ async function fetchTemplates() {
   try {
     const data = await apiFetch('/api/admin/notification-templates');
     templates.value = data;
-  } catch (e) { console.error(e); }
+  } catch (e) { toast.add({ title: 'Erreur chargement templates', description: e?.message, color: 'error' }); }
   loadingTemplates.value = false;
 }
 
@@ -374,7 +375,7 @@ async function fetchLogs() {
     if (logFilter.value.status) params.set('status', logFilter.value.status);
     const data = await apiFetch(`/api/admin/notification-logs?${params.toString()}`);
     logs.value = data.items || [];
-  } catch (e) { console.error(e); }
+  } catch (e) { toast.add({ title: 'Erreur chargement logs', description: e?.message, color: 'error' }); }
   loadingLogs.value = false;
 }
 
@@ -387,7 +388,7 @@ async function saveNew() {
     });
     closeModals();
     await fetchProviders();
-  } catch (e) { alert(e.data?.error || 'Erreur'); }
+  } catch (e) { toast.add({ title: 'Erreur', description: e?.data?.error || e?.message || 'Erreur création', color: 'error' }); }
   saving.value = false;
 }
 
@@ -400,7 +401,7 @@ async function saveEdit() {
     });
     closeModals();
     await fetchProviders();
-  } catch (e) { alert(e.data?.error || 'Erreur'); }
+  } catch (e) { toast.add({ title: 'Erreur', description: e?.data?.error || e?.message || 'Erreur modification', color: 'error' }); }
   saving.value = false;
 }
 
@@ -423,7 +424,7 @@ async function deleteProvider(p) {
   try {
     await apiFetch(`/api/admin/notification-providers/${p.id}`, { method: 'DELETE' });
     await fetchProviders();
-  } catch (e) { alert('Erreur suppression'); }
+  } catch (e) { toast.add({ title: 'Erreur suppression', description: e?.message, color: 'error' }); }
 }
 
 function testProviderModal(p) {
