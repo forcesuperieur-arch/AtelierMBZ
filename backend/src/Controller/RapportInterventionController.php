@@ -6,6 +6,7 @@ use App\Entity\EssaiRoutier;
 use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Service\AuditService;
+use App\Service\PdfService;
 use App\Service\RapportInterventionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
@@ -26,6 +27,7 @@ class RapportInterventionController extends AbstractController
         private RapportInterventionService $rapportService,
         private AuditService $audit,
         private Environment $twig,
+        private PdfService $pdfService,
     ) {}
 
     #[Route('/api/rdv/{rdvId}/rapport', methods: ['GET'])]
@@ -215,9 +217,14 @@ class RapportInterventionController extends AbstractController
             'essai' => $essai,
             'client' => $rdv->getClient(),
             'vehicule' => $rdv->getVehicule(),
+            ...$this->pdfService->buildRdvPhotoContext($rdv),
         ]);
 
-        $dompdf = new Dompdf();
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();

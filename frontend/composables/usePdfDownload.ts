@@ -38,19 +38,33 @@ export function usePdfDownload() {
   /** Open a PDF in a new tab via blob URL */
   async function openPdf(path: string): Promise<void> {
     const url = path.startsWith('http') ? path : `${baseURL}${path.startsWith('/') ? path : `/${path}`}`
+    const previewWindow = window.open('', '_blank')
 
-    const res = await globalThis.fetch(url, {
-      credentials: 'include',
-      headers: { Accept: 'application/pdf' },
-    })
+    try {
+      const res = await globalThis.fetch(url, {
+        credentials: 'include',
+        headers: { Accept: 'application/pdf' },
+      })
 
-    if (!res.ok) {
-      throw new Error(`Ouverture PDF échouée (${res.status})`)
+      if (!res.ok) {
+        previewWindow?.close()
+        throw new Error(`Ouverture PDF échouée (${res.status})`)
+      }
+
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+
+      if (previewWindow) {
+        previewWindow.location.href = blobUrl
+      } else {
+        window.open(blobUrl, '_blank')
+      }
+
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (error) {
+      previewWindow?.close()
+      throw error
     }
-
-    const blob = await res.blob()
-    const blobUrl = URL.createObjectURL(blob)
-    window.open(blobUrl, '_blank')
   }
 
   return { downloadPdf, openPdf }

@@ -20,6 +20,11 @@
         .section-content { background: #f9fafb; padding: 6px 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
         .signature-block { display: inline-block; width: 45%; border: 1px solid #ccc; padding: 8px; margin: 5px 2%; text-align: center; min-height: 80px; vertical-align: top; }
         .signature-block p { margin: 3px 0; font-size: 10px; color: #666; }
+        .photos-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .photos-table td { width: 33%; padding: 6px; vertical-align: top; }
+        .photo-card { border: 1px solid #ddd; background: #fafafa; padding: 6px; }
+        .photo-card img { width: 100%; max-height: 120px; object-fit: cover; }
+        .photo-caption { font-size: 9px; color: #555; margin-top: 4px; }
         .footer { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #999; text-align: center; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
         .badge-signe { background: #dcfce7; color: #166534; }
@@ -139,6 +144,27 @@
         {% if essai.actionsCorrectives %}
         <p><strong>Actions correctives :</strong> {{ essai.actionsCorrectives }}</p>
         {% endif %}
+    </div>
+    {% endif %}
+
+    {% if report_photos is defined and report_photos|length > 0 %}
+    <div class="section">
+        <h3>Photos d'intervention / restitution</h3>
+        <table class="photos-table">
+            <tr>
+                {% for photo in report_photos %}
+                    <td>
+                        <div class="photo-card">
+                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo atelier') }}">
+                            <div class="photo-caption">
+                                {{ photo.label|default('Photo atelier') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+                {% endfor %}
+            </tr>
+        </table>
     </div>
     {% endif %}
 

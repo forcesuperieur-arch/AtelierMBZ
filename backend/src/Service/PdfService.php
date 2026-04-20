@@ -6,6 +6,8 @@ use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
+use App\Entity\PhotoIntervention;
+use App\Entity\RendezVous;
 use App\Entity\VODepotVente;
 use App\Entity\VOFacture;
 use App\Entity\VOLivrePolice;
@@ -36,6 +38,7 @@ class PdfService
         $html = $this->twig->render('pdf/ordre_reparation.html.twig', [
             'or' => $or,
             'rdv' => $or->getRendezVous(),
+            ...$this->buildRdvPhotoContext($or->getRendezVous()),
             ...$this->buildBrandingContext($atelier),
         ]);
 
@@ -230,6 +233,123 @@ class PdfService
         $relativePath = parse_url($logoUrl, PHP_URL_PATH) ?: $logoUrl;
         $filePath = $this->projectDir . '/public' . $relativePath;
 
+        return $this->fileToDataUri($filePath);
+    }
+
+    public function buildRdvPhotoContext(?RendezVous $rdv): array
+    {
+        return [
+            'reception_photos' => $this->extractReceptionPhotos($rdv),
+            'report_photos' => $this->extractReportPhotos($rdv),
+        ];
+    }
+
+    /**
+     * @return array<int, array{src: string, label: string, takenAt: ?string}>
+     */
+    private function extractReceptionPhotos(?RendezVous $rdv): array
+    {
+        if (!$rdv) {
+            return [];
+        }
+
+        $photos = [];
+        $raw = $rdv->getPhotosEtat();
+        if (is_string($raw) && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+            $candidatePhotos = is_array($decoded) ? ($decoded['photos'] ?? []) : [];
+
+            if (is_array($candidatePhotos)) {
+                foreach ($candidatePhotos as $photo) {
+                    $this->appendInlinePhoto($photos, $photo, 'Photo réception');
+                }
+            }
+        }
+
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            $type = strtolower((string) ($photo->getType() ?? ''));
+            if ($type === '' || in_array($type, ['reception', 'checkin', 'etat'], true)) {
+                $this->appendStoredPhoto($photos, $photo);
+            }
+        }
+
+        return array_slice($photos, 0, 6);
+    }
+
+    /**
+     * @return array<int, array{src: string, label: string, takenAt: ?string}>
+     */
+    private function extractReportPhotos(?RendezVous $rdv): array
+    {
+        if (!$rdv) {
+            return [];
+        }
+
+        $photos = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            $type = strtolower((string) ($photo->getType() ?? 'intervention'));
+            if (!in_array($type, ['reception', 'checkin', 'etat'], true)) {
+                $this->appendStoredPhoto($photos, $photo);
+            }
+        }
+
+        return array_slice($photos, 0, 6);
+    }
+
+    /**
+     * @param array<int, array{src: string, label: string, takenAt: ?string}> $photos
+     */
+    private function appendInlinePhoto(array &$photos, mixed $photo, string $fallbackLabel): void
+    {
+        $src = null;
+        $label = $fallbackLabel;
+
+        if (is_string($photo)) {
+            $src = $photo;
+        } elseif (is_array($photo)) {
+            $src = $photo['src'] ?? $photo['data'] ?? $photo['url'] ?? null;
+            $label = (string) ($photo['label'] ?? $photo['description'] ?? $fallbackLabel);
+        }
+
+        if (!is_string($src) || trim($src) === '' || !str_starts_with($src, 'data:image/')) {
+            return;
+        }
+
+        $photos[] = [
+            'src' => $src,
+            'label' => $label,
+            'takenAt' => null,
+        ];
+    }
+
+    /**
+     * @param array<int, array{src: string, label: string, takenAt: ?string}> $photos
+     */
+    private function appendStoredPhoto(array &$photos, PhotoIntervention $photo): void
+    {
+        $path = $this->projectDir . '/var/photos/' . basename($photo->getFilename());
+        $src = $this->fileToDataUri($path);
+        if (!$src) {
+            return;
+        }
+
+        $typeLabel = match (strtolower((string) $photo->getType())) {
+            'restitution' => 'Photo restitution',
+            'intervention' => 'Photo intervention',
+            'before' => 'Photo avant travaux',
+            'after' => 'Photo après travaux',
+            default => 'Photo atelier',
+        };
+
+        $photos[] = [
+            'src' => $src,
+            'label' => $photo->getDescription() ?: $typeLabel,
+            'takenAt' => $photo->getTakenAt()?->format('d/m/Y H:i'),
+        ];
+    }
+
+    private function fileToDataUri(string $filePath): ?string
+    {
         if (!is_file($filePath) || !is_readable($filePath)) {
             return null;
         }
