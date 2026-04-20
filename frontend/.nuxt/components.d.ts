@@ -18,6 +18,7 @@ export const AppEmptyState: typeof import("../components/AppEmptyState.vue")['de
 export const AppErrorState: typeof import("../components/AppErrorState.vue")['default']
 export const AppLoadingState: typeof import("../components/AppLoadingState.vue")['default']
 export const AppModal: typeof import("../components/AppModal.vue")['default']
+export const AppNotificationBell: typeof import("../components/AppNotificationBell.vue")['default']
 export const NotificationPopIn: typeof import("../components/NotificationPopIn.vue")['default']
 export const PlanningGrid: typeof import("../components/PlanningGrid.vue")['default']
 export const SidebarLink: typeof import("../components/SidebarLink.vue")['default']
@@ -115,6 +116,7 @@ export const LazyAppEmptyState: LazyComponent<typeof import("../components/AppEm
 export const LazyAppErrorState: LazyComponent<typeof import("../components/AppErrorState.vue")['default']>
 export const LazyAppLoadingState: LazyComponent<typeof import("../components/AppLoadingState.vue")['default']>
 export const LazyAppModal: LazyComponent<typeof import("../components/AppModal.vue")['default']>
+export const LazyAppNotificationBell: LazyComponent<typeof import("../components/AppNotificationBell.vue")['default']>
 export const LazyNotificationPopIn: LazyComponent<typeof import("../components/NotificationPopIn.vue")['default']>
 export const LazyPlanningGrid: LazyComponent<typeof import("../components/PlanningGrid.vue")['default']>
 export const LazySidebarLink: LazyComponent<typeof import("../components/SidebarLink.vue")['default']>

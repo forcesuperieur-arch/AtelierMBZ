@@ -10,8 +10,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/ordres-reparation')]
+#[IsGranted('ROLE_USER')]
 class OrdreReparationPdfController extends AbstractController
 {
     public function __construct(

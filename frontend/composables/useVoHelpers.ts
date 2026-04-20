@@ -167,11 +167,12 @@ export function useVoHelpers() {
     return `${apiBase}${filePath.startsWith('/') ? filePath : `/${filePath}`}`
   }
 
-  function buildQrCodeUrl(targetUrl: string | null | undefined, size = 220) {
+  async function buildQrCodeUrl(targetUrl: string | null | undefined, size = 220): Promise<string> {
     const normalized = String(targetUrl || '').trim()
     if (!normalized) return ''
 
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(normalized)}`
+    const { generateQrDataUrl } = await import('~/composables/useQrCode')
+    return generateQrDataUrl(normalized, size)
   }
 
   function purchaseStatusLabel(status: string) {

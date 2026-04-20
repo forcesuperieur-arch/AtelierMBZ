@@ -18,6 +18,7 @@ interface _GlobalComponents {
   AppErrorState: typeof import("../../components/AppErrorState.vue")['default']
   AppLoadingState: typeof import("../../components/AppLoadingState.vue")['default']
   AppModal: typeof import("../../components/AppModal.vue")['default']
+  AppNotificationBell: typeof import("../../components/AppNotificationBell.vue")['default']
   NotificationPopIn: typeof import("../../components/NotificationPopIn.vue")['default']
   PlanningGrid: typeof import("../../components/PlanningGrid.vue")['default']
   SidebarLink: typeof import("../../components/SidebarLink.vue")['default']
@@ -115,6 +116,7 @@ interface _GlobalComponents {
   LazyAppErrorState: LazyComponent<typeof import("../../components/AppErrorState.vue")['default']>
   LazyAppLoadingState: LazyComponent<typeof import("../../components/AppLoadingState.vue")['default']>
   LazyAppModal: LazyComponent<typeof import("../../components/AppModal.vue")['default']>
+  LazyAppNotificationBell: LazyComponent<typeof import("../../components/AppNotificationBell.vue")['default']>
   LazyNotificationPopIn: LazyComponent<typeof import("../../components/NotificationPopIn.vue")['default']>
   LazyPlanningGrid: LazyComponent<typeof import("../../components/PlanningGrid.vue")['default']>
   LazySidebarLink: LazyComponent<typeof import("../../components/SidebarLink.vue")['default']>

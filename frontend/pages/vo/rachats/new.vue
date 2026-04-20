@@ -426,8 +426,9 @@ const {
   formatRegistrationOrVin,
   documentLabel,
   documentLabels,
-  buildQrCodeUrl,
 } = useVoHelpers()
+
+const { useQrCode } = await import('~/composables/useQrCode')
 
 const steps = [
   { id: 1, label: 'Vendeur' },
@@ -542,7 +543,7 @@ const draftPublicUrl = computed(() => {
   if (!path || !import.meta.client) return ''
   return new URL(path, window.location.origin).toString()
 })
-const draftQrCodeUrl = computed(() => buildQrCodeUrl(draftPublicUrl.value, 180))
+const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 
 const uploadedDocTypes = computed(() => new Set(documentRows.value.filter(row => row.type && row.file).map(row => row.type)))
 const missingConfirmationDocs = computed(() => requiredPurchaseDocs.filter(type => !uploadedDocTypes.value.has(type)))

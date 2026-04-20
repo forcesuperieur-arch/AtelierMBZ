@@ -30,6 +30,9 @@ class NotificationController extends AbstractController
     public function list(Request $request): JsonResponse
     {
         $user = $this->getUser();
+        $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
+        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
+
         $qb = $this->em->getRepository(Notification::class)->createQueryBuilder('n')
             ->orderBy('n.createdAt', 'DESC');
 
@@ -43,6 +46,9 @@ class NotificationController extends AbstractController
             $qb->andWhere('n.atelierId = :atelierId')
                 ->setParameter('atelierId', $atelierId);
         }
+
+        // Ownership: user must be the targetUserId OR match one of the targetRoles
+        $this->applyOwnershipFilter($qb, $userId, $userRoles);
 
         // Filter by status
         $status = $request->query->get('status');
@@ -84,6 +90,9 @@ class NotificationController extends AbstractController
     public function unreadCount(): JsonResponse
     {
         $user = $this->getUser();
+        $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
+        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
+
         $qb = $this->em->getRepository(Notification::class)->createQueryBuilder('n')
             ->select('COUNT(n.id)')
             ->where('n.readAt IS NULL')
@@ -100,6 +109,9 @@ class NotificationController extends AbstractController
                 ->setParameter('atelierId', $atelierId);
         }
 
+        // Ownership: same rule as list
+        $this->applyOwnershipFilter($qb, $userId, $userRoles);
+
         $count = (int) $qb->getQuery()->getSingleScalarResult();
 
         return $this->json(['count' => $count]);
@@ -113,7 +125,14 @@ class NotificationController extends AbstractController
     public function acknowledge(int $id): JsonResponse
     {
         $user = $this->getUser();
-        $userId = method_exists($user, 'getId') ? $user->getId() : 0;
+        $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
+        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
+
+        // Ownership check
+        $notif = $this->em->getRepository(Notification::class)->find($id);
+        if (!$notif || !$this->isNotificationVisibleToUser($notif, $userId, $userRoles)) {
+            return $this->json(['error' => 'Notification introuvable'], Response::HTTP_NOT_FOUND);
+        }
 
         $rowsAffected = $this->em->getConnection()->executeStatement(
             'UPDATE notifications SET acknowledged_at = NOW(), acknowledged_by = :userId WHERE id = :id AND acknowledged_at IS NULL',
@@ -122,24 +141,20 @@ class NotificationController extends AbstractController
 
         if ($rowsAffected === 0) {
             return $this->json(
-                ['error' => 'Notification déjà acquittée ou introuvable'],
+                ['error' => 'Notification déjà acquittée'],
                 Response::HTTP_CONFLICT,
             );
         }
 
-        // Refresh entity and publish Mercure event
-        $notif = $this->em->getRepository(Notification::class)->find($id);
-        if ($notif) {
-            $this->em->refresh($notif);
-            try {
-                $this->mercureNotifier->publishAcknowledged(
-                    $notif->getAtelierId() ?? 0,
-                    $id,
-                    $userId,
-                );
-            } catch (\Throwable $e) {
-                // Mercure failure is non-blocking
-            }
+        $this->em->refresh($notif);
+        try {
+            $this->mercureNotifier->publishAcknowledged(
+                $notif->getAtelierId() ?? 0,
+                $id,
+                $userId,
+            );
+        } catch (\Throwable $e) {
+            // Mercure failure is non-blocking
         }
 
         return $this->json(['acknowledged' => true, 'id' => $id]);
@@ -152,10 +167,11 @@ class NotificationController extends AbstractController
     public function markRead(int $id): JsonResponse
     {
         $user = $this->getUser();
-        $userId = method_exists($user, 'getId') ? $user->getId() : 0;
+        $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
+        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
 
         $notif = $this->em->getRepository(Notification::class)->find($id);
-        if (!$notif) {
+        if (!$notif || !$this->isNotificationVisibleToUser($notif, $userId, $userRoles)) {
             return $this->json(['error' => 'Notification introuvable'], Response::HTTP_NOT_FOUND);
         }
 
@@ -169,6 +185,64 @@ class NotificationController extends AbstractController
         $this->em->flush();
 
         return $this->json(['read' => true, 'id' => $id]);
+    }
+
+    /**
+     * Apply ownership filter using native SQL for PostgreSQL JSON column compatibility.
+     * User sees: their own targeted notifs + broadcasts (null target, empty roles) + role-matched notifs.
+     */
+    private function applyOwnershipFilter(\Doctrine\ORM\QueryBuilder $qb, int $userId, array $userRoles): void
+    {
+        $conn = $this->em->getConnection();
+        $alias = $qb->getRootAliases()[0];
+
+        // Get the class metadata to resolve the table alias that Doctrine will use
+        // We build a raw SQL condition array, but inject it via DQL andWhere with literal expressions
+        $conditions = [];
+
+        // 1) Targeted directly to this user
+        $conditions[] = "$alias.targetUserId = :ownUserId";
+
+        // 2) Broadcast: no target user and empty target roles array
+        // For json column in PG, we compare targetRoles::text = '[]'
+        $conditions[] = "($alias.targetUserId IS NULL AND $alias.targetRole IS NULL)";
+
+        // 3) Role match: targetRoles contains at least one of user's roles
+        foreach ($userRoles as $i => $role) {
+            $paramName = 'role_' . $i;
+            $conditions[] = "$alias.targetRole = :$paramName";
+            $qb->setParameter($paramName, $role);
+        }
+
+        $qb->andWhere('(' . implode(' OR ', $conditions) . ')')
+            ->setParameter('ownUserId', $userId);
+    }
+
+    /**
+     * Check if a single notification is visible to a given user.
+     */
+    private function isNotificationVisibleToUser(Notification $notif, int $userId, array $userRoles): bool
+    {
+        // Directly targeted
+        if ($notif->getTargetUserId() === $userId) {
+            return true;
+        }
+
+        // Broadcast (no specific target)
+        if ($notif->getTargetUserId() === null && $notif->getTargetRoles() === []) {
+            return true;
+        }
+
+        // Role match
+        if ($notif->getTargetRoles() !== []) {
+            foreach ($notif->getTargetRoles() as $role) {
+                if (in_array($role, $userRoles, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function serializeNotif(Notification $n): array

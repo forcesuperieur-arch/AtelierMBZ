@@ -80,7 +80,8 @@ const props = defineProps<{
 }>()
 
 const toast = useToast()
-const { buildQrCodeUrl, documentLabel, formatDate } = useVoHelpers()
+const { documentLabel, formatDate } = useVoHelpers()
+const { useQrCode } = await import('~/composables/useQrCode')
 
 const partyRoleLabel = computed(() => {
   const role = String(props.companion?.partyRole || '')
@@ -97,7 +98,7 @@ const publicUrl = computed(() => {
   return path
 })
 
-const qrCodeUrl = computed(() => buildQrCodeUrl(publicUrl.value, 240))
+const { dataUrl: qrCodeUrl } = useQrCode(publicUrl, 240)
 
 const generatedDocuments = computed(() => props.generatedDocuments || props.companion?.generatedDocuments || [])
 

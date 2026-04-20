@@ -194,9 +194,9 @@ class ConfigController extends AbstractController
             return $this->json(['error' => 'Logo file required'], Response::HTTP_BAD_REQUEST);
         }
 
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!in_array($file->getMimeType(), $allowedMimes, true)) {
-            return $this->json(['error' => 'Only JPEG, PNG, WebP and SVG are allowed'], Response::HTTP_BAD_REQUEST);
+            return $this->json(['error' => 'Only JPEG, PNG and WebP are allowed (SVG refused for security)'], Response::HTTP_BAD_REQUEST);
         }
 
         if ($file->getSize() > 5 * 1024 * 1024) {
@@ -205,7 +205,7 @@ class ConfigController extends AbstractController
 
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeName = strtolower((string) $this->slugger->slug($originalName ?: 'logo-atelier'));
-        $extension = $file->getMimeType() === 'image/svg+xml' ? 'svg' : ($file->guessExtension() ?: 'bin');
+        $extension = $file->guessExtension() ?: 'bin';
         $filename = sprintf('%s-%s.%s', $safeName ?: 'logo-atelier', uniqid(), $extension);
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/logos';
@@ -299,13 +299,10 @@ class ConfigController extends AbstractController
         $atelierId = $config?->getAtelierId() ?? $this->currentAtelierResolver->resolveAtelierId();
 
         if ($atelierId) {
-            $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
-            if ($atelier) {
-                return $atelier;
-            }
+            return $this->em->getRepository(Atelier::class)->find($atelierId);
         }
 
-        return $this->em->getRepository(Atelier::class)->findOneBy([]);
+        return null;
     }
 
     private function findCurrentConfig(bool $createIfMissing = false): ?ConfigAtelier
@@ -327,7 +324,7 @@ class ConfigController extends AbstractController
             }
         }
 
-        return $this->em->getRepository(ConfigAtelier::class)->findOneBy([]);
+        return null;
     }
 
     private function serializeAtelier(Atelier $atelier): array

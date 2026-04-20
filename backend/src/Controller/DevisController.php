@@ -13,8 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/devis')]
+#[IsGranted('ROLE_USER')]
 class DevisController extends AbstractController
 {
     public function __construct(
@@ -27,6 +29,8 @@ class DevisController extends AbstractController
     #[Route('/{id}/envoyer', methods: ['POST'])]
     public function envoyer(int $id): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $devis = $this->em->getRepository(Devis::class)->find($id);
         if (!$devis) return $this->json(['error' => 'Devis introuvable'], Response::HTTP_NOT_FOUND);
         if ($devis->getStatut() !== 'brouillon') {
@@ -65,6 +69,8 @@ class DevisController extends AbstractController
     #[Route('/{id}/email', methods: ['POST'])]
     public function sendEmail(int $id): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $devis = $this->em->getRepository(Devis::class)->find($id);
         if (!$devis) return $this->json(['error' => 'Devis introuvable'], Response::HTTP_NOT_FOUND);
 
@@ -129,6 +135,8 @@ class DevisController extends AbstractController
     #[Route('/{id}/convertir', methods: ['POST'])]
     public function convertir(int $id): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $devis = $this->em->getRepository(Devis::class)->find($id);
         if (!$devis) return $this->json(['error' => 'Devis introuvable'], Response::HTTP_NOT_FOUND);
         if ($devis->getStatut() !== 'accepte') {

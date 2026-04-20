@@ -29,7 +29,11 @@ class PrestationCatalogService
         $cylindree = $vehicule->getCylindree() ? (int) $vehicule->getCylindree() : null;
         $atelierId = $vehicule->getAtelierId();
 
-        $prestations = $this->em->getRepository(Prestation::class)->findBy(['isActive' => 1]);
+        $criteria = ['isActive' => 1];
+        if ($atelierId) {
+            $criteria['atelierId'] = $atelierId;
+        }
+        $prestations = $this->em->getRepository(Prestation::class)->findBy($criteria);
 
         $results = [];
         foreach ($prestations as $prestation) {

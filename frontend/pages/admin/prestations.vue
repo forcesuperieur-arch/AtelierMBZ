@@ -6,6 +6,8 @@
         <div class="page-title">Gestion des prestations</div>
       </div>
       <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
+      <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
+      <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
@@ -424,6 +426,17 @@ async function deletePrestation(id: number) {
   }
 }
 
+async function bootstrapCatalog() {
+  try {
+    const atelierId = getActiveAtelierId()
+    await api.post('/config/prestations/bootstrap', atelierId ? { atelier_id: atelierId } : {})
+    toast.add({ title: 'Catalogue initialisé', color: 'success' })
+    await fetchData()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  }
+}
+
 async function savePrestation() {
   saving.value = true
   try {
@@ -489,36 +502,20 @@ async function saveTarifModal() {
 async function fetchData() {
   await syncAtelierContext()
 
-  const [prestationsResult, categoriesResult, grillesResult, configResult] = await Promise.allSettled([
+  const [prestationsResult, categoriesResult, grillesResult] = await Promise.allSettled([
     api.get(withAtelierContext('/prestations?itemsPerPage=200')),
     api.get(withAtelierContext('/motos/categories?itemsPerPage=200')),
     api.get(withAtelierContext('/grille_tarifaires?itemsPerPage=400')),
-    api.get(withAtelierContext('/config')),
   ])
 
-  const prestationData = prestationsResult.status === 'fulfilled' ? prestationsResult.value : []
-  const categoriesData = categoriesResult.status === 'fulfilled' ? categoriesResult.value : []
-  const grillesData = grillesResult.status === 'fulfilled' ? grillesResult.value : []
-  const configData = configResult.status === 'fulfilled' ? configResult.value : null
-
-  prestations.value = normalizePrestations(unwrapList(prestationData))
-  motoCategories.value = normalizeCategories(unwrapList(categoriesData))
-  grilles.value = normalizeGrilles(unwrapList(grillesData))
-  tvaMo.value = toNumber(configData?.tva_mo_taux, 20)
-
-  if (!prestations.value.length) {
-    try {
-      const atelierId = getActiveAtelierId()
-      await api.post('/config/prestations/bootstrap', atelierId ? { atelier_id: atelierId } : {})
-      const [reloadedPrestations, reloadedGrilles] = await Promise.all([
-        api.get(withAtelierContext('/prestations?itemsPerPage=200')),
-        api.get(withAtelierContext('/grille_tarifaires?itemsPerPage=400')),
-      ])
-      prestations.value = normalizePrestations(unwrapList(reloadedPrestations))
-      grilles.value = normalizeGrilles(unwrapList(reloadedGrilles))
-    } catch {
-      // garde l'état vide si aucun catalogue source n'est disponible
-    }
+  if (prestationsResult.status === 'fulfilled') {
+    prestations.value = unwrapList(prestationsResult.value)
+  }
+  if (categoriesResult.status === 'fulfilled') {
+    motoCategories.value = unwrapList(categoriesResult.value)
+  }
+  if (grillesResult.status === 'fulfilled') {
+    grilles.value = normalizeGrilles(unwrapList(grillesResult.value))
   }
 }
 

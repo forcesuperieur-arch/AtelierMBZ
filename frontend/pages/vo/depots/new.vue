@@ -389,8 +389,9 @@ const {
   formatPrice,
   formatRegistrationOrVin,
   documentLabels,
-  buildQrCodeUrl,
 } = useVoHelpers()
+
+const { useQrCode } = await import('~/composables/useQrCode')
 
 const steps = [
   { id: 1, label: 'Déposant' },
@@ -505,7 +506,7 @@ const draftPublicUrl = computed(() => {
   if (!path || !import.meta.client) return ''
   return new URL(path, window.location.origin).toString()
 })
-const draftQrCodeUrl = computed(() => buildQrCodeUrl(draftPublicUrl.value, 180))
+const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 
 let deposantSearchTimer: ReturnType<typeof setTimeout> | null = null
 let companionPollTimer: ReturnType<typeof setInterval> | null = null

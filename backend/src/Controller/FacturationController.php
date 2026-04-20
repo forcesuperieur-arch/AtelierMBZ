@@ -1,11 +1,13 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\ConfigAtelier;
 use App\Entity\Facture;
 use App\Entity\LigneFacture;
 use App\Entity\Paiement;
 use App\Entity\RendezVous;
 use App\Service\AuditService;
+use App\Service\CurrentAtelierResolver;
 use App\Service\PdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,13 +23,36 @@ use Symfony\Component\Serializer\SerializerInterface;
 #[Route('/api/facturation')]
 class FacturationController extends AbstractController
 {
-    private function buildRdvInvoicePreview(RendezVous $rdv, float $remisePourcent = 0.0): array
-    {
-        $baseHt = (float) ($rdv->getPrixEstime() ?? 0);
+    private const TVA_RATE_FALLBACK = '20.00';
+    private const TAUX_HORAIRE_FALLBACK = '65.00';
 
-        if ($baseHt <= 0) {
+    private function getTvaRate(): string
+    {
+        $config = $this->getConfigAtelier();
+        return $config ? (string) ($config->getTvaMoTaux() ?? self::TVA_RATE_FALLBACK) : self::TVA_RATE_FALLBACK;
+    }
+
+    private function getTauxHoraire(): string
+    {
+        $config = $this->getConfigAtelier();
+        return $config ? ($config->getTauxHoraireMoStandard() ?? self::TAUX_HORAIRE_FALLBACK) : self::TAUX_HORAIRE_FALLBACK;
+    }
+
+    private function getConfigAtelier(): ?ConfigAtelier
+    {
+        $atelierId = $this->atelierResolver->getAtelierId();
+        if (!$atelierId) {
+            return null;
+        }
+        return $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+    }
+
+    private function buildRdvInvoicePreview(RendezVous $rdv, string $remisePourcent = '0'): array
+    {
+        $baseHt = $rdv->getPrixEstime() ?? '0';
+        if (bccomp($baseHt, '0', 2) <= 0) {
             $minutes = max(30, (int) ($rdv->getTempsEstime() ?? 60));
-            $baseHt = round(($minutes / 60) * 65, 2);
+            $baseHt = bcdiv(bcmul((string) $minutes, $this->getTauxHoraire(), 2), '60', 2);
         }
 
         $designation = trim((string) ($rdv->getTypeIntervention() ?: 'Intervention atelier'));
@@ -42,15 +67,15 @@ class FacturationController extends AbstractController
             'vehicule' => $vehiculeInfo,
             'vehicule_info' => $vehiculeInfo,
             'remise' => $remisePourcent,
-            'tva_mo_taux' => 20,
-            'tva_pieces_taux' => 20,
+            'tva_mo_taux' => $this->getTvaRate(),
+            'tva_pieces_taux' => $this->getTvaRate(),
             'lignes_mo' => [[
                 'designation' => $designation,
                 'label' => $designation,
-                'montant_ht' => round($baseHt, 2),
+                'montant_ht' => $baseHt,
             ]],
             'lignes_pieces' => [],
-            'total_ht' => round($baseHt, 2),
+            'total_ht' => $baseHt,
         ];
     }
 
@@ -60,6 +85,7 @@ class FacturationController extends AbstractController
         private AuditService $audit,
         private SerializerInterface $serializer,
         private MailerInterface $mailer,
+        private CurrentAtelierResolver $atelierResolver,
     ) {}
 
     /**
@@ -68,6 +94,8 @@ class FacturationController extends AbstractController
     #[Route('', methods: ['GET'])]
     public function list(Request $request): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $qb = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
             ->orderBy('f.createdAt', 'DESC');
 
@@ -83,6 +111,8 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}/preview-facture', methods: ['GET'])]
     public function previewFacture(int $rdvId): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
@@ -94,45 +124,54 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}/facturer', methods: ['POST'])]
     public function facturerRendezVous(int $rdvId, Request $request): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $remisePourcent = max(0, min(100, (float) ($data['remise_pourcent'] ?? 0)));
+        $remisePourcent = (string) max(0, min(100, (float) ($data['remise_pourcent'] ?? 0)));
         $preview = $this->buildRdvInvoicePreview($rdv, $remisePourcent);
 
-        $moHt = array_reduce($preview['lignes_mo'], fn(float $sum, array $line) => $sum + (float) ($line['montant_ht'] ?? 0), 0.0);
-        $piecesHt = array_reduce($preview['lignes_pieces'], fn(float $sum, array $line) => $sum + (float) ($line['montant_ht'] ?? 0), 0.0);
-        $discountFactor = 1 - ($remisePourcent / 100);
-        $moHtDiscounted = round($moHt * $discountFactor, 2);
-        $piecesHtDiscounted = round($piecesHt * $discountFactor, 2);
-        $totalHt = round($moHtDiscounted + $piecesHtDiscounted, 2);
-        $tvaMo = round($moHtDiscounted * 0.2, 2);
-        $tvaPieces = round($piecesHtDiscounted * 0.2, 2);
-        $totalTva = round($tvaMo + $tvaPieces, 2);
-        $totalTtc = round($totalHt + $totalTva, 2);
+        $moHt = '0';
+        foreach ($preview['lignes_mo'] as $line) {
+            $moHt = bcadd($moHt, (string) ($line['montant_ht'] ?? '0'), 2);
+        }
+        $piecesHt = '0';
+        foreach ($preview['lignes_pieces'] as $line) {
+            $piecesHt = bcadd($piecesHt, (string) ($line['montant_ht'] ?? '0'), 2);
+        }
+        $discountFactor = bcsub('1', bcdiv($remisePourcent, '100', 6), 6);
+        $moHtDiscounted = bcmul($moHt, $discountFactor, 2);
+        $piecesHtDiscounted = bcmul($piecesHt, $discountFactor, 2);
+        $totalHt = bcadd($moHtDiscounted, $piecesHtDiscounted, 2);
+        $tvaRate = bcdiv($this->getTvaRate(), '100', 4);
+        $tvaMo = bcmul($moHtDiscounted, $tvaRate, 2);
+        $tvaPieces = bcmul($piecesHtDiscounted, $tvaRate, 2);
+        $totalTva = bcadd($tvaMo, $tvaPieces, 2);
+        $totalTtc = bcadd($totalHt, $totalTva, 2);
 
         $payload = [
-            'total_mo_ht' => number_format($moHtDiscounted, 2, '.', ''),
-            'total_pieces_ht' => number_format($piecesHtDiscounted, 2, '.', ''),
-            'total_ht' => number_format($totalHt, 2, '.', ''),
-            'total_ttc' => number_format($totalTtc, 2, '.', ''),
-            'tva_mo' => number_format($tvaMo, 2, '.', ''),
-            'tva_pieces' => number_format($tvaPieces, 2, '.', ''),
-            'total_tva' => number_format($totalTva, 2, '.', ''),
+            'total_mo_ht' => $moHtDiscounted,
+            'total_pieces_ht' => $piecesHtDiscounted,
+            'total_ht' => $totalHt,
+            'total_ttc' => $totalTtc,
+            'tva_mo' => $tvaMo,
+            'tva_pieces' => $tvaPieces,
+            'total_tva' => $totalTva,
             'temps_facture_minutes' => (int) ($rdv->getTempsEstime() ?? 60),
-            'taux_horaire' => '65.00',
+            'taux_horaire' => $this->getTauxHoraire(),
             'notes' => $data['notes'] ?? null,
             'lignes' => [[
                 'type_ligne' => 'main_oeuvre',
                 'designation' => $rdv->getTypeIntervention() ?: 'Intervention atelier',
                 'quantite' => 1,
-                'prix_unitaire_ht' => number_format($totalHt, 2, '.', ''),
-                'taux_tva' => 20,
-                'total_ligne_ht' => number_format($totalHt, 2, '.', ''),
-                'total_ligne_ttc' => number_format($totalTtc, 2, '.', ''),
+                'prix_unitaire_ht' => $totalHt,
+                'taux_tva' => $this->getTvaRate(),
+                'total_ligne_ht' => $totalHt,
+                'total_ligne_ttc' => $totalTtc,
             ]],
         ];
 
@@ -146,6 +185,8 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}', methods: ['POST'])]
     public function createFacture(int $rdvId, Request $request): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $data = json_decode($request->getContent(), true) ?? [];
 
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
@@ -153,15 +194,19 @@ class FacturationController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        // Generate invoice number: FAC-YYYY-NNNN
+        // Generate invoice number via PostgreSQL sequence to avoid race conditions
+        $conn = $this->em->getConnection();
         $year = date('Y');
-        $count = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
-            ->select('COUNT(f.id)')
-            ->where('f.numeroFacture LIKE :prefix')
-            ->setParameter('prefix', "FAC-$year-%")
-            ->getQuery()->getSingleScalarResult();
+        $seqName = 'facture_seq_' . $year;
 
-        $numero = sprintf('FAC-%s-%04d', $year, $count + 1);
+        // Ensure sequence exists for this year
+        try {
+            $conn->executeStatement(sprintf('CREATE SEQUENCE IF NOT EXISTS %s START 1', $seqName));
+        } catch (\Throwable) {
+            // sequence already exists — ok
+        }
+        $nextVal = (int) $conn->fetchOne(sprintf("SELECT nextval('%s')", $seqName));
+        $numero = sprintf('FAC-%s-%04d', $year, $nextVal);
 
         $facture = new Facture();
         $facture->setNumeroFacture($numero);
@@ -179,7 +224,7 @@ class FacturationController extends AbstractController
         $facture->setTvaPieces($data['tva_pieces'] ?? '0.00');
         $facture->setTotalTva($data['total_tva'] ?? '0.00');
         $facture->setTempsFactureMinutes($data['temps_facture_minutes'] ?? 0);
-        $facture->setTauxHoraire($data['taux_horaire'] ?? '65.00');
+        $facture->setTauxHoraire($data['taux_horaire'] ?? $this->getTauxHoraire());
         $facture->setNotes($data['notes'] ?? null);
 
         // Add lines
@@ -216,6 +261,8 @@ class FacturationController extends AbstractController
     #[Route('/{id}/paiement', methods: ['POST'])]
     public function addPaiement(int $id, Request $request): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
@@ -236,14 +283,14 @@ class FacturationController extends AbstractController
 
         $this->em->persist($paiement);
 
-        // Check if fully paid
-        $totalPaye = 0;
+        // Check if fully paid — bcmath
+        $totalPaye = '0';
         foreach ($facture->getPaiements() as $p) {
-            $totalPaye += (float) $p->getMontant();
+            $totalPaye = bcadd($totalPaye, (string) $p->getMontant(), 2);
         }
-        $totalPaye += (float) $data['montant'];
+        $totalPaye = bcadd($totalPaye, (string) $data['montant'], 2);
 
-        if ($totalPaye >= (float) $facture->getTotalTtc()) {
+        if (bccomp($totalPaye, (string) $facture->getTotalTtc(), 2) >= 0) {
             $facture->setStatut('payee');
         } else {
             $facture->setStatut('partiellement_payee');
@@ -257,11 +304,13 @@ class FacturationController extends AbstractController
             'statut' => $facture->getStatut(),
         ]));
 
+        $resteAPayer = bcsub((string) $facture->getTotalTtc(), $totalPaye, 2);
+
         return $this->json([
             'facture_id' => $facture->getId(),
             'statut' => $facture->getStatut(),
-            'total_paye' => round($totalPaye, 2),
-            'reste_a_payer' => round((float) $facture->getTotalTtc() - $totalPaye, 2),
+            'total_paye' => $totalPaye,
+            'reste_a_payer' => $resteAPayer,
         ]);
     }
 
@@ -271,6 +320,8 @@ class FacturationController extends AbstractController
     #[Route('/{id}/pdf', methods: ['GET'])]
     public function downloadPdf(int $id): BinaryFileResponse|JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
@@ -287,6 +338,8 @@ class FacturationController extends AbstractController
     #[Route('/{id}/email', methods: ['POST'])]
     public function sendEmail(int $id): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);

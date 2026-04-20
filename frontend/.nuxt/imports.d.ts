@@ -36,6 +36,7 @@ export { ocrFields, useCarteGriseOcr, OcrFieldKey, CarteGriseOcrResult, OcrCompa
 export { useFormat } from '../composables/useFormat';
 export { useMotoAutocomplete } from '../composables/useMotoAutocomplete';
 export { useNotifications } from '../composables/useNotifications';
+export { useQrCode, generateQrDataUrl } from '../composables/useQrCode';
 export { useVoHelpers } from '../composables/useVoHelpers';
 export { syncDraftField, syncDraftBoolean, adoptDraftEntity, DraftSyncMemory } from '../composables/voCompanionDraftSync';
 export { selectRefurbishmentCampaignId, buildRefurbishmentLineForms, buildRefurbishmentPieceForms, toRefurbishmentDateTimeLocal } from '../composables/voRefurbishmentCard';
