@@ -282,6 +282,14 @@ export const useVoStore = defineStore('vo', {
       return await api.post(`/vo/purchases/${id}/confirm`)
     },
 
+    async transitionPurchase(id: number, transition: string) {
+      const api = useApi()
+      const result = await api.post(`/vo/purchases/${id}/transition`, { transition })
+      const idx = this.purchases.findIndex(p => p.id === id)
+      if (idx !== -1) this.purchases[idx] = { ...this.purchases[idx], status: result.status }
+      return result
+    },
+
     async preparePurchaseSiv(id: number) {
       const api = useApi()
       return await api.post(`/vo/purchases/${id}/siv/prepare`, {})

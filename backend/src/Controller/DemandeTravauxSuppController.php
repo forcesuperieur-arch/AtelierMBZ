@@ -108,7 +108,7 @@ class DemandeTravauxSuppController extends AbstractController
         $demande->setPrestationsChoisies($prestationsChoisies);
         $demande->setPrixEstime($totalPrix);
         $demande->setTempsEstime($totalTemps);
-        $demande->setStatut('en_attente_validation');
+        $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION);
 
         if (!empty($photosIds)) {
             $demande->setPhotosJustificatives(implode(',', array_map('intval', $photosIds)));
@@ -198,11 +198,11 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Demande non trouvée'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!in_array($demande->getStatut(), ['en_attente', 'en_attente_validation'])) {
+        if (!in_array($demande->getStatut(), [DemandeTravauxSupp::STATUT_EN_ATTENTE, DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION])) {
             return $this->json(['error' => 'Demande déjà envoyée ou décidée'], Response::HTTP_CONFLICT);
         }
 
-        $demande->setStatut('en_attente_decision_client');
+        $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT);
         $this->em->flush();
 
         return $this->json([
@@ -259,14 +259,14 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($demande->getStatut() !== 'en_attente_decision_client') {
+        if ($demande->getStatut() !== DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT) {
             return $this->json(['error' => 'Décision déjà prise ou demande non envoyée'], Response::HTTP_CONFLICT);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
         $decision = $data['decision'] ?? null;
 
-        if (!in_array($decision, ['accepte', 'refuse'], true)) {
+        if (!in_array($decision, [DemandeTravauxSupp::STATUT_ACCEPTE, DemandeTravauxSupp::STATUT_REFUSE], true)) {
             return $this->json(['error' => 'Décision invalide (accepte ou refuse)'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -275,7 +275,7 @@ class DemandeTravauxSuppController extends AbstractController
         $demande->setDecisionIp($request->getClientIp());
         $demande->setDecisionUserAgent(mb_substr($request->headers->get('User-Agent', ''), 0, 500));
 
-        if ($decision === 'accepte') {
+        if ($decision === DemandeTravauxSupp::STATUT_ACCEPTE) {
             // Signature required for acceptance
             $signatureData = $data['signature'] ?? null;
             if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
@@ -283,13 +283,13 @@ class DemandeTravauxSuppController extends AbstractController
             }
             $demande->setSignatureClient($signatureData);
             $demande->setSignedAt(new \DateTime());
-            $demande->setStatut('accepte');
+            $demande->setStatut(DemandeTravauxSupp::STATUT_ACCEPTE);
 
             // 4.4 — Auto-create OR complémentaire
             $or = $this->createOrComplementaire($demande, $signatureData, $request);
             $demande->setOrComplementaire($or);
         } else {
-            $demande->setStatut('refuse');
+            $demande->setStatut(DemandeTravauxSupp::STATUT_REFUSE);
         }
 
         $this->em->flush();

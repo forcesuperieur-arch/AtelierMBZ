@@ -28,6 +28,20 @@ class VOPurchase
 {
     use VOCompanionTrait;
 
+    public const STATUS_BROUILLON = 'brouillon';
+    public const STATUS_EN_STOCK = 'en_stock';
+    public const STATUS_EN_VENTE = 'en_vente';
+    public const STATUS_RESERVE = 'reserve';
+    public const STATUS_VENDU = 'vendu';
+
+    public const STATUSES = [
+        self::STATUS_BROUILLON,
+        self::STATUS_EN_STOCK,
+        self::STATUS_EN_VENTE,
+        self::STATUS_RESERVE,
+        self::STATUS_VENDU,
+    ];
+
     public const SIV_STATUS_A_PREPARER = 'a_preparer';
     public const SIV_STATUS_EN_COURS = 'en_cours';
     public const SIV_STATUS_ENREGISTREE = 'enregistree';
@@ -79,8 +93,8 @@ class VOPurchase
     private ?array $repairEstimates = null;
 
     #[ORM\Column(length: 30, options: ['default' => 'brouillon'])]
-    #[Groups(['vo:read', 'vo:write'])]
-    private string $status = 'brouillon';
+    #[Groups(['vo:read'])]
+    private string $status = self::STATUS_BROUILLON;
 
     #[ORM\Column(type: 'date', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]
@@ -208,7 +222,14 @@ class VOPurchase
     public function setRepairEstimates(?array $v): static { $this->repairEstimates = $v; return $this; }
 
     public function getStatus(): string { return $this->status; }
-    public function setStatus(string $v): static { $this->status = $v; return $this; }
+    public function setStatus(string $v): static
+    {
+        if (!in_array($v, self::STATUSES, true)) {
+            throw new \InvalidArgumentException(sprintf('Statut VOPurchase invalide : "%s"', $v));
+        }
+        $this->status = $v;
+        return $this;
+    }
 
     public function getPurchaseDate(): ?\DateTimeInterface { return $this->purchaseDate; }
     public function setPurchaseDate(?\DateTimeInterface $v): static { $this->purchaseDate = $v; return $this; }

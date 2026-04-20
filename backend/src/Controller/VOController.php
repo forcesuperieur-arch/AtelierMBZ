@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Target;
+use Symfony\Component\Workflow\WorkflowInterface;
 
 #[Route('/api/vo')]
 class VOController extends AbstractController
@@ -44,6 +46,8 @@ class VOController extends AbstractController
         private VONumberingService $numberingService,
         private VORemiseEnEtatService $remiseEnEtatService,
         private AuditService $audit,
+        #[Target('vo_purchase')]
+        private WorkflowInterface $voPurchaseWorkflow,
     ) {}
 
     // ═══════════════════════════════════════════
@@ -157,9 +161,8 @@ class VOController extends AbstractController
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
         $seller = $this->em->getRepository(Client::class)->find($body['sellerId'] ?? 0);
-        $status = (string) ($body['status'] ?? 'brouillon');
 
-        if (($vehicule === null || $seller === null) && $status !== 'brouillon') {
+        if (($vehicule === null || $seller === null) && ($body['status'] ?? 'brouillon') !== 'brouillon') {
             return $this->json(['error' => 'Vehicule and seller are required'], 400);
         }
 
@@ -174,7 +177,6 @@ class VOController extends AbstractController
         $purchase->setPurchasePrice((string) ($body['purchasePrice'] ?? '0'));
         $purchase->setTargetSalePrice((string) ($body['targetSalePrice'] ?? '0'));
         $purchase->setRepairEstimates($body['repairEstimates'] ?? null);
-        $purchase->setStatus($status);
         $purchase->setRegimeTva($body['regimeTva'] ?? 'marge');
         $purchase->setNotes($body['notes'] ?? null);
         $this->applyPurchaseSivPayload($purchase, $body);
@@ -247,7 +249,6 @@ class VOController extends AbstractController
         if (isset($body['purchasePrice'])) $purchase->setPurchasePrice((string) $body['purchasePrice']);
         if (isset($body['targetSalePrice'])) $purchase->setTargetSalePrice((string) $body['targetSalePrice']);
         if (isset($body['repairEstimates'])) $purchase->setRepairEstimates($body['repairEstimates']);
-        if (isset($body['status'])) $purchase->setStatus($body['status']);
         if (isset($body['regimeTva'])) $purchase->setRegimeTva($body['regimeTva']);
         if (isset($body['notes'])) $purchase->setNotes($body['notes']);
         if (isset($body['controleTechniqueOk'])) $purchase->setControleTechniqueOk($body['controleTechniqueOk']);
@@ -288,8 +289,8 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
-        if ($purchase->getStatus() !== 'brouillon') {
-            return $this->json(['error' => 'Seuls les rachats en brouillon peuvent être confirmés'], 400);
+        if (!$this->voPurchaseWorkflow->can($purchase, 'confirmer')) {
+            return $this->json(['error' => 'Transition "confirmer" non autorisée depuis le statut actuel'], 400);
         }
 
         $missingDocuments = array_values(array_diff(
@@ -307,7 +308,7 @@ class VOController extends AbstractController
         try {
             $payload = $this->inTransaction(function () use ($purchase) {
                 $entry = $this->livrePoliceService->createEntryForPurchase($purchase);
-                $purchase->setStatus('en_stock');
+                $this->voPurchaseWorkflow->apply($purchase, 'confirmer');
 
                 $this->generatedDocumentService->archiveCompanionDocumentIfReady(
                     $purchase,
@@ -338,6 +339,47 @@ class VOController extends AbstractController
                 'details' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Generic workflow transition for VOPurchase.
+     * Allowed transitions: mettre_en_vente, retirer_de_la_vente, reserver, liberer.
+     * confirmer and vendre have dedicated endpoints with side-effects.
+     */
+    #[Route('/purchases/{id}/transition', methods: ['POST'])]
+    public function transitionPurchase(int $id, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
+        if (!$purchase) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $body = $request->toArray();
+        $transition = $body['transition'] ?? null;
+
+        $allowedTransitions = ['mettre_en_vente', 'retirer_de_la_vente', 'reserver', 'liberer'];
+        if (!in_array($transition, $allowedTransitions, true)) {
+            return $this->json(['error' => sprintf('Transition invalide. Autorisées : %s', implode(', ', $allowedTransitions))], 400);
+        }
+
+        if (!$this->voPurchaseWorkflow->can($purchase, $transition)) {
+            return $this->json(['error' => sprintf('Transition "%s" non autorisée depuis le statut "%s"', $transition, $purchase->getStatus())], 409);
+        }
+
+        $this->voPurchaseWorkflow->apply($purchase, $transition);
+        $this->em->flush();
+
+        $this->audit->log('vo_purchase_transition', 'vo_purchase', $purchase->getId(), json_encode([
+            'transition' => $transition,
+            'new_status' => $purchase->getStatus(),
+        ]));
+
+        return $this->json([
+            'id' => $purchase->getId(),
+            'status' => $purchase->getStatus(),
+            'transition' => $transition,
+        ]);
     }
 
     // ═══════════════════════════════════════════
@@ -832,8 +874,8 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
-        if (!in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'])) {
-            return $this->json(['error' => 'Le véhicule doit être en stock ou en vente pour être vendu'], 400);
+        if (!$this->voPurchaseWorkflow->can($purchase, 'vendre')) {
+            return $this->json(['error' => 'Transition "vendre" non autorisée depuis le statut actuel'], 400);
         }
 
         if ($this->remiseEnEtatService->hasBlockingActiveCampaign($purchase)) {
@@ -889,8 +931,8 @@ class VOController extends AbstractController
 
                 $this->em->persist($facture);
 
-                $purchase->setStatus('vendu');
                 $purchase->setSaleDate(new \DateTime());
+                $this->voPurchaseWorkflow->apply($purchase, 'vendre');
 
                 $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
                 if ($lpEntry) {

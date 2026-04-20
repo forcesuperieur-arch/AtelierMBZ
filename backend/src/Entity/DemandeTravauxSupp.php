@@ -11,6 +11,20 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 class DemandeTravauxSupp
 {
+    public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_EN_ATTENTE_VALIDATION = 'en_attente_validation';
+    public const STATUT_EN_ATTENTE_DECISION_CLIENT = 'en_attente_decision_client';
+    public const STATUT_ACCEPTE = 'accepte';
+    public const STATUT_REFUSE = 'refuse';
+
+    public const STATUTS = [
+        self::STATUT_EN_ATTENTE,
+        self::STATUT_EN_ATTENTE_VALIDATION,
+        self::STATUT_EN_ATTENTE_DECISION_CLIENT,
+        self::STATUT_ACCEPTE,
+        self::STATUT_REFUSE,
+    ];
+
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['demande:read', 'rdv:read'])] private ?int $id = null;
     #[ORM\ManyToOne(targetEntity: RendezVous::class, inversedBy: 'demandesTravauxSupp')] #[ORM\JoinColumn(name: 'rendez_vous_id', nullable: false)] #[Groups(['demande:read', 'demande:write'])] private RendezVous $rendezVous;
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $description = null;
@@ -18,7 +32,7 @@ class DemandeTravauxSupp
     #[ORM\Column(length: 50, options: ['default' => 'normal'])] #[Groups(['demande:read', 'demande:write'])] private string $urgence = 'normal';
     #[ORM\Column(nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?int $tempsEstime = null;
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $prixEstime = null;
-    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])] #[Groups(['demande:read', 'demande:write'])] private string $statut = 'en_attente';
+    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])] #[Groups(['demande:read', 'demande:write'])] private string $statut = self::STATUT_EN_ATTENTE;
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $notesReceptionniste = null;
     #[ORM\Column(length: 50, nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $decisionClient = null;
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])] private ?\DateTimeInterface $decisionClientAt = null;
@@ -71,7 +85,14 @@ class DemandeTravauxSupp
     public function getPrixEstime(): ?string { return $this->prixEstime; }
     public function setPrixEstime(?string $v): static { $this->prixEstime = $v; return $this; }
     public function getStatut(): string { return $this->statut; }
-    public function setStatut(string $v): static { $this->statut = $v; return $this; }
+    public function setStatut(string $v): static
+    {
+        if (!in_array($v, self::STATUTS, true)) {
+            throw new \InvalidArgumentException(sprintf('Statut DTS invalide : "%s"', $v));
+        }
+        $this->statut = $v;
+        return $this;
+    }
     public function getNotesReceptionniste(): ?string { return $this->notesReceptionniste; }
     public function setNotesReceptionniste(?string $v): static { $this->notesReceptionniste = $v; return $this; }
     public function getDecisionClient(): ?string { return $this->decisionClient; }
