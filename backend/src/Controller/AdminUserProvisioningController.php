@@ -19,6 +19,7 @@ final class AdminUserProvisioningController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private UserRoleMapper $roleMapper,
+        private \App\Service\AuditService $auditService,
     ) {}
 
     #[Route('/pending', methods: ['GET'])]
@@ -96,6 +97,13 @@ final class AdminUserProvisioningController extends AbstractController
 
         $this->em->flush();
 
+        $this->auditService->log(
+            'user_approve',
+            'User',
+            $user->getId(),
+            sprintf('User %s (%s) approuvé — atelier #%d, rôle %s', $user->getUsername(), $user->getEmail(), $atelierId, $roleMetier->getCode()),
+        );
+
         return $this->json([
             'success' => true,
             'message' => 'User approved successfully',
@@ -125,6 +133,13 @@ final class AdminUserProvisioningController extends AbstractController
         $user->setValidatedAt(new \DateTime());
         $user->setIsActive(0);
         $this->em->flush();
+
+        $this->auditService->log(
+            'user_reject',
+            'User',
+            $user->getId(),
+            sprintf('User %s (%s) rejeté — raison: %s', $user->getUsername(), $user->getEmail(), $reason),
+        );
 
         return $this->json([
             'success' => true,

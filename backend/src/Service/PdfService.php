@@ -214,13 +214,10 @@ class PdfService
     private function resolveAtelier(?int $atelierId = null): ?Atelier
     {
         if ($atelierId) {
-            $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
-            if ($atelier) {
-                return $atelier;
-            }
+            return $this->em->getRepository(Atelier::class)->find($atelierId);
         }
 
-        return $this->em->getRepository(Atelier::class)->findOneBy([]);
+        return null;
     }
 
     private function resolveLogoDataUri(?Atelier $atelier): ?string

@@ -13,6 +13,7 @@ class VOGeneratedDocumentService
         private PdfService $pdfService,
         private VODocumentService $documentService,
         private VOCompanionWorkflowService $workflowService,
+        private AuditService $auditService,
     ) {}
 
     public function archiveCompanionDocumentIfReady(VOPurchase|VODepotVente $record, ?User $user = null, bool $prepareSiv = false): bool
@@ -64,6 +65,13 @@ class VOGeneratedDocumentService
             VOPurchase::SIV_STATUS_EXPIREE,
         ], true)) {
             $purchase->setSivStatus(VOPurchase::SIV_STATUS_EN_COURS);
+
+            $this->auditService->log(
+                'siv_transition',
+                'VOPurchase',
+                $purchase->getId(),
+                sprintf('SIV status → %s (purchase #%d)', VOPurchase::SIV_STATUS_EN_COURS, $purchase->getId()),
+            );
         }
 
         $blockers = array_values(array_filter(

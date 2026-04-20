@@ -17,6 +17,7 @@ class VOLivrePoliceService
     public function __construct(
         private EntityManagerInterface $em,
         private VONumberingService $numberingService,
+        private AuditService $auditService,
     ) {}
 
     /**
@@ -49,6 +50,13 @@ class VOLivrePoliceService
         $entry->setVoPurchase($purchase);
 
         $this->em->persist($entry);
+
+        $this->auditService->log(
+            'lp_create_achat',
+            'VOLivrePolice',
+            null,
+            sprintf('LP #%d — achat %s (purchase #%d)', $entry->getNumeroOrdre(), $vehicule->getPlaque(), $purchase->getId()),
+        );
 
         return $entry;
     }
@@ -84,6 +92,13 @@ class VOLivrePoliceService
 
         $this->em->persist($entry);
 
+        $this->auditService->log(
+            'lp_create_depot_vente',
+            'VOLivrePolice',
+            null,
+            sprintf('LP #%d — dépôt-vente %s (depot #%d)', $entry->getNumeroOrdre(), $vehicule->getPlaque(), $depot->getId()),
+        );
+
         return $entry;
     }
 
@@ -109,6 +124,13 @@ class VOLivrePoliceService
         $acquisitionEntry->setAcheteurNom($buyer->getNom());
         $acquisitionEntry->setAcheteurPrenom($buyer->getPrenom() ?? '');
         $acquisitionEntry->setAcheteurAdresse($buyer->getAdresse() ?? '');
+
+        $this->auditService->log(
+            'lp_record_sale',
+            'VOLivrePolice',
+            $acquisitionEntry->getId(),
+            sprintf('LP #%d — vente à %s %s pour %s €', $acquisitionEntry->getNumeroOrdre(), $buyer->getPrenom() ?? '', $buyer->getNom(), $prixVente),
+        );
     }
 
     /**

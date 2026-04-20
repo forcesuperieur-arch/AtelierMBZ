@@ -21,6 +21,7 @@ class PhotoController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
+        private \App\Service\AuditService $auditService,
     ) {}
 
     #[Route('/upload', methods: ['POST'])]
@@ -66,6 +67,13 @@ class PhotoController extends AbstractController
 
         $this->em->persist($photo);
         $this->em->flush();
+
+        $this->auditService->log(
+            'photo_upload',
+            'PhotoIntervention',
+            $photo->getId(),
+            sprintf('Photo uploadée pour RDV #%d — %s', $rdvId, $filename),
+        );
 
         return $this->json([
             'id' => $photo->getId(),

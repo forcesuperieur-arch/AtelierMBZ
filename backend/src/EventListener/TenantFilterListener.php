@@ -38,6 +38,14 @@ class TenantFilterListener
 
         $atelierId = $this->currentAtelierResolver->resolveAtelierId();
         if ($atelierId === null) {
+            // SUPER_ADMIN can operate without tenant filter (cross-atelier access)
+            if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
+                return;
+            }
+
+            // Non-SUPER_ADMIN without atelierId: activate filter with impossible ID to prevent data leak
+            $filter = $this->em->getFilters()->enable('tenant_filter');
+            $filter->setParameter('atelier_id', 0);
             return;
         }
 
