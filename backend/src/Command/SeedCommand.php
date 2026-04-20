@@ -299,7 +299,7 @@ class SeedCommand extends Command
             ['PLQ-AR-001', 'Plaquettes frein arrière', 'freinage', 15, 5, '14.00', '28.00'],
             ['HUI-10W40', 'Huile moteur 10W40 1L', 'lubrifiant', 30, 10, '8.00', '14.50'],
             ['HUI-5W40', 'Huile moteur 5W40 synthèse 1L', 'lubrifiant', 25, 10, '12.00', '19.90'],
-            ['BOU-NGK', 'Bougie NGK standard', 'allumage', 40, 10, '3.50', '7.90'],
+            ['BOU-STD', 'Bougie standard', 'allumage', 40, 10, '3.50', '7.90'],
             ['KIT-CHA-520', 'Kit chaîne 520', 'transmission', 6, 2, '55.00', '95.00'],
             ['PNEU-120', 'Pneu 120/70 ZR17 avant', 'pneumatique', 4, 2, '65.00', '110.00'],
             ['PNEU-180', 'Pneu 180/55 ZR17 arrière', 'pneumatique', 4, 2, '80.00', '135.00'],
