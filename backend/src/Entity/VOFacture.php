@@ -225,7 +225,7 @@ class VOFacture
     public function getPrixAchatHt(): ?string { return $this->prixAchatHt; }
     public function setPrixAchatHt(?string $v): static { $this->prixAchatHt = $v; return $this; }
 
-    public function getMentionTvaMarge(): bool { return $this->mentionTvaMarge; }
+    public function getMentionTvaMarge(): bool { return $this->regimeTva === 'marge'; }
     public function setMentionTvaMarge(bool $v): static { $this->mentionTvaMarge = $v; return $this; }
 
     public function getTotalHt(): string { return $this->totalHt; }
@@ -240,7 +240,7 @@ class VOFacture
     public function getStatut(): string { return $this->statut; }
     public function setStatut(string $v): static { $this->statut = $v; return $this; }
 
-    public function getMentionGarantieConformite(): bool { return $this->mentionGarantieConformite; }
+    public function getMentionGarantieConformite(): bool { return true; }
     public function setMentionGarantieConformite(bool $v): static { $this->mentionGarantieConformite = $v; return $this; }
 
     public function getKilometrage(): ?int { return $this->kilometrage; }

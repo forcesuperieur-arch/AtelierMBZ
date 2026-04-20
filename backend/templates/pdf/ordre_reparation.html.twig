@@ -115,5 +115,13 @@
         {% endif %}
         <p style="font-size: 9px;">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord.</p>
     </div>
+
+    {% if clauses is defined and clauses|length > 0 %}
+    <div style="margin-top: 15px; font-size: 9px; color: #444; border-top: 1px solid #ddd; padding-top: 8px;">
+        {% for clause in clauses %}
+            <p><strong>{{ clause.titre }}</strong><br>{{ clause.contenu }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
 </body>
 </html>

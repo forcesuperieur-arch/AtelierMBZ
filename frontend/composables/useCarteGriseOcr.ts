@@ -1,4 +1,15 @@
-export type OcrFieldKey = 'plaque' | 'marque' | 'modele' | 'vin' | 'annee' | 'cylindree' | 'type_moto'
+export type OcrFieldKey =
+  | 'plaque'
+  | 'marque'
+  | 'modele'
+  | 'vin'
+  | 'annee'
+  | 'cylindree'
+  | 'type_moto'
+  | 'type_variante'
+  | 'denomination_commerciale'
+  | 'genre_national'
+  | 'numero_formule_cg'
 
 export type CarteGriseOcrResult = Record<OcrFieldKey, string>
 
@@ -16,11 +27,15 @@ export interface OcrImagePickResult {
 export const ocrFields: Array<{ key: OcrFieldKey; label: string }> = [
   { key: 'plaque', label: 'Plaque (A)' },
   { key: 'marque', label: 'Marque (D.1)' },
-  { key: 'modele', label: 'Modele (D.2)' },
+  { key: 'type_variante', label: 'Type / Variante / Version (D.2)' },
+  { key: 'denomination_commerciale', label: 'Denomination commerciale (D.3)' },
+  { key: 'modele', label: 'Modele (affichage)' },
   { key: 'vin', label: 'VIN (E)' },
   { key: 'annee', label: 'Mise en circulation (B)' },
   { key: 'cylindree', label: 'Cylindree (P.1)' },
-  { key: 'type_moto', label: 'Type (J.1)' },
+  { key: 'genre_national', label: 'Genre national (J.1)' },
+  { key: 'type_moto', label: 'Categorie vehicule' },
+  { key: 'numero_formule_cg', label: 'N° formule CG' },
 ]
 
 const knownBrands = [
@@ -183,9 +198,11 @@ function formatBrand(value: string): string {
 function getVehiculeValue(vehicule: Record<string, any> | null | undefined, key: OcrFieldKey): string {
   if (!vehicule) return ''
 
-  if (key === 'type_moto') {
-    return String(vehicule.type_moto || vehicule.typeMoto || '')
-  }
+  if (key === 'type_moto') return String(vehicule.type_moto || vehicule.typeMoto || '')
+  if (key === 'type_variante') return String(vehicule.type_variante || vehicule.typeVariante || '')
+  if (key === 'denomination_commerciale') return String(vehicule.denomination_commerciale || vehicule.denominationCommerciale || '')
+  if (key === 'genre_national') return String(vehicule.genre_national || vehicule.genreNational || '')
+  if (key === 'numero_formule_cg') return String(vehicule.numero_formule_cg || vehicule.numeroFormuleCg || '')
 
   return String(vehicule[key] || '')
 }
@@ -199,6 +216,10 @@ function createFallbackOcrResult(baseVehicule: Record<string, any> | null | unde
     annee: normalizeYear(getVehiculeValue(baseVehicule, 'annee')),
     cylindree: getVehiculeValue(baseVehicule, 'cylindree'),
     type_moto: getVehiculeValue(baseVehicule, 'type_moto'),
+    type_variante: getVehiculeValue(baseVehicule, 'type_variante'),
+    denomination_commerciale: getVehiculeValue(baseVehicule, 'denomination_commerciale'),
+    genre_national: getVehiculeValue(baseVehicule, 'genre_national'),
+    numero_formule_cg: getVehiculeValue(baseVehicule, 'numero_formule_cg'),
   }
 }
 
@@ -331,8 +352,14 @@ export function useCarteGriseOcr() {
       }
     }
 
-    const modeleCandidate = extractFirst(
-      /(?:\bD[.\s]?2(?:[.\s]?1)?\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
+    const typeVarianteCandidate = extractFirst(
+      /(?:\bD[.\s]?2(?:[.\s]?1)?\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,40})/i,
+    )
+    const denominationCandidate = extractFirst(
+      /(?:\bD[.\s]?3\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
+      /(?:commerciale?|handelsbenaming|denomination)[\s:.-]*([A-Z0-9\s/-]{2,30})/i,
+    )
+    const modeleCandidate = denominationCandidate || extractFirst(
       /(?:\bD[.\s]?3\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
       /(?:modele|model|commerciale?|handelsbenaming)[\s:.-]*([A-Z0-9\s/-]{2,30})/i,
     )
@@ -356,17 +383,25 @@ export function useCarteGriseOcr() {
       /(?:genre|carrosserie|voertuigtype)[\s:.-]*([A-Z0-9]{2,8})/i,
       /\b(MTL|MTT1|MTT2|CL|QM|TM|L3E|L1E)\b/i,
     )
+    const numeroFormulaCandidate = extractFirst(
+      /(?:formule|n[°o]\.?\s*(?:de\s+)?formule)[\s:.-]*([A-Z0-9]{6,12})/i,
+      /([0-9]{4}[A-Z]{2}[0-9]{6})/i,
+    )
 
     const resolved: CarteGriseOcrResult = {
       plaque: normalizePlate(plaqueCandidate || getVehiculeValue(baseVehicule, 'plaque')),
       marque: marqueCandidate
         ? formatBrand(selectBestCandidate(marqueCandidate, [...knownBrands, getVehiculeValue(baseVehicule, 'marque')].filter(Boolean)))
         : getVehiculeValue(baseVehicule, 'marque'),
+      type_variante: String(typeVarianteCandidate || getVehiculeValue(baseVehicule, 'type_variante')).trim(),
+      denomination_commerciale: String(denominationCandidate || getVehiculeValue(baseVehicule, 'denomination_commerciale')).trim(),
       modele: String(modeleCandidate || getVehiculeValue(baseVehicule, 'modele')).trim(),
       vin: normalizeVin(vinCandidate || getVehiculeValue(baseVehicule, 'vin')),
       annee: normalizeYear(yearCandidate || getVehiculeValue(baseVehicule, 'annee')),
       cylindree: normalizeCylindree(cylCandidate || getVehiculeValue(baseVehicule, 'cylindree')),
-      type_moto: normalizeLoose(typeCandidate || getVehiculeValue(baseVehicule, 'type_moto')),
+      genre_national: normalizeLoose(typeCandidate || getVehiculeValue(baseVehicule, 'genre_national')),
+      type_moto: getVehiculeValue(baseVehicule, 'type_moto'),
+      numero_formule_cg: String(numeroFormulaCandidate || getVehiculeValue(baseVehicule, 'numero_formule_cg')).trim(),
     }
 
     ocrFields.forEach((field) => {
@@ -426,6 +461,10 @@ export function useCarteGriseOcr() {
       annee: result.annee ? Number.parseInt(result.annee, 10) || undefined : undefined,
       cylindree: result.cylindree || undefined,
       type_moto: result.type_moto || undefined,
+      type_variante: result.type_variante || undefined,
+      denomination_commerciale: result.denomination_commerciale || undefined,
+      genre_national: result.genre_national || undefined,
+      numero_formule_cg: result.numero_formule_cg || undefined,
     }
   }
 

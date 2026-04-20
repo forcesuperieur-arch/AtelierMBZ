@@ -55,6 +55,22 @@ class Vehicule
     #[Groups(['vehicule:read', 'vehicule:write'])]
     private ?string $typeMoto = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write'])]
+    private ?string $typeVariante = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write'])]
+    private ?string $denominationCommerciale = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write'])]
+    private ?string $genreNational = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write'])]
+    private ?string $numeroFormuleCg = null;
+
     #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'vehicules')]
     #[ORM\JoinColumn(name: 'client_id', nullable: true)]
     #[Groups(['vehicule:read', 'vehicule:write'])]
@@ -94,6 +110,14 @@ class Vehicule
     public function setCylindree(?string $cylindree): static { $this->cylindree = $cylindree; return $this; }
     public function getTypeMoto(): ?string { return $this->typeMoto; }
     public function setTypeMoto(?string $typeMoto): static { $this->typeMoto = $typeMoto; return $this; }
+    public function getTypeVariante(): ?string { return $this->typeVariante; }
+    public function setTypeVariante(?string $v): static { $this->typeVariante = $v; return $this; }
+    public function getDenominationCommerciale(): ?string { return $this->denominationCommerciale; }
+    public function setDenominationCommerciale(?string $v): static { $this->denominationCommerciale = $v; return $this; }
+    public function getGenreNational(): ?string { return $this->genreNational; }
+    public function setGenreNational(?string $v): static { $this->genreNational = $v; return $this; }
+    public function getNumeroFormuleCg(): ?string { return $this->numeroFormuleCg; }
+    public function setNumeroFormuleCg(?string $v): static { $this->numeroFormuleCg = $v; return $this; }
     public function getClient(): ?Client { return $this->client; }
     public function setClient(?Client $client): static { $this->client = $client; return $this; }
     public function getCategorie(): ?CategorieMoto { return $this->categorie; }

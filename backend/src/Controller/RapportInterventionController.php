@@ -209,29 +209,12 @@ class RapportInterventionController extends AbstractController
             return $this->json(['error' => 'Rapport not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $rdv = $rapport->getRendezVous();
         $essai = $this->resolveEssai($rapport);
-        $html = $this->twig->render('pdf/rapport_intervention.html.twig', [
-            'rapport' => $rapport,
-            'rdv' => $rdv,
-            'essai' => $essai,
-            'client' => $rdv->getClient(),
-            'vehicule' => $rdv->getVehicule(),
-            ...$this->pdfService->buildRdvPhotoContext($rdv),
-        ]);
-
-        $options = new \Dompdf\Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+        $filePath = $this->pdfService->generateRapportPdf($rapport, $essai);
 
         $this->audit->log('export_rapport_pdf', 'rapport_intervention', $rapport->getId());
 
-        return new Response($dompdf->output(), 200, [
+        return new Response(file_get_contents($filePath), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('inline; filename="rapport-intervention-%d.pdf"', $rapport->getId()),
         ]);

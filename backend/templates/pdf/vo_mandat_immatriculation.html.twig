@@ -55,6 +55,10 @@
         <div class="section-title">Véhicule concerné</div>
         <table class="grid">
             <tr><td>Immatriculation</td><td>{{ vehicle.plaque ?? 'À compléter' }}</td></tr>
+            {% if vehicle.denominationCommerciale %}<tr><td>Dénomination commerciale (D.3)</td><td>{{ vehicle.denominationCommerciale }}</td></tr>{% endif %}
+            {% if vehicle.typeVariante %}<tr><td>Type / Variante / Version (D.2)</td><td>{{ vehicle.typeVariante }}</td></tr>{% endif %}
+            {% if vehicle.genreNational %}<tr><td>Genre national (J.1)</td><td>{{ vehicle.genreNational }}</td></tr>{% endif %}
+            {% if vehicle.numeroFormuleCg %}<tr><td>N° formule CG</td><td>{{ vehicle.numeroFormuleCg }}</td></tr>{% endif %}
             <tr><td>VIN</td><td>{{ vehicle.vin ?? 'À compléter' }}</td></tr>
             <tr><td>Marque / modèle</td><td>{{ vehicle.marque ?? '—' }} {{ vehicle.modele ?? '' }}</td></tr>
             <tr><td>Première MEC</td><td>{% if vehicle.datePremiereMiseEnCirculation %}{{ vehicle.datePremiereMiseEnCirculation|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>

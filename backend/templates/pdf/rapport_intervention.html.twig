@@ -4,8 +4,12 @@
     <meta charset="utf-8">
     <style>
         body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #333; margin: 20px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px; }
-        .header h1 { color: #2563eb; font-size: 18px; margin: 0; }
+        .header-table { width: 100%; border-collapse: collapse; border-bottom: 2px solid #2563eb; margin-bottom: 15px; }
+        .header-table td { vertical-align: top; padding-bottom: 10px; }
+        .header-table td:last-child { text-align: right; }
+        .logo { max-width: 120px; max-height: 60px; margin-bottom: 6px; }
+        .atelier-meta { font-size: 10px; color: #555; line-height: 1.5; }
+        h1 { color: #2563eb; font-size: 18px; margin: 0; }
         .info-block { margin-bottom: 12px; }
         .info-block h3 { color: #1e40af; font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 3px; margin: 8px 0 5px; }
         table { width: 100%; border-collapse: collapse; margin: 5px 0; }
@@ -18,32 +22,49 @@
         .status-nok { color: #dc2626; font-weight: bold; }
         .section { margin-bottom: 12px; }
         .section-content { background: #f9fafb; padding: 6px 10px; border-radius: 4px; border: 1px solid #e5e7eb; }
-        .signature-block { display: inline-block; width: 45%; border: 1px solid #ccc; padding: 8px; margin: 5px 2%; text-align: center; min-height: 80px; vertical-align: top; }
-        .signature-block p { margin: 3px 0; font-size: 10px; color: #666; }
+        .sig-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .sig-table td.sig-box { width: 45%; border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .sig-table td.sig-spacer { width: 10%; border: none; }
+        .sig-box p { margin: 3px 0; font-size: 10px; color: #666; }
         .photos-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .photos-table td { width: 33%; padding: 6px; vertical-align: top; }
         .photo-card { border: 1px solid #ddd; background: #fafafa; padding: 6px; }
         .photo-card img { width: 100%; max-height: 120px; object-fit: cover; }
         .photo-caption { font-size: 9px; color: #555; margin-top: 4px; }
         .footer { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #999; text-align: center; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+        .badge { padding: 2px 8px; border: 1px solid #ccc; font-size: 10px; font-weight: bold; }
         .badge-signe { background: #dcfce7; color: #166534; }
         .badge-brouillon { background: #fef9c3; color: #854d0e; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h1>Rapport d'intervention</h1>
-            <p>
-                N° RDV : {{ rdv.id }}
-                <span class="badge badge-{{ rapport.statut }}">{{ rapport.statut | upper }}</span>
-            </p>
-        </div>
-        <div style="text-align: right; font-size: 10px; color: #666;">
-            Édité le {{ "now" | date("d/m/Y H:i") }}
-        </div>
-    </div>
+    <table class="header-table">
+        <tr>
+            <td>
+                {% if logo_data_uri is defined and logo_data_uri %}
+                <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo"><br>
+                {% endif %}
+                <div class="atelier-meta">
+                    {% if atelier is defined and atelier %}
+                    <strong>{{ atelier.nom }}</strong><br>
+                    {% if atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
+                    {% if atelier.cp or atelier.ville %}{{ atelier.cp|default('') }} {{ atelier.ville|default('') }}<br>{% endif %}
+                    {% if atelier.telephone %}Tél : {{ atelier.telephone }}<br>{% endif %}
+                    {% if atelier.email %}{{ atelier.email }}<br>{% endif %}
+                    {% if atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
+                    {% endif %}
+                </div>
+            </td>
+            <td style="text-align:right;">
+                <h1>Rapport d'intervention</h1>
+                <p style="margin:4px 0;font-size:10px;color:#666;">
+                    N° RDV : {{ rdv.id }}<br>
+                    <span class="badge badge-{{ rapport.statut }}">{{ rapport.statut | upper }}</span><br>
+                    Édité le {{ "now" | date("d/m/Y H:i") }}
+                </p>
+            </td>
+        </tr>
+    </table>
 
     {% if client %}
     <div class="info-block">
@@ -61,7 +82,7 @@
         <h3>Véhicule</h3>
         <table class="info">
             <tr><td>Marque / Modèle</td><td>{{ vehicule.marque | default('') }} {{ vehicule.modele | default('') }}</td></tr>
-            {% if vehicule.immatriculation %}<tr><td>Immatriculation</td><td>{{ vehicule.immatriculation }}</td></tr>{% endif %}
+            {% if vehicule.plaque %}<tr><td>Immatriculation</td><td>{{ vehicule.plaque }}</td></tr>{% endif %}
             {% if rapport.kilometrageRestitution %}<tr><td>Kilométrage restitution</td><td>{{ rapport.kilometrageRestitution }} km</td></tr>{% endif %}
         </table>
     </div>
@@ -168,33 +189,38 @@
     </div>
     {% endif %}
 
-    <div style="margin-top: 15px;">
-        <h3>Signatures</h3>
-        <div class="signature-block">
-            <strong>Mécanicien</strong>
-            {% if rapport.signatureMecanicien %}
-                <p>Signé le {{ rapport.signeMecanicienAt | date("d/m/Y H:i") }}</p>
-                <p style="font-style: italic;">✓ Signature enregistrée</p>
-            {% else %}
-                <p style="color: #999;">En attente</p>
-            {% endif %}
-        </div>
-        <div class="signature-block">
-            <strong>Client</strong>
-            {% if rapport.signatureClient %}
-                <p>Signé le {{ rapport.signeClientAt | date("d/m/Y H:i") }}</p>
-                <p style="font-style: italic;">✓ Signature enregistrée</p>
-            {% else %}
-                <p style="color: #999;">En attente</p>
-            {% endif %}
-        </div>
+    <div style="margin-top:15px;">
+        <h3 style="color:#1e40af;font-size:13px;border-bottom:1px solid #ddd;padding-bottom:3px;">Signatures</h3>
+        <table class="sig-table">
+            <tr>
+                <td class="sig-box">
+                    <strong>Mécanicien</strong>
+                    {% if rapport.signatureMecanicien %}
+                        <p>Signé le {{ rapport.signeMecanicienAt | date("d/m/Y H:i") }}</p>
+                        <p style="font-style:italic;">✓ Signature enregistrée</p>
+                    {% else %}
+                        <p style="color:#999;">En attente</p>
+                    {% endif %}
+                </td>
+                <td class="sig-spacer"></td>
+                <td class="sig-box">
+                    <strong>Client</strong>
+                    {% if rapport.signatureClient %}
+                        <p>Signé le {{ rapport.signeClientAt | date("d/m/Y H:i") }}</p>
+                        <p style="font-style:italic;">✓ Signature enregistrée</p>
+                    {% else %}
+                        <p style="color:#999;">En attente</p>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="footer">
         {% if rapport.signedHash %}
             Empreinte de vérification : {{ rapport.signedHash }}<br>
         {% endif %}
-        Document généré automatiquement — Atelier MBZ
+        Document généré automatiquement — {% if atelier is defined and atelier %}{{ atelier.nom }}{% else %}Atelier Moto{% endif %}
     </div>
 </body>
 </html>

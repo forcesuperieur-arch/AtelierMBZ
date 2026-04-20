@@ -2,11 +2,13 @@
 namespace App\Service;
 
 use App\Entity\Atelier;
+use App\Entity\ClauseLegale;
 use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Entity\VODepotVente;
 use App\Entity\VOFacture;
@@ -26,6 +28,7 @@ class PdfService
         private Environment $twig,
         private EntityManagerInterface $em,
         private string $projectDir,
+        private ClauseLegaleVisibilityService $clauseLegaleVisibilityService,
     ) {}
 
     /**
@@ -34,15 +37,38 @@ class PdfService
     public function generateOrPdf(OrdreReparation $or): string
     {
         $atelier = $this->resolveAtelier($or->getRendezVous()?->getAtelierId());
+        $clauses = $this->resolveOrClauses($or->getRendezVous()?->getAtelierId());
 
         $html = $this->twig->render('pdf/ordre_reparation.html.twig', [
             'or' => $or,
             'rdv' => $or->getRendezVous(),
+            'clauses' => $clauses,
             ...$this->buildRdvPhotoContext($or->getRendezVous()),
             ...$this->buildBrandingContext($atelier),
         ]);
 
         return $this->renderPdf($html, 'OR-' . $or->getNumeroOr());
+    }
+
+    /**
+     * Generate a rapport d'intervention PDF.
+     */
+    public function generateRapportPdf(RapportIntervention $rapport, ?object $essai = null): string
+    {
+        $rdv = $rapport->getRendezVous();
+        $atelier = $this->resolveAtelier($rapport->getAtelierId());
+
+        $html = $this->twig->render('pdf/rapport_intervention.html.twig', [
+            'rapport' => $rapport,
+            'rdv' => $rdv,
+            'essai' => $essai,
+            'client' => $rdv->getClient(),
+            'vehicule' => $rdv->getVehicule(),
+            ...$this->buildRdvPhotoContext($rdv),
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'RAP-' . $rapport->getId());
     }
 
     /**
@@ -221,6 +247,32 @@ class PdfService
         }
 
         return null;
+    }
+
+    /**
+     * Fetch OR-relevant clauses (mandat_reparation, garantie) for an atelier.
+     *
+     * @return ClauseLegale[]
+     */
+    private function resolveOrClauses(?int $atelierId): array
+    {
+        $codes = ['mandat_reparation', 'garantie'];
+
+        $qb = $this->em->createQueryBuilder()
+            ->select('c')
+            ->from(ClauseLegale::class, 'c')
+            ->andWhere('c.code IN (:codes)')
+            ->andWhere('c.active = true')
+            ->andWhere('c.atelierId IS NULL OR c.atelierId = :atelierId')
+            ->setParameter('codes', $codes)
+            ->setParameter('atelierId', $atelierId)
+            ->orderBy('c.code', 'ASC')
+            ->addOrderBy('c.atelierId', 'DESC'); // atelier-specific preferred over global
+
+        /** @var ClauseLegale[] $all */
+        $all = $qb->getQuery()->getResult();
+
+        return $this->clauseLegaleVisibilityService->pickVisibleClauses($all, true);
     }
 
     private function resolveLogoDataUri(?Atelier $atelier): ?string

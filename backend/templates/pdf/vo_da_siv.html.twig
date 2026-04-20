@@ -76,6 +76,10 @@
             <tr><td>Immatriculation</td><td>{{ purchase.vehicule.plaque ?? 'À compléter' }}</td></tr>
             <tr><td>VIN</td><td>{{ purchase.vehicule.vin ?? 'À compléter' }}</td></tr>
             <tr><td>Marque / modèle</td><td>{{ purchase.vehicule.marque ?? '—' }} {{ purchase.vehicule.modele ?? '' }}</td></tr>
+            {% if purchase.vehicule.denominationCommerciale %}<tr><td>Dénomination commerciale (D.3)</td><td>{{ purchase.vehicule.denominationCommerciale }}</td></tr>{% endif %}
+            {% if purchase.vehicule.typeVariante %}<tr><td>Type / Variante / Version (D.2)</td><td>{{ purchase.vehicule.typeVariante }}</td></tr>{% endif %}
+            {% if purchase.vehicule.genreNational %}<tr><td>Genre national (J.1)</td><td>{{ purchase.vehicule.genreNational }}</td></tr>{% endif %}
+            {% if purchase.vehicule.numeroFormuleCg %}<tr><td>N° formule CG</td><td>{{ purchase.vehicule.numeroFormuleCg }}</td></tr>{% endif %}
             <tr><td>Première MEC</td><td>{% if purchase.vehicule.datePremiereMiseEnCirculation %}{{ purchase.vehicule.datePremiereMiseEnCirculation|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>
             <tr><td>Kilométrage</td><td>{{ purchase.vehicule.mileage ?? 'À compléter' }} km</td></tr>
             <tr><td>Cylindrée</td><td>{{ purchase.vehicule.cylindree ?? 'À compléter' }}</td></tr>

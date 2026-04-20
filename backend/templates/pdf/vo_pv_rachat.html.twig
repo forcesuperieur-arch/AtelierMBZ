@@ -79,6 +79,10 @@
         <p>
             {{ purchase.vehicule.marque }} {{ purchase.vehicule.modele }}<br>
             Immatriculation : {{ purchase.vehicule.plaque }}<br>
+            {% if purchase.vehicule.denominationCommerciale %}Dénomination commerciale (D.3) : {{ purchase.vehicule.denominationCommerciale }}<br>{% endif %}
+            {% if purchase.vehicule.typeVariante %}Type/Variante/Version (D.2) : {{ purchase.vehicule.typeVariante }}<br>{% endif %}
+            {% if purchase.vehicule.genreNational %}Genre national (J.1) : {{ purchase.vehicule.genreNational }}<br>{% endif %}
+            {% if purchase.vehicule.numeroFormuleCg %}N° formule CG : {{ purchase.vehicule.numeroFormuleCg }}<br>{% endif %}
             {% if purchase.vehicule.cylindree %}Cylindrée : {{ purchase.vehicule.cylindree }} cc<br>{% endif %}
             {% if purchase.vehicule.vin %}VIN : {{ purchase.vehicule.vin }}<br>{% endif %}
             {% if purchase.vehicule.annee %}Année : {{ purchase.vehicule.annee }}<br>{% endif %}
