@@ -14,7 +14,7 @@
 
     <UCard>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-        <button v-for="f in statusFilters" :key="f.value" class="btn" :class="activeOnly === f.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="activeOnly = f.value; load()">
+        <button v-for="f in statusFilters" :key="String(f.value)" class="btn" :class="activeOnly === f.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="activeOnly = f.value; load()">
           {{ f.label }}
         </button>
       </div>

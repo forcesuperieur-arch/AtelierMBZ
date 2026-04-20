@@ -86,7 +86,7 @@
               </UFormField>
             </div>
             <UFormField label="Description">
-              <UTextarea v-model="createForm.description" rows="2" />
+              <UTextarea v-model="createForm.description" :rows="2" />
             </UFormField>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showCreate = false" />

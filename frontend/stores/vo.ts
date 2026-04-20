@@ -187,6 +187,8 @@ interface VORemiseEnEtat {
   }
   lignes: VORemiseEnEtatLine[]
   pieces: VORemiseEnEtatPiece[]
+  sourceLabel?: string
+  dossierPath?: string
 }
 
 interface VOStockItem {

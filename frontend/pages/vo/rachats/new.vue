@@ -551,7 +551,7 @@ const missingConfirmationDocs = computed(() => requiredPurchaseDocs.filter(type 
 
 let sellerSearchTimer: ReturnType<typeof setTimeout> | null = null
 let simulationTimer: ReturnType<typeof setTimeout> | null = null
-let companionPollTimer: ReturnType<typeof setInterval> | null = null
+let companionPollTimer: number | null = null
 
 function refreshOnFocus() {
   refreshDraftCompanion(true)

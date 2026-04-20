@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CSSProperties, StyleValue } from 'vue'
 const props = withDefaults(defineProps<{
   ponts?: Array<{ id: number; nom: string }>
   rdvs?: Array<any>
@@ -257,7 +258,7 @@ const boardStyle = computed(() => ({
   minWidth: `${60 + Math.max(weekDays.value.length, 1) * 140}px`,
 }))
 
-const timeLabelStyle = computed(() => ({
+const timeLabelStyle = computed((): CSSProperties => ({
   padding: '2px 8px 2px 4px',
   fontSize: '10px',
   fontWeight: '600',
@@ -385,7 +386,7 @@ function isSlotOpen(date: string, minutes: number) {
   return true
 }
 
-function cellStyle(day: { isToday: boolean; date: string }, minutes: number) {
+function cellStyle(day: { isToday: boolean; date: string }, minutes: number): StyleValue {
   return [
     {
       position: 'relative',
@@ -409,7 +410,7 @@ function rdvHeight(rdv: any): number {
   return Math.max(20, (duration / TIME_STEP_MINUTES) * ROW_HEIGHT)
 }
 
-function rdvStyle(rdv: any) {
+function rdvStyle(rdv: any): CSSProperties {
   const overlapCount = Math.max(1, Number(rdv.overlapCount || 1))
   const width = 100 / overlapCount
   return {

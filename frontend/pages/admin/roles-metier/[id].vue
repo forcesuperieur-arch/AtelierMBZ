@@ -37,7 +37,7 @@
           </UFormField>
         </div>
         <UFormField label="Description" style="margin-top:12px;">
-          <UTextarea v-model="form.description" rows="2" />
+          <UTextarea v-model="form.description" :rows="2" />
         </UFormField>
       </UCard>
 

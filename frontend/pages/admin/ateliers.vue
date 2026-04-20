@@ -188,7 +188,7 @@ const isSuperAdmin = computed(() => {
 })
 
 const activeAtelierId = computed(() => {
-  const raw = activeAtelierCookie.value || user.value?.atelierId || user.value?.atelier_id || null
+  const raw = activeAtelierCookie.value || user.value?.atelier_id || null
   const parsed = Number(raw)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 })

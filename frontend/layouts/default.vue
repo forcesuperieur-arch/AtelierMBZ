@@ -195,7 +195,7 @@ const currentNotificationAtelierId = computed(() => {
   const cookieValue = Number(activeAtelierCookie.value ?? 0)
   if (Number.isFinite(cookieValue) && cookieValue > 0) return cookieValue
 
-  const userValue = Number(auth.user.value?.atelierId || auth.user.value?.atelier_id || 0)
+  const userValue = Number(auth.user.value?.atelier_id || 0)
   return Number.isFinite(userValue) && userValue > 0 ? userValue : null
 })
 const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
@@ -207,7 +207,7 @@ function normalizeAtelierChoice(value: any): string {
   return normalized && normalized !== 'all' ? normalized : ''
 }
 
-const userDefaultAtelierChoice = computed(() => normalizeAtelierChoice(auth.user.value?.atelierId || auth.user.value?.atelier_id))
+const userDefaultAtelierChoice = computed(() => normalizeAtelierChoice(auth.user.value?.atelier_id))
 const ateliersList = ref<any[]>([])
 const activeAtelierChoice = ref<any>(normalizeAtelierChoice(activeAtelierCookie.value) || userDefaultAtelierChoice.value || '')
 

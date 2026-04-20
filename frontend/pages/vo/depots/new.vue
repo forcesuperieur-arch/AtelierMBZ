@@ -350,7 +350,7 @@
             <span v-if="draftCompanion?.companion?.publicPath">Le brouillon dépôt-vente est actif. Tu peux déjà scanner les pièces sur le PDA pendant que tu termines le mandat.</span>
             <span v-else>Le brouillon PDA se prépare automatiquement pour lancer le scan sans attendre.</span>
             <div class="vo-inline-actions" style="margin-top: 10px;">
-              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow">
+              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
                 {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
               </button>
               <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
@@ -509,7 +509,7 @@ const draftPublicUrl = computed(() => {
 const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 
 let deposantSearchTimer: ReturnType<typeof setTimeout> | null = null
-let companionPollTimer: ReturnType<typeof setInterval> | null = null
+let companionPollTimer: number | null = null
 
 function refreshOnFocus() {
   refreshDraftCompanion(true)

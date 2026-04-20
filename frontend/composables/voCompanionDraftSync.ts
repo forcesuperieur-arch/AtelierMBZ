@@ -18,7 +18,7 @@ export function syncDraftField<T extends Record<string, any>>(
   const previous = memory[key] ?? ''
 
   if (!current || current === previous) {
-    target[key] = normalized as T[keyof T]
+    target[key] = normalized as T[keyof T & string]
   }
 
   memory[key] = normalized
@@ -35,7 +35,7 @@ export function syncDraftBoolean<T extends Record<string, any>>(
   const current = target[key] ? '1' : '0'
 
   if (previous === undefined ? !target[key] : current === previous) {
-    target[key] = Boolean(nextValue) as T[keyof T]
+    target[key] = Boolean(nextValue) as T[keyof T & string]
   }
 
   memory[key] = normalized
