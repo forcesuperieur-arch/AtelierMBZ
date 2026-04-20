@@ -1,8 +1,8 @@
-# Atelier Moto Pro v2
+# Paddock — AtelierMBZ v2
 
 Application de gestion d’atelier moto pour la réception, le suivi des RDV, les ordres de réparation, les notifications et le pilotage atelier.
 
-> Mise à jour projet : **17 avril 2026**
+> Mise à jour projet : **20 avril 2026**
 
 ---
 
@@ -64,7 +64,9 @@ Le projet a fortement évolué ces derniers jours sur les axes suivants : sécur
 
 ### 4. Notifications
 - notifications **web** dans l’interface
+- cloche d’historique en top bar avec compteur des non lues
 - notifications **email** et **SMS** avec configuration des providers
+- scope par **atelier actif** pour les utilisateurs multi-atelier
 - environnement dev validé avec MailHog
 
 ### 5. Mode compagnon / PDA
@@ -86,7 +88,7 @@ Le projet a fortement évolué ces derniers jours sur les axes suivants : sécur
 
 ## Modules disponibles
 
-- **Dashboard** — indicateurs atelier
+- **Stat** — indicateurs atelier et pilotage
 - **Rendez-vous** — création, suivi, transitions, historique
 - **Planning** — vue atelier et lien compagnon
 - **Clients / véhicules** — fiches et historique

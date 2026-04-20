@@ -381,8 +381,15 @@ type AtelierOption = {
   ville?: string | null
 }
 
+const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
+
+function parseAtelierId(value: unknown): number | null {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
 const atelierOptions = ref<AtelierOption[]>([])
-const selectedAtelierId = ref<number | null>(authStore.user?.atelier_id ?? null)
+const selectedAtelierId = ref<number | null>(parseAtelierId(activeAtelierCookie.value) ?? authStore.user?.atelier_id ?? null)
 const selectedAtelier = computed(() => atelierOptions.value.find(atelier => atelier.id === selectedAtelierId.value) || null)
 const canSelectAtelier = computed(() => atelierOptions.value.length > 1)
 const canSwitchAtelierContext = computed(() => ((authStore.user?.roles || []) as string[]).some(role => role === 'ROLE_SUPER_ADMIN' || role === 'ROLE_SERVICE_CLIENT'))
@@ -451,7 +458,7 @@ function normalizePrestation(p: any) {
 }
 
 const form = reactive({
-  atelier_id: authStore.user?.atelier_id ?? null as number | null,
+  atelier_id: parseAtelierId(activeAtelierCookie.value) ?? authStore.user?.atelier_id ?? null as number | null,
   client_id: null as number | null,
   client_prenom: '',
   client_nom: '',
@@ -606,9 +613,15 @@ async function loadAteliers() {
       atelierOptions.value = [{ id: authStore.user.atelier_id, nom: authStore.user.atelier_nom || 'Atelier Moto' }]
     }
 
-    if (!atelierOptions.value.some(atelier => atelier.id === selectedAtelierId.value)) {
+    const cookieAtelierId = parseAtelierId(activeAtelierCookie.value)
+    const preferredAtelierId = cookieAtelierId ?? selectedAtelierId.value ?? authStore.user?.atelier_id ?? null
+
+    if (!atelierOptions.value.some(atelier => atelier.id === preferredAtelierId)) {
       selectedAtelierId.value = atelierOptions.value[0]?.id ?? authStore.user?.atelier_id ?? null
+    } else {
+      selectedAtelierId.value = preferredAtelierId
     }
+
     form.atelier_id = selectedAtelierId.value
   } catch {
     atelierOptions.value = authStore.user?.atelier_id
@@ -810,8 +823,12 @@ async function loadPrestations() {
   loadingPrestas.value = true
   try {
     const atelierId = selectedAtelierId.value ?? form.atelier_id ?? authStore.user?.atelier_id ?? null
-    const atelierParam = atelierId ? `?atelier_id=${atelierId}` : ''
-    const data = await api.get(`/prestations${atelierParam}`).catch(() => null)
+    const params = new URLSearchParams()
+    if (atelierId) params.set('atelier_id', String(atelierId))
+    if (form.vehicule_type) params.set('type_moto', String(form.vehicule_type))
+    if (form.vehicule_cylindree) params.set('cylindree', String(form.vehicule_cylindree))
+    const query = params.toString()
+    const data = await api.get(`/rdv/prestations-catalogue${query ? `?${query}` : ''}`).catch(() => null)
     const items = extractCollection(data)
     prestations.value = items
       .map((p: any) => normalizePrestation(p))
@@ -819,6 +836,9 @@ async function loadPrestations() {
       .filter((p: any) => prestationMatchesVehicle(p))
 
     selectedPrestas.value = selectedPrestas.value.filter(id => prestations.value.some(p => p.id === id))
+  } catch {
+    prestations.value = []
+    selectedPrestas.value = []
   } finally {
     loadingPrestas.value = false
   }
@@ -941,13 +961,19 @@ watch(dureeEstimee, (value, previousValue) => {
   }
 }, { immediate: true })
 
-async function syncAtelierContext(value: number | null) {
-  const resolvedAtelierId = value ?? authStore.user?.atelier_id ?? null
+async function syncAtelierContext(value: number | null, previousValue?: number | null) {
+  const resolvedAtelierId = value ?? parseAtelierId(activeAtelierCookie.value) ?? authStore.user?.atelier_id ?? null
   form.atelier_id = resolvedAtelierId
+
+  if (resolvedAtelierId && resolvedAtelierId !== previousValue) {
+    selectedPrestas.value = []
+    prestations.value = []
+  }
 
   if (canSwitchAtelierContext.value && resolvedAtelierId) {
     try {
       await api.post('/auth/switch-atelier', { atelier_id: resolvedAtelierId })
+      activeAtelierCookie.value = String(resolvedAtelierId)
       const config = await api.get(`/config?atelier_id=${resolvedAtelierId}`).catch(() => null)
       if (config) {
         atelierStore.setConfig(config)
@@ -965,8 +991,8 @@ async function syncAtelierContext(value: number | null) {
   if (step.value >= 3) await loadCreneaux()
 }
 
-watch(selectedAtelierId, (value) => {
-  void syncAtelierContext(value)
+watch(selectedAtelierId, (value, previousValue) => {
+  void syncAtelierContext(value, previousValue)
 }, { immediate: true })
 
 watch(() => `${form.vehicule_type}|${form.vehicule_cylindree}`, () => {

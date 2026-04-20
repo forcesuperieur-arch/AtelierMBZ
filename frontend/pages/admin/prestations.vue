@@ -181,6 +181,7 @@
 <script setup lang="ts">
 const api = useApi()
 const toast = useToast()
+const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
 
 const loading = ref(true)
 const saving = ref(false)
@@ -292,6 +293,28 @@ function generateCode(name: string) {
     .toUpperCase()
 
   return `PRESTA_${base || 'ATELIER'}`
+}
+
+function getActiveAtelierId(): number | null {
+  const parsed = Number(activeAtelierCookie.value ?? 0)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function withAtelierContext(path: string) {
+  const atelierId = getActiveAtelierId()
+  if (!atelierId) return path
+  return `${path}${path.includes('?') ? '&' : '?'}atelier_id=${atelierId}`
+}
+
+async function syncAtelierContext() {
+  const atelierId = getActiveAtelierId()
+  if (!atelierId) return
+
+  try {
+    await api.post('/auth/switch-atelier', { atelier_id: atelierId })
+  } catch {
+    // on garde quand même le chargement explicite via atelier_id en query string
+  }
 }
 
 function normalizePrestations(items: any[]) {
@@ -464,17 +487,39 @@ async function saveTarifModal() {
 }
 
 async function fetchData() {
-  const [prestationData, categoriesData, grillesData, configData] = await Promise.all([
-    api.get('/prestations?itemsPerPage=200'),
-    api.get('/motos/categories?itemsPerPage=200'),
-    api.get('/grille_tarifaires?itemsPerPage=400'),
-    api.get('/config'),
+  await syncAtelierContext()
+
+  const [prestationsResult, categoriesResult, grillesResult, configResult] = await Promise.allSettled([
+    api.get(withAtelierContext('/prestations?itemsPerPage=200')),
+    api.get(withAtelierContext('/motos/categories?itemsPerPage=200')),
+    api.get(withAtelierContext('/grille_tarifaires?itemsPerPage=400')),
+    api.get(withAtelierContext('/config')),
   ])
+
+  const prestationData = prestationsResult.status === 'fulfilled' ? prestationsResult.value : []
+  const categoriesData = categoriesResult.status === 'fulfilled' ? categoriesResult.value : []
+  const grillesData = grillesResult.status === 'fulfilled' ? grillesResult.value : []
+  const configData = configResult.status === 'fulfilled' ? configResult.value : null
 
   prestations.value = normalizePrestations(unwrapList(prestationData))
   motoCategories.value = normalizeCategories(unwrapList(categoriesData))
   grilles.value = normalizeGrilles(unwrapList(grillesData))
   tvaMo.value = toNumber(configData?.tva_mo_taux, 20)
+
+  if (!prestations.value.length) {
+    try {
+      const atelierId = getActiveAtelierId()
+      await api.post('/config/prestations/bootstrap', atelierId ? { atelier_id: atelierId } : {})
+      const [reloadedPrestations, reloadedGrilles] = await Promise.all([
+        api.get(withAtelierContext('/prestations?itemsPerPage=200')),
+        api.get(withAtelierContext('/grille_tarifaires?itemsPerPage=400')),
+      ])
+      prestations.value = normalizePrestations(unwrapList(reloadedPrestations))
+      grilles.value = normalizeGrilles(unwrapList(reloadedGrilles))
+    } catch {
+      // garde l'état vide si aucun catalogue source n'est disponible
+    }
+  }
 }
 
 watch(showTarifModal, (open) => {
@@ -484,8 +529,21 @@ watch(showTarifModal, (open) => {
   }
 })
 
+watch(() => activeAtelierCookie.value, async (next, previous) => {
+  if (next === previous) return
+  loading.value = true
+  try {
+    await fetchData()
+  } finally {
+    loading.value = false
+  }
+})
+
 onMounted(async () => {
-  await fetchData()
-  loading.value = false
+  try {
+    await fetchData()
+  } finally {
+    loading.value = false
+  }
 })
 </script>

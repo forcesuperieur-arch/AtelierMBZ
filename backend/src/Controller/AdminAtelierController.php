@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Atelier;
 use App\Entity\ConfigAtelier;
+use App\Service\AtelierCatalogBootstrapService;
 use App\Service\AuditService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ final class AdminAtelierController extends AbstractController
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
         private AuditService $audit,
+        private AtelierCatalogBootstrapService $atelierCatalogBootstrapService,
     ) {}
 
     #[Route('', methods: ['GET'])]
@@ -83,6 +85,7 @@ final class AdminAtelierController extends AbstractController
         $this->em->flush();
 
         $this->ensureConfigExists($atelier->getId());
+        $this->atelierCatalogBootstrapService->ensurePrestationsForAtelier($atelier->getId());
 
         $this->audit->log(
             'create_atelier',
