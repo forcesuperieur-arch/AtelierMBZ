@@ -32,7 +32,7 @@
 - `VOLivrePoliceService` → enregistrement LP, numérotation séquence
 - `PdfService` → génération PDF via DomPDF + Twig
 - `SmsService` → envoi SMS via Messenger async
-- `TokenService` → génération tokens publics (companion, suivi client)
+- `TokenService` → génération de tokens pour parcours bornés ; jamais de secret en query string
 
 ## Entités clés et leurs relations
 - `RendezVous` → hasMany `OrdreReparation`, belongsTo `Client`, `Vehicule`, `Mecanicien`, `Pont`
@@ -55,3 +55,31 @@
 - Frontend : camelCase partout (variables, fonctions, props)
 - Routes API : kebab-case `/api/vo/depot-ventes/{id}/prolonger`
 - Fichiers pages : kebab-case `pages/vo/rachats/[id].vue`
+
+## Frontières d'interface actées
+- Outils internes authentifiés : administration, atelier, VO, comptabilité ; jamais exposés sous `/public`
+- Outils PDA assistés : surfaces utilisées par un employé en présence du client ; périmètre strictement borné à la collecte ou à la signature
+- Parcours publics autonomes : réservation, suivi, validation distante réellement voulue ; données minimales et finalité unique
+
+## Contraintes de sécurité et d'exposition
+- Aucun token, secret ou jeton de parcours ne doit apparaître en query string
+- Un outil interne assisté ne doit pas être implémenté comme un faux tunnel public par commodité
+- Tout parcours tokenisé doit exposer le minimum de données utile à l'action immédiate
+- Les pages légales publiques doivent être réellement accessibles sans authentification quand elles sont citées dans un tunnel public
+
+## Contraintes workflow
+- Un workflow critique = un écran maître ; les autres écrans affichent l'état mais ne recréent pas une logique concurrente
+- Les validations opposables ne se contournent jamais localement : accord client, signature, avoir, blocage légal
+- La transition d'état doit refléter la réalité métier terminée, pas un brouillon à compléter plus tard
+
+## Contraintes rôles et permissions
+- Un rôle métier annoncé par le produit doit correspondre à de vraies permissions et de vrais guards
+- `ROLE_ADMIN` ne doit pas servir de béquille générique pour simuler responsable atelier, responsable magasin ou comptable
+- `ROLE_SUPER_ADMIN` est un rôle de plateforme ; il ne doit jamais être remappé conceptuellement comme métier opérationnel
+
+## Contraintes VO / conformité
+- Les formulaires VO réglementés utilisent le vrai CERFA requis ou un rendu strictement conforme à sa structure officielle
+- DA SIV = Cerfa 13751 quand la fonctionnalité est couverte
+- Mandat d'immatriculation = Cerfa 13757*03 quand le mandat est utilisé
+- Certificat de cession = Cerfa 15776*02 quand il est requis
+- Pièce d'identité et justificatif de domicile ne doivent jamais être conservés après transcription

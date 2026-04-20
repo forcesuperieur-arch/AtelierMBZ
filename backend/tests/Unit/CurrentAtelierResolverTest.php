@@ -5,11 +5,13 @@ namespace App\Tests\Unit;
 use App\Entity\User;
 use App\Service\BookingAtelierAccessService;
 use App\Service\CurrentAtelierResolver;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+#[AllowMockObjectsWithoutExpectations]
 class CurrentAtelierResolverTest extends TestCase
 {
     public function testSuperAdminUsesActiveAtelierCookieWhenNumeric(): void

@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 
 class DemandeTravauxSuppController extends AbstractController
 {
@@ -27,7 +28,18 @@ class DemandeTravauxSuppController extends AbstractController
         private PrestationCatalogService $catalogService,
         private OrdreReparationPolicy $orPolicy,
         private MercureNotifier $mercureNotifier,
+        private RateLimiterFactory $publicDemandeLimiter,
     ) {}
+
+    private function ensurePublicRateLimit(Request $request): ?JsonResponse
+    {
+        $limiter = $this->publicDemandeLimiter->create((string) $request->getClientIp());
+        if ($limiter->consume()->isAccepted()) {
+            return null;
+        }
+
+        return $this->json(['error' => 'Trop de requêtes'], Response::HTTP_TOO_MANY_REQUESTS);
+    }
 
     /**
      * Companion: mécanicien crée une demande complémentaire.
@@ -217,8 +229,12 @@ class DemandeTravauxSuppController extends AbstractController
      * Endpoint public: client consulte la demande via token.
      */
     #[Route('/api/public/demandes-travaux-supp/{token}', methods: ['GET'])]
-    public function consultationPublique(string $token): JsonResponse
+    public function consultationPublique(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensurePublicRateLimit($request)) {
+            return $response;
+        }
+
         $demande = $this->findByToken($token);
         if (!$demande) {
             return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);
@@ -254,6 +270,10 @@ class DemandeTravauxSuppController extends AbstractController
     #[Route('/api/public/demandes-travaux-supp/{token}/decision', methods: ['POST'])]
     public function decisionPublique(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensurePublicRateLimit($request)) {
+            return $response;
+        }
+
         $demande = $this->findByToken($token);
         if (!$demande) {
             return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);

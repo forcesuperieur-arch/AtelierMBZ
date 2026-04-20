@@ -18,6 +18,7 @@ const statusMap: Record<string, { label: string; bg: string; color: string }> = 
   facture:     { label: 'Facturé',     bg: 'rgba(139,92,246,0.12)',  color: '#C4B5FD' },
   paye:        { label: 'Payé',        bg: '#10B981',                color: '#ffffff' },
   annule:      { label: 'Annulé',      bg: 'rgba(239,68,68,0.12)',   color: '#FCA5A5' },
+  a_regulariser:{ label: 'À régulariser', bg: 'rgba(239,68,68,0.12)', color: '#FCA5A5' },
 }
 
 const entry = computed(() => statusMap[props.status] || { label: props.status, bg: 'rgba(107,114,128,0.12)', color: '#D1D5DB' })

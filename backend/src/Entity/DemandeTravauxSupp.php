@@ -99,6 +99,7 @@ class DemandeTravauxSupp
     public function setDecisionClient(?string $v): static { $this->decisionClient = $v; return $this; }
     public function getDecisionClientAt(): ?\DateTimeInterface { return $this->decisionClientAt; }
     public function setDecisionClientAt(?\DateTimeInterface $v): static { $this->decisionClientAt = $v; return $this; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getApprovedAt(): ?\DateTimeInterface { return $this->approvedAt; }
     public function setApprovedAt(?\DateTimeInterface $v): static { $this->approvedAt = $v; return $this; }
     public function getApprovedBy(): ?int { return $this->approvedBy; }

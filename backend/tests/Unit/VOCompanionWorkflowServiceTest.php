@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class VOCompanionWorkflowServiceTest extends TestCase
 {
-    public function testJustificatifDomicileIsOptionalButAvailableForCompanion(): void
+    public function testJustificatifDomicileIsNotAvailableInCompanionFlow(): void
     {
         $service = new VOCompanionWorkflowService();
         $purchase = new VOPurchase();
@@ -18,7 +18,7 @@ final class VOCompanionWorkflowServiceTest extends TestCase
         $additional = $service->getAdditionalDocumentOptions($purchase);
 
         self::assertNotContains(VODocument::TYPE_JUSTIFICATIF_DOMICILE, $required);
-        self::assertContains(VODocument::TYPE_JUSTIFICATIF_DOMICILE, $additional);
+        self::assertNotContains(VODocument::TYPE_JUSTIFICATIF_DOMICILE, $additional);
     }
 
     public function testJustificatifDomicileUsesZeroRetention(): void

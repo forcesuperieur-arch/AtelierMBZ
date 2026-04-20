@@ -4,8 +4,10 @@ namespace App\Tests\Unit;
 
 use App\Service\MotoCatalogImporter;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class MotoCatalogImporterTest extends TestCase
 {
     public function testPrepareCatalogRowsGroupsSparkPlugsAndSortsByCcAndYears(): void

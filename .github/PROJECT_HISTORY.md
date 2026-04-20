@@ -2,6 +2,176 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-20 — Implémentation blocs 01 à 03 et campagne de tests
+
+### Fait
+- [BLOC-01] fix — sécurisation des parcours exposés : tokens sortis des query strings, wrappers de routes ajoutés, whitelists publiques resserrées, rate limiting ajouté sur companion / VO companion / demandes publiques, payloads publics minimisés
+- [BLOC-02] fix — réalignement rôles/permissions : `ROLE_RESPONSABLE_ATELIER` et `ROLE_RESPONSABLE_MAGASIN` explicites, faux mapping `super_admin` supprimé, audit global réservé au `ROLE_SUPER_ADMIN`, accès front/back alignés
+- [BLOC-03] fix — fermeture des faux workflows sensibles : faux consentement booking retiré, validation locale DTS retirée de l'OR, uploads pièce d'identité / justificatif désactivés sur le companion VO, étape vendeur basée sur la seule transcription légale, statut facture "Annulée" retiré de l'UI filtrante au profit d'un affichage "À régulariser"
+- [BLOC-03] fix — `VOCompanionWorkflowService` : justificatif de domicile retiré des options companion et complétion vendeur durcie (type + numéro + date obligatoires)
+- [TEST] test — campagne exécutée dans Docker : PHPUnit backend 173/173 OK, Vitest frontend 19/19 OK, build Nuxt production OK
+- [TEST] fix — réalignement des tests backend sur la nouvelle doctrine de minimisation companion et sur la fermeture des documents sensibles dans le companion VO
+- [TEST] fix — suppression de 2 dépréciations Doctrine ORM via `Mecanicien` et `TenantFilter`
+- [TEST] fix — suppression de 26 notices PHPUnit 12 en déclarant explicitement les classes de tests qui utilisent des mocks comme stubs sans attentes
+
+### Décisions
+- Le companion VO ne stocke plus la pièce d'identité ni le justificatif de domicile ; seule la transcription des métadonnées utiles reste autorisée
+- La minimisation des payloads tokenisés prime sur les anciennes attentes de tests ou d'écran ; les tests doivent suivre cette doctrine
+- Les notices PHPUnit liées aux mocks sans attentes sont traitées comme un problème de qualité de test, pas contournées par de fausses expectations métier
+
+### TODO laissés
+- [ ] Mettre à jour l'état d'avancement des TODO blocs 01 à 03 dans ce fichier si on découpe officiellement l'exécution par sous-lots plutôt que par passe transverse
+- [ ] Trier les fichiers générés non trackés dans `backend/public/uploads/vo/` avant tout commit/push pour éviter d'embarquer des artefacts de test ou de génération documentaire
+
+### En suspens à arbitrer
+- Décider si le reliquat BLOC-03 côté historique VO doit inclure une purge/régularisation des pièces d'identité déjà stockées avant la fermeture du flux
+
+## Session 2026-04-20 — Correction 41 erreurs TypeScript pré-existantes (frontend)
+
+### Fait
+- [LOT-TS] fix — `frontend/types/pinia-persist.d.ts` (nouveau) : augmentation du module `pinia` pour typer `persist?: boolean` dans `DefineStoreOptionsBase`. Résout ~30 erreurs en cascade sur les stores auth/atelier.
+- [LOT-TS] fix — `layouts/default.vue` + `pages/admin/ateliers.vue` : suppression du fallback `?.atelierId` (inexistant dans `UserData`) → utilise uniquement `atelier_id`
+- [LOT-TS] fix — `pages/admin/clauses-legales.vue` : `:key="String(f.value)"` (valeur booléenne non valide comme `PropertyKey`)
+- [LOT-TS] fix — `pages/admin/roles-metier/[id].vue` + `index.vue` : `:rows="2"` au lieu de `rows="2"` (`string` non assignable à `number`)
+- [LOT-TS] fix — `pages/vo/depots/new.vue` + `pages/vo/rachats/new.vue` : `companionPollTimer: number | null` au lieu de `ReturnType<typeof setInterval>` (conflit Node.js/browser)
+- [LOT-TS] fix — `stores/vo.ts` : ajout `sourceLabel?: string` et `dossierPath?: string` dans l'interface `VORemiseEnEtat`
+- [LOT-TS] fix — `composables/voCompanionDraftSync.ts` : casts `as T[keyof T & string]` (cohérence avec la contrainte `key: keyof T & string`)
+- [LOT-TS] fix — `components/PlanningGrid.vue` : import `CSSProperties`/`StyleValue` depuis Vue + annotations de retour sur `timeLabelStyle`, `cellStyle`, `rdvStyle`
+- [LOT-TS] retire — `plugins/piniaPersistedState.ts` : supprimé (plugin `pinia-plugin-persistedstate` incompatible avec pinia 2.x)
+- [LOT-TS] retire — `package.json` : suppression entrée `pinia-plugin-persistedstate` (ajoutée par erreur en session précédente)
+- Typecheck container : 0 erreur (était 41)
+- Tests unitaires : 19/19 OK
+
+### Décisions
+- Approche retenue pour typer `persist` : fichier `.d.ts` avec `export {}` obligatoire pour que TypeScript reconnaisse l'augmentation comme MODULE et non comme remplacement ambiant du module `pinia`.
+- `pinia-plugin-persistedstate` abandonné : incompatible avec pinia 2.x, et le `persist: true` dans les stores n'a aucun effet runtime (aucun plugin enregistré). Typage seul suffit.
+
+### TODO laissés
+- (aucun)
+
+### En suspens à arbitrer
+- (aucun)
+
+## Session 2026-04-20 — Audit rôles métiers et plan de refonte
+
+### Fait
+- [LOT-AUDIT] ajoute — audit complet des rôles Réceptionnaire, Mécanicien, Responsable atelier, Responsable magasin / direction, Gestionnaire VO, Comptable, Super-admin et Client final dans [.github/AUDIT_ROLES_METIERS.md](.github/AUDIT_ROLES_METIERS.md)
+- [LOT-AUDIT] ajoute — synthèse transverse et lecture comité de pilotage pour transformer les constats en arbitrages produit exploitables
+- [LOT-AUDIT] fixe — recadrage produit des compagnons atelier et VO : outils internes assistés, pas portails publics autonomes
+- [LOT-AUDIT] fixe — doctrine documentaire VO : CERFA obligatoires inclus dans le périmètre cible, sans arbitrage ultérieur
+- [LOT-AUDIT] docs — mise à jour de [.github/REVIEW_CHECKLIST.md](.github/REVIEW_CHECKLIST.md) avec les garde-fous manquants sur rôles fantômes, tokens, compagnons internes, workflows concurrents et CERFA
+- [LOT-AUDIT] docs — mise à jour de [.github/ARCHITECTURE_REFERENCE.md](.github/ARCHITECTURE_REFERENCE.md) avec les frontières d'interface, de sécurité, de rôles et de conformité désormais actées
+
+### Décisions
+- Les compagnons PDA atelier et VO sont des outils assistés par un employé ; ils ne doivent plus être pensés ni exposés comme tunnels publics autonomes
+- Un rôle métier annoncé doit devenir un contrat technique réel : guards, permissions, écrans visibles et audit cohérents
+- Chaque workflow critique doit avoir un écran maître unique ; les autres surfaces ne montrent que l'état ou des raccourcis bornés
+- Les documents VO réglementés obligatoires doivent utiliser le vrai CERFA attendu : DA SIV 13751, mandat 13757*03, certificat de cession 15776*02
+
+### Plan d'exécution retenu
+
+#### Paquet 1 — Corrections bloquantes métier / légal / sécurité
+
+##### [LOT-01] Sécuriser les parcours exposés
+- sortir les compagnons atelier et VO du faux modèle `/public` autonome
+- supprimer tous les tokens en query string
+- réduire les payloads tokenisés au strict minimum
+- rendre réellement publiques uniquement les vraies pages publiques utiles : réservation, suivi, pages légales, décision distante si maintenue
+- ajouter rate limiting et journalisation minimale sur tous les tunnels publics conservés
+
+##### [LOT-02] Réaligner rôles et permissions
+- matérialiser proprement comptable, responsable atelier, responsable magasin et super-admin
+- retirer les rabattements implicites vers `ROLE_ADMIN` quand ils masquent un vrai métier
+- réserver l'audit global au super-admin et créer au besoin une vue audit atelier séparée
+- homogénéiser guards, voters, menus et escalades avec la même matrice de permissions
+
+##### [LOT-03] Bloquer les faux workflows sensibles
+- interdire la fin d'intervention avant rapport mécanicien signé
+- supprimer toute validation locale de travaux complémentaires qui contourne l'accord client opposable
+- retirer la fiction d'annulation simple de facture et préparer le vrai flux d'avoir
+- corriger les points RGPD critiques : consentement booking, conservation des pièces d'identité et justificatifs, données excessives dans les compagnons
+
+#### Paquet 2 — Simplifications de workflow et responsabilités
+
+##### [LOT-04] Refaire la réception et les travaux complémentaires
+- définir un écran maître de réception
+- séparer motif client, notes réception, notes techniques
+- basculer l'OCR et les corrections véhicule en mode proposition puis validation interne
+- imposer un workflow unique de travaux complémentaires visible depuis tous les écrans sans logique concurrente
+
+##### [LOT-05] Refaire l'espace mécanicien et la clôture d'intervention
+- ajouter les photos dans l'écran mécanicien avec prise mobile native
+- ajouter création de demande complémentaire orientée constat technique, sans estimation commerciale
+- exposer pause, attente pièces et reprise dans le parcours mécanicien
+- imposer une séquence de fin d'intervention cohérente : essai, photos, rapport, signature, puis seulement statut terminé
+
+##### [LOT-06] Recentrer le dossier VO sur la conformité
+- créer une distinction nette entre pré-dossier et dossier juridiquement activable
+- faire du dossier VO l'écran maître avec blocages légaux lisibles immédiatement
+- transformer les documents réglementés en vrais rendus CERFA conformes
+- imposer transcription puis destruction immédiate des pièces d'identité et justificatifs
+- remplacer les scores visuels flous par un verdict binaire vendable / non vendable avec motifs juridiques hiérarchisés
+
+#### Paquet 3 — Dette UX et dette de modèle
+
+##### [LOT-07] Refaire la facturation / comptabilité
+- unifier les statuts front/back
+- construire la facture à partir des lignes réelles atelier
+- introduire le flux d'avoir, le journal d'encaissement et le rôle comptable réel
+- préparer l'export comptable / FEC ou réduire explicitement le périmètre si on reste sur une simple caisse atelier
+
+##### [LOT-08] Nettoyer le modèle et les cockpits
+- renommer les champs ambigus et séparer les responsabilités sémantiques
+- aligner payloads, formulaires, PDF et dashboards sur une doctrine de minimisation
+- séparer cockpit direction, cockpit atelier, back-office admin et outils super-admin
+- remplacer les dashboards cosmétiques par des écrans d'exception et de décision
+
+### TODO laissés
+- [ ] Commencer par [LOT-01] et [LOT-02] avant tout nouvel ajout fonctionnel sur réception compagnon, VO compagnon, rôles/permissions et comptabilité
+
+### En suspens à arbitrer
+- Décider si la validation distante des travaux complémentaires reste un vrai parcours public client ou revient à un flux strictement assisté comptoir
+- Décider si le module comptabilité vise une vraie portée comptable avec export/FEC ou reste volontairement borné à l'encaissement atelier
+
+## Session 2026-04-20 — Specs exécutables blocs 01 à 03
+
+### Fait
+- [BLOC-01] docs — rédaction de [.github/SPEC-BLOC-01-securiser-parcours-exposes.md](.github/SPEC-BLOC-01-securiser-parcours-exposes.md) pour sécuriser routes publiques, tokens, payloads exposés et pages légales
+- [BLOC-02] docs — rédaction de [.github/SPEC-BLOC-02-realigner-roles-permissions.md](.github/SPEC-BLOC-02-realigner-roles-permissions.md) pour réaligner rôles métier, guards, voters, menus et audit
+- [BLOC-03] docs — rédaction de [.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md](.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md) pour fermer les contournements critiques sur intervention, DTS, facturation corrective et RGPD
+
+### Décisions
+- Les trois premiers blocs de refonte sont désormais spécifiés à un niveau exécutable par couche, sans réinterprétation produit complémentaire requise avant démarrage
+- L'ordre de démarrage reste inchangé : BLOC-01 puis BLOC-02 puis BLOC-03, même s'ils ont été rédigés ensemble
+
+### TODO laissés
+- [ ] Implémenter [.github/SPEC-BLOC-01-securiser-parcours-exposes.md](.github/SPEC-BLOC-01-securiser-parcours-exposes.md)
+- [ ] Implémenter [.github/SPEC-BLOC-02-realigner-roles-permissions.md](.github/SPEC-BLOC-02-realigner-roles-permissions.md)
+- [ ] Implémenter [.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md](.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md)
+
+### En suspens à arbitrer
+- Décider, avant implémentation de BLOC-01/BLOC-03, si la validation distante des travaux complémentaires reste un vrai parcours public autonome ou repasse en flux strictement assisté comptoir
+- Décider, avant implémentation approfondie de BLOC-03, si la comptabilité cible inclut un vrai flux d'avoir complet immédiatement ou seulement la suppression de la fiction d'annulation simple dans un premier temps
+
+
+
+### Fait
+- [LOT-DB] audit — comparaison schéma PostgreSQL / mappings Doctrine / références code pour identifier les vraies tables orphelines
+- [LOT-DB] ajoute — migration [backend/migrations/Version20260420170500.php](backend/migrations/Version20260420170500.php) pour supprimer `calculs_tarifs`, `grille_tarifs`, `temps_interventions`
+- [LOT-DB] backup — export ciblé avant suppression dans [backup/unused_tables_20260420.sql](backup/unused_tables_20260420.sql)
+- [LOT-DB] exécute — migration Doctrine appliquée localement, suppression effective des 3 tables legacy
+- [LOT-DB] vérifie — plus aucune référence code trouvée sur ces tables et plus aucun `DROP TABLE` résiduel dans `doctrine:schema:update --dump-sql`
+
+### Décisions
+- Seules les tables absentes du modèle Doctrine courant et sans référence code sont supprimées
+- Les tables vides mais encore mappées par Doctrine ne sont pas supprimées pour éviter de casser l'application
+
+### TODO laissés
+- [ ] Faire un tri séparé des tables encore vides mais toujours mappées si on veut réduire davantage la base sans casser le modèle
+
+### En suspens à arbitrer
+- Aucun
+
 ## Session 2026-06-05 — Workflows : DTS constantes + VOPurchase state machine
 
 ### Fait

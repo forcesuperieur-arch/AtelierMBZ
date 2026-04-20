@@ -205,7 +205,7 @@
       <p style="font-size:13px;color:#6EE7B7;margin-top:4px;">
         Votre code de suivi : <strong>{{ confirmation.token_suivi }}</strong>
       </p>
-      <NuxtLink :to="`/public/suivi?token=${confirmation.token_suivi}`" class="topbar-new-btn" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
+      <NuxtLink :to="`/public/suivi/${confirmation.token_suivi}`" class="topbar-new-btn" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
     </div>
   </div>
 </template>

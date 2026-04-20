@@ -15,7 +15,12 @@ class TenantFilter extends SQLFilter
         // Check if the entity has an atelier_id field
         if (!$targetEntity->hasField('atelierId') && !$targetEntity->hasAssociation('atelierId')) {
             // Also check column name directly for mapped entities
-            $columns = array_map(fn($m) => $m['columnName'] ?? $m['fieldName'], $targetEntity->fieldMappings);
+            $columns = [];
+            foreach (array_keys($targetEntity->fieldMappings) as $fieldName) {
+                $columns[] = $fieldName;
+                $columns[] = $targetEntity->getColumnName($fieldName);
+            }
+
             if (!in_array('atelier_id', $columns, true) && !in_array('atelierId', $columns, true)) {
                 return '';
             }

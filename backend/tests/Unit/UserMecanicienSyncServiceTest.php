@@ -8,8 +8,10 @@ use App\Service\CurrentAtelierResolver;
 use App\Service\UserMecanicienSyncService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class UserMecanicienSyncServiceTest extends TestCase
 {
     public function testCreatesLinkedMecanicienForMechanicUser(): void

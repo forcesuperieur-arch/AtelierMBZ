@@ -4,9 +4,11 @@ namespace App\Tests\Unit;
 
 use App\Controller\AdminTemplatePreviewController;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 
+#[AllowMockObjectsWithoutExpectations]
 class AdminTemplatePreviewControllerTest extends TestCase
 {
     private function createController(): AdminTemplatePreviewController

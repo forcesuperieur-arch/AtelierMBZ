@@ -1,7 +1,18 @@
 import { useAtelierStore } from '~/stores/atelier'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const publicRoutes = ['/login', '/public/booking', '/public/suivi', '/public/companion', '/public/vo-companion']
+  const publicRoutes = [
+    '/login',
+    '/public/booking',
+    '/public/suivi',
+    '/public/companion',
+    '/public/vo-companion',
+    '/public/demande',
+    '/public/mentions-legales',
+    '/public/politique-confidentialite',
+    '/companion/reception',
+    '/companion/vo',
+  ]
   if (publicRoutes.some(r => to.path.startsWith(r))) return
 
   const auth = useAuth()
@@ -20,6 +31,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const roles = auth.user.value?.roles ?? []
   const currentRole = String(auth.user.value?.role || '')
   const isAdmin = currentRole === 'admin' || currentRole === 'super_admin' || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')
+  const isSuperAdmin = currentRole === 'super_admin' || roles.includes('ROLE_SUPER_ADMIN')
 
   if (to.path.startsWith('/admin') && !isAdmin) {
     if (process.client) {
@@ -30,6 +42,17 @@ export default defineNuxtRouteMiddleware(async (to) => {
       })
     }
     return navigateTo('/')
+  }
+
+  if (to.path.startsWith('/admin/audit') && !isSuperAdmin) {
+    if (process.client) {
+      useToast().add({
+        title: 'Accès refusé',
+        description: 'Le journal d\'audit global est réservé au super-admin.',
+        color: 'error',
+      })
+    }
+    return navigateTo('/admin')
   }
 
   if (to.path === '/' && !auth.hasStatsAccess()) {

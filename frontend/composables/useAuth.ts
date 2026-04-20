@@ -91,9 +91,17 @@ export function useAuth() {
     const roleMetierCode = String(store.user?.role_metier?.code || '').trim().toLowerCase()
 
     if (roles.includes('ROLE_SUPER_ADMIN') || legacyRole === 'super_admin') return true
+    if (roles.includes('ROLE_RESPONSABLE_ATELIER') || roles.includes('ROLE_RESPONSABLE_MAGASIN')) return true
     if (['responsable_atelier', 'responsable_magasin'].includes(roleMetierCode)) return true
 
     return (roles.includes('ROLE_ADMIN') || legacyRole === 'admin') && !roleMetierCode
+  }
+
+  function canAccessAuditLogs(): boolean {
+    const roles = store.user?.roles ?? []
+    const legacyRole = String(store.user?.role || '').trim().toLowerCase()
+
+    return roles.includes('ROLE_SUPER_ADMIN') || legacyRole === 'super_admin'
   }
 
   function getAccessStatus(): string {
@@ -120,6 +128,7 @@ export function useAuth() {
     hasSection,
     hasPerm,
     hasStatsAccess,
+    canAccessAuditLogs,
     getAccessStatus,
     isPendingValidation,
     needsAtelierAssignment,

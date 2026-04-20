@@ -210,20 +210,29 @@ AtelierMBZ est utilisé par **plusieurs profils aux besoins très différents**.
 
 **Son quotidien** : 6 à 10 interventions par jour, les mains sales, pas le temps de manipuler un clavier, souvent debout près de la moto.
 
+**Support principal : tablette ou smartphone dans 90% des cas.** Toute modification de `mecanicien.vue` doit être pensée mobile-first :
+- Zones de tap ≥ 44px
+- Pas de hover-only interactions
+- Pas de scroll imbriqué dans une modale
+- `<input type="file" accept="image/*" capture="environment">` pour déclencher la caméra native
+- Boutons d'action principaux en bas d'écran (pouce)
+
 **Ce qu'il fait** :
 - Récupère le RDV du jour qui lui est assigné (pont + mécanicien)
 - Accède à l'OR signé et à la description du problème du client
 - Démarre le chrono d'intervention
 - Coche les points de checkup
 - Saisit des **notes techniques** (jamais des prix ni des temps estimés)
+- **Prend des photos pendant l'intervention** pour justifier ses remarques (preuve pour l'atelier + réassurance client)
 - Crée une **demande de travaux complémentaires** s'il détecte un problème non prévu
 - Met en pause si attente de pièce
 - Fait un **essai routier obligatoire** avant clôture
+- Remplit et **signe le rapport d'intervention** (distinct de l'OR)
 - Clôture l'intervention
 
 **Ce dont il a besoin** :
 - Interface tablette/mobile, boutons gros, peu de champs texte
-- Photo rapide depuis la caméra
+- **Bouton "📷 Photo" accessible à tout moment pendant l'intervention** (caméra device ou galerie)
 - Saisie vocale possible pour les notes
 - Visibilité immédiate de ce qu'il doit faire là-tout-de-suite
 - Historique atelier du véhicule accessible en 1 clic
@@ -233,6 +242,7 @@ AtelierMBZ est utilisé par **plusieurs profils aux besoins très différents**.
 - Ne jamais écraser `rdv.commentaire`
 - Ne jamais faire disparaître un RDV qu'il croit perdu (pause ≠ annulation)
 - Ne jamais bloquer l'action principale par un champ secondaire
+- **Ne jamais lui demander de saisir le kilométrage** — c'est la réception qui le fait
 
 ### 📞 Le réceptionnaire (comptoir + téléphone)
 
@@ -568,19 +578,57 @@ Payload : `user_id`, `atelier_id`, `role`, `jti`. Révocation via `RevokedToken`
 
 ---
 
+## Séquence workflow atelier — ordre impératif
+
+```
+Prise de RDV (planning)
+  → Réception physique (km relevé, état véhicule, carburant, photos réception, signature OR client)
+    → Intervention mécanicien (checkup, notes méca, photos pendant l'intervention, demandes complémentaires)
+      → Essai routier (obligatoire, km début/fin, points de contrôle)
+        → Rapport d'intervention signé mécanicien
+          → Restitution (signature client sur rapport au comptoir)
+            → Facturation
+```
+
+**Règles de saisie kilométrage** — immuables :
+- **Prise de RDV** : JAMAIS de km (on ne sait pas encore, et c'est inutile)
+- **Réception** (`planning.vue`, transition `reception`) : km réel relevé au comptoir → `RendezVous.kilometrage`
+- **Rapport d'intervention** (`RapportIntervention.kilometrageRestitution`) : km saisi par le mécanicien à la fin de l'essai routier
+
+**OR vs Rapport d'intervention — deux documents distincts** :
+
+| | `OrdreReparation` | `RapportIntervention` |
+|---|---|---|
+| **Qui le crée** | Système à la réception | Généré automatiquement à la clôture ou rempli par le mécanicien |
+| **Qui le signe** | Client (avant intervention) | Mécanicien puis client (à la restitution) |
+| **Contenu** | Prestations à réaliser, devis, accord client | Travaux réalisés, alertes, km restitution, prochaine révision, essai routier, photos |
+| **Figé après signature** | OUI — OR signé = immuable | OUI — signé mécanicien = plus modifiable sauf rectificatif |
+| **Table** | `ordres_reparation` | `rapport_intervention` |
+| **PDF** | Twig `ordre_reparation.html.twig` | Twig `rapport_intervention.html.twig` |
+
+**Photos d'intervention — `PhotoIntervention`** :
+- Entité `PhotoIntervention` + `PhotoController` (`/api/photos/upload`, `/api/photos/rdv/{id}`) : **back-end complet et opérationnel**
+- Liées au `RendezVous`, avec champs `type`, `description`, `annotationJson`, `sha256`, `exif`, `takenAt`
+- **L'interface mécanicien (`mecanicien.vue`) n'appelle pas encore l'API photos** — feature préparée, non branchée côté front
+- Règle d'usage : photos prises pendant l'intervention uniquement (pas à la réception — ça c'est un autre flux)
+- Sur mobile/tablette : `<input type="file" accept="image/*" capture="environment">` pour déclencher la caméra
+
+---
+
 ## Règles métier non négociables
 
 1. **Le mécanicien n'estime jamais** (ni prix ni temps)
 2. **Le mécanicien ne touche jamais `rdv.commentaire`** — les notes méca vont dans `OrdreReparation.mechanic_notes`
 3. **Essai routier obligatoire avant `terminer`** — zéro exception
 4. **OR signé = figé** — seuls Resp. Atelier ou Resp. Magasin peuvent faire un OR rectificatif
-5. **3 modes tarification** : FORFAIT / HORAIRE / SUR_DEVIS
-6. **Demandes complémentaires** : workflow avec escalade T+5/10/30min
-7. **Livre de Police immuable** : pas de PUT/PATCH/DELETE
-8. **DA SIV dans les 15 jours** : obligatoire, bloquant pour la revente
-9. **Garantie travaux atelier** : 30j par défaut, configurable SuperAdmin
-10. **Garantie légale VO** : 12 mois minimum
-11. **Toute action sensible est auditée** via `AuditService::log()`
+5. **Le kilométrage n'est jamais saisi à la prise de RDV** — uniquement à la réception physique
+6. **3 modes tarification** : FORFAIT / HORAIRE / SUR_DEVIS
+7. **Demandes complémentaires** : workflow avec escalade T+5/10/30min
+8. **Livre de Police immuable** : pas de PUT/PATCH/DELETE
+9. **DA SIV dans les 15 jours** : obligatoire, bloquant pour la revente
+10. **Garantie travaux atelier** : 30j par défaut, configurable SuperAdmin
+11. **Garantie légale VO** : 12 mois minimum
+12. **Toute action sensible est auditée** via `AuditService::log()`
 
 ---
 
@@ -653,6 +701,9 @@ Signale et explique avant d'appliquer.
 - `VOPurchase.vehicule` OneToOne → doit être ManyToOne
 - PDF silencieux en `try/catch` vide → toujours logger
 - Saisie d'ID numérique dans un formulaire utilisateur → recherche/select
+- **Ajouter le kilométrage dans la prise de RDV** → FAUX. Km saisi à la réception (`planning.vue`), jamais à `rdv/new.vue`
+- **Confondre OR et rapport d'intervention** → deux documents distincts, deux étapes distinctes, deux signatures distinctes
+- **Appeler `/api/photos` depuis autre chose que `mecanicien.vue`** → les photos d'intervention appartiennent à l'étape mécanicien, pas à la réception
 
 ---
 

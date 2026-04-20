@@ -34,13 +34,11 @@ class VOCompanionWorkflowService
     {
         return $record instanceof VOPurchase
             ? [
-                VODocument::TYPE_PIECE_IDENTITE,
                 VODocument::TYPE_CARTE_GRISE,
                 VODocument::TYPE_NON_GAGE,
                 VODocument::TYPE_CERFA_CESSION_ACHAT,
             ]
             : [
-                VODocument::TYPE_PIECE_IDENTITE,
                 VODocument::TYPE_CARTE_GRISE,
             ];
     }
@@ -48,7 +46,6 @@ class VOCompanionWorkflowService
     public function getAdditionalDocumentOptions(VOPurchase|VODepotVente $record): array
     {
         return [
-            VODocument::TYPE_JUSTIFICATIF_DOMICILE,
             VODocument::TYPE_CONTROLE_TECHNIQUE,
             VODocument::TYPE_AUTRE,
         ];
@@ -108,8 +105,9 @@ class VOCompanionWorkflowService
         $identityNumber = $record instanceof VOPurchase ? $record->getSellerIdNumber() : $record->getDeposantIdNumber();
         $identityDate = $record instanceof VOPurchase ? $record->getSellerIdDate() : $record->getDeposantIdDate();
 
-        $sellerCompleted = in_array(VODocument::TYPE_PIECE_IDENTITE, $documentTypes, true)
-            && ($identityType !== null || $identityNumber !== null || $identityDate !== null);
+        $sellerCompleted = trim((string) $identityType) !== ''
+            && trim((string) $identityNumber) !== ''
+            && $identityDate instanceof \DateTimeInterface;
 
         $vehicleCompleted = in_array(VODocument::TYPE_CARTE_GRISE, $documentTypes, true)
             && $this->hasVehicleCoreData($record->getVehicule());
@@ -126,6 +124,7 @@ class VOCompanionWorkflowService
             'seller' => [
                 'label' => ucfirst($this->getPartyRoleLabel($record)),
                 'completed' => $sellerCompleted,
+                'requiresImmediateDestruction' => true,
                 'identity' => [
                     'type' => $identityType,
                     'number' => $identityNumber,

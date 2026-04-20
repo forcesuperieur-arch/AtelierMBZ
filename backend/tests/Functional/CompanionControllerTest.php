@@ -114,7 +114,7 @@ class CompanionControllerTest extends WebTestCase
             '/api/public/photos/' . $rdv->getTokenSuivi() . '/companion-test-photo.jpg',
             $payload['photos'][0]['url'] ?? null
         );
-        $this->assertSame($savedRdv = $em->getRepository(RendezVous::class)->find($rdv->getId())->getVehicule()->getVin(), $payload['vehicule']['vin'] ?? null);
+        $this->assertArrayNotHasKey('vin', $payload['vehicule'] ?? []);
     }
 
     public function testCompanionVehiculeUpdateAcceptsVin(): void

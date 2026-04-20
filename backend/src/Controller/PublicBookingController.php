@@ -126,9 +126,6 @@ class PublicBookingController extends AbstractController
             $client->setTelephone($data['telephone']);
             $client->setEmail($data['email'] ?? null);
             $client->setAtelierId($atelierId);
-            // RGPD: Record consent from public booking form
-            $client->setConsentDate(new \DateTime());
-            $client->setConsentSource('public_booking');
             $this->em->persist($client);
         }
         // RGPD: Update last activity

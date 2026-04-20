@@ -72,6 +72,7 @@ final class UserRoleMetierSyncSubscriber
         }
 
         if ($entity->getRole() === 'super_admin') {
+            $entity->setRoleMetier(null);
             return;
         }
 

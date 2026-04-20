@@ -201,8 +201,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $roles[] = $this->roleMetier->getBaseRole();
 
             $roleMetierCodeMap = [
-                'responsable_atelier' => 'ROLE_ADMIN',
-                'responsable_magasin' => 'ROLE_ADMIN',
+                'responsable_atelier' => 'ROLE_RESPONSABLE_ATELIER',
+                'responsable_magasin' => 'ROLE_RESPONSABLE_MAGASIN',
                 'vo_manager' => 'ROLE_VO_MANAGER',
                 'receptionniste' => 'ROLE_RECEPTIONNAIRE',
                 'mecanicien' => 'ROLE_MECANICIEN',

@@ -2,10 +2,12 @@
 
 namespace App\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use App\Service\NotificationTemplateCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class NotificationTemplateCatalogTest extends TestCase
 {
     public function testDefaultTemplatesCoverSmsAndEmailScenarios(): void

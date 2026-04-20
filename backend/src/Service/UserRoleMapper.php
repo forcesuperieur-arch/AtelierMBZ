@@ -17,7 +17,6 @@ final class UserRoleMapper
     ];
 
     private const LEGACY_TO_ROLE_METIER = [
-        'super_admin' => 'responsable_atelier',
         'admin' => 'responsable_atelier',
         'receptionnaire' => 'receptionniste',
         'receptionniste' => 'receptionniste',

@@ -9,6 +9,7 @@ use App\Entity\OrdreReparation;
 use App\Entity\Pont;
 use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Entity\Vehicule;
 use App\Service\AuditService;
 use App\Service\PhotoService;
@@ -36,6 +37,13 @@ class RendezVousController extends AbstractController
         private PhotoService $photoService,
         private RapportInterventionService $rapportService,
     ) {}
+
+    private function getAuthenticatedUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
+    }
 
     /**
      * Create a RDV from the frontend form (handles client/vehicule creation).
@@ -255,8 +263,8 @@ class RendezVousController extends AbstractController
             }
         }
 
-        $user = $this->getUser();
-        $userId = is_object($user) && method_exists($user, 'getId') ? $user->getId() : null;
+        $user = $this->getAuthenticatedUser();
+        $userId = $user?->getId();
 
         if (in_array($transitionName, ['passer_gardiennage', 'mettre_en_gardiennage'], true)) {
             $rdv->setGardiennageDebutAt(new \DateTime());
@@ -319,7 +327,7 @@ class RendezVousController extends AbstractController
     #[Route('/api/rendez-vous/mecanicien', methods: ['GET'], priority: 10)]
     public function mecanicienRdvs(Request $request): JsonResponse
     {
-        $user = $this->getUser();
+        $user = $this->getAuthenticatedUser();
         if (!$user) {
             return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }

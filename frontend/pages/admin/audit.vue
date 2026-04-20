@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+const auth = useAuth()
 const api = useApi()
 const loading = ref(true)
 const logs = ref<any[]>([])
@@ -130,5 +131,12 @@ async function fetchLogs() {
   }
 }
 
-onMounted(fetchLogs)
+onMounted(async () => {
+  if (!auth.canAccessAuditLogs()) {
+    await navigateTo('/admin')
+    return
+  }
+
+  await fetchLogs()
+})
 </script>

@@ -25,7 +25,7 @@
           <div class="vo-public-summary-box">
             <span>{{ roleLabel }}</span>
             <strong>{{ partyFullName }}</strong>
-            <small>{{ payload.party?.telephone || 'Téléphone non renseigné' }}</small>
+            <small>Validation assistée au comptoir</small>
           </div>
           <div class="vo-public-summary-box">
             <span>Véhicule</span>
@@ -61,7 +61,7 @@
           <div class="vo-public-section-head">
             <div>
               <h2>{{ roleLabel }}</h2>
-              <p>Scanne la pièce d'identité et, si besoin, le justificatif de domicile. Les infos utiles sont retranscrites dans le dossier.</p>
+              <p>Retranscris le type, le numéro et la date de la pièce. La pièce d'identité et le justificatif ne sont plus stockés dans ce parcours.</p>
             </div>
             <div class="vo-public-state" :class="payload.steps.seller.completed ? 'is-done' : 'is-pending'">
               {{ payload.steps.seller.completed ? 'Étape validée' : 'Étape à compléter' }}
@@ -83,32 +83,8 @@
             </label>
           </div>
 
-          <div class="vo-public-upload-grid">
-            <label class="vo-public-upload-box">
-              <strong>Pièce d'identité</strong>
-              <span>Ajoute une ou plusieurs photos ou un PDF du document.</span>
-              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onSellerFilesChange">
-            </label>
-
-            <label class="vo-public-upload-box">
-              <strong>Justificatif de domicile</strong>
-              <span>Facultatif selon le dossier. Photo ou PDF accepté.</span>
-              <input type="file" multiple accept="image/*,.pdf" :disabled="isSigned" @change="onDomicileFilesChange">
-            </label>
-          </div>
-
-          <div v-if="sellerFiles.length || domicileFiles.length" class="vo-public-file-list">
-            <span v-for="file in [...sellerFiles, ...domicileFiles]" :key="file.name + file.size">{{ file.name }}</span>
-          </div>
-
           <div class="vo-public-alert is-warning">
-            Pièce d'identité et justificatif servent uniquement à la retranscription légale du dossier.
-          </div>
-
-          <div v-if="sellerDocuments.length" class="vo-public-doc-grid">
-            <a v-for="document in sellerDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
-              {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
-            </a>
+            Pièce d'identité et justificatif servent uniquement à la retranscription légale du dossier puis à une destruction immédiate hors application.
           </div>
 
           <div class="vo-public-actions">
@@ -158,9 +134,9 @@
           </div>
 
           <div v-if="vehicleDocuments.length" class="vo-public-doc-grid">
-            <a v-for="document in vehicleDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
+            <span v-for="document in vehicleDocuments" :key="document.id" class="vo-public-doc-chip">
               {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
-            </a>
+            </span>
           </div>
 
           <div class="vo-public-actions">
@@ -213,9 +189,9 @@
           </div>
 
           <div v-if="extraDocuments.length" class="vo-public-doc-grid">
-            <a v-for="document in extraDocuments" :key="document.id" :href="buildVoDocumentUrl(document)" target="_blank" class="vo-public-doc-chip">
+            <span v-for="document in extraDocuments" :key="document.id" class="vo-public-doc-chip">
               {{ document.originalFilename || document.original_filename || documentLabel(document.type) }}
-            </a>
+            </span>
           </div>
 
           <div class="vo-public-actions">
@@ -280,7 +256,7 @@ type StepKey = 'seller' | 'vehicle' | 'documents' | 'signature'
 
 const route = useRoute()
 const toast = useToast()
-const { apiBase, documentLabel, buildVoDocumentUrl } = useVoHelpers()
+const { apiBase, documentLabel } = useVoHelpers()
 const {
   ocrFields,
   normalizeImage,
@@ -299,8 +275,6 @@ const currentStep = ref<StepKey>('seller')
 const ocrNotice = ref<{ tone: 'warning' | 'success' | 'neutral'; message: string } | null>(null)
 const busy = reactive({ seller: false, vehicle: false, documents: false, signature: false })
 
-const sellerFiles = ref<File[]>([])
-const domicileFiles = ref<File[]>([])
 const vehicleDocumentFiles = ref<File[]>([])
 const vehiclePhotoFiles = ref<File[]>([])
 const extraFiles = ref<File[]>([])
@@ -327,7 +301,7 @@ const isDrawing = ref(false)
 const hasSignatureStroke = ref(false)
 const lastPoint = reactive({ x: 0, y: 0 })
 
-const token = computed(() => String(route.query.token || '').trim())
+const token = computed(() => String(route.params.token || route.query.token || '').trim())
 
 const roleLabel = computed(() => {
   if (payload.value?.partyRole === 'deposant') return 'Déposant'
@@ -352,11 +326,9 @@ const vehicleLine = computed(() => {
 
 const uploadedDocuments = computed(() => payload.value?.documents || [])
 
-const sellerDocuments = computed(() => uploadedDocuments.value.filter((document: any) => ['piece_identite', 'justificatif_domicile'].includes(document.type)))
-
 const vehicleDocuments = computed(() => uploadedDocuments.value.filter((document: any) => ['carte_grise', 'photo_vehicule'].includes(document.type)))
 
-const extraDocuments = computed(() => uploadedDocuments.value.filter((document: any) => !['piece_identite', 'justificatif_domicile', 'carte_grise', 'photo_vehicule', 'signature_client'].includes(document.type)))
+const extraDocuments = computed(() => uploadedDocuments.value.filter((document: any) => !['carte_grise', 'photo_vehicule', 'signature_client'].includes(document.type)))
 
 const documentTypeOptions = computed(() => {
   const required = payload.value?.steps?.documents?.required || []
@@ -445,14 +417,6 @@ function getFirstOpenStep(steps: any): StepKey {
   return 'signature'
 }
 
-function onSellerFilesChange(event: Event) {
-  sellerFiles.value = extractFiles(event)
-}
-
-function onDomicileFilesChange(event: Event) {
-  domicileFiles.value = extractFiles(event)
-}
-
 async function onVehicleDocumentChange(event: Event) {
   vehicleDocumentFiles.value = extractFiles(event)
   ocrNotice.value = null
@@ -509,26 +473,12 @@ async function saveSellerStep() {
     formData.append('idType', sellerForm.idType)
     formData.append('idNumber', sellerForm.idNumber)
     if (sellerForm.idDate) formData.append('idDate', sellerForm.idDate)
-    sellerFiles.value.forEach(file => formData.append('files[]', file))
 
-    let result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/seller`, {
+    const result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/seller`, {
       method: 'POST',
       body: formData,
     })
 
-    if (domicileFiles.value.length) {
-      const domicileData = new FormData()
-      domicileData.append('type', 'justificatif_domicile')
-      domicileFiles.value.forEach(file => domicileData.append('files[]', file))
-
-      result = await $fetch(`${apiBase}/public/vo-companion/${token.value}/document`, {
-        method: 'POST',
-        body: domicileData,
-      })
-    }
-
-    sellerFiles.value = []
-    domicileFiles.value = []
     applyPayload(result)
     toast.add({ title: `${roleLabel.value} validé`, color: 'success' })
   } catch (error: any) {

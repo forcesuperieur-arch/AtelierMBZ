@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\Facture;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,6 +18,13 @@ class StatistiquesController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em) {}
 
+    private function getAuthenticatedUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
+    }
+
     /**
      * Dashboard KPIs.
      */
@@ -25,7 +33,7 @@ class StatistiquesController extends AbstractController
     {
         $this->assertStatsAccess();
 
-        $user = $this->getUser();
+        $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 
@@ -280,11 +288,11 @@ class StatistiquesController extends AbstractController
 
     private function assertStatsAccess(): void
     {
-        if ($this->isGranted('ROLE_SUPER_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPER_ADMIN') || $this->isGranted('ROLE_RESPONSABLE_ATELIER') || $this->isGranted('ROLE_RESPONSABLE_MAGASIN')) {
             return;
         }
 
-        $roleMetierCode = $this->getUser()?->getRoleMetier()?->getCode();
+        $roleMetierCode = $this->getAuthenticatedUser()?->getRoleMetier()?->getCode();
 
         if (in_array($roleMetierCode, ['responsable_atelier', 'responsable_magasin'], true)) {
             return;
@@ -350,7 +358,7 @@ class StatistiquesController extends AbstractController
     {
         $this->assertStatsAccess();
 
-        $user = $this->getUser();
+        $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
         $year = (int) $request->query->get('year', date('Y'));
         $conn = $this->em->getConnection();
@@ -384,7 +392,7 @@ class StatistiquesController extends AbstractController
     {
         $this->assertStatsAccess();
 
-        $user = $this->getUser();
+        $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 

@@ -131,6 +131,7 @@ x<template>
                 <option v-for="t in motoTypes" :key="t" :value="t">{{ t }}</option>
               </select>
             </div>
+
           </div>
         </div>
 
@@ -467,7 +468,7 @@ const form = reactive({
   client_email: '',
   vehicule_marque: '',
   vehicule_modele: '',
-  vehicule_plaque: '',
+  vehicule_plaque: '',,
   vehicule_annee: '',
   vehicule_cylindree: '',
   vehicule_type: '',

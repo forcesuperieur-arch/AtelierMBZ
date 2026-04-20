@@ -6,8 +6,10 @@ use App\Entity\ConfigAtelier;
 use App\Service\PricingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class PricingServiceTest extends TestCase
 {
     private function createService(?ConfigAtelier $config): PricingService

@@ -256,6 +256,10 @@ class AdminTemplatePreviewController extends AbstractController
                     $this->buildSamplePhoto('Côté gauche'),
                     $this->buildSamplePhoto('Côté droit'),
                 ],
+                'clauses' => [
+                    ['titre' => 'Mandat de réparation', 'contenu' => 'Le client mandate l\'atelier pour effectuer les travaux décrits ci-dessus aux prix et conditions convenus. Toute prestation supplémentaire fera l\'objet d\'un accord préalable du client.'],
+                    ['titre' => 'Garantie travaux', 'contenu' => 'Les pièces et prestations sont garanties 30 jours contre tout défaut de mise en œuvre. La garantie ne couvre pas les dommages liés à un usage anormal ou à l\'usure normale.'],
+                ],
             ],
 
             'facture' => [

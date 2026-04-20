@@ -45,7 +45,7 @@
         <div class="admin-card-label">Rôles métier avancés</div>
         <div class="admin-card-desc">Matrice détaillée par module et action</div>
       </div>
-      <div class="admin-card" @click="navigateTo('/admin/audit')">
+      <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/audit')">
         <div class="admin-card-icon">🔍</div>
         <div class="admin-card-label">Audit</div>
         <div class="admin-card-desc">Journal des actions</div>

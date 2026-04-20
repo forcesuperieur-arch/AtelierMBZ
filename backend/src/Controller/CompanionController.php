@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -20,7 +21,18 @@ class CompanionController extends AbstractController
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
         private OrdreReparationPolicy $ordreReparationPolicy,
+        private RateLimiterFactory $publicCompanionLimiter,
     ) {}
+
+    private function ensureRateLimit(Request $request): ?JsonResponse
+    {
+        $limiter = $this->publicCompanionLimiter->create((string) $request->getClientIp());
+        if ($limiter->consume()->isAccepted()) {
+            return null;
+        }
+
+        return $this->json(['error' => 'Trop de requêtes'], Response::HTTP_TOO_MANY_REQUESTS);
+    }
 
     private function findRdvByToken(string $token): ?RendezVous
     {
@@ -76,8 +88,12 @@ class CompanionController extends AbstractController
     }
 
     #[Route('/{token}', methods: ['GET'])]
-    public function getRdvInfo(string $token): JsonResponse
+    public function getRdvInfo(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);
@@ -111,18 +127,12 @@ class CompanionController extends AbstractController
                 'id' => $client->getId(),
                 'nom' => $client->getNom(),
                 'prenom' => $client->getPrenom(),
-                'telephone' => $client->getTelephone(),
-                'email' => $client->getEmail(),
             ] : null,
             'vehicule' => $vehicule ? [
                 'id' => $vehicule->getId(),
                 'plaque' => $vehicule->getPlaque(),
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
-                'vin' => $vehicule->getVin(),
-                'annee' => $vehicule->getAnnee(),
-                'cylindree' => $vehicule->getCylindree(),
-                'type_moto' => $vehicule->getTypeMoto(),
             ] : null,
             'photos' => array_map(fn(PhotoIntervention $p) => [
                 'id' => $p->getId(),
@@ -138,8 +148,12 @@ class CompanionController extends AbstractController
     }
 
     #[Route('/{token}/status', methods: ['GET'])]
-    public function getStatus(string $token): JsonResponse
+    public function getStatus(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -168,6 +182,10 @@ class CompanionController extends AbstractController
     #[Route('/{token}/photo', methods: ['POST'])]
     public function uploadPhoto(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -215,6 +233,10 @@ class CompanionController extends AbstractController
     #[Route('/{token}/signature', methods: ['POST'])]
     public function saveSignature(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -281,6 +303,10 @@ class CompanionController extends AbstractController
     #[Route('/{token}/vehicule', methods: ['PUT'])]
     public function updateVehicule(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -320,6 +346,10 @@ class CompanionController extends AbstractController
     #[Route('/{token}/reception-data', methods: ['PUT'])]
     public function updateReceptionData(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);

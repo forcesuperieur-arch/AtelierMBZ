@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Twig\Environment;
 
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -28,6 +30,7 @@ class RapportInterventionController extends AbstractController
         private AuditService $audit,
         private Environment $twig,
         private PdfService $pdfService,
+        private MailerInterface $mailer,
     ) {}
 
     #[Route('/api/rdv/{rdvId}/rapport', methods: ['GET'])]
@@ -218,6 +221,46 @@ class RapportInterventionController extends AbstractController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('inline; filename="rapport-intervention-%d.pdf"', $rapport->getId()),
         ]);
+    }
+
+    #[Route('/api/rapport/{id}/send-email', methods: ['POST'])]
+    public function sendEmail(int $id): JsonResponse
+    {
+        $rapport = $this->em->getRepository(RapportIntervention::class)->find($id);
+        if (!$rapport) {
+            return $this->json(['error' => 'Rapport not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $rdv = $rapport->getRendezVous();
+        $client = $rdv?->getClient();
+        $clientEmail = $client?->getEmail();
+
+        if (!$clientEmail) {
+            return $this->json(['error' => 'Le client n\'a pas d\'adresse email renseignée'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $pdfContent = $this->pdfService->generateRapportPdf($rapport);
+
+        $email = (new Email())
+            ->to($clientEmail)
+            ->subject('Votre rapport d\'intervention — RDV #' . ($rdv?->getId() ?? ''))
+            ->html('<p>Bonjour ' . htmlspecialchars($client?->getPrenom() ?? '') . ',</p><p>Veuillez trouver ci-joint le rapport d\'intervention de votre véhicule.</p><p>Merci de votre confiance.</p>')
+            ->attach($pdfContent, 'rapport-intervention.pdf', 'application/pdf');
+
+        try {
+            $this->mailer->send($email);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => 'Échec de l\'envoi : ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $rapport->setEmailSentAt(new \DateTimeImmutable());
+        $this->em->flush();
+
+        $this->audit->log('send_rapport_email', 'rapport_intervention', $rapport->getId(), json_encode([
+            'client_email' => $clientEmail,
+        ]));
+
+        return $this->json($this->serializeRapport($rapport));
     }
 
     #[Route('/api/rapport/{id}/rectifier', methods: ['POST'])]

@@ -71,7 +71,7 @@ const config = useRuntimeConfig()
 const baseURL = config.public.apiBase as string
 const route = useRoute()
 
-const token = ref((route.query.token as string) || '')
+const token = ref(String(route.params.token || route.query.token || ''))
 const loading = ref(false)
 const error = ref('')
 const rdv = ref<any>(null)

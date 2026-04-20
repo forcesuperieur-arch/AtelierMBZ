@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Get;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity] #[ORM\Table(name: 'audit_logs')]
-#[ApiResource(operations: [new GetCollection(), new Get()], security: "is_granted('ROLE_ADMIN')")]
+#[ApiResource(operations: [new GetCollection(), new Get()], security: "is_granted('ROLE_SUPER_ADMIN')")]
 class AuditLog
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;

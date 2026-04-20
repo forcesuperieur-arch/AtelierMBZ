@@ -11,11 +11,13 @@ use App\Service\UserRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class UserAdminLifecycleTest extends TestCase
 {
     public function testArchiveServiceAnonymizesAndDisablesUser(): void

@@ -1286,7 +1286,7 @@ const companionUrl = computed(() => {
   const token = selectedRdv.value?.token_suivi ?? selectedRdv.value?.tokenSuivi
   if (!token) return ''
   const origin = globalThis.location?.origin || ''
-  return `${origin}/public/companion?token=${token}`
+  return `${origin}/companion/reception/${token}`
 })
 
 const companionQrUrl = ref('')

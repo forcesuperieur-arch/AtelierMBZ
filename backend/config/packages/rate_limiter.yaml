@@ -10,6 +10,21 @@ framework:
             limit: 60
             interval: '1 minute'
             lock_factory: 'lock.factory'
+        public_companion:
+            policy: 'sliding_window'
+            limit: 60
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
+        public_vo_companion:
+            policy: 'sliding_window'
+            limit: 60
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
+        public_demande:
+            policy: 'sliding_window'
+            limit: 30
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
         companion_upload:
             policy: 'sliding_window'
             limit: 20

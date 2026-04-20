@@ -18,7 +18,7 @@
     <UCard>
       <UTable :data="filtered" :columns="columns" :loading="loading">
         <template #statut-cell="{ row }">
-          <StatusBadge :status="row.original.statut === 'payee' ? 'paye' : row.original.statut === 'partielle' ? 'en_cours' : row.original.statut" />
+          <StatusBadge :status="row.original.statut === 'payee' ? 'paye' : row.original.statut === 'partielle' ? 'en_cours' : row.original.statut === 'annulee' ? 'a_regulariser' : row.original.statut" />
         </template>
         <template #total_ttc-cell="{ row }">
           {{ formatCurrency(row.original.total_ttc) }}
@@ -217,7 +217,6 @@ const statusOptions = [
   { value: 'emise', label: 'Émise' },
   { value: 'partielle', label: 'Partielle' },
   { value: 'payee', label: 'Payée' },
-  { value: 'annulee', label: 'Annulée' },
 ]
 
 const columns = [

@@ -14,23 +14,39 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api/public/vo-companion')]
 class PublicVoCompanionController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private SerializerInterface $serializer,
+        private NormalizerInterface $serializer,
         private VODocumentService $documentService,
         private VOCompanionWorkflowService $workflowService,
         private VOGeneratedDocumentService $generatedDocumentService,
+        private RateLimiterFactory $publicVoCompanionLimiter,
     ) {}
 
-    #[Route('/{token}', methods: ['GET'])]
-    public function show(string $token): JsonResponse
+    private function ensureRateLimit(Request $request): ?JsonResponse
     {
+        $limiter = $this->publicVoCompanionLimiter->create((string) $request->getClientIp());
+        if ($limiter->consume()->isAccepted()) {
+            return null;
+        }
+
+        return $this->json(['error' => 'Trop de requêtes'], Response::HTTP_TOO_MANY_REQUESTS);
+    }
+
+    #[Route('/{token}', methods: ['GET'])]
+    public function show(string $token, Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -42,6 +58,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/seller', methods: ['POST'])]
     public function saveSeller(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -49,6 +69,13 @@ class PublicVoCompanionController extends AbstractController
 
         $record = $context['record'];
         $files = $this->extractFiles($request, ['files', 'file']);
+
+        if ($files !== []) {
+            return $this->json([
+                'error' => 'Le compagnon PDA ne stocke plus la piece d\'identite ni le justificatif de domicile. Retranscrivez les informations du document puis detruisez le support selon la procedure atelier.',
+                'code' => 'IDENTITY_UPLOAD_DISABLED',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         if ($record instanceof VOPurchase) {
             if ($request->request->has('idType')) {
@@ -72,13 +99,14 @@ class PublicVoCompanionController extends AbstractController
             }
         }
 
-        foreach ($files as $file) {
-            $this->documentService->upload(
-                $file,
-                VODocument::TYPE_PIECE_IDENTITE,
-                $record instanceof VOPurchase ? $record : null,
-                $record instanceof VODepotVente ? $record : null,
-            );
+        $identityType = $record instanceof VOPurchase ? $record->getSellerIdType() : $record->getDeposantIdType();
+        $identityNumber = $record instanceof VOPurchase ? $record->getSellerIdNumber() : $record->getDeposantIdNumber();
+        $identityDate = $record instanceof VOPurchase ? $record->getSellerIdDate() : $record->getDeposantIdDate();
+
+        if (trim((string) $identityType) === '' || trim((string) $identityNumber) === '' || !$identityDate instanceof \DateTimeInterface) {
+            return $this->json([
+                'error' => 'Type, numero et date de piece sont obligatoires pour finaliser la transcription vendeur.',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $this->em->flush();
@@ -89,6 +117,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/vehicle-document', methods: ['POST'])]
     public function saveVehicleDocument(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -116,6 +148,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/vehicle-photo', methods: ['POST'])]
     public function saveVehiclePhoto(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -143,6 +179,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/vehicle-data', methods: ['PUT'])]
     public function saveVehicleData(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -171,6 +211,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/document', methods: ['POST'])]
     public function saveDocument(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -179,6 +223,13 @@ class PublicVoCompanionController extends AbstractController
         $type = $this->nullableString($request->request->get('type'));
         if ($type === null) {
             return $this->json(['error' => 'Type de document requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (in_array($type, [VODocument::TYPE_PIECE_IDENTITE, VODocument::TYPE_JUSTIFICATIF_DOMICILE], true)) {
+            return $this->json([
+                'error' => 'Le stockage de piece d\'identite et de justificatif de domicile est desactive sur ce parcours. Retranscrivez les informations utiles puis detruisez le document selon la procedure atelier.',
+                'code' => 'SENSITIVE_IDENTITY_STORAGE_DISABLED',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $files = $this->extractFiles($request, ['files', 'file']);
@@ -203,6 +254,10 @@ class PublicVoCompanionController extends AbstractController
     #[Route('/{token}/signature', methods: ['POST'])]
     public function saveSignature(string $token, Request $request): JsonResponse
     {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
         $context = $this->findContextByToken($token);
         if ($context === null) {
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
@@ -327,15 +382,17 @@ class PublicVoCompanionController extends AbstractController
             'party' => [
                 'prenom' => $party?->getPrenom(),
                 'nom' => $party?->getNom(),
-                'telephone' => $party?->getTelephone(),
-                'email' => $party?->getEmail(),
-                'adresse' => $party?->getAdresse(),
                 'idType' => $record instanceof VOPurchase ? $record->getSellerIdType() : $record->getDeposantIdType(),
                 'idNumber' => $record instanceof VOPurchase ? $record->getSellerIdNumber() : $record->getDeposantIdNumber(),
                 'idDate' => ($record instanceof VOPurchase ? $record->getSellerIdDate() : $record->getDeposantIdDate())?->format('Y-m-d'),
             ],
             'vehicule' => $record->getVehicule() ? $this->serializer->normalize($record->getVehicule(), null, ['groups' => 'vehicule:read']) : null,
-            'documents' => $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']),
+            'documents' => array_map(static fn (VODocument $document) => [
+                'id' => $document->getId(),
+                'type' => $document->getType(),
+                'originalFilename' => $document->getOriginalFilename(),
+                'uploadedAt' => $document->getUploadedAt()?->format(DATE_ATOM),
+            ], $documents),
             'steps' => $steps,
         ];
     }

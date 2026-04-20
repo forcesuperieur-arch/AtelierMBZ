@@ -131,9 +131,8 @@
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
             <span :style="{ fontSize:'11px', padding:'3px 10px', borderRadius:'999px', fontWeight:'700', background: tsStatusColor(ts.statut).bg, color: tsStatusColor(ts.statut).text }">{{ tsStatusLabel(ts.statut) }}</span>
-            <div v-if="ts.statut === 'en_attente'" style="display:flex;gap:4px;">
-              <button class="btn btn-primary" style="font-size:11px;padding:4px 10px;" @click="decideTravauxSupp(ts.id, 'approuve')">✅ Approuver</button>
-              <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#EF4444;" @click="decideTravauxSupp(ts.id, 'refuse')">❌ Refuser</button>
+            <div v-if="ts.statut === 'en_attente' || ts.statut === 'en_attente_validation'" style="font-size:11px;color:#9CA3AF;max-width:220px;text-align:right;">
+              Validation locale supprimée. Envoie la demande au client depuis l'écran d'administration dédié.
             </div>
           </div>
         </div>
@@ -335,8 +334,8 @@
       </div>
     </UCard>
 
-    <!-- Rapport d'intervention (LOT 8 — sign-client flow) -->
-    <UCard v-if="rapport" style="margin-bottom:20px;">
+    <!-- Rapport d'intervention (visible une fois le RDV terminé) -->
+    <UCard v-if="rapport && rdvIsTermine" style="margin-bottom:20px;">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:13px;font-weight:600;color:#9CA3AF;">📋 Rapport d'intervention</span>
@@ -379,23 +378,13 @@
           </div>
           <div v-if="rapport.essaiRoutier.anomalies" style="margin-top:6px;color:#FCA5A5;font-size:12px;">Anomalies : {{ rapport.essaiRoutier.anomalies }}</div>
         </div>
-        <!-- Client signature -->
-        <div v-if="rapport.signatureMecanicien && !rapport.signatureClient" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
-          <div style="font-size:12px;font-weight:600;color:#FBBF24;margin-bottom:8px;">✍️ Signature client requise pour la restitution</div>
-          <canvas ref="sigRapportCanvas" width="400" height="120" style="border:1px dashed rgba(255,210,0,0.3);border-radius:8px;cursor:crosshair;background:rgba(255,255,255,0.02);width:100%;max-width:400px;height:120px;" @mousedown="startRapportDraw($event)" @mousemove="drawRapport($event)" @mouseup="stopRapportDraw" @mouseleave="stopRapportDraw"></canvas>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button class="btn btn-ghost" style="font-size:12px;" @click="clearRapportSig">Effacer</button>
-            <button class="btn btn-primary" style="font-size:12px;" @click="signRapportClient" :disabled="!rapportSigDrawn || signingRapport">
-              {{ signingRapport ? 'Signature…' : '✅ Signer le rapport' }}
-            </button>
-          </div>
-        </div>
-        <div v-else-if="rapport.isSignedByBoth" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;display:flex;align-items:center;gap:8px;color:#10B981;">
-          <span style="font-size:18px;">✅</span>
-          <div>
-            <div style="font-weight:600;">Rapport signé par les deux parties</div>
-            <div style="font-size:12px;color:#6B7280;">Mécanicien le {{ rapport.signeMecanicienAt ? new Date(rapport.signeMecanicienAt).toLocaleDateString('fr-FR') : '—' }} · Client le {{ rapport.signeClientAt ? new Date(rapport.signeClientAt).toLocaleDateString('fr-FR') : '—' }}</div>
-          </div>
+        <!-- Envoi rapport par email -->
+        <div v-if="rapport.signatureMecanicien" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-size:12px;color:#9CA3AF;">Le rapport est envoyé au client par email à la restitution.</div>
+          <button v-if="!rapport.emailSentAt" class="btn btn-ghost" style="font-size:12px;" @click="sendRapportEmail" :disabled="sendingRapportEmail">
+            {{ sendingRapportEmail ? 'Envoi…' : '📧 Envoyer au client' }}
+          </button>
+          <span v-else style="font-size:11px;color:#10B981;">✅ Envoyé le {{ new Date(rapport.emailSentAt).toLocaleDateString('fr-FR') }}</span>
         </div>
       </div>
     </UCard>
@@ -654,19 +643,6 @@ async function submitTravauxSupp() {
   }
 }
 
-async function decideTravauxSupp(tsId: number, decision: 'approuve' | 'refuse') {
-  try {
-    await api.patch(`/demande_travaux_supps/${tsId}`, {
-      statut: decision,
-      decisionClient: decision,
-    })
-    toast.add({ title: decision === 'approuve' ? 'Approuvé' : 'Refusé', color: decision === 'approuve' ? 'success' : 'warning' })
-    await loadTravauxSupp()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
-  }
-}
-
 // Inspection editing
 const editingInspection = ref(false)
 const savingInspection = ref(false)
@@ -767,10 +743,7 @@ async function saveEstimate() {
 // Rapport d'intervention (LOT 8 — sign-client flow)
 const rapport = ref<any>(null)
 const rapportLoading = ref(false)
-const sigRapportCanvas = ref<HTMLCanvasElement | null>(null)
-const rapportSigDrawing = ref(false)
-const rapportSigDrawn = ref(false)
-const signingRapport = ref(false)
+const sendingRapportEmail = ref(false)
 
 async function loadRapport() {
   const rdvId = rdv.value?.id
@@ -782,53 +755,17 @@ async function loadRapport() {
   finally { rapportLoading.value = false }
 }
 
-function startRapportDraw(e: MouseEvent) {
-  rapportSigDrawing.value = true
-  const ctx = sigRapportCanvas.value?.getContext('2d')
-  if (!ctx) return
-  const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
-  ctx.beginPath()
-  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-}
-
-function drawRapport(e: MouseEvent) {
-  if (!rapportSigDrawing.value) return
-  const ctx = sigRapportCanvas.value?.getContext('2d')
-  if (!ctx) return
-  const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
-  ctx.lineWidth = 2
-  ctx.lineCap = 'round'
-  ctx.strokeStyle = '#E8E9ED'
-  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-  ctx.stroke()
-  rapportSigDrawn.value = true
-}
-
-function stopRapportDraw() {
-  rapportSigDrawing.value = false
-}
-
-function clearRapportSig() {
-  const canvas = sigRapportCanvas.value
-  const ctx = canvas?.getContext('2d')
-  if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height)
-  rapportSigDrawn.value = false
-}
-
-async function signRapportClient() {
-  const canvas = sigRapportCanvas.value
-  if (!canvas || !rapport.value?.id) return
-  signingRapport.value = true
+async function sendRapportEmail() {
+  if (!rapport.value?.id) return
+  sendingRapportEmail.value = true
   try {
-    const signature = canvas.toDataURL('image/png')
-    rapport.value = await api.post(`/rapport/${rapport.value.id}/sign-client`, { signature })
-    toast.add({ title: 'Rapport signé', description: 'La restitution peut maintenant être effectuée.', color: 'success' })
-    const trans = await api.get(`/rendez-vous/${rdv.value.id}/transitions`)
-    availableTransitions.value = Array.isArray(trans) ? trans : trans?.transitions ?? []
+    await api.post(`/rapport/${rapport.value.id}/send-email`, {})
+    rapport.value = { ...rapport.value, emailSentAt: new Date().toISOString() }
+    toast.add({ title: 'Rapport envoyé', description: 'Le client va recevoir le rapport par email.', color: 'success' })
   } catch (e: any) {
-    toast.add({ title: 'Erreur signature', description: e?.message || 'Échec', color: 'error' })
+    toast.add({ title: 'Erreur envoi', description: e?.message || 'Échec', color: 'error' })
   } finally {
-    signingRapport.value = false
+    sendingRapportEmail.value = false
   }
 }
 
@@ -926,6 +863,7 @@ function printOR() {
 
 const client = computed(() => rdv.value?.client)
 const vehicule = computed(() => rdv.value?.vehicule)
+const rdvIsTermine = computed(() => ['termine', 'restitue', 'restitue_partiel', 'facture', 'paye'].includes(rdv.value?.statut))
 const clientNom = computed(() => client.value ? `${client.value.prenom ?? ''} ${client.value.nom ?? ''}`.trim() : '—')
 const vehiculeMarque = computed(() => vehicule.value ? `${vehicule.value.marque ?? ''} ${vehicule.value.modele ?? ''}`.trim() : '—')
 

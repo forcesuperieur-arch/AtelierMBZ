@@ -27,7 +27,7 @@
           <div class="companion-card">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
               <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
-              <div><span style="color:#6B7280;">Tél :</span> <span style="color:#D1D5DB;">{{ rdv.client?.telephone || '—' }}</span></div>
+              <div><span style="color:#6B7280;">Statut :</span> <span style="color:#D1D5DB;">{{ rdv.statut }}</span></div>
               <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
               <div><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.plaque || '—' }}</span></div>
               <div style="grid-column:1/-1;"><span style="color:#6B7280;">Intervention :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
@@ -278,7 +278,7 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase as string
 
-const token = computed(() => String(route.query.token || ''))
+const token = computed(() => String(route.params.token || route.query.token || ''))
 const loading = ref(true)
 const error = ref('')
 const rdv = ref<any>(null)
