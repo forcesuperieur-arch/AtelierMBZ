@@ -2,6 +2,105 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-21 — Paquet 2 tranche 3 : orchestration mécanicien et verdict VO binaire
+
+### Fait
+- [LOT-05] fix — [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : l'espace mécanicien exploite enfin les transitions atelier existantes `mettre_en_pause`, `attendre_pieces`, `mettre_en_attente_pieces`, `reprendre` et `reprendre_apres_pieces` avec un statut lisible, sans détourner le workflow ni réinventer une logique locale
+- [LOT-05] test — [backend/tests/Functional/MecanicienControllerTest.php](backend/tests/Functional/MecanicienControllerTest.php) : couverture ajoutée sur la séquence mécanicien pause → attente pièces → reprise pour verrouiller l'orchestration réellement utilisée à l'écran
+- [LOT-06] fix — [backend/src/Service/VODocumentService.php](backend/src/Service/VODocumentService.php) + [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) : le VO expose désormais un verdict structuré `vendable` / `non_vendable` avec motifs hiérarchisés par gravité et portée (légal, RGPD, workflow, atelier)
+- [LOT-06] fix — [frontend/components/vo/VODossierMotoCard.vue](frontend/components/vo/VODossierMotoCard.vue), [frontend/pages/vo/rachats/[id].vue](frontend/pages/vo/rachats/[id].vue) et [frontend/pages/vo/depots/[id].vue](frontend/pages/vo/depots/[id].vue) : les vues VO ne reposent plus sur des pourcentages ou pseudo-progressions pour la vente ; elles affichent un verdict unique actionnable avec les blocages à lever
+- [TEST] test — PHPUnit ciblé OK : 11 tests verts sur [backend/tests/Functional/MecanicienControllerTest.php](backend/tests/Functional/MecanicienControllerTest.php) et [backend/tests/Functional/VOControllerTest.php](backend/tests/Functional/VOControllerTest.php)
+- [TEST] test — build Nuxt production OK après fermeture du reliquat mécanicien et du verdict VO
+
+### Décisions
+- Le workflow mécanicien doit consommer les transitions du state machine existant ; aucune sous-logique front parallèle n'est autorisée pour pause, attente pièces ou reprise
+- Le dossier VO ne doit plus suggérer une "proximité de vente" via des scores visuels ; une seule vérité métier reste affichée : vendable maintenant ou non vendable, avec raisons ordonnées
+- Les blocages VO peuvent agréger droit, RGPD et blocages atelier, mais ils doivent rester lisibles comme une liste de décisions à traiter, pas comme un tableau de complétion
+
+### TODO laissés
+- [ ] Reprendre plus tard le nettoyage des anciennes surfaces VO qui consomment encore `dossierStatus` ou `saleBlockers` sans exploiter le verdict structuré si on veut homogénéiser tout le module hors fiches détaillées
+
+### En suspens à arbitrer
+- Aucun nouveau point bloquant ; le reliquat Paquet 2 est désormais fermé sur ses deux derniers objectifs fonctionnels
+
+## Session 2026-04-20 — Paquet 2 tranche 2 : rapport signé, réception clarifiée, VO recentré
+
+### Fait
+- [LOT-05] fix — [backend/src/Service/RapportInterventionService.php](backend/src/Service/RapportInterventionService.php), [backend/src/Controller/RapportInterventionController.php](backend/src/Controller/RapportInterventionController.php), [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) et [backend/src/EventListener/RdvWorkflowListener.php](backend/src/EventListener/RdvWorkflowListener.php) : la clôture atelier impose désormais un brouillon de rapport récupérable dès le RDV, un rapport mécano suffisamment complété, puis la signature mécanicien avant la transition terminer
+- [LOT-05] ajoute — [backend/src/Controller/DemandeTravauxSuppController.php](backend/src/Controller/DemandeTravauxSuppController.php) + [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : création de demandes de travaux complémentaires depuis l'écran mécanicien, orientée constat technique et réutilisant la notification réception existante
+- [LOT-05] fix — [backend/src/Controller/MecanicienController.php](backend/src/Controller/MecanicienController.php) + [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : l'espace mécanicien expose l'état de signature du rapport et n'appelle plus terminer comme si le rapport était une étape secondaire
+- [LOT-04] fix — [backend/src/Controller/CompanionController.php](backend/src/Controller/CompanionController.php), [frontend/pages/planning.vue](frontend/pages/planning.vue) et [frontend/pages/ordres/[id].vue](frontend/pages/ordres/[id].vue) : séparation explicite entre motif client, notes réception et notes techniques ; les données de réception ne transitent plus sous les clés `mechanic_*`
+- [LOT-06] fix — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php), [frontend/components/vo/VODossierMotoCard.vue](frontend/components/vo/VODossierMotoCard.vue), [frontend/pages/vo/rachats/[id].vue](frontend/pages/vo/rachats/[id].vue), [frontend/pages/vo/depots/[id].vue](frontend/pages/vo/depots/[id].vue), [frontend/pages/vo/rachats/new.vue](frontend/pages/vo/rachats/new.vue) et [frontend/pages/vo/depots/new.vue](frontend/pages/vo/depots/new.vue) : le dossier VO recentre la conformité sur la transcription légale ; `piece_identite` et `justificatif_domicile` ne sont plus uploadables côté UI et sont explicitement refusés côté API
+- [TEST] test — build Nuxt production OK après réalignement mécanicien, réception et dossier VO
+- [TEST] test — PHPUnit ciblé OK : 15 tests verts sur [backend/tests/Unit/RapportInterventionServiceTest.php](backend/tests/Unit/RapportInterventionServiceTest.php), [backend/tests/Unit/EssaiRoutierCompletenessTest.php](backend/tests/Unit/EssaiRoutierCompletenessTest.php), [backend/tests/Functional/MecanicienControllerTest.php](backend/tests/Functional/MecanicienControllerTest.php) et [backend/tests/Functional/VOControllerTest.php](backend/tests/Functional/VOControllerTest.php)
+
+### Décisions
+- Le rapport d'intervention n'est plus un artefact de post-clôture : il devient la preuve centrale de fin d'intervention, signée par le mécanicien avant tout passage à `termine`
+- La réception garde sa propre sémantique et ses propres champs ; le mécanicien n'hérite plus de noms de données qui brouillent les responsabilités métier
+- La conformité VO sur identité/domicile repose sur la transcription puis destruction immédiate du support, jamais sur l'archivage de la pièce elle-même
+
+### TODO laissés
+- [ ] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter pause, attente pièces et reprise dans le parcours mécanicien pour finir le LOT-05 côté orchestration d'atelier
+- [ ] [frontend/components/vo/VODossierMotoCard.vue](frontend/components/vo/VODossierMotoCard.vue) + vues VO associées : remplacer le suivi documentaire encore partiel par un verdict légal binaire vendable / non vendable avec motifs hiérarchisés pour finir le LOT-06
+
+### En suspens à arbitrer
+- Aucun nouvel arbitrage bloquant ; le reliquat Paquet 2 porte désormais surtout sur la profondeur restante des lots 05 et 06, plus sur leur direction produit
+
+## Session 2026-04-20 — Paquet 2 tranche 1 : photos mécanicien et flux atelier praticable
+
+### Fait
+- [LOT-05] fix — [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajout d'un vrai panneau photos d'intervention mobile-first avec capture caméra native, typage métier, galerie par type et compteur utile à la clôture atelier
+- [LOT-05] fix — [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : retrait du lien d'appel direct au client dans l'espace mécanicien pour recentrer le rôle sur l'exécution technique
+- [LOT-05] fix — [backend/src/Controller/PhotoController.php](backend/src/Controller/PhotoController.php) + [backend/src/Service/PhotoService.php](backend/src/Service/PhotoService.php) : upload photo désormais typé (`en_cours`, `apres_travaux`, `restitution`, `probleme`), métadonnées retournées en lecture, nom de fichier non prédictible uniformisé
+- [LOT-05] fix — [frontend/composables/useApi.ts](frontend/composables/useApi.ts) : `FormData` n'est plus sérialisé en JSON, ce qui rend enfin fiables les uploads de fichiers depuis les écrans métier
+- [TEST] test — build Nuxt production OK après branchement du flux photo mécanicien
+- [TEST] test — validation manuelle API : upload `apres_travaux` sur RDV 236 OK, puis lecture `/api/photos/rdv/236` confirmant le type et les métadonnées
+
+### Décisions
+- Le Paquet 2 est attaqué par tranches livrables ; la première tranche utile est LOT-05 côté mécanicien, car le back imposait déjà des photos sans les rendre capturables dans l'écran métier naturel
+- Le type photo doit être porté dès l'upload, sinon les gardes de transition `terminer` / `restituer` restent théoriques et non satisfaisables en pratique
+
+### TODO laissés
+- [ ] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter la création de demande de travaux complémentaires depuis l'écran mécanicien, sans estimation commerciale
+- [ ] [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) + [backend/src/Controller/RapportInterventionController.php](backend/src/Controller/RapportInterventionController.php) : fermer à la racine la séquence encore imparfaite `terminer` avant signature mécanicien, pas seulement la rendre plus praticable côté écran
+- [ ] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit
+
+### En suspens à arbitrer
+- Aucun nouveau point ; l'arbitrage restant sur le Paquet 2 porte toujours sur la priorisation interne entre réception maître (LOT-04), clôture mécanicien complète (LOT-05) et recentrage du dossier VO (LOT-06)
+
+## Session 2026-04-20 — RGPD VO passif, avoir facturation et rôle comptable réel
+
+### Fait
+- [BLOC-03] fix — `backend/src/Service/VODocumentService.php` : les pièces d'identité et justificatifs ne sont plus des documents requis du dossier VO ; la conformité repose sur la transcription, et la présence résiduelle de supports sensibles devient un blocage RGPD explicite côté achat et dépôt-vente
+- [BLOC-03] fix — `backend/src/Command/PurgeIdentityDocumentsCommand.php` : la commande de purge expose désormais le volume de supports sensibles encore stockés avant purge pour rendre le passif visible
+- [BLOC-03] ajoute — vrai flux d'avoir minimal sur `Facture` avec nature de document, lien vers facture d'origine, motif de correction et endpoint dédié `POST /api/facturation/{id}/avoir`
+- [BLOC-03] fix — `backend/src/Controller/FacturationController.php` : encaissement interdit sur un avoir ou une facture corrigée, numérotation dédiée `FAC` / `AVO`, email/PDF compatibles avec le nouveau type de document
+- [BLOC-02] fix — `backend/src/Controller/StatistiquesController.php` + `frontend/composables/useAuth.ts` : le comptable obtient un accès explicite aux statistiques, et les requêtes excluent désormais les factures corrigées tout en conservant l'effet négatif des avoirs
+- [BLOC-02] fix — `frontend/pages/facturation/index.vue`, `frontend/stores/billing.ts`, `frontend/components/StatusBadge.vue` : écran facturation aligné avec le nouveau flux d'avoir, nouveau badge, boutons d'action bornés et filtre `partiellement_payee` corrigé
+- [BLOC-03] ajoute — migration [backend/migrations/Version20260420194500.php](backend/migrations/Version20260420194500.php) pour persister `nature`, `facture_origine_id` et `motif_correction` sur les factures atelier
+- [TEST] fix — `backend/tests/Functional/VOControllerTest.php` réaligné sur la purge RGPD obligatoire après transcription Livre de Police
+- [TEST] test — campagne Docker relancée : PHPUnit backend 173/173 OK, Vitest frontend 19/19 OK, build Nuxt production OK
+
+### Décisions
+- Une facture atelier émise ne doit plus être pseudo-annulée ; la correction opposable passe par un avoir dédié, relié à la facture d'origine
+- Le passif RGPD VO est désormais visible et bloquant tant que des supports sensibles restent archivés, même si la transcription légale existe déjà
+- Le rôle comptable n'est plus un sous-produit implicite de l'admin pour les stats et la facturation ; il existe comme surface métier explicite
+- L'atelier reste en mono-correction par facture pour l'instant : un seul avoir par facture, pas d'avoirs partiels multiples tant que le journal de remboursement et le suivi de solde crédit ne sont pas implémentés
+
+### Validation manuelle
+- Migration Doctrine appliquée en base : `DoctrineMigrations\\Version20260420194500` exécutée
+- Test manuel API réalisé avec le compte admin local sur les RDV 235 et 236
+- Cas facture partiellement payée : création `FAC-2026-0001`, paiement partiel 30,00 EUR, émission `AVO-2026-0001`, facture source passée en `corrigee`, nouvel encaissement refusé (409)
+- Cas facture payée : création `FAC-2026-0002`, paiement complet 78,00 EUR, émission `AVO-2026-0002`, facture source passée en `corrigee`
+- Garde mono-avoir validée : tentative de second avoir sur `FAC-2026-0001` refusée (409)
+
+### TODO laissés
+- [ ] Ajouter un vrai journal de remboursement / décaissement lié aux avoirs si on veut couvrir complètement l'après-encaissement comptable
+- [ ] Prévoir une vue de régularisation VO listant les dossiers encore bloqués par supports sensibles stockés pour traiter le passif atelier par atelier
+
+### En suspens à arbitrer
+- Aucun sur ce lot ; l'arbitrage retenu est mono-avoir par facture tant que la comptabilité aval n'est pas modélisée
+
 ## Session 2026-04-20 — Implémentation blocs 01 à 03 et campagne de tests
 
 ### Fait
@@ -128,6 +227,7 @@
 
 ### TODO laissés
 - [ ] Commencer par [LOT-01] et [LOT-02] avant tout nouvel ajout fonctionnel sur réception compagnon, VO compagnon, rôles/permissions et comptabilité
+- [ ] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit
 
 ### En suspens à arbitrer
 - Décider si la validation distante des travaux complémentaires reste un vrai parcours public client ou revient à un flux strictement assisté comptoir
