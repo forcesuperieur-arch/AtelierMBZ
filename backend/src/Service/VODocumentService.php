@@ -23,7 +23,6 @@ class VODocumentService
         VODocument::TYPE_CERFA_CESSION_ACHAT,
         VODocument::TYPE_CARTE_GRISE,
         VODocument::TYPE_NON_GAGE,
-        VODocument::TYPE_PIECE_IDENTITE,
         VODocument::TYPE_PV_RACHAT,
     ];
 
@@ -36,7 +35,6 @@ class VODocumentService
     private const DEPOT_REQUIRED_DOCS = [
         VODocument::TYPE_CONTRAT_DEPOT_VENTE,
         VODocument::TYPE_CARTE_GRISE,
-        VODocument::TYPE_PIECE_IDENTITE,
     ];
 
     public function __construct(
@@ -212,9 +210,12 @@ class VODocumentService
         $controleTechniqueOk = !$controleTechniqueRequired
             || $purchase->getControleTechniqueOk()
             || in_array(VODocument::TYPE_CONTROLE_TECHNIQUE, $existing, true);
+        $identityTranscribed = $this->hasPurchaseIdentityTranscription($purchase);
+        $storedSensitiveDocs = $this->hasStoredSensitiveIdentityDocuments($purchase, null);
 
         return [
-            $this->buildChecklistItem('seller_identity', 'Identité vendeur retranscrite', $purchase->getSellerIdType() !== null && $purchase->getSellerIdNumber() !== null, true, 'purchase'),
+            $this->buildChecklistItem('seller_identity', 'Identité vendeur retranscrite', $identityTranscribed, true, 'purchase'),
+            $this->buildChecklistItem('identity_storage', 'Aucun support sensible conservé', !$storedSensitiveDocs, true, 'purchase'),
             $this->buildChecklistItem('carte_grise', 'Carte grise archivée', in_array(VODocument::TYPE_CARTE_GRISE, $existing, true), true, 'purchase'),
             $this->buildChecklistItem('non_gage', 'Non-gage archivé', in_array(VODocument::TYPE_NON_GAGE, $existing, true), true, 'purchase'),
             $this->buildChecklistItem('cession_achat', 'CERFA achat archivé', in_array(VODocument::TYPE_CERFA_CESSION_ACHAT, $existing, true), true, 'purchase'),
@@ -232,9 +233,12 @@ class VODocumentService
         $existing = $this->getDepotDocumentTypes($depot);
         $controleTechniqueRequired = $this->isControleTechniqueRequired($depot->getVehicule());
         $controleTechniqueOk = !$controleTechniqueRequired || in_array(VODocument::TYPE_CONTROLE_TECHNIQUE, $existing, true);
+        $identityTranscribed = $this->hasDepotIdentityTranscription($depot);
+        $storedSensitiveDocs = $this->hasStoredSensitiveIdentityDocuments(null, $depot);
 
         return [
-            $this->buildChecklistItem('deposant_identity', 'Identité déposant retranscrite', $depot->getDeposantIdType() !== null && $depot->getDeposantIdNumber() !== null, true, 'depot'),
+            $this->buildChecklistItem('deposant_identity', 'Identité déposant retranscrite', $identityTranscribed, true, 'depot'),
+            $this->buildChecklistItem('identity_storage', 'Aucun support sensible conservé', !$storedSensitiveDocs, true, 'depot'),
             $this->buildChecklistItem('contrat_depot', 'Contrat dépôt-vente archivé', in_array(VODocument::TYPE_CONTRAT_DEPOT_VENTE, $existing, true), true, 'depot'),
             $this->buildChecklistItem('carte_grise', 'Carte grise archivée', in_array(VODocument::TYPE_CARTE_GRISE, $existing, true), true, 'depot'),
             $this->buildChecklistItem('controle_technique', 'Contrôle technique valide', $controleTechniqueOk, $controleTechniqueRequired, 'sale'),
@@ -258,7 +262,82 @@ class VODocumentService
             $blockers[] = 'DA SIV non enregistrée.';
         }
 
+        if (!$this->hasPurchaseIdentityTranscription($purchase)) {
+            $blockers[] = 'Identité vendeur incomplètement retranscrite.';
+        }
+
+        if ($this->hasStoredSensitiveIdentityDocuments($purchase, null)) {
+            $blockers[] = 'Des pièces d\'identité ou justificatifs sont encore stockés ; purge RGPD requise.';
+        }
+
         return array_values(array_unique($blockers));
+    }
+
+    public function buildPurchaseSaleVerdict(VOPurchase $purchase, array $extraBlockers = []): array
+    {
+        $reasons = [];
+
+        foreach ($this->getMissingDocuments($purchase) as $docType) {
+            $reasons[] = $this->buildVerdictReason(
+                'missing_' . $docType,
+                'Document obligatoire manquant',
+                sprintf('Document requis manquant : %s.', $this->getDocumentLabel($docType)),
+                'high',
+                'legal',
+            );
+        }
+
+        if ($this->isControleTechniqueRequired($purchase->getVehicule()) && !$purchase->getControleTechniqueOk() && !in_array(VODocument::TYPE_CONTROLE_TECHNIQUE, $this->getPurchaseDocumentTypes($purchase), true)) {
+            $reasons[] = $this->buildVerdictReason(
+                'controle_technique_missing',
+                'Contrôle technique invalide',
+                'Contrôle technique non validé.',
+                'high',
+                'legal',
+            );
+        }
+
+        if (!$purchase->isSivRegistered()) {
+            $reasons[] = $this->buildVerdictReason(
+                'da_siv_required',
+                'DA SIV obligatoire',
+                'DA SIV non enregistrée.',
+                'critical',
+                'legal',
+            );
+        }
+
+        if (!$this->hasPurchaseIdentityTranscription($purchase)) {
+            $reasons[] = $this->buildVerdictReason(
+                'seller_identity_incomplete',
+                'Transcription identité incomplète',
+                'Identité vendeur incomplètement retranscrite.',
+                'critical',
+                'legal',
+            );
+        }
+
+        if ($this->hasStoredSensitiveIdentityDocuments($purchase, null)) {
+            $reasons[] = $this->buildVerdictReason(
+                'identity_storage_pending_purge',
+                'Purge RGPD requise',
+                'Des pièces d\'identité ou justificatifs sont encore stockés ; purge RGPD requise.',
+                'critical',
+                'rgpd',
+            );
+        }
+
+        foreach ($extraBlockers as $message) {
+            $reasons[] = $this->buildVerdictReason(
+                'extra_' . md5((string) $message),
+                'Blocage atelier',
+                (string) $message,
+                'medium',
+                'atelier',
+            );
+        }
+
+        return $this->buildSaleVerdict($reasons);
     }
 
     public function getDepotSaleBlockers(VODepotVente $depot): array
@@ -277,7 +356,92 @@ class VODocumentService
             $blockers[] = 'Mandat de dépôt-vente expiré.';
         }
 
+        if (!$this->hasDepotIdentityTranscription($depot)) {
+            $blockers[] = 'Identité déposant incomplètement retranscrite.';
+        }
+
+        if ($this->hasStoredSensitiveIdentityDocuments(null, $depot)) {
+            $blockers[] = 'Des pièces d\'identité ou justificatifs sont encore stockés ; purge RGPD requise.';
+        }
+
         return array_values(array_unique($blockers));
+    }
+
+    public function buildDepotSaleVerdict(VODepotVente $depot, array $extraBlockers = [], bool $companionComplete = true): array
+    {
+        $reasons = [];
+
+        foreach ($this->getMissingDocumentsDepot($depot) as $docType) {
+            $reasons[] = $this->buildVerdictReason(
+                'missing_' . $docType,
+                'Document obligatoire manquant',
+                sprintf('Document requis manquant : %s.', $this->getDocumentLabel($docType)),
+                'high',
+                'legal',
+            );
+        }
+
+        if ($this->isControleTechniqueRequired($depot->getVehicule()) && !in_array(VODocument::TYPE_CONTROLE_TECHNIQUE, $this->getDepotDocumentTypes($depot), true)) {
+            $reasons[] = $this->buildVerdictReason(
+                'controle_technique_missing',
+                'Contrôle technique invalide',
+                'Contrôle technique manquant pour la vente.',
+                'high',
+                'legal',
+            );
+        }
+
+        if ($depot->isMandatExpire()) {
+            $reasons[] = $this->buildVerdictReason(
+                'mandat_expired',
+                'Mandat expiré',
+                'Mandat de dépôt-vente expiré.',
+                'critical',
+                'legal',
+            );
+        }
+
+        if (!$this->hasDepotIdentityTranscription($depot)) {
+            $reasons[] = $this->buildVerdictReason(
+                'deposant_identity_incomplete',
+                'Transcription identité incomplète',
+                'Identité déposant incomplètement retranscrite.',
+                'critical',
+                'legal',
+            );
+        }
+
+        if ($this->hasStoredSensitiveIdentityDocuments(null, $depot)) {
+            $reasons[] = $this->buildVerdictReason(
+                'identity_storage_pending_purge',
+                'Purge RGPD requise',
+                'Des pièces d\'identité ou justificatifs sont encore stockés ; purge RGPD requise.',
+                'critical',
+                'rgpd',
+            );
+        }
+
+        if (!$companionComplete) {
+            $reasons[] = $this->buildVerdictReason(
+                'companion_incomplete',
+                'Mandat assisté incomplet',
+                'Le parcours compagnon doit être finalisé avant la vente du dépôt.',
+                'high',
+                'workflow',
+            );
+        }
+
+        foreach ($extraBlockers as $message) {
+            $reasons[] = $this->buildVerdictReason(
+                'extra_' . md5((string) $message),
+                'Blocage atelier',
+                (string) $message,
+                'medium',
+                'atelier',
+            );
+        }
+
+        return $this->buildSaleVerdict($reasons);
     }
 
     public function getPurchaseDossierStatus(VOPurchase $purchase): string
@@ -472,6 +636,56 @@ class VODocumentService
         ];
     }
 
+    private function buildVerdictReason(string $code, string $label, string $message, string $severity, string $scope): array
+    {
+        return [
+            'code' => $code,
+            'label' => $label,
+            'message' => $message,
+            'severity' => $severity,
+            'scope' => $scope,
+        ];
+    }
+
+    private function buildSaleVerdict(array $reasons): array
+    {
+        $severityWeight = [
+            'critical' => 0,
+            'high' => 1,
+            'medium' => 2,
+            'low' => 3,
+        ];
+
+        $unique = [];
+        foreach ($reasons as $reason) {
+            $unique[$reason['code']] = $reason;
+        }
+
+        $reasons = array_values($unique);
+        usort($reasons, static function (array $left, array $right) use ($severityWeight): int {
+            $leftWeight = $severityWeight[$left['severity']] ?? 99;
+            $rightWeight = $severityWeight[$right['severity']] ?? 99;
+
+            if ($leftWeight !== $rightWeight) {
+                return $leftWeight <=> $rightWeight;
+            }
+
+            return strcmp($left['label'], $right['label']);
+        });
+
+        $vendable = $reasons === [];
+
+        return [
+            'status' => $vendable ? 'vendable' : 'non_vendable',
+            'label' => $vendable ? 'Vendable maintenant' : 'Non vendable',
+            'summary' => $vendable
+                ? 'Aucun blocage légal, RGPD ou atelier ne s’oppose à la vente immédiate.'
+                : sprintf('%d blocage(s) à lever avant vente.', count($reasons)),
+            'blockingCount' => count($reasons),
+            'reasons' => $reasons,
+        ];
+    }
+
     private function getDocumentLabel(string $type): string
     {
         return match ($type) {
@@ -591,5 +805,56 @@ class VODocumentService
         }
 
         return $count;
+    }
+
+    public function countStoredSensitiveIdentityDocuments(?int $atelierId = null): int
+    {
+        $qb = $this->em->getRepository(VODocument::class)->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->where('d.type IN (:types)')
+            ->setParameter('types', [
+                VODocument::TYPE_PIECE_IDENTITE,
+                VODocument::TYPE_JUSTIFICATIF_DOMICILE,
+            ]);
+
+        if ($atelierId !== null) {
+            $qb->andWhere('d.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    private function hasPurchaseIdentityTranscription(VOPurchase $purchase): bool
+    {
+        return trim((string) $purchase->getSellerIdType()) !== ''
+            && trim((string) $purchase->getSellerIdNumber()) !== ''
+            && $purchase->getSellerIdDate() instanceof \DateTimeInterface;
+    }
+
+    private function hasDepotIdentityTranscription(VODepotVente $depot): bool
+    {
+        return trim((string) $depot->getDeposantIdType()) !== ''
+            && trim((string) $depot->getDeposantIdNumber()) !== ''
+            && $depot->getDeposantIdDate() instanceof \DateTimeInterface;
+    }
+
+    private function hasStoredSensitiveIdentityDocuments(?VOPurchase $purchase = null, ?VODepotVente $depot = null): bool
+    {
+        $qb = $this->em->getRepository(VODocument::class)->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->where('d.type IN (:types)')
+            ->setParameter('types', [VODocument::TYPE_PIECE_IDENTITE, VODocument::TYPE_JUSTIFICATIF_DOMICILE]);
+
+        if ($purchase instanceof VOPurchase) {
+            $qb->andWhere('d.voPurchase = :purchase')->setParameter('purchase', $purchase)
+                ->andWhere('d.voDepotVente IS NULL');
+        }
+
+        if ($depot instanceof VODepotVente) {
+            $qb->andWhere('d.voDepotVente = :depot')->setParameter('depot', $depot)
+                ->andWhere('d.voPurchase IS NULL');
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult() > 0;
     }
 }

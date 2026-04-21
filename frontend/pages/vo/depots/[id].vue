@@ -69,6 +69,8 @@
           :vehicule="detail.vehicule"
           :documents="detail.documents || []"
           :missing-documents="detail.missingDocuments || []"
+          :legal-checklist="detail.legalChecklist || []"
+          :sale-verdict="detail.saleVerdict || null"
           :reload-detail="loadDetail"
         />
 
@@ -107,39 +109,24 @@
       <div class="vo-detail-stack">
         <UCard>
           <template #header>
-            <div class="vo-card-title">État du mandat</div>
+            <div class="vo-card-title">Verdict vente</div>
           </template>
 
-          <div class="vo-health-box" :class="`is-${mandateState.tone}`">
-            <strong>{{ mandateState.label }}</strong>
-            <span>{{ mandateState.text }}</span>
+          <div class="vo-health-box" :class="detail.saleVerdict?.status === 'vendable' ? 'is-success' : 'is-warning'">
+            <strong>{{ detail.saleVerdict?.label || 'Verdict indisponible' }}</strong>
+            <span>{{ detail.saleVerdict?.summary || 'Le dossier n a pas encore de verdict exploitable.' }}</span>
           </div>
 
-          <div class="vo-progress-block">
-            <div class="vo-progress-head">
-              <span>Conformité dépôt</span>
-              <strong>{{ documentCompletion }}%</strong>
+          <div v-if="detail.saleVerdict?.reasons?.length" class="vo-lines" style="margin-top: 14px;">
+            <div v-for="reason in detail.saleVerdict.reasons" :key="reason.code" class="vo-line-detail">
+              <span>{{ reason.message }}</span>
+              <strong :style="{ color: reason.severity === 'critical' || reason.severity === 'high' ? '#ef4444' : '#f59e0b' }">{{ reason.label }}</strong>
             </div>
-            <div class="vo-progress-bar"><span :style="{ width: `${documentCompletion}%` }" /></div>
           </div>
 
-          <div class="vo-progress-block">
-            <div class="vo-progress-head">
-              <span>Cycle du mandat</span>
-              <strong>{{ mandateProgress }}%</strong>
-            </div>
-            <div class="vo-progress-bar is-secondary"><span :style="{ width: `${mandateProgress}%` }" /></div>
-          </div>
-
-          <div class="vo-workflow-strip">
-            <div
-              v-for="stepItem in workflowSteps"
-              :key="stepItem.label"
-              class="vo-workflow-step"
-              :class="{ 'is-current': stepItem.state === 'current', 'is-done': stepItem.state === 'done' }"
-            >
-              {{ stepItem.label }}
-            </div>
+          <div v-else class="vo-info-box" style="margin-top: 14px;">
+            <strong>Aucun blocage en cours</strong>
+            <span>Le mandat peut aller jusqu à la vente sans verrou supplémentaire.</span>
           </div>
 
           <div v-if="legalChecklist.length" class="vo-lines" style="margin-top: 14px;">
@@ -303,7 +290,7 @@ const saleForm = reactive({
   notes: '',
 })
 
-const depotRequiredDocs = ['contrat_depot_vente', 'carte_grise', 'piece_identite']
+const depotRequiredDocs = ['contrat_depot_vente', 'carte_grise']
 const legalChecklist = computed(() => detail.value?.legalChecklist || [])
 
 const netDeposantPreview = computed(() => {

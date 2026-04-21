@@ -438,13 +438,12 @@ const steps = [
   { id: 4, label: 'Documents' },
 ]
 
-const requiredPurchaseDocs = ['cerfa_cession_achat', 'carte_grise', 'non_gage', 'piece_identite']
+const requiredPurchaseDocs = ['cerfa_cession_achat', 'carte_grise', 'non_gage']
 const purchaseDocumentOptions = [
   'cerfa_cession_achat',
   'carte_grise',
   'non_gage',
   'controle_technique',
-  'piece_identite',
   'notice_garantie',
   'autre',
 ].map((value) => ({ value, label: documentLabels[value] }))

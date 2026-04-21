@@ -403,7 +403,6 @@ const steps = [
 const depotDocumentOptions = [
   'carte_grise',
   'controle_technique',
-  'piece_identite',
   'notice_garantie',
   'autre',
 ].map((value) => ({ value, label: documentLabels[value] }))

@@ -18,13 +18,25 @@
         <span class="vo-flow-pill">4. Archive dossier</span>
       </div>
 
-      <div v-if="missingDocuments.length" class="vo-warning-box">
-        <strong>Pieces manquantes</strong>
-        <span>{{ missingDocuments.map(documentLabel).join(', ') }}</span>
+      <div class="vo-verdict-box" :class="saleVerdict.status === 'vendable' ? 'is-ok' : 'is-ko'">
+        <strong>{{ saleVerdict.label }}</strong>
+        <span>{{ saleVerdict.summary }}</span>
+        <div v-if="saleVerdict.reasons.length" class="vo-verdict-list">
+          <div v-for="reason in saleVerdict.reasons" :key="reason.code" class="vo-verdict-item">
+            <span class="vo-verdict-tag" :class="`is-${reason.severity}`">{{ verdictSeverityLabel(reason.severity) }}</span>
+            <span>{{ reason.message }}</span>
+          </div>
+        </div>
       </div>
-      <div v-else class="vo-ok-box">
-        <strong>Dossier documentaire a jour</strong>
-        <span>Les pieces obligatoires actuellement connues sont deja archivees dans ce dossier.</span>
+
+      <div class="vo-sensitive-box">
+        <strong>Identite: transcription uniquement</strong>
+        <span>La piece d identite et le justificatif de domicile ne doivent pas etre archives ici. On retranscrit type, numero et date, puis on detruit le support.</span>
+        <div v-if="identityChecklist.length" class="vo-sensitive-list">
+          <span v-for="item in identityChecklist" :key="item.key" class="vo-sensitive-pill" :class="item.completed ? 'is-ok' : item.blocking ? 'is-ko' : 'is-warn'">
+            {{ item.label }}: {{ item.completed ? 'OK' : item.blocking ? 'Bloquant' : 'A faire' }}
+          </span>
+        </div>
       </div>
 
       <div class="vo-scan-panel">
@@ -146,17 +158,43 @@ interface VODossierDocument {
   dateExpiration?: string | null
 }
 
+interface VODossierChecklistItem {
+  key: string
+  label: string
+  completed: boolean
+  blocking: boolean
+}
+
+interface VODossierSaleReason {
+  code: string
+  label: string
+  message: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  scope: string
+}
+
+interface VODossierSaleVerdict {
+  status: 'vendable' | 'non_vendable'
+  label: string
+  summary: string
+  reasons: VODossierSaleReason[]
+}
+
 const props = withDefaults(defineProps<{
   mode: 'purchase' | 'depot'
   dossierId: number
   vehicule?: Record<string, any> | null
   documents?: VODossierDocument[]
   missingDocuments?: string[]
+  legalChecklist?: VODossierChecklistItem[]
+  saleVerdict?: VODossierSaleVerdict | null
   reloadDetail?: () => Promise<void> | void
 }>(), {
   vehicule: null,
   documents: () => [],
   missingDocuments: () => [],
+  legalChecklist: () => [],
+  saleVerdict: null,
   reloadDetail: undefined,
 })
 
@@ -182,7 +220,6 @@ const documentTypesByMode = {
     'carte_grise',
     'non_gage',
     'controle_technique',
-    'piece_identite',
     'pv_rachat',
     'da_siv',
     'recepisse_da',
@@ -195,7 +232,6 @@ const documentTypesByMode = {
     'contrat_depot_vente',
     'carte_grise',
     'controle_technique',
-    'piece_identite',
     'mandat_immatriculation',
     'notice_garantie',
     'autre',
@@ -221,6 +257,13 @@ const isBusy = computed(() => uploading.value || ocrProcessing.value || ocrSavin
 const documentOptions = computed(() => documentTypesByMode[props.mode].map((value) => ({ value, label: documentLabels[value] || value })))
 const sortedDocuments = computed(() => {
   return [...props.documents].sort((left, right) => String(right.uploadedAt || '').localeCompare(String(left.uploadedAt || '')))
+})
+const identityChecklist = computed(() => props.legalChecklist.filter(item => ['seller_identity', 'deposant_identity', 'identity_storage'].includes(item.key)))
+const saleVerdict = computed<VODossierSaleVerdict>(() => props.saleVerdict || {
+  status: 'non_vendable',
+  label: 'Verdict indisponible',
+  summary: 'Le verdict de vente n a pas encore ete calcule pour ce dossier.',
+  reasons: [],
 })
 const vehicleUpdatePath = computed(() => props.mode === 'purchase'
   ? `/vo/purchases/${props.dossierId}/vehicule`
@@ -363,6 +406,15 @@ async function applyOcrData() {
     ocrSaving.value = false
   }
 }
+
+function verdictSeverityLabel(severity: string) {
+  switch (severity) {
+    case 'critical': return 'Critique'
+    case 'high': return 'Bloquant'
+    case 'medium': return 'Atelier'
+    default: return 'Info'
+  }
+}
 </script>
 
 <style scoped>
@@ -391,6 +443,67 @@ async function applyOcrData() {
   gap: 14px;
 }
 
+.vo-verdict-box,
+.vo-verdict-item {
+  display: grid;
+  gap: 8px;
+}
+
+.vo-verdict-box {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.vo-verdict-box.is-ok {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.vo-verdict-box.is-ko {
+  background: rgba(239, 68, 68, 0.07);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.vo-verdict-list {
+  display: grid;
+  gap: 8px;
+}
+
+.vo-verdict-item {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 17, 23, 0.28);
+}
+
+.vo-verdict-tag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vo-verdict-tag.is-critical,
+.vo-verdict-tag.is-high {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.vo-verdict-tag.is-medium {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd34d;
+}
+
+.vo-verdict-tag.is-low {
+  background: rgba(59, 130, 246, 0.14);
+  color: #bfdbfe;
+}
+
 .vo-flow-banner {
   display: flex;
   flex-wrap: wrap;
@@ -409,6 +522,7 @@ async function applyOcrData() {
 
 .vo-warning-box,
 .vo-ok-box,
+.vo-sensitive-box,
 .vo-scan-panel,
 .vo-ocr-summary,
 .vo-upload-panel,
@@ -429,6 +543,39 @@ async function applyOcrData() {
 .vo-ok-box {
   background: rgba(34, 197, 94, 0.07);
   border-color: rgba(34, 197, 94, 0.18);
+}
+
+.vo-sensitive-box {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.vo-sensitive-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vo-sensitive-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vo-sensitive-pill.is-ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.vo-sensitive-pill.is-ko {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.vo-sensitive-pill.is-warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
 }
 
 .vo-panel-title {

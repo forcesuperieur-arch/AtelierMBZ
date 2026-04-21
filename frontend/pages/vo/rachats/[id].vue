@@ -21,7 +21,7 @@
       <div v-if="route.query.companion === '1'" class="vo-companion-banner">
         <div>
           <strong>Parcours compagnon prêt</strong>
-          <span>Scanne le QR code ci-dessous depuis le PDA pour charger la pièce d’identité, la carte grise, vérifier le préremplissage puis faire signer le vendeur.</span>
+          <span>Scanne le QR code ci-dessous depuis le PDA pour contrôler l identité, retranscrire ses références, charger la carte grise, vérifier le préremplissage puis faire signer le vendeur.</span>
         </div>
         <button type="button" class="vo-link-btn" @click="focusCompanion">Voir le QR code</button>
       </div>
@@ -69,6 +69,8 @@
           :vehicule="detail.vehicule"
           :documents="detail.documents || []"
           :missing-documents="detail.missingDocuments || []"
+          :legal-checklist="detail.legalChecklist || []"
+          :sale-verdict="detail.saleVerdict || null"
           :reload-detail="loadDetail"
         />
 
@@ -107,39 +109,29 @@
       <div class="vo-detail-stack">
         <UCard>
           <template #header>
-            <div class="vo-card-title">État du dossier</div>
+            <div class="vo-card-title">Verdict vente</div>
           </template>
 
-          <div class="vo-health-box" :class="`is-${readinessState.tone}`">
-            <strong>{{ readinessState.label }}</strong>
-            <span>{{ readinessState.text }}</span>
+          <div class="vo-health-box" :class="detail.saleVerdict?.status === 'vendable' ? 'is-success' : 'is-warning'">
+            <strong>{{ detail.saleVerdict?.label || 'Verdict indisponible' }}</strong>
+            <span>{{ detail.saleVerdict?.summary || 'Le dossier n a pas encore de verdict exploitable.' }}</span>
           </div>
 
-          <div class="vo-progress-block">
-            <div class="vo-progress-head">
-              <span>Conformité achat</span>
-              <strong>{{ purchaseDocumentCompletion }}%</strong>
-            </div>
-            <div class="vo-progress-bar"><span :style="{ width: `${purchaseDocumentCompletion}%` }" /></div>
+          <div v-if="detail.canConfirm" class="vo-info-box" style="margin-top: 14px;">
+            <strong>Entrée en stock prête</strong>
+            <span>Le dossier peut être confirmé. La vente restera ensuite bloquée tant que les motifs ci-dessous ne sont pas levés.</span>
           </div>
 
-          <div class="vo-progress-block">
-            <div class="vo-progress-head">
-              <span>Préparation vente</span>
-              <strong>{{ saleDocumentCompletion }}%</strong>
+          <div v-if="detail.saleVerdict?.reasons?.length" class="vo-lines" style="margin-top: 14px;">
+            <div v-for="reason in detail.saleVerdict.reasons" :key="reason.code" class="vo-line-detail">
+              <span>{{ reason.message }}</span>
+              <strong :style="{ color: reason.severity === 'critical' || reason.severity === 'high' ? '#ef4444' : '#f59e0b' }">{{ reason.label }}</strong>
             </div>
-            <div class="vo-progress-bar is-secondary"><span :style="{ width: `${saleDocumentCompletion}%` }" /></div>
           </div>
 
-          <div class="vo-workflow-strip">
-            <div
-              v-for="stepItem in workflowSteps"
-              :key="stepItem.label"
-              class="vo-workflow-step"
-              :class="{ 'is-current': stepItem.state === 'current', 'is-done': stepItem.state === 'done' }"
-            >
-              {{ stepItem.label }}
-            </div>
+          <div v-else class="vo-info-box" style="margin-top: 14px;">
+            <strong>Aucun blocage en cours</strong>
+            <span>Le dossier peut être vendu dès que tu déclenches la vente.</span>
           </div>
 
           <div v-if="legalChecklist.length" class="vo-lines" style="margin-top: 14px;">
@@ -364,7 +356,7 @@ const saleForm = reactive({
   notes: '',
 })
 
-const purchaseRequiredDocs = ['cerfa_cession_achat', 'carte_grise', 'non_gage', 'piece_identite', 'pv_rachat']
+const purchaseRequiredDocs = ['cerfa_cession_achat', 'carte_grise', 'non_gage', 'pv_rachat']
 const saleRequiredDocs = ['cerfa_cession_vente', 'facture_vo', 'notice_garantie']
 const sivStatusOptions = [
   { value: 'a_preparer', label: 'À préparer' },

@@ -27,6 +27,11 @@ class PurgeIdentityDocumentsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        $beforeCount = $this->documentService->countStoredSensitiveIdentityDocuments();
+        if ($beforeCount > 0) {
+            $io->note(sprintf('%d document(s) sensible(s) encore stocké(s) avant purge.', $beforeCount));
+        }
+
         $count = $this->documentService->purgeExpiredIdentityDocuments();
 
         if ($count > 0) {

@@ -84,6 +84,7 @@ class VOController extends AbstractController
         $data['missingDocuments'] = $this->documentService->getMissingDocuments($purchase);
         $data['siv'] = $this->documentService->getPurchaseSivSummary($purchase);
         $data['dossierStatus'] = $this->documentService->getPurchaseDossierStatus($purchase);
+        $data['saleVerdict'] = $this->documentService->buildPurchaseSaleVerdict($purchase);
 
         return $this->json($data);
     }
@@ -125,9 +126,6 @@ class VOController extends AbstractController
         $data['legalChecklist'] = $legalChecklist;
         $data['siv'] = $this->documentService->getPurchaseSivSummary($purchase);
         $data['dossierStatus'] = $this->documentService->getPurchaseDossierStatus($purchase);
-        $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true)
-            && $saleBlockers === []
-            && !($activeCampaign?->isBlockingSale() ?? false);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($purchase);
         $data['companion'] = $this->buildCompanionData($purchase, $documents, $companionSteps);
@@ -135,9 +133,15 @@ class VOController extends AbstractController
         $data['activeRemiseEnEtat'] = $activeCampaign ? $this->remiseEnEtatService->normalizeCampaign($activeCampaign) : null;
         $data['canCreateRemiseEnEtat'] = !($activeCampaign instanceof \App\Entity\VORemiseEnEtat);
         $data['refurbishmentBlockingSale'] = $activeCampaign?->isBlockingSale() ?? false;
+        $extraSaleBlockers = [];
         if ($activeCampaign instanceof \App\Entity\VORemiseEnEtat) {
-            $saleBlockers[] = sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre());
+            $extraSaleBlockers[] = sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre());
         }
+        $saleVerdict = $this->documentService->buildPurchaseSaleVerdict($purchase, $extraSaleBlockers);
+        $data['saleVerdict'] = $saleVerdict;
+        $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true)
+            && $saleVerdict['status'] === 'vendable';
+        $saleBlockers = array_map(static fn (array $reason): string => (string) $reason['message'], $saleVerdict['reasons']);
         $data['saleBlockers'] = array_values(array_unique($saleBlockers));
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
@@ -417,6 +421,7 @@ class VOController extends AbstractController
         $data['missingDocuments'] = $this->documentService->getMissingDocumentsDepot($depot);
         $data['legalChecklist'] = $this->documentService->buildDepotLegalChecklist($depot);
         $data['dossierStatus'] = $this->documentService->getDepotDossierStatus($depot);
+        $data['saleVerdict'] = $this->documentService->buildDepotSaleVerdict($depot);
 
         return $this->json($data);
     }
@@ -455,10 +460,6 @@ class VOController extends AbstractController
         $data['missingDocuments'] = $missingDocuments;
         $data['legalChecklist'] = $legalChecklist;
         $data['dossierStatus'] = $this->documentService->getDepotDossierStatus($depot);
-        $data['canSell'] = $depot->getStatus() === 'actif'
-            && $companionSteps['allComplete']
-            && $saleBlockers === []
-            && !($activeCampaign?->isBlockingSale() ?? false);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($depot);
         $data['companion'] = $this->buildCompanionData($depot, $documents, $companionSteps);
@@ -466,9 +467,15 @@ class VOController extends AbstractController
         $data['activeRemiseEnEtat'] = $activeCampaign ? $this->remiseEnEtatService->normalizeCampaign($activeCampaign) : null;
         $data['canCreateRemiseEnEtat'] = !($activeCampaign instanceof \App\Entity\VORemiseEnEtat);
         $data['refurbishmentBlockingSale'] = $activeCampaign?->isBlockingSale() ?? false;
+        $extraSaleBlockers = [];
         if ($activeCampaign instanceof \App\Entity\VORemiseEnEtat) {
-            $saleBlockers[] = sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre());
+            $extraSaleBlockers[] = sprintf('Remise en etat VO "%s" non cloturee.', $activeCampaign->getTitre());
         }
+        $saleVerdict = $this->documentService->buildDepotSaleVerdict($depot, $extraSaleBlockers, (bool) ($companionSteps['allComplete'] ?? false));
+        $data['saleVerdict'] = $saleVerdict;
+        $data['canSell'] = $depot->getStatus() === 'actif'
+            && $saleVerdict['status'] === 'vendable';
+        $saleBlockers = array_map(static fn (array $reason): string => (string) $reason['message'], $saleVerdict['reasons']);
         $data['saleBlockers'] = array_values(array_unique($saleBlockers));
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
@@ -708,6 +715,12 @@ class VOController extends AbstractController
 
         if (!$file || !$type) {
             return $this->json(['error' => 'File and type are required'], 400);
+        }
+
+        if (in_array($type, [VODocument::TYPE_PIECE_IDENTITE, VODocument::TYPE_JUSTIFICATIF_DOMICILE], true)) {
+            return $this->json([
+                'error' => 'La pièce d\'identité et le justificatif de domicile ne doivent pas être archivés. Retranscrivez type, numéro et date puis détruisez le support.',
+            ], 400);
         }
 
         $purchase = null;

@@ -10,9 +10,11 @@ use App\Entity\VOLivrePolice;
 use App\Entity\VOPurchase;
 use App\Entity\VODepotVente;
 use App\Entity\Vehicule;
+use App\Service\VODocumentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
 class VOControllerTest extends WebTestCase
@@ -177,6 +179,9 @@ class VOControllerTest extends WebTestCase
         $this->assertSame('achat', $livrePoliceEntry->getType());
         $this->assertSame('6500.00', $livrePoliceEntry->getPrixAchat());
 
+        $purgedCount = static::getContainer()->get(VODocumentService::class)->purgeExpiredIdentityDocuments();
+        $this->assertGreaterThanOrEqual(1, $purgedCount);
+
         $client->request(
             'PATCH',
             '/api/vo/purchases/' . $purchaseId,
@@ -234,6 +239,38 @@ class VOControllerTest extends WebTestCase
         $this->assertSame($fixture['buyer']->getNom(), $livrePoliceEntry->getAcheteurNom());
     }
 
+    public function testUploadRejectsSensitiveIdentityDocuments(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'vo-id-');
+        self::assertNotFalse($tempFile);
+        file_put_contents($tempFile, 'fake-image-content');
+
+        $uploadedFile = new UploadedFile(
+            $tempFile,
+            'piece-identite.jpg',
+            'image/jpeg',
+            null,
+            true,
+        );
+
+        $client->request(
+            'POST',
+            '/api/vo/documents/upload',
+            ['type' => VODocument::TYPE_PIECE_IDENTITE],
+            ['file' => $uploadedFile],
+            $this->authHeaders($fixture['user']),
+        );
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertStringContainsString('ne doivent pas être archivés', (string) ($payload['error'] ?? ''));
+    }
+
     public function testPurchaseRequiresSivDeclarationBeforeSale(): void
     {
         $client = static::createClient();
@@ -282,6 +319,8 @@ class VOControllerTest extends WebTestCase
         $this->assertTrue((bool) ($fullPayload['siv']['daDocumentGenerated'] ?? false));
         $this->assertFalse((bool) ($fullPayload['canSell'] ?? true));
         $this->assertContains('DA SIV non enregistrée.', $fullPayload['saleBlockers'] ?? []);
+        $this->assertSame('non_vendable', $fullPayload['saleVerdict']['status'] ?? null);
+        $this->assertSame('da_siv_required', $fullPayload['saleVerdict']['reasons'][0]['code'] ?? null);
 
         $client->request(
             'POST',
