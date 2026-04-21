@@ -181,6 +181,25 @@ class RendezVousController extends AbstractController
                     'code' => 'MECHANIC_NOTES_REQUIRED',
                 ], Response::HTTP_BAD_REQUEST);
             }
+
+            $rapport = $this->rapportService->getOrCreateDraft($rdv);
+            $rapportErrors = $this->rapportService->validateForMecanicienSignature($rapport);
+            if (!empty($rapportErrors)) {
+                return $this->json([
+                    'error' => 'Rapport d\'intervention incomplet avant clôture',
+                    'code' => 'RAPPORT_INTERVENTION_INCOMPLET',
+                    'rapport_id' => $rapport->getId(),
+                    'validation_errors' => $rapportErrors,
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            if (!$rapport->getSignatureMecanicien()) {
+                return $this->json([
+                    'error' => 'Signature mécanicien obligatoire avant clôture',
+                    'code' => 'RAPPORT_MECANICIEN_REQUIS',
+                    'rapport_id' => $rapport->getId(),
+                ], Response::HTTP_BAD_REQUEST);
+            }
         }
 
         if ($transitionName === 'restituer') {
@@ -361,6 +380,7 @@ class RendezVousController extends AbstractController
         $pont = $r->getPont();
         $orInitial = $this->findInitialOrdre($r);
         $essai = $this->findLatestEssai($r);
+        $rapport = $this->rapportService->findLatestForRdv($r);
         $etatVehiculeReception = $this->decodeJson($r->getEtatVehicule());
 
         return [
@@ -396,6 +416,8 @@ class RendezVousController extends AbstractController
             'or_id' => $orInitial?->getId(),
             'or_mechanic_notes' => $orInitial?->getMechanicNotes(),
             'or_mechanic_checkup' => $orInitial?->getMechanicCheckup(),
+            'rapport_id' => $rapport?->getId(),
+            'rapport_mecanicien_signe' => $rapport?->getSignatureMecanicien() ? true : false,
             'essai_routier_id' => $essai?->getId(),
             'essai_routier_statut' => $essai?->getStatut(),
             'essai_routier_valide' => $essai?->isValide() ?? false,

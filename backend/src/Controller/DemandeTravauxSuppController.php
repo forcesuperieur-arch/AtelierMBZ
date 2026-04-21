@@ -9,6 +9,7 @@ use App\Entity\NotificationEscalation;
 use App\Entity\OrdreReparation;
 use App\Entity\Prestation;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Service\MercureNotifier;
 use App\Service\OrdreReparationPolicy;
 use App\Service\PrestationCatalogService;
@@ -66,11 +67,7 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Au moins une prestation requise'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Check the initial OR exists and is signed/in execution
-        $orInitial = $this->em->getRepository(OrdreReparation::class)->findOneBy(
-            ['rendezVous' => $rdv, 'typeOr' => 'initial'],
-            ['id' => 'DESC'],
-        );
+        $orInitial = $this->findSignedInitialOrder($rdv);
         if (!$orInitial || !$orInitial->isSigned()) {
             return $this->json(['error' => 'L\'OR initial doit être signé'], Response::HTTP_CONFLICT);
         }
@@ -114,57 +111,15 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Aucune prestation valide trouvée'], Response::HTTP_BAD_REQUEST);
         }
 
-        $demande = new DemandeTravauxSupp();
-        $demande->setRendezVous($rdv);
-        $demande->setDescription($commentaire);
-        $demande->setPrestationsChoisies($prestationsChoisies);
-        $demande->setPrixEstime($totalPrix);
-        $demande->setTempsEstime($totalTemps);
-        $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION);
-
-        if (!empty($photosIds)) {
-            $demande->setPhotosJustificatives(implode(',', array_map('intval', $photosIds)));
-        }
-
-        $this->em->persist($demande);
-
-        // 4.5 — Create notification for réceptionniste + admin
-        $client = $rdv->getClient();
-        $clientNom = $client ? ($client->getPrenom() . ' ' . $client->getNom()) : 'Client';
-        $vehiculePlaque = $vehicule?->getPlaque() ?? '';
-
-        $notif = new Notification();
-        $notif->setAtelierId($rdv->getAtelierId());
-        $notif->setType('demande_complementaire');
-        $notif->setSeverity($demande->getUrgence() === 'urgent' ? 'critical' : 'warning');
-        $notif->setTitle('Demande travaux complémentaires');
-        $notif->setMessage(sprintf(
-            'Nouvelle demande travaux supplémentaires — %s (%s) — %s€ TTC',
-            $clientNom,
-            $vehiculePlaque,
+        $demande = $this->createDemandeAndNotify(
+            $rdv,
+            $commentaire,
+            $prestationsChoisies,
             $totalPrix,
-        ));
-        $notif->setRelatedEntityType('DemandeTravauxSupp');
-        $notif->setTargetRoles(['ROLE_ADMIN', 'ROLE_RECEPTIONNAIRE']);
-        $notif->setTargetRole('ROLE_RECEPTIONNAIRE');
-        $notif->setPriority($demande->getUrgence() === 'urgent' ? 'high' : 'normal');
-        $this->em->persist($notif);
-
-        $this->em->flush();
-
-        // Update notification entity ID after flush (demande now has its ID)
-        $notif->setRelatedEntityId($demande->getId());
-        $this->em->flush();
-
-        // Create escalation schedule for demande_complementaire
-        $this->createEscalationSchedule($notif);
-
-        // Publish Mercure real-time push
-        try {
-            $this->mercureNotifier->publishToAtelier($rdv->getAtelierId(), $notif);
-        } catch (\Throwable $e) {
-            // Mercure failure is non-blocking
-        }
+            $totalTemps,
+            $photosIds,
+            sprintf('%s€ TTC', $totalPrix),
+        );
 
         return $this->json([
             'id' => $demande->getId(),
@@ -174,6 +129,62 @@ class DemandeTravauxSuppController extends AbstractController
             'temps_total_minutes' => $totalTemps,
             'statut' => $demande->getStatut(),
         ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/mecanicien/me/demandes-travaux-supp', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function createFromMecanicien(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $rdvId = (int) ($data['rdv_id'] ?? 0);
+        if ($rdvId <= 0) {
+            return $this->json(['error' => 'rdv_id requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $mecanicien = $rdv->getMecanicien();
+        if (!$mecanicien || $mecanicien->getUserId() !== $user->getId()) {
+            return $this->json(['error' => 'Non autorisé sur ce RDV'], Response::HTTP_FORBIDDEN);
+        }
+
+        $description = trim((string) ($data['description'] ?? ''));
+        if (mb_strlen($description) < 10) {
+            return $this->json(['error' => 'Description trop courte (min 10 caractères)'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $urgence = (string) ($data['urgence'] ?? 'normal');
+        if (!in_array($urgence, ['normal', 'urgent', 'critique'], true)) {
+            return $this->json(['error' => 'Urgence invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $orInitial = $this->findSignedInitialOrder($rdv);
+        if (!$orInitial || !$orInitial->isSigned()) {
+            return $this->json(['error' => 'L\'OR initial doit être signé'], Response::HTTP_CONFLICT);
+        }
+
+        $photosIds = array_values(array_filter(array_map('intval', $data['photos_ids'] ?? []), static fn (int $id) => $id > 0));
+
+        $demande = $this->createDemandeAndNotify(
+            $rdv,
+            $description,
+            [],
+            null,
+            null,
+            $photosIds,
+            'sans chiffrage, validation réception requise',
+            $urgence,
+        );
+
+        return $this->json($this->serializeDemande($demande), Response::HTTP_CREATED);
     }
 
     /**
@@ -394,6 +405,83 @@ class DemandeTravauxSuppController extends AbstractController
             return null;
         }
         return $this->em->getRepository(DemandeTravauxSupp::class)->findOneBy(['tokenValidation' => $token]);
+    }
+
+    private function findSignedInitialOrder(RendezVous $rdv): ?OrdreReparation
+    {
+        return $this->em->getRepository(OrdreReparation::class)->findOneBy(
+            ['rendezVous' => $rdv, 'typeOr' => 'initial'],
+            ['id' => 'DESC'],
+        );
+    }
+
+    private function createDemandeAndNotify(
+        RendezVous $rdv,
+        ?string $description,
+        array $prestationsChoisies,
+        ?string $prixEstime,
+        ?int $tempsEstime,
+        array $photosIds,
+        string $messageTail,
+        string $urgence = 'normal',
+    ): DemandeTravauxSupp {
+        $demande = new DemandeTravauxSupp();
+        $demande->setRendezVous($rdv);
+        $demande->setDescription($description);
+        $demande->setPrestationsChoisies($prestationsChoisies);
+        $demande->setPrestationsDemandees($description);
+        $demande->setPrixEstime($prixEstime);
+        $demande->setTempsEstime($tempsEstime);
+        $demande->setUrgence($urgence);
+        $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION);
+
+        if ($photosIds !== []) {
+            $demande->setPhotosJustificatives(implode(',', $photosIds));
+        }
+
+        $this->em->persist($demande);
+
+        $notif = $this->buildReceptionNotification($demande, $rdv, $messageTail);
+        $this->em->persist($notif);
+        $this->em->flush();
+
+        $notif->setRelatedEntityId($demande->getId());
+        $this->em->flush();
+
+        $this->createEscalationSchedule($notif);
+
+        try {
+            $this->mercureNotifier->publishToAtelier($rdv->getAtelierId(), $notif);
+        } catch (\Throwable) {
+        }
+
+        return $demande;
+    }
+
+    private function buildReceptionNotification(DemandeTravauxSupp $demande, RendezVous $rdv, string $messageTail): Notification
+    {
+        $client = $rdv->getClient();
+        $vehicule = $rdv->getVehicule();
+        $clientNom = $client ? ($client->getPrenom() . ' ' . $client->getNom()) : 'Client';
+        $vehiculePlaque = $vehicule?->getPlaque() ?? '';
+
+        $notif = new Notification();
+        $notif->setAtelierId($rdv->getAtelierId());
+        $notif->setType('demande_complementaire');
+        $notif->setSeverity($demande->getUrgence() === 'urgent' || $demande->getUrgence() === 'critique' ? 'critical' : 'warning');
+        $notif->setTitle('Demande travaux complémentaires');
+        $notif->setMessage(sprintf(
+            'Nouvelle demande travaux supplémentaires — %s (%s) — %s',
+            $clientNom,
+            $vehiculePlaque,
+            $messageTail,
+        ));
+        $notif->setRelatedEntityType('DemandeTravauxSupp');
+        $notif->setTargetRoles(['ROLE_ADMIN', 'ROLE_RECEPTIONNAIRE']);
+        $notif->setTargetRole('ROLE_RECEPTIONNAIRE');
+        $notif->setPriority($demande->getUrgence() === 'urgent' || $demande->getUrgence() === 'critique' ? 'high' : 'normal');
+
+        return $notif;
     }
 
     private function serializeDemande(DemandeTravauxSupp $d): array

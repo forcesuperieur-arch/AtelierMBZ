@@ -362,8 +362,8 @@
               </div>
 
               <div class="form-group" style="margin-top:12px;">
-                <label class="form-label">Commentaire</label>
-                <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Notes réception / atelier…"></textarea>
+                <label class="form-label">Motif client</label>
+                <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
               </div>
 
               <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
@@ -413,9 +413,13 @@
                     <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
                   </div>
                   <div class="form-group">
-                    <label class="form-label">État véhicule</label>
-                    <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Bon état / rayure…" :disabled="selectedIsHistorical" />
+                    <label class="form-label">Observations visuelles</label>
+                    <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
                   </div>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                  <label class="form-label">Notes réception</label>
+                  <textarea v-model="receptionForm.notes_reception" class="form-input" rows="2" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
                 </div>
 
                 <!-- Signature warning -->
@@ -452,7 +456,7 @@
             </div>
 
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div v-if="selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire }}</div>
+              <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
               <NuxtLink :to="`/rdv/${selectedRdv.id}`" class="btn btn-primary" style="text-decoration:none;" @click="showRdvModal = false">Ouvrir la fiche complète →</NuxtLink>
             </div>
           </div>
@@ -514,6 +518,7 @@ const editForm = reactive({
 const receptionForm = reactive({
   kilometrage: '',
   etat_vehicule: '',
+  notes_reception: '',
 })
 
 const quickForm = reactive({
@@ -896,7 +901,22 @@ function hydrateEditForms(rdv: any) {
   editForm.mecanicien_id = toNullableNumber(rdv.mecanicien?.id ?? rdv.mecanicien_id)
   editForm.pont_id = toNullableNumber(rdv.pont?.id ?? rdv.pont_id)
   receptionForm.kilometrage = rdv.kilometrage ? String(rdv.kilometrage) : ''
-  receptionForm.etat_vehicule = rdv.etat_vehicule || rdv.etatVehicule || ''
+  const receptionState = parseReceptionState(rdv.etat_vehicule_reception ?? rdv.etat_vehicule ?? rdv.etatVehicule)
+  receptionForm.etat_vehicule = receptionState.observations || ''
+  receptionForm.notes_reception = receptionState.reception_notes || ''
+}
+
+function parseReceptionState(raw: any) {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' ? parsed : { observations: raw }
+    } catch {
+      return { observations: raw }
+    }
+  }
+  return typeof raw === 'object' ? raw : {}
 }
 
 function resetQuickForm(prefill?: { date?: string; time?: string; pontId?: number | null }) {
@@ -1226,7 +1246,10 @@ async function applyTransition(name: string) {
 
     if (name === 'reception') {
       if (receptionForm.kilometrage) payload.kilometrage = toNumber(receptionForm.kilometrage)
-      if (receptionForm.etat_vehicule.trim()) payload.etat_vehicule = receptionForm.etat_vehicule.trim()
+      const receptionState = parseReceptionState(selectedRdv.value?.etat_vehicule_reception ?? selectedRdv.value?.etat_vehicule ?? selectedRdv.value?.etatVehicule)
+      if (receptionForm.etat_vehicule.trim()) receptionState.observations = receptionForm.etat_vehicule.trim()
+      if (receptionForm.notes_reception.trim()) receptionState.reception_notes = receptionForm.notes_reception.trim()
+      if (Object.keys(receptionState).length) payload.etat_vehicule = receptionState
     }
 
     await api.post(`/rendez-vous/${selectedRdv.value.id}/transition/${name}`, payload)

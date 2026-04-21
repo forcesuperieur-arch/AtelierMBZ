@@ -26,6 +26,11 @@ class PhotoService
         private string $projectDir,
     ) {}
 
+    public function allowedTypes(): array
+    {
+        return self::ALLOWED_TYPES;
+    }
+
     public function upload(UploadedFile $file, string $type, RendezVous $rdv, ?string $description = null, ?string $annotationJson = null): PhotoIntervention
     {
         if (!in_array($type, self::ALLOWED_TYPES, true)) {
@@ -42,7 +47,7 @@ class PhotoService
 
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeName = $this->slugger->slug($originalName);
-        $filename = $safeName . '-' . uniqid() . '.' . $file->guessExtension();
+        $filename = $safeName . '-' . bin2hex(random_bytes(8)) . '.' . $file->guessExtension();
 
         $uploadDir = $this->projectDir . '/var/photos';
         if (!is_dir($uploadDir)) {

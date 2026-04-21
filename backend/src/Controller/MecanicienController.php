@@ -5,7 +5,9 @@ namespace App\Controller;
 use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,11 +23,18 @@ class MecanicienController extends AbstractController
         private \App\Service\AuditService $auditService,
     ) {}
 
+    private function getAuthenticatedUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
+    }
+
     #[Route('/me', methods: ['GET'])]
     public function me(): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
+        $user = $this->getAuthenticatedUser();
+        if (!$user) {
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -53,8 +62,8 @@ class MecanicienController extends AbstractController
     #[Route('/me/rdvs', methods: ['GET'])]
     public function myRdvs(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
+        $user = $this->getAuthenticatedUser();
+        if (!$user) {
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -89,8 +98,8 @@ class MecanicienController extends AbstractController
     #[Route('/me/rapport/{orId}', methods: ['PATCH'])]
     public function saveRapport(int $orId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
+        $user = $this->getAuthenticatedUser();
+        if (!$user) {
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -142,8 +151,8 @@ class MecanicienController extends AbstractController
     #[Route('/me/essai-routier', methods: ['POST'])]
     public function createEssai(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
+        $user = $this->getAuthenticatedUser();
+        if (!$user) {
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -285,6 +294,7 @@ class MecanicienController extends AbstractController
         $pont = $rdv->getPont();
         $ordre = $this->findInitialOrdre($rdv);
         $essai = $this->findLatestEssai($rdv);
+        $rapport = $this->findLatestRapport($rdv);
 
         return [
             'id' => $rdv->getId(),
@@ -310,6 +320,8 @@ class MecanicienController extends AbstractController
             'or_signe' => $ordre?->getSignatureClient() !== null,
             'or_mechanic_notes' => $ordre?->getMechanicNotes(),
             'or_mechanic_checkup' => $ordre?->getMechanicCheckup(),
+            'rapport_id' => $rapport?->getId(),
+            'rapport_mecanicien_signe' => $rapport?->getSignatureMecanicien() ? true : false,
             'etat_reception' => $this->buildReceptionState($ordre, $rdv),
             'essai_routier_id' => $essai?->getId(),
             'essai_routier_statut' => $essai?->getStatut(),
@@ -327,6 +339,14 @@ class MecanicienController extends AbstractController
 
         $decoded = json_decode($raw, true);
         return is_array($decoded) ? $decoded : null;
+    }
+
+    private function findLatestRapport(RendezVous $rdv): ?RapportIntervention
+    {
+        return $this->em->getRepository(RapportIntervention::class)->findOneBy(
+            ['rendezVous' => $rdv, 'statut' => ['brouillon', 'en_validation', 'signe', 'rectifie']],
+            ['id' => 'DESC'],
+        );
     }
 
     private function checkpointStatus(array $checkpoint): ?string

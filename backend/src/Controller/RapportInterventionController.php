@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\EssaiRoutier;
 use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Service\AuditService;
 use App\Service\PdfService;
 use App\Service\RapportInterventionService;
@@ -41,14 +42,7 @@ class RapportInterventionController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy(
-            ['rendezVous' => $rdv, 'statut' => ['brouillon', 'en_validation', 'signe']],
-            ['id' => 'DESC'],
-        );
-
-        if (!$rapport) {
-            return $this->json(['error' => 'Aucun rapport trouvé'], Response::HTTP_NOT_FOUND);
-        }
+        $rapport = $this->rapportService->getOrCreateDraft($rdv);
 
         return $this->json($this->serializeRapport($rapport));
     }
@@ -155,7 +149,7 @@ class RapportInterventionController extends AbstractController
             return $this->json(['error' => 'Rapport not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $errors = $this->rapportService->validateCompleteness($rapport);
+        $errors = $this->rapportService->validateForMecanicienSignature($rapport);
         if (!empty($errors)) {
             return $this->json(['error' => 'Rapport incomplet', 'validation_errors' => $errors], Response::HTTP_BAD_REQUEST);
         }
@@ -167,7 +161,8 @@ class RapportInterventionController extends AbstractController
         }
 
         $user = $this->getUser();
-        $this->rapportService->signByMecanicien($rapport, $signature, $user?->getId() ?? 0);
+        $userId = $user instanceof User ? $user->getId() : 0;
+        $this->rapportService->signByMecanicien($rapport, $signature, $userId);
 
         $this->audit->log('sign_rapport_mecanicien', 'rapport_intervention', $rapport->getId());
 
@@ -282,7 +277,8 @@ class RapportInterventionController extends AbstractController
         }
 
         $user = $this->getUser();
-        $newRapport = $this->rapportService->rectify($rapport, $motif, $user?->getId() ?? 0);
+        $userId = $user instanceof User ? $user->getId() : 0;
+        $newRapport = $this->rapportService->rectify($rapport, $motif, $userId);
 
         $this->audit->log('rectify_rapport', 'rapport_intervention', $rapport->getId(), json_encode([
             'new_rapport_id' => $newRapport->getId(),

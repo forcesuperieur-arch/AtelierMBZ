@@ -162,13 +162,29 @@ export function useApi() {
   const get = <T = any>(path: string) => $fetch<T>(path)
 
   const post = <T = any>(path: string, body?: any) =>
-    $fetch<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined })
+    $fetch<T>(path, {
+      method: 'POST',
+      body: body instanceof FormData || typeof body === 'string'
+        ? body
+        : (body ? JSON.stringify(body) : undefined),
+    })
 
   const put = <T = any>(path: string, body?: any) =>
-    $fetch<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined })
+    $fetch<T>(path, {
+      method: 'PUT',
+      body: body instanceof FormData || typeof body === 'string'
+        ? body
+        : (body ? JSON.stringify(body) : undefined),
+    })
 
   const patch = <T = any>(path: string, body?: any) =>
-    $fetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, headers: { 'Content-Type': 'application/merge-patch+json' } })
+    $fetch<T>(path, {
+      method: 'PATCH',
+      body: body instanceof FormData || typeof body === 'string'
+        ? body
+        : (body ? JSON.stringify(body) : undefined),
+      headers: body instanceof FormData ? undefined : { 'Content-Type': 'application/merge-patch+json' },
+    })
 
   const del = <T = any>(path: string) =>
     $fetch<T>(path, { method: 'DELETE' })

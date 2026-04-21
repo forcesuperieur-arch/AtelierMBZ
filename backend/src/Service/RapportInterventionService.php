@@ -15,6 +15,19 @@ class RapportInterventionService
         private EntityManagerInterface $em,
     ) {}
 
+    public function findLatestForRdv(RendezVous $rdv): ?RapportIntervention
+    {
+        return $this->em->getRepository(RapportIntervention::class)->findOneBy(
+            ['rendezVous' => $rdv, 'statut' => ['brouillon', 'en_validation', 'signe', 'rectifie']],
+            ['id' => 'DESC'],
+        );
+    }
+
+    public function getOrCreateDraft(RendezVous $rdv): RapportIntervention
+    {
+        return $this->findLatestForRdv($rdv) ?? $this->createDraft($rdv);
+    }
+
     public function createDraft(RendezVous $rdv): RapportIntervention
     {
         $rapport = new RapportIntervention();
@@ -66,6 +79,21 @@ class RapportInterventionService
      */
     public function validateCompleteness(RapportIntervention $rapport): array
     {
+        $errors = $this->validateForMecanicienSignature($rapport);
+
+        $photoCount = $this->em->getRepository(PhotoIntervention::class)->count([
+            'rendezVous' => $rapport->getRendezVous(),
+            'type' => 'restitution',
+        ]);
+        if ($photoCount < 3) {
+            $errors[] = sprintf('Minimum 3 photos de restitution requises (%d actuellement)', $photoCount);
+        }
+
+        return $errors;
+    }
+
+    public function validateForMecanicienSignature(RapportIntervention $rapport): array
+    {
         $errors = [];
 
         // Essai routier must be complete
@@ -88,13 +116,8 @@ class RapportInterventionService
             $errors[] = 'Recommandations non renseignées';
         }
 
-        // ≥ 3 restitution photos
-        $photoCount = $this->em->getRepository(PhotoIntervention::class)->count([
-            'rendezVous' => $rapport->getRendezVous(),
-            'type' => 'restitution',
-        ]);
-        if ($photoCount < 3) {
-            $errors[] = sprintf('Minimum 3 photos de restitution requises (%d actuellement)', $photoCount);
+        if (($rapport->getKilometrageRestitution() ?? 0) <= 0) {
+            $errors[] = 'Kilométrage restitution non renseigné';
         }
 
         // If anomalies in essai, corrective actions required

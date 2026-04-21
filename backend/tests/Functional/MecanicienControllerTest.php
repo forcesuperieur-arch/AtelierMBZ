@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Entity\Vehicule;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -118,12 +119,18 @@ class MecanicienControllerTest extends WebTestCase
                 'rdv_id' => $fixture['rdv']->getId(),
                 'km_debut' => 12000,
                 'km_fin' => 12005,
+                'dureeMinutes' => 12,
                 'checkpoints' => [
                     ['key' => 'demarrage', 'statut' => 'ok'],
                     ['key' => 'acceleration', 'statut' => 'ok'],
                     ['key' => 'freinage', 'statut' => 'ok'],
                     ['key' => 'virage_gauche', 'statut' => 'ok'],
                     ['key' => 'virage_droit', 'statut' => 'ok'],
+                    ['key' => 'tenue_route', 'statut' => 'ok'],
+                    ['key' => 'bruit_moteur', 'statut' => 'ok'],
+                    ['key' => 'bruit_freins', 'statut' => 'ok'],
+                    ['key' => 'vibrations', 'statut' => 'ok'],
+                    ['key' => 'comportement_general', 'statut' => 'ok'],
                 ],
                 'valider' => true,
             ], JSON_THROW_ON_ERROR)
@@ -133,6 +140,24 @@ class MecanicienControllerTest extends WebTestCase
         $roadTestPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertTrue((bool) ($roadTestPayload['valide'] ?? false));
         $this->assertSame('valide', $roadTestPayload['statut'] ?? null);
+
+        $client->request(
+            'POST',
+            '/api/rendez-vous/' . $fixture['rdv']->getId() . '/transition/terminer',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $client->getResponse()->getStatusCode());
+        $transitionPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('RAPPORT_INTERVENTION_INCOMPLET', $transitionPayload['code'] ?? null);
+
+        $rapportId = (int) ($transitionPayload['rapport_id'] ?? 0);
+        $this->assertGreaterThan(0, $rapportId);
+
+        $this->completeAndSignRapport($client, $fixture['user'], $fixture['rdv']->getId(), $rapportId, 12005);
 
         $client->request(
             'POST',
@@ -170,13 +195,20 @@ class MecanicienControllerTest extends WebTestCase
                 'rdv_id' => $fixture['rdv']->getId(),
                 'km_debut' => 34000,
                 'km_fin' => 34008,
+                'dureeMinutes' => 14,
                 'checkpoints' => [
                     ['key' => 'demarrage', 'statut' => 'ok'],
                     ['key' => 'acceleration', 'statut' => 'ok'],
                     ['key' => 'freinage', 'statut' => 'nok'],
                     ['key' => 'virage_gauche', 'statut' => 'ok'],
                     ['key' => 'virage_droit', 'statut' => 'ok'],
+                    ['key' => 'tenue_route', 'statut' => 'ok'],
+                    ['key' => 'bruit_moteur', 'statut' => 'ok'],
+                    ['key' => 'bruit_freins', 'statut' => 'nok'],
+                    ['key' => 'vibrations', 'statut' => 'ok'],
+                    ['key' => 'comportement_general', 'statut' => 'ok'],
                 ],
+                'actionsCorrectives' => 'Purge du circuit et contrôle complémentaire du freinage préconisés.',
                 'valider' => true,
             ], JSON_THROW_ON_ERROR)
         );
@@ -221,7 +253,118 @@ class MecanicienControllerTest extends WebTestCase
             json_encode([], JSON_THROW_ON_ERROR)
         );
 
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $client->getResponse()->getStatusCode());
+        $transitionPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('RAPPORT_INTERVENTION_INCOMPLET', $transitionPayload['code'] ?? null);
+
+        $rapportId = (int) ($transitionPayload['rapport_id'] ?? 0);
+        $this->assertGreaterThan(0, $rapportId);
+
+        $this->completeAndSignRapport($client, $fixture['user'], $fixture['rdv']->getId(), $rapportId, 34008);
+
+        $client->request(
+            'POST',
+            '/api/rendez-vous/' . $fixture['rdv']->getId() . '/transition/terminer',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([], JSON_THROW_ON_ERROR)
+        );
+
         $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
+    }
+
+    public function testMechanicCanPauseWaitForPartsAndResumeIntervention(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createMechanicFixture($em, [
+            'statut' => 'en_cours',
+            'commentaire' => 'Remplacement kit chaîne',
+        ]);
+
+        $client->request(
+            'POST',
+            '/api/rendez-vous/' . $fixture['rdv']->getId() . '/transition/mettre_en_pause',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_pause', $payload['statut'] ?? null);
+
+        $client->request(
+            'POST',
+            '/api/rendez-vous/' . $fixture['rdv']->getId() . '/transition/mettre_en_attente_pieces',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_attente_pieces', $payload['statut'] ?? null);
+
+        $client->request(
+            'POST',
+            '/api/rendez-vous/' . $fixture['rdv']->getId() . '/transition/reprendre_apres_pieces',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_cours', $payload['statut'] ?? null);
+    }
+
+    private function fetchDraftRapportId(KernelBrowser $client, User $user, int $rdvId): int
+    {
+        $client->request('GET', '/api/rdv/' . $rdvId . '/rapport', [], [], $this->authHeaders($user));
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        return (int) ($payload['id'] ?? 0);
+    }
+
+    private function completeAndSignRapport(KernelBrowser $client, User $user, int $rdvId, int $rapportId, int $kilometrageRestitution): void
+    {
+        if ($rapportId <= 0) {
+            $rapportId = $this->fetchDraftRapportId($client, $user, $rdvId);
+        }
+
+        $client->request(
+            'PUT',
+            '/api/rapport/' . $rapportId,
+            [],
+            [],
+            $this->authHeaders($user),
+            json_encode([
+                'travauxRealises' => 'Intervention terminée, contrôles finaux effectués et essai routier validé.',
+                'recommandations' => 'Contrôle de routine à la prochaine échéance atelier.',
+                'kilometrageRestitution' => $kilometrageRestitution,
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $client->request(
+            'POST',
+            '/api/rapport/' . $rapportId . '/sign-mecanicien',
+            [],
+            [],
+            $this->authHeaders($user),
+            json_encode(['signature' => $this->sampleSignatureDataUrl()], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
     }
 
     /**
@@ -325,5 +468,10 @@ class MecanicienControllerTest extends WebTestCase
             'CONTENT_TYPE' => 'application/json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . $jwtManager->create($user),
         ];
+    }
+
+    private function sampleSignatureDataUrl(): string
+    {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0FYAAAAASUVORK5CYII=';
     }
 }

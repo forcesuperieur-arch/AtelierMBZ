@@ -46,16 +46,18 @@
       <UCard v-if="activeRdv" style="margin-bottom:24px;border-color:rgba(245,158,11,0.3);">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:15px;font-weight:700;color:#F59E0B;">🔧 Intervention en cours</span>
+            <span style="font-size:15px;font-weight:700;color:#F59E0B;">🔧 {{ activeRdvStatusTitle }}</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span v-if="activeRdv.client_telephone" style="font-size:12px;">
-                <a :href="`tel:${activeRdv.client_telephone}`" style="color:#6B7280;text-decoration:none;">📞 Appeler</a>
-              </span>
               <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" style="font-size:12px;color:#FFD200;text-decoration:none;font-weight:600;">📋 Dossier atelier</NuxtLink>
+              <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="activeRdvStatusStyle">{{ activeRdvStatusLabel }}</span>
               <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
               <UButton label="💾 Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
+              <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="sm" @click="pauseCurrentWork" />
+              <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Attente pièces" color="warning" variant="outline" size="sm" @click="waitForParts" />
+              <UButton v-if="activeRdv.status === 'en_pause'" label="▶️ Reprendre" color="primary" variant="outline" size="sm" @click="resumeCurrentWork" />
+              <UButton v-if="activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre après pièces" color="primary" variant="outline" size="sm" @click="resumeCurrentWork" />
               <UButton label="🏍 Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
-              <UButton label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
+              <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
             </div>
           </div>
         </template>
@@ -68,6 +70,11 @@
         <div v-if="activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire" style="margin-top:12px;font-size:13px;">
           <span style="color:#6B7280;">Motif client :</span>
           <p style="color:#D1D5DB;">{{ activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire }}</p>
+        </div>
+
+        <div v-if="activeRdv.status !== 'en_cours'" style="margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:#D1D5DB;">
+          <strong style="display:block;margin-bottom:4px;color:#F9FAFB;">{{ activeRdvStatusLabel }}</strong>
+          <span>{{ activeRdvStatusHint }}</span>
         </div>
 
         <div v-if="receptionPoints.length || receptionObservations || receptionFuelLevel || receptionPriority || activeRdv.vehicule_plaque || activeRdv.km_reception !== null" style="margin-top:14px;padding:12px;border-radius:10px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.18);">
@@ -90,7 +97,7 @@
         </div>
 
         <!-- Live Chrono -->
-        <div v-if="activeRdv.temps_estime" style="margin-top:16px;">
+        <div v-if="activeRdv.temps_estime && activeRdv.status === 'en_cours'" style="margin-top:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#9CA3AF;margin-bottom:6px;">
             <span>Chrono</span>
             <span style="font-family:monospace;font-size:16px;font-weight:700;" :style="{ color: progressPct > 100 ? '#EF4444' : '#FFD200' }">{{ chronoDisplay }}</span>
@@ -182,6 +189,71 @@
             <button class="btn btn-ghost" style="font-size:12px;" @click="saveInterventionNotes" :disabled="savingNotes">{{ savingNotes ? 'Sauvegarde…' : 'Sauvegarder' }}</button>
           </div>
         </div>
+
+        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:600;color:#E8E9ED;">Travaux complémentaires</span>
+            <button class="btn btn-ghost" style="font-size:12px;" @click="showSupplementaryForm = !showSupplementaryForm">{{ showSupplementaryForm ? 'Fermer' : 'Créer une demande' }}</button>
+          </div>
+          <div style="font-size:11px;color:#6B7280;margin-bottom:8px;">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
+          <div v-if="showSupplementaryForm" style="display:grid;gap:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+            <textarea v-model="supplementaryForm.description" class="form-input" rows="3" placeholder="Décrire le problème constaté, le risque et la recommandation technique…" />
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">
+              <label style="display:flex;flex-direction:column;gap:4px;">
+                <span style="font-size:11px;color:#6B7280;">Priorité</span>
+                <select v-model="supplementaryForm.urgence" class="form-input">
+                  <option v-for="option in supplementaryUrgencyOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+              <div style="font-size:11px;color:#9CA3AF;">{{ activeProblemPhotoIds.length ? `${activeProblemPhotoIds.length} photo(s) problème jointes automatiquement.` : 'Ajoute des photos de type problème pour documenter la demande.' }}</div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="btn btn-primary" style="font-size:12px;" @click="createSupplementaryRequest" :disabled="creatingSupplementary">{{ creatingSupplementary ? 'Envoi…' : 'Envoyer à la réception' }}</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:600;color:#E8E9ED;">📷 Photos d'intervention</span>
+            <span style="font-size:11px;color:#6B7280;">Après travaux: {{ afterWorkPhotosCount }}/2 · Restitution: {{ restitutionPhotosCount }}/3</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
+            <label style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:#6B7280;">Type</span>
+              <select v-model="photoUploadType" class="form-input">
+                <option v-for="type in mecanicienPhotoTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
+              </select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;color:#6B7280;">Description</span>
+              <input v-model="photoDescription" class="form-input" placeholder="Ex: fuite observée" />
+            </label>
+          </div>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;border:1px dashed rgba(255,210,0,0.25);background:rgba(255,210,0,0.04);font-size:13px;color:#FDE68A;cursor:pointer;">
+            <input type="file" accept="image/*" capture="environment" multiple style="display:none;" @change="handlePhotoUpload" />
+            <span>{{ uploadingPhoto ? 'Upload en cours…' : 'Ajouter des photos depuis la caméra' }}</span>
+          </label>
+          <div v-if="mechanicPhotoGroups.length" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+            <div v-for="group in mechanicPhotoGroups" :key="group.type">
+              <div style="font-size:11px;font-weight:700;color:#9CA3AF;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">{{ photoTypeLabel(group.type) }} · {{ group.photos.length }}</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;">
+                <a
+                  v-for="photo in group.photos"
+                  :key="photo.id"
+                  :href="photoUrl(photo)"
+                  target="_blank"
+                  rel="noreferrer"
+                  style="display:block;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);text-decoration:none;"
+                >
+                  <img :src="photoUrl(photo)" :alt="photo.description || 'Photo intervention'" style="width:100%;height:88px;object-fit:cover;border-radius:8px;display:block;" />
+                  <div style="margin-top:6px;font-size:10px;color:#9CA3AF;line-height:1.3;">{{ photo.description || 'Sans description' }}</div>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div v-else style="margin-top:10px;font-size:12px;color:#6B7280;">Aucune photo d'intervention pour ce RDV.</div>
+        </div>
       </UCard>
 
       <!-- Todo: RDVs to do -->
@@ -217,10 +289,10 @@
             <div>
               <span style="color:#10B981;">✅</span>
               <span style="color:#D1D5DB;margin-left:8px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }} · {{ rdv.type_intervention }}</span>
-              <span v-if="rdv.status === 'termine'" style="display:inline-block;margin-left:8px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);font-size:10px;color:#F59E0B;font-weight:600;">Rapport à compléter</span>
+              <span v-if="rdv.status === 'termine' && !rdv.rapport_mecanicien_signe" style="display:inline-block;margin-left:8px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);font-size:10px;color:#F59E0B;font-weight:600;">Rapport à signer</span>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <UButton v-if="rdv.status === 'termine'" size="xs" label="📋 Rapport" color="warning" variant="outline" @click="openRapport(rdv.id)" />
+              <UButton v-if="rdv.status === 'termine'" size="xs" :label="rdv.rapport_mecanicien_signe ? '📋 Rapport signé' : '📋 Rapport'" :color="rdv.rapport_mecanicien_signe ? 'success' : 'warning'" variant="outline" @click="openRapport(rdv.id)" />
               <NuxtLink :to="`/rdv/${rdv.id}`" style="color:#FFD200;font-size:11px;text-decoration:none;font-weight:600;">Voir →</NuxtLink>
             </div>
           </div>
@@ -372,8 +444,15 @@ const finishing = ref(false)
 const savingNotes = ref(false)
 const persistingCheckup = ref(false)
 const savingRoadTest = ref(false)
+const uploadingPhoto = ref(false)
 const myRdvs = ref<any[]>([])
+const rdvPhotos = ref<any[]>([])
 const interventionNotes = ref('')
+const showSupplementaryForm = ref(false)
+const creatingSupplementary = ref(false)
+const photoUploadType = ref('apres_travaux')
+const photoDescription = ref('')
+const pendingFinishTransition = ref(false)
 const now = ref(Date.now())
 let chronoTimer: ReturnType<typeof setInterval> | null = null
 
@@ -412,6 +491,24 @@ const essaiPoints = [
   { key: 'bruits_anormaux', label: 'Bruits anormaux' },
 ]
 
+const mecanicienPhotoTypes = [
+  { value: 'en_cours', label: 'En cours' },
+  { value: 'apres_travaux', label: 'Après travaux' },
+  { value: 'restitution', label: 'Restitution' },
+  { value: 'probleme', label: 'Problème constaté' },
+]
+
+const supplementaryUrgencyOptions = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'critique', label: 'Critique' },
+]
+
+const supplementaryForm = reactive({
+  description: '',
+  urgence: 'normal',
+})
+
 const essaiForm = reactive({
   kmDebut: null as number | null,
   kmFin: null as number | null,
@@ -434,6 +531,55 @@ function resetEssaiForm() {
   essaiForm.dureeMinutes = null
   essaiForm.actionsCorrectives = ''
   Object.keys(essaiForm.pointsControle).forEach((key) => { delete essaiForm.pointsControle[key] })
+}
+
+function photoTypeLabel(type: string) {
+  return mecanicienPhotoTypes.find((item) => item.value === type)?.label ?? type
+}
+
+function photoUrl(photo: any) {
+  return photo?.url?.startsWith('http') ? photo.url : `${apiBase}${photo?.url || `/photos/file/${photo?.filename}`}`
+}
+
+async function loadRdvPhotos(rdvId?: number | null) {
+  if (!rdvId) {
+    rdvPhotos.value = []
+    return
+  }
+
+  try {
+    rdvPhotos.value = await api.get(`/photos/rdv/${rdvId}`)
+  } catch {
+    rdvPhotos.value = []
+  }
+}
+
+async function handlePhotoUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  if (!files.length || !activeRdv.value?.id) return
+
+  uploadingPhoto.value = true
+  try {
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('photo', file)
+      formData.append('rendez_vous_id', String(activeRdv.value.id))
+      formData.append('type', photoUploadType.value)
+      if (photoDescription.value.trim()) {
+        formData.append('description', photoDescription.value.trim())
+      }
+      await api.upload('/photos/upload', formData)
+    }
+    photoDescription.value = ''
+    await loadRdvPhotos(activeRdv.value.id)
+    toast.add({ title: 'Photos ajoutées', description: `${files.length} photo(s) enregistrée(s).`, color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur photo', description: e.message, color: 'error' })
+  } finally {
+    uploadingPhoto.value = false
+    input.value = ''
+  }
 }
 
 function normalizeEssaiPoints(raw: any): Record<string, string> {
@@ -503,6 +649,7 @@ function closeRapport() {
   rapportRdvId.value = null
   rapport.value = null
   rapportSignError.value = ''
+  pendingFinishTransition.value = false
   clearRapportSig()
 }
 
@@ -546,6 +693,10 @@ async function signRapport() {
     const updated = await api.post(`/rapport/${rapport.value.id}/sign-mecanicien`, { signature: sig })
     rapport.value = updated
     await fetchMyRdvs()
+    if (pendingFinishTransition.value && updated?.rdv_id) {
+      await completeFinishTransition(updated.rdv_id)
+      closeRapport()
+    }
     toast.add({ title: 'Rapport signé', color: 'success' })
   } catch (e: any) {
     rapportSignError.value = e.message || 'Erreur lors de la signature'
@@ -610,9 +761,25 @@ const initials = computed(() => {
 
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
 
-const activeRdv = computed(() => myRdvs.value.find(r => r.status === 'en_cours'))
+const activeRdv = computed(() => myRdvs.value.find(r => ['en_cours', 'en_pause', 'en_attente_pieces'].includes(r.status)))
 const activeOrId = computed(() => activeRdv.value?.or_id ?? null)
 const activeVehiculeState = computed(() => parseEtatVehicule(activeRdv.value?.etat_reception))
+const canFinishCurrentRdv = computed(() => ['en_cours', 'en_pause'].includes(activeRdv.value?.status || ''))
+const mechanicPhotoGroups = computed(() => {
+  const grouped = new Map<string, any[]>()
+  for (const photo of rdvPhotos.value) {
+    const type = String(photo?.type || 'en_cours')
+    if (!grouped.has(type)) grouped.set(type, [])
+    grouped.get(type)!.push(photo)
+  }
+  return Array.from(grouped.entries()).map(([type, photos]) => ({ type, photos }))
+})
+const activeProblemPhotoIds = computed(() => rdvPhotos.value
+  .filter((photo: any) => photo?.type === 'probleme')
+  .map((photo: any) => Number(photo.id))
+  .filter((id: number) => Number.isFinite(id) && id > 0))
+const afterWorkPhotosCount = computed(() => rdvPhotos.value.filter((photo: any) => photo?.type === 'apres_travaux').length)
+const restitutionPhotosCount = computed(() => rdvPhotos.value.filter((photo: any) => photo?.type === 'restitution').length)
 const essaiRoutierValide = computed(() => Boolean(activeRdv.value?.essai_routier_valide || rapport.value?.essaiRoutier?.isValide))
 const essaiStatusLabel = computed(() => {
   if (essaiRoutierValide.value) return 'Essai validé'
@@ -626,6 +793,35 @@ const receptionFuelLevel = computed(() => activeVehiculeState.value?.fuel_level 
 const receptionPriority = computed(() => activeVehiculeState.value?.priority ?? '')
 const todoRdvs = computed(() => myRdvs.value.filter(r => ['en_attente', 'reserve', 'confirme', 'reception'].includes(r.status)))
 const doneRdvs = computed(() => myRdvs.value.filter(r => ['termine', 'restitue', 'facture', 'paye'].includes(r.status)))
+const activeRdvStatusLabel = computed(() => {
+  switch (activeRdv.value?.status) {
+    case 'en_pause': return 'Intervention en pause'
+    case 'en_attente_pieces': return 'En attente pièces'
+    case 'en_cours': return 'Intervention active'
+    default: return 'Intervention atelier'
+  }
+})
+const activeRdvStatusTitle = computed(() => activeRdv.value?.status === 'en_attente_pieces' ? 'Intervention en attente pièces' : 'Intervention atelier')
+const activeRdvStatusHint = computed(() => {
+  switch (activeRdv.value?.status) {
+    case 'en_pause':
+      return 'Le travail est suspendu temporairement. Reprenez dès que la moto revient sur le pont.'
+    case 'en_attente_pieces':
+      return 'Le dossier reste côté atelier mais la reprise doit attendre la réception des pièces nécessaires.'
+    default:
+      return 'L’intervention est en cours sur le pont.'
+  }
+})
+const activeRdvStatusStyle = computed(() => {
+  switch (activeRdv.value?.status) {
+    case 'en_pause':
+      return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
+    case 'en_attente_pieces':
+      return { background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }
+    default:
+      return { background: 'rgba(16,185,129,0.12)', color: '#6EE7B7' }
+  }
+})
 const canValidateRoadTest = computed(() => {
   const kmDebut = Number(essaiForm.kmDebut ?? 0)
   const kmFin = Number(essaiForm.kmFin ?? 0)
@@ -634,7 +830,7 @@ const canValidateRoadTest = computed(() => {
 })
 
 const kpis = computed(() => ({
-  enCours: activeRdv.value ? 1 : 0,
+  enCours: myRdvs.value.filter(r => ['en_cours', 'en_pause', 'en_attente_pieces'].includes(r.status)).length,
   aFaire: todoRdvs.value.length,
   termines: doneRdvs.value.length,
   pctDone: myRdvs.value.length ? Math.round(doneRdvs.value.length / myRdvs.value.length * 100) : 0,
@@ -643,6 +839,8 @@ const kpis = computed(() => ({
 const priorityAction = computed(() => {
   const receptions = todoRdvs.value.filter(r => r.status === 'reception')
   if (receptions.length) return `Démarrer : ${receptions[0].client_nom} — ${receptions[0].vehicule_info}`
+  if (activeRdv.value?.status === 'en_attente_pieces') return 'Pièces attendues: reprendre dès réception et validation comptoir'
+  if (activeRdv.value?.status === 'en_pause') return 'Intervention en pause: reprendre ou basculer en attente pièces selon le cas réel'
   if (activeRdv.value && progressPct.value > 100) return `⚠️ Intervention en cours en retard — terminer rapidement`
   if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
   if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
@@ -768,6 +966,32 @@ async function saveActiveRoadTest() {
   }
 }
 
+async function createSupplementaryRequest() {
+  if (!activeRdv.value?.id) return
+  if (supplementaryForm.description.trim().length < 10) {
+    toast.add({ title: 'Description requise', description: 'Décrivez le problème constaté avec suffisamment de précision.', color: 'warning' })
+    return
+  }
+
+  creatingSupplementary.value = true
+  try {
+    await api.post('/mecanicien/me/demandes-travaux-supp', {
+      rdv_id: activeRdv.value.id,
+      description: supplementaryForm.description.trim(),
+      urgence: supplementaryForm.urgence,
+      photos_ids: activeProblemPhotoIds.value,
+    })
+    supplementaryForm.description = ''
+    supplementaryForm.urgence = 'normal'
+    showSupplementaryForm.value = false
+    toast.add({ title: 'Demande envoyée', description: 'La réception peut maintenant la qualifier et la transmettre au client.', color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur demande complémentaire', description: e.message, color: 'error' })
+  } finally {
+    creatingSupplementary.value = false
+  }
+}
+
 async function startWork(id: number) {
   try {
     await rdvStore.transitionRdv(id, 'start_travail')
@@ -778,8 +1002,39 @@ async function startWork(id: number) {
   }
 }
 
+async function transitionCurrentWork(transition: string, successTitle: string) {
+  if (!activeRdv.value?.id) return
+  try {
+    await rdvStore.transitionRdv(activeRdv.value.id, transition)
+    await fetchMyRdvs()
+    toast.add({ title: successTitle, color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  }
+}
+
+async function pauseCurrentWork() {
+  await transitionCurrentWork('mettre_en_pause', 'Intervention mise en pause')
+}
+
+async function waitForParts() {
+  if (!activeRdv.value) return
+  const transition = activeRdv.value.status === 'en_pause' ? 'mettre_en_attente_pieces' : 'attendre_pieces'
+  await transitionCurrentWork(transition, 'Dossier passé en attente pièces')
+}
+
+async function resumeCurrentWork() {
+  if (!activeRdv.value) return
+  const transition = activeRdv.value.status === 'en_attente_pieces' ? 'reprendre_apres_pieces' : 'reprendre'
+  await transitionCurrentWork(transition, 'Intervention reprise')
+}
+
 async function finishWork() {
   if (!activeRdv.value) return
+  if (!canFinishCurrentRdv.value) {
+    toast.add({ title: 'Reprise requise', description: 'Une intervention en attente pièces doit être reprise avant clôture.', color: 'warning' })
+    return
+  }
   if (!checkupDone.value && !interventionNotes.value.trim()) {
     toast.add({ title: 'Rapport atelier requis', description: 'Ajoutez au moins un point de contrôle ou une note avant de terminer.', color: 'warning' })
     return
@@ -792,15 +1047,25 @@ async function finishWork() {
   try {
     await persistWorkshopReport(false)
     const terminatedId = activeRdv.value.id
-    await rdvStore.transitionRdv(terminatedId, 'terminer')
-    await fetchMyRdvs()
-    toast.add({ title: 'Intervention terminée', color: 'success' })
-    openRapport(terminatedId)
+    await openRapport(terminatedId)
+    if (!rapport.value?.signatureMecanicien) {
+      pendingFinishTransition.value = true
+      toast.add({ title: 'Signature mécanicien requise', description: 'Signez le rapport d’intervention pour clôturer le RDV.', color: 'warning' })
+      return
+    }
+    await completeFinishTransition(terminatedId)
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     finishing.value = false
   }
+}
+
+async function completeFinishTransition(rdvId: number) {
+  await rdvStore.transitionRdv(rdvId, 'terminer')
+  pendingFinishTransition.value = false
+  await fetchMyRdvs()
+  toast.add({ title: 'Intervention terminée', color: 'success' })
 }
 
 async function saveInterventionNotes() {
@@ -825,6 +1090,7 @@ async function fetchMyRdvs() {
     heure_debut: r.heure_rdv ?? r.heure_debut,
     temps_estime: r.temps_estime ?? r.duree_estimee ?? 60,
     or_id: r.or_id ?? null,
+    rapport_mecanicien_signe: !!r.rapport_mecanicien_signe,
     commentaire_client: r.commentaire_client ?? r.commentaire ?? '',
   }))
 }
@@ -832,14 +1098,19 @@ async function fetchMyRdvs() {
 watch(activeRdv, (next, prev) => {
   if (next?.id !== prev?.id) {
     resetEssaiForm()
+    showSupplementaryForm.value = false
+    supplementaryForm.description = ''
+    supplementaryForm.urgence = 'normal'
   }
   applySavedWorkshopReport()
+  loadRdvPhotos(next?.id ?? null)
 })
 
 onMounted(async () => {
   try {
     await fetchMyRdvs()
     applySavedWorkshopReport()
+    await loadRdvPhotos(activeRdv.value?.id ?? null)
     chronoTimer = setInterval(() => { now.value = Date.now() }, 1000)
   } finally {
     loading.value = false

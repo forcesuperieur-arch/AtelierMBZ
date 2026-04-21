@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\PhotoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -22,6 +23,7 @@ class PhotoController extends AbstractController
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
         private \App\Service\AuditService $auditService,
+        private PhotoService $photoService,
     ) {}
 
     #[Route('/upload', methods: ['POST'])]
@@ -29,6 +31,7 @@ class PhotoController extends AbstractController
     {
         $file = $request->files->get('photo');
         $rdvId = $request->request->get('rendez_vous_id');
+        $type = (string) ($request->request->get('type') ?? 'en_cours');
 
         if (!$file || !$rdvId) {
             return $this->json(['error' => 'Photo and rendez_vous_id required'], Response::HTTP_BAD_REQUEST);
@@ -39,45 +42,36 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        // Validate file type
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!in_array($file->getMimeType(), $allowedMimes, true)) {
-            return $this->json(['error' => 'Only JPEG, PNG, and WebP images are allowed'], Response::HTTP_BAD_REQUEST);
+        if (!in_array($type, $this->photoService->allowedTypes(), true)) {
+            return $this->json([
+                'error' => 'Type de photo invalide',
+                'allowed_types' => $this->photoService->allowedTypes(),
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Max 10MB
-        if ($file->getSize() > 10 * 1024 * 1024) {
-            return $this->json(['error' => 'File too large (max 10MB)'], Response::HTTP_BAD_REQUEST);
+        try {
+            $photo = $this->photoService->upload(
+                $file,
+                $type,
+                $rdv,
+                $request->request->get('description'),
+                $request->request->get('annotation_json'),
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
-
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName = $this->slugger->slug($originalName);
-        $filename = $safeName . '-' . bin2hex(random_bytes(8)) . '.' . $file->guessExtension();
-
-        $uploadDir = $this->getParameter('kernel.project_dir') . '/var/photos';
-        $file->move($uploadDir, $filename);
-
-        $photo = new PhotoIntervention();
-        $photo->setRendezVous($rdv);
-        $photo->setFilename($filename);
-        $photo->setOriginalName($file->getClientOriginalName());
-        $photo->setDescription($request->request->get('description'));
-        $photo->setAnnotationJson($request->request->get('annotation_json'));
-        $photo->setAtelierId($rdv->getAtelierId());
-
-        $this->em->persist($photo);
-        $this->em->flush();
 
         $this->auditService->log(
             'photo_upload',
             'PhotoIntervention',
             $photo->getId(),
-            sprintf('Photo uploadée pour RDV #%d — %s', $rdvId, $filename),
+            sprintf('Photo %s uploadée pour RDV #%d — %s', $type, $rdvId, $photo->getFilename()),
         );
 
         return $this->json([
             'id' => $photo->getId(),
-            'filename' => $filename,
+            'filename' => $photo->getFilename(),
+            'type' => $photo->getType(),
         ], Response::HTTP_CREATED);
     }
 
@@ -115,6 +109,8 @@ class PhotoController extends AbstractController
             'filename' => $p->getFilename(),
             'original_name' => $p->getOriginalName(),
             'description' => $p->getDescription(),
+            'type' => $p->getType(),
+            'taken_at' => $p->getTakenAt()?->format('c'),
             'url' => '/api/photos/file/' . $p->getFilename(),
         ], $photos));
     }

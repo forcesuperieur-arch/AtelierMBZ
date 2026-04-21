@@ -139,6 +139,24 @@
       </div>
     </UCard>
 
+    <UCard v-if="etatVehicule?.reception_notes || Object.keys(etatVehicule?.reception_checkup || {}).length" style="margin-bottom:20px;">
+      <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">📥 Notes réception</span></template>
+      <div style="display:grid;gap:12px;font-size:13px;">
+        <div v-if="Object.keys(etatVehicule?.reception_checkup || {}).length">
+          <span style="color:#9CA3AF;">Checkup réception :</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+            <span v-for="(value, key) in etatVehicule.reception_checkup" :key="key" :style="{ background: value === 'ok' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: value === 'ok' ? '#10B981' : '#EF4444', padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: '700' }">
+              {{ value === 'ok' ? '✅' : '❌' }} {{ key }}
+            </span>
+          </div>
+        </div>
+        <div v-if="etatVehicule?.reception_notes">
+          <span style="color:#9CA3AF;">Notes comptoir :</span>
+          <div style="margin-top:4px;color:#E8E9ED;white-space:pre-wrap;">{{ etatVehicule.reception_notes }}</div>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Rapport mécanicien -->
     <UCard v-if="etatVehicule?.mechanic_notes || Object.keys(etatVehicule?.mechanic_checkup || {}).length" style="margin-bottom:20px;">
       <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">🧰 Rapport mécanicien</span></template>

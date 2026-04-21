@@ -41,7 +41,6 @@ class RdvWorkflowListener
     {
         $this->bus->dispatch(new SendRappelMessage($rdv->getId(), 'travaux_termines'));
 
-        // LOT 8 — Auto-create rapport brouillon on terminer
-        $this->rapportService->createDraft($rdv);
+        $this->rapportService->getOrCreateDraft($rdv);
     }
 }

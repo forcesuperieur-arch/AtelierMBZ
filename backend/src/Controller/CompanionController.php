@@ -57,8 +57,12 @@ class CompanionController extends AbstractController
     private function buildCheckupState(RendezVous $rdv, ?OrdreReparation $or = null): array
     {
         $state = $this->decodeEtatVehicule($or?->getEtatVehicule() ?: $rdv->getEtatVehicule());
-        $checkup = is_array($state['mechanic_checkup'] ?? null) ? $state['mechanic_checkup'] : [];
-        $notes = is_string($state['mechanic_notes'] ?? null) ? $state['mechanic_notes'] : '';
+        $checkup = is_array($state['reception_checkup'] ?? null)
+            ? $state['reception_checkup']
+            : (is_array($state['mechanic_checkup'] ?? null) ? $state['mechanic_checkup'] : []);
+        $notes = is_string($state['reception_notes'] ?? null)
+            ? $state['reception_notes']
+            : (is_string($state['mechanic_notes'] ?? null) ? $state['mechanic_notes'] : '');
         $done = count(array_filter($checkup, fn($value) => in_array($value, ['ok', 'nok'], true)));
 
         return [
@@ -370,34 +374,35 @@ class CompanionController extends AbstractController
             }
         }
 
+        $state = $this->decodeEtatVehicule($rdv->getEtatVehicule());
+
         if (isset($data['etat_vehicule'])) {
-            $rdv->setEtatVehicule(is_array($data['etat_vehicule'])
-                ? json_encode($data['etat_vehicule'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                : $data['etat_vehicule']);
+            if (is_array($data['etat_vehicule'])) {
+                $state = array_replace_recursive($state, $data['etat_vehicule']);
+            } elseif (is_string($data['etat_vehicule']) && trim($data['etat_vehicule']) !== '') {
+                $state['observations'] = trim($data['etat_vehicule']);
+            }
         }
 
         $incomingCheckup = $data['checkup'] ?? $data['mechanic_checkup'] ?? null;
         $incomingNotes = $data['checkup_notes'] ?? $data['mechanic_notes'] ?? null;
 
         if (is_array($incomingCheckup) || is_string($incomingNotes)) {
-            if (!$or) {
-                $or = new OrdreReparation();
-                $or->setRendezVous($rdv);
-                $or->setNumeroOr('OR-' . $rdv->getId() . '-' . date('Ymd'));
-                $or->setTypeOr('initial');
-                $or->snapshotFromRdv();
-                $this->em->persist($or);
-            }
-
-            $state = $this->decodeEtatVehicule($or->getEtatVehicule());
             if (is_array($incomingCheckup)) {
-                $state['mechanic_checkup'] = $incomingCheckup;
+                $state['reception_checkup'] = $incomingCheckup;
             }
             if (is_string($incomingNotes)) {
-                $state['mechanic_notes'] = $incomingNotes;
+                $state['reception_notes'] = $incomingNotes;
             }
-            $state['last_mechanic_update_at'] = (new \DateTime())->format(DATE_ATOM);
-            $or->setEtatVehicule(json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $state['last_reception_update_at'] = (new \DateTime())->format(DATE_ATOM);
+        }
+
+        $serializedState = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($serializedState)) {
+            $rdv->setEtatVehicule($serializedState);
+            if ($or) {
+                $or->setEtatVehicule($serializedState);
+            }
         }
 
         $this->em->flush();
