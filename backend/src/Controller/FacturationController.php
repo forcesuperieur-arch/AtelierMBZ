@@ -7,6 +7,7 @@ use App\Entity\Facture;
 use App\Entity\LigneFacture;
 use App\Entity\Paiement;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Service\AuditService;
 use App\Service\CurrentAtelierResolver;
 use App\Service\PdfService;
@@ -41,7 +42,7 @@ class FacturationController extends AbstractController
 
     private function getConfigAtelier(): ?ConfigAtelier
     {
-        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelierId = $this->atelierResolver->resolveAtelierId();
         if (!$atelierId) {
             return null;
         }
@@ -50,12 +51,66 @@ class FacturationController extends AbstractController
 
     private function resolveAtelierBranding(): array
     {
-        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelierId = $this->atelierResolver->resolveAtelierId();
         $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
         return [
             'from' => $atelier?->getEmail() ?? 'noreply@paddock.fr',
             'nom' => $atelier?->getNom() ?? 'Paddock',
         ];
+    }
+
+    private function getAuthenticatedUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
+    }
+
+    private function hasLegacyAdminFallback(): bool
+    {
+        return $this->isGranted('ROLE_ADMIN') && $this->getAuthenticatedUser()?->getRoleMetier() === null;
+    }
+
+    private function assertFacturationWriteAccess(): void
+    {
+        if ($this->isGranted('ROLE_SUPER_ADMIN')
+            || $this->isGranted('ROLE_COMPTABLE')
+            || $this->isGranted('PERM_facturation.edit')
+            || $this->isGranted('PERM_facturation.create')
+            || $this->hasLegacyAdminFallback()) {
+            return;
+        }
+
+        throw $this->createAccessDeniedException('Accès facturation refusé.');
+    }
+
+    private function assertFacturationReadAccess(): void
+    {
+        if ($this->isGranted('ROLE_SUPER_ADMIN')
+            || $this->isGranted('ROLE_COMPTABLE')
+            || $this->isGranted('PERM_facturation.edit')
+            || $this->isGranted('PERM_facturation.create')
+            || $this->isGranted('ROLE_USER')) {
+            return;
+        }
+
+        throw $this->createAccessDeniedException('Accès facturation refusé.');
+    }
+
+    private function nextDocumentNumber(string $prefix): string
+    {
+        $conn = $this->em->getConnection();
+        $year = date('Y');
+        $seqName = strtolower($prefix) . '_seq_' . $year;
+
+        try {
+            $conn->executeStatement(sprintf('CREATE SEQUENCE IF NOT EXISTS %s START 1', $seqName));
+        } catch (\Throwable) {
+        }
+
+        $nextVal = (int) $conn->fetchOne(sprintf("SELECT nextval('%s')", $seqName));
+
+        return sprintf('%s-%s-%04d', strtoupper($prefix), $year, $nextVal);
     }
 
     private function buildRdvInvoicePreview(RendezVous $rdv, string $remisePourcent = '0'): array
@@ -105,7 +160,7 @@ class FacturationController extends AbstractController
     #[Route('', methods: ['GET'])]
     public function list(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $this->assertFacturationReadAccess();
 
         $qb = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
             ->orderBy('f.createdAt', 'DESC');
@@ -122,7 +177,7 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}/preview-facture', methods: ['GET'])]
     public function previewFacture(int $rdvId): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $this->assertFacturationReadAccess();
 
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
         if (!$rdv) {
@@ -135,7 +190,7 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}/facturer', methods: ['POST'])]
     public function facturerRendezVous(int $rdvId, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->assertFacturationWriteAccess();
 
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
         if (!$rdv) {
@@ -196,7 +251,7 @@ class FacturationController extends AbstractController
     #[Route('/rendez-vous/{rdvId}', methods: ['POST'])]
     public function createFacture(int $rdvId, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->assertFacturationWriteAccess();
 
         $data = json_decode($request->getContent(), true) ?? [];
 
@@ -206,18 +261,7 @@ class FacturationController extends AbstractController
         }
 
         // Generate invoice number via PostgreSQL sequence to avoid race conditions
-        $conn = $this->em->getConnection();
-        $year = date('Y');
-        $seqName = 'facture_seq_' . $year;
-
-        // Ensure sequence exists for this year
-        try {
-            $conn->executeStatement(sprintf('CREATE SEQUENCE IF NOT EXISTS %s START 1', $seqName));
-        } catch (\Throwable) {
-            // sequence already exists — ok
-        }
-        $nextVal = (int) $conn->fetchOne(sprintf("SELECT nextval('%s')", $seqName));
-        $numero = sprintf('FAC-%s-%04d', $year, $nextVal);
+        $numero = $this->nextDocumentNumber('FAC');
 
         $facture = new Facture();
         $facture->setNumeroFacture($numero);
@@ -225,6 +269,7 @@ class FacturationController extends AbstractController
         $facture->setClient($rdv->getClient());
         $facture->setVehicule($rdv->getVehicule());
         $facture->setAtelierId($rdv->getAtelierId());
+        $facture->setNature(Facture::NATURE_FACTURE);
 
         // Set amounts from request data or defaults
         $facture->setTotalMoHt($data['total_mo_ht'] ?? '0.00');
@@ -272,11 +317,15 @@ class FacturationController extends AbstractController
     #[Route('/{id}/paiement', methods: ['POST'])]
     public function addPaiement(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->assertFacturationWriteAccess();
 
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($facture->isAvoir() || $facture->getStatut() === Facture::STATUS_CORRIGEE) {
+            return $this->json(['error' => 'Cette facture ne peut pas recevoir d\'encaissement.'], Response::HTTP_CONFLICT);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -302,9 +351,9 @@ class FacturationController extends AbstractController
         $totalPaye = bcadd($totalPaye, (string) $data['montant'], 2);
 
         if (bccomp($totalPaye, (string) $facture->getTotalTtc(), 2) >= 0) {
-            $facture->setStatut('payee');
+            $facture->setStatut(Facture::STATUS_PAYEE);
         } else {
-            $facture->setStatut('partiellement_payee');
+            $facture->setStatut(Facture::STATUS_PARTIELLEMENT_PAYEE);
         }
 
         $this->em->flush();
@@ -331,7 +380,7 @@ class FacturationController extends AbstractController
     #[Route('/{id}/pdf', methods: ['GET'])]
     public function downloadPdf(int $id): BinaryFileResponse|JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $this->assertFacturationReadAccess();
 
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
@@ -340,7 +389,9 @@ class FacturationController extends AbstractController
 
         $filePath = $this->pdfService->generateFacturePdf($facture);
 
-        return $this->file($filePath, 'Facture-' . $facture->getNumeroFacture() . '.pdf');
+        $prefix = $facture->isAvoir() ? 'Avoir-' : 'Facture-';
+
+        return $this->file($filePath, $prefix . $facture->getNumeroFacture() . '.pdf');
     }
 
     /**
@@ -349,7 +400,7 @@ class FacturationController extends AbstractController
     #[Route('/{id}/email', methods: ['POST'])]
     public function sendEmail(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->assertFacturationWriteAccess();
 
         $facture = $this->em->getRepository(Facture::class)->find($id);
         if (!$facture) {
@@ -385,5 +436,88 @@ class FacturationController extends AbstractController
         ]));
 
         return $this->json(['success' => true, 'sent_to' => $client->getEmail()]);
+    }
+
+    #[Route('/{id}/avoir', methods: ['POST'])]
+    public function issueAvoir(int $id, Request $request): JsonResponse
+    {
+        $this->assertFacturationWriteAccess();
+
+        $facture = $this->em->getRepository(Facture::class)->find($id);
+        if (!$facture) {
+            return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($facture->isAvoir()) {
+            return $this->json(['error' => 'Un avoir ne peut pas être corrigé par un autre avoir via ce flux.'], Response::HTTP_CONFLICT);
+        }
+
+        if ($facture->getStatut() === Facture::STATUS_CORRIGEE) {
+            return $this->json(['error' => 'Cette facture a déjà été corrigée par un avoir.'], Response::HTTP_CONFLICT);
+        }
+
+        $motif = trim((string) ((json_decode($request->getContent(), true) ?? [])['motif'] ?? ''));
+        if ($motif === '') {
+            return $this->json(['error' => 'Le motif d\'avoir est obligatoire.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $avoir = new Facture();
+        $avoir->setNumeroFacture($this->nextDocumentNumber('AVO'));
+        $avoir->setRendezVous($facture->getRendezVous());
+        $avoir->setClient($facture->getClient());
+        $avoir->setVehicule($facture->getVehicule());
+        $avoir->setAtelierId($facture->getAtelierId());
+        $avoir->setNature(Facture::NATURE_AVOIR);
+        $avoir->setFactureOrigine($facture);
+        $avoir->setMotifCorrection($motif);
+        $avoir->setStatut(Facture::STATUS_EMISE);
+        $avoir->setTotalMoHt(bcmul((string) $facture->getTotalMoHt(), '-1', 2));
+        $avoir->setTotalPiecesHt(bcmul((string) $facture->getTotalPiecesHt(), '-1', 2));
+        $avoir->setTotalHt(bcmul((string) $facture->getTotalHt(), '-1', 2));
+        $avoir->setTvaMo(bcmul((string) $facture->getTvaMo(), '-1', 2));
+        $avoir->setTvaPieces(bcmul((string) $facture->getTvaPieces(), '-1', 2));
+        $avoir->setTotalTva(bcmul((string) $facture->getTotalTva(), '-1', 2));
+        $avoir->setTotalTtc(bcmul((string) $facture->getTotalTtc(), '-1', 2));
+        $avoir->setRemisePourcentage($facture->getRemisePourcentage());
+        $avoir->setRemiseMontant(bcmul((string) $facture->getRemiseMontant(), '-1', 2));
+        $avoir->setTempsFactureMinutes($facture->getTempsFactureMinutes());
+        $avoir->setTauxHoraire($facture->getTauxHoraire());
+        $avoir->setTvaMoTaux($facture->getTvaMoTaux());
+        $avoir->setTvaPiecesTaux($facture->getTvaPiecesTaux());
+        $avoir->setNotes(trim(sprintf("Avoir de correction de %s\nMotif : %s\n%s", $facture->getNumeroFacture(), $motif, (string) ($facture->getNotes() ?? ''))));
+
+        $this->em->persist($avoir);
+
+        foreach ($facture->getLignes() as $index => $ligne) {
+            $copie = new LigneFacture();
+            $copie->setFacture($avoir);
+            $copie->setAtelierId($facture->getAtelierId());
+            $copie->setTypeLigne($ligne->getTypeLigne());
+            $copie->setDesignation('Avoir - ' . $ligne->getDesignation());
+            $copie->setReference($ligne->getReference());
+            $copie->setQuantite($ligne->getQuantite());
+            $copie->setPrixUnitaireHt(bcmul((string) $ligne->getPrixUnitaireHt(), '-1', 2));
+            $copie->setTauxTva($ligne->getTauxTva());
+            $copie->setTotalLigneHt(bcmul((string) $ligne->getTotalLigneHt(), '-1', 2));
+            $copie->setTotalLigneTtc(bcmul((string) $ligne->getTotalLigneTtc(), '-1', 2));
+            $copie->setOrdre($index);
+            $this->em->persist($copie);
+        }
+
+        $facture->setStatut(Facture::STATUS_CORRIGEE);
+        $this->em->flush();
+
+        $this->audit->log('credit_note', 'facture', $facture->getId(), json_encode([
+            'facture_origine' => $facture->getNumeroFacture(),
+            'avoir' => $avoir->getNumeroFacture(),
+            'motif' => $motif,
+        ]));
+
+        return $this->json([
+            'id' => $avoir->getId(),
+            'numero_facture' => $avoir->getNumeroFacture(),
+            'facture_origine_id' => $facture->getId(),
+            'nature' => $avoir->getNature(),
+        ], Response::HTTP_CREATED);
     }
 }

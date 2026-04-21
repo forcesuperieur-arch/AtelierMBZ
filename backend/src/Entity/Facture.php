@@ -19,6 +19,14 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 class Facture
 {
+    public const NATURE_FACTURE = 'facture';
+    public const NATURE_AVOIR = 'avoir';
+
+    public const STATUS_EMISE = 'emise';
+    public const STATUS_PAYEE = 'payee';
+    public const STATUS_PARTIELLEMENT_PAYEE = 'partiellement_payee';
+    public const STATUS_CORRIGEE = 'corrigee';
+
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
     #[Groups(['facture:read'])]
     private ?int $id = null;
@@ -40,6 +48,18 @@ class Facture
     #[ORM\ManyToOne(targetEntity: Vehicule::class)] #[ORM\JoinColumn(name: 'vehicule_id', nullable: true)]
     #[Groups(['facture:read', 'facture:write'])]
     private ?Vehicule $vehicule = null;
+
+    #[ORM\Column(length: 20, options: ['default' => 'facture'])]
+    #[Groups(['facture:read'])]
+    private string $nature = self::NATURE_FACTURE;
+
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(name: 'facture_origine_id', nullable: true, onDelete: 'SET NULL')]
+    private ?self $factureOrigine = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['facture:read'])]
+    private ?string $motifCorrection = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
     #[Groups(['facture:read', 'facture:write'])]
@@ -95,7 +115,7 @@ class Facture
 
     #[ORM\Column(length: 50, options: ['default' => 'emise'])]
     #[Groups(['facture:read', 'facture:write'])]
-    private string $statut = 'emise';
+    private string $statut = self::STATUS_EMISE;
 
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['facture:read'])]
@@ -189,6 +209,15 @@ class Facture
     public function setClient(Client $v): static { $this->client = $v; return $this; }
     public function getVehicule(): ?Vehicule { return $this->vehicule; }
     public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }
+    public function getNature(): string { return $this->nature; }
+    public function setNature(string $v): static { $this->nature = $v; return $this; }
+    public function isAvoir(): bool { return $this->nature === self::NATURE_AVOIR; }
+    public function getFactureOrigine(): ?self { return $this->factureOrigine; }
+    public function setFactureOrigine(?self $v): static { $this->factureOrigine = $v; return $this; }
+    #[Groups(['facture:read'])]
+    public function getFactureOrigineId(): ?int { return $this->factureOrigine?->getId(); }
+    public function getMotifCorrection(): ?string { return $this->motifCorrection; }
+    public function setMotifCorrection(?string $v): static { $this->motifCorrection = $v; return $this; }
     public function getTotalMoHt(): string { return $this->totalMoHt; }
     public function setTotalMoHt(string $v): static { $this->totalMoHt = $v; return $this; }
     public function getTotalPiecesHt(): string { return $this->totalPiecesHt; }

@@ -48,6 +48,11 @@ export const useBillingStore = defineStore('billing', {
       return api.post(`/facturation/${factureId}/paiement`, data)
     },
 
+    async createAvoir(factureId: number, motif: string) {
+      const api = useApi()
+      return api.post(`/facturation/${factureId}/avoir`, { motif })
+    },
+
     downloadPdf(factureId: number) {
       const { openPdf } = usePdfDownload()
       openPdf(`/facturation/${factureId}/pdf`)

@@ -63,13 +63,13 @@ class StatistiquesController extends AbstractController
         );
 
         $caMonth = $conn->fetchOne(
-            "SELECT COALESCE(SUM(total_ttc), 0) FROM factures WHERE DATE(date_creation) BETWEEN :s AND :e AND atelier_id = :a AND statut != :st",
-            ['s' => $monthStart, 'e' => $monthEnd, 'a' => $atelierId, 'st' => 'annulee']
+            "SELECT COALESCE(SUM(total_ttc), 0) FROM factures WHERE DATE(date_creation) BETWEEN :s AND :e AND atelier_id = :a AND statut NOT IN ('annulee', 'corrigee')",
+            ['s' => $monthStart, 'e' => $monthEnd, 'a' => $atelierId]
         );
 
         $impayees = $conn->fetchOne(
-            'SELECT COUNT(*) FROM factures WHERE statut IN (:s1, :s2) AND atelier_id = :a',
-            ['s1' => 'emise', 's2' => 'partiellement_payee', 'a' => $atelierId]
+            'SELECT COUNT(*) FROM factures WHERE statut IN (:s1, :s2) AND nature = :nature AND atelier_id = :a',
+            ['s1' => 'emise', 's2' => 'partiellement_payee', 'nature' => 'facture', 'a' => $atelierId]
         );
 
         $activeByStatus = $conn->fetchAllAssociative(
@@ -174,8 +174,8 @@ class StatistiquesController extends AbstractController
              FROM factures
              WHERE DATE(date_creation) BETWEEN :s AND :e
                AND atelier_id = :a
-               AND statut != :st",
-            ['s' => $from, 'e' => $to, 'a' => $atelierId, 'st' => 'annulee']
+                    AND statut NOT IN ('annulee', 'corrigee')",
+                ['s' => $from, 'e' => $to, 'a' => $atelierId]
         ) ?: [];
 
         $caPeriod = (float) ($revenueMix['total_ttc'] ?? 0);
@@ -187,8 +187,8 @@ class StatistiquesController extends AbstractController
              FROM factures
              WHERE DATE(date_creation) BETWEEN :s AND :e
                AND atelier_id = :a
-               AND statut != :st",
-            ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId, 'st' => 'annulee']
+                    AND statut NOT IN ('annulee', 'corrigee')",
+                ['s' => $prevFrom, 'e' => $prevTo, 'a' => $atelierId]
         ) ?: [];
 
         $caPrev = (float) ($revenueMixPrev['total_ttc'] ?? 0);
@@ -288,13 +288,13 @@ class StatistiquesController extends AbstractController
 
     private function assertStatsAccess(): void
     {
-        if ($this->isGranted('ROLE_SUPER_ADMIN') || $this->isGranted('ROLE_RESPONSABLE_ATELIER') || $this->isGranted('ROLE_RESPONSABLE_MAGASIN')) {
+        if ($this->isGranted('ROLE_SUPER_ADMIN') || $this->isGranted('ROLE_RESPONSABLE_ATELIER') || $this->isGranted('ROLE_RESPONSABLE_MAGASIN') || $this->isGranted('ROLE_COMPTABLE')) {
             return;
         }
 
         $roleMetierCode = $this->getAuthenticatedUser()?->getRoleMetier()?->getCode();
 
-        if (in_array($roleMetierCode, ['responsable_atelier', 'responsable_magasin'], true)) {
+        if (in_array($roleMetierCode, ['responsable_atelier', 'responsable_magasin', 'comptable'], true)) {
             return;
         }
 
@@ -372,7 +372,7 @@ class StatistiquesController extends AbstractController
                     COUNT(*) as nb_factures
              FROM factures
              WHERE EXTRACT(YEAR FROM date_creation) = :year
-               AND atelier_id = :a AND statut != 'annulee'
+               AND atelier_id = :a AND statut NOT IN ('annulee', 'corrigee')
              GROUP BY EXTRACT(MONTH FROM date_creation)
              ORDER BY mois",
             ['year' => $year, 'a' => $atelierId]

@@ -18,7 +18,7 @@
     <UCard>
       <UTable :data="filtered" :columns="columns" :loading="loading">
         <template #statut-cell="{ row }">
-          <StatusBadge :status="row.original.statut === 'payee' ? 'paye' : row.original.statut === 'partielle' ? 'en_cours' : row.original.statut === 'annulee' ? 'a_regulariser' : row.original.statut" />
+          <StatusBadge :status="row.original.nature === 'avoir' ? 'avoir' : row.original.statut === 'payee' ? 'paye' : row.original.statut === 'partiellement_payee' ? 'partiellement_payee' : row.original.statut" />
         </template>
         <template #total_ttc-cell="{ row }">
           {{ formatCurrency(row.original.total_ttc) }}
@@ -31,12 +31,43 @@
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;">
             <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)">📄 PDF</button>
-            <button v-if="row.original.statut !== 'payee' && row.original.statut !== 'annulee'" style="color:#6EE7B7;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
+            <button v-if="canManageBilling && canCollectPayment(row.original)" style="color:#6EE7B7;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
+            <button v-if="canManageBilling && canIssueAvoir(row.original)" style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openAvoir(row.original)">↩ Avoir</button>
+            <button v-if="canManageBilling" style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
           </div>
         </template>
       </UTable>
     </UCard>
+
+    <AppModal v-model:open="showAvoir" size="lg">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;">↩ Émettre un avoir — {{ selectedFacture?.numero_facture }}</span>
+              <button @click="showAvoir = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+          </template>
+
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-size:13px;color:#9CA3AF;">Cet avoir corrigera la facture d'origine. La facture source passera en statut corrigé et ne sera plus encaissable.</div>
+            <div class="form-group">
+              <label class="form-label">Motif de l'avoir</label>
+              <textarea v-model="avoirMotif" class="form-input" rows="3" placeholder="Erreur de facturation, geste commercial, annulation par avoir..." />
+            </div>
+          </div>
+
+          <template #footer>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button class="btn btn-ghost" @click="showAvoir = false">Annuler</button>
+              <button class="btn btn-primary" style="background:#EF4444 !important;border-color:#EF4444 !important;" @click="submitAvoir" :disabled="crediting">
+                {{ crediting ? 'Émission…' : 'Émettre l\'avoir' }}
+              </button>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </AppModal>
 
     <!-- Encaissement Modal -->
     <AppModal v-model:open="showEncaissement" size="lg">
@@ -192,12 +223,16 @@
 const billingStore = useBillingStore()
 const api = useApi()
 const toast = useToast()
+const auth = useAuth()
 const loading = ref(true)
 const filter = ref('')
 const search = ref('')
 const showEncaissement = ref(false)
 const paying = ref(false)
+const showAvoir = ref(false)
+const crediting = ref(false)
 const selectedFacture = ref<any>(null)
+const avoirMotif = ref('')
 
 const paiement = reactive({
   mode: 'carte_bancaire',
@@ -215,9 +250,12 @@ const statusOptions = [
   { value: '', label: 'Toutes' },
   { value: 'brouillon', label: 'Brouillon' },
   { value: 'emise', label: 'Émise' },
-  { value: 'partielle', label: 'Partielle' },
+  { value: 'partiellement_payee', label: 'Partiellement payée' },
   { value: 'payee', label: 'Payée' },
+  { value: 'corrigee', label: 'Corrigée par avoir' },
 ]
+
+const canManageBilling = computed(() => auth.canManageBilling())
 
 const columns = [
   { key: 'numero_facture', label: 'N°' },
@@ -255,6 +293,20 @@ function openEncaissement(facture: any) {
   showEncaissement.value = true
 }
 
+function openAvoir(facture: any) {
+  selectedFacture.value = facture
+  avoirMotif.value = ''
+  showAvoir.value = true
+}
+
+function canCollectPayment(facture: any) {
+  return facture?.nature !== 'avoir' && !['payee', 'corrigee'].includes(String(facture?.statut || ''))
+}
+
+function canIssueAvoir(facture: any) {
+  return facture?.nature !== 'avoir' && String(facture?.statut || '') !== 'corrigee'
+}
+
 async function submitPaiement() {
   if (!selectedFacture.value || paiement.montant <= 0) return
   paying.value = true
@@ -272,6 +324,26 @@ async function submitPaiement() {
     toast.add({ title: 'Erreur', description: e?.message || 'Échec', color: 'error' })
   } finally {
     paying.value = false
+  }
+}
+
+async function submitAvoir() {
+  if (!selectedFacture.value) return
+  if (!avoirMotif.value.trim()) {
+    toast.add({ title: 'Motif requis', description: 'Le motif de l\'avoir est obligatoire.', color: 'error' })
+    return
+  }
+
+  crediting.value = true
+  try {
+    await billingStore.createAvoir(selectedFacture.value.id, avoirMotif.value.trim())
+    toast.add({ title: 'Avoir émis', color: 'success' })
+    showAvoir.value = false
+    await billingStore.fetchFactures()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message || 'Échec émission avoir', color: 'error' })
+  } finally {
+    crediting.value = false
   }
 }
 
