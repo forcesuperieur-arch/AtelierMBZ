@@ -25,14 +25,14 @@
     </div>
 
     <div class="vo-companion-banner">
-      <strong>Mode compagnon PDA prêt dès l'ouverture</strong>
-      <span>Le QR code du parcours VO apparaît directement. Tu peux soit remplir le dossier à la main, soit scanner tout de suite les documents vendeur et moto pour préremplir automatiquement le rachat.</span>
+      <strong>Mode compagnon PDA disponible dès l'ouverture</strong>
+      <span>Le QR code du parcours VO apparaît directement. Tu peux soit remplir le dossier à la main, soit scanner les pièces vendeur et moto pour proposer les données du rachat avant validation interne.</span>
     </div>
 
     <div id="companion-qr-hero" class="vo-hero-qr">
       <div>
         <strong>QR compagnon immédiat</strong>
-        <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces et laisser le dossier se remplir tout seul.</p>
+        <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces et récupérer les informations utiles du dossier avant contrôle comptoir.</p>
         <div class="vo-inline-actions" style="margin-top: 10px;">
           <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
             {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
@@ -133,7 +133,8 @@
               </label>
               <label class="vo-field">
                 <span>VIN</span>
-                <input v-model="vehicleForm.vin" class="vo-input" />
+                <input v-model="vehicleForm.vin" class="vo-input" :class="{ 'vo-input-error': vehicleForm.vin && !isValidVin(vehicleForm.vin) }" />
+                <span v-if="vehicleForm.vin && !isValidVin(vehicleForm.vin)" class="vo-field-error">{{ vinErrorMessage(vehicleForm.vin) }}</span>
               </label>
               <label class="vo-field">
                 <span>Marque</span>
@@ -408,7 +409,7 @@
 <script setup lang="ts">
 import { useVoStore } from '~/stores/vo'
 import { adoptDraftEntity, syncDraftBoolean, syncDraftField, type DraftSyncMemory } from '~/composables/voCompanionDraftSync'
-import { applyVehicleToForm, buildVoVehiclePayload, extractVehicleCategoryId } from '~/composables/voVehicleForm'
+import { applyVehicleToForm, buildVoVehiclePayload, extractVehicleCategoryId, isValidVin, vinErrorMessage } from '~/composables/voVehicleForm'
 
 definePageMeta({ title: 'Nouveau rachat VO' })
 
@@ -818,6 +819,12 @@ async function submit() {
     return
   }
 
+  // Guard VIN (ISO 3779)
+  if (vehicleForm.vin && !isValidVin(vehicleForm.vin)) {
+    toast.add({ title: 'VIN invalide', description: vinErrorMessage(vehicleForm.vin) ?? 'VIN non conforme ISO 3779', color: 'error' })
+    return
+  }
+
   submitting.value = true
   try {
     const sellerId = await ensureSeller()
@@ -1215,5 +1222,17 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.vo-input-error {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.vo-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #EF4444;
 }
 </style>

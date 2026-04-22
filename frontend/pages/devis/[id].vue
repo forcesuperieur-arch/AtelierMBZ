@@ -176,9 +176,14 @@ async function action(type: string) {
       await api.post(`/devis/${id}/refuser`, {})
       toast.add({ title: 'Devis refusé', color: 'warning' })
     } else if (type === 'convertir') {
-      await api.post(`/devis/${id}/convertir`, {})
+      // [SPRINT-5] I26 — Rediriger vers le RDV créé si l'API retourne rdv_id
+      const result = await api.post(`/devis/${id}/convertir`, {})
       toast.add({ title: 'Converti en RDV', color: 'success' })
-      router.push('/rdv')
+      if (result?.rdv_id) {
+        router.push(`/rdv/${result.rdv_id}`)
+      } else {
+        router.push('/rdv')
+      }
       return
     } else if (type === 'supprimer') {
       await api.del(`/devis/${id}`)

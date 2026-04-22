@@ -123,8 +123,9 @@ function normalizeCylindree(value: unknown): string {
   return toDigitLike(normalizeLoose(value)).replace(/[^0-9]/g, '').slice(0, 4)
 }
 
+// [SPRINT-5] I21 — Exclure I, O, Q (interdits ISO 3779) + exactement 17 chars
 function normalizeVin(value: unknown): string {
-  return toDigitLike(normalizeLoose(value)).replace(/[^A-Z0-9]/g, '').slice(0, 17)
+  return toDigitLike(normalizeLoose(value)).replace(/[^A-HJ-NPR-Z0-9]/g, '').slice(0, 17)
 }
 
 function normalizeYear(value: unknown): string {

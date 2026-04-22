@@ -13,9 +13,9 @@ export function useVoHelpers() {
     piece_identite: 'Pièce d’identité',
     justificatif_domicile: 'Justificatif de domicile',
     contrat_depot_vente: 'Contrat dépôt-vente',
-    da_siv: 'DA SIV préremplie',
+    da_siv: 'Déclaration d’achat CERFA 13751',
     recepisse_da: 'Récépissé DA',
-    mandat_immatriculation: 'Mandat immatriculation',
+    mandat_immatriculation: 'Mandat immatriculation CERFA 13757',
     facture_vo: 'Facture VO',
     pv_rachat: 'PV de rachat',
     remise_en_etat: 'Document remise en état',
@@ -107,6 +107,11 @@ export function useVoHelpers() {
     return extractCollection(data)
   }
 
+  // [SPRINT-5] I24 — Config atelier pour durée mandat et autres paramètres
+  async function fetchConfigAtelier(): Promise<Record<string, any> | null> {
+    return api.get('/config/atelier').catch(() => null)
+  }
+
   async function fetchExperts() {
     const data = await api.get('/users').catch(() => [])
     const users = extractCollection(data)
@@ -193,6 +198,7 @@ export function useVoHelpers() {
     formatRegistrationOrVin,
     findVehiculeByQuery,
     searchClients,
+    fetchConfigAtelier,
     fetchExperts,
     fetchMotoCategories,
     createQuickClient,

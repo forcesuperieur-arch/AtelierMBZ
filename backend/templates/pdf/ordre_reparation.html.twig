@@ -123,5 +123,11 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    {# [SPRINT-5] I23 — Garantie travaux configurable via ConfigAtelier.garantieTravauxJours #}
+    <div style="margin-top: 10px; font-size: 9px; color: #666; border-top: 1px solid #eee; padding-top: 8px;">
+        <p>Garantie travaux : {{ configAtelier is defined and configAtelier and configAtelier.garantieTravauxJours is defined ? configAtelier.garantieTravauxJours : 30 }} jours à compter de la date de restitution du véhicule.</p>
+    </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

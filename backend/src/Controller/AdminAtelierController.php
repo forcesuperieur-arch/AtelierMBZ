@@ -81,6 +81,16 @@ final class AdminAtelierController extends AbstractController
             ->setActif($this->normalizeBool($data['actif'] ?? true))
             ->setConfigJson($this->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
 
+        // [SPRINT-5] I18 — Bloquer l'activation si SIRET ou TVA intra manquants
+        if ($atelier->isActif()) {
+            if (!$atelier->getSiret()) {
+                return $this->json(['error' => 'Le SIRET est obligatoire pour activer un atelier.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            if (!$atelier->getTvaIntracom()) {
+                return $this->json(['error' => 'Le numéro TVA intracommunautaire est obligatoire pour activer un atelier.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        }
+
         $this->em->persist($atelier);
         $this->em->flush();
 
@@ -150,6 +160,16 @@ final class AdminAtelierController extends AbstractController
         }
         if (array_key_exists('plan', $data)) $atelier->setPlan($this->nullableString($data['plan']) ?: 'starter');
         if (array_key_exists('actif', $data)) $atelier->setActif($this->normalizeBool($data['actif']));
+
+        // [SPRINT-5] I18 — Bloquer l'activation si SIRET ou TVA intra manquants
+        if ($atelier->isActif()) {
+            if (!$atelier->getSiret()) {
+                return $this->json(['error' => 'Le SIRET est obligatoire pour activer un atelier.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            if (!$atelier->getTvaIntracom()) {
+                return $this->json(['error' => 'Le numéro TVA intracommunautaire est obligatoire pour activer un atelier.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        }
         if (array_key_exists('config_json', $data) || array_key_exists('configJson', $data)) {
             $atelier->setConfigJson($this->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
         }

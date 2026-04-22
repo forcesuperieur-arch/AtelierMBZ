@@ -8,6 +8,12 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'essai_routier')]
 class EssaiRoutier
 {
+    // [SPRINT-5] I17 — Statuts explicites (pas de workflow Symfony : flux linéaire sans side-effects complexes)
+    public const STATUT_BROUILLON        = 'brouillon';
+    public const STATUT_VALIDE           = 'valide';
+    public const STATUT_ANOMALIE         = 'anomalie_detectee';
+    public const STATUTS = [self::STATUT_BROUILLON, self::STATUT_VALIDE, self::STATUT_ANOMALIE];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

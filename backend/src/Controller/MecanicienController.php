@@ -261,7 +261,9 @@ class MecanicienController extends AbstractController
             }
 
             $hasAnomalie = !empty(array_filter($checkpoints, fn (array $checkpoint) => $this->checkpointStatus($checkpoint) === 'nok'));
-            $essai->setStatut($hasAnomalie ? 'anomalie_detectee' : 'valide');
+            // [SPRINT-5] I17 — setStatut() direct intentionnel : EssaiRoutier est linéaire, sans side-effects
+            // complexes (pas de LP, pas de facture, pas de Mercure). Un workflow Symfony n'apporte pas de valeur ici.
+            $essai->setStatut($hasAnomalie ? EssaiRoutier::STATUT_ANOMALIE : EssaiRoutier::STATUT_VALIDE);
             $essai->setValidatedAt(new \DateTime());
         }
 

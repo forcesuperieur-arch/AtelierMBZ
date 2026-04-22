@@ -118,6 +118,10 @@
 
     <div class="footer">
         <p>Conditions de paiement : à réception. En cas de retard de paiement, des pénalités de 3× le taux d'intérêt légal seront appliquées.</p>
+        {# [SPRINT-5] I22 — Mentions légales obligatoires Art. 289 CGI #}
+        {% if atelier and atelier.tvaIntracom %}<p>N° TVA intracommunautaire : {{ atelier.tvaIntracom }}</p>{% endif %}
+        <p>Facture établie conformément à l'article 289 du Code général des impôts.</p>
     </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

@@ -172,9 +172,13 @@ class DevisController extends AbstractController
         $rdv->setPrixEstime($devis->getTotalTtc());
         $rdv->setAtelierId($devis->getAtelierId());
 
-        // Estimate duration from line items (rough: 1h per 100€ MO)
+        // Estimate duration from line items — taux MO depuis ConfigAtelier (défaut 65€/h)
         $moHt = (float) $devis->getTotalMoHt();
-        $tempsEstime = max(30, (int) round($moHt / 65 * 60)); // 65€/h
+        $configAtelier = $devis->getAtelierId()
+            ? $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $devis->getAtelierId()])
+            : null;
+        $tauxHoraire = $configAtelier?->getTauxHoraireMoStandard() ?? 65.0;
+        $tempsEstime = max(30, (int) round($moHt / $tauxHoraire * 60)); // [SPRINT-5] I13
         $rdv->setTempsEstime($tempsEstime);
 
         $this->em->persist($rdv);

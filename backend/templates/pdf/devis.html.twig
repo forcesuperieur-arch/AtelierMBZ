@@ -125,5 +125,14 @@
         <p><strong>Bon pour accord — Signature du client :</strong></p>
         <p style="height: 60px;">&nbsp;</p>
     </div>
+
+    {# [SPRINT-5] I22 — Mention Art. R.112-1 Code consommation (devis obligatoire > 150 € HT) #}
+    <div style="margin-top: 20px; font-size: 9px; color: #999; border-top: 1px solid #ddd; padding-top: 8px;">
+        {% if devis.totalHt is defined and devis.totalHt > 150 %}
+        <p>Devis établi conformément à l'article R.112-1 du Code de la consommation. Ce devis vous engage sans frais supplémentaires sauf accord écrit préalable.</p>
+        {% endif %}
+        <p>Devis valable {{ devis.joursValidite ?? 30 }} jours à compter de la date d'émission.</p>
+    </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>
