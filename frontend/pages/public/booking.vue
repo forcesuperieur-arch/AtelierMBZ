@@ -215,6 +215,7 @@ definePageMeta({ layout: 'public' })
 
 const config = useRuntimeConfig()
 const baseURL = config.public.apiBase as string
+const bookingAtelierId = Number(config.public.bookingAtelierId) || 1
 
 const submitting = ref(false)
 const loadingSlots = ref(false)
@@ -355,7 +356,7 @@ async function fetchSlots() {
     const end = new Date(`${form.date_rdv}T00:00:00`)
     end.setDate(end.getDate() + 3)
     const endStr = end.toISOString().slice(0, 10)
-    const res = await fetch(`${baseURL}/public/slots?date_debut=${form.date_rdv}&date_fin=${endStr}&temps_minutes=${dureeEstimee.value}&atelier_id=1`, {
+    const res = await fetch(`${baseURL}/public/slots?date_debut=${form.date_rdv}&date_fin=${endStr}&temps_minutes=${dureeEstimee.value}&atelier_id=${bookingAtelierId}`, {
       headers: { Accept: 'application/json' },
     })
     if (!res.ok) throw new Error('Impossible de charger les créneaux disponibles.')
@@ -394,7 +395,7 @@ async function submitBooking() {
         heure_rdv: form.heure_debut,
         type_intervention: typeIntervention,
         commentaire: form.description_probleme,
-        atelier_id: 1,
+        atelier_id: bookingAtelierId,
         prix_estime: totalEstime.value,
         duree_estimee: dureeEstimee.value,
       }),

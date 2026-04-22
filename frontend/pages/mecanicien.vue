@@ -8,6 +8,11 @@
           <div style="font-size:12px;color:#6B7280;">{{ todayLabel }}</div>
         </div>
       </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <NuxtLink to="/profile" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);" title="Mon profil">
+          <UIcon name="i-heroicons-user-circle" style="width:20px;height:20px;" />
+        </NuxtLink>
+      </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;width:100%;">
         <div class="stat-card" style="flex:1;padding:12px;min-width:70px;">
           <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">EN COURS</div>

@@ -34,6 +34,9 @@ export default defineNuxtConfig({
     public: {
       apiBase: '/api',
       mercureUrl: '/.well-known/mercure',
+      // Identifiant de l'atelier exposé sur le port 81 (booking public).
+      // Configurable via NUXT_PUBLIC_BOOKING_ATELIER_ID dans le .env.
+      bookingAtelierId: '1',
     },
   },
 
