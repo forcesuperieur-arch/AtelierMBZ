@@ -43,6 +43,10 @@
       <div v-if="auth.hasSection('mecanicien')" class="meca-avatar" @click="navigateTo('/mecanicien')">
         {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
       </div>
+      <button class="nav-btn nav-profile" @click="navigateTo('/profile')">
+        <span>👤</span>
+        <span class="nav-label">Mon profil</span>
+      </button>
       <button class="nav-btn nav-logout" @click="auth.logout()">
         <span>⏻</span>
         <span class="nav-label">Déconnexion</span>
