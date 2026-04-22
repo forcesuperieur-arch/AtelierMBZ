@@ -18,7 +18,7 @@ final class UserArchiveService
         $user->setGoogleSub(null);
         $user->setPlainPassword(bin2hex(random_bytes(24)));
         $user->setUsername(sprintf('archive.%s', $suffix));
-        $user->setEmail(sprintf('archived-user-%s@ateliermbz.local', $suffix));
+        $user->setEmail(sprintf('archived-user-%s@paddock.local', $suffix));
         $user->setPrenom('Compte');
         $user->setNom('Archivé');
         $user->setValidatedAt(new \DateTime());

@@ -1,0 +1,16 @@
+{# Paddock branding footer — visible sur tous les documents générés par l'app #}
+<div class="paddock-footer" style="margin-top:24px; padding-top:10px; border-top:1px solid #d4a843; font-family: DejaVu Sans, sans-serif;">
+    <table style="margin: 0 auto; border-collapse:collapse;">
+        <tr>
+            {% if paddock_logo_data_uri is defined and paddock_logo_data_uri %}
+            <td style="padding: 0 12px 0 0; vertical-align:middle; width:40px;">
+                <img src="{{ paddock_logo_data_uri }}" alt="Paddock" width="34" height="38">
+            </td>
+            {% endif %}
+            <td style="vertical-align:middle; text-align:left;">
+                <div style="font-size:13px; color:#0c0c0c; letter-spacing:5px; font-weight:700;">{{ paddock_brand|default('PADDOCK')|upper }}</div>
+                <div style="font-size:7px; color:#9ca3af; letter-spacing:2px; margin-top:2px;">DOCUMENT ÉDITÉ AVEC PADDOCK · MOTO WORKSHOP</div>
+            </td>
+        </tr>
+    </table>
+</div>

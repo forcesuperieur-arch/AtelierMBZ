@@ -121,6 +121,6 @@ trait VOCompanionTrait
             return null;
         }
 
-        return '/companion/vo/' . $this->companionToken;
+        return '/public/vo-companion/' . $this->companionToken;
     }
 }

@@ -43,7 +43,11 @@ class CreateAdminCommand extends Command
             $io->info('Default atelier created (id=1).');
         }
 
-        $adminPassword = $_ENV['ADMIN_PASSWORD'] ?? 'admin123';
+        $adminPassword = trim((string) ($_ENV['ADMIN_PASSWORD'] ?? ''));
+        if ($adminPassword === '') {
+            $io->error('ADMIN_PASSWORD must be set before running app:create-admin.');
+            return Command::FAILURE;
+        }
 
         $user = new User();
         $user->setUsername('admin');

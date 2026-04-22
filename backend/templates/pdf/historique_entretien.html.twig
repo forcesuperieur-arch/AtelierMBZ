@@ -106,7 +106,8 @@
 
     <div class="footer">
         Certification : {{ historique.generatedAt }}<br>
-        Document généré automatiquement — Atelier MBZ
+        Synthèse d'entretien générée à la demande — {% if atelier is defined and atelier and atelier.nom %}{{ atelier.nom }}{% else %}Atelier Moto{% endif %}
     </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

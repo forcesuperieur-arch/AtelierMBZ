@@ -3,6 +3,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
+use App\Entity\Paiement;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -252,7 +253,52 @@ class Facture
     public function getTvaPiecesTaux(): float { return $this->tvaPiecesTaux; }
     public function setTvaPiecesTaux(float $v): static { $this->tvaPiecesTaux = $v; return $this; }
     public function getPaiements(): Collection { return $this->paiements; }
+    public function addPaiement(Paiement $paiement): static
+    {
+        if (!$this->paiements->contains($paiement)) {
+            $this->paiements->add($paiement);
+            $paiement->setFacture($this);
+        }
+
+        return $this;
+    }
     public function getLignes(): Collection { return $this->lignes; }
+
+    #[Groups(['facture:read'])]
+    public function getMontantPaye(): string
+    {
+        return $this->sumPaiementsByType($this->isAvoir() ? Paiement::TYPE_REMBOURSEMENT : Paiement::TYPE_ENCAISSEMENT);
+    }
+
+    #[Groups(['facture:read'])]
+    public function getMontantRembourse(): string
+    {
+        return $this->sumPaiementsByType(Paiement::TYPE_REMBOURSEMENT);
+    }
+
+    #[Groups(['facture:read'])]
+    public function getResteAPayer(): string
+    {
+        $total = ltrim((string) $this->getTotalTtc(), '-');
+        $reste = bcsub($total, $this->getMontantPaye(), 2);
+
+        return bccomp($reste, '0', 2) < 0 ? '0.00' : $reste;
+    }
+
+    private function sumPaiementsByType(string $typeOperation): string
+    {
+        $total = '0.00';
+
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getTypeOperation() !== $typeOperation) {
+                continue;
+            }
+
+            $total = bcadd($total, (string) $paiement->getMontant(), 2);
+        }
+
+        return $total;
+    }
 
     // --- RGPD snapshot getters/setters ---
     public function getSnapClientNom(): ?string { return $this->snapClientNom; }

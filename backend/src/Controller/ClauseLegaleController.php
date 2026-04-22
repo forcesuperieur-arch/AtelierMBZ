@@ -68,20 +68,28 @@ class ClauseLegaleController extends AbstractController
             return $this->json(['error' => 'Aucun atelier actif sélectionné'], Response::HTTP_BAD_REQUEST);
         }
 
-        $clause = new ClauseLegale();
-        $clause->setCode($code);
-        $clause->setLibelle($data['libelle']);
-        $clause->setTexte($data['texte']);
-        $clause->setVersion($this->getNextVersionForScope($code, $atelierId));
-        $clause->setAtelierId($atelierId);
-        $clause->setIsActive((bool) ($data['isActive'] ?? true));
+        try {
+            $clause = $this->em->wrapInTransaction(function() use ($code, $data, $atelierId) {
+                $c = new ClauseLegale();
+                $c->setCode($code);
+                $c->setLibelle($data['libelle']);
+                $c->setTexte($data['texte']);
+                $c->setVersion($this->getNextVersionForScope($code, $atelierId));
+                $c->setAtelierId($atelierId);
+                $c->setIsActive((bool) ($data['isActive'] ?? true));
 
-        if (isset($data['effectiveFrom'])) {
-            $clause->setEffectiveFrom(new \DateTime($data['effectiveFrom']));
+                if (isset($data['effectiveFrom'])) {
+                    $c->setEffectiveFrom(new \DateTime($data['effectiveFrom']));
+                }
+
+                $this->em->persist($c);
+                $this->em->flush();
+                
+                return $c;
+            });
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+             return $this->json(['error' => 'Conflit de version, veuillez réessayer'], Response::HTTP_CONFLICT);
         }
-
-        $this->em->persist($clause);
-        $this->em->flush();
 
         $this->audit->log('create_clause_legale', 'clause_legale', $clause->getId(), json_encode([
             'atelier_id' => $atelierId,
@@ -112,17 +120,24 @@ class ClauseLegaleController extends AbstractController
         $editingScopedOverride = $clause->getAtelierId() !== $currentAtelierId;
 
         if ($editingScopedOverride) {
-            $newClause = new ClauseLegale();
-            $newClause->setCode($clause->getCode());
-            $newClause->setLibelle($data['libelle'] ?? $clause->getLibelle());
-            $newClause->setTexte($data['texte'] ?? $clause->getTexte());
-            $newClause->setVersion($this->getNextVersionForScope($clause->getCode(), $currentAtelierId));
-            $newClause->setAtelierId($currentAtelierId);
-            $newClause->setIsActive((bool) ($data['isActive'] ?? $clause->isActive()));
-            $newClause->setEffectiveFrom(isset($data['effectiveFrom']) ? new \DateTime($data['effectiveFrom']) : \DateTimeImmutable::createFromInterface($clause->getEffectiveFrom()));
+            try {
+                $newClause = $this->em->wrapInTransaction(function() use ($clause, $currentAtelierId, $data) {
+                    $c = new ClauseLegale();
+                    $c->setCode($clause->getCode());
+                    $c->setLibelle($data['libelle'] ?? $clause->getLibelle());
+                    $c->setTexte($data['texte'] ?? $clause->getTexte());
+                    $c->setVersion($this->getNextVersionForScope($clause->getCode(), $currentAtelierId));
+                    $c->setAtelierId($currentAtelierId);
+                    $c->setIsActive((bool) ($data['isActive'] ?? $clause->isActive()));
+                    $c->setEffectiveFrom(isset($data['effectiveFrom']) ? new \DateTime($data['effectiveFrom']) : \DateTimeImmutable::createFromInterface($clause->getEffectiveFrom()));
 
-            $this->em->persist($newClause);
-            $this->em->flush();
+                    $this->em->persist($c);
+                    $this->em->flush();
+                    return $c;
+                });
+            } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+                 return $this->json(['error' => 'Conflit de version, veuillez réessayer'], Response::HTTP_CONFLICT);
+            }
 
             $this->audit->log('override_clause_legale', 'clause_legale', $newClause->getId(), json_encode([
                 'source_clause_id' => $clause->getId(),

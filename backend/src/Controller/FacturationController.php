@@ -28,6 +28,95 @@ class FacturationController extends AbstractController
     private const TVA_RATE_FALLBACK = '20.00';
     private const TAUX_HORAIRE_FALLBACK = '65.00';
 
+    private function resolveCurrentAtelierIdOrFail(): int
+    {
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            throw $this->createAccessDeniedException('Contexte atelier introuvable.');
+        }
+
+        return $atelierId;
+    }
+
+    private function findFactureForScope(int $id): ?Facture
+    {
+        if ($this->isGranted('ROLE_SUPER_ADMIN')) {
+            return $this->em->getRepository(Facture::class)->find($id);
+        }
+
+        return $this->em->getRepository(Facture::class)->findOneBy([
+            'id' => $id,
+            'atelierId' => $this->resolveCurrentAtelierIdOrFail(),
+        ]);
+    }
+
+    private function calculateSettledAmount(Facture $facture, string $operationType): string
+    {
+        $total = '0.00';
+        foreach ($facture->getPaiements() as $paiement) {
+            if ($paiement->getTypeOperation() !== $operationType) {
+                continue;
+            }
+
+            $total = bcadd($total, (string) $paiement->getMontant(), 2);
+        }
+
+        return $total;
+    }
+
+    private function getRemainingBalance(Facture $facture, string $operationType): string
+    {
+        $total = ltrim((string) $facture->getTotalTtc(), '-');
+        $settled = $this->calculateSettledAmount($facture, $operationType);
+        $remaining = bcsub($total, $settled, 2);
+
+        return bccomp($remaining, '0', 2) < 0 ? '0.00' : $remaining;
+    }
+
+    private function refreshSettlementStatus(Facture $facture): void
+    {
+        if (!$facture->isAvoir() && $facture->getStatut() === Facture::STATUS_CORRIGEE) {
+            return;
+        }
+
+        $operationType = $facture->isAvoir() ? Paiement::TYPE_REMBOURSEMENT : Paiement::TYPE_ENCAISSEMENT;
+        $settled = $this->calculateSettledAmount($facture, $operationType);
+        $due = ltrim((string) $facture->getTotalTtc(), '-');
+
+        if (bccomp($settled, '0', 2) <= 0) {
+            $facture->setStatut(Facture::STATUS_EMISE);
+            return;
+        }
+
+        if (bccomp($settled, $due, 2) >= 0) {
+            $facture->setStatut(Facture::STATUS_PAYEE);
+            return;
+        }
+
+        $facture->setStatut(Facture::STATUS_PARTIELLEMENT_PAYEE);
+    }
+
+    private function createMoneyMovement(Facture $facture, array $data, string $operationType): Paiement
+    {
+        $paiement = new Paiement();
+        $paiement->setFacture($facture);
+        $paiement->setAtelierId($facture->getAtelierId());
+        $paiement->setTypeOperation($operationType);
+        $paiement->setMontant((string) $data['montant']);
+        $paiement->setModePaiement((string) $data['mode_paiement']);
+        $paiement->setReference($data['reference'] ?? null);
+        $paiement->setNotes($data['notes'] ?? null);
+
+        if (isset($data['date_paiement'])) {
+            $paiement->setDatePaiement(new \DateTime((string) $data['date_paiement']));
+        }
+
+        $facture->addPaiement($paiement);
+        $this->em->persist($paiement);
+
+        return $paiement;
+    }
+
     private function getTvaRate(): string
     {
         $config = $this->getConfigAtelier();
@@ -165,6 +254,11 @@ class FacturationController extends AbstractController
         $qb = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
             ->orderBy('f.createdAt', 'DESC');
 
+        if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
+            $qb->andWhere('f.atelierId = :atelierId')
+                ->setParameter('atelierId', $this->resolveCurrentAtelierIdOrFail());
+        }
+
         if ($statut = $request->query->get('statut')) {
             $qb->andWhere('f.statut = :statut')->setParameter('statut', $statut);
         }
@@ -179,7 +273,12 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationReadAccess();
 
-        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        $criteria = ['id' => $rdvId];
+        if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
+            $criteria['atelierId'] = $this->resolveCurrentAtelierIdOrFail();
+        }
+
+        $rdv = $this->em->getRepository(RendezVous::class)->findOneBy($criteria);
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
@@ -192,7 +291,12 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationWriteAccess();
 
-        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        $criteria = ['id' => $rdvId];
+        if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
+            $criteria['atelierId'] = $this->resolveCurrentAtelierIdOrFail();
+        }
+
+        $rdv = $this->em->getRepository(RendezVous::class)->findOneBy($criteria);
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
@@ -281,6 +385,8 @@ class FacturationController extends AbstractController
         $facture->setTotalTva($data['total_tva'] ?? '0.00');
         $facture->setTempsFactureMinutes($data['temps_facture_minutes'] ?? 0);
         $facture->setTauxHoraire($data['taux_horaire'] ?? $this->getTauxHoraire());
+        $facture->setTvaMoTaux((float) ($data['tva_mo_taux'] ?? $this->getTvaRate()));
+        $facture->setTvaPiecesTaux((float) ($data['tva_pieces_taux'] ?? $this->getTvaRate()));
         $facture->setNotes($data['notes'] ?? null);
 
         // Add lines
@@ -319,7 +425,7 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationWriteAccess();
 
-        $facture = $this->em->getRepository(Facture::class)->find($id);
+        $facture = $this->findFactureForScope($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
         }
@@ -328,49 +434,37 @@ class FacturationController extends AbstractController
             return $this->json(['error' => 'Cette facture ne peut pas recevoir d\'encaissement.'], Response::HTTP_CONFLICT);
         }
 
-        $data = json_decode($request->getContent(), true);
-
-        $paiement = new Paiement();
-        $paiement->setFacture($facture);
-        $paiement->setMontant($data['montant']);
-        $paiement->setModePaiement($data['mode_paiement']);
-        $paiement->setReference($data['reference'] ?? null);
-        $paiement->setNotes($data['notes'] ?? null);
-
-        if (isset($data['date_paiement'])) {
-            $paiement->setDatePaiement(new \DateTime($data['date_paiement']));
+        $data = json_decode($request->getContent(), true) ?? [];
+        $montant = number_format((float) ($data['montant'] ?? 0), 2, '.', '');
+        if (bccomp($montant, '0', 2) <= 0) {
+            return $this->json(['error' => 'Le montant doit être strictement positif.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $this->em->persist($paiement);
-
-        // Check if fully paid — bcmath
-        $totalPaye = '0';
-        foreach ($facture->getPaiements() as $p) {
-            $totalPaye = bcadd($totalPaye, (string) $p->getMontant(), 2);
+        $resteAvantPaiement = $this->getRemainingBalance($facture, Paiement::TYPE_ENCAISSEMENT);
+        if (bccomp($montant, $resteAvantPaiement, 2) > 0) {
+            return $this->json([
+                'error' => 'Le montant dépasse le solde restant à encaisser.',
+                'reste_a_payer' => $resteAvantPaiement,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        $totalPaye = bcadd($totalPaye, (string) $data['montant'], 2);
 
-        if (bccomp($totalPaye, (string) $facture->getTotalTtc(), 2) >= 0) {
-            $facture->setStatut(Facture::STATUS_PAYEE);
-        } else {
-            $facture->setStatut(Facture::STATUS_PARTIELLEMENT_PAYEE);
-        }
+        $data['montant'] = $montant;
+        $this->createMoneyMovement($facture, $data, Paiement::TYPE_ENCAISSEMENT);
+        $this->refreshSettlementStatus($facture);
 
         $this->em->flush();
 
         $this->audit->log('payment', 'facture', $facture->getId(), json_encode([
-            'montant' => $data['montant'],
+            'montant' => $montant,
             'mode' => $data['mode_paiement'],
             'statut' => $facture->getStatut(),
         ]));
 
-        $resteAPayer = bcsub((string) $facture->getTotalTtc(), $totalPaye, 2);
-
         return $this->json([
             'facture_id' => $facture->getId(),
             'statut' => $facture->getStatut(),
-            'total_paye' => $totalPaye,
-            'reste_a_payer' => $resteAPayer,
+            'total_paye' => $facture->getMontantPaye(),
+            'reste_a_payer' => $facture->getResteAPayer(),
         ]);
     }
 
@@ -382,7 +476,7 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationReadAccess();
 
-        $facture = $this->em->getRepository(Facture::class)->find($id);
+        $facture = $this->findFactureForScope($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
         }
@@ -402,7 +496,7 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationWriteAccess();
 
-        $facture = $this->em->getRepository(Facture::class)->find($id);
+        $facture = $this->findFactureForScope($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
         }
@@ -443,7 +537,7 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationWriteAccess();
 
-        $facture = $this->em->getRepository(Facture::class)->find($id);
+        $facture = $this->findFactureForScope($id);
         if (!$facture) {
             return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
         }
@@ -519,5 +613,53 @@ class FacturationController extends AbstractController
             'facture_origine_id' => $facture->getId(),
             'nature' => $avoir->getNature(),
         ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/{id}/remboursement', methods: ['POST'])]
+    public function addRemboursement(int $id, Request $request): JsonResponse
+    {
+        $this->assertFacturationWriteAccess();
+
+        $facture = $this->findFactureForScope($id);
+        if (!$facture) {
+            return $this->json(['error' => 'Invoice not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$facture->isAvoir()) {
+            return $this->json(['error' => 'Seul un avoir peut recevoir un remboursement.'], Response::HTTP_CONFLICT);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $montant = number_format((float) ($data['montant'] ?? 0), 2, '.', '');
+        if (bccomp($montant, '0', 2) <= 0) {
+            return $this->json(['error' => 'Le montant doit être strictement positif.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $resteAvantRemboursement = $this->getRemainingBalance($facture, Paiement::TYPE_REMBOURSEMENT);
+        if (bccomp($montant, $resteAvantRemboursement, 2) > 0) {
+            return $this->json([
+                'error' => 'Le montant dépasse le solde restant à rembourser.',
+                'reste_a_payer' => $resteAvantRemboursement,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $data['montant'] = $montant;
+        $this->createMoneyMovement($facture, $data, Paiement::TYPE_REMBOURSEMENT);
+        $this->refreshSettlementStatus($facture);
+
+        $this->em->flush();
+
+        $this->audit->log('refund', 'facture', $facture->getId(), json_encode([
+            'montant' => $montant,
+            'mode' => $data['mode_paiement'] ?? null,
+            'statut' => $facture->getStatut(),
+        ]));
+
+        return $this->json([
+            'facture_id' => $facture->getId(),
+            'statut' => $facture->getStatut(),
+            'total_paye' => $facture->getMontantPaye(),
+            'reste_a_payer' => $facture->getResteAPayer(),
+        ]);
     }
 }

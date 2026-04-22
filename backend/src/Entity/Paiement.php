@@ -11,9 +11,14 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 class Paiement
 {
+    public const TYPE_ENCAISSEMENT = 'encaissement';
+    public const TYPE_REMBOURSEMENT = 'remboursement';
+
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['paiement:read', 'facture:read'])] private ?int $id = null;
+    #[ORM\Column(nullable: true)] #[Groups(['paiement:read'])] private ?int $atelierId = null;
     #[ORM\ManyToOne(targetEntity: Facture::class, inversedBy: 'paiements')] #[ORM\JoinColumn(name: 'facture_id', nullable: true)] #[Groups(['paiement:read', 'paiement:write'])] private ?Facture $facture = null;
     #[ORM\ManyToOne(targetEntity: VOFacture::class, inversedBy: 'paiements')] #[ORM\JoinColumn(name: 'vo_facture_id', nullable: true)] #[Groups(['paiement:read', 'paiement:write'])] private ?VOFacture $voFacture = null;
+    #[ORM\Column(length: 30, options: ['default' => 'encaissement'])] #[Groups(['paiement:read', 'facture:read'])] private string $typeOperation = self::TYPE_ENCAISSEMENT;
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private string $montant;
     #[ORM\Column(length: 50)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private string $modePaiement;
     #[ORM\Column(length: 200, nullable: true)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private ?string $reference = null;
@@ -24,10 +29,14 @@ class Paiement
     public function __construct() { $this->datePaiement = new \DateTime(); $this->createdAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
+    public function getAtelierId(): ?int { return $this->atelierId; }
+    public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
     public function getFacture(): ?Facture { return $this->facture; }
     public function setFacture(?Facture $v): static { $this->facture = $v; return $this; }
     public function getVoFacture(): ?VOFacture { return $this->voFacture; }
     public function setVoFacture(?VOFacture $v): static { $this->voFacture = $v; return $this; }
+    public function getTypeOperation(): string { return $this->typeOperation; }
+    public function setTypeOperation(string $v): static { $this->typeOperation = $v; return $this; }
     public function getMontant(): string { return $this->montant; }
     public function setMontant(string $v): static { $this->montant = $v; return $this; }
     public function getModePaiement(): string { return $this->modePaiement; }
@@ -38,4 +47,5 @@ class Paiement
     public function setDatePaiement(\DateTimeInterface $v): static { $this->datePaiement = $v; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $v): static { $this->notes = $v; return $this; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
 }

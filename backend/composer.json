@@ -16,6 +16,8 @@
         "dragonmantank/cron-expression": "^3.6",
         "lexik/jwt-authentication-bundle": "^3.2",
         "nelmio/cors-bundle": "^2.6",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.6",
         "symfony/asset": "7.2.*",
         "symfony/console": "7.2.*",
         "symfony/doctrine-messenger": "7.2.*",

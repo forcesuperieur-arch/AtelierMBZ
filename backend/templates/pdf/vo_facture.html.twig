@@ -121,5 +121,6 @@
         {% if atelier and atelier.siret %} — SIRET : {{ atelier.siret }}{% endif %}
         {% if atelier and atelier.tvaIntracom %} — TVA Intra : {{ atelier.tvaIntracom }}{% endif %}
     </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

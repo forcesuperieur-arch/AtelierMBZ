@@ -23,72 +23,86 @@ class AdminTemplatePreviewController extends AbstractController
             'template' => 'pdf/ordre_reparation.html.twig',
             'category' => 'atelier',
             'description' => 'Document de réception signé avant intervention atelier.',
+            'nature' => 'opposable',
         ],
         'facture' => [
             'label' => 'Facture atelier',
             'template' => 'pdf/facture.html.twig',
             'category' => 'atelier',
             'description' => 'Facture client avec lignes, TVA et totaux atelier.',
+            'nature' => 'opposable',
         ],
         'devis' => [
             'label' => 'Devis',
             'template' => 'pdf/devis.html.twig',
             'category' => 'atelier',
             'description' => 'Devis avant travaux avec validité et acompte proposé.',
+            'nature' => 'opposable',
         ],
         'rapport_intervention' => [
             'label' => 'Rapport d\'intervention',
             'template' => 'pdf/rapport_intervention.html.twig',
             'category' => 'atelier',
             'description' => 'Compte-rendu méca avec essai routier et signatures.',
+            'nature' => 'opposable',
         ],
         'historique_entretien' => [
             'label' => 'Historique entretien',
             'template' => 'pdf/historique_entretien.html.twig',
             'category' => 'atelier',
-            'description' => 'Synthèse des interventions passées sur le véhicule.',
+            'description' => 'Synthèse informative des interventions passées sur le véhicule.',
+            'nature' => 'synthese',
         ],
         'vo_pv_rachat' => [
             'label' => 'PV de rachat',
             'template' => 'pdf/vo_pv_rachat.html.twig',
             'category' => 'vo',
             'description' => 'Procès-verbal de rachat VO avec identité vendeur.',
+            'nature' => 'opposable',
         ],
         'vo_facture' => [
             'label' => 'Facture VO',
             'template' => 'pdf/vo_facture.html.twig',
             'category' => 'vo',
             'description' => 'Facture de vente VO avec mentions légales et TVA.',
+            'nature' => 'opposable',
         ],
         'vo_contrat_depot_vente' => [
             'label' => 'Contrat dépôt-vente',
             'template' => 'pdf/vo_contrat_depot_vente.html.twig',
             'category' => 'vo',
             'description' => 'Mandat de dépôt-vente avec prix cible et commission.',
+            'nature' => 'opposable',
         ],
         'vo_livre_police' => [
             'label' => 'Livre de police',
             'template' => 'pdf/vo_livre_police.html.twig',
             'category' => 'vo',
             'description' => 'Extrait du registre légal achat/vente VO.',
+            'nature' => 'registre',
         ],
         'vo_da_siv' => [
-            'label' => 'Préparation DA SIV',
+            'label' => 'Déclaration d\'achat CERFA 13751',
             'template' => 'pdf/vo_da_siv.html.twig',
             'category' => 'vo',
-            'description' => 'Préparation administrative de la déclaration d\'achat.',
+            'description' => 'Rendu réglementaire aligné sur le CERFA 13751*02 pour la déclaration d\'achat.',
+            'nature' => 'cerfa',
+            'legalRef' => '13751*02',
         ],
         'vo_mandat_immatriculation' => [
-            'label' => 'Mandat d\'immatriculation',
+            'label' => 'Mandat immatriculation CERFA 13757',
             'template' => 'pdf/vo_mandat_immatriculation.html.twig',
             'category' => 'vo',
-            'description' => 'Support prérempli pour formalités SIV côté acheteur.',
+            'description' => 'Rendu réglementaire aligné sur le CERFA 13757*03 pour les formalités d\'immatriculation.',
+            'nature' => 'cerfa',
+            'legalRef' => '13757*03',
         ],
         'vo_remise_en_etat' => [
             'label' => 'Remise en état VO',
             'template' => 'pdf/vo_remise_en_etat.html.twig',
             'category' => 'vo',
             'description' => 'Synthèse FRE avec coûts estimés, pièces et arbitrage.',
+            'nature' => 'synthese',
         ],
     ];
 
@@ -109,6 +123,8 @@ class AdminTemplatePreviewController extends AbstractController
                 'category' => $meta['category'],
                 'template' => $meta['template'],
                 'description' => $meta['description'],
+                'nature' => $meta['nature'] ?? 'opposable',
+                'legalRef' => $meta['legalRef'] ?? null,
             ];
         }
 
@@ -150,7 +166,7 @@ class AdminTemplatePreviewController extends AbstractController
     private function resolveAtelier(): ?Atelier
     {
         $user = $this->getUser();
-        $atelierId = method_exists($user, 'getAtelierId') ? $user->getAtelierId() : null;
+        $atelierId = $user instanceof \App\Entity\User ? $user->getAtelierId() : null;
 
         if ($atelierId) {
             return $this->em->getRepository(Atelier::class)->find($atelierId);

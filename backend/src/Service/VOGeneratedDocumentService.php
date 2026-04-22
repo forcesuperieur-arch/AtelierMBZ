@@ -23,6 +23,16 @@ class VOGeneratedDocumentService
         }
 
         if ($record instanceof VOPurchase) {
+            $cerfaPath = $this->pdfService->generateCerfaCessionAchatPdf($record);
+            $this->documentService->archiveGeneratedPdf(
+                $cerfaPath,
+                VODocument::TYPE_CERFA_CESSION_ACHAT,
+                $record,
+                null,
+                $user,
+                sprintf('cerfa-cession-achat-%d.pdf', $record->getId()),
+            );
+
             $pdfPath = $this->pdfService->generatePvRachatPdf($record);
             $this->documentService->archiveGeneratedPdf(
                 $pdfPath,
@@ -96,7 +106,7 @@ class VOGeneratedDocumentService
     {
         $missingDocuments = array_values(array_diff(
             $this->documentService->getMissingDocuments($purchase),
-            [VODocument::TYPE_PV_RACHAT],
+            [VODocument::TYPE_PV_RACHAT, VODocument::TYPE_CERFA_CESSION_ACHAT],
         ));
 
         return $missingDocuments === [];

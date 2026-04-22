@@ -215,5 +215,6 @@
         Hash documentaire : {{ document.hash ?? '—' }}<br>
         Généré le {{ document.generatedAt ? document.generatedAt|date('d/m/Y H:i') : '—' }}
     </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

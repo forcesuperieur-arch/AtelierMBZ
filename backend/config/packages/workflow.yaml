@@ -33,7 +33,7 @@ framework:
                     from: en_attente
                     to: reserve
                 confirmer:
-                    from: [en_attente, reserve]
+                    from: reserve
                     to: confirme
                 reception:
                     from: confirme
