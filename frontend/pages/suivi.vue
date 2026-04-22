@@ -5,8 +5,9 @@
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="live-dot"></div>
           <span style="font-size:13px;font-weight:600;color:var(--green);">Live</span>
-      </div>
-    </div>
+        </div>
+      </template>
+    </AppPageHeader>
 
     <!-- Alert strip -->
     <div class="alert-strip" style="margin-bottom:20px;">

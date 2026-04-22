@@ -7,7 +7,6 @@
         <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouveau pont</button>
       </template>
     </AppPageHeader>
-    </div>
 
     <div style="margin-bottom:16px;padding:12px 14px;border:1px solid rgba(255,210,0,0.18);border-radius:12px;background:rgba(255,210,0,0.05);">
       <div style="font-size:13px;font-weight:700;color:#FCD34D;">Cette page sert à structurer l’atelier.</div>
