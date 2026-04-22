@@ -38,11 +38,11 @@
     </UCard>
 
     <UCard>
-      <div v-if="loading" style="padding:32px;text-align:center;color:#6B7280;">Chargement…</div>
-      <div v-else-if="!logs.length" style="padding:48px 24px;text-align:center;">
-        <div style="font-size:32px;margin-bottom:8px;">📜</div>
-        <div style="font-size:14px;font-weight:600;color:#E8E9ED;margin-bottom:4px;">Aucune entrée dans le journal</div>
-        <div style="font-size:12px;color:#9CA3AF;">
+      <div v-if="loading" style="padding:32px;text-align:center;color:var(--text-subtle);">Chargement…</div>
+      <div v-else-if="!logs.length" class="empty-state">
+        <div class="empty-state-icon">📜</div>
+        <div class="empty-state-title">Aucune entrée dans le journal</div>
+        <div class="empty-state-sub">
           Aucune action sensible tracée sur la période sélectionnée. Affinez les filtres ou élargissez les dates.
         </div>
       </div>

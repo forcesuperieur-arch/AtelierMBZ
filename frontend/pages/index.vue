@@ -1,24 +1,26 @@
 <template>
   <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Stat</div>
-        <div class="page-sub">{{ todayDate }} · Comparatifs de période, perf méca, charge et catégories de prestation.</div>
-      </div>
-    </div>
+    <AppPageHeader
+      title="Stat"
+      :subtitle="`${todayDate} · Comparatifs de période, perf méca, charge et catégories de prestation.`"
+    />
 
-    <div v-if="blockedModuleBanner" style="margin-bottom:16px;border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:12px 14px;background:rgba(245,158,11,0.06);">
-      <div style="font-size:13px;font-weight:700;color:#FBBF24;">{{ blockedModuleBanner.title }}</div>
-      <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">{{ blockedModuleBanner.description }}</div>
-    </div>
+    <AppBanner
+      v-if="blockedModuleBanner"
+      variant="warning"
+      :title="blockedModuleBanner.title"
+      :description="blockedModuleBanner.description"
+    />
 
     <!-- [PHASE-1.4] Bandeau visible quand certaines APIs n'ont pas répondu -->
-    <div v-if="partialErrors.length" style="margin-bottom:16px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:12px 14px;background:rgba(239,68,68,0.06);">
-      <div style="font-size:13px;font-weight:700;color:#FCA5A5;">⚠️ Données partielles</div>
-      <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">
-        Certaines sections n'ont pas pu être chargées : {{ partialErrors.join(', ') }}. Le reste du dashboard reste à jour.
-      </div>
-    </div>
+    <AppBanner
+      v-if="partialErrors.length"
+      variant="danger"
+      icon="⚠️"
+      title="Données partielles"
+    >
+      Certaines sections n'ont pas pu être chargées : {{ partialErrors.join(', ') }}. Le reste du dashboard reste à jour.
+    </AppBanner>
 
     <!-- Alert strip -->
     <div v-if="alerts.length" class="alert-strip">

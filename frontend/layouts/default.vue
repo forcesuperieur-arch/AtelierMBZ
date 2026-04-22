@@ -21,15 +21,22 @@
         <span class="sidebar-logo-text">{{ atelierName }}</span>
       </button>
 
-      <SidebarLink
-        v-for="item in menuItems"
-        :key="item.to"
-        :to="item.to"
-        :icon="item.icon"
-        :label="item.label"
-        :section="item.section"
-        :badge-count="item.to === '/planning' ? notifUnreadCount : undefined"
-      />
+      <template v-for="(group, gIdx) in menuGroups" :key="group.key">
+        <div
+          v-if="!(isDesktop && isSidebarCollapsed)"
+          class="sidebar-group-label"
+          :class="{ 'sidebar-group-label--first': gIdx === 0 }"
+        >{{ group.label }}</div>
+        <SidebarLink
+          v-for="item in group.items"
+          :key="item.to"
+          :to="item.to"
+          :icon="item.icon"
+          :label="item.label"
+          :section="item.section"
+          :badge-count="item.to === '/planning' ? notifUnreadCount : undefined"
+        />
+      </template>
 
       <div class="sidebar-spacer" />
 
@@ -171,21 +178,35 @@ const currentSection = computed(() => {
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard' },
-    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
-    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
-    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },
-    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients' },
-    { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or' },
-    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos' },
-    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
+    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard', group: 'aujourdhui' },
+    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning', group: 'aujourdhui' },
+    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop', group: 'aujourdhui' },
+    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi', group: 'aujourdhui' },
+    { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or', group: 'dossiers' },
+    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis', group: 'dossiers' },
     // TODO (2026-04-22) : modules en cours de réécriture — réactiver quand le flux sera vérifié end-to-end
-    // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
-    // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
-    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
-    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
+    // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation', group: 'dossiers' },
+    // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock', group: 'dossiers' },
+    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo', group: 'dossiers' },
+    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients', group: 'referentiels' },
+    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos', group: 'referentiels' },
+    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin', group: 'systeme' },
   ]
   return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
+})
+
+const menuGroups = computed(() => {
+  const groups: Array<{ key: string; label: string; items: typeof menuItems.value }> = [
+    { key: 'aujourdhui', label: 'Aujourd\u2019hui', items: [] },
+    { key: 'dossiers', label: 'Dossiers', items: [] },
+    { key: 'referentiels', label: 'Référentiels', items: [] },
+    { key: 'systeme', label: 'Système', items: [] },
+  ]
+  for (const item of menuItems.value) {
+    const g = groups.find(x => x.key === item.group)
+    if (g) g.items.push(item)
+  }
+  return groups.filter(g => g.items.length > 0)
 })
 
 const api = useApi()
@@ -418,6 +439,15 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 }
 
 .sidebar-spacer { flex: 1; }
+.sidebar-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+  padding: 14px 16px 4px;
+  font-weight: 700;
+}
+.sidebar-group-label--first { padding-top: 8px; }
 
 /* Mechanic avatar */
 .meca-avatar {

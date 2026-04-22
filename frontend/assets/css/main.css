@@ -22,14 +22,37 @@
   /* Text tones */
   --gray: #9CA3AF;
   --gray2: #D1D5DB;
+  --text: #E8E9ED;          /* texte primaire */
+  --text-strong: #F0F1F5;   /* titres */
+  --text-muted: #9CA3AF;    /* texte secondaire */
+  --text-subtle: #6B7280;   /* texte tertiaire / hints */
 
-  /* Semantic */
+  /* Semantic — base hues */
   --green: #10B981;
   --amber: #FFD200;
   --red: #EF4444;
   --blue: #3B82F6;
   --purple: #8B5CF6;
   --teal: #14B8A6;
+
+  /* Semantic — surface tokens (bg / border / foreground texte clair) */
+  --success-bg: rgba(16,185,129,0.10);
+  --success-border: rgba(16,185,129,0.25);
+  --success-fg: #6EE7B7;
+
+  --warning-bg: rgba(245,158,11,0.08);
+  --warning-border: rgba(245,158,11,0.25);
+  --warning-fg: #FBBF24;
+  --warning-fg-soft: #FCD34D;
+
+  --danger-bg: rgba(239,68,68,0.08);
+  --danger-border: rgba(239,68,68,0.25);
+  --danger-fg: #FCA5A5;
+  --danger-fg-strong: #F87171;
+
+  --info-bg: rgba(59,130,246,0.10);
+  --info-border: rgba(59,130,246,0.25);
+  --info-fg: #93C5FD;
 
   /* Borders / glass */
   --border-color: rgba(255,255,255,0.07);
@@ -1349,3 +1372,55 @@ main {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ========================================
+   ALERT BANNERS — bandeaux d'état uniformes
+   ======================================== */
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.alert-body { color: var(--text); }
+
+.alert--success { background: var(--success-bg); border-color: var(--success-border); }
+.alert--success .alert-title { color: var(--success-fg); }
+
+.alert--warning { background: var(--warning-bg); border-color: var(--warning-border); }
+.alert--warning .alert-title { color: var(--warning-fg); }
+
+.alert--danger { background: var(--danger-bg); border-color: var(--danger-border); }
+.alert--danger .alert-title { color: var(--danger-fg); }
+
+.alert--info { background: var(--info-bg); border-color: var(--info-border); }
+.alert--info .alert-title { color: var(--info-fg); }
+
+/* ========================================
+   EMPTY STATE — état vide unifié
+   ======================================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 8px;
+}
+.empty-state-icon { font-size: 40px; opacity: 0.6; line-height: 1; }
+.empty-state-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.empty-state-sub { font-size: 12px; color: var(--text-muted); max-width: 360px; }
+.empty-state-action { margin-top: 10px; }
