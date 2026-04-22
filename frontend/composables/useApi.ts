@@ -1,5 +1,9 @@
 import type { UseFetchOptions } from 'nuxt/app'
 
+// Singleton pour sérialiser les refresh de token : si un refresh est en cours,
+// les autres requêtes attendent le même résultat au lieu de re-tenter en parallèle.
+let _refreshPromise: Promise<boolean> | null = null
+
 export function useApi() {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase as string
@@ -71,7 +75,10 @@ export function useApi() {
     const isAuthEndpoint = /\/auth(\/|$)/.test(normalizedPath)
 
     if (res.status === 401 && !isAuthEndpoint) {
-      const refreshed = await refreshToken()
+      if (!_refreshPromise) {
+        _refreshPromise = refreshToken().finally(() => { _refreshPromise = null })
+      }
+      const refreshed = await _refreshPromise
       if (refreshed) {
         const retry = await globalThis.fetch(url, {
           credentials: 'include',
