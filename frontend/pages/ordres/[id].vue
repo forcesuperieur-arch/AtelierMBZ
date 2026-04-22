@@ -352,8 +352,61 @@
       </div>
     </UCard>
 
+    <!-- [SPRINT-6] C15 — Essai routier (lecture seule, visible dès que la donnée existe) -->
+    <UCard v-if="rapport?.essaiRoutier" style="margin-bottom:20px;">
+      <template #header>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:#9CA3AF;">🛣️ Essai routier</span>
+          <span :style="essaiStatusStyle(rapport.essaiRoutier.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
+            {{ essaiStatusLabel(rapport.essaiRoutier.statut) }}
+          </span>
+        </div>
+      </template>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
+        <div v-if="rapport.essaiRoutier.kmDebut != null">
+          <span style="color:#9CA3AF;">Km début :</span>
+          <span style="margin-left:6px;color:#E8E9ED;font-weight:600;">{{ rapport.essaiRoutier.kmDebut?.toLocaleString() }}</span>
+        </div>
+        <div v-if="rapport.essaiRoutier.kmFin != null">
+          <span style="color:#9CA3AF;">Km fin :</span>
+          <span style="margin-left:6px;color:#E8E9ED;font-weight:600;">{{ rapport.essaiRoutier.kmFin?.toLocaleString() }}</span>
+        </div>
+        <div v-if="rapport.essaiRoutier.distance != null">
+          <span style="color:#9CA3AF;">Distance :</span>
+          <span style="margin-left:6px;color:#E8E9ED;">{{ rapport.essaiRoutier.distance }} km</span>
+        </div>
+        <div v-if="rapport.essaiRoutier.dureeMinutes">
+          <span style="color:#9CA3AF;">Durée :</span>
+          <span style="margin-left:6px;color:#E8E9ED;">{{ rapport.essaiRoutier.dureeMinutes }} min</span>
+        </div>
+        <!-- Points de contrôle -->
+        <div v-if="rapport.essaiRoutier.checkpoints && Object.keys(rapport.essaiRoutier.checkpoints).length" style="grid-column:1/-1;">
+          <span style="color:#9CA3AF;font-size:12px;">Points de contrôle :</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+            <span
+              v-for="(val, key) in rapport.essaiRoutier.checkpoints" :key="key"
+              :style="{ background: val === 'ok' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: val === 'ok' ? '#10B981' : '#EF4444', padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: '700' }">
+              {{ val === 'ok' ? '✅' : '⚠️' }} {{ key }}
+            </span>
+          </div>
+        </div>
+        <!-- Anomalies -->
+        <div v-if="rapport.essaiRoutier.anomalies" style="grid-column:1/-1;">
+          <span style="color:#EF4444;font-size:12px;font-weight:600;">⚠️ Anomalies détectées :</span>
+          <div style="margin-top:4px;color:#FCA5A5;white-space:pre-wrap;">{{ rapport.essaiRoutier.anomalies }}</div>
+        </div>
+        <!-- Signature mécanicien -->
+        <div style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;font-size:12px;">
+          <span style="color:#9CA3AF;">Signature mécanicien :</span>
+          <span v-if="rapport.essaiRoutier.isValide || rapport.essaiRoutier.statut === 'valide'" style="margin-left:8px;color:#10B981;font-weight:700;">✅ Validé</span>
+          <span v-else-if="rapport.signatureMecanicien" style="margin-left:8px;color:#FBBF24;font-weight:700;">⏳ Rapport signé par mécanicien</span>
+          <span v-else style="margin-left:8px;color:#9CA3AF;">Non signé</span>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Rapport d'intervention (visible une fois le RDV terminé) -->
-    <UCard v-if="rapport && rdvIsTermine" style="margin-bottom:20px;">
+    <UCard v-if="rapport && (rdvIsTermine || rapport.signatureMecanicien)" style="margin-bottom:20px;">
       <template #header>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:13px;font-weight:600;color:#9CA3AF;">📋 Rapport d'intervention</span>
@@ -843,6 +896,22 @@ async function saveSig(who: 'client' | 'atelier') {
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   }
+}
+
+// [SPRINT-6] C15 — Helpers statut essai routier
+function essaiStatusLabel(statut: string): string {
+  const map: Record<string, string> = {
+    brouillon: 'En cours',
+    valide: 'Validé',
+    anomalie_detectee: 'Anomalie',
+  }
+  return map[statut] || statut || 'En cours'
+}
+
+function essaiStatusStyle(statut: string): string {
+  if (statut === 'valide') return 'background:rgba(16,185,129,0.15);color:#10B981;'
+  if (statut === 'anomalie_detectee') return 'background:rgba(239,68,68,0.15);color:#EF4444;'
+  return 'background:rgba(251,191,36,0.12);color:#FBBF24;'
 }
 
 // Print A4

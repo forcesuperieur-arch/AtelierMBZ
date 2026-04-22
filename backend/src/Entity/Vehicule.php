@@ -13,6 +13,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'vehicules')]
+#[ORM\UniqueConstraint(name: 'uniq_vehicule_vin_atelier', columns: ['vin', 'atelier_id'])]
 #[ApiResource(
     normalizationContext: ['groups' => ['vehicule:read']],
     denormalizationContext: ['groups' => ['vehicule:write']],

@@ -3,6 +3,8 @@
 namespace App\Command;
 
 use App\Entity\RapportIntervention;
+use App\Entity\Atelier;
+use App\Entity\ConfigAtelier;
 use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -50,12 +52,16 @@ class RappelProchaineRevisionCommand extends Command
             }
 
             $atelierId = $rapport->getAtelierId() ?? 0;
+            // [SPRINT-6] I2 — Résoudre le nom de l'atelier depuis la base
+            $atelier = $atelierId
+                ? $this->em->getRepository(Atelier::class)->findOneBy(['id' => $atelierId])
+                : null;
             $variables = [
                 'client_prenom' => $client->getPrenom() ?? $client->getNom(),
                 'marque'        => $vehicule?->getMarque() ?? '',
                 'modele'        => $vehicule?->getModele() ?? '',
                 'date_revision' => $rapport->getProchaineRevisionDate()->format('d/m/Y'),
-                'atelier_nom'   => '',
+                'atelier_nom'   => $atelier?->getNom() ?? '',
             ];
 
             // [SPRINT-4] I2 — dispatch email via NotificationDispatcher
