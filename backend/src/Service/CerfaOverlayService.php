@@ -24,52 +24,53 @@ class CerfaOverlayService
         $purchaseDate = $purchase->getPurchaseDate() ?? new \DateTimeImmutable();
         $atelierAddress = $this->parseAddress($atelier->getAdresse(), $atelier->getCp(), $atelier->getVille());
 
-        $this->markCheckbox($pdf, 60.2, 30.5, true);
-        $this->drawLineText($pdf, 36.0, 42.3, 122.0, $atelier->getNom(), 9);
-        $this->drawBoxedText($pdf, 159.8, 42.3, 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, 8);
+        // Coordonnées recalibrées — cerfa_13751 (compat PDF 1.4), positions BBox extraites programmatiquement
+        $this->markCheckbox($pdf, 60.2, 27.5, true);
+        $this->drawLineText($pdf, 36.0, 38.4, 122.0, $atelier->getNom(), 9);
+        $this->drawBoxedText($pdf, 163.3, 38.4, 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, 8);
 
-        $this->drawLineText($pdf, 35.0, 52.6, 14.0, $atelierAddress['streetNumber'], 8);
-        $this->drawLineText($pdf, 52.5, 52.6, 14.0, $atelierAddress['streetExtension'], 8);
-        $this->drawLineText($pdf, 70.5, 52.6, 24.0, $atelierAddress['streetType'], 8);
-        $this->drawLineText($pdf, 97.8, 52.6, 101.0, $atelierAddress['streetName'], 8);
-        $this->drawBoxedText($pdf, 29.8, 62.0, 5.1, 0.15, $atelierAddress['postalCode'], 5, 8);
-        $this->drawLineText($pdf, 58.5, 62.0, 140.0, $atelierAddress['city'], 8);
+        $this->drawLineText($pdf, 35.0, 47.3, 14.0, $atelierAddress['streetNumber'], 8);
+        $this->drawLineText($pdf, 52.5, 47.3, 14.0, $atelierAddress['streetExtension'], 8);
+        $this->drawLineText($pdf, 70.5, 47.3, 24.0, $atelierAddress['streetType'], 8);
+        $this->drawLineText($pdf, 97.8, 47.3, 101.0, $atelierAddress['streetName'], 8);
+        $this->drawBoxedText($pdf, 29.8, 55.8, 5.1, 0.15, $atelierAddress['postalCode'], 5, 8);
+        $this->drawLineText($pdf, 58.5, 55.8, 140.0, $atelierAddress['city'], 8);
 
-        $this->drawDateBoxes($pdf, 44.0, 71.0, $purchaseDate, 4.9, 0.2, 8);
-        $this->drawBoxedText($pdf, 95.0, 71.0, 4.9, 0.2, '', 2, 8);
-        $this->drawBoxedText($pdf, 107.0, 71.0, 4.9, 0.2, '', 2, 8);
+        $this->drawDateBoxes($pdf, 44.0, 63.6, $purchaseDate, 4.9, 0.2, 8);
+        $this->drawBoxedText($pdf, 95.0, 63.6, 4.9, 0.2, '', 2, 8);
+        $this->drawBoxedText($pdf, 107.0, 63.6, 4.9, 0.2, '', 2, 8);
 
-        $this->drawLineText($pdf, 10.5, 84.0, 59.0, $vehicle?->getPlaque(), 9);
-        $this->drawLineText($pdf, 75.0, 84.0, 60.0, $vehicle?->getVin(), 8);
-        $this->drawLineText($pdf, 139.0, 84.0, 60.0, $vehicle?->getMarque(), 8);
-        $this->drawLineText($pdf, 10.5, 96.5, 84.0, $vehicle?->getTypeVariante(), 8);
-        $this->drawLineText($pdf, 99.5, 96.5, 54.0, $vehicle?->getDenominationCommerciale(), 8);
-        $this->drawLineText($pdf, 157.0, 96.5, 42.0, $vehicle?->getGenreNational(), 8);
+        $this->drawLineText($pdf, 10.5, 75.5, 59.0, $vehicle?->getPlaque(), 9);
+        $this->drawLineText($pdf, 75.0, 78.0, 60.0, $vehicle?->getVin(), 8);
+        $this->drawLineText($pdf, 139.0, 78.0, 60.0, $vehicle?->getMarque(), 8);
+        $this->drawLineText($pdf, 10.5, 86.6, 84.0, $vehicle?->getTypeVariante(), 8);
+        $this->drawLineText($pdf, 99.5, 86.6, 54.0, $vehicle?->getDenominationCommerciale(), 8);
+        $this->drawLineText($pdf, 157.0, 86.6, 42.0, $vehicle?->getGenreNational(), 8);
 
         $hasCertificate = trim((string) $vehicle?->getNumeroFormuleCg()) !== '';
-        $this->markCheckbox($pdf, 81.7, 105.2, $hasCertificate);
-        $this->markCheckbox($pdf, 98.3, 105.2, !$hasCertificate);
-        $this->drawBoxedText($pdf, 46.0, 116.0, 5.1, 0.15, '', 8, 8);
-        $this->drawLineText($pdf, 113.0, 116.0, 58.0, $vehicle?->getNumeroFormuleCg(), 8);
+        $this->markCheckbox($pdf, 81.7, 97.0, $hasCertificate);
+        $this->markCheckbox($pdf, 98.3, 97.0, !$hasCertificate);
+        $this->drawBoxedText($pdf, 46.0, 105.8, 5.1, 0.15, '', 8, 8);
+        $this->drawLineText($pdf, 113.0, 105.8, 58.0, $vehicle?->getNumeroFormuleCg(), 8);
 
-        $this->drawLineText($pdf, 57.0, 130.5, 142.0, $hasCertificate ? '' : 'Certificat d\'immatriculation non renseigné', 8);
-        $this->drawLineText($pdf, 15.0, 151.0, 70.0, $atelier->getVille(), 8);
-        $this->drawDateBoxes($pdf, 97.0, 151.0, $purchaseDate, 4.9, 0.2, 8);
+        $this->drawLineText($pdf, 57.0, 121.0, 142.0, $hasCertificate ? '' : 'Certificat d\'immatriculation non renseigné', 8);
+        $this->drawLineText($pdf, 15.0, 140.1, 70.0, $atelier->getVille(), 8);
+        $this->drawDateBoxes($pdf, 97.0, 140.1, $purchaseDate, 4.9, 0.2, 8);
 
         $seller = $purchase->getSeller();
         $sellerAddress = $this->parseAddress($seller?->getAdresse());
 
-        $this->drawLineText($pdf, 36.0, 221.0, 116.0, $this->formatPersonLabel($seller), 9);
-        $this->drawBoxedText($pdf, 153.0, 221.0, 4.4, 0.25, '', 9, 8);
-        $this->drawLineText($pdf, 30.0, 231.0, 14.0, $sellerAddress['streetNumber'], 8);
-        $this->drawLineText($pdf, 47.5, 231.0, 14.0, $sellerAddress['streetExtension'], 8);
-        $this->drawLineText($pdf, 66.0, 231.0, 24.0, $sellerAddress['streetType'], 8);
-        $this->drawLineText($pdf, 93.0, 231.0, 106.0, $sellerAddress['streetName'], 8);
-        $this->drawBoxedText($pdf, 30.0, 240.6, 5.1, 0.15, $sellerAddress['postalCode'], 5, 8);
-        $this->drawLineText($pdf, 59.0, 240.6, 139.0, $sellerAddress['city'], 8);
-        $this->drawDateBoxes($pdf, 132.0, 252.5, $purchaseDate, 4.9, 0.2, 8);
-        $this->drawLineText($pdf, 15.0, 265.0, 45.0, $atelier->getVille(), 8);
-        $this->drawDateBoxes($pdf, 70.0, 265.0, $purchaseDate, 4.9, 0.2, 8);
+        $this->drawLineText($pdf, 36.0, 205.1, 116.0, $this->formatPersonLabel($seller), 9);
+        $this->drawBoxedText($pdf, 153.0, 205.1, 4.4, 0.25, '', 9, 8);
+        $this->drawLineText($pdf, 30.0, 215.7, 14.0, $sellerAddress['streetNumber'], 8);
+        $this->drawLineText($pdf, 47.5, 215.7, 14.0, $sellerAddress['streetExtension'], 8);
+        $this->drawLineText($pdf, 66.0, 215.7, 24.0, $sellerAddress['streetType'], 8);
+        $this->drawLineText($pdf, 93.0, 215.7, 106.0, $sellerAddress['streetName'], 8);
+        $this->drawBoxedText($pdf, 30.0, 225.4, 5.1, 0.15, $sellerAddress['postalCode'], 5, 7);
+        $this->drawLineText($pdf, 59.0, 225.4, 139.0, $sellerAddress['city'], 7);
+        $this->drawDateBoxes($pdf, 132.0, 234.5, $purchaseDate, 4.9, 0.2, 8);
+        $this->drawLineText($pdf, 15.0, 246.9, 45.0, $atelier->getVille(), 7);
+        $this->drawDateBoxes($pdf, 70.0, 246.9, $purchaseDate, 4.9, 0.2, 8);
 
         $pdf->Output('F', $outputPath);
 
@@ -88,8 +89,9 @@ class CerfaOverlayService
             ? ($record->getSaleDate() ?? new \DateTimeImmutable())
             : new \DateTimeImmutable();
 
-        $this->drawLineText($pdf, 38.6, 53.1, 96.3, $this->formatPersonLabel($buyer), 9);
-        $this->drawLineText($pdf, 142.5, 53.7, 55.8, '', 8);
+        // Coordonnées recalibrées — cerfa_13757, positionné d'après analyse PNG
+        $this->drawLineText($pdf, 38.6, 46.0, 96.3, $this->formatPersonLabel($buyer), 9);
+        $this->drawLineText($pdf, 142.5, 46.5, 55.8, '', 8);
 
         $this->drawLineText($pdf, 36.5, 70.5, 14.7, $buyerAddress['streetNumber'], 8);
         $this->drawLineText($pdf, 52.7, 70.5, 14.7, $buyerAddress['streetExtension'], 8);
@@ -102,14 +104,14 @@ class CerfaOverlayService
         $this->drawLineText($pdf, 40.1, 102.4, 96.3, $atelier->getNom(), 9);
         $this->drawLineText($pdf, 142.3, 102.4, 55.8, $this->toSiren($atelier->getSiret()), 8);
         $this->drawLineText($pdf, 38.2, 126.8, 119.8, 'Demande d\'immatriculation du véhicule désigné', 8);
-        $this->drawLineText($pdf, 40.5, 146.9, 101.6, $vehicle?->getMarque(), 8);
-        $this->drawLineText($pdf, 40.1, 163.9, 102.6, $vehicle?->getVin(), 8);
-        $this->drawLineText($pdf, 83.3, 181.1, 79.3, $vehicle?->getPlaque(), 8);
+        $this->drawLineText($pdf, 40.5, 142.8, 101.6, $vehicle?->getMarque(), 8);
+        $this->drawBoxedText($pdf, 40.1, 159.4, 5.25, 0.2, $vehicle?->getVin(), 17, 8);
+        $this->drawLineText($pdf, 83.3, 176.6, 79.3, $vehicle?->getPlaque(), 8);
 
-        $this->drawLineText($pdf, 21.0, 215.7, 68.4, $atelier->getVille(), 8);
-        $this->drawBoxedText($pdf, 99.9, 216.6, 4.2, 0.15, $signatureDate->format('d'), 2, 8);
-        $this->drawBoxedText($pdf, 111.9, 216.6, 4.2, 0.15, $signatureDate->format('m'), 2, 8);
-        $this->drawBoxedText($pdf, 124.0, 216.6, 4.2, 0.15, $signatureDate->format('Y'), 4, 8);
+        $this->drawLineText($pdf, 21.0, 211.2, 68.4, $atelier->getVille(), 8);
+        $this->drawBoxedText($pdf, 99.9, 212.0, 4.2, 0.15, $signatureDate->format('d'), 2, 8);
+        $this->drawBoxedText($pdf, 111.9, 212.0, 4.2, 0.15, $signatureDate->format('m'), 2, 8);
+        $this->drawBoxedText($pdf, 124.0, 212.0, 4.2, 0.15, $signatureDate->format('Y'), 4, 8);
 
         $pdf->Output('F', $outputPath);
 
@@ -130,56 +132,59 @@ class CerfaOverlayService
         for ($page = 1; $page <= 2; $page++) {
             $this->addTemplatePage($pdf, 'assets/cerfa/compat/cerfa_15776.pdf', $page);
 
-            $this->drawLineText($pdf, 12.0, 39.8, 44.0, $vehicle?->getPlaque(), 7);
-            $this->drawBoxedText($pdf, 63.0, 39.8, 5.0, 0.2, $vehicle?->getVin(), 17, 7);
-            $this->drawDateBoxes($pdf, 155.0, 39.8, $vehicle?->getDatePremiereMiseEnCirculation(), 4.6, 0.15, 7);
-            $this->drawLineText($pdf, 12.0, 47.8, 44.0, $vehicle?->getMarque(), 7);
-            $this->drawLineText($pdf, 63.0, 47.8, 45.0, $vehicle?->getTypeVariante(), 7);
-            $this->drawLineText($pdf, 115.0, 47.8, 38.0, $vehicle?->getGenreNational(), 7);
-            $this->drawLineText($pdf, 160.0, 47.8, 37.0, $vehicle?->getDenominationCommerciale(), 7);
-            $this->drawLineText($pdf, 77.0, 57.2, 20.0, $vehicle?->getMileage() !== null ? (string) $vehicle->getMileage() : '', 7);
+            // Coordonnées recalibrées — cerfa_15776 (compat PDF 1.6), positions mesurées sur PNG 1406x1988px
+            // Ligne 1 véhicule : cases immat/VIN/MEC (bord haut case ≈32mm, bord bas ≈42mm → centre texte ≈35mm)
+            $this->drawLineText($pdf, 12.0, 35.0, 44.0, $vehicle?->getPlaque(), 7);
+            $this->drawBoxedText($pdf, 63.0, 35.0, 5.0, 0.2, $vehicle?->getVin(), 17, 7);
+            $this->drawDateBoxes($pdf, 155.0, 35.0, $vehicle?->getDatePremiereMiseEnCirculation(), 4.6, 0.15, 7);
+            // Ligne 2 véhicule : cases marque/type/genre (bord haut ≈42mm, bord bas ≈50mm → centre texte ≈44mm)
+            $this->drawLineText($pdf, 12.0, 44.0, 44.0, $vehicle?->getMarque(), 7);
+            $this->drawLineText($pdf, 63.0, 44.0, 45.0, $vehicle?->getTypeVariante(), 7);
+            $this->drawLineText($pdf, 115.0, 44.0, 38.0, $vehicle?->getGenreNational(), 7);
+            $this->drawLineText($pdf, 160.0, 44.0, 37.0, $vehicle?->getDenominationCommerciale(), 7);
+            $this->drawLineText($pdf, 77.0, 53.5, 20.0, $vehicle?->getMileage() !== null ? (string) $vehicle->getMileage() : '', 7);
 
             $hasCertificate = trim((string) $vehicle?->getNumeroFormuleCg()) !== '';
-            $this->markCheckbox($pdf, 12.7, 68.5, $hasCertificate);
-            $this->drawBoxedText($pdf, 48.0, 68.1, 4.7, 0.15, $vehicle?->getNumeroFormuleCg(), 11, 7);
-            $this->markCheckbox($pdf, 123.0, 68.5, !$hasCertificate);
-            $this->drawLineText($pdf, 154.0, 68.1, 43.0, $hasCertificate ? '' : 'Absence du certificat à régulariser', 6.5);
+            $this->markCheckbox($pdf, 12.7, 65.0, $hasCertificate);
+            $this->drawBoxedText($pdf, 48.0, 64.5, 4.7, 0.15, $vehicle?->getNumeroFormuleCg(), 11, 7);
+            $this->markCheckbox($pdf, 123.0, 65.0, !$hasCertificate);
+            $this->drawLineText($pdf, 154.0, 64.5, 43.0, $hasCertificate ? '' : 'Absence du certificat à régulariser', 6.5);
             $this->drawDateBoxes($pdf, 74.0, 77.0, null, 4.6, 0.15, 7);
 
-            $this->markCheckbox($pdf, 12.7, 91.2, true);
-            $this->drawLineText($pdf, 36.0, 103.0, 103.0, $this->formatPersonLabel($seller), 8.5);
-            $this->drawBoxedText($pdf, 147.0, 103.0, 4.4, 0.25, '', 9, 7);
-            $this->drawLineText($pdf, 39.0, 113.2, 14.0, $sellerAddress['streetNumber'], 7);
-            $this->drawLineText($pdf, 56.0, 113.2, 14.0, $sellerAddress['streetExtension'], 7);
-            $this->drawLineText($pdf, 68.0, 113.2, 24.0, $sellerAddress['streetType'], 7);
-            $this->drawLineText($pdf, 94.0, 113.2, 103.0, $sellerAddress['streetName'], 7);
-            $this->drawBoxedText($pdf, 37.0, 121.6, 5.1, 0.15, $sellerAddress['postalCode'], 5, 7);
-            $this->drawLineText($pdf, 68.0, 121.6, 128.0, $sellerAddress['city'], 7);
+            $this->markCheckbox($pdf, 12.7, 89.0, true);
+            $this->drawLineText($pdf, 36.0, 100.5, 103.0, $this->formatPersonLabel($seller), 8.5);
+            $this->drawBoxedText($pdf, 147.0, 100.5, 4.4, 0.25, '', 9, 7);
+            $this->drawLineText($pdf, 39.0, 110.5, 14.0, $sellerAddress['streetNumber'], 7);
+            $this->drawLineText($pdf, 56.0, 110.5, 14.0, $sellerAddress['streetExtension'], 7);
+            $this->drawLineText($pdf, 68.0, 110.5, 24.0, $sellerAddress['streetType'], 7);
+            $this->drawLineText($pdf, 94.0, 110.5, 103.0, $sellerAddress['streetName'], 7);
+            $this->drawBoxedText($pdf, 37.0, 119.0, 5.1, 0.15, $sellerAddress['postalCode'], 5, 7);
+            $this->drawLineText($pdf, 68.0, 119.0, 128.0, $sellerAddress['city'], 7);
 
-            $this->markCheckbox($pdf, 65.5, 132.0, true);
-            $this->drawDateBoxes($pdf, 19.0, 139.0, $date, 4.6, 0.15, 7);
-            $this->drawBoxedText($pdf, 56.0, 139.0, 4.6, 0.15, '', 2, 7);
-            $this->drawBoxedText($pdf, 67.0, 139.0, 4.6, 0.15, '', 2, 7);
-            $this->markCheckbox($pdf, 12.7, 149.8, true);
-            $this->markCheckbox($pdf, 12.7, 156.7, true);
+            $this->markCheckbox($pdf, 65.5, 129.5, true);
+            $this->drawDateBoxes($pdf, 19.0, 136.0, $date, 4.6, 0.15, 7);
+            $this->drawBoxedText($pdf, 56.0, 136.0, 4.6, 0.15, '', 2, 7);
+            $this->drawBoxedText($pdf, 67.0, 136.0, 4.6, 0.15, '', 2, 7);
+            $this->markCheckbox($pdf, 12.7, 146.5, true);
+            $this->markCheckbox($pdf, 12.7, 153.5, true);
             $this->drawLineText($pdf, 17.0, 181.8, 42.0, $atelier->getVille(), 7);
             $this->drawDateBoxes($pdf, 69.0, 181.8, $date, 4.6, 0.15, 7);
 
-            $this->markCheckbox($pdf, 12.7, 218.0, true);
-            $this->drawLineText($pdf, 36.0, 223.4, 103.0, $atelier->getNom(), 8.5);
-            $this->drawBoxedText($pdf, 147.0, 223.4, 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, 7);
-            $this->drawDateBoxes($pdf, 24.0, 233.2, null, 4.6, 0.15, 7);
-            $this->drawLineText($pdf, 63.0, 233.2, 133.0, '', 7);
-            $this->drawLineText($pdf, 39.0, 241.6, 14.0, $atelierAddress['streetNumber'], 7);
-            $this->drawLineText($pdf, 56.0, 241.6, 14.0, $atelierAddress['streetExtension'], 7);
-            $this->drawLineText($pdf, 68.0, 241.6, 24.0, $atelierAddress['streetType'], 7);
-            $this->drawLineText($pdf, 94.0, 241.6, 103.0, $atelierAddress['streetName'], 7);
-            $this->drawBoxedText($pdf, 37.0, 250.2, 5.1, 0.15, $atelierAddress['postalCode'], 5, 7);
-            $this->drawLineText($pdf, 68.0, 250.2, 128.0, $atelierAddress['city'], 7);
-            $this->markCheckbox($pdf, 12.7, 262.3, true);
-            $this->markCheckbox($pdf, 12.7, 266.5, true);
-            $this->drawLineText($pdf, 17.0, 271.6, 42.0, $atelier->getVille(), 7);
-            $this->drawDateBoxes($pdf, 69.0, 271.6, $date, 4.6, 0.15, 7);
+            $this->markCheckbox($pdf, 12.7, 215.5, true);
+            $this->drawLineText($pdf, 36.0, 220.5, 103.0, $atelier->getNom(), 8.5);
+            $this->drawBoxedText($pdf, 147.0, 220.5, 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, 7);
+            $this->drawDateBoxes($pdf, 24.0, 230.0, null, 4.6, 0.15, 7);
+            $this->drawLineText($pdf, 63.0, 230.0, 133.0, '', 7);
+            $this->drawLineText($pdf, 39.0, 239.0, 14.0, $atelierAddress['streetNumber'], 7);
+            $this->drawLineText($pdf, 56.0, 239.0, 14.0, $atelierAddress['streetExtension'], 7);
+            $this->drawLineText($pdf, 68.0, 239.0, 24.0, $atelierAddress['streetType'], 7);
+            $this->drawLineText($pdf, 94.0, 239.0, 103.0, $atelierAddress['streetName'], 7);
+            $this->drawBoxedText($pdf, 37.0, 247.5, 5.1, 0.15, $atelierAddress['postalCode'], 5, 7);
+            $this->drawLineText($pdf, 68.0, 247.5, 128.0, $atelierAddress['city'], 7);
+            $this->markCheckbox($pdf, 12.7, 259.0, true);
+            $this->markCheckbox($pdf, 12.7, 263.5, true);
+            $this->drawLineText($pdf, 17.0, 268.5, 42.0, $atelier->getVille(), 7);
+            $this->drawDateBoxes($pdf, 69.0, 268.5, $date, 4.6, 0.15, 7);
         }
 
         $pdf->Output('F', $outputPath);
