@@ -22,8 +22,15 @@
       Certaines sections n'ont pas pu être chargées : {{ partialErrors.join(', ') }}. Le reste du dashboard reste à jour.
     </AppBanner>
 
+    <AppErrorState
+      v-if="dashboardError && !partialErrors.length"
+      title="Dashboard indisponible"
+      :description="dashboardError"
+      @retry="loadDashboard"
+    />
+
     <!-- Alert strip -->
-    <div v-if="alerts.length" class="alert-strip">
+    <div v-else-if="alerts.length" class="alert-strip">
       <div v-for="(a, i) in alerts" :key="i" class="alert-chip" :class="a.type">
         <span class="alert-icon">{{ a.type === 'danger' ? '⚠️' : '⏰' }}</span>
         {{ a.text }}
@@ -344,6 +351,7 @@ const mecanicienStats = ref<any[]>([])
 const stockModuleEnabled = computed(() => atelierStore.isModuleEnabled('stock'))
 const selectedPeriod = ref('30d')
 const filters = reactive({ from: '', to: '' })
+const dashboardError = ref('')
 const periodPresets = [
   { key: 'today', label: "Aujourd'hui" },
   { key: '7d', label: '7 jours' },
@@ -467,12 +475,10 @@ function formatCurrency(value: number | string): string {
 }
 
 function formatDuration(minutes: number | string): string {
-  const total = Math.max(0, Number(minutes ?? 0))
-  const hours = Math.floor(total / 60)
-  const mins = total % 60
-  if (!hours) return `${mins} min`
-  if (!mins) return `${hours} h`
-  return `${hours} h ${mins}`
+  const total = Math.max(0, Math.round(Number(minutes ?? 0)))
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return `${h}:${String(m).padStart(2, '0')}`
 }
 
 function formatShortDay(value: string): string {
@@ -535,7 +541,7 @@ const alerts = computed(() => {
           const elapsed = (now.getTime() - startTime.getTime()) / 60000
           const overrun = Math.round(elapsed - rdv.temps_estime)
           if (overrun > 10) {
-            result.push({ type: 'danger', text: `🔧 ${rdv.vehicule_info} (${rdv.client_nom}) — dépassement +${overrun}min` })
+            result.push({ type: 'danger', text: `🔧 ${rdv.vehicule_info} (${rdv.client_nom}) — dépassement +${formatDuration(overrun)}` })
           }
         }
       }
@@ -547,7 +553,7 @@ const alerts = computed(() => {
         if (!isNaN(finishedTime.getTime())) {
           const waitingMin = Math.round((now.getTime() - finishedTime.getTime()) / 60000)
           if (waitingMin > 15) {
-            result.push({ type: 'danger', text: `📦 ${rdv.vehicule_info} (${rdv.client_nom}) — restitution en attente +${waitingMin}min` })
+            result.push({ type: 'danger', text: `📦 ${rdv.vehicule_info} (${rdv.client_nom}) — restitution en attente +${formatDuration(waitingMin)}` })
           }
         }
       }
@@ -609,6 +615,7 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null
 const partialErrors = ref<string[]>([])
 
 async function loadDashboard() {
+  dashboardError.value = ''
   try {
     const today = toIsoDate(new Date())
     const params = new URLSearchParams()
@@ -634,6 +641,9 @@ async function loadDashboard() {
     ponts.value = Array.isArray(pontsData) ? pontsData : (pontsData?.['hydra:member'] ?? pontsData?.member ?? [])
     mecanicienStats.value = Array.isArray(mecaData) ? mecaData : (mecaData?.['hydra:member'] ?? mecaData?.member ?? [])
     partialErrors.value = issues
+  } catch (e: any) {
+    partialErrors.value = []
+    dashboardError.value = e?.message || 'Le dashboard n’a pas pu être chargé. Vérifie la connexion API puis réessaie.'
   } finally {
     loading.value = false
   }
