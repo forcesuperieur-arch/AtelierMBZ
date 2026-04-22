@@ -17,3 +17,52 @@
 		reverse_proxy nuxt:3000
 	}
 }
+
+# Public-facing edge (client-only).
+# Exposes only customer-facing pages: booking, suivi, demande, mentions, politique.
+# Blocks back-office (admin, planning, vo, etc.) and internal companion pages
+# (companion / vo-companion are used on-premise from the workshop tablet).
+:81 {
+	encode zstd gzip
+
+	# Public API endpoints (booking, suivi token, demande token, photos publiques).
+	# All endpoints are token-protected server-side.
+	handle /api/* {
+		reverse_proxy php:8000
+	}
+
+	handle /uploads/* {
+		reverse_proxy php:8000
+	}
+
+	# Mercure for live updates on /public/suivi/{token}.
+	handle /.well-known/mercure {
+		reverse_proxy mercure:3000
+	}
+
+	# Whitelisted public pages.
+	@public_pages {
+		path /public/booking* /public/suivi /public/suivi/* /public/demande /public/demande/* /public/mentions-legales* /public/politique-confidentialite*
+	}
+	handle @public_pages {
+		reverse_proxy nuxt:3000
+	}
+
+	# Nuxt assets, branding, favicon — required by any page rendered above.
+	@nuxt_assets {
+		path /_nuxt/* /__nuxt/* /favicon.ico /branding/* /robots.txt
+	}
+	handle @nuxt_assets {
+		reverse_proxy nuxt:3000
+	}
+
+	# Root → redirect to booking page.
+	handle / {
+		redir * /public/booking 302
+	}
+
+	# Everything else (admin, planning, vo, companion, login, profile, ...) is hidden.
+	handle {
+		respond "Not found" 404
+	}
+}

@@ -93,6 +93,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "${PUBLIC_EDGE_PORT:-81}:81"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
