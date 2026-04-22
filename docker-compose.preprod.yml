@@ -1,0 +1,45 @@
+services:
+  db:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set for preprod}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set for preprod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set for preprod}
+
+  php:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER must be set for preprod}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set for preprod}@db:5432/${POSTGRES_DB:?POSTGRES_DB must be set for preprod}?serverVersion=15&charset=utf8
+      APP_ENV: ${APP_ENV:?APP_ENV must be set for preprod}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:?CORS_ALLOW_ORIGIN must be set for preprod}
+      MAILER_DSN: ${MAILER_DSN:?MAILER_DSN must be set for preprod}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:?MESSENGER_TRANSPORT_DSN must be set for preprod}
+      MERCURE_URL: ${MERCURE_URL:?MERCURE_URL must be set for preprod}
+      MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:?MERCURE_PUBLIC_URL must be set for preprod}
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:?MERCURE_JWT_SECRET must be set for preprod}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?ADMIN_USERNAME must be set for preprod}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set for preprod}
+    volumes:
+      - backend_logos:/app/public/uploads/logos
+      - backend_photos:/app/public/uploads/photos
+      - backend_signatures:/app/public/uploads/signatures
+
+  worker:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER must be set for preprod}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set for preprod}@db:5432/${POSTGRES_DB:?POSTGRES_DB must be set for preprod}?serverVersion=15&charset=utf8
+      APP_ENV: ${APP_ENV:?APP_ENV must be set for preprod}
+      MAILER_DSN: ${MAILER_DSN:?MAILER_DSN must be set for preprod}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:?MESSENGER_TRANSPORT_DSN must be set for preprod}
+    volumes:
+      - backend_logos:/app/public/uploads/logos
+      - backend_photos:/app/public/uploads/photos
+      - backend_signatures:/app/public/uploads/signatures
+
+  mercure:
+    environment:
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?MERCURE_JWT_SECRET must be set for preprod}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:?MERCURE_JWT_SECRET must be set for preprod}
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins ${CORS_ALLOW_ORIGIN:?CORS_ALLOW_ORIGIN must be set for preprod}
+        subscriptions
+
+  mailhog:
+    profiles: ["dev-only"]

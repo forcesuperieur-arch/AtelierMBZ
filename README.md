@@ -1,4 +1,4 @@
-# Paddock — AtelierMBZ v2
+# Paddock
 
 Application de gestion d’atelier moto pour la réception, le suivi des RDV, les ordres de réparation, les notifications et le pilotage atelier.
 

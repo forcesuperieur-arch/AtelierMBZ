@@ -1,4 +1,4 @@
-http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
+:80, :443 {
 	encode zstd gzip
 
 	handle /.well-known/mercure {

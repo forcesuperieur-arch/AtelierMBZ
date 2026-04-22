@@ -13,7 +13,7 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev \
-    && php bin/console cache:warmup --env=prod || true
+    && php bin/console cache:warmup --env=prod
 
 RUN chown -R www-data:www-data var/
 

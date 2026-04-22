@@ -59,12 +59,13 @@ class Handler(BaseHTTPRequestHandler):
             )
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(completed.stdout.encode())
+            self.wfile.write(b"Deployment completed")
         except subprocess.CalledProcessError as exc:
             self.send_response(500)
             self.end_headers()
             output = (exc.stdout or "") + "\n" + (exc.stderr or "")
-            self.wfile.write(output.encode())
+            print(output)
+            self.wfile.write(b"Deployment failed")
 
     def log_message(self, format, *args):
         return
