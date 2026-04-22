@@ -16,6 +16,14 @@
     />
 
     <template v-else>
+      <AppBanner
+        v-if="partialIssues.length"
+        variant="danger"
+        icon="⚠️"
+        title="Données atelier partielles"
+        :description="`Certaines sections sont indisponibles : ${partialIssues.join(', ')}.`"
+      />
+
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
@@ -49,7 +57,14 @@
       <div class="tabs">
         <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'">🔧 Ponts</button>
         <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'">👤 Mécaniciens</button>
-        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'">⏱ Temps par type</button>
+        <button class="tab" :class="{ active: activeTab === 'alertes' }" @click="activeTab = 'alertes'">
+          ⚠️ Alertes
+          <span v-if="alertesTotalCount > 0" style="margin-left:6px;background:rgba(239,68,68,0.22);color:#FCA5A5;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">{{ alertesTotalCount }}</span>
+        </button>
+        <button class="tab" :class="{ active: activeTab === 'gardiennage' }" @click="activeTab = 'gardiennage'">
+          🅿 Gardiennage
+          <span v-if="gardinnageRdvs.length" style="margin-left:6px;background:rgba(239,68,68,0.18);color:#FCA5A5;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">{{ gardinnageRdvs.length }}</span>
+        </button>
         <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'">📅 Absences</button>
       </div>
 
@@ -121,7 +136,7 @@
                   <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
                     <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
                   </div>
-                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ pont.current_rdv.temps_estime }} min estimées</div>
+                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
                 </div>
               </div>
 
@@ -236,14 +251,210 @@
         />
       </div>
 
-      <!-- TEMPS TAB -->
-      <div v-if="activeTab === 'temps'">
-        <UCard>
-          <div style="color:#6B7280;padding:16px;text-align:center;">
-            Les temps par type d'intervention sont affichés dans la section Tarifs.
-            <NuxtLink to="/tarifs" style="color:#FFD200;font-weight:600;text-decoration:none;margin-left:6px;">Voir Tarifs →</NuxtLink>
+      <!-- ALERTES TAB -->
+      <div v-if="activeTab === 'alertes'">
+        <AppEmptyState
+          v-if="alertesTotalCount === 0"
+          icon="✅"
+          title="Aucune alerte"
+          description="Pas de dépassement, ni de no-show, ni de demande en attente sur l'atelier en ce moment."
+        />
+
+        <div v-else style="display:flex;flex-direction:column;gap:20px;">
+
+          <!-- Dépassements -->
+          <div v-if="alertesDepassements.length">
+            <div style="font-size:11px;font-weight:700;color:#FCA5A5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔴 Dépassements en cours ({{ alertesDepassements.length }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="rdv in alertesDepassements"
+                :key="`dep-${rdv.id}`"
+                style="padding:12px 16px;border-radius:10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+              >
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
+                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — {{ rdv.type_intervention || 'atelier' }}</div>
+                  <div style="font-size:11px;color:#FCA5A5;margin-top:2px;">+{{ formatDuration(rdvOverrunMinutes(rdv)) }} de dépassement</div>
+                </div>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Voir →</NuxtLink>
+              </div>
+            </div>
           </div>
-        </UCard>
+
+          <!-- No-show du jour -->
+          <div v-if="alertesNoShow.length">
+            <div style="font-size:11px;font-weight:700;color:#FDBA74;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟠 No-show du jour ({{ alertesNoShow.length }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="rdv in alertesNoShow"
+                :key="`ns-${rdv.id}`"
+                style="padding:12px 16px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+              >
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
+                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — {{ formatHourLabel(rdv.heure_rdv) }}</div>
+                </div>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Ouvrir →</NuxtLink>
+              </div>
+            </div>
+          </div>
+
+          <!-- Retards réception -->
+          <div v-if="alertesRetards.length">
+            <div style="font-size:11px;font-weight:700;color:#FCD34D;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟡 Retards de réception ({{ alertesRetards.length }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="rdv in alertesRetards"
+                :key="`ret-${rdv.id}`"
+                style="padding:12px 16px;border-radius:10px;background:rgba(250,204,21,0.05);border:1px solid rgba(250,204,21,0.15);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+              >
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
+                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — prévu à {{ formatHourLabel(rdv.heure_rdv) }}</div>
+                  <div style="font-size:11px;color:#FCD34D;margin-top:2px;">+{{ formatDuration(rdvRetardMinutes(rdv)) }} sans réception</div>
+                </div>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Réceptionner →</NuxtLink>
+              </div>
+            </div>
+          </div>
+
+          <!-- Demandes travaux supp en attente -->
+          <div v-if="demandesSupp.length">
+            <div style="font-size:11px;font-weight:700;color:#C4B5FD;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟣 Demandes travaux complémentaires ({{ demandesSupp.length }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="d in demandesSupp"
+                :key="`ds-${d.id}`"
+                style="padding:12px 16px;border-radius:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+              >
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:2px;">
+                    {{ d.rendezVous ? rdvClientName(d.rendezVous) : 'Client' }}
+                  </div>
+                  <div style="font-size:12px;color:#9CA3AF;margin-bottom:4px;">{{ d.description || 'Aucune description' }}</div>
+                  <div style="font-size:10px;color:#6B7280;">Créée le {{ formatDateCourt(d.createdAt) }}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+                  <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:9999px;background:rgba(139,92,246,0.18);color:#C4B5FD;">{{ d.statut }}</span>
+                  <NuxtLink
+                    v-if="d.rendezVous?.id"
+                    :to="`/planning?openRdv=${d.rendezVous.id}`"
+                    class="btn btn-ghost"
+                    style="font-size:12px;text-decoration:none;"
+                  >Voir le RDV →</NuxtLink>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OR en attente de signature -->
+          <div v-if="orAttente.length">
+            <div style="font-size:11px;font-weight:700;color:#5EEAD4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔵 OR en attente de signature ({{ orAttente.length }})</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="or in orAttente"
+                :key="`or-${or.id}`"
+                style="padding:12px 16px;border-radius:10px;background:rgba(20,184,166,0.05);border:1px solid rgba(20,184,166,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+              >
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ or.snapClientNom ?? or.snap_client_nom ?? 'Client' }} {{ or.snapClientPrenom ?? or.snap_client_prenom ?? '' }}</div>
+                  <div style="font-size:12px;color:#9CA3AF;">OR {{ or.numeroOr ?? or.numero_or }} — {{ or.snapVehiculeMarque ?? or.snap_vehicule_marque ?? '' }} {{ or.snapVehiculeModele ?? or.snap_vehicule_modele ?? '' }}</div>
+                  <div v-if="or.motifRectification ?? or.motif_rectification" style="font-size:11px;color:#5EEAD4;margin-top:2px;">Motif : {{ or.motifRectification ?? or.motif_rectification }}</div>
+                </div>
+                <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Ouvrir l'OR →</NuxtLink>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- GARDIENNAGE TAB -->
+      <div v-if="activeTab === 'gardiennage'">
+        <!-- Résumé -->
+        <div v-if="gardinnageRdvs.length" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.18);">
+            <div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">Motos en gardiennage</div>
+            <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ gardinnageRdvs.length }}</div>
+          </div>
+          <div style="padding:12px 18px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);">
+            <div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">Montant total estimé</div>
+            <div style="font-size:22px;font-weight:700;color:#FCD34D;">{{ gardiennageTotalEstime }}€</div>
+          </div>
+          <div v-if="gardinnageUrgents > 0" style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);">
+            <div style="font-size:11px;color:#FCA5A5;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">⚠ Actions requises</div>
+            <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ gardinnageUrgents }}</div>
+          </div>
+        </div>
+
+        <AppEmptyState
+          v-if="!gardinnageRdvs.length"
+          icon="🅿"
+          title="Aucun véhicule en gardiennage"
+          description="Aucune moto n'est actuellement en gardiennage. Les véhicules non-récupérés après réparation apparaîtront ici."
+        />
+
+        <div v-else style="display:flex;flex-direction:column;gap:10px;">
+          <div
+            v-for="rdv in gardinnageSorted"
+            :key="rdv.id"
+            style="border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.07);"
+            :style="{ background: gardinnagePhase(rdv).bg }"
+          >
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <!-- Infos principales -->
+              <div style="flex:1;min-width:240px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                  <span
+                    style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:9999px;"
+                    :style="{ background: gardinnagePhase(rdv).badgeBg, color: gardinnagePhase(rdv).badgeColor }"
+                  >
+                    {{ gardinnagePhase(rdv).label }}
+                  </span>
+                  <span style="font-size:12px;font-weight:700;color:#E8E9ED;">
+                    J+{{ joursCalendaires(rdv.gardiennageDebutAt) }}
+                  </span>
+                  <span style="font-size:11px;color:#6B7280;">depuis le {{ formatDateCourt(rdv.gardiennageDebutAt) }}</span>
+                </div>
+
+                <div style="font-size:14px;font-weight:700;color:#E8E9ED;margin-bottom:2px;">
+                  {{ rdvClientName(rdv) }}
+                </div>
+                <div style="font-size:12px;color:#9CA3AF;margin-bottom:2px;">
+                  {{ rdvVehicleLabel(rdv) }}
+                  <span v-if="rdv.vehicule?.plaque || rdv.vehicule_plaque" style="margin-left:6px;font-family:monospace;color:#FFD200;font-size:11px;">{{ rdv.vehicule?.plaque ?? rdv.vehicule_plaque }}</span>
+                </div>
+                <div v-if="rdv.gardiennageMotif" style="font-size:11px;color:#6B7280;margin-top:4px;font-style:italic;">{{ rdv.gardiennageMotif }}</div>
+              </div>
+
+              <!-- Montant estimé -->
+              <div style="text-align:right;">
+                <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600;margin-bottom:2px;">Montant estimé</div>
+                <div style="font-size:18px;font-weight:700;color:#FCD34D;">{{ gardinnageMontantEstime(rdv) }}€</div>
+                <div style="font-size:10px;color:#6B7280;">{{ joursCalendaires(rdv.gardiennageDebutAt) }}j × {{ workshopConfig?.tarifGardiennageJournalier ?? '5.00' }}€/j</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+              <NuxtLink
+                :to="`/planning?openRdv=${rdv.id}`"
+                class="btn btn-ghost"
+                style="font-size:12px;text-decoration:none;"
+              >
+                Voir le dossier →
+              </NuxtLink>
+              <button
+                class="btn btn-primary"
+                style="font-size:12px;"
+                :disabled="gardinnageActioning[rdv.id]"
+                @click="sortirGardiennage(rdv)"
+              >
+                {{ gardinnageActioning[rdv.id] ? 'Traitement…' : '↩ Sortir du gardiennage' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ABSENCES TAB -->
@@ -265,12 +476,14 @@
 <script setup lang="ts">
 const api = useApi()
 const toast = useToast()
+const { formatDuration } = useFormat()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
 const refreshing = ref(false)
 const errorMessage = ref('')
-const validTabs = ['ponts', 'mecas', 'temps', 'absences']
+const partialIssues = ref<string[]>([])
+const validTabs = ['ponts', 'mecas', 'alertes', 'gardiennage', 'absences']
 const activeTab = ref('ponts')
 const ponts = ref<any[]>([])
 const mecaniciens = ref<any[]>([])
@@ -280,6 +493,11 @@ const lastUpdatedAt = ref('')
 const actioningByPont = reactive<Record<number, string>>({})
 const pontSettings = reactive<Record<number, { mecanicien_id: number | null; is_active: boolean }>>({})
 const pontSettingSaving = reactive<Record<number, boolean>>({})
+const gardinnageRdvs = ref<any[]>([])
+const workshopConfig = ref<any>(null)
+const gardinnageActioning = reactive<Record<number, boolean>>({})
+const demandesSupp = ref<any[]>([])
+const orAttente = ref<any[]>([])
 
 const absenceCols = [
   { key: 'mecanicien_nom', label: 'Mécanicien' },
@@ -593,25 +811,36 @@ async function runPontQuickAction(pont: any) {
 }
 
 async function fetchPontsWithFallback() {
-  const statusPayload = await api.get('/ponts/status').catch(() => null)
-  const statusPonts = normalizeCollection(statusPayload).map(normalizePont)
-  if (statusPonts.length) {
-    return statusPonts
+  const statusAttempt = await Promise.allSettled([api.get('/ponts/status')])
+  if (statusAttempt[0].status === 'fulfilled') {
+    const statusPonts = normalizeCollection(statusAttempt[0].value).map(normalizePont)
+    if (statusPonts.length) {
+      return statusPonts
+    }
   }
 
-  const rawPayload = await api.get('/ponts').catch(() => [])
-  return normalizeCollection(rawPayload).map((item: any) => normalizePont(item))
+  const rawAttempt = await Promise.allSettled([api.get('/ponts')])
+  if (rawAttempt[0].status === 'fulfilled') {
+    return normalizeCollection(rawAttempt[0].value).map((item: any) => normalizePont(item))
+  }
+
+  throw new Error('ponts')
 }
 
 async function loadWorkshop() {
   loading.value = true
   errorMessage.value = ''
+  partialIssues.value = []
 
-  const [p, m, a, r] = await Promise.allSettled([
+  const [p, m, a, r, g, cfg, ds, ora] = await Promise.allSettled([
     fetchPontsWithFallback(),
     api.get('/mecaniciens'),
     api.get('/absences'),
     api.get('/rendez-vous?itemsPerPage=2000&order[createdAt]=desc'),
+    api.get('/rendez-vous?statut=en_gardiennage&itemsPerPage=200'),
+    api.get('/config'),
+    api.get('/demandes-travaux-supp?statut=en_attente&itemsPerPage=100'),
+    api.get('/ordres-reparation?statut=en_attente_signature&itemsPerPage=100'),
   ])
 
   const issues: string[] = []
@@ -651,9 +880,34 @@ async function loadWorkshop() {
     issues.push('rendez-vous')
   }
 
+  if (g.status === 'fulfilled') {
+    gardinnageRdvs.value = normalizeCollection(g.value)
+  } else {
+    gardinnageRdvs.value = []
+  }
+
+  if (cfg.status === 'fulfilled') {
+    workshopConfig.value = cfg.value
+  } else {
+    workshopConfig.value = null
+  }
+
+  if (ds.status === 'fulfilled') {
+    demandesSupp.value = normalizeCollection(ds.value)
+  } else {
+    demandesSupp.value = []
+  }
+
+  if (ora.status === 'fulfilled') {
+    orAttente.value = normalizeCollection(ora.value)
+  } else {
+    orAttente.value = []
+  }
+
   if (issues.length === 4) {
     errorMessage.value = 'Aucune donnée atelier n’a pu être chargée. Vérifie la connexion API puis réessaie.'
   } else if (issues.length > 0) {
+    partialIssues.value = issues
     toast.add({
       title: 'Chargement partiel',
       description: `Certaines sections sont indisponibles : ${issues.join(', ')}.`,
@@ -664,6 +918,136 @@ async function loadWorkshop() {
   syncPontSettings()
   lastUpdatedAt.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   loading.value = false
+}
+
+// ── Alertes ──
+
+const alertesDepassements = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  return rdvs.value.filter((rdv: any) => {
+    if (getRdvStatus(rdv) !== 'en_cours') return false
+    if (extractDateKey(rdv?.date_rdv) !== today) return false
+    const tempsEstime = Number(rdv?.temps_estime)
+    if (!tempsEstime) return false
+    const started = rdv.heure_debut_travaux || rdv.started_at
+    if (!started) return false
+    const startTime = new Date(started)
+    if (isNaN(startTime.getTime())) return false
+    const elapsedMin = (Date.now() - startTime.getTime()) / 60000
+    return elapsedMin > tempsEstime
+  })
+})
+
+function rdvOverrunMinutes(rdv: any): number {
+  const tempsEstime = Number(rdv?.temps_estime ?? 0)
+  const started = rdv.heure_debut_travaux || rdv.started_at
+  if (!started || !tempsEstime) return 0
+  const startTime = new Date(started)
+  if (isNaN(startTime.getTime())) return 0
+  return Math.round((Date.now() - startTime.getTime()) / 60000 - tempsEstime)
+}
+
+const alertesNoShow = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  return rdvs.value.filter((rdv: any) =>
+    getRdvStatus(rdv) === 'no_show' && extractDateKey(rdv?.date_rdv) === today
+  )
+})
+
+const alertesRetards = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+  return rdvs.value.filter((rdv: any) => {
+    if (getRdvStatus(rdv) !== 'confirme') return false
+    if (extractDateKey(rdv?.date_rdv) !== today) return false
+    const h = formatHourLabel(rdv?.heure_rdv)
+    if (!h || h === '--:--') return false
+    const [hh, mm] = h.split(':').map(Number)
+    const rdvMin = (hh ?? 0) * 60 + (mm ?? 0)
+    return (nowMin - rdvMin) > 30
+  })
+})
+
+function rdvRetardMinutes(rdv: any): number {
+  const h = formatHourLabel(rdv?.heure_rdv)
+  if (!h || h === '--:--') return 0
+  const [hh, mm] = h.split(':').map(Number)
+  const rdvMin = (hh ?? 0) * 60 + (mm ?? 0)
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+  return Math.max(0, nowMin - rdvMin)
+}
+
+const alertesTotalCount = computed(() =>
+  alertesDepassements.value.length +
+  alertesNoShow.value.length +
+  alertesRetards.value.length +
+  demandesSupp.value.length +
+  orAttente.value.length
+)
+
+// ── Gardiennage ──
+
+function joursCalendaires(debutAt: string | null): number {
+  if (!debutAt) return 0
+  const debut = new Date(debutAt)
+  if (isNaN(debut.getTime())) return 0
+  return Math.max(0, Math.floor((Date.now() - debut.getTime()) / 86400000))
+}
+
+function formatDateCourt(d: string | null): string {
+  if (!d) return ''
+  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return d }
+}
+
+function gardinnagePhase(rdv: any): { label: string; bg: string; badgeBg: string; badgeColor: string; urgence: number } {
+  const cfg = workshopConfig.value
+  const r1 = Math.round((cfg?.delaiRelance1JoursOuvres ?? 15) * 1.4)
+  const r2 = Math.round((cfg?.delaiRelance2JoursOuvres ?? 30) * 1.4)
+  const ra = Math.round((cfg?.delaiProposeGardiennageJoursOuvres ?? 45) * 1.4)
+  const rp = Math.round((cfg?.delaiProcedureAbandonJoursOuvres ?? 180) * 1.4)
+  const jours = joursCalendaires(rdv.gardiennageDebutAt)
+  if (jours >= rp) return { label: 'Procédure abandon', bg: 'rgba(127,0,0,0.12)', badgeBg: 'rgba(185,28,28,0.25)', badgeColor: '#FCA5A5', urgence: 4 }
+  if (jours >= ra) return { label: 'Abandon possible', bg: 'rgba(239,68,68,0.08)', badgeBg: 'rgba(239,68,68,0.2)', badgeColor: '#FCA5A5', urgence: 3 }
+  if (jours >= r2) return { label: 'Relance 2', bg: 'rgba(245,120,15,0.07)', badgeBg: 'rgba(234,88,12,0.2)', badgeColor: '#FDBA74', urgence: 2 }
+  if (jours >= r1) return { label: 'Relance 1', bg: 'rgba(245,158,11,0.06)', badgeBg: 'rgba(245,158,11,0.2)', badgeColor: '#FCD34D', urgence: 1 }
+  return { label: 'Récent', bg: 'rgba(255,255,255,0.03)', badgeBg: 'rgba(34,197,94,0.15)', badgeColor: '#86EFAC', urgence: 0 }
+}
+
+function gardinnageMontantEstime(rdv: any): string {
+  const jours = joursCalendaires(rdv.gardiennageDebutAt)
+  const tarif = parseFloat(workshopConfig.value?.tarifGardiennageJournalier ?? '5')
+  return (jours * tarif).toFixed(2)
+}
+
+const gardinnageSorted = computed(() =>
+  [...gardinnageRdvs.value].sort((a, b) => {
+    const pa = gardinnagePhase(a).urgence
+    const pb = gardinnagePhase(b).urgence
+    if (pb !== pa) return pb - pa
+    return joursCalendaires(b.gardiennageDebutAt) - joursCalendaires(a.gardiennageDebutAt)
+  })
+)
+
+const gardinnageUrgents = computed(() =>
+  gardinnageRdvs.value.filter(r => gardinnagePhase(r).urgence >= 2).length
+)
+
+const gardiennageTotalEstime = computed(() =>
+  gardinnageRdvs.value.reduce((sum, rdv) => sum + parseFloat(gardinnageMontantEstime(rdv)), 0).toFixed(2)
+)
+
+async function sortirGardiennage(rdv: any) {
+  if (!rdv?.id) return
+  gardinnageActioning[rdv.id] = true
+  try {
+    await api.post(`/rendez-vous/${rdv.id}/transition/sortir_gardiennage`, {})
+    toast.add({ title: 'Véhicule sorti du gardiennage', description: `${rdvClientName(rdv)} — le dossier repasse en cours.`, color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({ title: 'Impossible', description: e?.message || 'Vérifie le statut du RDV dans le planning.', color: 'error' })
+  } finally {
+    gardinnageActioning[rdv.id] = false
+  }
 }
 
 async function refreshWorkshop() {
