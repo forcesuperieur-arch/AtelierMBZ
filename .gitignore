@@ -3,5 +3,19 @@
 .env.local
 .env.*.local
 
+# Frontend generated artifacts
+frontend/.nuxt/
+frontend/.output/
+frontend/playwright-report/
+frontend/test-results/
+
+# Root generated artifacts
+playwright-report/
+test-results/
+
+# Backend generated artifacts
+backend/.phpunit.cache/
+backend/public/uploads/vo/
+
 # Backups
 backups/*.sql
