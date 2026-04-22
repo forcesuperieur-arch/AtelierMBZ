@@ -6,6 +6,9 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -22,6 +25,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Delete(uriTemplate: '/ordres-reparation/{id}'),
     ],
 )]
+#[ApiFilter(SearchFilter::class, properties: ['statut' => 'exact'])]
+#[ApiFilter(OrderFilter::class, properties: ['createdAt'])]
 class OrdreReparation
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]

@@ -185,12 +185,15 @@ class RendezVous
     private ?int $misEnStockagePar = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
     private ?\DateTimeInterface $gardiennageDebutAt = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['rdv:read'])]
     private ?int $gardiennageDebutPar = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $gardiennageMotif = null;
 
     // [SPRINT-4] I4 — source du RDV : null = interne, 'web' = prise en ligne publique
