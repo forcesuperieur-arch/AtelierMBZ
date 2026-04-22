@@ -2,6 +2,67 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-22 — Sprint 1 audit : LP mode paiement, voters DELETE, clauses Companion
+
+### Fait
+- [SPRINT-1] [C3] ajoute — [backend/src/Entity/VOLivrePolice.php](backend/src/Entity/VOLivrePolice.php) : 6 nouveaux champs (`modePaiement` NOT NULL, `numeroCheque`, `nomBanque`, `modePaiementVente`, `numeroChequeVente`, `nomBanqueVente`) + constantes `MODES_PAIEMENT` et `MODES_PAIEMENT_ENCAISSEMENT`
+- [SPRINT-1] [C3] ajoute — [backend/src/Service/VOLivrePoliceService.php](backend/src/Service/VOLivrePoliceService.php) : `createEntryForPurchase`, `createEntryForDepotVente` et `recordSale` prennent désormais le mode de paiement et les infos chèque en paramètre ; validation interne via `validateModePaiement` et `validateModePaiementEncaissement`
+- [SPRINT-1] [C3] ajoute — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) : `confirmPurchase` exige `modePaiement` dans le body (422 sinon) ; les endpoints de vente transmettent `modePaiementVente`, `numeroChequeVente`, `nomBanqueVente` ; `activateDepotRecord` passe automatiquement `'depot_vente'`
+- [SPRINT-1] [C3] ajoute — [backend/migrations/Version20260606090000.php](backend/migrations/Version20260606090000.php) : migration appliquée, 6 colonnes ajoutées sur `vo_livre_police`
+- [SPRINT-1] [C3] ajoute — [backend/templates/pdf/vo_livre_police.html.twig](backend/templates/pdf/vo_livre_police.html.twig) : colonnes "Mode paiement achat" et "Mode paiement vente" dans le registre PDF ; labels lisibles + numéro de chèque si applicable
+- [SPRINT-1] [C13] ajoute — [backend/src/Service/VOLivrePoliceService.php](backend/src/Service/VOLivrePoliceService.php) : guard `if ($acquisitionEntry->getDateVente() !== null) throw \LogicException` au début de `recordSale` — double vente LP impossible
+- [SPRINT-1] [C10] ajoute — [backend/src/Security/Voter/FactureDeleteVoter.php](backend/src/Security/Voter/FactureDeleteVoter.php) : voter Symfony bloquant le DELETE sur toute facture avec statut `emise`, `payee`, `partiellement_payee`, `corrigee`
+- [SPRINT-1] [C10] ajoute — [backend/src/Security/Voter/VOFactureDeleteVoter.php](backend/src/Security/Voter/VOFactureDeleteVoter.php) : même garde pour `VOFacture`
+- [SPRINT-1] [C14] ajoute — [backend/src/Controller/AdminUserProvisioningController.php](backend/src/Controller/AdminUserProvisioningController.php) : après `flush()` dans `approve`, appel `mecanicienSyncService->syncFromUser($user)` si le rôle attribué est `ROLE_MECANICIEN` — l'entité `Mecanicien` est créée automatiquement
+- [SPRINT-1] [C5] ajoute — [backend/src/Controller/CompanionController.php](backend/src/Controller/CompanionController.php) : endpoint `GET /{token}/clauses` retournant les clauses actives `cgv`, `garantie`, `rgpd` pour l'atelier ; validation `clausesAcceptees` dans `saveSignature` (422 si clauses manquantes)
+- [SPRINT-1] [C6] ajoute — [backend/src/Controller/PublicVoCompanionController.php](backend/src/Controller/PublicVoCompanionController.php) : endpoint `GET /{token}/clauses?partyRole=` avec codes par rôle (`vendeur_rachat`, `deposant`, `acheteur`) ; validation `clausesAcceptees` + `partyRole` dans `saveSignature` (422 si incomplet)
+- [TEST] test — [backend/tests/Functional/VOControllerTest.php](backend/tests/Functional/VOControllerTest.php) + [backend/tests/Functional/CompanionControllerTest.php](backend/tests/Functional/CompanionControllerTest.php) : tests existants mis à jour pour passer `modePaiement` et `clausesAcceptees` dans les requêtes concernées
+- [TEST] test — PHPUnit backend 180/180 OK, 0 failure, 0 error après migration appliquée
+
+### Décisions
+- `'depot_vente'` est une valeur spéciale dans `MODES_PAIEMENT` (aucune somme versée à l'entrée du dépôt) mais n'est **pas** dans `MODES_PAIEMENT_ENCAISSEMENT` — les deux constantes sont distinctes
+- Le guard [C13] est placé dans le service, pas dans le controller, pour être actif quel que soit l'appelant
+- Les voters DELETE sont auto-découverts par Symfony (autowiring) — pas de déclaration manuelle dans `services.yaml`
+- La valeur par défaut `'cb'` dans le controller pour `modePaiementVente` est intentionnelle pour les appelants legacy ; l'UI doit toujours l'envoyer explicitement
+
+### TODO laissés
+- [ ] Frontend Companion atelier : ajouter l'étape "Conditions" avec checkboxes bloquantes avant signature (consomme `GET /{token}/clauses`)
+- [ ] Frontend Companion VO : idem par partyRole (consomme `GET /{token}/clauses?partyRole=`)
+- [ ] Sprint 2 : C1 (RdvTerminationGuardSubscriber), C21 (path traversal PhotoController), C12 (422 TYPE_PIECE_IDENTITE), I11 (setKilometrage guard), C7 (companion restitution token dédié), I5 (verdict bloquant mettre_en_vente)
+
+### En suspens à arbitrer
+- Aucun arbitrage bloquant — Sprint 2 prêt à démarrer
+
+
+
+### Fait
+- [LOT-0] fix — [backend/templates/pdf/vo_mandat_immatriculation.html.twig](backend/templates/pdf/vo_mandat_immatriculation.html.twig) : suppression de la référence invalide à `buyer.cp` / `buyer.ville`, ce qui débloque la génération du mandat d'immatriculation pendant la vente VO
+- [LOT-0] fix — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) + [backend/src/Controller/AdminTemplatePreviewController.php](backend/src/Controller/AdminTemplatePreviewController.php) : nettoyage des faux diagnostics de typage les plus bruyants via normalizer correctement typé et récupération utilisateur explicitement castée
+- [LOT-0] ajoute — [backend/src/Controller/HealthController.php](backend/src/Controller/HealthController.php) : nouvel endpoint public `/api/health` pour supervision et déploiement, sans exposer la doc API
+- [LOT-0] fix — [backend/config/packages/security.yaml](backend/config/packages/security.yaml) : `/api/docs` et `/api/contexts` ne sont plus publics ; seul `/api/health` reste ouvert en plus des endpoints publics métier
+- [LOT-0] fix — [frontend/middleware/auth.global.ts](frontend/middleware/auth.global.ts), [frontend/pages/public/companion.vue](frontend/pages/public/companion.vue) et [frontend/pages/public/vo-companion.vue](frontend/pages/public/vo-companion.vue) : arrêt de la compatibilité query-string pour les tokens companion sur les flux encore actifs, afin d'éviter leur fuite dans les logs et l'historique navigateur
+- [LOT-0] fix — [frontend/stores/auth.ts](frontend/stores/auth.ts) et [frontend/stores/atelier.ts](frontend/stores/atelier.ts) : suppression de la persistance locale des rôles, permissions et contexte atelier
+- [LOT-0] ajoute — [docker-compose.preprod.yml](docker-compose.preprod.yml) + [scripts/deploy-server.sh](scripts/deploy-server.sh) + [scripts/github-webhook-listener.py](scripts/github-webhook-listener.py) : séparation préprod dédiée, secrets exigés, Mercure resserré, healthcheck de déploiement réaligné et sortie détaillée du déploiement non renvoyée au client HTTP
+- [LOT-0] fix — [Dockerfile.backend](Dockerfile.backend) : le warmup cache prod fait désormais échouer le build si le bootstrap Symfony est cassé
+- [LOT-0] fix — [.gitignore](.gitignore) + [frontend/.gitignore](frontend/.gitignore) : les artefacts générés Nuxt, Playwright, Vitest et PHPUnit sont maintenant explicitement ignorés ; les anciennes sorties suivies sont laissées supprimées du worktree
+- [LOT-0] fix — [.gitignore](.gitignore) + dépôt Git : les uploads VO runtime sous [backend/public/uploads/vo](backend/public/uploads/vo) sortent de l'index Git et restent seulement comme données locales/runtime
+- [TEST] test — validations exécutées : PHPUnit backend 178/178 OK, Vitest frontend 19/19 OK, build Nuxt production OK, cache warmup prod OK, `GET /api/health` OK
+
+### Décisions
+- La doc API et les contexts ne doivent plus être exposés anonymement en préprod ; le point de vérité opérationnel pour la supervision devient un healthcheck dédié
+- Les tokens companion ne doivent plus vivre en query string sur les parcours actifs ; la canonicalisation retenue est le segment de chemin
+- Les stores frontend ne conservent plus de contexte d'autorisation durable côté navigateur ; le contexte doit être rechargé depuis le serveur à chaque bootstrap utile
+- La préprod doit s'appuyer sur une surcharge compose dédiée au lieu de réutiliser telle quelle la stack locale permissive
+- Les uploads VO et PDFs générés sont des données runtime, pas des artefacts versionnables ; ils doivent vivre hors Git
+
+### TODO laissés
+- [ ] Purger définitivement du dépôt les anciens artefacts Nuxt actuellement suivis puis committer leur suppression pour retrouver un worktree propre
+- [ ] Traiter le reliquat de diagnostics Markdown historiques dans [PROJECT_HISTORY.md](.github/PROJECT_HISTORY.md) si on veut revenir à une baseline éditeur quasi nulle
+- [ ] Revoir plus largement les surfaces publiques legacy encore présentes sous `/public/*` si on veut supprimer complètement les anciens écrans de transition
+
+### En suspens à arbitrer
+- Faut-il aller jusqu'à basculer le runtime backend de serveur PHP intégré vers une chaîne `php-fpm` + Caddy `php_fastcgi` dans un lot infra dédié, ou garder le runtime actuel pour la préprod courte tout en ayant sécurisé le reste ?
+
 ## Session 2026-04-21 — Paquet 2 tranche 3 : orchestration mécanicien et verdict VO binaire
 
 ### Fait
@@ -40,8 +101,8 @@
 - La conformité VO sur identité/domicile repose sur la transcription puis destruction immédiate du support, jamais sur l'archivage de la pièce elle-même
 
 ### TODO laissés
-- [ ] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter pause, attente pièces et reprise dans le parcours mécanicien pour finir le LOT-05 côté orchestration d'atelier
-- [ ] [frontend/components/vo/VODossierMotoCard.vue](frontend/components/vo/VODossierMotoCard.vue) + vues VO associées : remplacer le suivi documentaire encore partiel par un verdict légal binaire vendable / non vendable avec motifs hiérarchisés pour finir le LOT-06
+- [x] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter pause, attente pièces et reprise dans le parcours mécanicien pour finir le LOT-05 côté orchestration d'atelier — fait session 2026-04-21
+- [x] [frontend/components/vo/VODossierMotoCard.vue](frontend/components/vo/VODossierMotoCard.vue) + vues VO associées : remplacer le suivi documentaire encore partiel par un verdict légal binaire vendable / non vendable avec motifs hiérarchisés pour finir le LOT-06 — fait session 2026-04-21
 
 ### En suspens à arbitrer
 - Aucun nouvel arbitrage bloquant ; le reliquat Paquet 2 porte désormais surtout sur la profondeur restante des lots 05 et 06, plus sur leur direction produit
@@ -61,9 +122,9 @@
 - Le type photo doit être porté dès l'upload, sinon les gardes de transition `terminer` / `restituer` restent théoriques et non satisfaisables en pratique
 
 ### TODO laissés
-- [ ] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter la création de demande de travaux complémentaires depuis l'écran mécanicien, sans estimation commerciale
-- [ ] [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) + [backend/src/Controller/RapportInterventionController.php](backend/src/Controller/RapportInterventionController.php) : fermer à la racine la séquence encore imparfaite `terminer` avant signature mécanicien, pas seulement la rendre plus praticable côté écran
-- [ ] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit
+- [x] [frontend/pages/mecanicien.vue](frontend/pages/mecanicien.vue) : ajouter la création de demande de travaux complémentaires depuis l'écran mécanicien, sans estimation commerciale — fait session 2026-04-20 tranche 2
+- [x] [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) + [backend/src/Controller/RapportInterventionController.php](backend/src/Controller/RapportInterventionController.php) : fermer à la racine la séquence encore imparfaite `terminer` avant signature mécanicien, pas seulement la rendre plus praticable côté écran — fait session 2026-04-20 tranche 2
+- [x] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit — traité entre les sessions 2026-04-20 et 2026-04-21
 
 ### En suspens à arbitrer
 - Aucun nouveau point ; l'arbitrage restant sur le Paquet 2 porte toujours sur la priorisation interne entre réception maître (LOT-04), clôture mécanicien complète (LOT-05) et recentrage du dossier VO (LOT-06)
@@ -119,8 +180,8 @@
 - Les notices PHPUnit liées aux mocks sans attentes sont traitées comme un problème de qualité de test, pas contournées par de fausses expectations métier
 
 ### TODO laissés
-- [ ] Mettre à jour l'état d'avancement des TODO blocs 01 à 03 dans ce fichier si on découpe officiellement l'exécution par sous-lots plutôt que par passe transverse
-- [ ] Trier les fichiers générés non trackés dans `backend/public/uploads/vo/` avant tout commit/push pour éviter d'embarquer des artefacts de test ou de génération documentaire
+- [x] Mettre à jour l'état d'avancement des TODO blocs 01 à 03 dans ce fichier si on découpe officiellement l'exécution par sous-lots plutôt que par passe transverse — fait dans les sessions ultérieures du 2026-04-20
+- [x] Trier les fichiers générés non trackés dans `backend/public/uploads/vo/` avant tout commit/push pour éviter d'embarquer des artefacts de test ou de génération documentaire — fait avant les commits du 2026-04-21
 
 ### En suspens à arbitrer
 - Décider si le reliquat BLOC-03 côté historique VO doit inclure une purge/régularisation des pièces d'identité déjà stockées avant la fermeture du flux
@@ -226,8 +287,8 @@
 - remplacer les dashboards cosmétiques par des écrans d'exception et de décision
 
 ### TODO laissés
-- [ ] Commencer par [LOT-01] et [LOT-02] avant tout nouvel ajout fonctionnel sur réception compagnon, VO compagnon, rôles/permissions et comptabilité
-- [ ] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit
+- [x] Commencer par [LOT-01] et [LOT-02] avant tout nouvel ajout fonctionnel sur réception compagnon, VO compagnon, rôles/permissions et comptabilité — fait dans les sessions d'implémentation blocs 01 à 03
+- [x] Le Paquet 2 — Simplifications de workflow et responsabilités devient le prochain bloc obligatoire : LOT-04, LOT-05 et LOT-06 sont à reprendre explicitement avant tout nouveau lot UX, facturation avancée ou confort produit — fait entre les sessions 2026-04-20 et 2026-04-21
 
 ### En suspens à arbitrer
 - Décider si la validation distante des travaux complémentaires reste un vrai parcours public client ou revient à un flux strictement assisté comptoir
@@ -245,9 +306,9 @@
 - L'ordre de démarrage reste inchangé : BLOC-01 puis BLOC-02 puis BLOC-03, même s'ils ont été rédigés ensemble
 
 ### TODO laissés
-- [ ] Implémenter [.github/SPEC-BLOC-01-securiser-parcours-exposes.md](.github/SPEC-BLOC-01-securiser-parcours-exposes.md)
-- [ ] Implémenter [.github/SPEC-BLOC-02-realigner-roles-permissions.md](.github/SPEC-BLOC-02-realigner-roles-permissions.md)
-- [ ] Implémenter [.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md](.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md)
+- [x] Implémenter [.github/SPEC-BLOC-01-securiser-parcours-exposes.md](.github/SPEC-BLOC-01-securiser-parcours-exposes.md) — fait session 2026-04-20 implémentation blocs 01 à 03
+- [x] Implémenter [.github/SPEC-BLOC-02-realigner-roles-permissions.md](.github/SPEC-BLOC-02-realigner-roles-permissions.md) — fait session 2026-04-20 implémentation blocs 01 à 03
+- [x] Implémenter [.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md](.github/SPEC-BLOC-03-bloquer-faux-workflows-sensibles.md) — fait session 2026-04-20 implémentation blocs 01 à 03
 
 ### En suspens à arbitrer
 - Décider, avant implémentation de BLOC-01/BLOC-03, si la validation distante des travaux complémentaires reste un vrai parcours public autonome ou repasse en flux strictement assisté comptoir
@@ -327,10 +388,10 @@
 - Les TODO Lot 6 (workflows DemandeTravauxSupp et VO statut) restent en suspens — nécessitent une décision architecturale
 
 ### TODO laissés
-- [ ] Restant window.open : VORemiseEnEtatCard.vue `openDocument()` (fichiers statiques, acceptable)
+- [x] Restant window.open : VORemiseEnEtatCard.vue `openDocument()` (fichiers statiques, acceptable) — doublon documentaire, suivi conservé session 2026-06-05
 - [x] ~~Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)~~ — fait session 2026-06-05
 - [x] ~~Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)~~ — fait session 2026-06-05
-- [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn`
+- [x] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn` — doublon documentaire, suivi conservé dans les sessions ultérieures
 
 ### En suspens à arbitrer
 - ~~Faut-il un workflow Symfony pour les transitions de statut VO ?~~ → OUI, implémenté session 2026-06-05
@@ -372,9 +433,9 @@
 - Le composable `useDebounceFn` est créé mais le refactoring des 10+ implémentations manuelles sera fait progressivement.
 
 ### TODO laissés
-- [ ] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn` dans les pages existantes
-- [ ] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38)
-- [ ] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39)
+- [x] Refactoring progressif : remplacer les ~10 setTimeout manuels de debounce par `useDebounceFn` dans les pages existantes — doublon documentaire, suivi conservé session 2026-06-05
+- [x] Lot 6 : `DemandeTravauxSuppController` setStatut() direct au lieu de workflow (#38) — fait session 2026-06-05
+- [x] Lot 6 : `VOController::sellPurchase` setStatus('vendu') direct au lieu de workflow (#39) — fait session 2026-06-05
 - [x] Planifier l'exécution de `app:purge-identity-documents` dans le scheduler Symfony ou un cron
 - [x] Lot 7 : Validation format client (plaque, tel, email) dans les formulaires front (#42)
 - [x] Lot 7 : Remplacer `window.open` PDF par fetch + blob download (#43)
@@ -408,10 +469,10 @@
 - QR code généré localement via `qrcode` npm (data-URL base64), aucun appel réseau externe.
 
 ### TODO laissés
-- [ ] Lot 1 : Permissions granulaires sur transitions RDV (ROLE_RECEPTIONNAIRE pour certaines transitions)
-- [ ] Lot 4 : Emails hardcodés `noreply@atelier-moto.fr` dans DevisController et NotificationDispatcher
-- [ ] Lot 4 : `PublicBookingController` atelier_id default 1
-- [ ] Lot 4-7 : Voir TODO restants dans la section audit
+- [x] Lot 1 : Permissions granulaires sur transitions RDV (ROLE_RECEPTIONNAIRE pour certaines transitions) — doublon documentaire, suivi conservé dans la section audit détaillée
+- [x] Lot 4 : Emails hardcodés `noreply@atelier-moto.fr` dans DevisController et NotificationDispatcher — fait session 2026-06-04 lots 4-7
+- [x] Lot 4 : `PublicBookingController` atelier_id default 1 — fait session 2026-06-04 lots 4-7
+- [x] Lot 4-7 : Voir TODO restants dans la section audit — méta-TODO remplacé par les items explicites plus bas dans ce fichier
 
 ### En suspens à arbitrer
 - Aucun.
@@ -603,8 +664,8 @@ Audit exhaustif couvrant tous les controllers (35), services (15+), listeners/su
 - La TVA reste en constante dans le controller en attendant la table ConfigAtelier
 
 ### TODO laissés
-- [ ] Migrer TVA_RATE vers ConfigAtelier.tauxTva quand l'entité sera disponible
-- [ ] Ajouter supervision de la file `failed` du worker Messenger
+- [x] Migrer TVA_RATE vers ConfigAtelier.tauxTva quand l'entité sera disponible — fait session 2026-06-04 implémentation audit lots 1-3
+- [x] Ajouter supervision de la file `failed` du worker Messenger — doublon documentaire, suivi conservé dans le TODO Messenger détaillé plus bas
 
 ### En suspens à arbitrer
 - Aucun.
@@ -623,7 +684,7 @@ Audit exhaustif couvrant tous les controllers (35), services (15+), listeners/su
 
 ### TODO laissés
 - [ ] `backend/src/Controller/NotificationController.php` : verrouiller la liste et les actions de lecture/acquittement au destinataire réel (utilisateur ou rôle cible) pour empêcher un accès croisé entre utilisateurs d’un même atelier
-- [ ] `backend/src/Controller/FacturationController.php` : remplacer la numérotation par comptage, les calculs en float et les changements de statut directs par un flux conforme (permissions explicites, scope atelier, calcul monétaire fiable, statut maîtrisé)
+- [ ] `backend/src/Controller/FacturationController.php` : requalifier le reliquat réel après les correctifs déjà faits sur la numérotation séquentielle, les avoirs et les statuts ; ne laisser ouvert que ce qui reste sur le scope atelier, les calculs monétaires ligne par ligne ou les permissions encore insuffisantes
 - [ ] `backend/src/Controller/ConfigController.php` : supprimer les fallbacks silencieux sur le premier atelier / la première config et renvoyer une erreur explicite quand le contexte atelier est absent ou incohérent
 - [ ] `backend/src/Controller/ConfigController.php` : durcir l’upload du logo en refusant ou en assainissant les SVG pour éviter toute injection côté navigateur
 - [ ] `frontend/pages/admin/prestations.vue` : retirer le bootstrap automatique implicite du catalogue au chargement et le remplacer par une action admin volontaire, visible et traçable
@@ -804,3 +865,9 @@ Audit exhaustif couvrant tous les controllers (35), services (15+), listeners/su
 
 ### En suspens à arbitrer
 - Aucun.
+## Session 2026-04-21 — Audit UI pré-prod\n\n### Fait\n- [AUDIT] fix — réorganisation des pages publiques Companion et Suivi pour correspondre aux routes strictes demandées (/public/companion/[token] au lieu d'un dossier racine ambigu)\n- [AUDIT] fix — suppression d'un dossier doublon `pages/companion/` qui agissait comme un wrapper inutile.\n- [AUDIT] fix — modification de `VOCompanionTrait.php` pour que l'API renvoie le bon chemin `/public/vo-companion/`.\n- [AUDIT] vérif — confirmée l'absence totale de logs, l'impossibilité d'upload d'ID (RGPD), l'absence de demande de temps au mécano, et la saisie de kilométrage réservée à la réception.\n\n### Décisions\n- Les pages Companion sont désormais directement intégrées sous `/public` en respectant les variables dynamiques (token).\n- Le composant `suivi.vue` (live interne) est totalement scindé et le `public/suivi` conserve sa double entrée (formulaire sans token vs direct avec token).\n\n### TODO laissés\n- Aucun.
+
+### Archictecture & Routing (Règles isolées)
+- **Zero Trust / Séparation Réseau** : L'application principale Vue/Nuxt (utilisée par le personnel) tourne sur un réseau interne non exposé à Internet (`http://localhost` ou Intranet).
+- Toutes les notifications (email, SMS) envoyées au client avec un lien de suivi, d'annulation ou de signature Companion **DOIVENT** pointer vers l'application publique externe. L'application principale *n'est pas accessible* pour eux.
+- Les endpoints Frontend (`/public/...`) servent le client uniquement si ce module "Frontend Public" est déployé sur le web. Les liens générés par le backend (`/api/notifications`) doivent correctement interpréter l'URL publique `APP_FRONTEND_PUBLIC_URL` au lieu de `APP_URL`.
