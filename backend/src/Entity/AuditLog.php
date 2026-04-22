@@ -1,12 +1,30 @@
 <?php
 namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity] #[ORM\Table(name: 'audit_logs')]
-#[ApiResource(operations: [new GetCollection(), new Get()], security: "is_granted('ROLE_SUPER_ADMIN')")]
+#[ApiResource(
+    operations: [new GetCollection(), new Get()],
+    security: "is_granted('ROLE_SUPER_ADMIN')",
+    order: ['createdAt' => 'DESC'],
+    paginationItemsPerPage: 50,
+    paginationMaximumItemsPerPage: 200,
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'username' => 'partial',
+    'action' => 'exact',
+    'entityType' => 'exact',
+    'ipAddress' => 'partial',
+])]
+#[ApiFilter(DateFilter::class, properties: ['createdAt'])]
+#[ApiFilter(OrderFilter::class, properties: ['createdAt', 'action', 'entityType', 'username'])]
 class AuditLog
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
@@ -23,6 +41,7 @@ class AuditLog
     public function __construct() { $this->createdAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
     public function getUserId(): ?int { return $this->userId; }
