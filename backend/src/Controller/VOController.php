@@ -378,6 +378,17 @@ class VOController extends AbstractController
             return $this->json(['error' => sprintf('Transition "%s" non autorisée depuis le statut "%s"', $transition, $purchase->getStatus())], 409);
         }
 
+        // [I5] Bloquer mettre_en_vente si le verdict révèle des blocages légaux ou RGPD
+        if ($transition === 'mettre_en_vente') {
+            $verdict = $this->documentService->buildPurchaseSaleVerdict($purchase);
+            if ($verdict['status'] !== 'vendable') {
+                return $this->json([
+                    'error' => 'Le véhicule ne peut pas être mis en vente.',
+                    'saleVerdict' => $verdict,
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        }
+
         $this->voPurchaseWorkflow->apply($purchase, $transition);
         $this->em->flush();
 
@@ -722,7 +733,7 @@ class VOController extends AbstractController
         if (in_array($type, [VODocument::TYPE_PIECE_IDENTITE, VODocument::TYPE_JUSTIFICATIF_DOMICILE], true)) {
             return $this->json([
                 'error' => 'La pièce d\'identité et le justificatif de domicile ne doivent pas être archivés. Retranscrivez type, numéro et date puis détruisez le support.',
-            ], 400);
+            ], 422);
         }
 
         $purchase = null;

@@ -79,9 +79,13 @@ class PhotoController extends AbstractController
     public function serve(string $filename): Response
     {
         $filename = basename($filename);
-        $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . $filename;
+        $uploadDir = $this->getParameter('kernel.project_dir') . '/var/photos/';
+        $path = $uploadDir . $filename;
 
-        if (!file_exists($path)) {
+        // [C21] Guard path traversal : vérifier que le fichier résolu reste dans le répertoire photos
+        $realUploadDir = realpath($uploadDir);
+        $realPath = realpath($path);
+        if ($realUploadDir === false || $realPath === false || !str_starts_with($realPath, $realUploadDir . DIRECTORY_SEPARATOR)) {
             return $this->json(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
         }
 

@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\ClauseLegale;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
+use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Service\ClauseLegaleVisibilityService;
 use App\Service\OrdreReparationPolicy;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
+use Symfony\Component\Workflow\WorkflowInterface;
 
 #[Route('/api/companion')]
 class CompanionController extends AbstractController
@@ -25,6 +27,7 @@ class CompanionController extends AbstractController
         private OrdreReparationPolicy $ordreReparationPolicy,
         private RateLimiterFactory $publicCompanionLimiter,
         private ClauseLegaleVisibilityService $clauseVisibilityService,
+        private WorkflowInterface $rendezVousStateMachine,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -460,5 +463,157 @@ class CompanionController extends AbstractController
         $this->em->flush();
 
         return $this->json(['success' => true]);
+    }
+
+    // ═══════════════════════════════════════════
+    // [C7] RESTITUTION — lecture rapport + signature client
+    // ═══════════════════════════════════════════
+
+    /**
+     * [C7] Retourne le résumé du rapport d'intervention pour la signature client à la restitution.
+     * Le RDV doit être au statut "termine".
+     */
+    #[Route('/{token}/rapport-restitution', methods: ['GET'])]
+    public function getRapportRestitution(string $token, Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
+        $rdv = $this->findRdvByToken($token);
+        if (!$rdv) {
+            return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($rdv->getStatut() !== 'termine') {
+            return $this->json([
+                'error' => 'La restitution n\'est disponible que lorsque l\'intervention est terminée.',
+                'statut' => $rdv->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy(
+            ['rendezVous' => $rdv],
+            ['id' => 'DESC'],
+        );
+
+        if (!$rapport instanceof RapportIntervention) {
+            return $this->json(['error' => 'Rapport d\'intervention introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $client = $rdv->getClient();
+        $vehicule = $rdv->getVehicule();
+
+        $photos = $this->em->getRepository(PhotoIntervention::class)->findBy(
+            ['rendezVous' => $rdv],
+            ['createdAt' => 'DESC'],
+        );
+
+        return $this->json([
+            'rdv' => [
+                'id' => $rdv->getId(),
+                'statut' => $rdv->getStatut(),
+                'date_rdv' => $rdv->getDateRdv()->format('Y-m-d'),
+                'type_intervention' => $rdv->getTypeIntervention(),
+                'kilometrage' => $rdv->getKilometrage(),
+            ],
+            'client' => $client ? [
+                'nom' => $client->getNom(),
+                'prenom' => $client->getPrenom(),
+            ] : null,
+            'vehicule' => $vehicule ? [
+                'plaque' => $vehicule->getPlaque(),
+                'marque' => $vehicule->getMarque(),
+                'modele' => $vehicule->getModele(),
+            ] : null,
+            'rapport' => [
+                'id' => $rapport->getId(),
+                'statut' => $rapport->getStatut(),
+                'travaux_realises' => $rapport->getTravauxRealises(),
+                'kilometrage_restitution' => $rapport->getKilometrageRestitution(),
+                'prochaine_revision_km' => $rapport->getProchaineRevisionKm(),
+                'prochaine_revision_date' => $rapport->getProchaineRevisionDate()?->format('Y-m-d'),
+                'alertes' => $rapport->getAlertes(),
+                'signature_mecanicien' => $rapport->getSignatureMecanicien() !== null,
+                'signature_client' => $rapport->getSignatureClient() !== null,
+                'already_signed_by_client' => $rapport->getSignatureClient() !== null,
+            ],
+            'photos' => array_map(fn(PhotoIntervention $p) => [
+                'id' => $p->getId(),
+                'filename' => $p->getFilename(),
+                'type' => $p->getType(),
+                'url' => $this->buildPublicPhotoUrl($rdv, $p),
+            ], $photos),
+        ]);
+    }
+
+    /**
+     * [C7] Enregistre la signature client sur le rapport d'intervention
+     * et applique la transition "restituer" sur le RDV.
+     */
+    #[Route('/{token}/signature-restitution', methods: ['POST'])]
+    public function saveSignatureRestitution(string $token, Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
+        $rdv = $this->findRdvByToken($token);
+        if (!$rdv) {
+            return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($rdv->getStatut() !== 'termine') {
+            return $this->json([
+                'error' => 'La signature de restitution n\'est possible que lorsque l\'intervention est terminée.',
+                'statut' => $rdv->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $signatureData = $data['signature'] ?? null;
+
+        if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
+            return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy(
+            ['rendezVous' => $rdv],
+            ['id' => 'DESC'],
+        );
+
+        if (!$rapport instanceof RapportIntervention) {
+            return $this->json(['error' => 'Rapport d\'intervention introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($rapport->getSignatureClient() !== null) {
+            return $this->json([
+                'error' => 'Le rapport a déjà été signé par le client.',
+                'statut' => $rapport->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        if (!$this->rendezVousStateMachine->can($rdv, 'restituer')) {
+            return $this->json([
+                'error' => 'La transition "restituer" n\'est pas autorisée depuis le statut actuel.',
+                'statut' => $rdv->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $rapport->setSignatureClient($signatureData);
+        $rapport->setSigneClientAt(new \DateTimeImmutable());
+        if ($rapport->getStatut() !== 'rectifie') {
+            $rapport->setStatut('signe');
+        }
+
+        $this->rendezVousStateMachine->apply($rdv, 'restituer');
+        $this->em->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Restitution enregistrée — moto restituée au client.',
+            'rdv_statut' => $rdv->getStatut(),
+            'rapport_statut' => $rapport->getStatut(),
+        ]);
     }
 }

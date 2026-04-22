@@ -267,7 +267,7 @@ class VOControllerTest extends WebTestCase
             $this->authHeaders($fixture['user']),
         );
 
-        $this->assertSame(Response::HTTP_BAD_REQUEST, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
         $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertStringContainsString('ne doivent pas être archivés', (string) ($payload['error'] ?? ''));
     }

@@ -36,6 +36,7 @@ class RendezVousController extends AbstractController
         private RendezVousWorkflowService $workflowService,
         private PhotoService $photoService,
         private RapportInterventionService $rapportService,
+        private \App\Service\NotificationDispatcher $dispatcher,
     ) {}
 
     private function getAuthenticatedUser(): ?User
@@ -111,12 +112,17 @@ class RendezVousController extends AbstractController
             if ($meca) $rdv->setMecanicien($meca);
         }
 
+        if ($this->rendezVousStateMachine->can($rdv, 'reserver')) {
+            $this->rendezVousStateMachine->apply($rdv, 'reserver');
+        }
+
         $this->em->persist($rdv);
         $this->em->flush();
 
         $this->audit->log('create', 'rdv', $rdv->getId(), json_encode([
             'client_id' => $client->getId(),
             'type' => $rdv->getTypeIntervention(),
+            'statut' => $rdv->getStatut(),
         ]));
 
         return $this->json($this->flattenRdv($rdv), Response::HTTP_CREATED);
@@ -136,25 +142,14 @@ class RendezVousController extends AbstractController
         $data = json_decode($request->getContent(), true) ?? [];
         $transitionName = $transition;
 
-        if (!$this->rendezVousStateMachine->can($rdv, $transitionName)) {
-            $enabledTransitions = array_map(
-                fn($t) => $t->getName(),
-                $this->rendezVousStateMachine->getEnabledTransitions($rdv)
-            );
+        if ($transitionName === 'confirmer' && $rdv->getStatut() === 'en_attente') {
             return $this->json([
-                'error' => "Transition '$transitionName' not allowed from status '{$rdv->getStatut()}'",
-                'allowed_transitions' => $enabledTransitions,
+                'error' => 'Le créneau doit d\'abord être réservé avant confirmation.',
+                'allowed_transitions' => ['reserver', 'annuler'],
             ], Response::HTTP_CONFLICT);
         }
 
-        $missingPhotos = $this->photoService->requirePhotosForTransition($transitionName, $rdv);
-        if (!empty($missingPhotos)) {
-            return $this->json([
-                'error' => 'Photos obligatoires manquantes avant cette transition',
-                'missing_photos' => $missingPhotos,
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
+        // Contrôles métier préalables (avant can() pour des messages d'erreur précis)
         if ($transitionName === 'terminer') {
             $pendingDemandes = $this->em->getRepository(DemandeTravauxSupp::class)->count([
                 'rendezVous' => $rdv,
@@ -202,6 +197,25 @@ class RendezVousController extends AbstractController
             }
         }
 
+        if (!$this->rendezVousStateMachine->can($rdv, $transitionName)) {
+            $enabledTransitions = array_map(
+                fn($t) => $t->getName(),
+                $this->rendezVousStateMachine->getEnabledTransitions($rdv)
+            );
+            return $this->json([
+                'error' => "Transition '$transitionName' not allowed from status '{$rdv->getStatut()}'",
+                'allowed_transitions' => $enabledTransitions,
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $missingPhotos = $this->photoService->requirePhotosForTransition($transitionName, $rdv);
+        if (!empty($missingPhotos)) {
+            return $this->json([
+                'error' => 'Photos obligatoires manquantes avant cette transition',
+                'missing_photos' => $missingPhotos,
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         if ($transitionName === 'restituer') {
             $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy([
                 'rendezVous' => $rdv,
@@ -223,6 +237,14 @@ class RendezVousController extends AbstractController
         }
 
         // Apply additional data based on transition
+        // [I11] Guard kilométrage : ne peut être saisi qu'à la transition "reception"
+        if (isset($data['kilometrage']) && $transitionName !== 'reception') {
+            return $this->json([
+                'error' => 'Le kilométrage ne peut être saisi qu\'à la réception physique du véhicule.',
+                'code' => 'KILOMETRAGE_RECEPTION_ONLY',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         if ($transitionName === 'reception' && isset($data['kilometrage'])) {
             $rdv->setKilometrage($data['kilometrage']);
         }
@@ -302,6 +324,36 @@ class RendezVousController extends AbstractController
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
         $this->em->flush();
+
+        if ($transitionName === "annuler" && !empty($data["proposer_alternatives"])) {
+            $client = $rdv->getClient();
+            if ($client) {
+                $motifText = "";
+                if ($rdv->getMotifAnnulation() && $rdv->getMotifAnnulation() !== "autre") {
+                    $motifText = str_replace("_", " ", $rdv->getMotifAnnulation());
+                } else {
+                    $motifText = $rdv->getCommentaireAnnulation() ?? "Non précisé";
+                }
+                $msgAlt = !empty($data["creneaux_alternatifs"]) ? "Nous vous proposons les créneaux suivants : " . $data["creneaux_alternatifs"] : "Veuillez nous recontacter pour choisir un autre créneau.";
+                
+                $vars = [
+                    "client_prenom" => $client->getPrenom(),
+                    "date_rdv" => $rdv->getDateRdv() ? clone $rdv->getDateRdv() : null,
+                    "heure_rdv" => $rdv->getHeureRdv() ? clone $rdv->getHeureRdv() : null,
+                    "motif_refus" => $motifText,
+                    "message_alternatif" => $msgAlt,
+                ];
+                if ($vars["date_rdv"] instanceof \DateTimeInterface) $vars["date_rdv"] = $vars["date_rdv"]->format("d/m/Y");
+                if ($vars["heure_rdv"] instanceof \DateTimeInterface) $vars["heure_rdv"] = $vars["heure_rdv"]->format("H:i");
+
+                if ($client->getTelephone()) {
+                    $this->dispatcher->sendFromTemplate("rdv_refus", "sms", (int) $rdv->getAtelierId(), $client->getTelephone(), $vars, "RendezVous", $rdv->getId());
+                }
+                if ($client->getEmail()) {
+                    $this->dispatcher->sendFromTemplate("rdv_refus", "email", (int) $rdv->getAtelierId(), $client->getEmail(), $vars, "RendezVous", $rdv->getId());
+                }
+            }
+        }
 
         $this->audit->log(
             'workflow_transition',
