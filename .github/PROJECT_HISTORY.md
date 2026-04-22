@@ -2,6 +2,32 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-22 — Booking public aligné + Phase 1 erreurs front
+
+### Fait
+- [Implémenté, non vérifié end-to-end] [BOOKING] refacto — [backend/src/Controller/PublicBookingController.php](backend/src/Controller/PublicBookingController.php) : endpoints publics réalignés multi-atelier, catalogue prestations filtré par atelier + type moto + cylindrée, suppression du hardcode atelier public
+- [Implémenté, non vérifié end-to-end] [BOOKING] refacto — [frontend/pages/public/booking.vue](frontend/pages/public/booking.vue) : parcours public refondu en wizard 4 étapes calqué sur `rdv/new` (atelier, véhicule, prestations, créneau, validation)
+- [Implémenté, non vérifié end-to-end] [DEV] ajoute — [docker-compose.override.yml](docker-compose.override.yml) : override dev Nuxt avec bind mount + polling, pour retrouver le hot reload sans rebuild complet
+- [Implémenté, non vérifié end-to-end] [LOT-0] fix — [frontend/pages/admin/audit.vue](frontend/pages/admin/audit.vue), [frontend/pages/admin/notifications/providers.vue](frontend/pages/admin/notifications/providers.vue), [frontend/pages/admin/roles-metier/index.vue](frontend/pages/admin/roles-metier/index.vue), [frontend/pages/index.vue](frontend/pages/index.vue), [frontend/pages/workshop.vue](frontend/pages/workshop.vue) : états vides/erreurs explicites et suppression des remontées silencieuses côté dashboard / workshop
+- **PHPUnit 187/187 ✅** — `docker compose exec -T php bin/phpunit 2>&1 | tail -8` → `OK, but there were issues! Tests: 187, Assertions: 707`
+- **Vitest 19/19 ✅** — `cd frontend && npx vitest run` → `Test Files 6 passed (6) Tests 19 passed (19)`
+- **Build Nuxt prod ✅** — `docker compose exec -T nuxt npm run build` → `Build complete!`
+
+### Décisions
+- Le booking public doit suivre exactement le workflow produit de `rdv/new`, pas un formulaire simplifié divergent
+- Le multi-atelier public ne doit jamais reposer sur une variable d'environnement figée ; la liste des ateliers actifs reste la source de vérité
+- Le hot reload Nuxt en dev se traite via un override Docker dédié, sans toucher à l'image de production ni à l'infra préprod
+- Les erreurs partielles dashboard / workshop doivent rester visibles à l'écran ; un `catch` silencieux masque des défauts réels d'exploitation
+
+### TODO laissés
+- [ ] [frontend/pages/public/booking.vue](frontend/pages/public/booking.vue) : vérifier le parcours complet sur port 81 jusqu'à la création réelle d'un RDV public (raison du report : pas de validation E2E complète exécutée dans cette session)
+- [ ] [backend/src/Controller/PublicBookingController.php](backend/src/Controller/PublicBookingController.php) : vérifier par `curl` de création que le payload final du wizard couvre bien tous les cas métier attendus (raison du report : smoke tests réalisés, pas de campagne API complète archivée ici)
+- [ ] [frontend/pages/admin/audit.vue](frontend/pages/admin/audit.vue) : vérifier manuellement les états vide / erreur en coupant les endpoints admin ou avec un atelier sans données (raison du report : build + tests OK, pas de scénario UI manuel exhaustif)
+- [ ] [docker-compose.override.yml](docker-compose.override.yml) : arbitrer en prochaine session s'il doit être committé ou gardé local seulement pour le confort dev
+
+### En suspens à arbitrer
+- Le fichier [docker-compose.override.yml](docker-compose.override.yml) sert clairement le dev local, mais son inclusion dans Git dépend de la politique d'équipe sur les overrides personnels
+
 ## Session 2026-04-22 — Sprint 4 audit : PDF async, pagination, config VO, auth refresh, badge PUBLIC
 
 ### Fait
