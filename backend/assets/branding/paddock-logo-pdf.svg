@@ -1,0 +1,12 @@
+<svg width="34" height="38" viewBox="30 10 190 210" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <!-- Paddock — Symbol PDF (traits épais, couleur dense, lisible sur fond blanc) -->
+  <path fill="none" stroke="#0c0c0c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"
+    d="M50,120 L50,55 Q50,20 85,20 L140,20 Q180,20 195,45 Q210,70 195,95 L150,130 Q135,143 135,165 L135,185 Q135,210 110,210 L75,210 Q50,210 50,185 Z"/>
+  <!-- Start/finish -->
+  <line x1="38" y1="116" x2="62" y2="116" stroke="#0c0c0c" stroke-width="2.5"/>
+  <line x1="38" y1="124" x2="62" y2="124" stroke="#0c0c0c" stroke-width="2.5"/>
+  <!-- Apex marker doré -->
+  <circle cx="195" cy="70" r="6" fill="#D4A843"/>
+  <circle cx="120" cy="20" r="7" fill="#D4A843"/>
+  <circle cx="120" cy="20" r="13" fill="none" stroke="#D4A843" stroke-width="1.5"/>
+</svg>
