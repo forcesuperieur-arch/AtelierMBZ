@@ -14,6 +14,7 @@ framework:
             App\Message\SendRappelMessage: async
             App\Message\GeneratePdfMessage: async
             App\Message\ProcessScheduledRappels: async
+            App\Message\SendGardiennageRappelMessage: async
 
 # when@test:
 #    framework:

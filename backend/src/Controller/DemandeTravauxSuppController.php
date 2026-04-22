@@ -214,8 +214,11 @@ class DemandeTravauxSuppController extends AbstractController
      */
     #[Route('/api/demandes-travaux-supp/{id}/envoyer', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function envoyer(int $id): JsonResponse
-    {
+    public function envoyer(
+        int $id,
+        \App\Service\NotificationDispatcher $dispatcher,
+        Request $request
+    ): JsonResponse {
         $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
         if (!$demande) {
             return $this->json(['error' => 'Demande non trouvée'], Response::HTTP_NOT_FOUND);
@@ -227,6 +230,44 @@ class DemandeTravauxSuppController extends AbstractController
 
         $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT);
         $this->em->flush();
+
+        $rdv = $demande->getRendezVous();
+        $client = $rdv?->getClient();
+        $atelierId = $rdv?->getAtelierId() ?? 0;
+        
+        $companionUrl = rtrim($request->getSchemeAndHttpHost(), '/') . '/public/demande/' . $demande->getTokenValidation();
+        $reference = 'OR-' . ($rdv?->getId() ?? 0) . '-SUPP';
+        
+        if ($client) {
+            $variables = [
+                'client_prenom' => $client->getPrenom() ?? 'Client',
+                'reference' => $reference,
+                'companion_url' => $companionUrl,
+            ];
+
+            if ($client->getTelephone()) {
+                $dispatcher->sendFromTemplate(
+                    'demande_complementaire',
+                    'sms',
+                    $atelierId,
+                    $client->getTelephone(),
+                    $variables,
+                    'DemandeTravauxSupp',
+                    $demande->getId()
+                );
+            }
+            if ($client->getEmail()) {
+                $dispatcher->sendFromTemplate(
+                    'demande_complementaire',
+                    'email',
+                    $atelierId,
+                    $client->getEmail(),
+                    $variables,
+                    'DemandeTravauxSupp',
+                    $demande->getId()
+                );
+            }
+        }
 
         return $this->json([
             'id' => $demande->getId(),

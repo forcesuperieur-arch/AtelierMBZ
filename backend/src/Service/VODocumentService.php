@@ -221,10 +221,10 @@ class VODocumentService
             $this->buildChecklistItem('cession_achat', 'CERFA achat archivé', in_array(VODocument::TYPE_CERFA_CESSION_ACHAT, $existing, true), true, 'purchase'),
             $this->buildChecklistItem('pv_rachat', 'PV de rachat archivé', in_array(VODocument::TYPE_PV_RACHAT, $existing, true), false, 'purchase'),
             $this->buildChecklistItem('controle_technique', 'Contrôle technique valide', $controleTechniqueOk, $controleTechniqueRequired, 'purchase'),
-            $this->buildChecklistItem('da_pdf', 'DA SIV préremplie générée', in_array(VODocument::TYPE_DA_SIV, $existing, true), false, 'sale'),
+            $this->buildChecklistItem('da_pdf', 'Déclaration d\'achat CERFA 13751 générée', in_array(VODocument::TYPE_DA_SIV, $existing, true), false, 'sale'),
             $this->buildChecklistItem('da_siv', 'DA SIV enregistrée', $purchase->isSivRegistered(), true, 'sale'),
             $this->buildChecklistItem('recepisse_da', 'Récépissé DA archivé', in_array(VODocument::TYPE_RECEPISSE_DA, $existing, true), false, 'sale'),
-            $this->buildChecklistItem('mandat_immat', 'Mandat immatriculation prêt', in_array(VODocument::TYPE_MANDAT_IMMATRICULATION, $existing, true), false, 'sale'),
+            $this->buildChecklistItem('mandat_immat', 'Mandat immatriculation CERFA 13757 généré', in_array(VODocument::TYPE_MANDAT_IMMATRICULATION, $existing, true), false, 'sale'),
         ];
     }
 
@@ -697,9 +697,9 @@ class VODocumentService
             VODocument::TYPE_PIECE_IDENTITE => 'pièce d’identité',
             VODocument::TYPE_JUSTIFICATIF_DOMICILE => 'justificatif de domicile',
             VODocument::TYPE_CONTRAT_DEPOT_VENTE => 'contrat dépôt-vente',
-            VODocument::TYPE_DA_SIV => 'DA SIV',
+            VODocument::TYPE_DA_SIV => 'déclaration d’achat CERFA 13751',
             VODocument::TYPE_RECEPISSE_DA => 'récépissé DA',
-            VODocument::TYPE_MANDAT_IMMATRICULATION => 'mandat immatriculation',
+            VODocument::TYPE_MANDAT_IMMATRICULATION => 'mandat immatriculation CERFA 13757',
             VODocument::TYPE_FACTURE_VO => 'facture VO',
             VODocument::TYPE_PV_RACHAT => 'PV de rachat',
             VODocument::TYPE_NOTICE_GARANTIE => 'notice de garantie',

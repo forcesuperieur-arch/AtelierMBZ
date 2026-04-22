@@ -2,6 +2,7 @@
 namespace App\Service;
 
 use App\Entity\Absence;
+use App\Entity\ConfigAtelier;
 use App\Entity\HoraireAtelier;
 use App\Entity\Mecanicien;
 use App\Entity\Pont;
@@ -53,6 +54,11 @@ class SlotService
         int $tempsMinutes = 60,
         ?int $atelierId = null,
     ): array {
+        // Check ConfigAtelier closure rules before any DB query
+        if ($atelierId && $this->isClosedDay($date, $atelierId)) {
+            return [];
+        }
+
         $jourSemaine = (int) $date->format('N') - 1; // 0=Monday
 
         // Get workshop hours for this day
@@ -189,6 +195,33 @@ class SlotService
         }
 
         return $slots;
+    }
+
+    /**
+     * Check if a given date is a closed day for the atelier,
+     * based on ConfigAtelier.joursFermetureHebdo (weekly) and
+     * ConfigAtelier.datesFermetureExceptionnelles (specific dates).
+     */
+    private function isClosedDay(\DateTimeInterface $date, int $atelierId): bool
+    {
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        if (!$config) {
+            return false;
+        }
+
+        // Check weekly closure (e.g. ['sunday', 'saturday'])
+        $dayName = strtolower($date->format('l'));
+        if (in_array($dayName, $config->getJoursFermetureHebdo(), true)) {
+            return true;
+        }
+
+        // Check exceptional closure dates (e.g. ['2025-12-25', '2026-01-01'])
+        $dateStr = $date->format('Y-m-d');
+        if (in_array($dateStr, $config->getDatesFermetureExceptionnelles(), true)) {
+            return true;
+        }
+
+        return false;
     }
 
     private function sameDayMinStartMinutes(\DateTimeInterface $date): ?int

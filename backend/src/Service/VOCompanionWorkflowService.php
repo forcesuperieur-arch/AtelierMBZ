@@ -56,22 +56,32 @@ class VOCompanionWorkflowService
         if ($record instanceof VOPurchase) {
             return [
                 [
+                    'type' => VODocument::TYPE_CERFA_CESSION_ACHAT,
+                    'label' => 'Certificat de cession CERFA 15776',
+                    'url' => sprintf('/api/vo/purchases/%d/cerfa-cession-achat/pdf', $record->getId()),
+                    'description' => 'Vrai CERFA 15776 prérempli pour l\'achat au professionnel, à faire signer puis archiver dans le dossier VO.',
+                    'nature' => 'cerfa',
+                ],
+                [
                     'type' => VODocument::TYPE_PV_RACHAT,
-                    'label' => 'PV de rachat auto-rempli',
+                    'label' => 'PV de rachat généré',
                     'url' => sprintf('/api/vo/purchases/%d/pv-rachat/pdf', $record->getId()),
-                    'description' => 'Genere a partir des infos vendeur, vehicule et signature PDA.',
+                    'description' => 'PDF opposable généré à partir des informations vendeur, véhicule et signature PDA.',
+                    'nature' => 'legal',
                 ],
                 [
                     'type' => VODocument::TYPE_DA_SIV,
-                    'label' => 'DA SIV préremplie',
+                    'label' => 'Déclaration d\'achat CERFA 13751',
                     'url' => sprintf('/api/vo/purchases/%d/da-siv/pdf', $record->getId()),
-                    'description' => 'Prépare la déclaration d’achat avec les champs déjà connus du dossier.',
+                    'description' => 'Rendu réglementaire aligné sur le CERFA 13751*02, à archiver avec le récépissé SIV une fois la DA enregistrée.',
+                    'nature' => 'cerfa',
                 ],
                 [
                     'type' => VODocument::TYPE_MANDAT_IMMATRICULATION,
-                    'label' => 'Mandat immatriculation prérempli',
+                    'label' => 'Mandat immatriculation CERFA 13757',
                     'url' => sprintf('/api/vo/purchases/%d/mandat-immat/pdf', $record->getId()),
-                    'description' => 'Support de signature prêt pour la phase vente.',
+                    'description' => 'Rendu réglementaire aligné sur le CERFA 13757*03, à faire signer puis archiver dans le dossier de vente.',
+                    'nature' => 'cerfa',
                 ],
             ];
         }
@@ -79,15 +89,17 @@ class VOCompanionWorkflowService
         return [
             [
                 'type' => VODocument::TYPE_CONTRAT_DEPOT_VENTE,
-                'label' => 'Contrat depot-vente auto-rempli',
+                'label' => 'Contrat dépôt-vente généré',
                 'url' => sprintf('/api/vo/depots/%d/contrat/pdf', $record->getId()),
-                'description' => 'Genere a partir des infos deposant, vehicule et signature PDA.',
+                'description' => 'PDF opposable généré à partir des informations déposant, véhicule et signature PDA.',
+                'nature' => 'legal',
             ],
             [
                 'type' => VODocument::TYPE_MANDAT_IMMATRICULATION,
-                'label' => 'Mandat immatriculation prérempli',
+                'label' => 'Mandat immatriculation CERFA 13757',
                 'url' => sprintf('/api/vo/depots/%d/mandat-immat/pdf', $record->getId()),
-                'description' => 'Support de signature prêt pour la phase vente.',
+                'description' => 'Rendu réglementaire aligné sur le CERFA 13757*03, à faire signer puis archiver dans le dossier de vente.',
+                'nature' => 'cerfa',
             ],
         ];
     }
