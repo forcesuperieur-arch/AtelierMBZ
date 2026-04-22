@@ -1,9 +1,13 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\Client;
+use App\Entity\Prestation;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
+use App\Service\AtelierCatalogBootstrapService;
+use App\Service\PrestationCatalogService;
 use App\Service\SlotService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +28,87 @@ class PublicBookingController extends AbstractController
         private EntityManagerInterface $em,
         private SlotService $slotService,
         private RateLimiterFactory $publicBookingLimiter,
+        private PrestationCatalogService $catalogService,
+        private AtelierCatalogBootstrapService $atelierCatalogBootstrapService,
     ) {}
+
+    /**
+     * List active ateliers that accept public online booking.
+     * No auth required — returns only name, slug, ville, telephone.
+     */
+    #[Route('/ateliers', methods: ['GET'])]
+    public function ateliers(): JsonResponse
+    {
+        $ateliers = $this->em->getRepository(Atelier::class)->findBy(['actif' => true], ['nom' => 'ASC']);
+
+        $result = [];
+        foreach ($ateliers as $atelier) {
+            // Only expose ateliers with rdv module enabled
+            $config = $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $atelier->getId()]);
+            $modules = $config?->getFeatureModules() ?? \App\Entity\ConfigAtelier::defaultFeatureModules();
+            if (($modules['rdv'] ?? true) === false) {
+                continue;
+            }
+
+            $result[] = [
+                'id'        => $atelier->getId(),
+                'nom'       => $atelier->getNom(),
+                'ville'     => $atelier->getVille(),
+                'telephone' => $atelier->getTelephone(),
+                'email'     => $atelier->getEmail(),
+            ];
+        }
+
+        return $this->json($result);
+    }
+
+    /**
+     * Public prestations catalogue for a given atelier.
+     * No auth required — returns only active prestations for the selected atelier.
+     */
+    #[Route('/prestations-catalogue', methods: ['GET'])]
+    public function prestationsCatalogue(Request $request): JsonResponse
+    {
+        $atelierId = $request->query->getInt('atelier_id');
+        if (!$atelierId) {
+            return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->atelierCatalogBootstrapService->ensurePrestationsForAtelier($atelierId);
+
+        $vehicule = (new Vehicule())
+            ->setPlaque('PUBLIC-BOOKING')
+            ->setAtelierId($atelierId)
+            ->setTypeMoto($request->query->get('type_moto') ?: null)
+            ->setCylindree($request->query->get('cylindree') ?: null);
+
+        $entries = $this->catalogService->getApplicablePrestations($vehicule);
+
+        $payload = array_map(function (array $entry) use ($atelierId): array {
+            /** @var Prestation $prestation */
+            $prestation = $entry['prestation'];
+
+            return [
+                'id'                   => $prestation->getId(),
+                'code'                 => $prestation->getCode(),
+                'nom'                  => $prestation->getNom(),
+                'description'          => $prestation->getDescription(),
+                'categorie'            => $prestation->getCategorie(),
+                'type_vehicule'        => $prestation->getTypeVehicule(),
+                'cylindree_min'        => $prestation->getCylindreeMin(),
+                'cylindree_max'        => $prestation->getCylindreeMax(),
+                'type_tarif'           => $prestation->getTypeTarif(),
+                'is_active'            => $prestation->getIsActive(),
+                'prix_base_ht'         => (float) ($entry['prix_ht'] ?? $prestation->getPrixBaseHt()),
+                'prix_base_ttc'        => (float) ($entry['prix_ttc'] ?? $prestation->getPrixBaseTtc()),
+                'temps_estime_minutes' => (int) ($entry['temps_minutes'] ?? $prestation->getTempsEstimeMinutes()),
+                'price_source'         => $entry['source'] ?? 'unknown',
+                'atelier_id'           => $atelierId,
+            ];
+        }, $entries);
+
+        return $this->json($payload);
+    }
 
     /**
      * Get available slots for public booking.

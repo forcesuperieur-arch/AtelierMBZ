@@ -78,9 +78,6 @@ services:
       - php
     environment:
       NUXT_PUBLIC_API_BASE: /api
-      # Identifiant de l'atelier exposé sur le port 81 (booking public client).
-      # Doit correspondre à l'ID réel de l'atelier en base.
-      NUXT_PUBLIC_BOOKING_ATELIER_ID: ${BOOKING_ATELIER_ID:-1}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
 
