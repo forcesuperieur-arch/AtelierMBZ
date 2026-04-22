@@ -14,6 +14,13 @@
       <div style="padding:8px 0;color:#FCA5A5;font-weight:600;">Accès réservé au superadmin.</div>
     </UCard>
 
+    <AppErrorState
+      v-else-if="errorMessage && !roles.length"
+      title="Rôles métier indisponibles"
+      :description="errorMessage"
+      @retry="fetchRoles"
+    />
+
     <UCard v-else>
       <div v-if="!roles.length" class="empty-state">
         <div class="empty-state-icon">🎭</div>
@@ -114,6 +121,7 @@ const loading = ref(true)
 const saving = ref(false)
 const showCreate = ref(false)
 const roles = ref<any[]>([])
+const errorMessage = ref('')
 
 const isSuperAdmin = computed(() => {
   const rolesList = user.value?.roles ?? []
@@ -143,10 +151,12 @@ const columns = [
 
 async function fetchRoles() {
   loading.value = true
+  errorMessage.value = ''
   try {
     const data = await api.get('/roles-metier')
     roles.value = data['hydra:member'] ?? data
   } catch (e: any) {
+    errorMessage.value = e?.message || 'Impossible de charger les rôles métier.'
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
     loading.value = false

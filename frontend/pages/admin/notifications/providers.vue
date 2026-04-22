@@ -26,6 +26,13 @@
 
       <div v-if="loadingProviders" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
 
+      <AppErrorState
+        v-else-if="providersError && !providers.length"
+        title="Providers indisponibles"
+        :description="providersError"
+        @retry="fetchProviders"
+      />
+
       <div v-else style="display:flex;flex-direction:column;gap:12px;">
         <!-- SMS Providers -->
         <UCard>
@@ -97,9 +104,18 @@
     <!-- Templates Tab -->
     <div v-if="tab === 'templates'">
       <div v-if="loadingTemplates" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
-      <div v-else-if="templates.length === 0" style="color:#6B7280;font-size:13px;padding:24px;text-align:center;">
-        Aucun template configuré. Les templates seront créés automatiquement.
-      </div>
+      <AppErrorState
+        v-else-if="templatesError && !templates.length"
+        title="Templates indisponibles"
+        :description="templatesError"
+        @retry="fetchTemplates"
+      />
+      <AppEmptyState
+        v-else-if="templates.length === 0"
+        icon="📝"
+        title="Aucun template configuré"
+        description="Les templates de notifications seront créés automatiquement dès la première synchronisation."
+      />
       <UCard v-else>
         <table style="width:100%;font-size:13px;">
           <thead>
@@ -145,10 +161,19 @@
       </div>
 
       <div v-if="loadingLogs" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
+      <AppErrorState
+        v-else-if="logsError && !logs.length"
+        title="Historique indisponible"
+        :description="logsError"
+        @retry="fetchLogs"
+      />
       <UCard v-else>
-        <div v-if="logs.length === 0" style="color:#6B7280;font-size:13px;padding:12px;text-align:center;">
-          Aucun envoi enregistré
-        </div>
+        <AppEmptyState
+          v-if="logs.length === 0"
+          icon="📋"
+          title="Aucun envoi enregistré"
+          description="L'historique apparaîtra dès le premier SMS ou email envoyé depuis l'atelier."
+        />
         <table v-else style="width:100%;font-size:13px;">
           <thead>
             <tr style="color:#9CA3AF;border-bottom:1px solid rgba(255,255,255,0.06);">
@@ -317,6 +342,9 @@ const loadingProviders = ref(false);
 const loadingTemplates = ref(false);
 const loadingLogs = ref(false);
 const saving = ref(false);
+const providersError = ref('');
+const templatesError = ref('');
+const logsError = ref('');
 
 const smsProviders = computed(() => providers.value.filter(p => p.channel === 'sms'));
 const emailProviders = computed(() => providers.value.filter(p => p.channel === 'email'));
@@ -350,31 +378,34 @@ const logFilter = ref({ channel: '', status: '' });
 
 async function fetchProviders() {
   loadingProviders.value = true;
+  providersError.value = '';
   try {
     const data = await apiFetch('/api/admin/notification-providers');
     providers.value = data;
-  } catch (e) { toast.add({ title: 'Erreur chargement providers', description: e?.message, color: 'error' }); }
+  } catch (e) { providersError.value = e?.message || 'Impossible de charger la configuration des providers.'; toast.add({ title: 'Erreur chargement providers', description: e?.message, color: 'error' }); }
   loadingProviders.value = false;
 }
 
 async function fetchTemplates() {
   loadingTemplates.value = true;
+  templatesError.value = '';
   try {
     const data = await apiFetch('/api/admin/notification-templates');
     templates.value = data;
-  } catch (e) { toast.add({ title: 'Erreur chargement templates', description: e?.message, color: 'error' }); }
+  } catch (e) { templatesError.value = e?.message || 'Impossible de charger les templates de notification.'; toast.add({ title: 'Erreur chargement templates', description: e?.message, color: 'error' }); }
   loadingTemplates.value = false;
 }
 
 async function fetchLogs() {
   loadingLogs.value = true;
+  logsError.value = '';
   try {
     const params = new URLSearchParams();
     if (logFilter.value.channel) params.set('channel', logFilter.value.channel);
     if (logFilter.value.status) params.set('status', logFilter.value.status);
     const data = await apiFetch(`/api/admin/notification-logs?${params.toString()}`);
     logs.value = data.items || [];
-  } catch (e) { toast.add({ title: 'Erreur chargement logs', description: e?.message, color: 'error' }); }
+  } catch (e) { logsError.value = e?.message || 'Impossible de charger l\'historique des envois.'; toast.add({ title: 'Erreur chargement logs', description: e?.message, color: 'error' }); }
   loadingLogs.value = false;
 }
 
