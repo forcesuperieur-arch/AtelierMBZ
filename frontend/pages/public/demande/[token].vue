@@ -49,7 +49,7 @@
             <div style="font-size:14px;color:#E8E9ED;font-weight:800;">Total TTC</div>
             <div style="font-size:16px;color:#FFD200;font-weight:800;">{{ formatEuro(demande.prix_estime) }}</div>
           </div>
-          <div style="font-size:11px;color:#6B7280;margin-top:4px;">Temps estimé : ~{{ demande.temps_estime }} min</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px;">Temps estimé : ~{{ formatDuration(demande.temps_estime) }}</div>
         </div>
 
         <!-- actions -->
@@ -88,6 +88,7 @@ definePageMeta({ layout: 'public', auth: false })
 
 const route = useRoute()
 const api = useApi()
+const { formatDuration } = useFormat()
 const token = String(route.params.token)
 
 const loading = ref(true)

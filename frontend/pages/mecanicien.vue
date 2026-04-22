@@ -108,11 +108,11 @@
             <div :style="{ width: Math.min(progressPct, 100) + '%', height: '100%', background: progressPct > 100 ? '#EF4444' : '#FFD200', borderRadius: '8px', transition: 'width 1s ease' }"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:4px;">
-            <span>{{ elapsedMin }}min écoulées</span>
-            <span>{{ activeRdv.temps_estime }}min estimées</span>
+            <span>{{ formatDuration(elapsedMin) }} écoulées</span>
+            <span>{{ formatDuration(activeRdv.temps_estime) }} estimées</span>
           </div>
           <div v-if="progressPct > 100" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
-            ⚠️ Dépassement +{{ elapsedMin - activeRdv.temps_estime }}min — intervention en retard
+            ⚠️ Dépassement +{{ formatDuration(elapsedMin - activeRdv.temps_estime) }} — intervention en retard
           </div>
         </div>
 
@@ -267,7 +267,7 @@
             <div>
               <p style="font-weight:700;color:#E8E9ED;font-size:15px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
               <p style="font-size:14px;color:#9CA3AF;margin-top:4px;">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
-              <p v-if="rdv.temps_estime" style="font-size:13px;color:#D1D5DB;margin-top:6px;">⏱ {{ rdv.temps_estime }}min</p>
+              <p v-if="rdv.temps_estime" style="font-size:13px;color:#D1D5DB;margin-top:6px;">⏱ {{ formatDuration(rdv.temps_estime) }}</p>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
               <StatusBadge :status="rdv.status" />
@@ -441,6 +441,7 @@
 
 <script setup lang="ts">
 const api = useApi()
+const { formatDuration } = useFormat()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase as string
 const rdvStore = useRdvStore()

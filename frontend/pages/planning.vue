@@ -245,7 +245,7 @@
                   <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
                   <div>
                     <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
-                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ presta.temps_estime_minutes || 60 }} min</div>
+                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ formatDuration(presta.temps_estime_minutes || 60) }}</div>
                   </div>
                 </label>
               </div>
@@ -344,8 +344,13 @@
                   <input v-model="editForm.type_intervention" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Durée estimée (min)</label>
-                  <input v-model.number="editForm.temps_estime" type="number" min="15" step="15" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                  <label class="form-label">Durée estimée</label>
+                  <input
+                    v-model="editDureeHHMM"
+                    type="time"
+                    class="form-input"
+                    :disabled="selectedIsHistorical || !canEditRdv || prestationLocked"
+                  />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Pont</label>
@@ -515,6 +520,7 @@
 
 <script setup lang="ts">
 const api = useApi()
+const { formatDuration } = useFormat()
 const toast = useToast()
 const rdvStore = useRdvStore()
 const route = useRoute()
@@ -600,6 +606,19 @@ const editForm = reactive({
   commentaire: '',
   mecanicien_id: null as number | null,
   pont_id: null as number | null,
+})
+
+const editDureeHHMM = computed({
+  get(): string {
+    const total = Math.max(0, Math.round(Number(editForm.temps_estime ?? 60)))
+    const h = Math.floor(total / 60)
+    const m = total % 60
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  },
+  set(val: string) {
+    const [h, m] = val.split(':').map(Number)
+    editForm.temps_estime = ((h ?? 0) * 60) + (m ?? 0) || 15
+  },
 })
 
 const receptionForm = reactive({
@@ -820,6 +839,27 @@ const editAssignedMecanicienLabel = computed(() => editForm.pont_id ? getPontMec
 
 function unwrapList(data: any) {
   return data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string, ms = 12000): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label}_timeout`)), ms)
+  })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
+}
+
+async function safeGet(path: string, fallback: any, label: string, timeoutMs = 12000) {
+  try {
+    return await withTimeout(api.get(path), label, timeoutMs)
+  } catch {
+    return fallback
+  }
 }
 
 function toNumber(value: any, fallback = 0) {
@@ -1113,7 +1153,11 @@ async function openRdvFromQuery() {
   if (!Number.isFinite(requestedId) || requestedId <= 0) return
 
   const existing = normalizedRdvs.value.find((rdv: any) => Number(rdv.id) === requestedId)
-  await onSelectRdv(existing || { id: requestedId })
+  try {
+    await withTimeout(onSelectRdv(existing || { id: requestedId }), 'planning_open_rdv', 8000)
+  } catch {
+    // Keep planning usable even if RDV modal hydration times out.
+  }
 
   const nextQuery = { ...route.query }
   delete nextQuery.openRdv
@@ -1235,25 +1279,34 @@ async function onWeekChanged(range: { start: string; end: string }) {
   if (!ponts.value.length && !mecaniciens.value.length) {
     // Initial load will handle RDVs inside loadPlanningData
   } else {
-    // Week changed, just fetch RDVs for this week
-    loading.value = true
+    // Week changed — mise à jour silencieuse des RDVs : NE PAS toucher `loading`
+    // (loading=true démonterait PlanningGrid, dont le watch immediate re-émettrait dates-changed → boucle infinie)
+    refreshing.value = true
     try {
-      const r = await api.get(`/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${range.start}&dateRdv[before]=${range.end}`).catch(() => [])
+      const r = await safeGet(
+        `/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${range.start}&dateRdv[before]=${range.end}`,
+        [],
+        'planning_week_rdvs',
+      )
       rawRdvs.value = unwrapList(r)
     } finally {
-      loading.value = false
+      refreshing.value = false
     }
   }
 }
 
 async function loadPlanningData() {
   const [p, r, m, h, prestaData, configData] = await Promise.all([
-    api.get('/ponts').catch(() => []),
-    api.get(`/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${currentViewRange.value.start || '2000-01-01'}&dateRdv[before]=${currentViewRange.value.end || '2099-12-31'}`).catch(() => []),
-    api.get('/mecaniciens').catch(() => []),
-    api.get('/config/horaires').catch(() => []),
-    api.get('/prestations?itemsPerPage=200').catch(() => []),
-    api.get('/config').catch(() => null),
+    safeGet('/ponts', [], 'planning_ponts'),
+    safeGet(
+      `/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${currentViewRange.value.start || '2000-01-01'}&dateRdv[before]=${currentViewRange.value.end || '2099-12-31'}`,
+      [],
+      'planning_rdvs',
+    ),
+    safeGet('/mecaniciens', [], 'planning_mecaniciens'),
+    safeGet('/config/horaires', [], 'planning_horaires'),
+    safeGet('/prestations?itemsPerPage=200', [], 'planning_prestations'),
+    safeGet('/config', null, 'planning_config'),
   ])
 
   ponts.value = unwrapList(p)
@@ -1565,9 +1618,15 @@ watch(isReceptionEligible, (eligible: boolean) => {
 
 onMounted(async () => {
   try {
-    await loadPlanningData()
+    await withTimeout(loadPlanningData(), 'planning_init', 15000)
     consumeWorkshopQuickCreateQuery()
     await openRdvFromQuery()
+  } catch {
+    toast.add({
+      title: 'Chargement partiel du planning',
+      description: 'Certaines données ont mis trop de temps à répondre. Le planning reste accessible.',
+      color: 'warning',
+    })
   } finally {
     loading.value = false
   }

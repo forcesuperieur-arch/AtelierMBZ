@@ -184,7 +184,7 @@
             </div>
             <div style="text-align:right;">
               <div style="font-size:14px;font-weight:700;color:#FFD200;">{{ formatPrice(p.prix_base_ttc ?? p.prix_base_ht) }}</div>
-              <div style="font-size:11px;color:#6B7280;">{{ p.temps_estime_minutes ?? 60 }} min</div>
+              <div style="font-size:11px;color:#6B7280;">{{ formatDuration(p.temps_estime_minutes ?? 60) }}</div>
             </div>
           </div>
           <div v-if="!prestations.length" style="padding:20px;text-align:center;color:#6B7280;font-size:13px;">Aucune prestation active pour ce type de moto dans cet atelier.</div>
@@ -375,6 +375,7 @@
 <script setup lang="ts">
 const auth = useAuth()
 const api = useApi()
+const { formatDuration } = useFormat()
 const rdvStore = useRdvStore()
 const toast = useToast()
 const atelierStore = useAtelierStore()

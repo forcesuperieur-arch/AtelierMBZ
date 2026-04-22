@@ -124,7 +124,7 @@
             <div style="font-size:13px;font-weight:600;color:#E8E9ED;">{{ ts.description }}</div>
             <div style="display:flex;gap:12px;margin-top:6px;font-size:12px;color:#9CA3AF;flex-wrap:wrap;">
               <span v-if="ts.urgence" :style="{ color: ts.urgence === 'critique' ? '#EF4444' : ts.urgence === 'urgent' ? '#FFD200' : '#9CA3AF' }">{{ ts.urgence }}</span>
-              <span v-if="ts.temps_estime || ts.tempsEstime">⏱ {{ ts.temps_estime || ts.tempsEstime }} min</span>
+              <span v-if="ts.temps_estime || ts.tempsEstime">⏱ {{ formatDuration(ts.temps_estime || ts.tempsEstime) }}</span>
               <span v-if="ts.prix_estime || ts.prixEstime">💰 {{ formatCurrency(Number(ts.prix_estime || ts.prixEstime)) }}</span>
             </div>
             <div v-if="ts.notes_receptionniste || ts.notesReceptionniste" style="font-size:12px;color:#6B7280;margin-top:4px;">📝 {{ ts.notes_receptionniste || ts.notesReceptionniste }}</div>
@@ -647,6 +647,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const api = useApi()
+const { formatDuration } = useFormat()
 const toast = useToast()
 const { openPdf: openPdfBlob } = usePdfDownload()
 const atelierStore = useAtelierStore()

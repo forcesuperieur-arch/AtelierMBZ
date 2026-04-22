@@ -20,5 +20,12 @@ export function useFormat() {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val)
   }
 
-  return { formatDate, formatTime, formatCurrency }
+  function formatDuration(minutes: number | string | null | undefined): string {
+    const total = Math.max(0, Math.round(Number(minutes ?? 0)))
+    const h = Math.floor(total / 60)
+    const m = total % 60
+    return `${h}:${String(m).padStart(2, '0')}`
+  }
+
+  return { formatDate, formatTime, formatCurrency, formatDuration }
 }
