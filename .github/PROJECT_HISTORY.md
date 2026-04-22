@@ -2,7 +2,70 @@
 
 # Historique projet AtelierMBZ
 
-## Session 2026-04-22 — Sprint 2 audit : sécurité, guards workflow, restitution companion
+## Session 2026-04-22 — Sprint 4 audit : PDF async, pagination, config VO, auth refresh, badge PUBLIC
+
+### Fait
+- [SPRINT-4] [I14] ajoute — [backend/src/MessageHandler/GeneratePdfMessageHandler.php](backend/src/MessageHandler/GeneratePdfMessageHandler.php) : handler Messenger pour pré-génération asynchrone des PDFs (types `or`, `rapport`, `devis`, `facture`) ; non-bloquant (catch Throwable + logger)
+- [SPRINT-4] [I14] ajoute — [backend/src/Service/PdfService.php](backend/src/Service/PdfService.php) : méthode `getCachedPdfPath()` permettant de servir un PDF déjà généré sans recalcul
+- [SPRINT-4] [I14] ajoute — [backend/src/Controller/CompanionController.php](backend/src/Controller/CompanionController.php) : injection `MessageBusInterface`, dispatch `GeneratePdfMessage('or', id)` après flush de signature OR — non bloquant
+- [SPRINT-4] [I2] fix — [backend/src/Command/RappelProchaineRevisionCommand.php](backend/src/Command/RappelProchaineRevisionCommand.php) : remplace `$io->note()` par `NotificationDispatcher::sendFromTemplate()` avec injection `NotificationDispatcher`
+- [SPRINT-4] [I2] ajoute — [backend/src/Service/NotificationTemplateCatalog.php](backend/src/Service/NotificationTemplateCatalog.php) : templates `rappel_prochaine_revision` email + SMS ajoutés au catalogue par défaut
+- [SPRINT-4] [I2] ajoute — [backend/src/Schedule.php](backend/src/Schedule.php) : cron `0 9 * * *` → `app:rappel-prochaine-revision`
+- [SPRINT-4] [I19] fix — [frontend/middleware/auth.global.ts](frontend/middleware/auth.global.ts) : tracking `lastAuthRefreshAt` (useState), rafraîchissement `/auth/me` si > 5 min — permissions et rôles ne stagnent plus après une longue session
+- [SPRINT-4] [I20] ajoute — [frontend/pages/admin/config.vue](frontend/pages/admin/config.vue) : champs `dureeDefautMandatJours` (UInput number) et `regimeTvaVoDefault` (USelect marge/normal) dans l'onglet 1 ; initialisés dans le ref config avec valeurs par défaut et mergés depuis l'API
+- [SPRINT-4] [I3] fix — [frontend/stores/rdv.ts](frontend/stores/rdv.ts) : `fetchRdvs()` ajoute `itemsPerPage=200` pour éviter la limite Hydra par défaut (30 items)
+- [SPRINT-4] [I3] fix — [frontend/stores/vo.ts](frontend/stores/vo.ts) : `fetchPurchases()` et `fetchDepots()` avec `?itemsPerPage=200`
+- [SPRINT-4] [I4] ajoute — [frontend/pages/planning.vue](frontend/pages/planning.vue) : badge `PUBLIC` (bleu, style inline) dans le panneau de détail RDV si `rdv.source === 'web'`
+- [SPRINT-4] [I4] ajoute — [frontend/components/PlanningGrid.vue](frontend/components/PlanningGrid.vue) : label `WEB` (bleu) sur la carte grille si `rdv.source === 'web'`
+- [SPRINT-4] [I6] ajoute — [backend/src/Entity/ConfigAtelier.php](backend/src/Entity/ConfigAtelier.php) : colonnes `dureeDefautMandatJours` (int, default 90) et `regimeTvaVoDefault` (string, default 'marge') + getters/setters
+- [SPRINT-4] [I6] fix — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) : `resolveDefaultMandatDuration()` lit `ConfigAtelier.dureeDefautMandatJours` au lieu du hardcode 90
+- [SPRINT-4] [I7] fix — [backend/src/Controller/PublicBookingController.php](backend/src/Controller/PublicBookingController.php) : guard module `rdv` — 403 si désactivé pour cet atelier
+- [SPRINT-4] [I4 back] ajoute — [backend/src/Entity/RendezVous.php](backend/src/Entity/RendezVous.php) : champ `source` nullable (VARCHAR 20) ; `setSource('web')` dans `PublicBookingController` à la création
+- [SPRINT-4] [I15] fix — [backend/src/Controller/StatistiquesController.php](backend/src/Controller/StatistiquesController.php) : `stockAlerts` retourne 0 si module `stock` désactivé dans `featureModules`
+- [SPRINT-4] [I16] vérifié — `RendezVous::__construct()` utilise `bin2hex(random_bytes(32))` — déjà conforme
+- [SPRINT-4] migration — [backend/migrations/Version20260422115453.php](backend/migrations/Version20260422115453.php) créée et exécutée : 3 colonnes ajoutées (`rendez_vous.source`, `config_atelier.duree_defaut_mandat_jours`, `config_atelier.regime_tva_vo_default`)
+- [TEST] fix — [frontend/tests/voStore.test.ts](frontend/tests/voStore.test.ts) : assertion mise à jour `/vo/depots` → `/vo/depots?itemsPerPage=200`
+- **PHPUnit 187/187 ✅** — `docker compose exec php bin/phpunit 2>&1 | tail -8` → `OK, but there were issues! Tests: 187, Assertions: 707`
+- **Vitest 19/19 ✅** — `npx vitest run 2>&1 | tail -6` → `Test Files 6 passed (6) Tests 19 passed (19)`
+
+### Décisions
+- `itemsPerPage=200` retenu pour stores RDV et VO — suffisant pour le volume atelier ; à paginer côté front si l'atelier dépasse 200 entrées par jour (cas non identifié en production)
+- Le refresh auth toutes les 5 min est transparent (navigation vers une nouvelle route) — pas d'impact UX perceptible
+- `regimeTvaVoDefault` : valeurs admises `marge` / `normal` — l'UI propose les deux labels légaux exacts (Art.297A CGI / Art.256 CGI)
+- `I27` (FEC export) : SKIP — Facturation en réécriture
+
+### TODO laissés
+- [ ] `GeneratePdfMessageHandler` : dispatcher depuis `OrdreReparationController` et `DevisController` pour les créations/modifications hors Companion (non prioritaire)
+- [ ] Template `rappel_prochaine_revision` : variable `atelier_nom` non encore injectée (champ vide) — à alimenter via `CurrentAtelierResolver` dans le command
+
+### En suspens à arbitrer
+- Aucun bloquant — Sprint 5 prêt à démarrer
+
+## Session 2026-04-22 — Sprint 3 TODO résolus + Sprint 3 audit : crons, Messenger, gardiennage relances
+
+### Fait
+- [SPRINT-3] [C8] fix — [backend/src/Command/RelanceClientStockageCommand.php](backend/src/Command/RelanceClientStockageCommand.php) : dispatch Messenger réel via `NotificationDispatcher::sendFromTemplate()` pour les relances gardiennage J+15/30/45/180 (remplace le stub vide)
+- [SPRINT-3] [C4] fix — [backend/src/Command/CheckDepotVenteMandatCommand.php](backend/src/Command/CheckDepotVenteMandatCommand.php) : recipient réel (`$depot->getDeposant()?->getEmail()`) au lieu du TODO placeholder
+- [SPRINT-3] [I1+I9] ajoute — [backend/src/Command/CheckDaSivExpiryCommand.php](backend/src/Command/CheckDaSivExpiryCommand.php) : cron DA SIV — alerte J+10 `da_siv_alerte_j10` (email), passage `expiree` J+15 avec notification `da_siv_expiration`
+- [SPRINT-3] [I8] fix — [backend/src/Command/CheckDepotVenteMandatCommand.php](backend/src/Command/CheckDepotVenteMandatCommand.php) : template `mandat_depot_vente_j7` dispatché 7 jours avant expiration mandat
+- [SPRINT-3] [I10] fix — [backend/src/Service/SlotService.php](backend/src/Service/SlotService.php) : jours de fermeture exceptionnels et `joursOuvresService` intégrés — les créneaux ne sont plus proposés les jours fermés
+- [TODO] fix — [backend/src/Schedule.php](backend/src/Schedule.php) : 3 crons Sprint 3 ajoutés (`app:relance-client-stockage` 7h, `app:check-da-siv-expiry` 6h, `app:check-depot-vente-mandat` 6h30)
+- [TODO] fix — [backend/config/packages/messenger.yaml](backend/config/packages/messenger.yaml) : routing explicite des messages métier vers le transport async
+- [TODO] fix — [backend/src/Service/JoursOuvresService.php](backend/src/Service/JoursOuvresService.php) : `computeEaster()` réécrite avec l'algorithme Meeus-Jones-Butcher (pur PHP, sans extension `calendar` non installée dans le container)
+- **PHPUnit 187/187 ✅** (baseline après correction JoursOuvresService + Scheduler)
+
+### Décisions
+- L'algorithme Meeus-Jones-Butcher est préféré à `easter_days()` (extension `calendar` optionnelle non présente dans le container Alpine) — résultat identique, 0 dépendance extension
+- Les templates notifications gardiennage/SIV/dépôt-vente sont insérés dans `NotificationTemplateCatalog::getDefaults()` et créés automatiquement via `ensureDefaultsForAtelier()`
+- Le scheduler Symfony Messenger remplace les crons système — 1 worker Docker gère tout
+
+### TODO laissés
+- Aucun TODO Sprint 3 ouvert — tous résolus
+
+### En suspens à arbitrer
+- Aucun
+
+
 
 ### Fait
 - [SPRINT-2] [C21] fix — [backend/src/Controller/PhotoController.php](backend/src/Controller/PhotoController.php) : guard path traversal dans `serve()` — `realpath()` + `str_starts_with()` vérifient que le fichier servi reste dans `var/photos/` ; 404 sinon

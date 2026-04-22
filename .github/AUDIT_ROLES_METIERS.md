@@ -22,6 +22,30 @@ Règle de travail :
 | Super-admin | Audité | Synthèse consolidée ci-dessous |
 | Client final | Audité | Synthèse consolidée ci-dessous |
 
+## Contrôle post-lots implémentés — 2026-04-21
+
+Contrôle croisé effectué entre les lots réellement livrés, l'UI actuelle et les reliquats encore visibles.
+
+### Confirmé côté UI
+
+- Espace mécanicien : photos, demande de travaux complémentaires, pause / attente pièces / reprise, clôture après rapport signé.
+- Réception / OR : séparation réception vs atelier visible, validation locale DTS retirée.
+- Facturation : avoir, remboursement, journal des mouvements et statuts remboursés visibles.
+- VO : carte verdict structurée visible dans le dossier central.
+
+### Reliquats corrigés pendant ce contrôle
+
+1. Les fiches détaillées rachat / dépôt affichaient encore des blocs legacy basés sur `saleBlockers` alors que `saleVerdict` existait déjà. L'UI est réalignée sur le verdict structuré.
+2. Les anciennes URL `/public/companion?token=...` et `/public/vo-companion?token=...` restaient des surfaces accessibles. Elles sont désormais traitées comme compatibilité de redirection vers `/companion/reception/[token]` et `/companion/vo/[token]`.
+3. Les documents VO générés ne sont plus présentés comme un bloc homogène. Le back et l'UI distinguent désormais les documents opposables (`PV de rachat`, `contrat dépôt-vente`) des formulaires réglementaires alignés CERFA (`DA SIV`, `mandat immatriculation`).
+4. Les aperçus PDF admin distinguent désormais documents opposables, formulaires réglementaires CERFA, extraits de registre et synthèses internes pour éviter les confusions de nature documentaire sur tout le périmètre atelier + VO.
+5. Les wizards VO de création ne promettent plus un dossier qui “se remplit tout seul” : le compagnon PDA est présenté comme une aide à la capture et à la proposition de données, avec validation interne explicite.
+
+### Reliquats conservés volontairement
+
+1. Les types documentaires `piece_identite` et `justificatif_domicile` restent nommés dans le code pour le passif documentaire, la purge et les blocages RGPD ; cela ne réouvre pas leur upload dans les parcours PDA.
+2. Les rendus DA SIV et mandat immatriculation restent des versions AtelierMBZ alignées sur les CERFA, pas une reproduction pixel-perfect du formulaire administratif officiel ; la preuve opposable côté SIV reste l'enregistrement effectif et le récépissé quand il existe.
+
 ## Format des constats
 
 Chaque rôle est documenté avec 4 niveaux :
