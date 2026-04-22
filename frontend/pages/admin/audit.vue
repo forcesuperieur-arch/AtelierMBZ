@@ -39,7 +39,13 @@
 
     <UCard>
       <div v-if="loading" style="padding:32px;text-align:center;color:#6B7280;">Chargement…</div>
-      <div v-else-if="!logs.length" style="padding:32px;text-align:center;color:#6B7280;">Aucune entrée trouvée</div>
+      <div v-else-if="!logs.length" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">📜</div>
+        <div style="font-size:14px;font-weight:600;color:#E8E9ED;margin-bottom:4px;">Aucune entrée dans le journal</div>
+        <div style="font-size:12px;color:#9CA3AF;">
+          Aucune action sensible tracée sur la période sélectionnée. Affinez les filtres ou élargissez les dates.
+        </div>
+      </div>
       <div v-else style="display:flex;flex-direction:column;gap:1px;">
         <div v-for="log in filteredLogs" :key="log.id" style="display:grid;grid-template-columns:140px 100px 1fr 150px;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;align-items:center;">
           <span style="color:#6B7280;font-family:monospace;font-size:11px;">{{ formatDate(log.created_at || log.createdAt) }}</span>
@@ -64,6 +70,7 @@
 <script setup lang="ts">
 const auth = useAuth()
 const api = useApi()
+const toast = useToast()
 const loading = ref(true)
 const logs = ref<any[]>([])
 const page = ref(1)
@@ -124,8 +131,9 @@ async function fetchLogs() {
     logs.value = raw
     const total = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
     totalPages.value = Math.max(1, Math.ceil(total / 50))
-  } catch {
+  } catch (e: any) {
     logs.value = []
+    toast.add({ title: 'Erreur de chargement', description: e?.message || 'Impossible de récupérer le journal d\'audit.', color: 'error' })
   } finally {
     loading.value = false
   }

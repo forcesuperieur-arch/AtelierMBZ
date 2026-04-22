@@ -37,8 +37,9 @@
           <template #header>
             <span style="font-size:14px;font-weight:700;color:#E8E9ED;">📱 SMS</span>
           </template>
-          <div v-if="smsProviders.length === 0" style="color:#6B7280;font-size:13px;padding:8px;">
-            Aucun provider SMS configuré
+          <div v-if="smsProviders.length === 0" style="padding:20px;text-align:center;">
+            <div style="color:#9CA3AF;font-size:13px;margin-bottom:10px;">Aucun provider SMS configuré.</div>
+            <button class="btn btn-primary" style="font-size:12px;" @click="form.channel = 'sms'; showAddModal = true">+ Configurer un provider SMS</button>
           </div>
           <div v-else style="display:flex;flex-direction:column;gap:8px;">
             <div v-for="p in smsProviders" :key="p.id" class="provider-row">
@@ -69,8 +70,9 @@
           <template #header>
             <span style="font-size:14px;font-weight:700;color:#E8E9ED;">📧 Email</span>
           </template>
-          <div v-if="emailProviders.length === 0" style="color:#6B7280;font-size:13px;padding:8px;">
-            Aucun provider Email configuré
+          <div v-if="emailProviders.length === 0" style="padding:20px;text-align:center;">
+            <div style="color:#9CA3AF;font-size:13px;margin-bottom:10px;">Aucun provider Email configuré.</div>
+            <button class="btn btn-primary" style="font-size:12px;" @click="form.channel = 'email'; showAddModal = true">+ Configurer un provider Email</button>
           </div>
           <div v-else style="display:flex;flex-direction:column;gap:8px;">
             <div v-for="p in emailProviders" :key="p.id" class="provider-row">

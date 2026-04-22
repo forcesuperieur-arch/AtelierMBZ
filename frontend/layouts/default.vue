@@ -179,8 +179,9 @@ const menuItems = computed(() => {
     { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or' },
     { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos' },
     { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
-    { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
-    { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
+    // TODO (2026-04-22) : modules en cours de réécriture — réactiver quand le flux sera vérifié end-to-end
+    // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
+    // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
     { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
     { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
   ]

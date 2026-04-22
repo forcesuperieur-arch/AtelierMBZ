@@ -17,7 +17,15 @@
     </UCard>
 
     <UCard v-else>
-      <UTable :data="roles" :columns="columns">
+      <div v-if="!roles.length" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎭</div>
+        <div style="font-size:14px;font-weight:600;color:#E8E9ED;margin-bottom:4px;">Aucun rôle métier configuré</div>
+        <div style="font-size:12px;color:#9CA3AF;margin-bottom:16px;">
+          Créez votre premier rôle métier (chef d'atelier, comptable, etc.) pour affecter des permissions granulaires aux utilisateurs.
+        </div>
+        <button class="btn btn-primary" style="font-size:13px;" @click="showCreate = true">+ Créer le premier rôle</button>
+      </div>
+      <UTable v-else :data="roles" :columns="columns">
         <template #libelle-cell="{ row }">
           <div>
             <div style="font-weight:700;color:#E8E9ED;">{{ row.original.libelle }}</div>

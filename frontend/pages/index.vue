@@ -12,6 +12,14 @@
       <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">{{ blockedModuleBanner.description }}</div>
     </div>
 
+    <!-- [PHASE-1.4] Bandeau visible quand certaines APIs n'ont pas répondu -->
+    <div v-if="partialErrors.length" style="margin-bottom:16px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:12px 14px;background:rgba(239,68,68,0.06);">
+      <div style="font-size:13px;font-weight:700;color:#FCA5A5;">⚠️ Données partielles</div>
+      <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">
+        Certaines sections n'ont pas pu être chargées : {{ partialErrors.join(', ') }}. Le reste du dashboard reste à jour.
+      </div>
+    </div>
+
     <!-- Alert strip -->
     <div v-if="alerts.length" class="alert-strip">
       <div v-for="(a, i) in alerts" :key="i" class="alert-chip" :class="a.type">
@@ -595,6 +603,9 @@ onUnmounted(() => {
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
+// [PHASE-1.4] Tracking des erreurs API partielles pour bandeau visible
+const partialErrors = ref<string[]>([])
+
 async function loadDashboard() {
   try {
     const today = toIsoDate(new Date())
@@ -604,12 +615,15 @@ async function loadDashboard() {
     if (!filters.from || !filters.to) params.set('period', selectedPeriod.value)
     const query = params.toString() ? `?${params.toString()}` : ''
 
+    const issues: string[] = []
+    const trackError = (label: string) => (e: any) => { issues.push(label); return [] }
+
     const [s, rdvData, alertes, pontsData, mecaData] = await Promise.all([
       api.get(`/statistiques/dashboard${query}`),
       api.get(`/rendez-vous?dateRdv[after]=${today}&dateRdv[before]=${today}&itemsPerPage=200`),
-      stockModuleEnabled.value ? api.get('/stock/alertes').catch(() => []) : Promise.resolve([]),
-      api.get('/ponts/status').catch(() => []),
-      api.get(`/statistiques/mecaniciens${query}`).catch(() => []),
+      stockModuleEnabled.value ? api.get('/stock/alertes').catch(trackError('alertes stock')) : Promise.resolve([]),
+      api.get('/ponts/status').catch(trackError('ponts')),
+      api.get(`/statistiques/mecaniciens${query}`).catch(trackError('perf mécanos')),
     ])
     stats.value = s
     const rawRdvs = rdvData?.['hydra:member'] ?? rdvData?.member ?? (Array.isArray(rdvData) ? rdvData : [])
@@ -617,6 +631,7 @@ async function loadDashboard() {
     stockAlertes.value = alertes
     ponts.value = Array.isArray(pontsData) ? pontsData : (pontsData?.['hydra:member'] ?? pontsData?.member ?? [])
     mecanicienStats.value = Array.isArray(mecaData) ? mecaData : (mecaData?.['hydra:member'] ?? mecaData?.member ?? [])
+    partialErrors.value = issues
   } finally {
     loading.value = false
   }
