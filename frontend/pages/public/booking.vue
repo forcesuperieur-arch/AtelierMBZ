@@ -19,7 +19,7 @@
           <UFormField label="Téléphone"><UInput v-model="form.client_telephone" required /></UFormField>
           <UFormField label="Email"><UInput v-model="form.client_email" type="email" required /></UFormField>
         </div>
-        <div style="font-size:12px;color:#9CA3AF;margin-top:8px;">Votre demande de créneau sera confirmée par email.</div>
+        <div style="font-size:12px;color:#9CA3AF;margin-top:8px;">Votre demande sera relue par l'atelier puis confirmée après validation de la disponibilité.</div>
       </div>
 
       <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
@@ -189,15 +189,15 @@
       </UFormField>
 
       <button type="submit" class="topbar-new-btn" :disabled="!canSubmit || submitting" style="width:100%;justify-content:center;padding:12px;font-size:14px;">
-        {{ submitting ? 'Envoi...' : 'Confirmer le rendez-vous' }}
+        {{ submitting ? 'Envoi...' : 'Envoyer ma demande' }}
       </button>
     </form>
 
     <div v-if="confirmation" style="margin-top:16px;padding:16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;text-align:center;">
       <div style="font-size:32px;margin-bottom:8px;">✅</div>
-      <p style="font-weight:600;color:#86EFAC;">Rendez-vous confirmé</p>
+      <p style="font-weight:600;color:#86EFAC;">Demande envoyée</p>
       <p style="font-size:13px;color:#6EE7B7;margin-top:4px;">
-        {{ confirmation.message || 'Une confirmation vous sera envoyée par email.' }}
+        {{ confirmation.message || 'L\'atelier vous confirmera le créneau après validation.' }}
       </p>
       <p v-if="confirmation.heure_fin" style="font-size:13px;color:#D1FAE5;margin-top:6px;">
         Fin estimée : <strong>{{ confirmation.heure_fin }}</strong>

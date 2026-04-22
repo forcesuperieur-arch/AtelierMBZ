@@ -172,7 +172,6 @@ const currentSection = computed(() => {
 const menuItems = computed(() => {
   const items = [
     { to: '/', icon: '📊', label: 'Stat', section: 'dashboard' },
-    { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
     { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
     { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
     { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },

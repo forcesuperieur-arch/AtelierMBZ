@@ -384,7 +384,7 @@ async function refreshData() {
     api.get('/ponts').catch(() => []),
     api.get('/mecaniciens').catch(() => []),
     api.get('/users').catch(() => []),
-    api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
+    api.get('/rendez-vous?itemsPerPage=2000&order[createdAt]=desc').catch(() => []),
   ])
 
   const rawPonts = pontData?.['hydra:member'] ?? pontData?.member ?? (Array.isArray(pontData) ? pontData : [])

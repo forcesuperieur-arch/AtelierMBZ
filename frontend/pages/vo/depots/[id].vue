@@ -7,8 +7,8 @@
         <div class="vo-subtitle">Vue complète du mandat, des documents, de la restitution et de la vente.</div>
       </div>
       <div class="vo-header-actions">
-        <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
-        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+        <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat dépôt-vente</button>
+        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat CERFA</button>
         <button v-if="detail?.status === 'actif'" class="topbar-new-btn" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
       </div>
     </div>
@@ -21,7 +21,7 @@
       <div v-if="route.query.companion === '1'" class="vo-companion-banner">
         <div>
           <strong>Parcours compagnon prêt</strong>
-          <span>Scanne le QR code ci-dessous depuis le PDA pour charger les pièces, vérifier le préremplissage du mandat puis faire signer le déposant.</span>
+          <span>Scanne le QR code ci-dessous depuis le PDA pour charger les pièces, vérifier les données du contrat puis faire signer le déposant.</span>
         </div>
         <button type="button" class="vo-link-btn" @click="focusCompanion">Voir le QR code</button>
       </div>
@@ -144,7 +144,7 @@
 
           <div class="vo-lines" style="margin-bottom: 14px;">
             <div class="vo-line-detail">
-              <span>Mandat immat prérempli</span>
+              <span>Mandat CERFA 13757</span>
               <strong :style="{ color: (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? '#22c55e' : '#9ca3af' }">{{ (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? 'Archivé' : 'Disponible au téléchargement' }}</strong>
             </div>
           </div>
@@ -196,9 +196,9 @@
             <span>Le contrat PDA doit être finalisé avant de vendre le véhicule.</span>
           </div>
 
-          <div v-if="detail.saleBlockers?.length" class="vo-warning-box">
-            <strong>Remise en état VO en cours</strong>
-            <span>{{ detail.saleBlockers.join(', ') }}</span>
+          <div v-if="depotSaleVerdictMessages.length" class="vo-warning-box">
+            <strong>Vente verrouillée</strong>
+            <span>{{ detail.saleVerdict?.summary || depotSaleVerdictMessages.join(', ') }}</span>
           </div>
 
           <div class="vo-form-grid">
@@ -292,6 +292,7 @@ const saleForm = reactive({
 
 const depotRequiredDocs = ['contrat_depot_vente', 'carte_grise']
 const legalChecklist = computed(() => detail.value?.legalChecklist || [])
+const depotSaleVerdictMessages = computed(() => (detail.value?.saleVerdict?.reasons || []).map((reason: any) => reason?.message).filter(Boolean))
 
 const netDeposantPreview = computed(() => {
   const salePrice = Number.parseFloat(String(saleForm.salePrice || '0').replace(',', '.')) || 0
@@ -335,8 +336,12 @@ const mandateState = computed(() => {
     return { tone: 'warning', label: 'Mandat expiré', text: 'Le mandat doit être prolongé ou le véhicule restitué.' }
   }
 
-  if (detail.value.saleBlockers?.length) {
-    return { tone: 'warning', label: 'Dossier à régulariser', text: detail.value.saleBlockers.join(' ') }
+  if (depotSaleVerdictMessages.value.length) {
+    return {
+      tone: 'warning',
+      label: detail.value.saleVerdict?.label || 'Dossier à régulariser',
+      text: detail.value.saleVerdict?.summary || depotSaleVerdictMessages.value.join(' '),
+    }
   }
 
   if (detail.value.companion?.steps && !detail.value.companion.steps.allComplete) {

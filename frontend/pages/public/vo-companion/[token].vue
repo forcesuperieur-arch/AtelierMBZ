@@ -5,7 +5,7 @@
         <div>
           <div class="vo-public-kicker">Parcours PDA VO</div>
           <h1>{{ headerTitle }}</h1>
-          <p>Les documents à remplir sont générés automatiquement à partir des informations saisies puis validés par signature client.</p>
+          <p>Les informations saisies alimentent ensuite les PDF du dossier. Les sorties distinguent documents opposables, formulaires réglementaires CERFA et pièces de dossier.</p>
         </div>
         <div v-if="payload?.steps" class="vo-public-progress-pill">
           {{ payload.steps.completedCount }}/{{ payload.steps.totalCount }} étapes validées
@@ -35,7 +35,7 @@
           <div class="vo-public-summary-box">
             <span>Documents générés</span>
             <strong>{{ payload.dossier?.generatedDocuments?.length || 0 }}</strong>
-            <small>{{ payload.mode === 'purchase' ? 'PV de rachat' : 'Contrat dépôt-vente' }}</small>
+            <small>{{ payload.mode === 'purchase' ? 'PV + formulaires SIV' : 'Contrat + mandat CERFA' }}</small>
           </div>
         </div>
 
@@ -98,7 +98,7 @@
           <div class="vo-public-section-head">
             <div>
               <h2>Véhicule</h2>
-              <p>Scanne la carte grise, laisse l'OCR préremplir les champs puis ajoute des photos du véhicule.</p>
+              <p>Scanne la carte grise, laisse l'OCR proposer les champs puis ajoute des photos du véhicule.</p>
             </div>
             <div class="vo-public-state" :class="payload.steps.vehicle.completed ? 'is-done' : 'is-pending'">
               {{ payload.steps.vehicle.completed ? 'Étape validée' : 'Étape à compléter' }}
@@ -108,7 +108,7 @@
           <div class="vo-public-upload-grid">
             <label class="vo-public-upload-box">
               <strong>Carte grise</strong>
-              <span>Prends une photo depuis le PDA pour lancer l'OCR et préremplir le véhicule.</span>
+              <span>Prends une photo depuis le PDA pour lancer l'OCR et proposer les informations véhicule.</span>
               <input type="file" multiple accept="image/*" capture="environment" :disabled="isSigned" @change="onVehicleDocumentChange">
             </label>
 
@@ -235,7 +235,7 @@
           </div>
 
           <div v-if="payload.steps.allComplete" class="vo-public-alert is-success">
-            Dossier terminé. Les documents auto-générés sont maintenant confirmés avec la signature client.
+            Dossier terminé. Les PDF du dossier sont maintenant confirmés avec la signature client.
           </div>
         </section>
       </template>
@@ -301,7 +301,7 @@ const isDrawing = ref(false)
 const hasSignatureStroke = ref(false)
 const lastPoint = reactive({ x: 0, y: 0 })
 
-const token = computed(() => String(route.params.token || route.query.token || '').trim())
+const token = computed(() => String(route.params.token || '').trim())
 
 const roleLabel = computed(() => {
   if (payload.value?.partyRole === 'deposant') return 'Déposant'

@@ -18,21 +18,23 @@
     <UCard>
       <UTable :data="filtered" :columns="columns" :loading="loading">
         <template #statut-cell="{ row }">
-          <StatusBadge :status="row.original.nature === 'avoir' ? 'avoir' : row.original.statut === 'payee' ? 'paye' : row.original.statut === 'partiellement_payee' ? 'partiellement_payee' : row.original.statut" />
+          <StatusBadge :status="billingStatus(row.original)" />
         </template>
         <template #total_ttc-cell="{ row }">
-          {{ formatCurrency(row.original.total_ttc) }}
+          {{ formatCurrency(displayTotal(row.original)) }}
         </template>
         <template #reste-cell="{ row }">
-          <span :style="{ color: row.original.reste_a_payer > 0 ? '#FCA5A5' : '#6EE7B7', fontWeight: '600' }">
-            {{ formatCurrency(row.original.reste_a_payer ?? row.original.total_ttc) }}
+          <span :style="{ color: parseAmount(row.original.reste_a_payer) > 0 ? '#FCA5A5' : '#6EE7B7', fontWeight: '600' }">
+            {{ formatCurrency(parseAmount(row.original.reste_a_payer)) }}
           </span>
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;">
             <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)">📄 PDF</button>
             <button v-if="canManageBilling && canCollectPayment(row.original)" style="color:#6EE7B7;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
+            <button v-if="canManageBilling && canRefundPayment(row.original)" style="color:#60A5FA;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRemboursement(row.original)">↪ Rembourser</button>
             <button v-if="canManageBilling && canIssueAvoir(row.original)" style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openAvoir(row.original)">↩ Avoir</button>
+            <button style="color:#C4B5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openJournal(row.original)">📚 Journal</button>
             <button v-if="canManageBilling" style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
           </div>
         </template>
@@ -84,15 +86,15 @@
             <!-- Résumé facture -->
             <div style="display:flex;justify-content:space-between;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
               <div>
-                <div style="font-size:12px;color:#6B7280;">Total TTC</div>
-                <div style="font-size:18px;font-weight:700;color:#FFD200;">{{ formatCurrency(selectedFacture.total_ttc) }}</div>
+                <div style="font-size:12px;color:#6B7280;">{{ moneyActionType === 'remboursement' ? 'Total à rembourser' : 'Total TTC' }}</div>
+                <div style="font-size:18px;font-weight:700;color:#FFD200;">{{ formatCurrency(displayTotal(selectedFacture)) }}</div>
               </div>
-              <div v-if="selectedFacture.montant_paye > 0">
-                <div style="font-size:12px;color:#6B7280;">Déjà payé</div>
-                <div style="font-size:18px;font-weight:700;color:#6EE7B7;">{{ formatCurrency(selectedFacture.montant_paye) }}</div>
+              <div v-if="parseAmount(selectedFacture.montant_paye) > 0">
+                <div style="font-size:12px;color:#6B7280;">{{ moneyActionType === 'remboursement' ? 'Déjà remboursé' : 'Déjà encaissé' }}</div>
+                <div style="font-size:18px;font-weight:700;color:#6EE7B7;">{{ formatCurrency(parseAmount(selectedFacture.montant_paye)) }}</div>
               </div>
               <div>
-                <div style="font-size:12px;color:#6B7280;">Reste à payer</div>
+                <div style="font-size:12px;color:#6B7280;">{{ moneyActionType === 'remboursement' ? 'Reste à rembourser' : 'Reste à payer' }}</div>
                 <div style="font-size:18px;font-weight:700;color:#FCA5A5;">{{ formatCurrency(resteAPayer) }}</div>
               </div>
             </div>
@@ -132,10 +134,37 @@
             <div style="display:flex;gap:10px;justify-content:flex-end;">
               <button class="btn btn-ghost" @click="showEncaissement = false">Annuler</button>
               <button class="btn btn-primary" style="background:#10B981 !important;border-color:#10B981 !important;" @click="submitPaiement" :disabled="paying">
-                {{ paying ? 'Enregistrement…' : 'Enregistrer le paiement' }}
+                {{ paying ? 'Enregistrement…' : moneyActionType === 'remboursement' ? 'Enregistrer le remboursement' : 'Enregistrer le paiement' }}
               </button>
             </div>
           </template>
+        </UCard>
+      </template>
+    </AppModal>
+
+    <AppModal v-model:open="showJournal" size="lg">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;">📚 Journal des mouvements — {{ journalFacture?.numero_facture }}</span>
+              <button @click="showJournal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+          </template>
+
+          <div style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;">
+            <div v-if="journalEntries.length === 0" style="font-size:13px;color:#9CA3AF;">Aucun mouvement enregistré.</div>
+            <div v-for="entry in journalEntries" :key="entry.id" style="display:grid;grid-template-columns:140px 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.03);">
+              <div style="font-size:12px;color:#9CA3AF;">{{ formatDateTime(entry.date_paiement || entry.created_at || entry.createdAt) }}</div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="font-size:13px;font-weight:600;color:#E8E9ED;">{{ entry.type_operation === 'remboursement' ? 'Remboursement' : 'Encaissement' }} • {{ paymentModeLabel(entry.mode_paiement) }}</div>
+                <div style="font-size:12px;color:#9CA3AF;">{{ entry.reference || entry.notes || 'Sans référence ni note.' }}</div>
+              </div>
+              <div :style="{ fontSize: '14px', fontWeight: '700', color: entry.type_operation === 'remboursement' ? '#60A5FA' : '#6EE7B7' }">
+                {{ entry.type_operation === 'remboursement' ? '-' : '+' }}{{ formatCurrency(parseAmount(entry.montant)) }}
+              </div>
+            </div>
+          </div>
         </UCard>
       </template>
     </AppModal>
@@ -228,11 +257,14 @@ const loading = ref(true)
 const filter = ref('')
 const search = ref('')
 const showEncaissement = ref(false)
+const showJournal = ref(false)
 const paying = ref(false)
 const showAvoir = ref(false)
 const crediting = ref(false)
 const selectedFacture = ref<any>(null)
+const journalFacture = ref<any>(null)
 const avoirMotif = ref('')
+const moneyActionType = ref<'encaissement' | 'remboursement'>('encaissement')
 
 const paiement = reactive({
   mode: 'carte_bancaire',
@@ -243,7 +275,12 @@ const paiement = reactive({
 
 const resteAPayer = computed(() => {
   if (!selectedFacture.value) return 0
-  return (selectedFacture.value.total_ttc || 0) - (selectedFacture.value.montant_paye || 0)
+  return parseAmount(selectedFacture.value.reste_a_payer)
+})
+
+const journalEntries = computed(() => {
+  const entries = Array.isArray(journalFacture.value?.paiements) ? [...journalFacture.value.paiements] : []
+  return entries.sort((a, b) => String(b.date_paiement || b.created_at || '').localeCompare(String(a.date_paiement || a.created_at || '')))
 })
 
 const statusOptions = [
@@ -284,10 +321,60 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v || 0)
 }
 
+function parseAmount(value: unknown): number {
+  const parsed = Number.parseFloat(String(value ?? '0').replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function displayTotal(facture: any): number {
+  return Math.abs(parseAmount(facture?.total_ttc))
+}
+
+function billingStatus(facture: any): string {
+  if (facture?.nature === 'avoir') {
+    if (facture?.statut === 'payee') return 'avoir_rembourse'
+    if (facture?.statut === 'partiellement_payee') return 'avoir_partiellement_rembourse'
+    return 'avoir'
+  }
+
+  if (facture?.statut === 'payee') return 'paye'
+  return facture?.statut || 'emise'
+}
+
+function paymentModeLabel(mode: string): string {
+  const labels: Record<string, string> = {
+    carte_bancaire: 'Carte bancaire',
+    especes: 'Espèces',
+    cheque: 'Chèque',
+    virement: 'Virement bancaire',
+    differe: 'Paiement différé',
+  }
+
+  return labels[mode] || mode || 'Mode inconnu'
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return 'Date inconnue'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
 function openEncaissement(facture: any) {
   selectedFacture.value = facture
+  moneyActionType.value = 'encaissement'
   paiement.mode = 'carte_bancaire'
-  paiement.montant = (facture.total_ttc || 0) - (facture.montant_paye || 0)
+  paiement.montant = parseAmount(facture.reste_a_payer)
+  paiement.reference = ''
+  paiement.notes = ''
+  showEncaissement.value = true
+}
+
+function openRemboursement(facture: any) {
+  selectedFacture.value = facture
+  moneyActionType.value = 'remboursement'
+  paiement.mode = 'virement'
+  paiement.montant = parseAmount(facture.reste_a_payer)
   paiement.reference = ''
   paiement.notes = ''
   showEncaissement.value = true
@@ -299,8 +386,17 @@ function openAvoir(facture: any) {
   showAvoir.value = true
 }
 
+function openJournal(facture: any) {
+  journalFacture.value = facture
+  showJournal.value = true
+}
+
 function canCollectPayment(facture: any) {
   return facture?.nature !== 'avoir' && !['payee', 'corrigee'].includes(String(facture?.statut || ''))
+}
+
+function canRefundPayment(facture: any) {
+  return facture?.nature === 'avoir' && !['payee'].includes(String(facture?.statut || ''))
 }
 
 function canIssueAvoir(facture: any) {
@@ -311,13 +407,17 @@ async function submitPaiement() {
   if (!selectedFacture.value || paiement.montant <= 0) return
   paying.value = true
   try {
-    await api.post(`/facturation/${selectedFacture.value.id}/paiement`, {
+    const endpoint = moneyActionType.value === 'remboursement'
+      ? `/facturation/${selectedFacture.value.id}/remboursement`
+      : `/facturation/${selectedFacture.value.id}/paiement`
+
+    await api.post(endpoint, {
       mode_paiement: paiement.mode,
       montant: paiement.montant,
       reference: paiement.reference || undefined,
       notes: paiement.notes || undefined,
     })
-    toast.add({ title: 'Paiement enregistré', color: 'success' })
+    toast.add({ title: moneyActionType.value === 'remboursement' ? 'Remboursement enregistré' : 'Paiement enregistré', color: 'success' })
     showEncaissement.value = false
     await billingStore.fetchFactures()
   } catch (e: any) {

@@ -8,7 +8,7 @@
 const props = defineProps<{ status: string }>()
 
 const statusMap: Record<string, { label: string; bg: string; color: string }> = {
-  en_attente:  { label: 'En attente',  bg: 'rgba(107,114,128,0.12)', color: '#D1D5DB' },
+  en_attente:  { label: 'A valider',   bg: 'rgba(107,114,128,0.12)', color: '#D1D5DB' },
   reserve:     { label: 'Réservé',     bg: 'rgba(245,158,11,0.12)',  color: '#FCD34D' },
   confirme:    { label: 'Confirmé',    bg: 'rgba(59,130,246,0.12)',  color: '#93C5FD' },
   reception:   { label: 'Réception',   bg: 'rgba(245,158,11,0.12)',  color: '#FCD34D' },
@@ -17,6 +17,8 @@ const statusMap: Record<string, { label: string; bg: string; color: string }> = 
   restitue:    { label: 'Restitué',    bg: 'rgba(16,185,129,0.12)',  color: '#6EE7B7' },
   facture:     { label: 'Facturé',     bg: 'rgba(139,92,246,0.12)',  color: '#C4B5FD' },
   avoir:       { label: 'Avoir',       bg: 'rgba(59,130,246,0.12)',  color: '#93C5FD' },
+  avoir_partiellement_rembourse: { label: 'Avoir partiellement remboursé', bg: 'rgba(245,158,11,0.12)', color: '#FCD34D' },
+  avoir_rembourse: { label: 'Avoir remboursé', bg: '#10B981', color: '#ffffff' },
   paye:        { label: 'Payé',        bg: '#10B981',                color: '#ffffff' },
   partiellement_payee: { label: 'Partiellement payée', bg: 'rgba(245,158,11,0.12)', color: '#FCD34D' },
   corrigee:    { label: 'Corrigée par avoir', bg: 'rgba(239,68,68,0.12)', color: '#FCA5A5' },

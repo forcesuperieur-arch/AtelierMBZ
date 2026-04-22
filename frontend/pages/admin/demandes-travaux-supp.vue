@@ -29,7 +29,7 @@
               <div style="font-size:12px;color:#9CA3AF;">
                 <span v-if="d.vehicule_info">{{ d.vehicule_info }}</span>
                 <span v-if="d.vehicule_plaque"> • {{ d.vehicule_plaque }}</span>
-                <span> • RDV <NuxtLink :to="`/rdv/${d.rendez_vous_id}`" style="color:#FFD200;">#{{ d.rendez_vous_id }}</NuxtLink></span>
+                <span> • RDV <NuxtLink :to="`/planning?openRdv=${d.rendez_vous_id}`" style="color:#FFD200;">#{{ d.rendez_vous_id }}</NuxtLink></span>
               </div>
               <div v-if="d.description" style="margin-top:6px;font-size:12px;color:#D1D5DB;font-style:italic;">« {{ d.description }} »</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">

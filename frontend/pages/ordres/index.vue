@@ -30,8 +30,8 @@
       <input v-model="search" class="form-input" placeholder="Rechercher OR, client, véhicule, plaque…" style="flex:1;min-width:200px;" />
       <select v-model="statusFilter" class="form-input" style="width:180px;">
         <option value="">Tous les statuts</option>
-        <option value="reserve">Réservé</option>
-        <option value="confirme">Confirmé</option>
+        <option value="reserve">Créneau réservé</option>
+        <option value="confirme">Confirmé atelier</option>
         <option value="reception">Réception</option>
         <option value="en_cours">En cours</option>
         <option value="termine">Terminé</option>

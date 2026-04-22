@@ -4,7 +4,7 @@
       <div class="vo-card-head">
         <div>
           <div class="vo-card-title">Parcours PDA {{ partyRoleLabel }}</div>
-          <div class="vo-card-subtitle">QR code prêt pour scanner les documents, préremplir le dossier, faire signer le client et archiver automatiquement les pièces.</div>
+          <div class="vo-card-subtitle">QR code prêt pour assister la saisie, faire signer le client et générer les PDF réellement disponibles dans le dossier.</div>
         </div>
         <div class="vo-chip" :class="companion?.steps?.allComplete ? 'is-done' : 'is-pending'">
           {{ companion?.steps?.completedCount || 0 }}/{{ companion?.steps?.totalCount || 4 }} étapes
@@ -14,13 +14,13 @@
 
     <div v-if="!companion?.publicPath" class="vo-info-box">
       <strong>Session PDA indisponible.</strong>
-      <span>Recharge le dossier pour générer le lien public.</span>
+      <span>Recharge le dossier pour régénérer le lien PDA assisté.</span>
     </div>
 
     <div v-else class="vo-companion-layout">
       <div class="vo-companion-left">
         <div class="vo-companion-linkbox">
-          <label>Lien public PDA</label>
+          <label>Lien PDA assisté</label>
           <a :href="publicUrl" target="_blank" class="vo-companion-link">{{ publicUrl }}</a>
           <div class="vo-inline-actions split compact">
             <button type="button" class="vo-secondary-cta" @click="copyLink">Copier le lien</button>
@@ -29,8 +29,8 @@
         </div>
 
         <div class="vo-generated-box">
-          <div class="vo-generated-title">Parcours express</div>
-          <div class="vo-generated-subtitle">1. Scanner la pièce d’identité et la carte grise • 2. vérifier les données OCR • 3. faire signer {{ partyRoleLabel }} • 4. archiver les PDF auto-générés.</div>
+          <div class="vo-generated-title">Documents disponibles</div>
+          <div class="vo-generated-subtitle">1. Retranscrire et contrôler • 2. faire signer {{ partyRoleLabel }} • 3. générer les PDF du dossier. Les sorties distinguent désormais documents opposables, formulaires réglementaires et pièces de dossier.</div>
           <div class="vo-generated-list">
             <a
               v-for="document in generatedDocuments"
@@ -39,6 +39,9 @@
               target="_blank"
               class="vo-generated-item"
             >
+              <small class="vo-generated-pill" :class="document.nature === 'support' ? 'is-support' : document.nature === 'cerfa' ? 'is-cerfa' : 'is-legal'">
+                {{ documentNatureLabel(document.nature) }}
+              </small>
               <strong>{{ document.label }}</strong>
               <span>{{ document.description }}</span>
             </a>
@@ -76,7 +79,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   companion?: Record<string, any> | null
-  generatedDocuments?: Array<{ type: string; label: string; url: string; description?: string }>
+  generatedDocuments?: Array<{ type: string; label: string; url: string; description?: string; nature?: string }>
 }>()
 
 const toast = useToast()
@@ -122,6 +125,13 @@ async function copyLink() {
   } catch {
     toast.add({ title: 'Impossible de copier le lien', color: 'error' })
   }
+}
+
+function documentNatureLabel(nature?: string): string {
+  if (nature === 'legal') return 'Document opposable'
+  if (nature === 'cerfa') return 'Formulaire réglementaire'
+  if (nature === 'support') return 'Support interne'
+  return 'Pièce dossier'
 }
 </script>
 
@@ -195,6 +205,34 @@ async function copyLink() {
   border: 1px solid rgba(255,255,255,0.08);
   color: #f8fafc;
   text-decoration: none;
+}
+
+.vo-generated-pill {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vo-generated-pill.is-legal {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.vo-generated-pill.is-cerfa {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.vo-generated-pill.is-support {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.vo-generated-pill:not(.is-legal):not(.is-support):not(.is-cerfa) {
+  color: #e5e7eb;
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .vo-generated-item span,

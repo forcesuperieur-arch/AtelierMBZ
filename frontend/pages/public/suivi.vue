@@ -82,8 +82,9 @@ const progressSteps = computed(() => {
   if (!rdv.value) return []
   const currentIdx = statusOrder.indexOf(rdv.value.statut)
   return [
-    { key: 'reserve', label: 'Réservé', done: currentIdx >= 1 },
-    { key: 'confirme', label: 'Confirmé', done: currentIdx >= 2 },
+    { key: 'en_attente', label: 'Demande reçue', done: currentIdx >= 0 },
+    { key: 'reserve', label: 'Créneau réservé', done: currentIdx >= 1 },
+    { key: 'confirme', label: 'Confirmé par l\'atelier', done: currentIdx >= 2 },
     { key: 'reception', label: 'Réception', done: currentIdx >= 3 },
     { key: 'en_cours', label: 'En cours', done: currentIdx >= 4 },
     { key: 'termine', label: 'Terminé', done: currentIdx >= 5 },

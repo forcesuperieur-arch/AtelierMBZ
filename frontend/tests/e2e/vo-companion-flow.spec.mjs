@@ -211,7 +211,7 @@ test.describe('VO companion full flow', () => {
 
     await page.goto(`/vo/rachats/${draftId}?companion=1`);
     await expect(page.locator('#vo-companion-zone')).toContainText('4/4 étapes');
-    await expect(page.getByText('PV de rachat auto-rempli')).toBeVisible();
+    await expect(page.getByText('PV de rachat généré')).toBeVisible();
     await expect(page.getByText(/Signé le/)).toBeVisible();
 
     await publicPage.close();

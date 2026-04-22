@@ -80,7 +80,7 @@
             <StatusBadge :status="rdv.status" />
 
             <!-- Link -->
-            <NuxtLink :to="`/rdv/${rdv.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+            <NuxtLink :to="`/planning?openRdv=${rdv.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
           </div>
         </div>
       </div>

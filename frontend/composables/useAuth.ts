@@ -66,6 +66,9 @@ export function useAuth() {
   }
 
   function hasSection(section: string): boolean {
+    const legacyRole = String(store.user?.role || "").trim().toLowerCase()
+    const roles = store.user?.roles ?? []
+    if (roles.includes("ROLE_SUPER_ADMIN") || legacyRole === "super_admin") return true
     const perms = store.user?.role_permissions
     if (!perms) return false
 
@@ -78,6 +81,9 @@ export function useAuth() {
   }
 
   function hasPerm(perm: string): boolean {
+    const legacyRole = String(store.user?.role || "").trim().toLowerCase()
+    const roles = store.user?.roles ?? []
+    if (roles.includes("ROLE_SUPER_ADMIN") || legacyRole === "super_admin") return true
     const perms = store.user?.role_permissions
     if (!perms) return false
     const permissions = perms.permissions_json

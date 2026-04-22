@@ -102,7 +102,7 @@
                 <UInput v-model="atelierForm.nom" required />
               </UFormField>
               <UFormField label="Slug public">
-                <UInput v-model="atelierForm.slug" @input="slugTouched = true" placeholder="atelier-mbz-paris" />
+                <UInput v-model="atelierForm.slug" @input="slugTouched = true" placeholder="mon-atelier-paris" />
               </UFormField>
               <UFormField label="Email">
                 <UInput v-model="atelierForm.email" type="email" placeholder="contact@atelier.local" />

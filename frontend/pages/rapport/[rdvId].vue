@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink :to="`/rdv/${rdvId}`" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink :to="`/planning?openRdv=${rdvId}`" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Rapport d'intervention — RDV #{{ rdvId }}</div>
       </div>
       <div style="display:flex;gap:8px;">

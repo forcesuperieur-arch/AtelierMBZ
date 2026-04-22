@@ -121,7 +121,7 @@
                 <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
                 <p style="color:#9CA3AF;font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
                 <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
-                <NuxtLink :to="`/rdv/${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
                 <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
                   <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
                     <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
@@ -573,8 +573,8 @@ function getPontQuickAction(pont: any): { label: string; transition?: string; to
   const status = getRdvStatus(pont?.current_rdv)
   if (status === 'reserve' || status === 'confirme') return { label: 'Réceptionner', transition: 'reception' }
   if (status === 'reception') return { label: 'Démarrer', transition: 'start_travail' }
-  if (status === 'en_cours') return { label: 'Voir intervention', to: `/rdv/${pont.current_rdv.id}` }
-  if (pont?.next_rdv?.id) return { label: 'Ouvrir prochain', to: `/rdv/${pont.next_rdv.id}` }
+  if (status === 'en_cours') return { label: 'Voir intervention', to: `/planning?openRdv=${pont.current_rdv.id}` }
+  if (pont?.next_rdv?.id) return { label: 'Ouvrir prochain', to: `/planning?openRdv=${pont.next_rdv.id}` }
   return { label: '+ Nouveau RDV', to: buildPlanningCreateLink(pont) }
 }
 
@@ -616,7 +616,7 @@ async function loadWorkshop() {
     fetchPontsWithFallback(),
     api.get('/mecaniciens'),
     api.get('/absences'),
-    api.get('/rendez-vous?itemsPerPage=200'),
+    api.get('/rendez-vous?itemsPerPage=2000&order[createdAt]=desc'),
   ])
 
   const issues: string[] = []

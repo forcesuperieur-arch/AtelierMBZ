@@ -8,7 +8,7 @@
     </div>
 
     <p style="color:#9CA3AF;font-size:13px;margin-bottom:12px;">
-      Prévisualisation des templates PDF générés par l'application, avec les données de <strong>votre atelier</strong> (logo, nom, SIRET…) et des données fictives plus complètes.
+      Prévisualisation des PDF générés par l'application, avec les données de <strong>votre atelier</strong> et des données fictives. L'écran distingue désormais les documents opposables, les formulaires réglementaires et les simples synthèses internes.
     </p>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
@@ -31,9 +31,13 @@
               <span :style="t.category === 'vo' ? 'background:rgba(251,191,36,0.14);color:#FCD34D;' : 'background:rgba(96,165,250,0.14);color:#93C5FD;'" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
                 {{ t.category === 'vo' ? 'VO' : 'Atelier' }}
               </span>
+              <span :style="natureStyle(t.nature)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
+                {{ natureLabel(t.nature) }}
+              </span>
             </div>
             <div style="font-size:14px;font-weight:700;color:#E8E9ED;">{{ t.label }}</div>
             <div style="font-size:12px;color:#9CA3AF;margin-top:4px;line-height:1.4;">{{ t.description }}</div>
+            <div v-if="t.legalRef" style="font-size:11px;color:#93C5FD;margin-top:6px;">Référence : CERFA {{ t.legalRef }}</div>
             <div style="font-size:11px;color:#6B7280;margin-top:6px;font-family:monospace;">{{ t.template }}</div>
           </div>
           <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap;" :disabled="previewing === t.code" @click="previewTemplate(t.code)">
@@ -56,6 +60,8 @@ interface TemplateInfo {
   category: string
   template: string
   description: string
+  nature: string
+  legalRef?: string | null
 }
 
 const templates = ref<TemplateInfo[]>([])
@@ -102,4 +108,18 @@ async function previewTemplate(code: string) {
 }
 
 onMounted(load)
+
+function natureLabel(nature: string) {
+  if (nature === 'cerfa') return 'Formulaire réglementaire'
+  if (nature === 'opposable') return 'Document opposable'
+  if (nature === 'registre') return 'Registre / extrait'
+  return 'Synthèse interne'
+}
+
+function natureStyle(nature: string) {
+  if (nature === 'cerfa') return 'background:rgba(59,130,246,0.14);color:#BFDBFE;'
+  if (nature === 'opposable') return 'background:rgba(34,197,94,0.14);color:#BBF7D0;'
+  if (nature === 'registre') return 'background:rgba(245,158,11,0.14);color:#FDE68A;'
+  return 'background:rgba(148,163,184,0.16);color:#E5E7EB;'
+}
 </script>

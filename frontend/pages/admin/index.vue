@@ -68,7 +68,7 @@
       <div class="admin-card" @click="navigateTo('/admin/templates-documents')">
         <div class="admin-card-icon">📄</div>
         <div class="admin-card-label">Templates documents</div>
-        <div class="admin-card-desc">Prévisualiser les PDF (OR, factures, VO…)</div>
+        <div class="admin-card-desc">Prévisualiser les PDF par nature: opposables, CERFA, synthèses</div>
       </div>
     </div>
   </div>

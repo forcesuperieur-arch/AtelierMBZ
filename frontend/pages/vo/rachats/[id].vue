@@ -8,7 +8,7 @@
       </div>
       <div class="vo-header-actions">
         <button class="topbar-new-btn vo-secondary-btn" @click="downloadPv">PV de rachat</button>
-        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Préparer dossier SIV' }}</button>
+        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Préparer le support SIV' }}</button>
         <button v-if="detail?.canConfirm" class="topbar-new-btn" @click="confirmPurchase">Confirmer</button>
       </div>
     </div>
@@ -21,7 +21,7 @@
       <div v-if="route.query.companion === '1'" class="vo-companion-banner">
         <div>
           <strong>Parcours compagnon prêt</strong>
-          <span>Scanne le QR code ci-dessous depuis le PDA pour contrôler l identité, retranscrire ses références, charger la carte grise, vérifier le préremplissage puis faire signer le vendeur.</span>
+          <span>Scanne le QR code ci-dessous depuis le PDA pour contrôler l identité, retranscrire ses références, charger la carte grise, vérifier les données proposées puis faire signer le vendeur.</span>
         </div>
         <button type="button" class="vo-link-btn" @click="focusCompanion">Voir le QR code</button>
       </div>
@@ -154,7 +154,7 @@
 
           <div class="vo-lines" style="margin: 14px 0 0;">
             <div class="vo-line-detail">
-              <span>DA PDF préremplie</span>
+              <span>DA SIV CERFA 13751</span>
               <strong :style="{ color: detail?.siv?.daDocumentGenerated ? '#22c55e' : '#f59e0b' }">{{ detail?.siv?.daDocumentGenerated ? 'Prête' : 'À générer' }}</strong>
             </div>
             <div class="vo-line-detail">
@@ -162,15 +162,15 @@
               <strong :style="{ color: detail?.siv?.recepisseUploaded ? '#22c55e' : '#f59e0b' }">{{ detail?.siv?.recepisseUploaded ? 'Archivé' : 'À déposer' }}</strong>
             </div>
             <div class="vo-line-detail">
-              <span>Mandat immat</span>
-              <strong :style="{ color: detail?.siv?.mandatReady ? '#22c55e' : '#9ca3af' }">{{ detail?.siv?.mandatReady ? 'Prêt' : 'Préparé à la vente' }}</strong>
+              <span>Mandat CERFA 13757</span>
+              <strong :style="{ color: detail?.siv?.mandatReady ? '#22c55e' : '#9ca3af' }">{{ detail?.siv?.mandatReady ? 'Généré' : 'Disponible à la vente' }}</strong>
             </div>
           </div>
 
           <div class="vo-inline-actions vo-inline-actions-start">
-            <button class="topbar-new-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Générer la DA PDF' }}</button>
-            <button class="topbar-new-btn vo-secondary-btn" @click="downloadDaSiv">Voir la DA</button>
-            <button class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+            <button class="topbar-new-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Générer la DA CERFA' }}</button>
+            <button class="topbar-new-btn vo-secondary-btn" @click="downloadDaSiv">Voir la DA CERFA</button>
+            <button class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat CERFA</button>
           </div>
 
           <div class="vo-form-grid">
@@ -244,7 +244,7 @@
           :reload-detail="loadDetail"
         />
 
-        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu' || detail.confirmationMissingCompanionSteps?.length || detail.saleBlockers?.length">
+        <UCard v-if="detail.canConfirm || detail.canSell || detail.status === 'vendu' || detail.confirmationMissingCompanionSteps?.length || purchaseSaleVerdictMessages.length">
           <template #header>
             <div class="vo-card-head">
               <div class="vo-card-title">Flux de vente</div>
@@ -263,9 +263,9 @@
             <span>Étapes restantes: {{ detail.confirmationMissingCompanionSteps.join(', ') }}</span>
           </div>
 
-          <div v-else-if="detail.saleBlockers?.length" class="vo-warning-box">
+          <div v-else-if="purchaseSaleVerdictMessages.length" class="vo-warning-box">
             <strong>Vente verrouillée</strong>
-            <span>{{ detail.saleBlockers.join(', ') }}</span>
+            <span>{{ detail.saleVerdict?.summary || purchaseSaleVerdictMessages.join(', ') }}</span>
           </div>
 
           <div v-if="showSale && detail.canSell" class="vo-sale-box">
@@ -368,6 +368,15 @@ const sivStatusOptions = [
 
 const presentDocumentTypes = computed(() => new Set((detail.value?.documents || []).map((document: any) => document.type)))
 const legalChecklist = computed(() => detail.value?.legalChecklist || [])
+const purchaseSaleVerdictMessages = computed(() => (detail.value?.saleVerdict?.reasons || []).map((reason: any) => reason?.message).filter(Boolean))
+const incompleteCompanionStepsCount = computed(() => {
+  const steps = detail.value?.companion?.steps
+  if (!steps || steps.allComplete) return 0
+
+  return ['seller', 'vehicle', 'documents', 'signature'].reduce((count, key) => {
+    return count + (steps[key]?.completed ? 0 : 1)
+  }, 0)
+})
 
 const purchaseDocumentCompletion = computed(() => {
   const completed = purchaseRequiredDocs.filter(type => presentDocumentTypes.value.has(type)).length
@@ -400,11 +409,11 @@ const readinessState = computed(() => {
     }
   }
 
-  if (detail.value.confirmationMissingCompanionSteps?.length) {
+  if (incompleteCompanionStepsCount.value) {
     return {
       tone: 'warning',
       label: 'Signature PDA attendue',
-      text: `${detail.value.confirmationMissingCompanionSteps.length} étape(s) du parcours vendeur restent à valider.`,
+      text: `${incompleteCompanionStepsCount.value} étape(s) du parcours vendeur restent à valider.`,
     }
   }
 
@@ -523,8 +532,8 @@ async function prepareSivDossier() {
   try {
     const response = await voStore.preparePurchaseSiv(Number(route.params.id))
     toast.add({
-      title: response?.ready ? 'Dossier SIV préparé' : 'DA PDF générée',
-      description: response?.blockers?.length ? response.blockers.join(' · ') : 'Le support prérempli a été archivé.',
+      title: response?.ready ? 'DA CERFA générée' : 'DA CERFA générée avec réserves',
+      description: response?.blockers?.length ? response.blockers.join(' · ') : 'Le rendu réglementaire a été archivé dans le dossier.',
       color: response?.ready ? 'success' : 'warning',
     })
 

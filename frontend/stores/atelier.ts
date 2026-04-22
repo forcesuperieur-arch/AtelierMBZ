@@ -102,5 +102,5 @@ export const useAtelierStore = defineStore('atelier', {
     },
   },
 
-  persist: true,
+  persist: false,
 })

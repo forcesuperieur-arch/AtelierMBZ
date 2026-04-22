@@ -1,8 +1,8 @@
-x<template>
-  <div>
+<template>
+  <div :style="{ maxWidth: step === 3 ? '1200px' : '680px', margin: '0 auto', paddingBottom: '40px', transition: 'max-width 0.3s ease' }">
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/rdv" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink v-if="auth?.hasSection?.('planning')" to="/planning" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div>
           <div class="page-title">Prise de RDV</div>
           <div class="page-sub">Parcours intégré (identique public) + recherche client interne</div>
@@ -19,11 +19,11 @@ x<template>
           <select
             v-if="canSelectAtelier"
             v-model.number="selectedAtelierId"
-            style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
+            style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
           >
             <option v-for="atelier in atelierOptions" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
           </select>
-          <div v-else style="padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#D1D5DB;font-size:14px;">{{ atelierDisplayName }}</div>
+          <div v-else style="padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#D1D5DB;font-size:14px;">{{ atelierDisplayName }}</div>
           <div style="font-size:11px;color:#6B7280;margin-top:4px;">Les créneaux et prestations suivent toujours l'atelier sélectionné.</div>
         </div>
         <div></div>
@@ -34,7 +34,7 @@ x<template>
           v-model="clientSearch"
           type="text"
           placeholder="Nom, prénom, téléphone ou email..."
-          style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
+          style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
           @input="searchClients"
         />
         <div style="font-size:11px;color:#6B7280;margin-top:4px;">Tapez au moins 2 caractères pour rechercher un client existant.</div>
@@ -43,7 +43,7 @@ x<template>
         <div
           v-for="c in clientResults"
           :key="c.id"
-          style="padding:10px 14px;font-size:13px;color:#D1D5DB;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.15s;"
+          style="padding:12px 14px;min-height:44px;font-size:13px;color:#D1D5DB;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.15s;"
           @click="selectClient(c)"
           @mouseenter="($event.target! as HTMLElement).style.background='rgba(255,255,255,0.03)'"
           @mouseleave="($event.target! as HTMLElement).style.background='transparent'"
@@ -51,7 +51,7 @@ x<template>
           <span style="font-weight:600;">{{ c.prenom }} {{ c.nom }}</span> — {{ c.telephone || c.email }}
         </div>
       </div>
-      <div v-if="selectedClient" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.2);border-radius:8px;">
+      <div v-if="selectedClient" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:12px 14px;min-height:44px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.2);border-radius:8px;">
         <span style="font-size:13px;color:#FFD200;font-weight:600;">✓ {{ selectedClient.prenom }} {{ selectedClient.nom }}</span>
         <button class="btn btn-ghost" style="margin-left:auto;min-height:30px;padding:4px 10px;font-size:12px;" @click="clearClient">✕ Changer</button>
       </div>
@@ -78,7 +78,7 @@ x<template>
             v-model="vehiculeSearch"
             type="text"
             placeholder="Ex: AB-123-CD ou VIN"
-            style="flex:1;padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
+            style="flex:1;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
             @blur="vehiculeSearch = normalizeVehiculeQuery(vehiculeSearch)"
             @keydown.enter.prevent="searchVehicule"
           />
@@ -100,33 +100,33 @@ x<template>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div style="position:relative;">
               <div class="form-label" style="margin-bottom:4px;">MARQUE</div>
-              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
+              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
               <div v-if="marqueSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-height:150px;overflow-y:auto;">
-                <div v-for="s in marqueSuggestions" :key="s" @mousedown.prevent="selectMarque(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ s }}</div>
+                <div v-for="s in marqueSuggestions" :key="s" @mousedown.prevent="selectMarque(s)" style="padding:12px 14px;min-height:44px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ s }}</div>
               </div>
             </div>
             <div style="position:relative;">
               <div class="form-label" style="margin-bottom:4px;">MODÈLE</div>
-              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
+              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
               <div v-if="modeleSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-height:150px;overflow-y:auto;">
-                <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
+                <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:12px 14px;min-height:44px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
               </div>
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">PLAQUE</div>
-              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @blur="normalizePlateField" />
+              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @blur="normalizePlateField" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">ANNÉE</div>
-              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">CYLINDRÉE</div>
-              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">TYPE MOTO</div>
-              <select v-model="form.vehicule_type" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;">
+              <select v-model="form.vehicule_type" style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;">
                 <option value="">— Choisir —</option>
                 <option v-for="t in motoTypes" :key="t" :value="t">{{ t }}</option>
               </select>
@@ -135,7 +135,7 @@ x<template>
           </div>
         </div>
 
-        <div v-if="vehicleMissingFields.length" style="margin-top:16px;padding:12px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.24);border-radius:10px;">
+        <div v-if="(vehiculeFound || showManualVehicle) && vehicleMissingFields.length" style="margin-top:16px;padding:12px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.24);border-radius:10px;">
           <div style="font-size:12px;color:#FDE68A;font-weight:700;">CHAMPS OBLIGATOIRES À COMPLÉTER</div>
           <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">{{ vehicleMissingFields.join(', ') }}</div>
         </div>
@@ -217,10 +217,14 @@ x<template>
         <div style="font-size:16px;font-weight:700;color:#E8E9ED;margin-bottom:4px;">Planning atelier sur 1 semaine</div>
         <div style="font-size:12px;color:#6B7280;margin-bottom:20px;">Vue planning réelle sur la semaine. Chaque case correspond à un créneau disponible en base, selon la configuration atelier.</div>
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek">← Semaine précédente</button>
-          <div style="font-size:13px;color:#D1D5DB;font-weight:600;">{{ planningRangeLabel }}</div>
-          <button class="btn btn-ghost" @click="changeWeek(7)">Semaine suivante →</button>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:flex-start;">
+            <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek">← Semaine précédente</button>
+          </div>
+          <div style="font-size:13px;color:#D1D5DB;font-weight:600;text-align:center;justify-self:center;">{{ planningRangeLabel }}</div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-ghost" @click="changeWeek(7)">Semaine suivante →</button>
+          </div>
         </div>
 
         <div style="overflow-x:auto;border:1px solid rgba(255,255,255,0.06);border-radius:14px;">
@@ -250,7 +254,7 @@ x<template>
                 :style="{ background: form.date_rdv === day.date ? 'rgba(255,255,255,0.015)' : 'transparent' }"
               >
                 <button
-                  v-if="getSlotForCell(day.date, time)?.disponible"
+                  v-if="isSlotSelectable(day.date, time)"
                   type="button"
                   @click="selectPlanningSlot(day.date, getSlotForCell(day.date, time)!)"
                   style="width:100%;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:700;transition:all 0.15s;"
@@ -334,19 +338,19 @@ x<template>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
               <div class="form-label" style="margin-bottom:4px;">PRÉNOM</div>
-              <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_prenom" type="text" required style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">NOM</div>
-              <input v-model="form.client_nom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_nom" type="text" required style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">TÉLÉPHONE</div>
-              <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">EMAIL</div>
-              <input v-model="form.client_email" type="email" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_email" type="email" required style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
             </div>
           </div>
         </div>
@@ -354,14 +358,14 @@ x<template>
         <!-- Remarques -->
         <div style="margin-top:16px;">
           <div class="form-label" style="margin-bottom:6px;">REMARQUES</div>
-          <textarea v-model="form.description_probleme" rows="3" placeholder="Notes ou description du problème..." style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+          <textarea v-model="form.description_probleme" rows="3" placeholder="Notes ou description du problème..." style="width:100%;padding:12px 14px;min-height:44px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
         <button class="btn btn-ghost" @click="goStep(3)">← Retour</button>
         <button class="topbar-new-btn" :disabled="submitting || !canConfirm" @click="confirmRdv" style="padding:10px 24px;font-size:14px;">
-          {{ submitting ? 'Création...' : 'Confirmer le rendez-vous' }}
+          {{ submitting ? 'Création...' : 'Réserver le créneau' }}
         </button>
       </div>
     </div>
@@ -369,6 +373,7 @@ x<template>
 </template>
 
 <script setup lang="ts">
+const auth = useAuth()
 const api = useApi()
 const rdvStore = useRdvStore()
 const toast = useToast()
@@ -430,14 +435,55 @@ type SlotItem = {
 const creneauxList = ref<SlotItem[]>([])
 const creneauxByDate = ref<Record<string, SlotItem[]>>({})
 const loadingCreneaux = ref(false)
-const weekStart = ref(new Date().toISOString().slice(0, 10))
+const nowTick = ref(Date.now())
+const weekStart = ref('')
 
 // Prestations
 const loadingPrestas = ref(false)
 const prestations = ref<any[]>([])
 const selectedPrestas = ref<number[]>([])
 
-const todayStr = new Date().toISOString().slice(0, 10)
+let nowTimer: ReturnType<typeof setInterval> | null = null
+
+function parseLocalDate(dateStr: string) {
+  const [year, month, day] = String(dateStr || '').split('-').map(Number)
+  if (!year || !month || !day) return new Date(Number.NaN)
+  return new Date(year, month - 1, day)
+}
+
+function formatLocalDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function createDateTime(dateStr: string, timeStr = '00:00') {
+  const date = parseLocalDate(dateStr)
+  const [hours, minutes] = String(timeStr || '00:00').split(':').map(Number)
+  date.setHours(hours || 0, minutes || 0, 0, 0)
+  return date
+}
+
+function addLocalDays(dateStr: string, days: number) {
+  const date = parseLocalDate(dateStr)
+  date.setDate(date.getDate() + days)
+  return formatLocalDateKey(date)
+}
+
+function getLocalWeekStart(dateStr: string) {
+  const date = parseLocalDate(dateStr)
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  date.setDate(date.getDate() + diff)
+  return formatLocalDateKey(date)
+}
+
+function getTodayKey() {
+  return formatLocalDateKey(new Date(nowTick.value))
+}
+
+const todayStr = computed(() => getTodayKey())
 
 function asNumber(value: unknown): number {
   const n = Number(value ?? 0)
@@ -468,11 +514,11 @@ const form = reactive({
   client_email: '',
   vehicule_marque: '',
   vehicule_modele: '',
-  vehicule_plaque: '',,
+  vehicule_plaque: '',
   vehicule_annee: '',
   vehicule_cylindree: '',
   vehicule_type: '',
-  date_rdv: todayStr,
+  date_rdv: getTodayKey(),
   heure_debut: '09:00',
   type_intervention: 'entretien',
   duree_estimee: 60,
@@ -480,6 +526,9 @@ const form = reactive({
   mecanicien_id: null as number | null,
   description_probleme: '',
 })
+
+weekStart.value = getLocalWeekStart(todayStr.value)
+form.date_rdv = todayStr.value
 
 const vehicleMissingFields = computed(() => {
   const required = [
@@ -512,14 +561,15 @@ const canConfirm = computed(() => canStep2.value && selectedPrestas.value.length
 const selectedPrestaItems = computed(() => prestations.value.filter(p => selectedPrestas.value.includes(p.id)))
 const totalEstime = computed(() => selectedPrestaItems.value.reduce((s, p) => s + asNumber(p.prix_base_ttc ?? p.prix_base_ht), 0))
 const dureeEstimee = computed(() => selectedPrestaItems.value.reduce((s, p) => s + asNumber(p.temps_estime_minutes ?? 60), 0) || form.duree_estimee)
-const selectedSlotMeta = computed(() => creneauxList.value.find(c => c.heure === form.heure_debut) || null)
+const selectedSlotMeta = computed(() => (creneauxByDate.value[form.date_rdv] || []).find(c => c.heure === form.heure_debut) || null)
+const currentWeekStart = computed(() => getLocalWeekStart(todayStr.value))
 const planningDays = computed(() => {
-  const start = new Date(`${weekStart.value}T00:00:00`)
+  const start = parseLocalDate(weekStart.value)
   return Array.from({ length: 7 }, (_, index) => {
     const current = new Date(start)
     current.setDate(start.getDate() + index)
-    const date = current.toISOString().slice(0, 10)
-    const availableCount = (creneauxByDate.value[date] || []).filter(slot => slot.disponible).length
+    const date = formatLocalDateKey(current)
+    const availableCount = (creneauxByDate.value[date] || []).filter(slot => isSlotSelectable(date, slot.heure)).length
     return {
       date,
       weekday: current.toLocaleDateString('fr-FR', { weekday: 'short' }),
@@ -531,15 +581,20 @@ const planningDays = computed(() => {
 const planningRangeLabel = computed(() => {
   const dates = planningDays.value
   if (!dates.length) return ''
-  const start = new Date(`${dates[0].date}T00:00:00`)
-  const end = new Date(`${dates[dates.length - 1].date}T00:00:00`)
+  const start = parseLocalDate(dates[0].date)
+  const end = parseLocalDate(dates[dates.length - 1].date)
   return `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} → ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
 })
 const planningTimeLabels = computed(() => {
-  const merged = Array.from(new Set(Object.values(creneauxByDate.value).flat().map(slot => slot.heure))).sort((a, b) => a.localeCompare(b))
+  const merged = Array.from(
+    new Set(
+      Object.entries(creneauxByDate.value)
+        .flatMap(([date, slots]) => slots.filter(slot => isSlotSelectable(date, slot.heure)).map(slot => slot.heure)),
+    ),
+  ).sort((a, b) => a.localeCompare(b))
   return merged.length ? merged : getDefaultPlanningHours()
 })
-const canGoPrevWeek = computed(() => weekStart.value > todayStr)
+const canGoPrevWeek = computed(() => weekStart.value > currentWeekStart.value)
 
 function formatPrice(v: number | string) {
   const amount = asNumber(v)
@@ -549,7 +604,7 @@ function formatPrice(v: number | string) {
 
 function formatDisplayDate(d: string) {
   if (!d) return ''
-  const date = new Date(d + 'T00:00:00')
+  const date = parseLocalDate(d)
   return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -636,23 +691,17 @@ function goStep(n: number) {
   step.value = n
   if (n === 2 && !prestations.value.length) loadPrestations()
   if (n === 3) {
-    weekStart.value = startOfWeek(form.date_rdv || todayStr)
+    weekStart.value = getLocalWeekStart(form.date_rdv || todayStr.value)
     loadCreneaux()
   }
 }
 
 function addDays(dateStr: string, days: number) {
-  const date = new Date(`${dateStr}T00:00:00`)
-  date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
+  return addLocalDays(dateStr, days)
 }
 
 function startOfWeek(dateStr: string) {
-  const date = new Date(`${dateStr}T00:00:00`)
-  const day = date.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  date.setDate(date.getDate() + diff)
-  return date.toISOString().slice(0, 10)
+  return getLocalWeekStart(dateStr)
 }
 
 function getDefaultPlanningHours() {
@@ -690,9 +739,20 @@ function getSlotForCell(date: string, heure: string) {
   return (creneauxByDate.value[date] || []).find(slot => slot.heure === heure) || null
 }
 
+function isSlotPast(date: string, heure: string) {
+  const slotStart = createDateTime(date, heure)
+  return slotStart.getTime() <= nowTick.value
+}
+
+function isSlotSelectable(date: string, heure: string) {
+  const slot = getSlotForCell(date, heure)
+  if (!slot?.disponible) return false
+  return !isSlotPast(date, heure)
+}
+
 function syncSelectedDaySlots() {
-  creneauxList.value = creneauxByDate.value[form.date_rdv] || []
-  const selected = creneauxList.value.find(slot => slot.heure === form.heure_debut && slot.disponible)
+  creneauxList.value = (creneauxByDate.value[form.date_rdv] || []).filter(slot => isSlotSelectable(form.date_rdv, slot.heure))
+  const selected = creneauxList.value.find(slot => slot.heure === form.heure_debut)
     || creneauxList.value.find(slot => slot.disponible)
 
   if (selected) {
@@ -706,7 +766,7 @@ function syncSelectedDaySlots() {
 
 function changeWeek(days: number) {
   const candidate = addDays(weekStart.value, days)
-  if (candidate < todayStr) return
+  if (candidate < currentWeekStart.value) return
   weekStart.value = candidate
   form.date_rdv = candidate
   loadCreneaux()
@@ -924,7 +984,7 @@ async function loadCreneaux() {
   loadingCreneaux.value = true
   try {
     const duree = dureeEstimee.value || 60
-    const start = startOfWeek(weekStart.value || form.date_rdv || todayStr)
+    const start = startOfWeek(weekStart.value || form.date_rdv || todayStr.value)
     weekStart.value = start
     const end = addDays(start, 6)
     const atelierParam = selectedAtelierId.value ? `&atelier_id=${selectedAtelierId.value}` : ''
@@ -935,7 +995,7 @@ async function loadCreneaux() {
       planningDays.value.map((day) => [day.date, normalizeSlots(byDate[day.date] || [])]),
     )
 
-    const preferredDate = form.date_rdv && creneauxByDate.value[form.date_rdv]?.length ? form.date_rdv : ''
+    const preferredDate = form.date_rdv && (creneauxByDate.value[form.date_rdv] || []).some(slot => isSlotSelectable(form.date_rdv, slot.heure)) ? form.date_rdv : ''
     form.date_rdv = preferredDate || planningDays.value.find(day => day.availableCount > 0)?.date || start
     syncSelectedDaySlots()
   } catch {
@@ -1001,6 +1061,12 @@ watch(() => `${form.vehicule_type}|${form.vehicule_cylindree}`, () => {
   if (step.value >= 2) loadPrestations()
 })
 
+watch(nowTick, () => {
+  if (step.value >= 3 && form.date_rdv) {
+    syncSelectedDaySlots()
+  }
+})
+
 // Submit
 async function confirmRdv() {
   submitting.value = true
@@ -1040,8 +1106,8 @@ async function confirmRdv() {
       prix_estime: totalEstime.value,
     }
     const rdv = await rdvStore.createRdv(payload)
-    toast.add({ title: 'RDV créé avec succès', color: 'success' })
-    navigateTo(`/rdv/${rdv.id}`)
+    toast.add({ title: 'Créneau réservé avec succès', color: 'success' })
+    navigateTo(`/planning?openRdv=${rdv.id}`)
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {
@@ -1050,9 +1116,19 @@ async function confirmRdv() {
 }
 
 onMounted(async () => {
+  nowTimer = window.setInterval(() => {
+    nowTick.value = Date.now()
+  }, 60000)
+
   await loadAteliers()
   if (step.value >= 3) {
     await loadCreneaux()
+  }
+})
+
+onBeforeUnmount(() => {
+  if (nowTimer !== null) {
+    clearInterval(nowTimer)
   }
 })
 </script>
