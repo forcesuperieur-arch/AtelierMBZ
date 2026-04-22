@@ -14,6 +14,7 @@
         table.register tr:nth-child(even) { background: #f9fafb; }
         .mention { margin-top: 20px; font-size: 8px; color: #888; }
         .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
+        .mode-paiement { font-size: 8px; color: #555; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -40,9 +41,11 @@
                 <th>Vendeur</th>
                 <th>Pièce id.</th>
                 <th>Prix achat</th>
+                <th>Mode paiement achat</th>
                 <th>Date vente</th>
                 <th>Acheteur</th>
                 <th>Prix vente</th>
+                <th>Mode paiement vente</th>
             </tr>
         </thead>
         <tbody>
@@ -56,9 +59,21 @@
                 <td>{{ e.vendeurPrenom }} {{ e.vendeurNom }}</td>
                 <td>{{ e.vendeurIdType }} {{ e.vendeurIdNumber }}</td>
                 <td style="text-align: right;">{{ e.prixAchat|number_format(2, ',', ' ') }} €</td>
+                <td class="mode-paiement">
+                    {{ e.modePaiement|upper }}
+                    {% if e.numeroCheque %}<br>Chèque n° {{ e.numeroCheque }}{% endif %}
+                    {% if e.nomBanque %}<br>{{ e.nomBanque }}{% endif %}
+                </td>
                 <td>{{ e.dateVente ? e.dateVente|date('d/m/Y') : '—' }}</td>
                 <td>{{ e.acheteurPrenom ?? '' }} {{ e.acheteurNom ?? '' }}</td>
                 <td style="text-align: right;">{{ e.prixVente ? e.prixVente|number_format(2, ',', ' ') ~ ' €' : '—' }}</td>
+                <td class="mode-paiement">
+                    {% if e.modePaiementVente %}
+                        {{ e.modePaiementVente|upper }}
+                        {% if e.numeroChequeVente %}<br>Chèque n° {{ e.numeroChequeVente }}{% endif %}
+                        {% if e.nomBanqueVente %}<br>{{ e.nomBanqueVente }}{% endif %}
+                    {% else %}—{% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -71,7 +86,8 @@
 
     <div class="footer">
         {{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}
-        — Document généré automatiquement
+        — Extrait généré depuis le registre immuable
     </div>
+    {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

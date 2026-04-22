@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\ClauseLegale;
 use App\Entity\Vehicule;
 use App\Entity\VODepotVente;
 use App\Entity\VODocument;
 use App\Entity\VOPurchase;
 use App\Service\VOGeneratedDocumentService;
+use App\Service\ClauseLegaleVisibilityService;
 use App\Service\VODocumentService;
 use App\Service\VOCompanionWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,6 +30,7 @@ class PublicVoCompanionController extends AbstractController
         private VOCompanionWorkflowService $workflowService,
         private VOGeneratedDocumentService $generatedDocumentService,
         private RateLimiterFactory $publicVoCompanionLimiter,
+        private ClauseLegaleVisibilityService $clauseVisibilityService,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -53,6 +56,62 @@ class PublicVoCompanionController extends AbstractController
         }
 
         return $this->json($this->buildPayload($context['record'], $context['documents']));
+    }
+
+    /**
+     * [C6] Retourne les clauses légales actives selon le rôle de la partie (partyRole).
+     * vendeur_rachat  → livre_police, cgv
+     * deposant        → mandat_depot, commission
+     * acheteur        → garantie_legale, cession
+     */
+    #[Route('/{token}/clauses', methods: ['GET'])]
+    public function getClauses(string $token, Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
+        $context = $this->findContextByToken($token);
+        if ($context === null) {
+            return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
+        }
+
+        $record = $context['record'];
+        $partyRole = $request->query->get('partyRole', '');
+
+        $codesByRole = [
+            'vendeur_rachat' => ['livre_police', 'cgv'],
+            'deposant'       => ['mandat_depot', 'commission'],
+            'acheteur'       => ['garantie_legale', 'cession'],
+        ];
+
+        if (!isset($codesByRole[$partyRole])) {
+            return $this->json(['error' => 'partyRole invalide. Valeurs acceptées : ' . implode(', ', array_keys($codesByRole))], Response::HTTP_BAD_REQUEST);
+        }
+
+        $requiredCodes = $codesByRole[$partyRole];
+        $atelierId = $record->getAtelierId();
+
+        $clauses = $this->em->getRepository(ClauseLegale::class)->createQueryBuilder('c')
+            ->where('c.code IN (:codes)')
+            ->andWhere('c.atelierId = :atelierId OR c.atelierId IS NULL')
+            ->andWhere('c.isActive = true')
+            ->setParameter('codes', $requiredCodes)
+            ->setParameter('atelierId', $atelierId)
+            ->getQuery()
+            ->getResult();
+
+        $visible = $this->clauseVisibilityService->pickVisibleClauses($clauses, true);
+
+        return $this->json([
+            'partyRole' => $partyRole,
+            'clauses' => array_map(fn(ClauseLegale $c) => [
+                'code' => $c->getCode(),
+                'libelle' => $c->getLibelle(),
+                'texte' => $c->getTexte(),
+                'version' => $c->getVersion(),
+            ], $visible),
+        ]);
     }
 
     #[Route('/{token}/seller', methods: ['POST'])]
@@ -277,6 +336,24 @@ class PublicVoCompanionController extends AbstractController
         $signature = trim((string) ($payload['signature'] ?? ''));
         if (!str_starts_with($signature, 'data:image/')) {
             return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // [C6] Vérifier que les clauses ont été acceptées selon le partyRole
+        $partyRole = $payload['partyRole'] ?? '';
+        $codesByRole = [
+            'vendeur_rachat' => ['livre_police', 'cgv'],
+            'deposant'       => ['mandat_depot', 'commission'],
+            'acheteur'       => ['garantie_legale', 'cession'],
+        ];
+        if (isset($codesByRole[$partyRole])) {
+            $acceptedCodes = (array) ($payload['clausesAcceptees'] ?? []);
+            $missingCodes = array_diff($codesByRole[$partyRole], $acceptedCodes);
+            if (!empty($missingCodes)) {
+                return $this->json([
+                    'error' => 'Vous devez accepter toutes les conditions avant de signer.',
+                    'clausesManquantes' => array_values($missingCodes),
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
         $content = preg_replace('#^data:image/[^;]+;base64,#', '', $signature);

@@ -1,9 +1,11 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\ClauseLegale;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\ClauseLegaleVisibilityService;
 use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +24,7 @@ class CompanionController extends AbstractController
         private SluggerInterface $slugger,
         private OrdreReparationPolicy $ordreReparationPolicy,
         private RateLimiterFactory $publicCompanionLimiter,
+        private ClauseLegaleVisibilityService $clauseVisibilityService,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -234,6 +237,44 @@ class CompanionController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
+    /**
+     * [C5] Retourne les clauses légales actives à afficher avant signature OR.
+     * Codes requis : cgv, garantie, rgpd
+     */
+    #[Route('/{token}/clauses', methods: ['GET'])]
+    public function getClauses(string $token, Request $request): JsonResponse
+    {
+        if ($response = $this->ensureRateLimit($request)) {
+            return $response;
+        }
+
+        $rdv = $this->findRdvByToken($token);
+        if (!$rdv) {
+            return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
+        }
+
+        $atelierId = $rdv->getAtelierId();
+        $requiredCodes = ['cgv', 'garantie', 'rgpd'];
+
+        $clauses = $this->em->getRepository(ClauseLegale::class)->createQueryBuilder('c')
+            ->where('c.code IN (:codes)')
+            ->andWhere('c.atelierId = :atelierId OR c.atelierId IS NULL')
+            ->andWhere('c.isActive = true')
+            ->setParameter('codes', $requiredCodes)
+            ->setParameter('atelierId', $atelierId)
+            ->getQuery()
+            ->getResult();
+
+        $visible = $this->clauseVisibilityService->pickVisibleClauses($clauses, true);
+
+        return $this->json(array_map(fn(ClauseLegale $c) => [
+            'code' => $c->getCode(),
+            'libelle' => $c->getLibelle(),
+            'texte' => $c->getTexte(),
+            'version' => $c->getVersion(),
+        ], $visible));
+    }
+
     #[Route('/{token}/signature', methods: ['POST'])]
     public function saveSignature(string $token, Request $request): JsonResponse
     {
@@ -251,6 +292,17 @@ class CompanionController extends AbstractController
 
         if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
             return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // [C5] Vérifier que les clauses obligatoires ont été acceptées
+        $requiredCodes = ['cgv', 'garantie', 'rgpd'];
+        $acceptedCodes = (array) ($data['clausesAcceptees'] ?? []);
+        $missingCodes = array_diff($requiredCodes, $acceptedCodes);
+        if (!empty($missingCodes)) {
+            return $this->json([
+                'error' => 'Vous devez accepter toutes les conditions avant de signer.',
+                'clausesManquantes' => array_values($missingCodes),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         // Find or create OR for this RDV

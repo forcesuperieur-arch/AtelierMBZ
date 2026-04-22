@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Atelier;
 use App\Entity\RoleMetier;
 use App\Entity\User;
+use App\Service\UserMecanicienSyncService;
 use App\Service\UserRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ final class AdminUserProvisioningController extends AbstractController
         private EntityManagerInterface $em,
         private UserRoleMapper $roleMapper,
         private \App\Service\AuditService $auditService,
+        private UserMecanicienSyncService $mecanicienSyncService,
     ) {}
 
     #[Route('/pending', methods: ['GET'])]
@@ -96,6 +98,11 @@ final class AdminUserProvisioningController extends AbstractController
         $user->setIsActive(1);
 
         $this->em->flush();
+
+        // [C14] Synchroniser l'entité Mecanicien si le rôle assigné est ROLE_MECANICIEN
+        if (in_array('ROLE_MECANICIEN', $user->getRoles(), true)) {
+            $this->mecanicienSyncService->syncFromUser($user);
+        }
 
         $this->auditService->log(
             'user_approve',

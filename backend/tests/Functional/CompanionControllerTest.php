@@ -71,6 +71,7 @@ class CompanionControllerTest extends WebTestCase
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'signature' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=',
+                'clausesAcceptees' => ['cgv', 'garantie', 'rgpd'],
             ], JSON_THROW_ON_ERROR)
         );
 

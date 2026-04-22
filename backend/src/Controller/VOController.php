@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Workflow\WorkflowInterface;
 
@@ -42,7 +43,7 @@ class VOController extends AbstractController
         private VODocumentService $documentService,
         private VOCompanionWorkflowService $companionWorkflowService,
         private VOGeneratedDocumentService $generatedDocumentService,
-        private SerializerInterface $serializer,
+        private SerializerInterface&NormalizerInterface $serializer,
         private VONumberingService $numberingService,
         private VORemiseEnEtatService $remiseEnEtatService,
         private AuditService $audit,
@@ -83,7 +84,6 @@ class VOController extends AbstractController
         $data['totalFre'] = $purchase->getTotalFre();
         $data['missingDocuments'] = $this->documentService->getMissingDocuments($purchase);
         $data['siv'] = $this->documentService->getPurchaseSivSummary($purchase);
-        $data['dossierStatus'] = $this->documentService->getPurchaseDossierStatus($purchase);
         $data['saleVerdict'] = $this->documentService->buildPurchaseSaleVerdict($purchase);
 
         return $this->json($data);
@@ -102,11 +102,11 @@ class VOController extends AbstractController
         $missingDocuments = $this->documentService->getMissingDocuments($purchase);
         $confirmationMissingDocuments = array_values(array_diff($missingDocuments, [VODocument::TYPE_PV_RACHAT]));
         $legalChecklist = $this->documentService->buildPurchaseLegalChecklist($purchase);
-        $saleBlockers = $this->documentService->getPurchaseSaleBlockers($purchase);
         $tokenUpdated = $this->companionWorkflowService->ensureToken($purchase);
         $documents = $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']);
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
         $companionSteps = $this->companionWorkflowService->buildSteps($purchase, $documents);
+        $incompleteCompanionSteps = $this->extractIncompleteCompanionSteps($companionSteps);
         $campaigns = $this->remiseEnEtatService->getCampaignsForRecord($purchase);
         $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($purchase);
 
@@ -119,13 +119,11 @@ class VOController extends AbstractController
         $data['totalFre'] = $purchase->getTotalFre();
         $data['missingDocuments'] = $missingDocuments;
         $data['confirmationMissingDocuments'] = $confirmationMissingDocuments;
-        $data['confirmationMissingCompanionSteps'] = $this->extractIncompleteCompanionSteps($companionSteps);
         $data['canConfirm'] = count($confirmationMissingDocuments) === 0
-            && $data['confirmationMissingCompanionSteps'] === []
+            && $incompleteCompanionSteps === []
             && $purchase->getStatus() === 'brouillon';
         $data['legalChecklist'] = $legalChecklist;
         $data['siv'] = $this->documentService->getPurchaseSivSummary($purchase);
-        $data['dossierStatus'] = $this->documentService->getPurchaseDossierStatus($purchase);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($purchase);
         $data['companion'] = $this->buildCompanionData($purchase, $documents, $companionSteps);
@@ -141,8 +139,6 @@ class VOController extends AbstractController
         $data['saleVerdict'] = $saleVerdict;
         $data['canSell'] = in_array($purchase->getStatus(), ['en_stock', 'en_vente', 'reserve'], true)
             && $saleVerdict['status'] === 'vendable';
-        $saleBlockers = array_map(static fn (array $reason): string => (string) $reason['message'], $saleVerdict['reasons']);
-        $data['saleBlockers'] = array_values(array_unique($saleBlockers));
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -285,12 +281,18 @@ class VOController extends AbstractController
      * Confirm purchase → register in Livre de Police + set status to en_stock.
      */
     #[Route('/purchases/{id}/confirm', methods: ['POST'])]
-    public function confirmPurchase(int $id): JsonResponse
+    public function confirmPurchase(int $id, Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $body = $request->toArray();
+        $modePaiement = $body['modePaiement'] ?? null;
+        if (!$modePaiement) {
+            return $this->json(['error' => 'Le mode de paiement est obligatoire pour enregistrer le rachat au Livre de Police.', 'field' => 'modePaiement'], 422);
         }
 
         if (!$this->voPurchaseWorkflow->can($purchase, 'confirmer')) {
@@ -310,8 +312,13 @@ class VOController extends AbstractController
         }
 
         try {
-            $payload = $this->inTransaction(function () use ($purchase) {
-                $entry = $this->livrePoliceService->createEntryForPurchase($purchase);
+            $payload = $this->inTransaction(function () use ($purchase, $modePaiement, $body) {
+                $entry = $this->livrePoliceService->createEntryForPurchase(
+                    $purchase,
+                    $modePaiement,
+                    $body['numeroCheque'] ?? null,
+                    $body['nomBanque'] ?? null,
+                );
                 $this->voPurchaseWorkflow->apply($purchase, 'confirmer');
 
                 $this->generatedDocumentService->archiveCompanionDocumentIfReady(
@@ -420,7 +427,6 @@ class VOController extends AbstractController
         $data['mandatExpire'] = $depot->isMandatExpire();
         $data['missingDocuments'] = $this->documentService->getMissingDocumentsDepot($depot);
         $data['legalChecklist'] = $this->documentService->buildDepotLegalChecklist($depot);
-        $data['dossierStatus'] = $this->documentService->getDepotDossierStatus($depot);
         $data['saleVerdict'] = $this->documentService->buildDepotSaleVerdict($depot);
 
         return $this->json($data);
@@ -441,7 +447,6 @@ class VOController extends AbstractController
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
         $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
         $legalChecklist = $this->documentService->buildDepotLegalChecklist($depot);
-        $saleBlockers = $this->documentService->getDepotSaleBlockers($depot);
         $companionSteps = $this->companionWorkflowService->buildSteps($depot, $documents);
         $campaigns = $this->remiseEnEtatService->getCampaignsForRecord($depot);
         $activeCampaign = $this->remiseEnEtatService->getActiveCampaignForRecord($depot);
@@ -459,7 +464,6 @@ class VOController extends AbstractController
         $data['joursRestants'] = $depot->getJoursRestantsMandat();
         $data['missingDocuments'] = $missingDocuments;
         $data['legalChecklist'] = $legalChecklist;
-        $data['dossierStatus'] = $this->documentService->getDepotDossierStatus($depot);
         $data['documents'] = $this->serializer->normalize($documents, null, ['groups' => 'vodoc:read']);
         $data['generatedDocuments'] = $this->companionWorkflowService->getGeneratedDocuments($depot);
         $data['companion'] = $this->buildCompanionData($depot, $documents, $companionSteps);
@@ -475,8 +479,6 @@ class VOController extends AbstractController
         $data['saleVerdict'] = $saleVerdict;
         $data['canSell'] = $depot->getStatus() === 'actif'
             && $saleVerdict['status'] === 'vendable';
-        $saleBlockers = array_map(static fn (array $reason): string => (string) $reason['message'], $saleVerdict['reasons']);
-        $data['saleBlockers'] = array_values(array_unique($saleBlockers));
         $data['livrePolice'] = $livrePolice
             ? $this->serializer->normalize($livrePolice, null, ['groups' => 'livrepolice:read'])
             : null;
@@ -665,7 +667,7 @@ class VOController extends AbstractController
     public function downloadLivrePolicePdf(Request $request): Response
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getUser()?->getAtelierId();
+        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $qb = $this->em->getRepository(VOLivrePolice::class)->createQueryBuilder('lp')
             ->orderBy('lp.numeroOrdre', 'ASC');
@@ -769,7 +771,7 @@ class VOController extends AbstractController
     public function documentAlerts(Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getUser()?->getAtelierId();
+        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         return $this->json($this->documentService->getAlerts($atelierId));
     }
@@ -778,7 +780,7 @@ class VOController extends AbstractController
     public function downloadDocument(int $id): Response
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getUser()?->getAtelierId();
+        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $document = $this->em->getRepository(VODocument::class)->find($id);
         if (!$document) {
@@ -816,7 +818,7 @@ class VOController extends AbstractController
     public function updatePurchaseVehicule(int $id, Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getUser()?->getAtelierId();
+        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase || !$purchase->getVehicule()) {
@@ -839,7 +841,7 @@ class VOController extends AbstractController
     public function updateDepotVehicule(int $id, Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getUser()?->getAtelierId();
+        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot || !$depot->getVehicule()) {
@@ -949,7 +951,15 @@ class VOController extends AbstractController
 
                 $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
                 if ($lpEntry) {
-                    $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
+                    $this->livrePoliceService->recordSale(
+                        $lpEntry,
+                        $buyer,
+                        $salePrice,
+                        $body['modePaiementVente'] ?? 'cb',
+                        null,
+                        $body['numeroChequeVente'] ?? null,
+                        $body['nomBanqueVente'] ?? null,
+                    );
                 }
 
                 $this->em->flush();
@@ -1074,7 +1084,15 @@ class VOController extends AbstractController
 
                 $lpEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
                 if ($lpEntry) {
-                    $this->livrePoliceService->recordSale($lpEntry, $buyer, $salePrice);
+                    $this->livrePoliceService->recordSale(
+                        $lpEntry,
+                        $buyer,
+                        $salePrice,
+                        $body['modePaiementVente'] ?? 'cb',
+                        null,
+                        $body['numeroChequeVente'] ?? null,
+                        $body['nomBanqueVente'] ?? null,
+                    );
                 }
 
                 $this->em->flush();
@@ -1267,6 +1285,23 @@ class VOController extends AbstractController
         return new BinaryFileResponse($filePath, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="PV-rachat-' . $purchase->getId() . '.pdf"',
+        ]);
+    }
+
+    #[Route('/purchases/{id}/cerfa-cession-achat/pdf', methods: ['GET'])]
+    public function downloadPurchaseCerfaCessionPdf(int $id): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
+        if (!$purchase) {
+            return $this->json(['error' => 'Not found'], 404);
+        }
+
+        $filePath = $this->pdfService->generateCerfaCessionAchatPdf($purchase);
+
+        return new BinaryFileResponse($filePath, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="cerfa-cession-achat-' . $purchase->getId() . '.pdf"',
         ]);
     }
 
@@ -1718,7 +1753,8 @@ class VOController extends AbstractController
 
         $existingEntry = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
         if (!$existingEntry instanceof VOLivrePolice) {
-            $this->livrePoliceService->createEntryForDepotVente($depot);
+            // Pour un dépôt-vente, aucun paiement n'est versé à l'entrée — mode 'depot_vente'
+            $this->livrePoliceService->createEntryForDepotVente($depot, 'depot_vente');
             $this->em->flush();
         }
 
@@ -1805,8 +1841,15 @@ class VOController extends AbstractController
         return $normalized !== '' ? $normalized : null;
     }
 
+    private function getAuthenticatedUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
+    }
+
     private function resolveAtelierId(?int $atelierId = null): int
     {
-        return $atelierId ?? $this->getUser()?->getAtelierId() ?? 0;
+        return $atelierId ?? $this->getAuthenticatedUser()?->getAtelierId() ?? 0;
     }
 }

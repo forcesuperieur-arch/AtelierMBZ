@@ -147,7 +147,8 @@ class VOControllerTest extends WebTestCase
             '/api/vo/purchases/' . $purchaseId . '/confirm',
             [],
             [],
-            $this->authHeaders($fixture['user'])
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
         );
 
         $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
@@ -308,7 +309,7 @@ class VOControllerTest extends WebTestCase
         $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
         $em->flush();
 
-        $client->request('POST', '/api/vo/purchases/' . $purchaseId . '/confirm', [], [], $this->authHeaders($fixture['user']));
+        $client->request('POST', '/api/vo/purchases/' . $purchaseId . '/confirm', [], [], $this->authHeaders($fixture['user']), json_encode(['modePaiement' => 'especes'], JSON_THROW_ON_ERROR));
         $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
 
         $client->request('GET', '/api/vo/purchases/' . $purchaseId . '/full', [], [], $this->authHeaders($fixture['user']));
@@ -318,7 +319,9 @@ class VOControllerTest extends WebTestCase
         $this->assertSame('en_cours', $fullPayload['siv']['status'] ?? null);
         $this->assertTrue((bool) ($fullPayload['siv']['daDocumentGenerated'] ?? false));
         $this->assertFalse((bool) ($fullPayload['canSell'] ?? true));
-        $this->assertContains('DA SIV non enregistrée.', $fullPayload['saleBlockers'] ?? []);
+        $this->assertArrayNotHasKey('saleBlockers', $fullPayload);
+        $this->assertArrayNotHasKey('dossierStatus', $fullPayload);
+        $this->assertArrayNotHasKey('confirmationMissingCompanionSteps', $fullPayload);
         $this->assertSame('non_vendable', $fullPayload['saleVerdict']['status'] ?? null);
         $this->assertSame('da_siv_required', $fullPayload['saleVerdict']['reasons'][0]['code'] ?? null);
 

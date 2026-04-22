@@ -83,15 +83,45 @@ class VOLivrePolice
     #[Groups(['livrepolice:read'])]
     private \DateTimeInterface $vendeurIdDate;
 
-    // --- Prix ---
+    // --- Prix et mode de paiement ---
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     #[Groups(['livrepolice:read'])]
     private string $prixAchat;
 
+    /** @see MODES_PAIEMENT */
+    #[ORM\Column(length: 20)]
+    #[Groups(['livrepolice:read'])]
+    private string $modePaiement;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $numeroCheque = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $nomBanque = null;
+
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     #[Groups(['livrepolice:read'])]
     private ?string $prixVente = null;
+
+    /** Mode de paiement vente (rempli à la cession) */
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $modePaiementVente = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $numeroChequeVente = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $nomBanqueVente = null;
+
+    public const MODES_PAIEMENT = ['especes', 'cb', 'cheque', 'virement', 'depot_vente'];
+    /** Modes acceptés pour un vrai encaissement (achat rachat + vente) — exclut depot_vente */
+    public const MODES_PAIEMENT_ENCAISSEMENT = ['especes', 'cb', 'cheque', 'virement'];
 
     // --- Identité acheteur (rempli à la vente) ---
 
@@ -159,8 +189,20 @@ class VOLivrePolice
     public function setVendeurIdDate(\DateTimeInterface $v): static { $this->vendeurIdDate = $v; return $this; }
     public function getPrixAchat(): string { return $this->prixAchat; }
     public function setPrixAchat(string $v): static { $this->prixAchat = $v; return $this; }
+    public function getModePaiement(): string { return $this->modePaiement; }
+    public function setModePaiement(string $v): static { $this->modePaiement = $v; return $this; }
+    public function getNumeroCheque(): ?string { return $this->numeroCheque; }
+    public function setNumeroCheque(?string $v): static { $this->numeroCheque = $v; return $this; }
+    public function getNomBanque(): ?string { return $this->nomBanque; }
+    public function setNomBanque(?string $v): static { $this->nomBanque = $v; return $this; }
     public function getPrixVente(): ?string { return $this->prixVente; }
     public function setPrixVente(?string $v): static { $this->prixVente = $v; return $this; }
+    public function getModePaiementVente(): ?string { return $this->modePaiementVente; }
+    public function setModePaiementVente(?string $v): static { $this->modePaiementVente = $v; return $this; }
+    public function getNumeroChequeVente(): ?string { return $this->numeroChequeVente; }
+    public function setNumeroChequeVente(?string $v): static { $this->numeroChequeVente = $v; return $this; }
+    public function getNomBanqueVente(): ?string { return $this->nomBanqueVente; }
+    public function setNomBanqueVente(?string $v): static { $this->nomBanqueVente = $v; return $this; }
     public function getAcheteurNom(): ?string { return $this->acheteurNom; }
     public function setAcheteurNom(?string $v): static { $this->acheteurNom = $v; return $this; }
     public function getAcheteurPrenom(): ?string { return $this->acheteurPrenom; }

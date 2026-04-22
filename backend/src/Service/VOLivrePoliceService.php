@@ -22,9 +22,18 @@ class VOLivrePoliceService
 
     /**
      * Create a Livre de Police entry for a purchase (rachat).
+     *
+     * @param string $modePaiement One of VOLivrePolice::MODES_PAIEMENT
+     * @param string|null $numeroCheque Required when $modePaiement === 'cheque'
+     * @param string|null $nomBanque Optional, recommended for cheque/virement
      */
-    public function createEntryForPurchase(VOPurchase $purchase): VOLivrePolice
-    {
+    public function createEntryForPurchase(
+        VOPurchase $purchase,
+        string $modePaiement,
+        ?string $numeroCheque = null,
+        ?string $nomBanque = null,
+    ): VOLivrePolice {
+        $this->validateModePaiementEncaissement($modePaiement, $numeroCheque);
         $seller = $purchase->getSeller();
         $vehicule = $purchase->getVehicule();
 
@@ -47,6 +56,9 @@ class VOLivrePoliceService
         $entry->setVendeurIdDate($purchase->getSellerIdDate());
 
         $entry->setPrixAchat($purchase->getPurchasePrice());
+        $entry->setModePaiement($modePaiement);
+        $entry->setNumeroCheque($numeroCheque);
+        $entry->setNomBanque($nomBanque);
         $entry->setVoPurchase($purchase);
 
         $this->em->persist($entry);
@@ -63,9 +75,16 @@ class VOLivrePoliceService
 
     /**
      * Create a Livre de Police entry for a dépôt-vente.
+     *
+     * @param string $modePaiement One of VOLivrePolice::MODES_PAIEMENT
      */
-    public function createEntryForDepotVente(VODepotVente $depot): VOLivrePolice
-    {
+    public function createEntryForDepotVente(
+        VODepotVente $depot,
+        string $modePaiement,
+        ?string $numeroCheque = null,
+        ?string $nomBanque = null,
+    ): VOLivrePolice {
+        $this->validateModePaiement($modePaiement, $numeroCheque);
         $deposant = $depot->getDeposant();
         $vehicule = $depot->getVehicule();
 
@@ -88,6 +107,9 @@ class VOLivrePoliceService
         $entry->setVendeurIdDate($depot->getDeposantIdDate());
 
         $entry->setPrixAchat($depot->getPrixVenteSouhaite());
+        $entry->setModePaiement($modePaiement);
+        $entry->setNumeroCheque($numeroCheque);
+        $entry->setNomBanque($nomBanque);
         $entry->setVoDepotVente($depot);
 
         $this->em->persist($entry);
@@ -117,10 +139,25 @@ class VOLivrePoliceService
         VOLivrePolice $acquisitionEntry,
         Client $buyer,
         string $prixVente,
+        string $modePaiementVente,
         ?\DateTimeInterface $dateVente = null,
+        ?string $numeroChequeVente = null,
+        ?string $nomBanqueVente = null,
     ): void {
+        // [C13] Guard : une entrée LP ne peut être vendue qu'une seule fois
+        if ($acquisitionEntry->getDateVente() !== null) {
+            throw new \LogicException(
+                sprintf('LP entry #%d is already sold (dateVente: %s). Double-call prevented.', $acquisitionEntry->getId(), $acquisitionEntry->getDateVente()->format('d/m/Y'))
+            );
+        }
+
+        $this->validateModePaiementEncaissement($modePaiementVente, $numeroChequeVente);
+
         $acquisitionEntry->setDateVente($dateVente ?? new \DateTime());
         $acquisitionEntry->setPrixVente($prixVente);
+        $acquisitionEntry->setModePaiementVente($modePaiementVente);
+        $acquisitionEntry->setNumeroChequeVente($numeroChequeVente);
+        $acquisitionEntry->setNomBanqueVente($nomBanqueVente);
         $acquisitionEntry->setAcheteurNom($buyer->getNom());
         $acquisitionEntry->setAcheteurPrenom($buyer->getPrenom() ?? '');
         $acquisitionEntry->setAcheteurAdresse($buyer->getAdresse() ?? '');
@@ -172,4 +209,31 @@ class VOLivrePoliceService
             );
         }
     }
+
+    private function validateModePaiement(string $modePaiement, ?string $numeroCheque): void
+    {
+        if (!in_array($modePaiement, VOLivrePolice::MODES_PAIEMENT, true)) {
+            throw new \InvalidArgumentException(
+                sprintf('Mode de paiement invalide : "%s". Valeurs acceptées : %s.', $modePaiement, implode(', ', VOLivrePolice::MODES_PAIEMENT))
+            );
+        }
+
+        if ($modePaiement === 'cheque' && empty($numeroCheque)) {
+            throw new \InvalidArgumentException(
+                'Livre de Police : le numéro de chèque est obligatoire pour un paiement par chèque.'
+            );
+        }
+    }
+
+    private function validateModePaiementEncaissement(string $modePaiement, ?string $numeroCheque): void
+    {
+        if (!in_array($modePaiement, VOLivrePolice::MODES_PAIEMENT_ENCAISSEMENT, true)) {
+            throw new \InvalidArgumentException(
+                sprintf('Mode de paiement invalide pour un encaissement : "%s". Valeurs acceptées : %s.', $modePaiement, implode(', ', VOLivrePolice::MODES_PAIEMENT_ENCAISSEMENT))
+            );
+        }
+
+        $this->validateModePaiement($modePaiement, $numeroCheque);
+    }
 }
+
