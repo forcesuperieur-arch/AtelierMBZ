@@ -44,11 +44,11 @@
         {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
       </div>
       <button class="nav-btn nav-profile" @click="navigateTo('/profile')">
-        <span>👤</span>
+        <UIcon name="i-heroicons-user-circle" class="nav-icon-svg" />
         <span class="nav-label">Mon profil</span>
       </button>
       <button class="nav-btn nav-logout" @click="auth.logout()">
-        <span>⏻</span>
+        <UIcon name="i-heroicons-arrow-right-on-rectangle" class="nav-icon-svg" />
         <span class="nav-label">Déconnexion</span>
       </button>
     </nav>
@@ -57,7 +57,9 @@
     <div class="main-area">
       <!-- TOPBAR -->
       <header class="topbar">
-        <button class="topbar-menu-btn" @click="appStore.toggleSidebar()">☰</button>
+        <button class="topbar-menu-btn" @click="appStore.toggleSidebar()" aria-label="Menu">
+          <UIcon name="i-heroicons-bars-3" />
+        </button>
         <div class="topbar-brand">
           <img v-if="atelierLogoUrl" :src="atelierLogoUrl" :alt="atelierName" class="topbar-brand-logo" />
           <span v-else class="topbar-brand-fallback">{{ atelierInitial }}</span>
@@ -182,19 +184,19 @@ const currentSection = computed(() => {
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard', group: 'aujourdhui' },
-    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning', group: 'aujourdhui' },
-    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop', group: 'aujourdhui' },
-    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi', group: 'aujourdhui' },
-    { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or', group: 'dossiers' },
-    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis', group: 'dossiers' },
+    { to: '/', icon: 'i-heroicons-chart-bar', label: 'Stat', section: 'dashboard', group: 'aujourdhui' },
+    { to: '/planning', icon: 'i-heroicons-calendar-days', label: 'Planning', section: 'planning', group: 'aujourdhui' },
+    { to: '/workshop', icon: 'i-heroicons-wrench-screwdriver', label: 'Ponts & Méca', section: 'workshop', group: 'aujourdhui' },
+    { to: '/suivi', icon: 'i-heroicons-eye', label: 'Suivi Live', section: 'suivi', group: 'aujourdhui' },
+    { to: '/ordres', icon: 'i-heroicons-clipboard-document-list', label: 'Dossiers atelier', section: 'or', group: 'dossiers' },
+    { to: '/devis', icon: 'i-heroicons-document-text', label: 'Devis', section: 'devis', group: 'dossiers' },
     // TODO (2026-04-22) : modules en cours de réécriture — réactiver quand le flux sera vérifié end-to-end
     // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation', group: 'dossiers' },
     // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock', group: 'dossiers' },
-    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo', group: 'dossiers' },
-    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients', group: 'referentiels' },
-    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos', group: 'referentiels' },
-    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin', group: 'systeme' },
+    { to: '/vo', icon: 'i-heroicons-tag', label: 'VO', section: 'vo', group: 'dossiers' },
+    { to: '/clients', icon: 'i-heroicons-user-group', label: 'Clients', section: 'clients', group: 'referentiels' },
+    { to: '/motos', icon: 'i-heroicons-truck', label: 'Fiches moto', section: 'motos', group: 'referentiels' },
+    { to: '/admin', icon: 'i-heroicons-cog-6-tooth', label: 'Administration', section: 'admin', group: 'systeme' },
   ]
   return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
 })

@@ -4,7 +4,10 @@
     :to="to"
     :class="['nav-btn', isActive ? 'active' : '']"
   >
-    <span class="nav-icon">{{ icon }}</span>
+    <span class="nav-icon">
+      <UIcon v-if="isHeroIcon" :name="icon" class="nav-icon-svg" />
+      <template v-else>{{ icon }}</template>
+    </span>
     <span class="nav-label">{{ label }}</span>
     <span v-if="badgeCount && badgeCount > 0" class="nav-badge">{{ badgeCount > 99 ? '99+' : badgeCount }}</span>
   </NuxtLink>
@@ -28,6 +31,7 @@ const isActive = computed(() => {
 })
 
 const visible = computed(() => auth.hasSection(props.section))
+const isHeroIcon = computed(() => props.icon?.startsWith('i-'))
 </script>
 
 <style scoped>
@@ -77,6 +81,13 @@ const visible = computed(() => auth.hasSection(props.section))
   flex-shrink: 0;
   width: 24px;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-icon-svg {
+  width: 20px;
+  height: 20px;
 }
 .nav-label {
   font-size: 13px;
