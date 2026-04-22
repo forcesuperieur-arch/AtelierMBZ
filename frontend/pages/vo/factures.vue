@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Factures VO</div>
-        <div class="vo-subtitle">Historique des factures générées sur les ventes VO.</div>
-      </div>
-    </div>
+    <AppPageHeader title="Factures VO" subtitle="Historique des factures générées sur les ventes VO." />
 
     <VONav />
 

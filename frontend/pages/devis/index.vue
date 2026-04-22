@@ -1,9 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-title">Devis</div>
-      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau devis</button>
-    </div>
+    <AppPageHeader title="Devis">
+      <template #actions>
+        <button class="topbar-new-btn" @click="showNew = true">+ Nouveau devis</button>
+      </template>
+    </AppPageHeader>
 
     <!-- Filtres -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">

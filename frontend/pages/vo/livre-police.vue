@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Livre de Police</div>
-        <div class="vo-subtitle">Registre atelier des acquisitions et ventes VO.</div>
-      </div>
-      <button class="topbar-new-btn" @click="downloadPdf">Télécharger le PDF</button>
-    </div>
+    <AppPageHeader title="Livre de Police" subtitle="Registre atelier des acquisitions et ventes VO.">
+      <template #actions>
+        <button class="topbar-new-btn" @click="downloadPdf">Télécharger le PDF</button>
+      </template>
+    </AppPageHeader>
 
     <VONav />
 

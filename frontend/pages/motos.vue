@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header" style="justify-content:space-between;">
-      <div>
-        <div class="page-title">Catalogue Motos</div>
-        <div class="page-sub">Référentiel des modèles pour accélérer la saisie véhicule.</div>
-      </div>
-    </div>
+    <AppPageHeader title="Catalogue Motos" subtitle="Référentiel des modèles pour accélérer la saisie véhicule." />
 
     <UCard style="margin-bottom:16px;">
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">

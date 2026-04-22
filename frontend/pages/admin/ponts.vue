@@ -1,18 +1,12 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div>
-          <div class="page-title">Ponts & mécaniciens</div>
-          <div class="page-sub">Pilotage atelier, affectations et cohérence login ↔ mécano</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <AppPageHeader title="Ponts & mécaniciens" subtitle="Pilotage atelier, affectations et cohérence login ↔ mécano" back-to="/admin">
+      <template #actions>
         <button class="btn btn-ghost" @click="goToUsers">Logins atelier</button>
         <button class="btn btn-ghost" @click="goToPlanning">Voir planning</button>
         <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouveau pont</button>
-      </div>
+      </template>
+    </AppPageHeader>
     </div>
 
     <div style="margin-bottom:16px;padding:12px 14px;border:1px solid rgba(255,210,0,0.18);border-radius:12px;background:rgba(255,210,0,0.05);">

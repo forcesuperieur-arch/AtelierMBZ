@@ -1,16 +1,13 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div class="page-title">Planning</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" :disabled="loading || refreshing" @click="refreshPlanning">
-            {{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}
-          </button>
-          <button v-if="canCreateRdv" class="btn btn-primary" @click="openQuickCreate()">+ RDV rapide</button>
-        </div>
-      </div>
-    </div>
+    <AppPageHeader title="Planning">
+      <template #actions>
+        <button class="btn btn-ghost" :disabled="loading || refreshing" @click="refreshPlanning">
+          {{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}
+        </button>
+        <button v-if="canCreateRdv" class="btn btn-primary" @click="openQuickCreate()">+ RDV rapide</button>
+      </template>
+    </AppPageHeader>
 
     <div v-if="loading" class="loading-shimmer" style="height:400px;border-radius:14px;"></div>
 

@@ -1,13 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Suivi Live des Interventions</div>
-        <div class="page-sub">Mise à jour en temps réel par mécanicien</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="live-dot"></div>
-        <span style="font-size:13px;font-weight:600;color:#10B981;">Live</span>
+    <AppPageHeader title="Suivi Live des Interventions" subtitle="Mise à jour en temps réel par mécanicien">
+      <template #actions>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="live-dot"></div>
+          <span style="font-size:13px;font-weight:600;color:var(--green);">Live</span>
       </div>
     </div>
 

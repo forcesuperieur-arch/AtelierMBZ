@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header" style="justify-content:space-between;">
-      <div>
-        <div class="page-title">Grille Tarifaire</div>
-        <div class="page-sub">Vue rapide des prestations atelier et de leurs prix publics.</div>
-      </div>
-    </div>
+    <AppPageHeader title="Grille Tarifaire" subtitle="Vue rapide des prestations atelier et de leurs prix publics." />
 
     <UCard style="margin-bottom:16px;">
       <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">

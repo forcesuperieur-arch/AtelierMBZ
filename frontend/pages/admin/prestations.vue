@@ -1,13 +1,11 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Gestion des prestations</div>
-      </div>
-      <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
-      <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
-    </div>
+    <AppPageHeader title="Gestion des prestations" back-to="/admin">
+      <template #actions>
+        <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
+        <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
+      </template>
+    </AppPageHeader>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <button v-for="cat in categoryFilters" :key="cat.value" class="btn" :class="filterCat === cat.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="filterCat = cat.value">

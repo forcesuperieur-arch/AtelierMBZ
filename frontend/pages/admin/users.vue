@@ -1,15 +1,15 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Utilisateurs</div>
+    <AppPageHeader title="Utilisateurs" back-to="/admin">
+      <template #badge>
         <span v-if="pendingCount" class="status-badge" style="background:rgba(251,191,36,0.16);color:#FCD34D;">
           {{ pendingCount }} en attente SSO
         </span>
-      </div>
-      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Ajouter</button>
-    </div>
+      </template>
+      <template #actions>
+        <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Ajouter</button>
+      </template>
+    </AppPageHeader>
 
     <UCard>
       <UTable :data="users" :columns="columns" :loading="loading">

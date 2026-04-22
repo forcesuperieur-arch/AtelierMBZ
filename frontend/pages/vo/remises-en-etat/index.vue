@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">File atelier VO</div>
-        <div class="vo-subtitle">Campagnes actives de remise en etat, priorités, coûts et pièces en attente.</div>
-      </div>
-    </div>
+    <AppPageHeader title="File atelier VO" subtitle="Campagnes actives de remise en etat, priorités, coûts et pièces en attente." />
 
     <VONav />
 

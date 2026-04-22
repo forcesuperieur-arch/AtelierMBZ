@@ -1,15 +1,11 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Véhicules d'Occasion</div>
-        <div class="vo-subtitle">Pilotage du stock VO, des dossiers moto actifs et des points de validation OCR.</div>
-      </div>
-      <div class="vo-header-actions">
+    <AppPageHeader title="Véhicules d'Occasion" subtitle="Pilotage du stock VO, des dossiers moto actifs et des points de validation OCR.">
+      <template #actions>
         <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
         <NuxtLink to="/vo/depots/new" class="topbar-new-btn vo-secondary-btn">+ Dépôt-vente</NuxtLink>
-      </div>
-    </div>
+      </template>
+    </AppPageHeader>
 
     <VONav />
 

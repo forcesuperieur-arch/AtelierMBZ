@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header" style="justify-content:space-between;">
-      <div>
-        <div class="page-title">Atelier</div>
-        <div class="page-sub">Pilotage des ponts, affectations mécaniciens et charge du jour.</div>
-      </div>
-    </div>
+    <AppPageHeader title="Atelier" subtitle="Pilotage des ponts, affectations mécaniciens et charge du jour." />
 
     <AppLoadingState
       v-if="loading"

@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Documents VO</div>
-        <div class="vo-subtitle">Vue legacy des pieces archivees. La gestion courante se fait maintenant dans chaque dossier moto.</div>
-      </div>
-    </div>
+    <AppPageHeader title="Documents VO" subtitle="Vue legacy des pieces archivees. La gestion courante se fait maintenant dans chaque dossier moto." />
 
     <VONav />
 

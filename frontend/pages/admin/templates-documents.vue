@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Templates de documents</div>
-      </div>
-    </div>
+    <AppPageHeader title="Templates de documents" back-to="/admin" />
 
     <p style="color:#9CA3AF;font-size:13px;margin-bottom:12px;">
       Prévisualisation des PDF générés par l'application, avec les données de <strong>votre atelier</strong> et des données fictives. L'écran distingue désormais les documents opposables, les formulaires réglementaires et les simples synthèses internes.

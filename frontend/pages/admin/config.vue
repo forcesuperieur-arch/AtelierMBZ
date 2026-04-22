@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Configuration atelier</div>
-      </div>
-    </div>
+    <AppPageHeader title="Configuration atelier" back-to="/admin" />
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">
       <span style="color:#6B7280;">Chargement...</span>

@@ -1,11 +1,6 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Journal d'audit</div>
-      </div>
-    </div>
+    <AppPageHeader title="Journal d'audit" back-to="/admin" />
 
     <!-- Filters -->
     <UCard style="margin-bottom:16px;">

@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Rachats VO</div>
-        <div class="vo-subtitle">Tous les dossiers de rachat, de la constitution à la vente.</div>
-      </div>
-      <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
-    </div>
+    <AppPageHeader title="Rachats VO" subtitle="Tous les dossiers de rachat, de la constitution à la vente.">
+      <template #actions>
+        <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
+      </template>
+    </AppPageHeader>
 
     <VONav />
 

@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header vo-header">
-      <div>
-        <div class="page-title">Dépôts-vente</div>
-        <div class="vo-subtitle">Suivi des mandats, commissions et restitutions.</div>
-      </div>
-      <NuxtLink to="/vo/depots/new" class="topbar-new-btn">+ Nouveau dépôt</NuxtLink>
-    </div>
+    <AppPageHeader title="Dépôts-vente" subtitle="Suivi des mandats, commissions et restitutions.">
+      <template #actions>
+        <NuxtLink to="/vo/depots/new" class="topbar-new-btn">+ Nouveau dépôt</NuxtLink>
+      </template>
+    </AppPageHeader>
 
     <VONav />
 

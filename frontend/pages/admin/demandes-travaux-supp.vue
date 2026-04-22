@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Demandes de travaux complémentaires</div>
-      </div>
-      <button class="btn btn-ghost" @click="load" :disabled="loading">🔄 Rafraîchir</button>
-    </div>
+    <AppPageHeader title="Demandes de travaux complémentaires" back-to="/admin">
+      <template #actions>
+        <button class="btn btn-ghost" :disabled="loading" @click="load">🔄 Rafraîchir</button>
+      </template>
+    </AppPageHeader>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <button v-for="f in filters" :key="f.value" class="btn" :class="statut === f.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="statut = f.value">

@@ -1,15 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div>
-          <div class="page-title">Ateliers</div>
-          <div class="page-subtitle">Création et gestion multiatelier réservées au super-admin.</div>
-        </div>
-      </div>
-      <button v-if="isSuperAdmin" class="topbar-new-btn" @click="openCreate">+ Ajouter un atelier</button>
-    </div>
+    <AppPageHeader title="Ateliers" subtitle="Création et gestion multiatelier réservées au super-admin." back-to="/admin">
+      <template #actions>
+        <button v-if="isSuperAdmin" class="topbar-new-btn" @click="openCreate">+ Ajouter un atelier</button>
+      </template>
+    </AppPageHeader>
 
     <UCard v-if="!isSuperAdmin">
       <AppErrorState

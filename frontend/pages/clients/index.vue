@@ -1,9 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-title">Clients</div>
-      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau client</button>
-    </div>
+    <AppPageHeader title="Clients">
+      <template #actions>
+        <button class="topbar-new-btn" @click="showNew = true">+ Nouveau client</button>
+      </template>
+    </AppPageHeader>
 
     <!-- Stat cards -->
     <div class="grid-4" style="margin-bottom:20px;">

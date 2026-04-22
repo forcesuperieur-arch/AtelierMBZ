@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Absences mécaniciens</div>
-      </div>
-      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle absence</button>
-    </div>
+    <AppPageHeader title="Absences mécaniciens" back-to="/admin">
+      <template #actions>
+        <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle absence</button>
+      </template>
+    </AppPageHeader>
 
     <UCard>
       <UTable :data="absences" :columns="columns" :loading="loading">

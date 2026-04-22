@@ -1,8 +1,6 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-title">Administration</div>
-    </div>
+    <AppPageHeader title="Administration" />
 
     <div class="admin-grid">
       <div class="admin-card" @click="navigateTo('/admin/users')">

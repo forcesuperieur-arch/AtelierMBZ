@@ -1,12 +1,10 @@
 <template>
   <div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
-        <div class="page-title">Clauses légales</div>
-      </div>
-      <button class="topbar-new-btn" @click="openCreate">+ Nouvelle clause</button>
-    </div>
+    <AppPageHeader title="Clauses légales" back-to="/admin">
+      <template #actions>
+        <button class="topbar-new-btn" @click="openCreate">+ Nouvelle clause</button>
+      </template>
+    </AppPageHeader>
 
     <p style="color:#9CA3AF;font-size:13px;margin-bottom:16px;">
       Toute modification du texte crée une <strong>nouvelle version</strong> et désactive l'ancienne (traçabilité légale).
