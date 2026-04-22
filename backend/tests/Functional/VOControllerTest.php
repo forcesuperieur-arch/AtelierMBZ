@@ -13,7 +13,9 @@ use App\Entity\Vehicule;
 use App\Service\VODocumentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -270,6 +272,154 @@ class VOControllerTest extends WebTestCase
         $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
         $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertStringContainsString('ne doivent pas être archivés', (string) ($payload['error'] ?? ''));
+    }
+
+    public function testLivrePolicePdfIsServedAsDownload(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'expertId' => $fixture['user']->getId(),
+                'purchasePrice' => '6500.00',
+                'targetSalePrice' => '9200.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-LP-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-09-01',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'notes' => 'Dossier de test LP.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/confirm',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $client->request(
+            'GET',
+            '/api/vo/livre-police/pdf',
+            [],
+            [],
+            $this->authHeaders($fixture['user'])
+        );
+
+        $response = $client->getResponse();
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
+        /** @var BinaryFileResponse $response */
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('livre-police.pdf', (string) $response->headers->get('content-disposition'));
+        $servedPdfPath = $response->getFile()->getPathname();
+        $this->assertFileExists($servedPdfPath);
+        $this->assertStringStartsWith('%PDF', (string) file_get_contents($servedPdfPath));
+    }
+
+    public function testSuperAdminLivrePolicePdfUsesActiveAtelierCookie(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'expertId' => $fixture['user']->getId(),
+                'purchasePrice' => '6500.00',
+                'targetSalePrice' => '9200.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-LP-SA-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-09-01',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'notes' => 'Dossier de test LP superadmin.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/confirm',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $superAdmin = (new User())
+            ->setUsername('super-' . $fixture['suffix'])
+            ->setEmail(sprintf('super-%s@example.test', $fixture['suffix']))
+            ->setHashedPassword('test')
+            ->setPrenom('Super')
+            ->setNom('Admin')
+            ->setRole('super_admin');
+
+        $em->persist($superAdmin);
+        $em->flush();
+
+        $client->getCookieJar()->set(new Cookie('active_atelier_id', '1'));
+
+        $client->request(
+            'GET',
+            '/api/vo/livre-police/pdf',
+            [],
+            [],
+            $this->authHeaders($superAdmin)
+        );
+
+        $response = $client->getResponse();
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
+        /** @var BinaryFileResponse $response */
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('livre-police.pdf', (string) $response->headers->get('content-disposition'));
     }
 
     public function testPurchaseRequiresSivDeclarationBeforeSale(): void

@@ -11,6 +11,7 @@ use App\Entity\VOFacture;
 use App\Entity\VOLivrePolice;
 use App\Entity\VOPurchase;
 use App\Service\AuditService;
+use App\Service\CurrentAtelierResolver;
 use App\Service\VORemiseEnEtatService;
 use App\Service\PdfService;
 use App\Service\VOCompanionWorkflowService;
@@ -47,6 +48,7 @@ class VOController extends AbstractController
         private VONumberingService $numberingService,
         private VORemiseEnEtatService $remiseEnEtatService,
         private AuditService $audit,
+        private CurrentAtelierResolver $currentAtelierResolver,
         #[Target('vo_purchase')]
         private WorkflowInterface $voPurchaseWorkflow,
     ) {}
@@ -665,8 +667,14 @@ class VOController extends AbstractController
     public function listLivrePolice(Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Sélectionnez un atelier avant d\'ouvrir le Livre de Police.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $qb = $this->em->getRepository(VOLivrePolice::class)->createQueryBuilder('lp')
+            ->andWhere('lp.atelierId = :atelierId')
+            ->setParameter('atelierId', $atelierId)
             ->orderBy('lp.numeroOrdre', 'ASC');
 
         $data = $this->serializer->normalize($qb->getQuery()->getResult(), null, ['groups' => 'livrepolice:read']);
@@ -678,18 +686,24 @@ class VOController extends AbstractController
     public function downloadLivrePolicePdf(Request $request): Response
     {
         $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
-        $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
+        $atelierId = $this->currentAtelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Sélectionnez un atelier avant de télécharger le Livre de Police.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $qb = $this->em->getRepository(VOLivrePolice::class)->createQueryBuilder('lp')
+            ->andWhere('lp.atelierId = :atelierId')
+            ->setParameter('atelierId', $atelierId)
             ->orderBy('lp.numeroOrdre', 'ASC');
 
         $entries = $qb->getQuery()->getResult();
         $filePath = $this->pdfService->generateLivrePolicePdf($entries, $atelierId);
 
-        return new BinaryFileResponse($filePath, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="livre-police.pdf"',
-        ]);
+        $response = new BinaryFileResponse($filePath);
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, 'livre-police.pdf');
+
+        return $response;
     }
 
     // ═══════════════════════════════════════════

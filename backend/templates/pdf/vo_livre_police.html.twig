@@ -3,18 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #333; margin: 15px; }
-        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 15px; }
-        .header h1 { color: #2563eb; margin: 0; font-size: 16px; }
-        .logo { max-width: 100px; max-height: 50px; margin-bottom: 5px; }
-        .atelier-meta { font-size: 9px; color: #555; }
-        table.register { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }
-        table.register th { background: #1e3a5f; color: white; padding: 4px 5px; text-align: left; }
-        table.register td { padding: 4px 5px; border-bottom: 1px solid #ddd; vertical-align: top; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 7.5px; color: #333; margin: 8px; }
+        .header { border-bottom: 2px solid #2563eb; padding-bottom: 6px; margin-bottom: 10px; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 13px; }
+        .logo { max-width: 80px; max-height: 35px; margin-bottom: 3px; }
+        .atelier-meta { font-size: 8px; color: #555; }
+        table.register { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 7px; table-layout: fixed; }
+        table.register th { background: #1e3a5f; color: white; padding: 2px 3px; text-align: left; word-break: break-word; }
+        table.register td { padding: 2px 3px; border-bottom: 1px solid #ddd; vertical-align: top; word-break: break-word; overflow: hidden; }
         table.register tr:nth-child(even) { background: #f9fafb; }
-        .mention { margin-top: 20px; font-size: 8px; color: #888; }
-        .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
-        .mode-paiement { font-size: 8px; color: #555; white-space: nowrap; }
+        .mention { margin-top: 12px; font-size: 7px; color: #888; }
+        .footer { margin-top: 15px; font-size: 7px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 5px; }
+        .mode-paiement { font-size: 7px; color: #555; white-space: normal; }
+        /* Largeurs colonnes adaptées A4 paysage */
+        col.c-num   { width: 3.5%; }
+        col.c-type  { width: 4.5%; }
+        col.c-datea { width: 6%; }
+        col.c-desc  { width: 11%; }
+        col.c-immat { width: 7%; }
+        col.c-vend  { width: 9%; }
+        col.c-piece { width: 8%; }
+        col.c-pacha { width: 6%; }
+        col.c-mpacha{ width: 7%; }
+        col.c-datev { width: 6%; }
+        col.c-ache  { width: 9%; }
+        col.c-pvente{ width: 6%; }
+        col.c-mpvente{ width: 7%; }
     </style>
 </head>
 <body>
@@ -31,6 +45,12 @@
     </div>
 
     <table class="register">
+        <colgroup>
+            <col class="c-num"><col class="c-type"><col class="c-datea"><col class="c-desc">
+            <col class="c-immat"><col class="c-vend"><col class="c-piece">
+            <col class="c-pacha"><col class="c-mpacha">
+            <col class="c-datev"><col class="c-ache"><col class="c-pvente"><col class="c-mpvente">
+        </colgroup>
         <thead>
             <tr>
                 <th>N°</th>

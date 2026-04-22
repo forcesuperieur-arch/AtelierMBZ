@@ -128,6 +128,11 @@ class PdfService
      */
     public function generateLivrePolicePdf(array $entries, ?int $atelierId = null): string
     {
+        // LP avec de nombreuses entrées et 13 colonnes peut épuiser la limite mémoire par défaut.
+        // La restauration est intentionnellement omise : chaque requête HTTP a son propre cycle
+        // mémoire, et tenter de restaurer une limite inférieure à l'usage courant lèverait une erreur.
+        ini_set('memory_limit', '256M');
+
         $atelier = $this->resolveAtelier($atelierId);
 
         $html = $this->twig->render('pdf/vo_livre_police.html.twig', [
@@ -135,7 +140,7 @@ class PdfService
             ...$this->buildBrandingContext($atelier),
         ]);
 
-        return $this->renderPdf($html, 'LP-' . date('Ymd-His'));
+        return $this->renderPdf($html, 'LP-' . date('Ymd-His'), 'landscape');
     }
 
     /**
@@ -444,7 +449,7 @@ class PdfService
         return is_file($filePath) ? $filePath : null;
     }
 
-    private function renderPdf(string $html, string $filename): string
+    private function renderPdf(string $html, string $filename, string $orientation = 'portrait'): string
     {
         $options = new Options();
         $options->set('isRemoteEnabled', true);
@@ -452,7 +457,7 @@ class PdfService
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', $orientation);
         $dompdf->render();
 
         $outputDir = $this->projectDir . '/var/pdf';

@@ -2,7 +2,9 @@
   <div>
     <AppPageHeader title="Livre de Police" subtitle="Registre atelier des acquisitions et ventes VO.">
       <template #actions>
-        <button class="topbar-new-btn" @click="downloadPdf">Télécharger le PDF</button>
+        <button class="topbar-new-btn" :disabled="pdfLoading" @click="downloadPdf">
+          {{ pdfLoading ? 'Génération…' : 'Télécharger le PDF' }}
+        </button>
       </template>
     </AppPageHeader>
 
@@ -38,7 +40,9 @@ definePageMeta({ title: 'Livre de Police VO' })
 
 const voStore = useVoStore()
 const { formatPrice, formatDate, normalizeText, apiBase } = useVoHelpers()
-const { openPdf } = usePdfDownload()
+const { downloadPdf: downloadPdfFile } = usePdfDownload()
+const toast = useToast()
+const pdfLoading = ref(false)
 
 const search = ref('')
 
@@ -71,8 +75,16 @@ const filteredEntries = computed(() => {
   })
 })
 
-function downloadPdf() {
-  openPdf('/vo/livre-police/pdf')
+async function downloadPdf() {
+  if (pdfLoading.value) return
+  pdfLoading.value = true
+  try {
+    await downloadPdfFile('/vo/livre-police/pdf', 'livre-police.pdf')
+  } catch (e: any) {
+    toast.add({ title: 'Erreur PDF', description: e?.message ?? 'Impossible de générer le PDF', color: 'error' })
+  } finally {
+    pdfLoading.value = false
+  }
 }
 
 onMounted(async () => {
