@@ -91,6 +91,14 @@ class PublicBookingController extends AbstractController
         if (!$atelierId) {
             return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
         }
+
+        // [I7] Vérifier que le module rdv (et rdv_public si distinct) est activé pour cet atelier
+        $configAtelier = $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        $featureModules = $configAtelier?->getFeatureModules() ?? \App\Entity\ConfigAtelier::defaultFeatureModules();
+        if (($featureModules['rdv'] ?? true) === false) {
+            return $this->json(['error' => 'La prise de rendez-vous en ligne n\'est pas disponible pour cet atelier.'], Response::HTTP_FORBIDDEN);
+        }
+
         $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
         $targetDate = new \DateTime($data['date_rdv']);
         $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);
@@ -98,7 +106,7 @@ class PublicBookingController extends AbstractController
 
         if (empty($matchingSlots)) {
             return $this->json([
-                'error' => 'Le créneau sélectionné n’est plus disponible. Merci d’en choisir un autre.',
+                'error' => 'Le creneau selectionne n\'est plus disponible. Merci d\'en choisir un autre.',
             ], Response::HTTP_CONFLICT);
         }
 
@@ -160,6 +168,7 @@ class PublicBookingController extends AbstractController
         $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
         $rdv->setStatut('en_attente');
         $rdv->setAtelierId($atelierId);
+        $rdv->setSource('web'); // [I4] Marqueur RDV public
 
         if (!empty($selectedSlot['pont_id'])) {
             $pont = $this->em->getRepository(\App\Entity\Pont::class)->find((int) $selectedSlot['pont_id']);

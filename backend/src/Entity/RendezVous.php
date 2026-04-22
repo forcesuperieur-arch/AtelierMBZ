@@ -129,7 +129,7 @@ class RendezVous
     private ?EssaiRoutier $essaiRoutier = null;
 
     #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
-    #[Groups(['rdv:read', 'rdv:write', 'ordre:read'])]
+    #[Groups(['rdv:read', 'ordre:read'])]
     private string $statut = 'en_attente';
 
     #[ORM\Column(length: 50, nullable: true)]
@@ -192,6 +192,11 @@ class RendezVous
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $gardiennageMotif = null;
+
+    // [SPRINT-4] I4 — source du RDV : null = interne, 'web' = prise en ligne publique
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private ?string $source = null;
 
     public function __construct()
     {
@@ -295,4 +300,8 @@ class RendezVous
     public function setGardiennageDebutPar(?int $v): static { $this->gardiennageDebutPar = $v; return $this; }
     public function getGardiennageMotif(): ?string { return $this->gardiennageMotif; }
     public function setGardiennageMotif(?string $v): static { $this->gardiennageMotif = $v; return $this; }
+
+    // [SPRINT-4] I4
+    public function getSource(): ?string { return $this->source; }
+    public function setSource(?string $v): static { $this->source = $v; return $this; }
 }

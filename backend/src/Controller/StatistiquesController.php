@@ -77,10 +77,17 @@ class StatistiquesController extends AbstractController
             ['s' => $from, 'e' => $to, 'a' => $atelierId]
         );
 
-        $stockAlerts = $conn->fetchOne(
-            'SELECT COUNT(*) FROM pieces_detachees WHERE quantite_stock <= quantite_minimale AND is_active = 1 AND atelier_id = :a',
-            ['a' => $atelierId]
-        );
+        // [I15] Guard module stock — skip query if module disabled
+        $configAtelier = $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        $featureModules = $configAtelier?->getFeatureModules() ?? \App\Entity\ConfigAtelier::defaultFeatureModules();
+        $stockEnabled = ($featureModules['stock'] ?? true) !== false;
+
+        $stockAlerts = $stockEnabled
+            ? $conn->fetchOne(
+                'SELECT COUNT(*) FROM pieces_detachees WHERE quantite_stock <= quantite_minimale AND is_active = 1 AND atelier_id = :a',
+                ['a' => $atelierId]
+            )
+            : 0;
 
         $orOuverts = $conn->fetchOne(
             "SELECT COUNT(o.id)

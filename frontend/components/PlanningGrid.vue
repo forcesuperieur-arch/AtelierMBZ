@@ -79,6 +79,8 @@
                 <div style="font-size:10px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                   {{ rdv.client_nom }}
                 </div>
+                <!-- [SPRINT-4] I4 — Badge RDV web public -->
+                <div v-if="rdv.source === 'web'" style="font-size:9px;font-weight:700;letter-spacing:.05em;color:#93C5FD;opacity:.9;">WEB</div>
               </div>
             </div>
           </template>
@@ -121,6 +123,7 @@ const emit = defineEmits<{
   'select-rdv': [rdv: any]
   'move-rdv': [payload: { id: number; date: string; time: string }]
   'create-at': [payload: { date: string; time: string }]
+  'dates-changed': [range: { start: string; end: string }]
 }>()
 
 const currentDate = ref(new Date())
@@ -141,6 +144,18 @@ const weekStart = computed(() => {
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   return new Date(d.setDate(diff))
 })
+
+watch(
+  weekStart,
+  (newStart) => {
+    const startStr = newStart.toISOString().slice(0, 10)
+    const end = new Date(newStart)
+    end.setDate(end.getDate() + 6)
+    const endStr = end.toISOString().slice(0, 10)
+    emit('dates-changed', { start: startStr, end: endStr })
+  },
+  { immediate: true },
+)
 
 const horaireMap = computed(() => {
   const map = new Map<number, any>()

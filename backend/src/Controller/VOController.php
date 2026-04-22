@@ -522,7 +522,7 @@ class VOController extends AbstractController
         $depot->setPrixVenteSouhaite((string) ($body['prixVenteSouhaite'] ?? '0'));
         $depot->setCommissionType($body['commissionType'] ?? 'pourcentage');
         $depot->setCommissionValeur((string) ($body['commissionValeur'] ?? '0'));
-        $depot->setDureeMandat($body['dureeMandat'] ?? 90);
+        $depot->setDureeMandat($body['dureeMandat'] ?? $this->resolveDefaultMandatDuration());
         $depot->setStatus($status);
         $depot->setConditionsRestitution($body['conditionsRestitution'] ?? null);
         $depot->setAssuranceInfo($body['assuranceInfo'] ?? null);
@@ -1862,5 +1862,17 @@ class VOController extends AbstractController
     private function resolveAtelierId(?int $atelierId = null): int
     {
         return $atelierId ?? $this->getAuthenticatedUser()?->getAtelierId() ?? 0;
+    }
+
+    // [SPRINT-4] I6 — durée par défaut mandat depuis ConfigAtelier
+    private function resolveDefaultMandatDuration(): int
+    {
+        $atelierId = $this->resolveAtelierId();
+        if ($atelierId <= 0) {
+            return 90;
+        }
+        $config = $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+
+        return $config?->getDureeDefautMandatJours() ?? 90;
     }
 }

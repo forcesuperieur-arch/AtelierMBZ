@@ -66,6 +66,21 @@
             <UFormField label="Acompte (%)"><UInput v-model="config.accompte_pourcentage" type="number" step="1" /></UFormField>
             <UFormField label="Garantie travaux (jours)"><UInput v-model="config.garantie_travaux_jours" type="number" step="1" /></UFormField>
             <UFormField label="Gardiennage / jour (€)"><UInput v-model="config.tarif_gardiennage_journalier" type="number" step="0.1" /></UFormField>
+            <!-- [SPRINT-4] I6 + I20 — Paramètres VO -->
+            <UFormField label="Durée mandat dépôt-vente (jours)" hint="Durée par défaut d'un mandat dépôt-vente à la création">
+              <UInput v-model.number="config.duree_defaut_mandat_jours" type="number" step="1" min="1" />
+            </UFormField>
+            <UFormField label="Régime TVA VO par défaut" hint="Régime fiscal appliqué par défaut sur les ventes VO">
+              <USelect
+                v-model="config.regime_tva_vo_default"
+                :options="[
+                  { label: 'TVA sur marge (Art. 297A CGI)', value: 'marge' },
+                  { label: 'TVA normale (Art. 256 CGI)', value: 'normal' },
+                ]"
+                option-attribute="label"
+                value-attribute="value"
+              />
+            </UFormField>
           </div>
         </UCard>
 
@@ -401,6 +416,8 @@ const config = ref<any>({
   accompte_pourcentage: 30,
   garantie_travaux_jours: 30,
   tarif_gardiennage_journalier: 5,
+  duree_defaut_mandat_jours: 90,
+  regime_tva_vo_default: 'marge',
   jours_fermeture_hebdo: ['sunday'],
   dates_fermeture_exceptionnelles: [],
   feature_modules: { ...DEFAULT_FEATURE_MODULES },

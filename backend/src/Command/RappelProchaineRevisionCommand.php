@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\RapportIntervention;
+use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -18,6 +19,7 @@ class RappelProchaineRevisionCommand extends Command
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private NotificationDispatcher $notificationDispatcher,
     ) {
         parent::__construct();
     }
@@ -40,21 +42,37 @@ class RappelProchaineRevisionCommand extends Command
         $count = 0;
         foreach ($rapports as $rapport) {
             $rdv = $rapport->getRendezVous();
-            $client = $rdv->getClient();
+            $client = $rdv?->getClient();
+            $vehicule = $rdv?->getVehicule();
 
-            if ($client && $client->getEmail()) {
-                // TODO: integrate with NotificationDispatcher when LOT 11 providers are configured
-                $io->note(sprintf(
-                    'Rappel: Client %s (%s) — révision prévue le %s',
-                    $client->getNom(),
-                    $client->getEmail(),
-                    $rapport->getProchaineRevisionDate()->format('d/m/Y'),
-                ));
-                $count++;
+            if (!$client || !$client->getEmail()) {
+                continue;
             }
+
+            $atelierId = $rapport->getAtelierId() ?? 0;
+            $variables = [
+                'client_prenom' => $client->getPrenom() ?? $client->getNom(),
+                'marque'        => $vehicule?->getMarque() ?? '',
+                'modele'        => $vehicule?->getModele() ?? '',
+                'date_revision' => $rapport->getProchaineRevisionDate()->format('d/m/Y'),
+                'atelier_nom'   => '',
+            ];
+
+            // [SPRINT-4] I2 — dispatch email via NotificationDispatcher
+            $this->notificationDispatcher->sendFromTemplate(
+                'rappel_prochaine_revision',
+                'email',
+                $atelierId,
+                $client->getEmail(),
+                $variables,
+                'RapportIntervention',
+                $rapport->getId(),
+            );
+
+            $count++;
         }
 
-        $io->success(sprintf('%d rappel(s) de révision identifié(s).', $count));
+        $io->success(sprintf('%d rappel(s) de révision envoyé(s).', $count));
 
         return Command::SUCCESS;
     }

@@ -137,6 +137,8 @@ export const useRdvStore = defineStore('rdv', {
         if (f.status) params.set('statut', f.status)
         if (f.mecanicien_id) params.set('mecanicien.id', String(f.mecanicien_id))
         if (f.pont_id) params.set('pont.id', String(f.pont_id))
+        // [SPRINT-4] I3 — Explicit pagination to avoid Hydra default 30-item cap
+        params.set('itemsPerPage', '200')
         const qs = params.toString()
         const raw = await api.get(`/rendez-vous${qs ? '?' + qs : ''}`)
         // API Platform may return hydra collection or plain array

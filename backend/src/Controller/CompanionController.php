@@ -6,9 +6,11 @@ use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
+use App\Message\GeneratePdfMessage;
 use App\Service\ClauseLegaleVisibilityService;
 use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +30,7 @@ class CompanionController extends AbstractController
         private RateLimiterFactory $publicCompanionLimiter,
         private ClauseLegaleVisibilityService $clauseVisibilityService,
         private WorkflowInterface $rendezVousStateMachine,
+        private MessageBusInterface $bus,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -350,6 +353,15 @@ class CompanionController extends AbstractController
         $hash = $this->ordreReparationPolicy->sign($or, $signatureData, $request);
 
         $this->em->flush();
+
+        // [SPRINT-4] I14 — Pre-generate OR PDF async after signing
+        if ($or->getId()) {
+            try {
+                $this->bus->dispatch(new GeneratePdfMessage('or', $or->getId()));
+            } catch (\Throwable) {
+                // Non-blocking
+            }
+        }
 
         return $this->json([
             'success' => true,

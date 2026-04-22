@@ -248,7 +248,8 @@ export const useVoStore = defineStore('vo', {
       this.loading = true
       try {
         const api = useApi()
-        this.purchases = await api.get('/vo/purchases')
+        // [SPRINT-4] I3 — Explicit pagination to avoid Hydra default 30-item cap
+        this.purchases = await api.get('/vo/purchases?itemsPerPage=200')
       } finally {
         this.loading = false
       }
@@ -308,7 +309,8 @@ export const useVoStore = defineStore('vo', {
       this.loading = true
       try {
         const api = useApi()
-        this.depots = await api.get('/vo/depots')
+        // [SPRINT-4] I3 — Explicit pagination to avoid Hydra default 30-item cap
+        this.depots = await api.get('/vo/depots?itemsPerPage=200')
       } finally {
         this.loading = false
       }

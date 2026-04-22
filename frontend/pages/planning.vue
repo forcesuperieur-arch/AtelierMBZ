@@ -41,8 +41,9 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <span style="color:#6B7280;font-weight:600;">Légende :</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Réservé</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(107,114,128,0.18);border:1px solid rgba(148,163,184,0.35);"></span><span style="color:#9CA3AF;">À valider</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Créneau réservé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé atelier</span></span>
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span style="color:#9CA3AF;">En cours</span></span>
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span style="color:#9CA3AF;">Terminé / historisé</span></span>
         </div>
@@ -85,31 +86,8 @@
         @select-rdv="onSelectRdv"
         @move-rdv="onMoveRdv"
         @create-at="onCreateAt"
+        @dates-changed="onWeekChanged"
       />
-
-      <UCard v-if="historicalRdvs.length" style="margin-top:20px;">
-        <template #header>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Historique figé</span>
-            <span style="font-size:12px;color:#9CA3AF;">Les RDV terminés, facturés ou annulés sont verrouillés ici.</span>
-          </div>
-        </template>
-
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button
-            v-for="rdv in historicalRdvs"
-            :key="`history-${rdv.id}`"
-            style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);text-align:left;cursor:pointer;"
-            @click="onSelectRdv(rdv)"
-          >
-            <div>
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdv.client_nom || 'Client' }} · {{ rdv.type_intervention }}</div>
-              <div style="font-size:12px;color:#9CA3AF;">{{ formatDateDisplay(rdv.date_rdv) }} à {{ rdv.heure_debut }} · {{ rdv.vehicule_info || 'Véhicule non précisé' }}</div>
-            </div>
-            <StatusBadge :status="rdv.status" />
-          </button>
-        </div>
-      </UCard>
     </template>
 
     <AppModal v-model:open="showQuickCreateModal" size="xl">
@@ -118,7 +96,7 @@
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <span style="font-weight:700;color:#E8E9ED;">Créer un RDV rapide</span>
-              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false">✕</button>
+              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showQuickCreateModal = false" />
             </div>
           </template>
 
@@ -177,7 +155,7 @@
                 />
                 <button type="button" class="btn btn-ghost" @click="searchQuickVehicle">Rechercher</button>
               </div>
-              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et prérempli.</div>
+              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et proposé.</div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -313,7 +291,7 @@
                 <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
                 <span v-if="selectedIsHistorical" style="font-size:11px;color:#10B981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
               </div>
-              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showRdvModal = false">✕</button>
+              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showRdvModal = false" />
             </div>
           </template>
 
@@ -323,10 +301,34 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
               <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
               <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span></div>
+              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span><!-- [SPRINT-4] I4 — Badge RDV web public --><span v-if="selectedRdv.source === 'web'" style="margin-left:8px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.2);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);letter-spacing:0.05em;">PUBLIC</span></div>
               <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule_info || '—' }}</span></div>
               <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
               <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);font-size:13px;">
+                <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Client et véhicule</div>
+                <div style="display:grid;gap:6px;">
+                  <div v-if="selectedRdv.client?.telephone || selectedRdv.client_telephone"><span style="color:#6B7280;">Téléphone :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client?.telephone || selectedRdv.client_telephone }}</span></div>
+                  <div v-if="selectedRdv.client?.email || selectedRdv.client_email"><span style="color:#6B7280;">Email :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client?.email || selectedRdv.client_email }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque"><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.cylindree || selectedRdv.vehicule?.annee"><span style="color:#6B7280;">Moto :</span> <span style="color:#D1D5DB;">{{ [selectedRdv.vehicule?.cylindree ? `${selectedRdv.vehicule.cylindree}cc` : '', selectedRdv.vehicule?.annee || ''].filter(Boolean).join(' · ') }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type"><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type }}</span></div>
+                </div>
+              </div>
+
+              <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);font-size:13px;">
+                <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Lecture dossier</div>
+                <div style="display:grid;gap:6px;">
+                  <div><span style="color:#6B7280;">Statut métier :</span> <span style="color:#D1D5DB;">{{ workflowStatusHint }}</span></div>
+                  <div v-if="selectedRdv.kilometrage || selectedRdv.km_reception"><span style="color:#6B7280;">Km réception :</span> <span style="color:#D1D5DB;">{{ selectedRdv.kilometrage || selectedRdv.km_reception }}</span></div>
+                  <div v-if="selectedReceptionState.observations"><span style="color:#6B7280;">État réception :</span> <span style="color:#D1D5DB;">{{ selectedReceptionState.observations }}</span></div>
+                  <div v-if="selectedReceptionState.reception_notes"><span style="color:#6B7280;">Notes réception :</span> <span style="color:#D1D5DB;">{{ selectedReceptionState.reception_notes }}</span></div>
+                  <div v-if="selectedRdv.ordresReparation?.length"><span style="color:#6B7280;">OR :</span> <span style="color:#D1D5DB;">{{ selectedRdv.ordresReparation.length }} dossier(s) lié(s)</span></div>
+                </div>
+              </div>
             </div>
 
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
@@ -374,7 +376,7 @@
               <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                   <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus">↻ Statut PDA</button>
+                  <UButton color="yellow" variant="ghost" size="sm" icon="i-heroicons-arrow-path" label="Statut PDA" @click="refreshCompanionStatus" />
                 </div>
 
                 <!-- Companion QR + Link -->
@@ -383,8 +385,8 @@
                     <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:6px;">📱 Compagnon PDA</div>
                     <p style="font-size:11px;color:#9CA3AF;margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
                     <div style="display:flex;gap:6px;align-items:center;">
-                      <input :value="companionUrl" class="form-input" style="font-size:11px;flex:1;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
-                      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl">📋</button>
+                      <input :value="companionUrl" class="form-input" style="font-size:13px;flex:1;min-height:44px;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
+                      <UButton color="gray" variant="ghost" icon="i-heroicons-clipboard-document" @click="copyCompanionUrl" style="min-height:44px;" />
                     </div>
                   </div>
                   <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
@@ -441,6 +443,9 @@
 
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
               <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Workflow atelier</div>
+              <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px;color:#CBD5E1;border:1px solid rgba(255,255,255,0.06);">
+                {{ workflowTransitionHint }}
+              </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button
                   v-for="transition in availableTransitions"
@@ -450,19 +455,64 @@
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
-                  {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
+                  {{ transitioning === transition.name ? 'Traitement…' : transitionLabel(transition) }}
                 </button>
               </div>
             </div>
 
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
               <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
-              <NuxtLink :to="`/rdv/${selectedRdv.id}`" class="btn btn-primary" style="text-decoration:none;" @click="showRdvModal = false">Ouvrir la fiche complète →</NuxtLink>
             </div>
           </div>
         </UCard>
       </template>
     </AppModal>
+    <AppModal v-model:open="showAnnulationModal" size="md">
+      <template #default>
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-xl font-bold">{{ selectedRdv?.statut === "en_attente" ? "Refuser la demande" : "Annuler le rendez-vous" }}</h3>
+              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showAnnulationModal = false" />
+            </div>
+          </template>
+
+          <form @submit.prevent="submitAnnulation" style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group">
+              <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Motif d'annulation <span style="color:#EF4444;">*</span></label>
+              <select v-model="annulationForm.motif" required style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;">
+                <option v-for="motif in ANNULATION_MOTIFS" :key="motif.value" :value="motif.value">{{ motif.label }}</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Commentaire / Détails</label>
+              <textarea v-model="annulationForm.commentaire" placeholder="Explications..." style="width:100%;min-height:80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:vertical;"></textarea>
+            </div>
+            
+            <div style="margin-top:8px;" v-if="(selectedRdv?.status ?? selectedRdv?.statut) === 'en_attente'">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#E8E9ED;">
+                <input type="checkbox" v-model="annulationForm.proposer_alternatives" style="accent-color:#F59E0B;width:16px;height:16px;" />
+                Proposer des créneaux alternatifs au client par email/SMS
+              </label>
+              
+              <div v-if="annulationForm.proposer_alternatives" class="form-group" style="margin-top:12px;">
+                <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Message / Créneaux proposés</label>
+                <textarea v-model="annulationForm.creneaux_alternatifs" placeholder="Ex: le 15/05 à 10h ou 14h. Sinon merci de choisir un nouveau créneau via le lien de prise de RDV." style="width:100%;min-height:80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:vertical;"></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+              <button type="button" class="btn btn-ghost" @click="showAnnulationModal = false">Fermer</button>
+              <button type="submit" class="btn btn-error" :disabled="transitioning !== ''">
+                Confirmer l'annulation
+              </button>
+            </div>
+          </form>
+        </UCard>
+      </template>
+    </AppModal>
+
   </div>
 </template>
 
@@ -491,6 +541,46 @@ const activeMecas = ref<number[]>([])
 const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
 
 const showRdvModal = ref(false)
+const showAnnulationModal = ref(false)
+const annulationTempName = ref("annuler")
+
+const ANNULATION_MOTIFS = [
+  { label: "Client décommandé", value: "client_desiste" },
+  { label: "Atelier indisponible", value: "atelier_indisponible" },
+  { label: "Erreur / Doublon", value: "erreur_saisie" },
+  { label: "Véhicule vendu", value: "vehicule_vendu" },
+  { label: "Conditions météo", value: "meteo" },
+  { label: "Autre", value: "autre" }
+]
+
+const annulationForm = reactive({
+  motif: "autre",
+  commentaire: "",
+  proposer_alternatives: false,
+  creneaux_alternatifs: ""
+})
+
+function confirmAnnulation(name: string) {
+  const status = selectedRdv.value?.status ?? selectedRdv.value?.statut
+  annulationTempName.value = name
+  annulationForm.motif = status === "en_attente" ? "atelier_indisponible" : "client_desiste"
+  annulationForm.commentaire = ""
+  annulationForm.proposer_alternatives = false
+  annulationForm.creneaux_alternatifs = ""
+  showRdvModal.value = false
+  showAnnulationModal.value = true
+}
+
+async function submitAnnulation() {
+  await applyTransition(annulationTempName.value, {
+    motif: annulationForm.motif,
+    commentaire: annulationForm.commentaire,
+    proposer_alternatives: annulationForm.proposer_alternatives,
+    creneaux_alternatifs: annulationForm.creneaux_alternatifs
+  })
+  showAnnulationModal.value = false
+}
+
 const showQuickCreateModal = ref(false)
 const selectedRdv = ref<any | null>(null)
 const quickSelectedPrestas = ref<number[]>([])
@@ -559,8 +649,8 @@ const {
 })
 
 const transitionCatalog: Record<string, { label: string; color: string }> = {
-  reserver: { label: '📌 Réserver', color: 'neutral' },
-  confirmer: { label: '✅ Confirmer', color: 'primary' },
+  reserver: { label: '📌 Réserver le créneau', color: 'neutral' },
+  confirmer: { label: '✅ Valider et confirmer', color: 'primary' },
   reception: { label: '📥 Réceptionner', color: 'warning' },
   start_travail: { label: '🔧 Démarrer', color: 'warning' },
   terminer: { label: '✅ Terminer', color: 'success' },
@@ -568,7 +658,24 @@ const transitionCatalog: Record<string, { label: string; color: string }> = {
   facturer: { label: '💶 Facturer', color: 'primary' },
   payer: { label: '💳 Encaisser', color: 'success' },
   annuler: { label: '❌ Annuler', color: 'error' },
+  declarer_no_show: { label: '👻 Déclarer No Show', color: 'error' },
+  reporter: { label: '📆 Reporter', color: 'neutral' },
+  mettre_en_gardiennage: { label: '🔒 Gardiennage', color: 'warning' },
+  sortir_gardiennage: { label: '🔓 Sortir gardiennage', color: 'success' },
 }
+
+const HIDDEN_RECEPTION_TRANSITIONS = [
+  'start_travail', 
+  'mettre_en_pause', 
+  'reprendre', 
+  'terminer',
+  'mettre_en_attente_pieces', 
+  'reprendre_apres_pieces', 
+  'attendre_pieces', 
+  'mettre_en_attente_reprise', 
+  'reprendre_demain',
+  'no_show' // using declarer_no_show instead
+]
 
 const canCreateRdv = computed(() => hasPerm('rdv.create'))
 const canEditRdv = computed(() => hasPerm('rdv.edit'))
@@ -576,6 +683,39 @@ const canDeleteRdv = computed(() => hasPerm('rdv.delete'))
 const selectedIsHistorical = computed(() => isHistoricalStatus(selectedRdv.value?.status ?? selectedRdv.value?.statut))
 const prestationLocked = computed(() => PRESTATION_LOCK_STATUSES.includes(selectedRdv.value?.status ?? selectedRdv.value?.statut ?? ''))
 const canDeleteSelected = computed(() => canDeleteRdv.value && !!selectedRdv.value && !selectedIsHistorical.value)
+const selectedReceptionState = computed(() => parseReceptionState(selectedRdv.value?.etat_vehicule_reception ?? selectedRdv.value?.etat_vehicule ?? selectedRdv.value?.etatVehicule))
+const hasSchedulingEdits = computed(() => {
+  if (!selectedRdv.value) return false
+  return editForm.date_rdv !== (selectedRdv.value.date_rdv || '')
+    || editForm.heure_debut !== (selectedRdv.value.heure_debut || '')
+    || toNullableNumber(editForm.pont_id) !== toNullableNumber(selectedRdv.value.pont?.id ?? selectedRdv.value.pont_id)
+})
+const workflowStatusHint = computed(() => {
+  switch (selectedRdv.value?.status ?? selectedRdv.value?.statut) {
+    case 'en_attente':
+      return 'Demande reçue, créneau pas encore bloqué'
+    case 'reserve':
+      return 'Créneau bloqué, validation comptoir encore requise'
+    case 'confirme':
+      return 'Disponibilité validée, prêt pour la réception'
+    case 'reception':
+      return 'Véhicule réceptionné, intervention prête à démarrer'
+    default:
+      return 'Suivi atelier en cours'
+  }
+})
+const workflowTransitionHint = computed(() => {
+  switch (selectedRdv.value?.status ?? selectedRdv.value?.statut) {
+    case 'en_attente':
+      return 'Demande entrante: ajuste le jour ou l’heure si nécessaire, puis réserve le créneau. Si la demande n’est pas retenue, refuse-la explicitement.'
+    case 'reserve':
+      return 'Le créneau est bloqué. Le réceptionnaire confirme si la disponibilité atelier est validée, ou reprogramme avant validation.'
+    case 'confirme':
+      return 'Le rendez-vous est validé. L’étape suivante normale est la réception physique du véhicule.'
+    default:
+      return 'Seules les transitions autorisées par le workflow sont proposées ici.'
+  }
+})
 
 function normalizeText(value: unknown): string {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -781,14 +921,9 @@ function isHistoricalStatus(status?: string) {
 const normalizedRdvs = computed(() => rawRdvs.value.map(normalizeRdv).filter(Boolean))
 
 const activePlanningRdvs = computed(() => {
-  const active = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
+  const active = normalizedRdvs.value
   if (!activeMecas.value.length) return active
   return active.filter((rdv: any) => !rdv.mecanicien_id || activeMecas.value.includes(rdv.mecanicien_id))
-})
-
-const historicalRdvs = computed(() => {
-  const all = normalizedRdvs.value.filter((rdv: any) => isHistoricalStatus(rdv.status))
-  return all.sort((a: any, b: any) => `${b.date_rdv} ${b.heure_debut}`.localeCompare(`${a.date_rdv} ${a.heure_debut}`))
 })
 
 const openDaysLabel = computed(() => {
@@ -852,6 +987,15 @@ function transitionButtonStyle(color: string) {
   return 'background:rgba(255,255,255,0.05);color:#E8E9ED;border-color:rgba(255,255,255,0.12);'
 }
 
+function transitionLabel(transition: { name: string; label: string }) {
+  const status = selectedRdv.value?.status ?? selectedRdv.value?.statut
+  if (transition.name === 'annuler' && status === 'en_attente') return '❌ Refuser la demande'
+  if (transition.name === 'reserver' && status === 'en_attente' && hasSchedulingEdits.value) return '📌 Déplacer puis réserver'
+  if (transition.name === 'reserver' && status === 'en_attente') return '📌 Réserver ce créneau'
+  if (transition.name === 'confirmer' && status === 'reserve') return '✅ Confirmer le RDV'
+  return transition.label
+}
+
 function formatCurrency(value: any) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(toNumber(value))
 }
@@ -874,8 +1018,8 @@ function toggleMeca(id: number) {
 
 function fallbackTransitionsForStatus(status?: string) {
   const byStatus: Record<string, string[]> = {
-    en_attente: ['reserver', 'confirmer', 'annuler'],
-    reserve: ['confirmer', 'reception', 'annuler'],
+    en_attente: ['reserver', 'annuler'],
+    reserve: ['confirmer', 'annuler'],
     confirme: ['reception', 'annuler'],
     reception: ['start_travail'],
     en_cours: ['terminer'],
@@ -964,6 +1108,18 @@ function consumeWorkshopQuickCreateQuery() {
   delete nextQuery.date
   delete nextQuery.time
   delete nextQuery.pontId
+  router.replace({ query: nextQuery }).catch(() => {})
+}
+
+async function openRdvFromQuery() {
+  const requestedId = Number(route.query.openRdv || 0)
+  if (!Number.isFinite(requestedId) || requestedId <= 0) return
+
+  const existing = normalizedRdvs.value.find((rdv: any) => Number(rdv.id) === requestedId)
+  await onSelectRdv(existing || { id: requestedId })
+
+  const nextQuery = { ...route.query }
+  delete nextQuery.openRdv
   router.replace({ query: nextQuery }).catch(() => {})
 }
 
@@ -1065,10 +1221,38 @@ async function refreshPlanning() {
   }
 }
 
+function getInitialWeekRange() {
+  const d = new Date()
+  const day = d.getDay() || 7
+  d.setDate(d.getDate() - day + 1)
+  const start = d.toISOString().slice(0, 10)
+  d.setDate(d.getDate() + 6)
+  const end = d.toISOString().slice(0, 10)
+  return { start, end }
+}
+
+const currentViewRange = ref(getInitialWeekRange())
+
+async function onWeekChanged(range: { start: string; end: string }) {
+  currentViewRange.value = range
+  if (!ponts.value.length && !mecaniciens.value.length) {
+    // Initial load will handle RDVs inside loadPlanningData
+  } else {
+    // Week changed, just fetch RDVs for this week
+    loading.value = true
+    try {
+      const r = await api.get(`/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${range.start}&dateRdv[before]=${range.end}`).catch(() => [])
+      rawRdvs.value = unwrapList(r)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
 async function loadPlanningData() {
   const [p, r, m, h, prestaData, configData] = await Promise.all([
     api.get('/ponts').catch(() => []),
-    api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
+    api.get(`/rendez-vous?itemsPerPage=2000&order[createdAt]=desc&dateRdv[after]=${currentViewRange.value.start || '2000-01-01'}&dateRdv[before]=${currentViewRange.value.end || '2099-12-31'}`).catch(() => []),
     api.get('/mecaniciens').catch(() => []),
     api.get('/config/horaires').catch(() => []),
     api.get('/prestations?itemsPerPage=200').catch(() => []),
@@ -1086,13 +1270,16 @@ async function loadAvailableTransitions(id: number) {
   try {
     const data = await api.get(`/rendez-vous/${id}/transitions`)
     const transitions = Array.isArray(data?.transitions) ? data.transitions : []
-    availableTransitions.value = transitions.map((name: string) => ({
-      name,
-      label: transitionCatalog[name]?.label ?? name,
-      color: transitionCatalog[name]?.color ?? 'neutral',
-    }))
+    availableTransitions.value = transitions
+      .filter((name: string) => !HIDDEN_RECEPTION_TRANSITIONS.includes(name))
+      .map((name: string) => ({
+        name,
+        label: transitionCatalog[name]?.label ?? name,
+        color: transitionCatalog[name]?.color ?? 'neutral',
+      }))
   } catch {
     availableTransitions.value = fallbackTransitionsForStatus(selectedRdv.value?.status)
+      .filter((t: any) => !HIDDEN_RECEPTION_TRANSITIONS.includes(t.name))
   }
 }
 
@@ -1182,7 +1369,7 @@ async function submitQuickCreate() {
 
     const created = await rdvStore.createRdv(payload)
     showQuickCreateModal.value = false
-    toast.add({ title: 'RDV créé', color: 'success' })
+    toast.add({ title: 'Créneau réservé', color: 'success' })
     await refreshPlanning()
     if (created?.id) await onSelectRdv(created)
   } catch (e: any) {
@@ -1230,18 +1417,37 @@ async function saveRdvChanges() {
   }
 }
 
-async function applyTransition(name: string) {
+async function applyTransition(name: string, options: any = {}) {
   if (!selectedRdv.value?.id || selectedIsHistorical.value) return
-  if (name === 'annuler' && !globalThis.confirm?.('Confirmer l\'annulation du rendez-vous ?')) return
+  const status = selectedRdv.value?.status ?? selectedRdv.value?.statut
+  if (name === "annuler" && !options.motif) {
+    confirmAnnulation(name)
+    return
+  }
 
   transitioning.value = name
   try {
     const resolvedPontId = toNullableNumber(editForm.pont_id)
     const resolvedMecanicienId = resolvePontMecanicienId(resolvedPontId) ?? toNullableNumber(editForm.mecanicien_id)
 
+    if (name === 'reserver' && hasSchedulingEdits.value) {
+      await rdvStore.updateRdv(selectedRdv.value.id, {
+        date_rdv: editForm.date_rdv,
+        dateRdv: editForm.date_rdv,
+        heure_rdv: editForm.heure_debut,
+        heure_debut: editForm.heure_debut,
+        heureRdv: `${editForm.heure_debut}:00`,
+        pont_id: resolvedPontId,
+        mecanicien_id: resolvedMecanicienId,
+        pont: resolvedPontId ? `/api/ponts/${resolvedPontId}` : null,
+        mecanicien: resolvedMecanicienId ? `/api/mecaniciens/${resolvedMecanicienId}` : null,
+      })
+    }
+
     const payload: any = {
       pont_id: resolvedPontId,
       mecanicien_id: resolvedMecanicienId,
+      ...options
     }
 
     if (name === 'reception') {
@@ -1253,7 +1459,12 @@ async function applyTransition(name: string) {
     }
 
     await api.post(`/rendez-vous/${selectedRdv.value.id}/transition/${name}`, payload)
-    toast.add({ title: 'Transition effectuée', color: 'success' })
+    const title = name === 'annuler' && status === 'en_attente'
+      ? 'Demande refusée'
+      : name === 'reserver' && hasSchedulingEdits.value
+        ? 'Demande déplacée et créneau réservé'
+        : 'Transition effectuée'
+    toast.add({ title, color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
     toast.add({ title: 'Transition impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
@@ -1290,7 +1501,7 @@ watch(() => editForm.pont_id, () => {
 })
 
 watch(() => `${quickForm.vehicule_type}|${quickForm.vehicule_cylindree}`, () => {
-  quickSelectedPrestas.value = quickSelectedPrestas.value.filter((id) => filteredQuickPrestations.value.some((presta: any) => Number(presta.id) === Number(id)))
+  quickSelectedPrestas.value = quickSelectedPrestas.value.filter((id: number) => filteredQuickPrestations.value.some((presta: any) => Number(presta.id) === Number(id)))
 })
 
 // --- Companion / Reception ---
@@ -1302,7 +1513,7 @@ const companionStatus = reactive({
 
 const isReceptionEligible = computed(() => {
   const s = selectedRdv.value?.status ?? selectedRdv.value?.statut
-  return ['confirme', 'reserve', 'reception'].includes(s)
+  return ['confirme', 'reception'].includes(s)
 })
 
 const companionUrl = computed(() => {
@@ -1313,7 +1524,7 @@ const companionUrl = computed(() => {
 })
 
 const companionQrUrl = ref('')
-watch(companionUrl, async (url) => {
+watch(companionUrl, async (url: string) => {
   if (!url) { companionQrUrl.value = ''; return }
   const { generateQrDataUrl } = await import('~/composables/useQrCode')
   companionQrUrl.value = await generateQrDataUrl(url, 200)
@@ -1339,7 +1550,7 @@ async function refreshCompanionStatus() {
 
 let companionPollInterval: ReturnType<typeof setInterval>
 
-watch(showRdvModal, (open) => {
+watch(showRdvModal, (open: boolean) => {
   clearInterval(companionPollInterval)
   if (open && isReceptionEligible.value) {
     refreshCompanionStatus()
@@ -1347,7 +1558,7 @@ watch(showRdvModal, (open) => {
   }
 })
 
-watch(isReceptionEligible, (eligible) => {
+watch(isReceptionEligible, (eligible: boolean) => {
   clearInterval(companionPollInterval)
   if (eligible && showRdvModal.value) {
     refreshCompanionStatus()
@@ -1359,8 +1570,15 @@ onMounted(async () => {
   try {
     await loadPlanningData()
     consumeWorkshopQuickCreateQuery()
+    await openRdvFromQuery()
   } finally {
     loading.value = false
+  }
+})
+
+watch(() => route.query.openRdv, async () => {
+  if (!loading.value) {
+    await openRdvFromQuery()
   }
 })
 

@@ -34,7 +34,7 @@ describe('useVoStore', () => {
     const result = await store.createDepot({ status: 'brouillon' })
 
     expect(api.post).toHaveBeenCalledWith('/vo/depots', { status: 'brouillon' })
-    expect(api.get).toHaveBeenCalledWith('/vo/depots')
+    expect(api.get).toHaveBeenCalledWith('/vo/depots?itemsPerPage=200')
     expect(store.depots).toEqual([{ id: 12, status: 'brouillon' }])
     expect(result).toEqual({ id: 12, status: 'brouillon' })
   })

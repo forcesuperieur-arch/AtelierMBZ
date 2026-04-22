@@ -29,6 +29,7 @@ class PdfService
         private EntityManagerInterface $em,
         private string $projectDir,
         private ClauseLegaleVisibilityService $clauseLegaleVisibilityService,
+        private CerfaOverlayService $cerfaOverlayService,
     ) {}
 
     /**
@@ -38,11 +39,16 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($or->getRendezVous()?->getAtelierId());
         $clauses = $this->resolveOrClauses($or->getRendezVous()?->getAtelierId());
+        // [SPRINT-5] I23 — Garantie travaux configurable
+        $configAtelier = $or->getRendezVous()?->getAtelierId()
+            ? $this->em->getRepository(\App\Entity\ConfigAtelier::class)->findOneBy(['atelierId' => $or->getRendezVous()->getAtelierId()])
+            : null;
 
         $html = $this->twig->render('pdf/ordre_reparation.html.twig', [
             'or' => $or,
             'rdv' => $or->getRendezVous(),
             'clauses' => $clauses,
+            'configAtelier' => $configAtelier,
             ...$this->buildRdvPhotoContext($or->getRendezVous()),
             ...$this->buildBrandingContext($atelier),
         ]);
@@ -171,13 +177,11 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($purchase->getAtelierId());
 
-        $html = $this->twig->render('pdf/vo_da_siv.html.twig', [
-            'purchase' => $purchase,
-            'blockers' => $blockers,
-            ...$this->buildBrandingContext($atelier),
-        ]);
+        if (!$atelier instanceof Atelier) {
+            throw new \RuntimeException('Atelier introuvable pour générer le CERFA 13751.');
+        }
 
-        return $this->renderPdf($html, 'DA-SIV-' . $purchase->getId());
+        return $this->cerfaOverlayService->generateDaSivPreparationPdf($purchase, $atelier);
     }
 
     /**
@@ -187,20 +191,22 @@ class PdfService
     {
         $atelierId = $record instanceof VOPurchase ? $record->getAtelierId() : $record->getAtelierId();
         $atelier = $this->resolveAtelier($atelierId);
-        $vehicle = $record->getVehicule();
-        $seller = $record instanceof VOPurchase ? $record->getSeller() : $record->getDeposant();
 
-        $html = $this->twig->render('pdf/vo_mandat_immatriculation.html.twig', [
-            'record' => $record,
-            'vehicle' => $vehicle,
-            'seller' => $seller,
-            'buyer' => $buyer,
-            ...$this->buildBrandingContext($atelier),
-        ]);
+        if (!$atelier instanceof Atelier) {
+            throw new \RuntimeException('Atelier introuvable pour générer le CERFA 13757.');
+        }
 
-        $reference = $record instanceof VOPurchase ? 'MANDAT-IMMAT-ACHAT-' . $record->getId() : 'MANDAT-IMMAT-DEPOT-' . $record->getId();
+        return $this->cerfaOverlayService->generateMandatImmatriculationPdf($record, $atelier, $buyer);
+    }
 
-        return $this->renderPdf($html, $reference);
+    public function generateCerfaCessionAchatPdf(VOPurchase $purchase): string
+    {
+        $atelier = $this->resolveAtelier($purchase->getAtelierId());
+        if (!$atelier instanceof Atelier) {
+            throw new \RuntimeException('Atelier introuvable pour générer le CERFA 15776 achat.');
+        }
+
+        return $this->cerfaOverlayService->generateCerfaCessionAchatPdf($purchase, $atelier);
     }
 
     /**
@@ -237,7 +243,15 @@ class PdfService
         return [
             'atelier' => $atelier,
             'logo_data_uri' => $this->resolveLogoDataUri($atelier),
+            'paddock_logo_data_uri' => $this->resolvePaddockLogoDataUri(),
+            'paddock_brand' => 'Paddock',
         ];
+    }
+
+    private function resolvePaddockLogoDataUri(): ?string
+    {
+        // PNG haute résolution rendu depuis le SVG officiel — dompdf gère mal les SVG complexes.
+        return $this->fileToDataUri($this->projectDir . '/assets/branding/paddock-logo-pdf.png');
     }
 
     private function resolveAtelier(?int $atelierId = null): ?Atelier
@@ -419,6 +433,17 @@ class PdfService
     /**
      * Render HTML to PDF and return file path.
      */
+    /**
+     * [SPRINT-4] I14 — Check if a pre-generated PDF already exists (cache hit from async worker).
+     * Returns the cached path if found, null otherwise.
+     */
+    public function getCachedPdfPath(string $filename): ?string
+    {
+        $filePath = $this->projectDir . '/var/pdf/' . $filename . '.pdf';
+
+        return is_file($filePath) ? $filePath : null;
+    }
+
     private function renderPdf(string $html, string $filename): string
     {
         $options = new Options();

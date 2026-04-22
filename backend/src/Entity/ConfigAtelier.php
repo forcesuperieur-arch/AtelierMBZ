@@ -69,6 +69,12 @@ class ConfigAtelier
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $joursFermetureHebdo = ['sunday'];
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $datesFermetureExceptionnelles = [];
 
+    // [SPRINT-4] I6 — durée par défaut du mandat dépôt-vente (jours), configurable par atelier
+    #[ORM\Column(options: ['default' => 90])] #[Groups(['config:read', 'config:write'])] private int $dureeDefautMandatJours = 90;
+
+    // [SPRINT-4] I20 — régime TVA VO par défaut : 'marge' (Art.297A) ou 'normal' (Art.256)
+    #[ORM\Column(length: 10, options: ['default' => 'marge'])] #[Groups(['config:read', 'config:write'])] private string $regimeTvaVoDefault = 'marge';
+
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -144,4 +150,10 @@ class ConfigAtelier
     public function setJoursFermetureHebdo(array $v): static { $this->joursFermetureHebdo = $v; return $this; }
     public function getDatesFermetureExceptionnelles(): array { return $this->datesFermetureExceptionnelles; }
     public function setDatesFermetureExceptionnelles(array $v): static { $this->datesFermetureExceptionnelles = $v; return $this; }
+
+    // [SPRINT-4] I6 + I20
+    public function getDureeDefautMandatJours(): int { return $this->dureeDefautMandatJours; }
+    public function setDureeDefautMandatJours(int $v): static { $this->dureeDefautMandatJours = $v; return $this; }
+    public function getRegimeTvaVoDefault(): string { return $this->regimeTvaVoDefault; }
+    public function setRegimeTvaVoDefault(string $v): static { $this->regimeTvaVoDefault = $v; return $this; }
 }

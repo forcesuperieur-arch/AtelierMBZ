@@ -1,12 +1,11 @@
 import { useAtelierStore } from '~/stores/atelier'
 
 export default defineNuxtRouteMiddleware(async (to) => {
+
   const publicRoutes = [
     '/login',
     '/public/booking',
     '/public/suivi',
-    '/public/companion',
-    '/public/vo-companion',
     '/public/demande',
     '/public/mentions-legales',
     '/public/politique-confidentialite',
@@ -20,12 +19,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const api = useApi()
   const atelierStore = useAtelierStore()
   const authBootstrapDone = useState<boolean>('auth-bootstrap-done', () => false)
+  // [SPRINT-4] I19 — Track last refresh timestamp for periodic re-auth
+  const lastAuthRefreshAt = useState<number>('auth-last-refresh', () => 0)
+  const AUTH_REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
-  const shouldRefreshAuthContext = !authBootstrapDone.value || !auth.user.value?.role_permissions
+  const isStale = Date.now() - lastAuthRefreshAt.value > AUTH_REFRESH_INTERVAL_MS
+  const shouldRefreshAuthContext = !authBootstrapDone.value || !auth.user.value?.role_permissions || isStale
   if (!isAuthenticated.value || shouldRefreshAuthContext) {
     const fetchedUser = await fetchMe()
-    authBootstrapDone.value = Boolean(fetchedUser)
-    if (!fetchedUser) return navigateTo('/login')
+    if (fetchedUser) {
+      authBootstrapDone.value = true
+      lastAuthRefreshAt.value = Date.now()
+    } else {
+      authBootstrapDone.value = false
+      return navigateTo('/login')
+    }
   }
 
   const roles = auth.user.value?.roles ?? []
