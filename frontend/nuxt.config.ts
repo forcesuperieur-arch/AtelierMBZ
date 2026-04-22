@@ -1,6 +1,10 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-04-14',
 
+  alias: {
+    '#app-manifest': './app-manifest.stub',
+  },
+
   ssr: false,
 
   modules: [
@@ -34,9 +38,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: '/api',
       mercureUrl: '/.well-known/mercure',
-      // Identifiant de l'atelier exposé sur le port 81 (booking public).
-      // Configurable via NUXT_PUBLIC_BOOKING_ATELIER_ID dans le .env.
-      bookingAtelierId: '1',
+
     },
   },
 
@@ -53,4 +55,21 @@ export default defineNuxtConfig({
   },
 
   devtools: { enabled: true },
+
+  // Evite les erreurs Vite "Failed to resolve import #app-manifest"
+  // observées en mode dev Docker lors des reloads/restarts Nuxt.
+  experimental: {
+    appManifest: false,
+  },
+
+  // Polling nécessaire pour que le hot-reload fonctionne dans Docker
+  // (les événements inotify ne sont pas transmis depuis l'hôte vers le container).
+  vite: {
+    server: {
+      watch: {
+        usePolling: true,
+        interval: 500,
+      },
+    },
+  },
 })
