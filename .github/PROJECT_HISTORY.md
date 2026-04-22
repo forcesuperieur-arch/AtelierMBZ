@@ -2,6 +2,36 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-22 — Sprint 2 audit : sécurité, guards workflow, restitution companion
+
+### Fait
+- [SPRINT-2] [C21] fix — [backend/src/Controller/PhotoController.php](backend/src/Controller/PhotoController.php) : guard path traversal dans `serve()` — `realpath()` + `str_starts_with()` vérifient que le fichier servi reste dans `var/photos/` ; 404 sinon
+- [SPRINT-2] [C12] fix — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) : upload `TYPE_PIECE_IDENTITE` / `TYPE_JUSTIFICATIF_DOMICILE` retourne désormais 422 (au lieu de 400)
+- [SPRINT-2] [C1] ajoute — [backend/src/EventSubscriber/RdvTerminationGuardSubscriber.php](backend/src/EventSubscriber/RdvTerminationGuardSubscriber.php) : guard Symfony Workflow sur `workflow.rendez_vous.guard.terminer` — bloque si essai routier non valide OU rapport d'intervention non signé par le mécanicien ; défense en profondeur s'ajoutant aux guards du controller
+- [SPRINT-2] [I5] ajoute — [backend/src/Controller/VOController.php](backend/src/Controller/VOController.php) `transitionPurchase()` : avant d'appliquer `mettre_en_vente`, appel `buildPurchaseSaleVerdict()` → 422 avec `saleVerdict` si `status !== 'vendable'`
+- [SPRINT-2] [I11] ajoute — [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) `transition()` : guard kilométrage — si `kilometrage` est présent dans le body d'une transition autre que `reception` → 400 `KILOMETRAGE_RECEPTION_ONLY`
+- [SPRINT-2] [C7] ajoute — [backend/src/Controller/CompanionController.php](backend/src/Controller/CompanionController.php) : 2 nouveaux endpoints restitution (`GET /{token}/rapport-restitution` — disponible si statut `termine` ; `POST /{token}/signature-restitution` — enregistre signature client et applique transition `restituer`)
+- [SPRINT-2] [C7] ajoute — [frontend/pages/public/companion/[token].vue](frontend/pages/public/companion/[token].vue) : section restitution auto-affichée si `rdv.statut === 'termine'` — résumé rapport (travaux, km, alertes), canvas signature client, appel `POST /signature-restitution`
+- [REFACTOR] fix — [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) : les contrôles explicites `terminer` (essai, anomalie, rapport, signature méca) ont été remontés AVANT `can()` pour garantir des codes 400 précis sans que le guard Workflow retourne 409 en premier
+- [TEST] fix — [backend/tests/Functional/VOControllerTest.php](backend/tests/Functional/VOControllerTest.php) : assertion `testUploadRejectsSensitiveIdentityDocuments` mise à jour 400 → 422
+- [TEST] test — PHPUnit backend 180/180 OK, 0 failure, 0 error — commit `cee6419`
+- [TEST] test — Vitest frontend 19/19 OK
+
+### Décisions
+- Le guard Workflow [C1] est une 2e couche de sécurité ; les guards du controller restent en place (défense en profondeur)
+- Pour [I11], le guard est côté controller (transition endpoint) et non côté entité — l'entité reste manipulable en interne (service, tests) sans exception
+- Pour [C7] restitution, le `tokenSuivi` existant est réutilisé — pas de nouveau token dédié, le statut `termine` suffisant comme discriminant d'accès
+- Pour [I5], le verdict est calculé à chaque appel `mettre_en_vente` (pas mis en cache) pour garantir la fraîcheur des données
+
+### TODO laissés
+- [ ] Frontend Companion atelier : ajouter l'étape "Conditions" avec checkboxes bloquantes avant signature (`GET /{token}/clauses`) — reporté Sprint 5
+- [ ] Frontend Companion VO : idem par partyRole — reporté Sprint 5
+- [ ] `planning.vue` : bouton "Lancer restitution PDA" (génère lien vers companion) — reporté Sprint 5
+- [ ] Tests PHPUnit `RdvTerminationGuardTest.php`, `PhotoControllerSecurityTest.php`, `CompanionRestitutionTest.php` non écrits cette session — à ajouter en Sprint 3 ou dédié
+
+### En suspens à arbitrer
+- Aucun arbitrage bloquant — Sprint 3 prêt à démarrer
+
 ## Session 2026-04-22 — Sprint 1 audit : LP mode paiement, voters DELETE, clauses Companion
 
 ### Fait
