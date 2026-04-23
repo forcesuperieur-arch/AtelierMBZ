@@ -34,7 +34,7 @@ Le projet a fortement évolué ces derniers jours sur les axes suivants : sécur
 | Async | Symfony Messenger + worker |
 | Reverse proxy | Caddy 2 |
 | Temps réel / diffusion | Mercure |
-| Email dev | MailHog |
+| Email dev | Mailpit |
 | Conteneurisation | Docker Compose |
 
 ---
@@ -112,7 +112,7 @@ docker compose up -d
 Accès locaux :
 - application : http://localhost
 - API : http://localhost/api
-- MailHog : http://127.0.0.1:8025
+- Mailpit : http://127.0.0.1:8025
 
 ### Commandes utiles
 
