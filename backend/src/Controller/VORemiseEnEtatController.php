@@ -9,6 +9,7 @@ use App\Entity\VOPurchase;
 use App\Entity\VORemiseEnEtat;
 use App\Entity\VORemiseEnEtatLigne;
 use App\Entity\VORemiseEnEtatPiece;
+use App\Infrastructure\InputNormalizer;
 use App\Service\AuditService;
 use App\Service\PrestationCatalogService;
 use App\Service\VORemiseEnEtatDocumentService;
@@ -30,6 +31,7 @@ class VORemiseEnEtatController extends AbstractController
         private VORemiseEnEtatDocumentService $documentService,
         private PrestationCatalogService $catalogService,
         private AuditService $audit,
+        private InputNormalizer $inputNormalizer,
     ) {}
 
     #[Route('/purchases/{id}/remises-en-etat', methods: ['GET'])]
@@ -248,11 +250,11 @@ class VORemiseEnEtatController extends AbstractController
         }
 
         try {
-            if (isset($data['titre'])) $campaign->setTitre($this->requiredString($data['titre'], 'Titre requis'));
+            if (isset($data['titre'])) $campaign->setTitre($this->inputNormalizer->requiredString($data['titre'], 'Titre requis'));
             if (isset($data['priority'])) $campaign->setPriority((string) $data['priority']);
-            if (array_key_exists('diagnosticNotes', $data)) $campaign->setDiagnosticNotes($this->nullableString($data['diagnosticNotes']));
-            if (array_key_exists('workshopNotes', $data)) $campaign->setWorkshopNotes($this->nullableString($data['workshopNotes']));
-            if (array_key_exists('businessNotes', $data)) $campaign->setBusinessNotes($this->nullableString($data['businessNotes']));
+            if (array_key_exists('diagnosticNotes', $data)) $campaign->setDiagnosticNotes($this->inputNormalizer->nullableString($data['diagnosticNotes']));
+            if (array_key_exists('workshopNotes', $data)) $campaign->setWorkshopNotes($this->inputNormalizer->nullableString($data['workshopNotes']));
+            if (array_key_exists('businessNotes', $data)) $campaign->setBusinessNotes($this->inputNormalizer->nullableString($data['businessNotes']));
             if (array_key_exists('plannedFor', $data)) $campaign->setPlannedFor(!empty($data['plannedFor']) ? new \DateTime((string) $data['plannedFor']) : null);
 
             if (isset($data['status'])) {
@@ -364,7 +366,7 @@ class VORemiseEnEtatController extends AbstractController
         $line->setQuantity($quantity);
         $line->setEstimatedUnitHt((string) $pricing['prix_ht']);
         $line->setEstimatedMinutes(((int) $pricing['temps_minutes']) * $quantity);
-        $line->setNotes($this->nullableString($data['notes'] ?? null));
+        $line->setNotes($this->inputNormalizer->nullableString($data['notes'] ?? null));
         $line->setSortOrder((int) ($data['sortOrder'] ?? count($campaign->getLignes()) + 1));
 
         $campaign->addLigne($line);
@@ -392,11 +394,11 @@ class VORemiseEnEtatController extends AbstractController
 
         $data = $this->parseBody($request);
         if (isset($data['quantity'])) $line->setQuantity((int) $data['quantity']);
-        if (isset($data['estimatedUnitHt'])) $line->setEstimatedUnitHt($this->decimalString($data['estimatedUnitHt']));
-        if (array_key_exists('actualTotalHt', $data)) $line->setActualTotalHt(!empty($data['actualTotalHt']) ? $this->decimalString($data['actualTotalHt']) : null);
+        if (isset($data['estimatedUnitHt'])) $line->setEstimatedUnitHt($this->inputNormalizer->decimalString($data['estimatedUnitHt']));
+        if (array_key_exists('actualTotalHt', $data)) $line->setActualTotalHt(!empty($data['actualTotalHt']) ? $this->inputNormalizer->decimalString($data['actualTotalHt']) : null);
         if (array_key_exists('actualMinutes', $data)) $line->setActualMinutes($data['actualMinutes'] !== null && $data['actualMinutes'] !== '' ? (int) $data['actualMinutes'] : null);
         if (isset($data['status'])) $line->setStatus((string) $data['status']);
-        if (array_key_exists('notes', $data)) $line->setNotes($this->nullableString($data['notes']));
+        if (array_key_exists('notes', $data)) $line->setNotes($this->inputNormalizer->nullableString($data['notes']));
         if (isset($data['sortOrder'])) $line->setSortOrder((int) $data['sortOrder']);
 
         $this->em->flush();
@@ -446,13 +448,13 @@ class VORemiseEnEtatController extends AbstractController
         try {
             $piece = new VORemiseEnEtatPiece();
             $piece->setRemiseEnEtat($campaign);
-            $piece->setLibelle($this->requiredString($data['libelle'] ?? null, 'Libelle requis'));
-            $piece->setReference($this->nullableString($data['reference'] ?? null));
+            $piece->setLibelle($this->inputNormalizer->requiredString($data['libelle'] ?? null, 'Libelle requis'));
+            $piece->setReference($this->inputNormalizer->nullableString($data['reference'] ?? null));
             $piece->setQuantity((int) ($data['quantity'] ?? 1));
-            $piece->setSupplier($this->nullableString($data['supplier'] ?? null));
-            $piece->setEstimatedUnitCostHt($this->decimalString($data['estimatedUnitCostHt'] ?? '0.00'));
+            $piece->setSupplier($this->inputNormalizer->nullableString($data['supplier'] ?? null));
+            $piece->setEstimatedUnitCostHt($this->inputNormalizer->decimalString($data['estimatedUnitCostHt'] ?? '0.00'));
             $piece->setStatus((string) ($data['status'] ?? VORemiseEnEtatPiece::STATUS_A_COMMANDER));
-            $piece->setNotes($this->nullableString($data['notes'] ?? null));
+            $piece->setNotes($this->inputNormalizer->nullableString($data['notes'] ?? null));
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], 422);
         }
@@ -482,14 +484,14 @@ class VORemiseEnEtatController extends AbstractController
 
         $data = $this->parseBody($request);
         try {
-            if (isset($data['libelle'])) $piece->setLibelle($this->requiredString($data['libelle'], 'Libelle requis'));
-            if (array_key_exists('reference', $data)) $piece->setReference($this->nullableString($data['reference']));
+            if (isset($data['libelle'])) $piece->setLibelle($this->inputNormalizer->requiredString($data['libelle'], 'Libelle requis'));
+            if (array_key_exists('reference', $data)) $piece->setReference($this->inputNormalizer->nullableString($data['reference']));
             if (isset($data['quantity'])) $piece->setQuantity((int) $data['quantity']);
-            if (array_key_exists('supplier', $data)) $piece->setSupplier($this->nullableString($data['supplier']));
-            if (isset($data['estimatedUnitCostHt'])) $piece->setEstimatedUnitCostHt($this->decimalString($data['estimatedUnitCostHt']));
-            if (array_key_exists('actualTotalCostHt', $data)) $piece->setActualTotalCostHt(!empty($data['actualTotalCostHt']) ? $this->decimalString($data['actualTotalCostHt']) : null);
+            if (array_key_exists('supplier', $data)) $piece->setSupplier($this->inputNormalizer->nullableString($data['supplier']));
+            if (isset($data['estimatedUnitCostHt'])) $piece->setEstimatedUnitCostHt($this->inputNormalizer->decimalString($data['estimatedUnitCostHt']));
+            if (array_key_exists('actualTotalCostHt', $data)) $piece->setActualTotalCostHt(!empty($data['actualTotalCostHt']) ? $this->inputNormalizer->decimalString($data['actualTotalCostHt']) : null);
             if (isset($data['status'])) $piece->setStatus((string) $data['status']);
-            if (array_key_exists('notes', $data)) $piece->setNotes($this->nullableString($data['notes']));
+            if (array_key_exists('notes', $data)) $piece->setNotes($this->inputNormalizer->nullableString($data['notes']));
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], 422);
         }
@@ -616,31 +618,6 @@ class VORemiseEnEtatController extends AbstractController
         return json_decode($content, true) ?? [];
     }
 
-    private function requiredString(mixed $value, string $message): string
-    {
-        $normalized = $this->nullableString($value);
-        if ($normalized === null) {
-            throw new \InvalidArgumentException($message);
-        }
-
-        return $normalized;
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $normalized = trim((string) $value);
-        return $normalized !== '' ? $normalized : null;
-    }
-
-    private function decimalString(mixed $value): string
-    {
-        $normalized = str_replace(',', '.', trim((string) $value));
-        if ($normalized === '' || !is_numeric($normalized)) {
-            return '0.00';
-        }
-
-        return number_format((float) $normalized, 2, '.', '');
-    }
 
     private function getCurrentUser(): ?User
     {

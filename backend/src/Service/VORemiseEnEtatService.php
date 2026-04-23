@@ -10,6 +10,8 @@ use App\Entity\VORemiseEnEtat;
 use App\Entity\VORemiseEnEtatLigne;
 use App\Entity\VORemiseEnEtatPiece;
 use App\Entity\Vehicule;
+use App\Infrastructure\EntityNormalizer;
+use App\Infrastructure\InputNormalizer;
 use Doctrine\ORM\EntityManagerInterface;
 
 class VORemiseEnEtatService
@@ -17,6 +19,8 @@ class VORemiseEnEtatService
     public function __construct(
         private EntityManagerInterface $em,
         private ?VORemiseEnEtatDocumentService $documentService = null,
+        private EntityNormalizer $entityNormalizer = new EntityNormalizer(),
+        private InputNormalizer $inputNormalizer = new InputNormalizer(),
     ) {}
 
     /**
@@ -65,9 +69,9 @@ class VORemiseEnEtatService
         $campaign->setCampaignIndex($campaignIndex);
         $campaign->setTitre($this->stringOrDefault($payload['titre'] ?? null, sprintf('Remise en etat VO #%d', $campaignIndex)));
         $campaign->setPriority($this->stringOrDefault($payload['priority'] ?? null, VORemiseEnEtat::PRIORITY_NORMALE));
-        $campaign->setDiagnosticNotes($this->nullableString($payload['diagnosticNotes'] ?? null));
-        $campaign->setWorkshopNotes($this->nullableString($payload['workshopNotes'] ?? null));
-        $campaign->setBusinessNotes($this->nullableString($payload['businessNotes'] ?? null));
+        $campaign->setDiagnosticNotes($this->inputNormalizer->nullableString($payload['diagnosticNotes'] ?? null));
+        $campaign->setWorkshopNotes($this->inputNormalizer->nullableString($payload['workshopNotes'] ?? null));
+        $campaign->setBusinessNotes($this->inputNormalizer->nullableString($payload['businessNotes'] ?? null));
 
         if ($record instanceof VOPurchase) {
             $campaign->setVoPurchase($record);
@@ -104,8 +108,8 @@ class VORemiseEnEtatService
             'diagnosticNotes' => $campaign->getDiagnosticNotes(),
             'workshopNotes' => $campaign->getWorkshopNotes(),
             'businessNotes' => $campaign->getBusinessNotes(),
-            'requestedBy' => $this->normalizeUserLite($campaign->getRequestedBy()),
-            'validatedBy' => $this->normalizeUserLite($campaign->getValidatedBy()),
+            'requestedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getRequestedBy()),
+            'validatedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getValidatedBy()),
             'requestedAt' => $campaign->getRequestedAt()->format(DATE_ATOM),
             'validatedAt' => $campaign->getValidatedAt()?->format(DATE_ATOM),
             'plannedFor' => $campaign->getPlannedFor()?->format(DATE_ATOM),
@@ -114,7 +118,7 @@ class VORemiseEnEtatService
             'closedAt' => $campaign->getClosedAt()?->format(DATE_ATOM),
             'createdAt' => $campaign->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $campaign->getUpdatedAt()->format(DATE_ATOM),
-            'vehicle' => $this->normalizeVehicleLite($vehicle),
+            'vehicle' => $this->entityNormalizer->normalizeVehiculeLite($vehicle),
             'document' => $this->normalizeDocumentState($campaign),
             'isClosed' => $campaign->isClosed(),
             'isBlockingSale' => $campaign->isBlockingSale(),
@@ -184,38 +188,6 @@ class VORemiseEnEtatService
         ];
     }
 
-    private function normalizeUserLite(?User $user): ?array
-    {
-        if (!$user instanceof User) {
-            return null;
-        }
-
-        return [
-            'id' => $user->getId(),
-            'username' => $user->getUsername(),
-            'prenom' => $user->getPrenom(),
-            'nom' => $user->getNom(),
-        ];
-    }
-
-    private function normalizeVehicleLite(?Vehicule $vehicle): ?array
-    {
-        if (!$vehicle instanceof Vehicule) {
-            return null;
-        }
-
-        return [
-            'id' => $vehicle->getId(),
-            'plaque' => $vehicle->getPlaque(),
-            'marque' => $vehicle->getMarque(),
-            'modele' => $vehicle->getModele(),
-            'vin' => $vehicle->getVin(),
-            'typeMoto' => $vehicle->getTypeMoto(),
-            'cylindree' => $vehicle->getCylindree(),
-            'categorieId' => $vehicle->getCategorie()?->getId(),
-            'categorieNom' => $vehicle->getCategorie()?->getNom(),
-        ];
-    }
 
     private function normalizeDocumentState(VORemiseEnEtat $campaign): array
     {
@@ -227,7 +199,7 @@ class VORemiseEnEtatService
             'canSign' => !$campaign->isClosed() && !$campaign->hasSignedDocument(),
             'signed' => $campaign->hasSignedDocument(),
             'signedAt' => $campaign->getSignedAt()?->format(DATE_ATOM),
-            'signedBy' => $this->normalizeUserLite($campaign->getSignedBy()),
+            'signedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getSignedBy()),
             'signedHash' => $campaign->getSignedHash(),
             'currentHash' => null,
             'outdatedSinceSignature' => false,
@@ -236,15 +208,9 @@ class VORemiseEnEtatService
         ];
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        $normalized = trim((string) $value);
-        return $normalized !== '' ? $normalized : null;
-    }
-
     private function stringOrDefault(mixed $value, string $default): string
     {
-        $normalized = $this->nullableString($value);
+        $normalized = $this->inputNormalizer->nullableString($value);
         return $normalized ?? $default;
     }
 }

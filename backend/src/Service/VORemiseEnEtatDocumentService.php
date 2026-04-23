@@ -7,6 +7,7 @@ use App\Entity\VODocument;
 use App\Entity\VORemiseEnEtat;
 use App\Entity\VORemiseEnEtatLigne;
 use App\Entity\VORemiseEnEtatPiece;
+use App\Infrastructure\EntityNormalizer;
 use Doctrine\ORM\EntityManagerInterface;
 
 class VORemiseEnEtatDocumentService
@@ -15,6 +16,7 @@ class VORemiseEnEtatDocumentService
         private EntityManagerInterface $em,
         private PdfService $pdfService,
         private VODocumentService $documentService,
+        private EntityNormalizer $entityNormalizer = new EntityNormalizer(),
     ) {}
 
     /**
@@ -32,7 +34,7 @@ class VORemiseEnEtatDocumentService
             'canSign' => !$campaign->isClosed() && !$signed,
             'signed' => $signed,
             'signedAt' => $campaign->getSignedAt()?->format(DATE_ATOM),
-            'signedBy' => $this->normalizeUser($campaign->getSignedBy()),
+            'signedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getSignedBy()),
             'signedHash' => $signedHash,
             'currentHash' => $currentHash,
             'outdatedSinceSignature' => $signed && $signedHash !== null && $signedHash !== $currentHash,
@@ -161,8 +163,8 @@ class VORemiseEnEtatDocumentService
                 'startedAt' => $campaign->getStartedAt()?->format(DATE_ATOM),
                 'completedAt' => $campaign->getCompletedAt()?->format(DATE_ATOM),
                 'closedAt' => $campaign->getClosedAt()?->format(DATE_ATOM),
-                'requestedBy' => $this->normalizeUser($campaign->getRequestedBy()),
-                'validatedBy' => $this->normalizeUser($campaign->getValidatedBy()),
+                'requestedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getRequestedBy()),
+                'validatedBy' => $this->entityNormalizer->normalizeUserLite($campaign->getValidatedBy()),
             ],
             'record' => [
                 'typeLabel' => $campaign->getSourceType() === 'purchase' ? 'Rachat' : 'Depot-vente',
@@ -276,7 +278,7 @@ class VORemiseEnEtatDocumentService
             'signatureData' => $signed ? $campaign->getSignatureData() : null,
             'signature' => [
                 'signedAt' => $signed ? $campaign->getSignedAt()?->format(DATE_ATOM) : null,
-                'signedBy' => $signed ? $this->normalizeUser($campaign->getSignedBy()) : null,
+                'signedBy' => $signed ? $this->entityNormalizer->normalizeUserLite($campaign->getSignedBy()) : null,
                 'ip' => $signed ? $campaign->getSignedIp() : null,
             ],
             'snapshot' => $snapshot,
@@ -313,22 +315,6 @@ class VORemiseEnEtatDocumentService
         return $payload;
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function normalizeUser(?User $user): ?array
-    {
-        if (!$user instanceof User) {
-            return null;
-        }
-
-        return [
-            'id' => $user->getId(),
-            'username' => $user->getUsername(),
-            'prenom' => $user->getPrenom(),
-            'nom' => $user->getNom(),
-        ];
-    }
 
     private function normalizeDecimal(string $value): string
     {

@@ -7,6 +7,7 @@ use App\Entity\Vehicule;
 use App\Entity\VODepotVente;
 use App\Entity\VODocument;
 use App\Entity\VOPurchase;
+use App\Infrastructure\InputNormalizer;
 use App\Service\VOGeneratedDocumentService;
 use App\Service\ClauseLegaleVisibilityService;
 use App\Service\VODocumentService;
@@ -31,6 +32,7 @@ class PublicVoCompanionController extends AbstractController
         private VOGeneratedDocumentService $generatedDocumentService,
         private RateLimiterFactory $publicVoCompanionLimiter,
         private ClauseLegaleVisibilityService $clauseVisibilityService,
+        private InputNormalizer $inputNormalizer,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -138,20 +140,20 @@ class PublicVoCompanionController extends AbstractController
 
         if ($record instanceof VOPurchase) {
             if ($request->request->has('idType')) {
-                $record->setSellerIdType($this->nullableString($request->request->get('idType')));
+                $record->setSellerIdType($this->inputNormalizer->nullableString($request->request->get('idType')));
             }
             if ($request->request->has('idNumber')) {
-                $record->setSellerIdNumber($this->nullableString($request->request->get('idNumber')));
+                $record->setSellerIdNumber($this->inputNormalizer->nullableString($request->request->get('idNumber')));
             }
             if ($request->request->get('idDate')) {
                 $record->setSellerIdDate(new \DateTime((string) $request->request->get('idDate')));
             }
         } else {
             if ($request->request->has('idType')) {
-                $record->setDeposantIdType($this->nullableString($request->request->get('idType')));
+                $record->setDeposantIdType($this->inputNormalizer->nullableString($request->request->get('idType')));
             }
             if ($request->request->has('idNumber')) {
-                $record->setDeposantIdNumber($this->nullableString($request->request->get('idNumber')));
+                $record->setDeposantIdNumber($this->inputNormalizer->nullableString($request->request->get('idNumber')));
             }
             if ($request->request->get('idDate')) {
                 $record->setDeposantIdDate(new \DateTime((string) $request->request->get('idDate')));
@@ -279,7 +281,7 @@ class PublicVoCompanionController extends AbstractController
             return $this->json(['error' => 'Lien invalide ou expire'], Response::HTTP_NOT_FOUND);
         }
 
-        $type = $this->nullableString($request->request->get('type'));
+        $type = $this->inputNormalizer->nullableString($request->request->get('type'));
         if ($type === null) {
             return $this->json(['error' => 'Type de document requis'], Response::HTTP_BAD_REQUEST);
         }
@@ -477,13 +479,13 @@ class PublicVoCompanionController extends AbstractController
     private function applyVehiculePayload(Vehicule $vehicule, array $data): void
     {
         if (isset($data['marque'])) {
-            $vehicule->setMarque($this->nullableString($data['marque']));
+            $vehicule->setMarque($this->inputNormalizer->nullableString($data['marque']));
         }
         if (isset($data['modele'])) {
-            $vehicule->setModele($this->nullableString($data['modele']));
+            $vehicule->setModele($this->inputNormalizer->nullableString($data['modele']));
         }
         if (isset($data['vin'])) {
-            $vin = $this->nullableString($data['vin']);
+            $vin = $this->inputNormalizer->nullableString($data['vin']);
             $vehicule->setVin($vin ? strtoupper(substr($vin, 0, 17)) : null);
         }
         if (isset($data['annee'])) {
@@ -491,23 +493,18 @@ class PublicVoCompanionController extends AbstractController
             $vehicule->setAnnee($annee > 0 ? $annee : null);
         }
         if (isset($data['cylindree'])) {
-            $vehicule->setCylindree($this->nullableString($data['cylindree']));
+            $vehicule->setCylindree($this->inputNormalizer->nullableString($data['cylindree']));
         }
         if (isset($data['type_moto'])) {
-            $vehicule->setTypeMoto($this->nullableString($data['type_moto']));
+            $vehicule->setTypeMoto($this->inputNormalizer->nullableString($data['type_moto']));
         }
         if (isset($data['plaque'])) {
-            $plaque = $this->nullableString($data['plaque']);
+            $plaque = $this->inputNormalizer->nullableString($data['plaque']);
             if ($plaque !== null) {
                 $vehicule->setPlaque($plaque);
             }
         }
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        $normalized = trim((string) ($value ?? ''));
 
-        return $normalized !== '' ? $normalized : null;
-    }
 }

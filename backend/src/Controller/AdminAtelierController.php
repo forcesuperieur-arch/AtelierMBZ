@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Atelier;
 use App\Entity\ConfigAtelier;
+use App\Infrastructure\InputNormalizer;
 use App\Service\AtelierCatalogBootstrapService;
 use App\Service\AuditService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -22,6 +23,7 @@ final class AdminAtelierController extends AbstractController
         private SluggerInterface $slugger,
         private AuditService $audit,
         private AtelierCatalogBootstrapService $atelierCatalogBootstrapService,
+        private InputNormalizer $inputNormalizer,
     ) {}
 
     #[Route('', methods: ['GET'])]
@@ -61,7 +63,7 @@ final class AdminAtelierController extends AbstractController
             return $this->json(['error' => 'Le nom de l’atelier est obligatoire'], Response::HTTP_BAD_REQUEST);
         }
 
-        $email = $this->nullableString($data['email'] ?? null);
+        $email = $this->inputNormalizer->nullableString($data['email'] ?? null);
         if ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json(['error' => 'Adresse email invalide'], Response::HTTP_BAD_REQUEST);
         }
@@ -69,17 +71,17 @@ final class AdminAtelierController extends AbstractController
         $atelier = (new Atelier())
             ->setNom($nom)
             ->setSlug($this->buildUniqueSlug((string) ($data['slug'] ?? $nom)))
-            ->setAdresse($this->nullableString($data['adresse'] ?? null))
-            ->setCp($this->nullableString($data['cp'] ?? null))
-            ->setVille($this->nullableString($data['ville'] ?? null))
-            ->setTelephone($this->nullableString($data['telephone'] ?? null))
+            ->setAdresse($this->inputNormalizer->nullableString($data['adresse'] ?? null))
+            ->setCp($this->inputNormalizer->nullableString($data['cp'] ?? null))
+            ->setVille($this->inputNormalizer->nullableString($data['ville'] ?? null))
+            ->setTelephone($this->inputNormalizer->nullableString($data['telephone'] ?? null))
             ->setEmail($email)
-            ->setSiret($this->nullableString($data['siret'] ?? null))
-            ->setTvaIntracom($this->nullableString($data['tva_intracom'] ?? $data['tvaIntracom'] ?? null))
-            ->setLogoUrl($this->nullableString($data['logo_url'] ?? $data['logoUrl'] ?? null))
-            ->setPlan($this->nullableString($data['plan'] ?? null) ?: 'starter')
-            ->setActif($this->normalizeBool($data['actif'] ?? true))
-            ->setConfigJson($this->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
+            ->setSiret($this->inputNormalizer->nullableString($data['siret'] ?? null))
+            ->setTvaIntracom($this->inputNormalizer->nullableString($data['tva_intracom'] ?? $data['tvaIntracom'] ?? null))
+            ->setLogoUrl($this->inputNormalizer->nullableString($data['logo_url'] ?? $data['logoUrl'] ?? null))
+            ->setPlan($this->inputNormalizer->nullableString($data['plan'] ?? null) ?: 'starter')
+            ->setActif($this->inputNormalizer->normalizeBool($data['actif'] ?? true))
+            ->setConfigJson($this->inputNormalizer->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
 
         // [SPRINT-5] I18 — Bloquer l'activation si SIRET ou TVA intra manquants
         if ($atelier->isActif()) {
@@ -140,26 +142,26 @@ final class AdminAtelierController extends AbstractController
             $atelier->setSlug($this->buildUniqueSlug((string) $data['slug'], $atelier->getId()));
         }
 
-        if (array_key_exists('adresse', $data)) $atelier->setAdresse($this->nullableString($data['adresse']));
-        if (array_key_exists('cp', $data)) $atelier->setCp($this->nullableString($data['cp']));
-        if (array_key_exists('ville', $data)) $atelier->setVille($this->nullableString($data['ville']));
-        if (array_key_exists('telephone', $data)) $atelier->setTelephone($this->nullableString($data['telephone']));
+        if (array_key_exists('adresse', $data)) $atelier->setAdresse($this->inputNormalizer->nullableString($data['adresse']));
+        if (array_key_exists('cp', $data)) $atelier->setCp($this->inputNormalizer->nullableString($data['cp']));
+        if (array_key_exists('ville', $data)) $atelier->setVille($this->inputNormalizer->nullableString($data['ville']));
+        if (array_key_exists('telephone', $data)) $atelier->setTelephone($this->inputNormalizer->nullableString($data['telephone']));
         if (array_key_exists('email', $data)) {
-            $email = $this->nullableString($data['email']);
+            $email = $this->inputNormalizer->nullableString($data['email']);
             if ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return $this->json(['error' => 'Adresse email invalide'], Response::HTTP_BAD_REQUEST);
             }
             $atelier->setEmail($email);
         }
-        if (array_key_exists('siret', $data)) $atelier->setSiret($this->nullableString($data['siret']));
+        if (array_key_exists('siret', $data)) $atelier->setSiret($this->inputNormalizer->nullableString($data['siret']));
         if (array_key_exists('tva_intracom', $data) || array_key_exists('tvaIntracom', $data)) {
-            $atelier->setTvaIntracom($this->nullableString($data['tva_intracom'] ?? $data['tvaIntracom'] ?? null));
+            $atelier->setTvaIntracom($this->inputNormalizer->nullableString($data['tva_intracom'] ?? $data['tvaIntracom'] ?? null));
         }
         if (array_key_exists('logo_url', $data) || array_key_exists('logoUrl', $data)) {
-            $atelier->setLogoUrl($this->nullableString($data['logo_url'] ?? $data['logoUrl'] ?? null));
+            $atelier->setLogoUrl($this->inputNormalizer->nullableString($data['logo_url'] ?? $data['logoUrl'] ?? null));
         }
-        if (array_key_exists('plan', $data)) $atelier->setPlan($this->nullableString($data['plan']) ?: 'starter');
-        if (array_key_exists('actif', $data)) $atelier->setActif($this->normalizeBool($data['actif']));
+        if (array_key_exists('plan', $data)) $atelier->setPlan($this->inputNormalizer->nullableString($data['plan']) ?: 'starter');
+        if (array_key_exists('actif', $data)) $atelier->setActif($this->inputNormalizer->normalizeBool($data['actif']));
 
         // [SPRINT-5] I18 — Bloquer l'activation si SIRET ou TVA intra manquants
         if ($atelier->isActif()) {
@@ -171,7 +173,7 @@ final class AdminAtelierController extends AbstractController
             }
         }
         if (array_key_exists('config_json', $data) || array_key_exists('configJson', $data)) {
-            $atelier->setConfigJson($this->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
+            $atelier->setConfigJson($this->inputNormalizer->nullableString($data['config_json'] ?? $data['configJson'] ?? null));
         }
 
         $this->em->flush();
@@ -230,21 +232,6 @@ final class AdminAtelierController extends AbstractController
         }
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $normalized = trim((string) $value);
-
-        return $normalized !== '' ? $normalized : null;
-    }
-
-    private function normalizeBool(mixed $value): bool
-    {
-        return !in_array($value, [false, 0, '0', 'false', 'off', null], true);
-    }
 
     private function serializeAtelier(Atelier $atelier, bool $hasConfig): array
     {
