@@ -61,7 +61,7 @@
 
               <template v-else-if="restitutionData">
                 <p class="text-md-muted mb-2">Signez ci-dessous pour confirmer la restitution :</p>
-                <div class="sig-canvas-wrapper" class="mb-2">
+                <div class="sig-canvas-wrapper mb-2">
                   <canvas
                     ref="sigCanvasRestitution"
                     width="320"
@@ -74,7 +74,7 @@
                   ></canvas>
                 </div>
                 <div class="flex-wrap-gap">
-                  <button class="companion-capture-btn" class="flex-1" @click="clearRestitutionSignature">Effacer</button>
+                  <button class="companion-capture-btn flex-1" @click="clearRestitutionSignature">Effacer</button>
                   <button
                     class="companion-capture-btn"
                     style="flex:2;background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.4);color:#6EE7B7;"
@@ -213,8 +213,7 @@
                   </div>
                 </div>
                 <button
-                  class="companion-validate-btn"
-                  class="mt-3"
+                  class="companion-validate-btn mt-3"
                   :disabled="ocrSaving"
                   @click="applyOcrData"
                 >
@@ -249,7 +248,7 @@
               </button>
             </div>
 
-            <div class="ocr-field" class="mt-3">
+            <div class="ocr-field mt-3">
               <label>Notes checkup</label>
               <textarea
                 v-model="checkupNotes"
@@ -260,8 +259,8 @@
             </div>
 
             <button
-              class="companion-validate-btn"
-              class="mt-3"
+              class="companion-validate-btn mt-3"
+              
               :disabled="checkupSaving"
               @click="saveCheckup"
             >
@@ -301,7 +300,7 @@
               </div>
 
               <div class="flex-wrap-gap">
-                <button class="companion-capture-btn" class="flex-1" @click="clearSignature">
+                <button class="companion-capture-btn flex-1" @click="clearSignature">
                   <span>↺ Effacer</span>
                 </button>
                 <button

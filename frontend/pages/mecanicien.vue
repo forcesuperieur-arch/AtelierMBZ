@@ -14,20 +14,20 @@
         </NuxtLink>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;width:100%;">
-        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
-          <div class="text-xs-subtle" class="mb-1">EN COURS</div>
+        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle mb-1">EN COURS</div>
           <div style="font-size:22px;font-weight:700;color:#F59E0B;">{{ kpis.enCours }}</div>
         </div>
-        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
-          <div class="text-xs-subtle" class="mb-1">À FAIRE</div>
+        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle mb-1">À FAIRE</div>
           <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ kpis.aFaire }}</div>
         </div>
-        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
-          <div class="text-xs-subtle" class="mb-1">TERMINÉS</div>
+        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle mb-1">TERMINÉS</div>
           <div style="font-size:22px;font-weight:700;color:#10B981;">{{ kpis.termines }}</div>
         </div>
-        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
-          <div class="text-xs-subtle" class="mb-1">JOURNÉE</div>
+        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle mb-1">JOURNÉE</div>
           <div style="font-size:22px;font-weight:700;color:#FFD200;">{{ kpis.pctDone }}%</div>
         </div>
       </div>
@@ -122,7 +122,7 @@
             <span class="header-md">Checkup Express</span>
             <span class="text-xs-subtle">{{ checkupDone }}/{{ checkupItems.length }} vérifiés</span>
           </div>
-          <div class="text-xs-subtle" class="mb-2">Le rapport est enregistré dans le dossier atelier.</div>
+          <div class="text-xs-subtle mb-2">Le rapport est enregistré dans le dossier atelier.</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <div v-for="item in checkupItems" :key="item.key" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);font-size:12px;cursor:pointer;" :style="{ background: checkup[item.key] === 'ok' ? 'rgba(16,185,129,0.06)' : checkup[item.key] === 'nok' ? 'rgba(239,68,68,0.06)' : 'transparent' }" @click="cycleCheckup(item.key)">
               <span v-if="checkup[item.key] === 'ok'" style="color:#10B981;">✅</span>
@@ -142,15 +142,15 @@
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
             <div>
-              <label class="text-xs-subtle" class="block-mb-2">Km départ</label>
+              <label class="text-xs-subtle block-mb-2">Km départ</label>
               <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" />
             </div>
             <div>
-              <label class="text-xs-subtle" class="block-mb-2">Km retour</label>
+              <label class="text-xs-subtle block-mb-2">Km retour</label>
               <input v-model.number="essaiForm.kmFin" type="number" class="form-input" />
             </div>
             <div>
-              <label class="text-xs-subtle" class="block-mb-2">Durée (min)</label>
+              <label class="text-xs-subtle block-mb-2">Durée (min)</label>
               <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" />
             </div>
           </div>
@@ -172,7 +172,7 @@
           </div>
           <div v-if="essaiHasNok" style="margin-top:12px;">
             <label style="font-size:13px;color:#E8E9ED;font-weight:600;display:block;margin-bottom:6px;">Actions correctives</label>
-            <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="3" placeholder="Décrire les corrections effectuées…" class="form-input w-full" />
+            <textarea v-model="essaiForm.actionsCorrectives" class="form-input w-full" rows="3" placeholder="Décrire les corrections effectuées…" />
           </div>
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;">
             <span style="font-size:12px;color:#9CA3AF;line-height:1.4;">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
@@ -193,7 +193,7 @@
             <span style="font-size:15px;font-weight:600;color:#E8E9ED;">Travaux complémentaires</span>
             <UButton :label="showSupplementaryForm ? 'Fermer' : 'Créer une demande'" color="neutral" variant="outline" size="sm" @click="showSupplementaryForm = !showSupplementaryForm" class="min-h-11" />
           </div>
-          <div class="text-xs-subtle" class="mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
+          <div class="text-xs-subtle mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
           <div v-if="showSupplementaryForm" style="display:grid;gap:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
             <textarea v-model="supplementaryForm.description" class="form-input" rows="3" placeholder="Décrire le problème constaté, le risque et la recommandation technique…" />
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">
@@ -322,30 +322,30 @@
           <div v-else style="display:flex;flex-direction:column;gap:16px;">
             <!-- Travaux réalisés -->
             <div>
-              <label class="form-label" class="block-mb-1">Travaux réalisés <span class="text-danger">*</span></label>
+              <label class="form-label block-mb-1">Travaux réalisés <span class="text-danger">*</span></label>
               <textarea v-model="rapportForm.travauxRealises" class="form-input" rows="4" placeholder="Décrire précisément les travaux effectués…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Alertes -->
             <div>
-              <label class="form-label" class="block-mb-1">Alertes importantes</label>
+              <label class="form-label block-mb-1">Alertes importantes</label>
               <textarea v-model="rapportForm.alertes" class="form-input" rows="2" placeholder="Points à surveiller, anomalies, recommandations urgentes…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Recommandations -->
             <div>
-              <label class="form-label" class="block-mb-1">Recommandations prochaine visite <span class="text-danger">*</span></label>
+              <label class="form-label block-mb-1">Recommandations prochaine visite <span class="text-danger">*</span></label>
               <textarea v-model="rapportForm.recommandations" class="form-input" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Kilométrage restitution + prochaine révision -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
-                <label class="form-label" class="block-mb-1">Km restitution</label>
+                <label class="form-label block-mb-1">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signatureMecanicien" />
               </div>
               <div>
-                <label class="form-label" class="block-mb-1">Prochaine révision (km)</label>
+                <label class="form-label block-mb-1">Prochaine révision (km)</label>
                 <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" placeholder="ex: 26500" :disabled="!!rapport.signatureMecanicien" />
               </div>
             </div>
@@ -355,15 +355,15 @@
               <div style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:12px;">🏍 Essai routier</div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
                 <div>
-                  <label class="text-xs-subtle" class="block-mb-2">Km départ</label>
+                  <label class="text-xs-subtle block-mb-2">Km départ</label>
                   <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
                 <div>
-                  <label class="text-xs-subtle" class="block-mb-2">Km retour</label>
+                  <label class="text-xs-subtle block-mb-2">Km retour</label>
                   <input v-model.number="essaiForm.kmFin" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
                 <div>
-                  <label class="text-xs-subtle" class="block-mb-2">Durée (min)</label>
+                  <label class="text-xs-subtle block-mb-2">Durée (min)</label>
                   <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
               </div>
@@ -385,7 +385,7 @@
                 </button>
               </div>
               <div v-if="essaiHasNok" class="mt-2">
-                <label class="text-xs-subtle" class="block-mb-2">Actions correctives</label>
+                <label class="text-xs-subtle block-mb-2">Actions correctives</label>
                 <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="2" placeholder="Décrire les corrections effectuées…" :disabled="!!rapport.signatureMecanicien" />
               </div>
             </div>

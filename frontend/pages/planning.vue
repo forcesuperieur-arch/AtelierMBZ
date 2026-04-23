@@ -109,12 +109,12 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Fin estimée</label>
-                <div class="form-input" class="form-input-static">{{ quickEstimatedEnd }}</div>
+                <div class="form-input form-input-static">{{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
             <div class="panel-sm">
-              <div class="form-label" class="mb-1">Recherche client</div>
+              <div class="form-label mb-1">Recherche client</div>
               <input
                 v-model="quickClientSearch"
                 type="text"
@@ -140,7 +140,7 @@
             </div>
 
             <div class="panel-sm">
-              <div class="form-label" class="mb-1">Recherche véhicule par plaque / VIN</div>
+              <div class="form-label mb-1">Recherche véhicule par plaque / VIN</div>
               <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
                 <input
                   v-model="quickVehicleSearch"
@@ -230,7 +230,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Mécanicien affecté</label>
-                <div class="form-input" class="form-input-static">{{ quickAssignedMecanicienLabel }}</div>
+                <div class="form-input form-input-static">{{ quickAssignedMecanicienLabel }}</div>
               </div>
             </div>
 
@@ -361,11 +361,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Mécanicien affecté</label>
-                  <div class="form-input" class="form-input-static">{{ editAssignedMecanicienLabel }}</div>
+                  <div class="form-input form-input-static">{{ editAssignedMecanicienLabel }}</div>
                 </div>
               </div>
 
-              <div class="form-group" class="mt-3">
+              <div class="form-group mt-3">
                 <label class="form-label">Motif client</label>
                 <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
               </div>
@@ -421,7 +421,7 @@
                     <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
                   </div>
                 </div>
-                <div class="form-group" class="mt-3">
+                <div class="form-group mt-3">
                   <label class="form-label">Notes réception</label>
                   <textarea v-model="receptionForm.notes_reception" class="form-input" rows="2" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
                 </div>
@@ -498,7 +498,7 @@
                 Proposer des créneaux alternatifs au client par email/SMS
               </label>
               
-              <div v-if="annulationForm.proposer_alternatives" class="form-group" class="mt-3">
+              <div v-if="annulationForm.proposer_alternatives" class="form-group mt-3">
                 <label class="form-label" style="margin-bottom:6px;display:block;">Message / Créneaux proposés</label>
                 <textarea v-model="annulationForm.creneaux_alternatifs" placeholder="Ex: le 15/05 à 10h ou 14h. Sinon merci de choisir un nouveau créneau via le lien de prise de RDV." style="width:100%;min-height:80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:vertical;"></textarea>
               </div>

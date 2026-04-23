@@ -27,8 +27,8 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
-          <NuxtLink class="btn btn-primary" to="/planning" class="no-underline">Ouvrir le planning</NuxtLink>
-          <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" class="no-underline">+ RDV rapide</NuxtLink>
+          <NuxtLink class="btn btn-primary no-underline" to="/planning">Ouvrir le planning</NuxtLink>
+          <NuxtLink class="btn btn-ghost no-underline" :to="buildPlanningCreateLink()">+ RDV rapide</NuxtLink>
         </div>
         <div class="text-md-muted">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
       </div>
@@ -276,7 +276,7 @@
                   <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — {{ rdv.type_intervention || 'atelier' }}</div>
                   <div style="font-size:11px;color:#FCA5A5;margin-top:2px;">+{{ formatDuration(rdvOverrunMinutes(rdv)) }} de dépassement</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Voir →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost text-md-muted no-underline">Voir →</NuxtLink>
               </div>
             </div>
           </div>
@@ -294,7 +294,7 @@
                   <div class="header-md">{{ rdvClientName(rdv) }}</div>
                   <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — {{ formatHourLabel(rdv.heure_rdv) }}</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Ouvrir →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost text-md-muted no-underline">Ouvrir →</NuxtLink>
               </div>
             </div>
           </div>
@@ -313,7 +313,7 @@
                   <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — prévu à {{ formatHourLabel(rdv.heure_rdv) }}</div>
                   <div style="font-size:11px;color:#FCD34D;margin-top:2px;">+{{ formatDuration(rdvRetardMinutes(rdv)) }} sans réception</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Réceptionner →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost text-md-muted no-underline">Réceptionner →</NuxtLink>
               </div>
             </div>
           </div>
@@ -339,8 +339,7 @@
                   <NuxtLink
                     v-if="d.rendezVous?.id"
                     :to="`/planning?openRdv=${d.rendezVous.id}`"
-                    class="btn btn-ghost"
-                    class="text-md-muted no-underline"
+                    class="btn btn-ghost text-md-muted no-underline"
                   >Voir le RDV →</NuxtLink>
                 </div>
               </div>
@@ -361,7 +360,7 @@
                   <div class="text-md-muted">OR {{ or.numeroOr ?? or.numero_or }} — {{ or.snapVehiculeMarque ?? or.snap_vehicule_marque ?? '' }} {{ or.snapVehiculeModele ?? or.snap_vehicule_modele ?? '' }}</div>
                   <div v-if="or.motifRectification ?? or.motif_rectification" style="font-size:11px;color:#5EEAD4;margin-top:2px;">Motif : {{ or.motifRectification ?? or.motif_rectification }}</div>
                 </div>
-                <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Ouvrir l'OR →</NuxtLink>
+                <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost text-md-muted no-underline">Ouvrir l'OR →</NuxtLink>
               </div>
             </div>
           </div>
@@ -439,8 +438,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
               <NuxtLink
                 :to="`/planning?openRdv=${rdv.id}`"
-                class="btn btn-ghost"
-                class="text-md-muted no-underline"
+                class="btn btn-ghost text-md-muted no-underline"
               >
                 Voir le dossier →
               </NuxtLink>
