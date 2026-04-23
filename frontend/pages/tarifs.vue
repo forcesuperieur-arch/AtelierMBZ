@@ -121,8 +121,8 @@ async function loadPrestations() {
       prix_base_ht: Number(p.prix_base_ht ?? 0),
       prix_base_ttc: Number(p.prix_base_ttc ?? 0),
     }))
-  } catch (e: any) {
-    errorMessage.value = e?.message || 'La grille tarifaire n’a pas pu être chargée.'
+  } catch (e: unknown) {
+    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'La grille tarifaire n’a pas pu être chargée.'
     toast.add({ title: 'Erreur tarifs', description: errorMessage.value, color: 'error' })
   } finally {
     loading.value = false

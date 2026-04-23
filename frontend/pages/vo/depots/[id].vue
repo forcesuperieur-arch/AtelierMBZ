@@ -417,8 +417,8 @@ async function extendMandate() {
     })
     toast.add({ title: 'Mandat prolongé', color: 'success' })
     await loadDetail()
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -429,8 +429,8 @@ async function restituerDepot() {
     })
     toast.add({ title: 'Dépôt restitué', color: 'success' })
     await loadDetail()
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -450,8 +450,8 @@ async function sellVehicle() {
     toast.add({ title: 'Vente enregistrée', color: 'success' })
     await loadDetail()
     showSale.value = false
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     selling.value = false
   }

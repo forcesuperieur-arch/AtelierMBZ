@@ -1,8 +1,8 @@
 <template>
-  <div style="padding-bottom: 90px;">
+  <div class="pb-24">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(139,92,246,0.15);border:2px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#C4B5FD;">{{ initials }}</div>
+        <div class="avatar-circle">{{ initials }}</div>
         <div>
           <div class="page-title">Espace Mécanicien</div>
           <div style="font-size:12px;color:#6B7280;">{{ todayLabel }}</div>
@@ -10,31 +10,31 @@
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <NuxtLink to="/profile" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);" title="Mon profil">
-          <UIcon name="i-heroicons-user-circle" style="width:20px;height:20px;" />
+          <UIcon name="i-heroicons-user-circle" class="w-5 h-5" />
         </NuxtLink>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;width:100%;">
-        <div class="stat-card" style="flex:1;padding:12px;min-width:70px;">
-          <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">EN COURS</div>
+        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle" class="mb-1">EN COURS</div>
           <div style="font-size:22px;font-weight:700;color:#F59E0B;">{{ kpis.enCours }}</div>
         </div>
-        <div class="stat-card" style="flex:1;padding:12px;min-width:70px;">
-          <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">À FAIRE</div>
+        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle" class="mb-1">À FAIRE</div>
           <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ kpis.aFaire }}</div>
         </div>
-        <div class="stat-card" style="flex:1;padding:12px;min-width:70px;">
-          <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">TERMINÉS</div>
+        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle" class="mb-1">TERMINÉS</div>
           <div style="font-size:22px;font-weight:700;color:#10B981;">{{ kpis.termines }}</div>
         </div>
-        <div class="stat-card" style="flex:1;padding:12px;min-width:70px;">
-          <div style="font-size:11px;color:#6B7280;margin-bottom:4px;">JOURNÉE</div>
+        <div class="stat-card" class="flex-1 card-sm" style="min-width:70px;">
+          <div class="text-xs-subtle" class="mb-1">JOURNÉE</div>
           <div style="font-size:22px;font-weight:700;color:#FFD200;">{{ kpis.pctDone }}%</div>
         </div>
       </div>
     </div>
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">
-      <span style="color:#6B7280;">Chargement...</span>
+      <span class="text-subtle">Chargement...</span>
     </div>
 
     <div v-else>
@@ -54,20 +54,20 @@
             <span style="font-size:16px;font-weight:700;color:#F59E0B;min-height:44px;display:flex;align-items:center;">🔧 {{ activeRdvStatusTitle }}</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:44px;">
               <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" style="font-size:13px;color:#FFD200;text-decoration:none;font-weight:600;padding:12px 16px;background:rgba(255,210,0,0.1);border-radius:8px;">📋 Dossier atelier</NuxtLink>
-              <span style="font-size:12px;padding:8px 14px;border-radius:999px;font-weight:700;" :style="activeRdvStatusStyle">{{ activeRdvStatusLabel }}</span>
-              <span style="font-size:12px;padding:8px 14px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
+              <span class="badge-pill" :style="activeRdvStatusStyle">{{ activeRdvStatusLabel }}</span>
+              <span class="badge-pill" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
             </div>
           </div>
         </template>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;font-size:13px;">
-          <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ activeRdv.client_nom }}</span></div>
-          <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ activeRdv.vehicule_info }}</span></div>
-          <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ activeRdv.type_intervention }}</span></div>
-          <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ activeRdv.pont_nom }}</span></div>
+          <div><span class="text-subtle">Client :</span> <span class="text-value">{{ activeRdv.client_nom }}</span></div>
+          <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ activeRdv.vehicule_info }}</span></div>
+          <div><span class="text-subtle">Type :</span> <span class="text-value">{{ activeRdv.type_intervention }}</span></div>
+          <div><span class="text-subtle">Pont :</span> <span class="text-value">{{ activeRdv.pont_nom }}</span></div>
         </div>
         <div v-if="activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire" style="margin-top:12px;font-size:13px;">
-          <span style="color:#6B7280;">Motif client :</span>
-          <p style="color:#D1D5DB;">{{ activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire }}</p>
+          <span class="text-subtle">Motif client :</span>
+          <p class="text-value">{{ activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire }}</p>
         </div>
 
         <div v-if="activeRdv.status !== 'en_cours'" style="margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:#D1D5DB;">
@@ -81,16 +81,16 @@
             <span style="font-size:11px;padding:3px 8px;border-radius:999px;" :style="{ background: activeRdv.or_signe ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: activeRdv.or_signe ? '#6EE7B7' : '#FCA5A5' }">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px;">
-            <div v-if="activeRdv.vehicule_plaque"><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ activeRdv.vehicule_plaque }}</span></div>
-            <div v-if="activeRdv.km_reception !== null"><span style="color:#6B7280;">Km réception :</span> <span style="color:#D1D5DB;">{{ activeRdv.km_reception }}</span></div>
-            <div v-if="receptionPriority"><span style="color:#6B7280;">Priorité :</span> <span style="color:#D1D5DB;">{{ receptionPriority }}</span></div>
-            <div v-if="receptionFuelLevel"><span style="color:#6B7280;">Carburant :</span> <span style="color:#D1D5DB;">{{ receptionFuelLevel }}</span></div>
+            <div v-if="activeRdv.vehicule_plaque"><span class="text-subtle">Plaque :</span> <span class="text-value">{{ activeRdv.vehicule_plaque }}</span></div>
+            <div v-if="activeRdv.km_reception !== null"><span class="text-subtle">Km réception :</span> <span class="text-value">{{ activeRdv.km_reception }}</span></div>
+            <div v-if="receptionPriority"><span class="text-subtle">Priorité :</span> <span class="text-value">{{ receptionPriority }}</span></div>
+            <div v-if="receptionFuelLevel"><span class="text-subtle">Carburant :</span> <span class="text-value">{{ receptionFuelLevel }}</span></div>
           </div>
           <div v-if="receptionPoints.length" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
-            <span v-for="(point, idx) in receptionPoints" :key="`${idx}-${point}`" style="padding:4px 8px;border-radius:999px;font-size:11px;background:rgba(255,255,255,0.05);color:#D1D5DB;">{{ point }}</span>
+            <span v-for="(point, idx) in receptionPoints" :key="`${idx}-${point}`" class="badge-pill text-value">{{ point }}</span>
           </div>
           <div v-if="receptionObservations" style="margin-top:10px;font-size:12px;color:#D1D5DB;">
-            <span style="color:#6B7280;">Observations :</span> {{ receptionObservations }}
+            <span class="text-subtle">Observations :</span> {{ receptionObservations }}
           </div>
         </div>
 
@@ -111,7 +111,7 @@
             <span>{{ formatDuration(elapsedMin) }} écoulées</span>
             <span>{{ formatDuration(activeRdv.temps_estime) }} estimées</span>
           </div>
-          <div v-if="progressPct > 100" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
+          <div v-if="progressPct > 100" class="mt-2 bg-danger-soft rounded text-md-danger">
             ⚠️ Dépassement +{{ formatDuration(elapsedMin - activeRdv.temps_estime) }} — intervention en retard
           </div>
         </div>
@@ -119,38 +119,38 @@
         <!-- Checkup Express -->
         <div style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:13px;font-weight:600;color:#E8E9ED;">Checkup Express</span>
-            <span style="font-size:11px;color:#6B7280;">{{ checkupDone }}/{{ checkupItems.length }} vérifiés</span>
+            <span class="header-md">Checkup Express</span>
+            <span class="text-xs-subtle">{{ checkupDone }}/{{ checkupItems.length }} vérifiés</span>
           </div>
-          <div style="font-size:11px;color:#6B7280;margin-bottom:8px;">Le rapport est enregistré dans le dossier atelier.</div>
+          <div class="text-xs-subtle" class="mb-2">Le rapport est enregistré dans le dossier atelier.</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <div v-for="item in checkupItems" :key="item.key" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);font-size:12px;cursor:pointer;" :style="{ background: checkup[item.key] === 'ok' ? 'rgba(16,185,129,0.06)' : checkup[item.key] === 'nok' ? 'rgba(239,68,68,0.06)' : 'transparent' }" @click="cycleCheckup(item.key)">
               <span v-if="checkup[item.key] === 'ok'" style="color:#10B981;">✅</span>
-              <span v-else-if="checkup[item.key] === 'nok'" style="color:#EF4444;">❌</span>
-              <span v-else style="color:#6B7280;">⬜</span>
-              <span style="color:#D1D5DB;">{{ item.label }}</span>
+              <span v-else-if="checkup[item.key] === 'nok'" class="text-danger">❌</span>
+              <span v-else class="text-subtle">⬜</span>
+              <span class="text-value">{{ item.label }}</span>
             </div>
           </div>
           <UButton label="💾 Sauvegarder le Checkup" color="info" variant="outline" size="md" @click="persistWorkshopReport()" :loading="persistingCheckup" style="margin-top:12px;width:100%;justify-content:center;height:44px;font-weight:600;" />
         </div>
 
         <!-- Essai routier atelier -->
-        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <div class="section-divider">
+          <div class="flex-between-wrap flex-wrap-gap mb-2">
             <label style="font-size:13px;font-weight:600;color:#E8E9ED;display:block;">🏍 Essai routier atelier</label>
-            <span style="font-size:11px;color:#6B7280;">{{ essaiFilledCount }}/{{ essaiPoints.length }} points renseignés</span>
+            <span class="text-xs-subtle">{{ essaiFilledCount }}/{{ essaiPoints.length }} points renseignés</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
             <div>
-              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km départ</label>
+              <label class="text-xs-subtle" class="block-mb-2">Km départ</label>
               <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" />
             </div>
             <div>
-              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km retour</label>
+              <label class="text-xs-subtle" class="block-mb-2">Km retour</label>
               <input v-model.number="essaiForm.kmFin" type="number" class="form-input" />
             </div>
             <div>
-              <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Durée (min)</label>
+              <label class="text-xs-subtle" class="block-mb-2">Durée (min)</label>
               <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" />
             </div>
           </div>
@@ -158,7 +158,7 @@
             <button
               v-for="pt in essaiPoints" :key="`active-${pt.key}`"
               type="button"
-              style="padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;min-height:44px;gap:8px;"
+              class="btn btn-outline flex-center-gap min-h-11"
               :style="{
                 background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)',
                 border: essaiForm.pointsControle[pt.key] === 'ok' ? '1px solid rgba(16,185,129,0.25)' : essaiForm.pointsControle[pt.key] === 'nok' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.1)',
@@ -166,13 +166,13 @@
               }"
               @click="cycleEssaiPoint(pt.key)"
             >
-              <span style="font-size:18px;">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
+              <span class="text-xl">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
               {{ pt.label }}
             </button>
           </div>
           <div v-if="essaiHasNok" style="margin-top:12px;">
             <label style="font-size:13px;color:#E8E9ED;font-weight:600;display:block;margin-bottom:6px;">Actions correctives</label>
-            <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="3" placeholder="Décrire les corrections effectuées…" style="padding:12px;width:100%;font-size:14px;" />
+            <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="3" placeholder="Décrire les corrections effectuées…" class="form-input w-full" />
           </div>
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;">
             <span style="font-size:12px;color:#9CA3AF;line-height:1.4;">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
@@ -180,51 +180,51 @@
         </div>
 
         <!-- Intervention notes -->
-        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+        <div class="section-divider">
           <label style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:6px;display:block;">Notes intervention</label>
           <textarea v-model="interventionNotes" class="form-input" rows="2" placeholder="Notes techniques, observations…" />
-          <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-            <UButton label="Sauvegarder" color="neutral" variant="outline" size="md" @click="saveInterventionNotes" :loading="savingNotes" style="min-height:44px;" />
+          <div class="flex-end-gap mt-3">
+            <UButton label="Sauvegarder" color="neutral" variant="outline" size="md" @click="saveInterventionNotes" :loading="savingNotes" class="min-h-11" />
           </div>
         </div>
 
-        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+        <div class="section-divider">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             <span style="font-size:15px;font-weight:600;color:#E8E9ED;">Travaux complémentaires</span>
-            <UButton :label="showSupplementaryForm ? 'Fermer' : 'Créer une demande'" color="neutral" variant="outline" size="sm" @click="showSupplementaryForm = !showSupplementaryForm" style="min-height:44px;" />
+            <UButton :label="showSupplementaryForm ? 'Fermer' : 'Créer une demande'" color="neutral" variant="outline" size="sm" @click="showSupplementaryForm = !showSupplementaryForm" class="min-h-11" />
           </div>
-          <div style="font-size:11px;color:#6B7280;margin-bottom:8px;">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
+          <div class="text-xs-subtle" class="mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
           <div v-if="showSupplementaryForm" style="display:grid;gap:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
             <textarea v-model="supplementaryForm.description" class="form-input" rows="3" placeholder="Décrire le problème constaté, le risque et la recommandation technique…" />
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">
-              <label style="display:flex;flex-direction:column;gap:4px;">
-                <span style="font-size:11px;color:#6B7280;">Priorité</span>
+              <label class="flex-col-gap-sm">
+                <span class="text-xs-subtle">Priorité</span>
                 <select v-model="supplementaryForm.urgence" class="form-input">
                   <option v-for="option in supplementaryUrgencyOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
               </label>
               <div style="font-size:11px;color:#9CA3AF;">{{ activeProblemPhotoIds.length ? `${activeProblemPhotoIds.length} photo(s) problème jointes automatiquement.` : 'Ajoute des photos de type problème pour documenter la demande.' }}</div>
             </div>
-            <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-              <UButton label="Envoyer à la réception" color="primary" variant="solid" size="md" @click="createSupplementaryRequest" :loading="creatingSupplementary" style="min-height:44px;" />
+            <div class="flex-end-gap mt-3">
+              <UButton label="Envoyer à la réception" color="primary" variant="solid" size="md" @click="createSupplementaryRequest" :loading="creatingSupplementary" class="min-h-11" />
             </div>
           </div>
         </div>
 
-        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <span style="font-size:13px;font-weight:600;color:#E8E9ED;">📷 Photos d'intervention</span>
-            <span style="font-size:11px;color:#6B7280;">Après travaux: {{ afterWorkPhotosCount }}/2 · Restitution: {{ restitutionPhotosCount }}/3</span>
+        <div class="section-divider">
+          <div class="flex-between-wrap flex-wrap-gap mb-2">
+            <span class="header-md">📷 Photos d'intervention</span>
+            <span class="text-xs-subtle">Après travaux: {{ afterWorkPhotosCount }}/2 · Restitution: {{ restitutionPhotosCount }}/3</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
-            <label style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:#6B7280;">Type</span>
+            <label class="flex-col-gap-sm">
+              <span class="text-xs-subtle">Type</span>
               <select v-model="photoUploadType" class="form-input">
                 <option v-for="type in mecanicienPhotoTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
               </select>
             </label>
-            <label style="display:flex;flex-direction:column;gap:4px;">
-              <span style="font-size:11px;color:#6B7280;">Description</span>
+            <label class="flex-col-gap-sm">
+              <span class="text-xs-subtle">Description</span>
               <input v-model="photoDescription" class="form-input" placeholder="Ex: fuite observée" />
             </label>
           </div>
@@ -244,8 +244,8 @@
                   rel="noreferrer"
                   style="display:block;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);text-decoration:none;"
                 >
-                  <img :src="photoUrl(photo)" :alt="photo.description || 'Photo intervention'" style="width:100%;height:88px;object-fit:cover;border-radius:8px;display:block;" />
-                  <div style="margin-top:6px;font-size:10px;color:#9CA3AF;line-height:1.3;">{{ photo.description || 'Sans description' }}</div>
+                  <img :src="photoUrl(photo)" :alt="photo.description || 'Photo intervention'" class="w-full rounded-lg block" style="height:88px;object-fit:cover;" />
+                  <div class="mt-1 text-xs-muted leading-snug">{{ photo.description || 'Sans description' }}</div>
                 </a>
               </div>
             </div>
@@ -259,10 +259,10 @@
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📋 À faire ({{ todoRdvs.length }})</span>
         </template>
-        <div v-if="!todoRdvs.length" style="padding:16px;text-align:center;color:#6B7280;">
+        <div v-if="!todoRdvs.length" class="empty-state-sub">
           Toutes les interventions sont terminées 🎉
         </div>
-        <div v-else style="display:flex;flex-direction:column;gap:12px;">
+        <div v-else class="flex-col-gap">
           <div v-for="rdv in todoRdvs" :key="rdv.id" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);">
             <div>
               <p style="font-weight:700;color:#E8E9ED;font-size:15px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
@@ -271,7 +271,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
               <StatusBadge :status="rdv.status" />
-              <UButton v-if="rdv.status === 'reception'" size="md" label="🔧 Démarrer" color="primary" @click="startWork(rdv.id)" style="min-height:44px;flex:1;justify-content:center;font-size:14px;font-weight:600;" />
+              <UButton v-if="rdv.status === 'reception'" size="md" label="🔧 Démarrer" color="primary" @click="startWork(rdv.id)" class="min-h-11 flex-1 justify-center text-sm font-semibold" />
             </div>
           </div>
         </div>
@@ -282,7 +282,7 @@
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#10B981;">✅ Terminés ({{ doneRdvs.length }})</span>
         </template>
-        <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="flex-col-gap">
           <div v-for="rdv in doneRdvs" :key="rdv.id" style="display:flex;flex-direction:column;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);font-size:14px;background:rgba(255,255,255,0.01);" :style="{ opacity: rdv.status === 'termine' ? 1 : 0.7 }">
             <div style="display:flex;align-items:flex-start;gap:8px;">
               <span style="color:#10B981;font-size:16px;">✅</span>
@@ -293,7 +293,7 @@
               </div>
             </div>
             <div style="display:flex;gap:12px;align-items:center;margin-top:16px;">
-              <UButton v-if="rdv.status === 'termine'" size="md" :label="rdv.rapport_mecanicien_signe ? '📋 Rapport signé' : '📋 Rapport'" :color="rdv.rapport_mecanicien_signe ? 'success' : 'warning'" variant="outline" @click="openRapport(rdv.id)" style="min-height:44px;flex:1;justify-content:center;font-weight:600;" />
+              <UButton v-if="rdv.status === 'termine'" size="md" :label="rdv.rapport_mecanicien_signe ? '📋 Rapport signé' : '📋 Rapport'" :color="rdv.rapport_mecanicien_signe ? 'success' : 'warning'" variant="outline" @click="openRapport(rdv.id)" class="min-h-11 flex-1 justify-center font-semibold" />
               <NuxtLink :to="`/planning?openRdv=${rdv.id}`" style="color:#000;background:#FFD200;font-size:13px;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;flex:1;">Détails (Planning)</NuxtLink>
             </div>
           </div>
@@ -302,18 +302,18 @@
     </div>
 
     <!-- Rapport d'intervention panel -->
-    <div v-if="rapportRdvId" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:50;overflow-y:auto;padding:16px;" @click.self="closeRapport">
-      <div style="max-width:640px;margin:0 auto;background:#0F1117;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;">
+    <div v-if="rapportRdvId" class="modal-overlay" @click.self="closeRapport">
+      <div class="modal-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <h2 style="font-size:17px;font-weight:700;color:#E8E9ED;">📋 Rapport d'intervention</h2>
           <button @click="closeRapport" style="font-size:18px;color:#6B7280;background:none;border:none;cursor:pointer;">✕</button>
         </div>
 
-        <div v-if="rapportLoading" style="text-align:center;padding:32px;color:#6B7280;">Chargement…</div>
-        <div v-else-if="rapportError" style="padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#FCA5A5;font-size:13px;">{{ rapportError }}</div>
+        <div v-if="rapportLoading" class="empty-state">Chargement…</div>
+        <div v-else-if="rapportError" class="bg-danger-soft text-danger rounded-lg">{{ rapportError }}</div>
 
         <div v-else-if="rapport">
-          <div v-if="rapport.isSignedByBoth" style="text-align:center;padding:24px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;margin-bottom:16px;">
+          <div v-if="rapport.isSignedByBoth" class="text-center bg-success-soft rounded-lg mb-4">
             <div style="font-size:32px;margin-bottom:8px;">✅</div>
             <p style="color:#6EE7B7;font-weight:700;">Rapport signé par les deux parties</p>
             <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:8px;background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.2);color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">📄 Télécharger PDF</a>
@@ -322,48 +322,48 @@
           <div v-else style="display:flex;flex-direction:column;gap:16px;">
             <!-- Travaux réalisés -->
             <div>
-              <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Travaux réalisés <span style="color:#EF4444;">*</span></label>
+              <label class="form-label" class="block-mb-1">Travaux réalisés <span class="text-danger">*</span></label>
               <textarea v-model="rapportForm.travauxRealises" class="form-input" rows="4" placeholder="Décrire précisément les travaux effectués…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Alertes -->
             <div>
-              <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Alertes importantes</label>
+              <label class="form-label" class="block-mb-1">Alertes importantes</label>
               <textarea v-model="rapportForm.alertes" class="form-input" rows="2" placeholder="Points à surveiller, anomalies, recommandations urgentes…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Recommandations -->
             <div>
-              <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Recommandations prochaine visite <span style="color:#EF4444;">*</span></label>
+              <label class="form-label" class="block-mb-1">Recommandations prochaine visite <span class="text-danger">*</span></label>
               <textarea v-model="rapportForm.recommandations" class="form-input" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signatureMecanicien" />
             </div>
 
             <!-- Kilométrage restitution + prochaine révision -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
-                <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Km restitution</label>
+                <label class="form-label" class="block-mb-1">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signatureMecanicien" />
               </div>
               <div>
-                <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Prochaine révision (km)</label>
+                <label class="form-label" class="block-mb-1">Prochaine révision (km)</label>
                 <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" placeholder="ex: 26500" :disabled="!!rapport.signatureMecanicien" />
               </div>
             </div>
 
             <!-- Essai routier -->
-            <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+            <div class="panel-sm">
               <div style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:12px;">🏍 Essai routier</div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
                 <div>
-                  <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km départ</label>
+                  <label class="text-xs-subtle" class="block-mb-2">Km départ</label>
                   <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
                 <div>
-                  <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km retour</label>
+                  <label class="text-xs-subtle" class="block-mb-2">Km retour</label>
                   <input v-model.number="essaiForm.kmFin" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
                 <div>
-                  <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Durée (min)</label>
+                  <label class="text-xs-subtle" class="block-mb-2">Durée (min)</label>
                   <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
               </div>
@@ -372,7 +372,7 @@
                   v-for="pt in essaiPoints" :key="pt.key"
                   type="button"
                   :disabled="!!rapport.signatureMecanicien"
-                  style="padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;min-height:44px;gap:8px;"
+                  class="btn btn-outline flex-center-gap min-h-11"
                   :style="{
                     background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)',
                     border: essaiForm.pointsControle[pt.key] === 'ok' ? '1px solid rgba(16,185,129,0.25)' : essaiForm.pointsControle[pt.key] === 'nok' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.1)',
@@ -380,12 +380,12 @@
                   }"
                   @click="cycleEssaiPoint(pt.key)"
                 >
-                  <span style="font-size:18px;">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
+                  <span class="text-xl">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
                   {{ pt.label }}
                 </button>
               </div>
-              <div v-if="essaiHasNok" style="margin-top:8px;">
-                <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Actions correctives</label>
+              <div v-if="essaiHasNok" class="mt-2">
+                <label class="text-xs-subtle" class="block-mb-2">Actions correctives</label>
                 <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="2" placeholder="Décrire les corrections effectuées…" :disabled="!!rapport.signatureMecanicien" />
               </div>
             </div>
@@ -399,7 +399,7 @@
               size="md"
               @click="saveRapport"
               :loading="rapportSaving"
-              style="width:100%;justify-content:center;height:48px;font-size:15px;font-weight:600;"
+              class="w-full justify-center min-h-12 text-base font-semibold"
             />
 
             <!-- Signature mécanicien -->
@@ -410,16 +410,16 @@
                 ref="sigRapportCanvas"
                 width="580" height="180"
                 @pointerdown="startRapportDraw" @pointermove="drawRapport" @pointerup="endRapportDraw" @pointerleave="endRapportDraw"
-                style="width:100%;height:140px;border-radius:10px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                class="sig-canvas"
               ></canvas>
               <div style="display:flex;gap:8px;margin-top:12px;">
                 <UButton label="↺ Effacer" color="neutral" variant="outline" size="md" @click="clearRapportSig" style="flex:1;min-height:48px;" />
                 <UButton label="✓ Signer le rapport" color="success" variant="solid" size="md" @click="signRapport" :loading="rapportSigning" :disabled="!rapportSigDrawn" style="flex:2;font-size:15px;font-weight:700;min-height:48px;" />
               </div>
-              <div v-if="rapportSignError" style="margin-top:8px;padding:8px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#FCA5A5;font-size:12px;">{{ rapportSignError }}</div>
+              <div v-if="rapportSignError" class="mt-2 bg-danger-soft rounded text-md-danger">{{ rapportSignError }}</div>
             </div>
 
-            <div v-else style="padding:12px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;font-size:13px;color:#6EE7B7;">
+            <div v-else class="bg-success-soft rounded text-md-primary text-success">
               ✅ Rapport signé par le mécanicien — en attente de signature client lors de la restitution.
             </div>
           </div>
@@ -428,7 +428,7 @@
     </div>
 
     <!-- Mobile-First Sticky Bottom Action Bar -->
-    <div v-if="activeRdv && !rapportRdvId" style="position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,0.9);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.08);padding:12px 16px;z-index:40;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;align-items:center;">
+    <div v-if="activeRdv && !rapportRdvId" class="sticky-action-bar">
       <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
       <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
       <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
@@ -582,8 +582,8 @@ async function handlePhotoUpload(event: Event) {
     photoDescription.value = ''
     await loadRdvPhotos(activeRdv.value.id)
     toast.add({ title: 'Photos ajoutées', description: `${files.length} photo(s) enregistrée(s).`, color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur photo', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur photo', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     uploadingPhoto.value = false
     input.value = ''
@@ -646,8 +646,8 @@ async function openRapport(rdvId: number) {
   try {
     rapport.value = await api.get(`/rdv/${rdvId}/rapport`)
     fillRapportForm(rapport.value)
-  } catch (e: any) {
-    rapportError.value = e.message || 'Impossible de charger le rapport'
+  } catch (e: unknown) {
+    rapportError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de charger le rapport'
   } finally {
     rapportLoading.value = false
   }
@@ -684,8 +684,8 @@ async function saveRapport() {
     ])
     await fetchMyRdvs()
     toast.add({ title: 'Rapport enregistré', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     rapportSaving.value = false
   }
@@ -706,8 +706,8 @@ async function signRapport() {
       closeRapport()
     }
     toast.add({ title: 'Rapport signé', color: 'success' })
-  } catch (e: any) {
-    rapportSignError.value = e.message || 'Erreur lors de la signature'
+  } catch (e: unknown) {
+    rapportSignError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur lors de la signature'
   } finally {
     rapportSigning.value = false
   }
@@ -934,8 +934,8 @@ async function persistWorkshopReport(showToast = true) {
     if (showToast) {
       toast.add({ title: 'Rapport atelier sauvegardé', color: 'success' })
     }
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     persistingCheckup.value = false
   }
@@ -967,8 +967,8 @@ async function saveActiveRoadTest() {
     })
     await fetchMyRdvs()
     toast.add({ title: result?.valide ? 'Essai routier validé' : 'Essai routier enregistré', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur essai routier', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur essai routier', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingRoadTest.value = false
   }
@@ -993,8 +993,8 @@ async function createSupplementaryRequest() {
     supplementaryForm.urgence = 'normal'
     showSupplementaryForm.value = false
     toast.add({ title: 'Demande envoyée', description: 'La réception peut maintenant la qualifier et la transmettre au client.', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur demande complémentaire', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur demande complémentaire', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     creatingSupplementary.value = false
   }
@@ -1005,8 +1005,8 @@ async function startWork(id: number) {
     await rdvStore.transitionRdv(id, 'start_travail')
     await fetchMyRdvs()
     toast.add({ title: 'Travaux démarrés', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -1016,8 +1016,8 @@ async function transitionCurrentWork(transition: string, successTitle: string) {
     await rdvStore.transitionRdv(activeRdv.value.id, transition)
     await fetchMyRdvs()
     toast.add({ title: successTitle, color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -1062,8 +1062,8 @@ async function finishWork() {
       return
     }
     await completeFinishTransition(terminatedId)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     finishing.value = false
   }

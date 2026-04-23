@@ -379,10 +379,10 @@ async function fetchLogs() {
     const total = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
     totalItems.value = Number(total)
     totalPages.value = Math.max(1, Math.ceil(totalItems.value / ITEMS_PER_PAGE))
-  } catch (e: any) {
+  } catch (e: unknown) {
     logs.value = []
     totalItems.value = 0
-    errorMessage.value = e?.message || 'Impossible de récupérer le journal d\'audit.'
+    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de récupérer le journal d\'audit.'
     toast.add({ title: 'Erreur de chargement', description: errorMessage.value, color: 'error' })
   } finally {
     loading.value = false

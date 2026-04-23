@@ -167,8 +167,8 @@ async function confirm(id: number) {
     await voStore.confirmPurchase(id)
     toast.add({ title: 'Rachat confirmé', color: 'success' })
     await Promise.all([voStore.fetchPurchases(), voStore.fetchStats()])
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

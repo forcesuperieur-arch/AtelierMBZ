@@ -152,8 +152,8 @@ async function saveAbsence() {
     showNew.value = false
     resetForm()
     await fetchAbsences()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec de sauvegarde', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec de sauvegarde', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -166,8 +166,8 @@ async function deleteAbsence(id: number) {
     await api.del(`/absences/${id}`)
     absences.value = absences.value.filter(a => a.id !== id)
     toast.add({ title: 'Absence supprimée', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Suppression impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Suppression impossible', color: 'error' })
   }
 }
 

@@ -84,8 +84,8 @@ async function load() {
   loading.value = true
   try {
     templates.value = await api.get('/admin/templates')
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -95,8 +95,8 @@ async function previewTemplate(code: string) {
   previewing.value = code
   try {
     await openPdf(`/admin/templates/${code}/preview`)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     previewing.value = null
   }

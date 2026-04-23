@@ -155,9 +155,9 @@ async function fetchRoles() {
   try {
     const data = await api.get('/roles-metier')
     roles.value = data['hydra:member'] ?? data
-  } catch (e: any) {
-    errorMessage.value = e?.message || 'Impossible de charger les rôles métier.'
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de charger les rôles métier.'
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -171,8 +171,8 @@ async function createRole() {
     showCreate.value = false
     Object.assign(createForm, { code: '', libelle: '', description: '', baseRole: 'ROLE_USER' })
     await fetchRoles()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -184,8 +184,8 @@ async function deleteRole(role: any) {
     await api.del(`/roles-metier/${role.id}`)
     toast.add({ title: 'Rôle supprimé', color: 'success' })
     await fetchRoles()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

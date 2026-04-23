@@ -112,8 +112,8 @@ async function savePiece() {
     showNew.value = false
     editId.value = null
     toast.add({ title: 'Pièce sauvegardée', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }

@@ -27,10 +27,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
-          <NuxtLink class="btn btn-primary" to="/planning" style="text-decoration:none;">Ouvrir le planning</NuxtLink>
-          <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" style="text-decoration:none;">+ RDV rapide</NuxtLink>
+          <NuxtLink class="btn btn-primary" to="/planning" class="no-underline">Ouvrir le planning</NuxtLink>
+          <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" class="no-underline">+ RDV rapide</NuxtLink>
         </div>
-        <div style="font-size:12px;color:#9CA3AF;">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
+        <div class="text-md-muted">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
       </div>
 
       <!-- KPI Bar -->
@@ -126,42 +126,42 @@
                 👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
               </div>
 
-              <div v-if="pont.current_rdv" style="margin-bottom:10px;">
-                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
-                <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
+              <div v-if="pont.current_rdv" class="mb-2">
+                <p class="font-bold header-md" style="margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
+                <p class="text-md-muted" style="margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
+                <p class="text-md-muted" style="margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
+                <div class="mt-1"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
                 <NuxtLink :to="`/planning?openRdv=${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
                 <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
-                  <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
+                  <div class="progress-track-sm">
                     <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
                   </div>
-                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
+                  <div class="text-xs-muted mt-0">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
                 </div>
               </div>
 
-              <div v-else-if="pont.next_rdv" style="margin-bottom:10px;">
-                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
+              <div v-else-if="pont.next_rdv" class="mb-2">
+                <p class="font-bold header-md" style="margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
+                <p class="text-md-muted" style="margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
+                <p class="text-md-muted" style="margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
               </div>
 
-              <div v-else style="margin-bottom:10px;">
+              <div v-else class="mb-2">
                 <p style="color:#9CA3AF;font-size:13px;margin:0;">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourd’hui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
               </div>
 
               <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;">
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">RDV jour</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.total_rdvs_today }}</div>
+                <div class="bg-dark rounded-lg p-2">
+                  <div class="text-xs-subtle uppercase">RDV jour</div>
+                  <div class="text-base font-bold text-primary-light">{{ pont.total_rdvs_today }}</div>
                 </div>
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Charge</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.planned_minutes }} min</div>
+                <div class="bg-dark rounded-lg p-2">
+                  <div class="text-xs-subtle uppercase">Charge</div>
+                  <div class="text-base font-bold text-primary-light">{{ pont.planned_minutes }} min</div>
                 </div>
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">File</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.next_count ?? 0 }}</div>
+                <div class="bg-dark rounded-lg p-2">
+                  <div class="text-xs-subtle uppercase">File</div>
+                  <div class="text-base font-bold text-primary-light">{{ pont.next_count ?? 0 }}</div>
                 </div>
               </div>
 
@@ -215,7 +215,7 @@
             <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;" :style="{ background: m.statusColor + '15', border: '1px solid ' + m.statusColor + '30', color: m.statusColor }">
               {{ (m.prenom?.[0] ?? '') + (m.nom?.[0] ?? '') }}
             </div>
-            <div style="flex:1;">
+            <div class="flex-1">
               <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-weight:700;color:#E8E9ED;">{{ m.prenom }} {{ m.nom }}</span>
                 <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:9999px;" :style="{ background: m.statusColor + '20', color: m.statusColor }">{{ m.statusLabel }}</span>
@@ -231,11 +231,11 @@
           <div v-if="m.currentRdv" style="padding:8px 10px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);font-size:12px;margin-bottom:10px;">
             <div style="color:#F59E0B;font-weight:600;margin-bottom:4px;">🔧 En intervention</div>
             <div style="color:#D1D5DB;">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
-            <div v-if="m.currentRdv.temps_estime" style="margin-top:6px;">
-              <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
+            <div v-if="m.currentRdv.temps_estime" class="mt-1">
+              <div class="progress-track-sm">
                 <div :style="{ width: Math.min(m.progressPct, 100) + '%', height: '100%', background: m.progressPct > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
               </div>
-              <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ m.progressPct }}%</div>
+              <div class="text-xs-muted mt-0">{{ m.progressPct }}%</div>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:#9CA3AF;">
@@ -265,18 +265,18 @@
           <!-- Dépassements -->
           <div v-if="alertesDepassements.length">
             <div style="font-size:11px;font-weight:700;color:#FCA5A5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔴 Dépassements en cours ({{ alertesDepassements.length }})</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesDepassements"
                 :key="`dep-${rdv.id}`"
                 style="padding:12px 16px;border-radius:10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
               >
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
-                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — {{ rdv.type_intervention || 'atelier' }}</div>
+                  <div class="header-md">{{ rdvClientName(rdv) }}</div>
+                  <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — {{ rdv.type_intervention || 'atelier' }}</div>
                   <div style="font-size:11px;color:#FCA5A5;margin-top:2px;">+{{ formatDuration(rdvOverrunMinutes(rdv)) }} de dépassement</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Voir →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Voir →</NuxtLink>
               </div>
             </div>
           </div>
@@ -284,17 +284,17 @@
           <!-- No-show du jour -->
           <div v-if="alertesNoShow.length">
             <div style="font-size:11px;font-weight:700;color:#FDBA74;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟠 No-show du jour ({{ alertesNoShow.length }})</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesNoShow"
                 :key="`ns-${rdv.id}`"
                 style="padding:12px 16px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
               >
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
-                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — {{ formatHourLabel(rdv.heure_rdv) }}</div>
+                  <div class="header-md">{{ rdvClientName(rdv) }}</div>
+                  <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — {{ formatHourLabel(rdv.heure_rdv) }}</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Ouvrir →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Ouvrir →</NuxtLink>
               </div>
             </div>
           </div>
@@ -302,18 +302,18 @@
           <!-- Retards réception -->
           <div v-if="alertesRetards.length">
             <div style="font-size:11px;font-weight:700;color:#FCD34D;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟡 Retards de réception ({{ alertesRetards.length }})</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesRetards"
                 :key="`ret-${rdv.id}`"
                 style="padding:12px 16px;border-radius:10px;background:rgba(250,204,21,0.05);border:1px solid rgba(250,204,21,0.15);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
               >
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdvClientName(rdv) }}</div>
-                  <div style="font-size:12px;color:#9CA3AF;">{{ rdvVehicleLabel(rdv) }} — prévu à {{ formatHourLabel(rdv.heure_rdv) }}</div>
+                  <div class="header-md">{{ rdvClientName(rdv) }}</div>
+                  <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — prévu à {{ formatHourLabel(rdv.heure_rdv) }}</div>
                   <div style="font-size:11px;color:#FCD34D;margin-top:2px;">+{{ formatDuration(rdvRetardMinutes(rdv)) }} sans réception</div>
                 </div>
-                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Réceptionner →</NuxtLink>
+                <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Réceptionner →</NuxtLink>
               </div>
             </div>
           </div>
@@ -321,18 +321,18 @@
           <!-- Demandes travaux supp en attente -->
           <div v-if="demandesSupp.length">
             <div style="font-size:11px;font-weight:700;color:#C4B5FD;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟣 Demandes travaux complémentaires ({{ demandesSupp.length }})</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex-col-gap-sm">
               <div
                 v-for="d in demandesSupp"
                 :key="`ds-${d.id}`"
                 style="padding:12px 16px;border-radius:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;"
               >
-                <div style="flex:1;">
+                <div class="flex-1">
                   <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:2px;">
                     {{ d.rendezVous ? rdvClientName(d.rendezVous) : 'Client' }}
                   </div>
                   <div style="font-size:12px;color:#9CA3AF;margin-bottom:4px;">{{ d.description || 'Aucune description' }}</div>
-                  <div style="font-size:10px;color:#6B7280;">Créée le {{ formatDateCourt(d.createdAt) }}</div>
+                  <div class="text-xs-subtle">Créée le {{ formatDateCourt(d.createdAt) }}</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
                   <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:9999px;background:rgba(139,92,246,0.18);color:#C4B5FD;">{{ d.statut }}</span>
@@ -340,7 +340,7 @@
                     v-if="d.rendezVous?.id"
                     :to="`/planning?openRdv=${d.rendezVous.id}`"
                     class="btn btn-ghost"
-                    style="font-size:12px;text-decoration:none;"
+                    class="text-md-muted no-underline"
                   >Voir le RDV →</NuxtLink>
                 </div>
               </div>
@@ -350,18 +350,18 @@
           <!-- OR en attente de signature -->
           <div v-if="orAttente.length">
             <div style="font-size:11px;font-weight:700;color:#5EEAD4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔵 OR en attente de signature ({{ orAttente.length }})</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex-col-gap-sm">
               <div
                 v-for="or in orAttente"
                 :key="`or-${or.id}`"
                 style="padding:12px 16px;border-radius:10px;background:rgba(20,184,166,0.05);border:1px solid rgba(20,184,166,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
               >
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ or.snapClientNom ?? or.snap_client_nom ?? 'Client' }} {{ or.snapClientPrenom ?? or.snap_client_prenom ?? '' }}</div>
-                  <div style="font-size:12px;color:#9CA3AF;">OR {{ or.numeroOr ?? or.numero_or }} — {{ or.snapVehiculeMarque ?? or.snap_vehicule_marque ?? '' }} {{ or.snapVehiculeModele ?? or.snap_vehicule_modele ?? '' }}</div>
+                  <div class="header-md">{{ or.snapClientNom ?? or.snap_client_nom ?? 'Client' }} {{ or.snapClientPrenom ?? or.snap_client_prenom ?? '' }}</div>
+                  <div class="text-md-muted">OR {{ or.numeroOr ?? or.numero_or }} — {{ or.snapVehiculeMarque ?? or.snap_vehicule_marque ?? '' }} {{ or.snapVehiculeModele ?? or.snap_vehicule_modele ?? '' }}</div>
                   <div v-if="or.motifRectification ?? or.motif_rectification" style="font-size:11px;color:#5EEAD4;margin-top:2px;">Motif : {{ or.motifRectification ?? or.motif_rectification }}</div>
                 </div>
-                <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost" style="font-size:12px;text-decoration:none;">Ouvrir l'OR →</NuxtLink>
+                <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost" class="text-md-muted no-underline">Ouvrir l'OR →</NuxtLink>
               </div>
             </div>
           </div>
@@ -374,16 +374,16 @@
         <!-- Résumé -->
         <div v-if="gardinnageRdvs.length" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
           <div style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.18);">
-            <div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">Motos en gardiennage</div>
-            <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ gardinnageRdvs.length }}</div>
+            <div class="text-sm-muted uppercase font-semibold">Motos en gardiennage</div>
+            <div class="stat-value-md text-danger">{{ gardinnageRdvs.length }}</div>
           </div>
           <div style="padding:12px 18px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);">
-            <div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">Montant total estimé</div>
+            <div class="text-sm-muted uppercase font-semibold">Montant total estimé</div>
             <div style="font-size:22px;font-weight:700;color:#FCD34D;">{{ gardiennageTotalEstime }}€</div>
           </div>
           <div v-if="gardinnageUrgents > 0" style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);">
             <div style="font-size:11px;color:#FCA5A5;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">⚠ Actions requises</div>
-            <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ gardinnageUrgents }}</div>
+            <div class="stat-value-md text-danger">{{ gardinnageUrgents }}</div>
           </div>
         </div>
 
@@ -428,10 +428,10 @@
               </div>
 
               <!-- Montant estimé -->
-              <div style="text-align:right;">
+              <div class="text-right">
                 <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600;margin-bottom:2px;">Montant estimé</div>
                 <div style="font-size:18px;font-weight:700;color:#FCD34D;">{{ gardinnageMontantEstime(rdv) }}€</div>
-                <div style="font-size:10px;color:#6B7280;">{{ joursCalendaires(rdv.gardiennageDebutAt) }}j × {{ workshopConfig?.tarifGardiennageJournalier ?? '5.00' }}€/j</div>
+                <div class="text-xs-subtle">{{ joursCalendaires(rdv.gardiennageDebutAt) }}j × {{ workshopConfig?.tarifGardiennageJournalier ?? '5.00' }}€/j</div>
               </div>
             </div>
 
@@ -440,7 +440,7 @@
               <NuxtLink
                 :to="`/planning?openRdv=${rdv.id}`"
                 class="btn btn-ghost"
-                style="font-size:12px;text-decoration:none;"
+                class="text-md-muted no-underline"
               >
                 Voir le dossier →
               </NuxtLink>
@@ -601,8 +601,8 @@ async function savePontSettings(pont: any) {
     })
     toast.add({ title: 'Pont mis à jour', color: 'success' })
     await loadWorkshop()
-  } catch (e: any) {
-    toast.add({ title: 'Mise à jour impossible', description: e?.message || 'Vérifie les droits admin de l’atelier.', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Mise à jour impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Vérifie les droits admin de l’atelier.', color: 'error' })
   } finally {
     pontSettingSaving[pont.id] = false
   }
@@ -803,8 +803,8 @@ async function runPontQuickAction(pont: any) {
     })
     toast.add({ title: 'Action atelier effectuée', color: 'success' })
     await loadWorkshop()
-  } catch (e: any) {
-    toast.add({ title: 'Action impossible', description: e?.message || 'Ouvre le dossier atelier pour compléter la transition.', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Action impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Ouvre le dossier atelier pour compléter la transition.', color: 'error' })
   } finally {
     delete actioningByPont[pont.id]
   }
@@ -1043,8 +1043,8 @@ async function sortirGardiennage(rdv: any) {
     await api.post(`/rendez-vous/${rdv.id}/transition/sortir_gardiennage`, {})
     toast.add({ title: 'Véhicule sorti du gardiennage', description: `${rdvClientName(rdv)} — le dossier repasse en cours.`, color: 'success' })
     await loadWorkshop()
-  } catch (e: any) {
-    toast.add({ title: 'Impossible', description: e?.message || 'Vérifie le statut du RDV dans le planning.', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Vérifie le statut du RDV dans le planning.', color: 'error' })
   } finally {
     gardinnageActioning[rdv.id] = false
   }

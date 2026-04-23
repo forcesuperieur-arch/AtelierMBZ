@@ -157,8 +157,8 @@ async function upload() {
     uploadForm.targetId = ''
     uploadForm.dateExpiration = ''
     await Promise.all([voStore.fetchDocuments(), voStore.fetchAlerts()])
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     uploading.value = false
   }

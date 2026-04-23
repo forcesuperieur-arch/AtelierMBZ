@@ -116,7 +116,7 @@ async function handleLogin() {
   try {
     await auth.login(email.value, password.value)
     await navigateTo('/')
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = formatAuthError(e)
   } finally {
     loading.value = false
@@ -137,7 +137,7 @@ async function handleGoogleLogin(mode: 'login' | 'request' = 'login') {
       prenom: showDevSso.value ? devSsoPrenom.value : undefined,
       nom: showDevSso.value ? devSsoNom.value : undefined,
     })
-  } catch (e: any) {
+  } catch (e: unknown) {
     info.value = ''
     error.value = formatAuthError(e)
   } finally {
@@ -153,12 +153,10 @@ async function handleGoogleCallback(code: string, state: string) {
   try {
     await auth.exchangeGoogleCode(code, state)
     await navigateTo('/')
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = formatAuthError(e)
   } finally {
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
+    window.history.replaceState({}, '', '/login')
     if (error.value) {
       info.value = ''
     }
@@ -185,9 +183,7 @@ onMounted(async () => {
       ? `Demande Google créée pour ${simulatedEmail}. Un superadmin doit maintenant valider le compte et l’atelier.`
       : 'Demande Google créée. Un superadmin doit maintenant valider le compte et l’atelier.'
 
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
+    window.history.replaceState({}, '', '/login')
     return
   }
 
@@ -196,17 +192,13 @@ onMounted(async () => {
       ? `${simulatedEmail} existe déjà. Utilise une autre adresse pour simuler une nouvelle demande.`
       : 'Cette adresse existe déjà. Utilise une autre adresse pour simuler une nouvelle demande.'
 
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
+    window.history.replaceState({}, '', '/login')
     return
   }
 
   if (providerError) {
     error.value = 'Connexion Google annulée ou refusée.'
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
+    window.history.replaceState({}, '', '/login')
     return
   }
 

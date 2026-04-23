@@ -328,8 +328,8 @@ async function toggleActive(p: any) {
     })
     toast.add({ title: p.est_actif ? 'Pont désactivé' : 'Pont activé', color: 'success' })
     await refreshData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -340,8 +340,8 @@ async function deletePont(p: any) {
     await api.del(`/ponts/${p.id}`)
     toast.add({ title: 'Pont archivé', color: 'success' })
     await refreshData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Archivage impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Archivage impossible', color: 'error' })
   }
 }
 
@@ -365,8 +365,8 @@ async function savePont() {
     showModal.value = false
     toast.add({ title: 'Pont sauvegardé', color: 'success' })
     await refreshData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }

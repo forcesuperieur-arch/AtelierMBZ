@@ -111,8 +111,8 @@ async function load() {
   loading.value = true
   try {
     clauses.value = await api.get(`/clauses-legales?active=${activeOnly.value}`)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -154,8 +154,8 @@ async function save() {
     toast.add({ title: 'Clause enregistrée', color: 'success' })
     showEditModal.value = false
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -166,8 +166,8 @@ async function toggleActive(c: any, isActive: boolean) {
     await api.put(`/clauses-legales/${c.id}`, { isActive })
     toast.add({ title: isActive ? 'Activée' : 'Archivée', color: 'success' })
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

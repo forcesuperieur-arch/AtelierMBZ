@@ -38,11 +38,11 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <span style="color:#6B7280;font-weight:600;">Légende :</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(107,114,128,0.18);border:1px solid rgba(148,163,184,0.35);"></span><span style="color:#9CA3AF;">À valider</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Créneau réservé</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé atelier</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span style="color:#9CA3AF;">En cours</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span style="color:#9CA3AF;">Terminé / historisé</span></span>
+          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(107,114,128,0.18);border:1px solid rgba(148,163,184,0.35);"></span><span class="text-muted">À valider</span></span>
+          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span class="text-muted">Créneau réservé</span></span>
+          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span class="text-muted">Confirmé atelier</span></span>
+          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span class="text-muted">En cours</span></span>
+          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span class="text-muted">Terminé / historisé</span></span>
         </div>
         <div style="color:#CBD5E1;">
           Horaires atelier : <strong style="color:#F8FAFC;">{{ hourRangeLabel }}</strong> · {{ openDaysLabel }}
@@ -97,7 +97,7 @@
             </div>
           </template>
 
-          <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="flex-col-gap-lg">
             <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Date</label>
@@ -109,12 +109,12 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Fin estimée</label>
-                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickEstimatedEnd }}</div>
+                <div class="form-input" class="form-input-static">{{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div class="form-label" style="margin-bottom:6px;">Recherche client</div>
+            <div class="panel-sm">
+              <div class="form-label" class="mb-1">Recherche client</div>
               <input
                 v-model="quickClientSearch"
                 type="text"
@@ -139,8 +139,8 @@
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div class="form-label" style="margin-bottom:6px;">Recherche véhicule par plaque / VIN</div>
+            <div class="panel-sm">
+              <div class="form-label" class="mb-1">Recherche véhicule par plaque / VIN</div>
               <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
                 <input
                   v-model="quickVehicleSearch"
@@ -152,10 +152,10 @@
                 />
                 <button type="button" class="btn btn-ghost" @click="searchQuickVehicle">Rechercher</button>
               </div>
-              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et proposé.</div>
+              <div v-if="quickVehicleFound" class="mt-2 text-success">Véhicule trouvé et proposé.</div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="info-grid">
               <div class="form-group">
                 <label class="form-label">Prénom client</label>
                 <input v-model="quickForm.client_prenom" class="form-input" placeholder="Jean" />
@@ -175,7 +175,7 @@
               <div class="form-group">
                 <label class="form-label">Marque</label>
                 <input v-model="quickForm.vehicule_marque" class="form-input" placeholder="Yamaha" @input="onQuickMarqueInput" @blur="hideQuickMarqueSuggestions" />
-                <div v-if="quickMarqueSuggestions.length" style="margin-top:6px;display:grid;gap:4px;">
+                <div v-if="quickMarqueSuggestions.length" class="mt-2" style="display:grid;gap:4px;">
                   <button
                     v-for="item in quickMarqueSuggestions"
                     :key="`quick-brand-${item}`"
@@ -190,7 +190,7 @@
               <div class="form-group">
                 <label class="form-label">Modèle</label>
                 <input v-model="quickForm.vehicule_modele" class="form-input" placeholder="MT-07" @input="onQuickModeleInput" @blur="hideQuickModeleSuggestions" />
-                <div v-if="quickModeleSuggestions.length" style="margin-top:6px;display:grid;gap:4px;">
+                <div v-if="quickModeleSuggestions.length" class="mt-2" style="display:grid;gap:4px;">
                   <button
                     v-for="item in quickModeleSuggestions"
                     :key="`quick-model-${item.id || item.modele}`"
@@ -230,12 +230,12 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Mécanicien affecté</label>
-                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickAssignedMecanicienLabel }}</div>
+                <div class="form-input" class="form-input-static">{{ quickAssignedMecanicienLabel }}</div>
               </div>
             </div>
 
             <div>
-              <div class="form-label" style="margin-bottom:8px;">Prestations atelier <span style="font-size:11px;color:#9CA3AF;">· filtrées selon le type de moto</span></div>
+              <div class="form-label" style="margin-bottom:8px;">Prestations atelier <span class="text-sm-muted">· filtrées selon le type de moto</span></div>
               <div v-if="filteredQuickPrestations.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:220px;overflow:auto;">
                 <label
                   v-for="presta in filteredQuickPrestations"
@@ -245,11 +245,11 @@
                   <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
                   <div>
                     <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
-                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ formatDuration(presta.temps_estime_minutes || 60) }}</div>
+                    <div class="text-sm-muted">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ formatDuration(presta.temps_estime_minutes || 60) }}</div>
                   </div>
                 </label>
               </div>
-              <div v-else style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);font-size:12px;color:#9CA3AF;">
+              <div v-else class="panel-sm dashed text-md-muted">
                 Aucune prestation ne correspond encore au type de moto renseigné.
               </div>
             </div>
@@ -260,10 +260,10 @@
                 <textarea v-model="quickForm.commentaire" class="form-input" rows="3" placeholder="Description du besoin client…"></textarea>
               </div>
               <div style="min-width:200px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-                <div style="font-size:11px;color:#9CA3AF;">Estimé</div>
+                <div class="text-sm-muted">Estimé</div>
                 <div style="font-size:18px;font-weight:800;color:#FFD200;">{{ formatCurrency(quickEstimateTotal) }}</div>
-                <div style="font-size:12px;color:#CBD5E1;">{{ quickEstimateDuration }} min</div>
-                <div style="font-size:12px;color:#CBD5E1;">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
+                <div class="text-md-value">{{ quickEstimateDuration }} min</div>
+                <div class="text-md-value">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
@@ -292,45 +292,45 @@
             </div>
           </template>
 
-          <div v-if="modalLoading" style="padding:16px;color:#9CA3AF;">Chargement du rendez-vous…</div>
+          <div v-if="modalLoading" class="panel-sm text-muted">Chargement du rendez-vous…</div>
 
-          <div v-else-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;">
+          <div v-else-if="selectedRdv" class="flex-col-gap-lg">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-              <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
-              <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span><!-- [SPRINT-4] I4 — Badge RDV web public --><span v-if="selectedRdv.source === 'web'" style="margin-left:8px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.2);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);letter-spacing:0.05em;">PUBLIC</span></div>
-              <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule_info || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
+              <div><span class="text-subtle">Date :</span> <span class="text-value">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
+              <div><span class="text-subtle">Heure :</span> <span class="text-value">{{ selectedRdv.heure_debut }}</span></div>
+              <div><span class="text-subtle">Client :</span> <span class="text-value">{{ selectedRdv.client_nom || '—' }}</span><!-- [SPRINT-4] I4 — Badge RDV web public --><span v-if="selectedRdv.source === 'web'" style="margin-left:8px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.2);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);letter-spacing:0.05em;">PUBLIC</span></div>
+              <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ selectedRdv.vehicule_info || '—' }}</span></div>
+              <div><span class="text-subtle">Pont :</span> <span class="text-value">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
+              <div><span class="text-subtle">Mécanicien :</span> <span class="text-value">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);font-size:13px;">
-                <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Client et véhicule</div>
-                <div style="display:grid;gap:6px;">
-                  <div v-if="selectedRdv.client?.telephone || selectedRdv.client_telephone"><span style="color:#6B7280;">Téléphone :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client?.telephone || selectedRdv.client_telephone }}</span></div>
-                  <div v-if="selectedRdv.client?.email || selectedRdv.client_email"><span style="color:#6B7280;">Email :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client?.email || selectedRdv.client_email }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque"><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.cylindree || selectedRdv.vehicule?.annee"><span style="color:#6B7280;">Moto :</span> <span style="color:#D1D5DB;">{{ [selectedRdv.vehicule?.cylindree ? `${selectedRdv.vehicule.cylindree}cc` : '', selectedRdv.vehicule?.annee || ''].filter(Boolean).join(' · ') }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type"><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type }}</span></div>
+            <div class="info-grid">
+              <div class="panel-sm text-md-value">
+                <div class="header-md" style="margin-bottom:10px;">Client et véhicule</div>
+                <div class="info-grid-sm">
+                  <div v-if="selectedRdv.client?.telephone || selectedRdv.client_telephone"><span class="text-subtle">Téléphone :</span> <span class="text-value">{{ selectedRdv.client?.telephone || selectedRdv.client_telephone }}</span></div>
+                  <div v-if="selectedRdv.client?.email || selectedRdv.client_email"><span class="text-subtle">Email :</span> <span class="text-value">{{ selectedRdv.client?.email || selectedRdv.client_email }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque"><span class="text-subtle">Plaque :</span> <span class="text-value">{{ selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.cylindree || selectedRdv.vehicule?.annee"><span class="text-subtle">Moto :</span> <span class="text-value">{{ [selectedRdv.vehicule?.cylindree ? `${selectedRdv.vehicule.cylindree}cc` : '', selectedRdv.vehicule?.annee || ''].filter(Boolean).join(' · ') }}</span></div>
+                  <div v-if="selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type"><span class="text-subtle">Type :</span> <span class="text-value">{{ selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type }}</span></div>
                 </div>
               </div>
 
-              <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);font-size:13px;">
-                <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Lecture dossier</div>
-                <div style="display:grid;gap:6px;">
-                  <div><span style="color:#6B7280;">Statut métier :</span> <span style="color:#D1D5DB;">{{ workflowStatusHint }}</span></div>
-                  <div v-if="selectedRdv.kilometrage || selectedRdv.km_reception"><span style="color:#6B7280;">Km réception :</span> <span style="color:#D1D5DB;">{{ selectedRdv.kilometrage || selectedRdv.km_reception }}</span></div>
-                  <div v-if="selectedReceptionState.observations"><span style="color:#6B7280;">État réception :</span> <span style="color:#D1D5DB;">{{ selectedReceptionState.observations }}</span></div>
-                  <div v-if="selectedReceptionState.reception_notes"><span style="color:#6B7280;">Notes réception :</span> <span style="color:#D1D5DB;">{{ selectedReceptionState.reception_notes }}</span></div>
-                  <div v-if="selectedRdv.ordresReparation?.length"><span style="color:#6B7280;">OR :</span> <span style="color:#D1D5DB;">{{ selectedRdv.ordresReparation.length }} dossier(s) lié(s)</span></div>
+              <div class="panel-sm text-md-value">
+                <div class="header-md" style="margin-bottom:10px;">Lecture dossier</div>
+                <div class="info-grid-sm">
+                  <div><span class="text-subtle">Statut métier :</span> <span class="text-value">{{ workflowStatusHint }}</span></div>
+                  <div v-if="selectedRdv.kilometrage || selectedRdv.km_reception"><span class="text-subtle">Km réception :</span> <span class="text-value">{{ selectedRdv.kilometrage || selectedRdv.km_reception }}</span></div>
+                  <div v-if="selectedReceptionState.observations"><span class="text-subtle">État réception :</span> <span class="text-value">{{ selectedReceptionState.observations }}</span></div>
+                  <div v-if="selectedReceptionState.reception_notes"><span class="text-subtle">Notes réception :</span> <span class="text-value">{{ selectedReceptionState.reception_notes }}</span></div>
+                  <div v-if="selectedRdv.ordresReparation?.length"><span class="text-subtle">OR :</span> <span class="text-value">{{ selectedRdv.ordresReparation.length }} dossier(s) lié(s)</span></div>
                 </div>
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Édition rapide / affectation</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="panel-sm">
+              <div class="header-md" style="margin-bottom:10px;">Édition rapide / affectation</div>
+              <div class="info-grid">
                 <div class="form-group">
                   <label class="form-label">Date</label>
                   <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
@@ -361,11 +361,11 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Mécanicien affecté</label>
-                  <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ editAssignedMecanicienLabel }}</div>
+                  <div class="form-input" class="form-input-static">{{ editAssignedMecanicienLabel }}</div>
                 </div>
               </div>
 
-              <div class="form-group" style="margin-top:12px;">
+              <div class="form-group" class="mt-3">
                 <label class="form-label">Motif client</label>
                 <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
               </div>
@@ -411,7 +411,7 @@
                 </div>
 
                 <!-- Reception fields -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="info-grid">
                   <div class="form-group">
                     <label class="form-label">Kilométrage réception</label>
                     <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
@@ -421,7 +421,7 @@
                     <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
                   </div>
                 </div>
-                <div class="form-group" style="margin-top:12px;">
+                <div class="form-group" class="mt-3">
                   <label class="form-label">Notes réception</label>
                   <textarea v-model="receptionForm.notes_reception" class="form-input" rows="2" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
                 </div>
@@ -443,8 +443,8 @@
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Workflow atelier</div>
+            <div class="panel-sm">
+              <div class="header-md" style="margin-bottom:10px;">Workflow atelier</div>
               <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px;color:#CBD5E1;border:1px solid rgba(255,255,255,0.06);">
                 {{ workflowTransitionHint }}
               </div>
@@ -463,7 +463,7 @@
             </div>
 
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
+              <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" class="text-md-value">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
             </div>
           </div>
         </UCard>
@@ -479,16 +479,16 @@
             </div>
           </template>
 
-          <form @submit.prevent="submitAnnulation" style="display:flex;flex-direction:column;gap:16px;">
+          <form @submit.prevent="submitAnnulation" class="flex-col-gap-lg">
             <div class="form-group">
-              <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Motif d'annulation <span style="color:#EF4444;">*</span></label>
+              <label class="form-label" style="margin-bottom:6px;display:block;">Motif d'annulation <span style="color:#EF4444;">*</span></label>
               <select v-model="annulationForm.motif" required style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;">
                 <option v-for="motif in ANNULATION_MOTIFS" :key="motif.value" :value="motif.value">{{ motif.label }}</option>
               </select>
             </div>
             
             <div class="form-group">
-              <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Commentaire / Détails</label>
+              <label class="form-label" style="margin-bottom:6px;display:block;">Commentaire / Détails</label>
               <textarea v-model="annulationForm.commentaire" placeholder="Explications..." style="width:100%;min-height:80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:vertical;"></textarea>
             </div>
             
@@ -498,8 +498,8 @@
                 Proposer des créneaux alternatifs au client par email/SMS
               </label>
               
-              <div v-if="annulationForm.proposer_alternatives" class="form-group" style="margin-top:12px;">
-                <label style="font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;display:block;">Message / Créneaux proposés</label>
+              <div v-if="annulationForm.proposer_alternatives" class="form-group" class="mt-3">
+                <label class="form-label" style="margin-bottom:6px;display:block;">Message / Créneaux proposés</label>
                 <textarea v-model="annulationForm.creneaux_alternatifs" placeholder="Ex: le 15/05 à 10h ou 14h. Sinon merci de choisir un nouveau créneau via le lien de prise de RDV." style="width:100%;min-height:80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:10px;padding:10px;font-size:14px;outline:none;resize:vertical;"></textarea>
               </div>
             </div>
@@ -1367,8 +1367,8 @@ async function onMoveRdv(payload: { id: number; date: string; time: string }) {
     })
     toast.add({ title: 'RDV déplacé', color: 'success' })
     await refreshPlanning()
-  } catch (e: any) {
-    toast.add({ title: 'Déplacement impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Déplacement impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -1422,8 +1422,8 @@ async function submitQuickCreate() {
     toast.add({ title: 'Créneau réservé', color: 'success' })
     await refreshPlanning()
     if (created?.id) await onSelectRdv(created)
-  } catch (e: any) {
-    toast.add({ title: 'Création impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Création impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
   } finally {
     quickSubmitting.value = false
   }
@@ -1460,8 +1460,8 @@ async function saveRdvChanges() {
     await rdvStore.updateRdv(selectedRdv.value.id, payload)
     toast.add({ title: 'RDV mis à jour', color: 'success' })
     await refreshPlanning()
-  } catch (e: any) {
-    toast.add({ title: 'Modification impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Modification impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
   } finally {
     editSaving.value = false
   }
@@ -1516,8 +1516,8 @@ async function applyTransition(name: string, options: any = {}) {
         : 'Transition effectuée'
     toast.add({ title, color: 'success' })
     await refreshPlanning()
-  } catch (e: any) {
-    toast.add({ title: 'Transition impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Transition impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
   } finally {
     transitioning.value = ''
   }
@@ -1535,8 +1535,8 @@ async function deleteSelectedRdv() {
     selectedRdv.value = null
     toast.add({ title: 'RDV supprimé', color: 'success' })
     await refreshPlanning()
-  } catch (e: any) {
-    toast.add({ title: 'Suppression impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Suppression impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
   } finally {
     deleting.value = false
   }

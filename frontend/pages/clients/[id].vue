@@ -243,8 +243,8 @@ async function saveClient() {
     client.value = { ...client.value, ...editForm }
     showEditClient.value = false
     toast.add({ title: 'Client modifié', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingClient.value = false
   }
@@ -262,8 +262,8 @@ async function exportClient() {
     a.click()
     URL.revokeObjectURL(url)
     toast.add({ title: 'Export téléchargé', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur export', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur export', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     exporting.value = false
   }
@@ -278,8 +278,8 @@ async function confirmAnonymize() {
     toast.add({ title: 'Client anonymisé', description: 'Les données personnelles ont été effacées.', color: 'success' })
     const c = await api.get(`/clients/${route.params.id}`)
     client.value = c
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

@@ -752,8 +752,8 @@ async function saveConfig() {
     atelierStore.setModules(config.value.feature_modules)
 
     toast.add({ title: 'Configuration sauvegardée', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Sauvegarde impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Sauvegarde impossible', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -772,8 +772,8 @@ async function onLogoChange(event: Event) {
     atelier.value.logo_url = result?.logo_url || result?.atelier?.logo_url || atelier.value.logo_url
     atelierStore.setBranding(atelier.value)
     toast.add({ title: 'Logo enregistré', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur logo', description: e?.message || 'Téléversement impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur logo', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Téléversement impossible', color: 'error' })
   } finally {
     uploadingLogo.value = false
     target.value = ''
@@ -792,8 +792,8 @@ async function toggleCategory(cat: any) {
 
     cat.is_active = nextValue
     toast.add({ title: `Type moto ${nextValue ? 'activé' : 'désactivé'}`, color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Mise à jour impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Mise à jour impossible', color: 'error' })
   } finally {
     togglingCategoryId.value = null
   }
@@ -846,8 +846,8 @@ async function saveTarifModal() {
     await fetchGrilles()
     tarifModalOpen.value = false
     toast.add({ title: 'Tarifs prestation enregistrés', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Enregistrement impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Enregistrement impossible', color: 'error' })
   } finally {
     modalSaving.value = false
   }
@@ -865,8 +865,8 @@ async function seedBaseTarifs() {
       title: result?.created ? `${result.created} tarifs initiaux créés` : 'Les tarifs étaient déjà présents',
       color: 'success',
     })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Pré-remplissage impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Pré-remplissage impossible', color: 'error' })
   } finally {
     seedLoading.value = false
   }

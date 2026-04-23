@@ -140,8 +140,8 @@ async function loadCatalog() {
       categorie_id: m.categorie?.id ?? m.categorie_id,
       categorie_nom: m.categorie?.nom ?? m.categorie_nom ?? '',
     }))
-  } catch (e: any) {
-    errorMessage.value = e?.message || 'Le catalogue moto n’a pas pu être chargé.'
+  } catch (e: unknown) {
+    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Le catalogue moto n’a pas pu être chargé.'
     toast.add({ title: 'Catalogue indisponible', description: errorMessage.value, color: 'error' })
   } finally {
     loading.value = false

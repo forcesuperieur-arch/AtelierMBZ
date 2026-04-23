@@ -271,8 +271,8 @@ async function loadAll() {
       selectedRef.value = Object.keys(cerfaRefs.value)[0]
     }
     fields.value = (res.items ?? []).filter((f: CerfaField) => f.cerfa_ref === selectedRef.value)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur chargement', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur chargement', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -288,8 +288,8 @@ async function selectRef(ref: string) {
   try {
     const res = await api.get('/admin/cerfa-config?cerfa_ref=' + ref)
     fields.value = res.items ?? []
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -317,8 +317,8 @@ async function saveField(field: CerfaField) {
     pendingFields.value.delete(field.id)
     if (selectedField.value && selectedField.value.id === field.id) Object.assign(selectedField.value, updated)
     toast.add({ title: 'Enregistré', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur sauvegarde', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur sauvegarde', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingId.value = null
   }
@@ -349,8 +349,8 @@ async function resetField(field: CerfaField) {
     pendingFields.value.delete(field.id)
     if (selectedField.value && selectedField.value.id === field.id) Object.assign(selectedField.value, updated)
     toast.add({ title: 'Réinitialisé', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur reset', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur reset', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingId.value = null
   }

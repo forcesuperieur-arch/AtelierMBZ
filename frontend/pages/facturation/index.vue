@@ -420,8 +420,8 @@ async function submitPaiement() {
     toast.add({ title: moneyActionType.value === 'remboursement' ? 'Remboursement enregistré' : 'Paiement enregistré', color: 'success' })
     showEncaissement.value = false
     await billingStore.fetchFactures()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec', color: 'error' })
   } finally {
     paying.value = false
   }
@@ -440,8 +440,8 @@ async function submitAvoir() {
     toast.add({ title: 'Avoir émis', color: 'success' })
     showAvoir.value = false
     await billingStore.fetchFactures()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec émission avoir', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec émission avoir', color: 'error' })
   } finally {
     crediting.value = false
   }
@@ -484,8 +484,8 @@ async function openPreviewFacture(rdvId: number) {
     previewRemise.value = data.remise || 0
     previewNotes.value = ''
     showPreview.value = true
-  } catch (e: any) {
-    toast.add({ title: 'Erreur aperçu', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur aperçu', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -500,8 +500,8 @@ async function generateInvoice() {
     toast.add({ title: 'Facture générée', color: 'success' })
     showPreview.value = false
     await billingStore.fetchFactures()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     generatingInvoice.value = false
   }
@@ -511,8 +511,8 @@ async function sendFactureEmail(facture: any) {
   try {
     await api.post(`/facturation/${facture.id}/email`, {})
     toast.add({ title: 'Facture envoyée par email', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur envoi email', description: e?.message || 'Vérifiez l\'adresse email du client', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur envoi email', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Vérifiez l\'adresse email du client', color: 'error' })
   }
 }
 

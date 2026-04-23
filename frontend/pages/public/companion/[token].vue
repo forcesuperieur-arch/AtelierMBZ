@@ -2,13 +2,13 @@
   <div>
     <NuxtLayout name="public">
       <div class="companion-container">
-        <div v-if="loading" style="text-align:center;padding:40px;">
-          <div style="font-size:32px;margin-bottom:12px;">⏳</div>
-          <p style="color:#9CA3AF;">Chargement…</p>
+        <div v-if="loading" class="text-center p-10">
+          <div class="text-4xl mb-3">⏳</div>
+          <p class="text-muted">Chargement…</p>
         </div>
 
-        <div v-else-if="error" style="text-align:center;padding:40px;">
-          <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+        <div v-else-if="error" class="text-center p-10">
+          <div class="text-5xl mb-4">🚫</div>
           <h2 style="color:#FCA5A5;font-size:18px;margin-bottom:8px;">Lien invalide</h2>
           <p style="color:#9CA3AF;font-size:13px;">{{ error }}</p>
         </div>
@@ -16,31 +16,31 @@
         <div v-else-if="rdv">
           <!-- Header -->
           <div class="companion-header">
-            <div style="font-size:28px;">🏍</div>
+            <div class="text-3xl">🏍</div>
             <div>
-              <h1 style="font-size:18px;font-weight:800;color:#E8E9ED;margin:0;">Réception PDA</h1>
+              <h1 class="header-lg m-0">Réception PDA</h1>
               <p style="font-size:12px;color:#9CA3AF;margin:2px 0 0;">RDV #{{ rdv.id }} · {{ rdv.date_rdv }} à {{ rdv.heure_rdv }}</p>
             </div>
           </div>
 
           <!-- RDV Info Summary -->
           <div class="companion-card">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
-              <div><span style="color:#6B7280;">Statut :</span> <span style="color:#D1D5DB;">{{ rdv.statut }}</span></div>
-              <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
-              <div><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.plaque || '—' }}</span></div>
-              <div style="grid-column:1/-1;"><span style="color:#6B7280;">Intervention :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
+            <div class="info-grid text-md-value">
+              <div><span class="text-subtle">Client :</span> <span class="text-value">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
+              <div><span class="text-subtle">Statut :</span> <span class="text-value">{{ rdv.statut }}</span></div>
+              <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
+              <div><span class="text-subtle">Plaque :</span> <span class="text-value">{{ rdv.vehicule?.plaque || '—' }}</span></div>
+              <div class="col-span-full"><span class="text-subtle">Intervention :</span> <span class="text-value">{{ rdv.type_intervention }}</span></div>
             </div>
           </div>
 
           <!-- [C7] Restitution — signature client sur le rapport d'intervention -->
           <div v-if="rdv.statut === 'termine'" class="companion-card" style="border-color:rgba(16,185,129,0.4);margin-bottom:12px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              <span style="font-size:28px;">🏁</span>
+              <span class="text-3xl">🏁</span>
               <div>
-                <h2 style="margin:0;font-size:16px;font-weight:700;color:#6EE7B7;">Intervention terminée</h2>
-                <p style="margin:2px 0 0;font-size:12px;color:#9CA3AF;">Signez le rapport pour valider la restitution</p>
+                <h2 class="m-0 header-md text-success">Intervention terminée</h2>
+                <p class="mt-0 text-md-muted">Signez le rapport pour valider la restitution</p>
               </div>
             </div>
 
@@ -49,9 +49,9 @@
             </div>
 
             <template v-else>
-              <div v-if="restitutionData" style="font-size:13px;color:#D1D5DB;margin-bottom:12px;line-height:1.6;">
-                <div v-if="restitutionData.rapport?.travaux_realises"><strong style="color:#9CA3AF;">Travaux réalisés :</strong> {{ restitutionData.rapport.travaux_realises }}</div>
-                <div v-if="restitutionData.rapport?.kilometrage_restitution"><strong style="color:#9CA3AF;">Kilométrage restitution :</strong> {{ restitutionData.rapport.kilometrage_restitution }} km</div>
+              <div v-if="restitutionData" class="text-md-value mb-3 leading-relaxed">
+                <div v-if="restitutionData.rapport?.travaux_realises"><strong class="text-muted">Travaux réalisés :</strong> {{ restitutionData.rapport.travaux_realises }}</div>
+                <div v-if="restitutionData.rapport?.kilometrage_restitution"><strong class="text-muted">Kilométrage restitution :</strong> {{ restitutionData.rapport.kilometrage_restitution }} km</div>
                 <div v-if="restitutionData.rapport?.alertes?.length"><strong style="color:#FCA5A5;">Alertes :</strong> {{ restitutionData.rapport.alertes.join(', ') }}</div>
               </div>
 
@@ -60,8 +60,8 @@
               </div>
 
               <template v-else-if="restitutionData">
-                <p style="font-size:12px;color:#9CA3AF;margin-bottom:8px;">Signez ci-dessous pour confirmer la restitution :</p>
-                <div class="sig-canvas-wrapper" style="margin-bottom:10px;">
+                <p class="text-md-muted mb-2">Signez ci-dessous pour confirmer la restitution :</p>
+                <div class="sig-canvas-wrapper" class="mb-2">
                   <canvas
                     ref="sigCanvasRestitution"
                     width="320"
@@ -73,8 +73,8 @@
                     @pointerleave="endDrawRestitution"
                   ></canvas>
                 </div>
-                <div style="display:flex;gap:8px;">
-                  <button class="companion-capture-btn" style="flex:1;" @click="clearRestitutionSignature">Effacer</button>
+                <div class="flex-wrap-gap">
+                  <button class="companion-capture-btn" class="flex-1" @click="clearRestitutionSignature">Effacer</button>
                   <button
                     class="companion-capture-btn"
                     style="flex:2;background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.4);color:#6EE7B7;"
@@ -114,34 +114,34 @@
           <!-- Action Buttons (main menu) -->
           <div v-if="!activeSection" class="companion-actions">
             <button class="companion-action-btn" @click="activeSection = 'photos'">
-              <span style="font-size:36px;">📸</span>
+              <span class="text-4xl">📸</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Photos véhicule</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">État extérieur / intérieur</span>
+                <span class="header-md">Photos véhicule</span>
+                <span class="text-xs-muted block">État extérieur / intérieur</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'carte-grise'">
-              <span style="font-size:36px;">🪪</span>
+              <span class="text-4xl">🪪</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Scanner carte grise</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">OCR FR / BE auto-remplissage</span>
+                <span class="header-md">Scanner carte grise</span>
+                <span class="text-xs-muted block">OCR FR / BE auto-remplissage</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'checkup'">
-              <span style="font-size:36px;">🔎</span>
+              <span class="text-4xl">🔎</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Checkup express</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ checkupDone }}/{{ checkupItems.length }} point{{ checkupDone > 1 ? 's' : '' }} vérifié{{ checkupDone > 1 ? 's' : '' }}</span>
+                <span class="header-md">Checkup express</span>
+                <span class="text-xs-muted block">{{ checkupDone }}/{{ checkupItems.length }} point{{ checkupDone > 1 ? 's' : '' }} vérifié{{ checkupDone > 1 ? 's' : '' }}</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'signature'">
-              <span style="font-size:36px;">✍️</span>
+              <span class="text-4xl">✍️</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Signature client</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Obligatoire' }}</span>
+                <span class="header-md">Signature client</span>
+                <span class="text-xs-muted block">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Obligatoire' }}</span>
               </div>
             </button>
           </div>
@@ -153,10 +153,10 @@
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="flex-col-gap">
               <label class="companion-capture-btn">
-                <input type="file" accept="image/*" capture="environment" multiple @change="onPhotosSelected" style="display:none;" />
-                <span style="font-size:24px;">📷</span>
+                <input type="file" accept="image/*" capture="environment" multiple @change="onPhotosSelected" class="hidden" />
+                <span class="text-2xl">📷</span>
                 <span>{{ uploading ? 'Envoi en cours…' : 'Prendre une photo' }}</span>
               </label>
 
@@ -176,22 +176,22 @@
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="flex-col-gap">
               <label class="companion-capture-btn">
-                <input type="file" accept="image/*" capture="environment" @change="onCarteGriseSelected" style="display:none;" />
-                <span style="font-size:24px;">📷</span>
+                <input type="file" accept="image/*" capture="environment" @change="onCarteGriseSelected" class="hidden" />
+                <span class="text-2xl">📷</span>
                 <span>{{ ocrProcessing ? 'Analyse OCR en cours…' : 'Photographier la carte grise / certificat' }}</span>
               </label>
 
-              <div v-if="ocrProcessing" style="text-align:center;padding:20px;">
+              <div v-if="ocrProcessing" class="text-center p-5">
                 <div class="ocr-spinner"></div>
                 <p style="color:#FBBF24;font-size:13px;margin-top:12px;">Extraction des informations…</p>
                 <p style="color:#6B7280;font-size:11px;">Cela peut prendre quelques secondes</p>
               </div>
 
               <div v-if="ocrResult" class="companion-card" style="border-color:rgba(16,185,129,0.3);">
-                <div style="font-size:13px;font-weight:700;color:#6EE7B7;margin-bottom:10px;">✓ Données extraites — vérifiez et corrigez si besoin</div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
+                <div class="text-lg-primary text-success mb-2">✓ Données extraites — vérifiez et corrigez si besoin</div>
+                <div class="flex-col-gap-sm">
                   <div v-for="field in ocrFields" :key="field.key" class="ocr-field">
                     <label>{{ field.label }}</label>
                     <input v-model="ocrResult[field.key]" class="companion-input" />
@@ -214,7 +214,7 @@
                 </div>
                 <button
                   class="companion-validate-btn"
-                  style="margin-top:12px;"
+                  class="mt-3"
                   :disabled="ocrSaving"
                   @click="applyOcrData"
                 >
@@ -231,7 +231,7 @@
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
-            <p style="font-size:12px;color:#9CA3AF;margin:0 0 12px;">
+            <p class="text-md-muted mb-3">
               Touchez chaque point pour faire défiler : non vérifié → OK → NOK.
             </p>
 
@@ -249,7 +249,7 @@
               </button>
             </div>
 
-            <div class="ocr-field" style="margin-top:12px;">
+            <div class="ocr-field" class="mt-3">
               <label>Notes checkup</label>
               <textarea
                 v-model="checkupNotes"
@@ -261,7 +261,7 @@
 
             <button
               class="companion-validate-btn"
-              style="margin-top:12px;"
+              class="mt-3"
               :disabled="checkupSaving"
               @click="saveCheckup"
             >
@@ -276,14 +276,14 @@
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
-            <div v-if="rdv.has_signature && !resignMode" style="text-align:center;padding:20px;">
-              <div style="font-size:48px;margin-bottom:12px;">✅</div>
+            <div v-if="rdv.has_signature && !resignMode" class="text-center p-5">
+              <div class="text-5xl mb-3">✅</div>
               <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Signature déjà finalisée</p>
-              <p style="color:#9CA3AF;font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
+              <p class="text-md-muted">Le document est maintenant verrouillé côté atelier.</p>
             </div>
 
-            <div v-else style="display:flex;flex-direction:column;gap:12px;">
-              <p style="font-size:13px;color:#9CA3AF;text-align:center;">
+            <div v-else class="flex-col-gap">
+              <p class="text-lg-muted text-center">
                 Le client accepte les travaux décrits et confirme l'état du véhicule à la réception.
               </p>
 
@@ -300,8 +300,8 @@
                 ></canvas>
               </div>
 
-              <div style="display:flex;gap:8px;">
-                <button class="companion-capture-btn" style="flex:1;" @click="clearSignature">
+              <div class="flex-wrap-gap">
+                <button class="companion-capture-btn" class="flex-1" @click="clearSignature">
                   <span>↺ Effacer</span>
                 </button>
                 <button
@@ -318,9 +318,9 @@
 
           <!-- All-done summary -->
           <div v-if="rdv.has_signature && rdv.photos_count > 0 && checkupDone > 0 && !activeSection" class="companion-card" style="border-color:rgba(16,185,129,0.3);text-align:center;margin-top:8px;">
-            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div class="text-4xl mb-2">✅</div>
             <p style="color:#6EE7B7;font-weight:700;font-size:14px;">Réception prête à valider</p>
-            <p style="color:#9CA3AF;font-size:12px;">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
+            <p class="text-md-muted">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
           </div>
         </div>
       </div>
@@ -648,8 +648,8 @@ async function fetchRdv() {
     if (!res.ok) throw new Error(await readApiError(res, 'Lien invalide ou expiré'))
     rdv.value = await res.json()
     loadSavedCheckup()
-  } catch (e: any) {
-    error.value = e.message || 'Erreur de chargement'
+  } catch (e: unknown) {
+    error.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur de chargement'
   } finally {
     loading.value = false
   }
@@ -683,8 +683,8 @@ async function onPhotosSelected(e: Event) {
     }
     await fetchRdv()
     setFeedback('Photo(s) enregistrée(s).')
-  } catch (e: any) {
-    setFeedback(e?.message || 'Impossible d’envoyer la photo', true)
+  } catch (e: unknown) {
+    setFeedback((e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible d’envoyer la photo', true)
   } finally {
     uploading.value = false
     input.value = ''
@@ -724,7 +724,6 @@ async function onCarteGriseSelected(e: Event) {
     await fetchRdv()
     summarizeOcrComparison(ocrResult.value)
   } catch (err) {
-    console.warn('OCR error, pre-filling with vehicle data:', err)
     ocrResult.value = {
       plaque: rdv.value?.vehicule?.plaque || '',
       marque: rdv.value?.vehicule?.marque || '',
@@ -847,8 +846,8 @@ async function applyOcrData() {
     await fetchRdv()
     activeSection.value = null
     setFeedback('Les informations véhicule ont été mises à jour.')
-  } catch (e: any) {
-    setFeedback(e?.message || 'Impossible de mettre à jour le véhicule', true)
+  } catch (e: unknown) {
+    setFeedback((e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de mettre à jour le véhicule', true)
   } finally {
     ocrSaving.value = false
   }
@@ -872,8 +871,8 @@ async function saveCheckup() {
     await fetchRdv()
     activeSection.value = null
     setFeedback('Checkup enregistré.')
-  } catch (e: any) {
-    setFeedback(e?.message || 'Erreur enregistrement checkup', true)
+  } catch (e: unknown) {
+    setFeedback((e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur enregistrement checkup', true)
   } finally {
     checkupSaving.value = false
   }
@@ -944,8 +943,8 @@ async function submitSignature() {
     clearSignature()
     await fetchRdv()
     setFeedback('Signature client finalisée.')
-  } catch (e: any) {
-    setFeedback(e?.message || 'Erreur signature', true)
+  } catch (e: unknown) {
+    setFeedback((e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur signature', true)
   } finally {
     sigSaving.value = false
   }
@@ -967,8 +966,8 @@ async function fetchRapportRestitution() {
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/rapport-restitution`)
     if (!res.ok) throw new Error(await readApiError(res, 'Erreur chargement rapport'))
     restitutionData.value = await res.json()
-  } catch (e: any) {
-    restitutionError.value = e.message || 'Erreur chargement rapport de restitution'
+  } catch (e: unknown) {
+    restitutionError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur chargement rapport de restitution'
   }
 }
 
@@ -1028,8 +1027,8 @@ async function submitSignatureRestitution() {
     await ensureOk(res, 'Erreur signature restitution')
     restitutionDone.value = true
     await fetchRdv()
-  } catch (e: any) {
-    restitutionError.value = e?.message || 'Erreur lors de la signature de restitution'
+  } catch (e: unknown) {
+    restitutionError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur lors de la signature de restitution'
   } finally {
     restitutionSaving.value = false
   }

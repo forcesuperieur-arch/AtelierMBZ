@@ -541,8 +541,9 @@ const totalFre = computed(() => {
 const attachedDocumentCount = computed(() => documentRows.value.filter(row => row.file).length)
 const draftPublicUrl = computed(() => {
   const path = String(draftCompanion.value?.companion?.publicPath || '').trim()
-  if (!path || !import.meta.client) return ''
-  return new URL(path, window.location.origin).toString()
+  if (!path || !process.client) return ''
+  const origin = window.location.origin
+  return new URL(path, origin).toString()
 })
 const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 
@@ -762,9 +763,9 @@ async function refreshDraftCompanion(silent = true) {
   try {
     const full = await voStore.fetchPurchaseFull(draftPurchaseId.value)
     hydrateFromDraft(full)
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!silent) {
-      toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+      toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
     }
   }
 }
@@ -796,8 +797,8 @@ async function activateCompanionNow(showToast = true) {
     if (showToast) {
       toast.add({ title: 'QR compagnon prêt', description: 'Le scan PDA peut démarrer immédiatement.', color: 'success' })
     }
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     activatingCompanion.value = false
   }
@@ -881,8 +882,8 @@ async function submit() {
       color: 'success',
     })
     navigateTo(`/vo/rachats/${purchaseId}?companion=1`)
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     submitting.value = false
   }

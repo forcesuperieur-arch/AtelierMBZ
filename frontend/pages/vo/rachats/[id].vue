@@ -497,8 +497,8 @@ async function saveSivState() {
     })
     toast.add({ title: 'État SIV enregistré', color: 'success' })
     await loadDetail()
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingSiv.value = false
   }
@@ -509,8 +509,8 @@ async function confirmPurchase() {
     await voStore.confirmPurchase(Number(route.params.id))
     toast.add({ title: 'Rachat confirmé', color: 'success' })
     await loadDetail()
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -542,8 +542,8 @@ async function prepareSivDossier() {
     }
 
     await loadDetail()
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     preparingSiv.value = false
   }
@@ -583,8 +583,8 @@ async function sellVehicle() {
     toast.add({ title: 'Vente enregistrée', color: 'success' })
     await loadDetail()
     showSale.value = false
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     selling.value = false
   }

@@ -167,8 +167,8 @@ async function createClient() {
     toast.add({ title: 'Client créé', color: 'success' })
     Object.assign(newClient, { prenom: '', nom: '', telephone: '', email: '', adresse: '' })
     consentRGPD.value = false
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     creating.value = false
   }

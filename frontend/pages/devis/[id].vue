@@ -155,8 +155,8 @@ async function sendDevisEmail() {
   try {
     await api.post(`/devis/${devis.value.id}/email`, {})
     toast.add({ title: 'Devis renvoyé par email', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur envoi email', description: e?.message || 'Échec', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur envoi email', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec', color: 'error' })
   } finally {
     sendingEmail.value = false
   }
@@ -192,8 +192,8 @@ async function action(type: string) {
       return
     }
     await loadDevis()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec', color: 'error' })
   } finally {
     acting.value = false
   }

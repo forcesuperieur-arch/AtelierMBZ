@@ -418,8 +418,8 @@ async function deletePrestation(id: number) {
     await api.del(`/prestations/${id}`)
     toast.add({ title: 'Prestation archivée', color: 'success' })
     await fetchData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -429,8 +429,8 @@ async function bootstrapCatalog() {
     await api.post('/config/prestations/bootstrap', atelierId ? { atelier_id: atelierId } : {})
     toast.add({ title: 'Catalogue initialisé', color: 'success' })
     await fetchData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -459,8 +459,8 @@ async function savePrestation() {
     showModal.value = false
     toast.add({ title: 'Prestation sauvegardée', color: 'success' })
     await fetchData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -489,8 +489,8 @@ async function saveTarifModal() {
     showTarifModal.value = false
     toast.add({ title: 'Tarifs prestation enregistrés', color: 'success' })
     await fetchData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     modalSaving.value = false
   }

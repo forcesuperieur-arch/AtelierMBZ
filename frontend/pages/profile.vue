@@ -162,8 +162,8 @@ async function onSwitch(value: string) {
     await api.post('/auth/switch-atelier', { atelier_id: atelierId })
     await auth.fetchMe()
     toast.add({ title: 'Atelier changé', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Changement refusé', description: e?.message || 'Atelier non autorisé.', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Changement refusé', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Atelier non autorisé.', color: 'error' })
   }
 }
 

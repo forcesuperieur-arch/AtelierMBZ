@@ -286,8 +286,8 @@ async function loadAteliers() {
   try {
     const data = await api.get('/admin/ateliers')
     ateliers.value = (Array.isArray(data) ? data : []).map(normalizeAtelier)
-  } catch (e: any) {
-    error.value = e?.message || 'Chargement impossible de la liste multiatelier.'
+  } catch (e: unknown) {
+    error.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Chargement impossible de la liste multiatelier.'
   } finally {
     loading.value = false
   }
@@ -325,10 +325,10 @@ async function saveAtelier() {
 
     showModal.value = false
     await loadAteliers()
-  } catch (e: any) {
+  } catch (e: unknown) {
     toast.add({
       title: 'Action impossible',
-      description: e?.message || 'Erreur inconnue',
+      description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue',
       color: 'error',
     })
   } finally {
@@ -353,10 +353,10 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
     }
 
     await loadAteliers()
-  } catch (e: any) {
+  } catch (e: unknown) {
     toast.add({
       title: 'Impossible de changer de contexte',
-      description: e?.message || 'Erreur inconnue',
+      description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue',
       color: 'error',
     })
   }

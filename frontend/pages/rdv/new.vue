@@ -1041,10 +1041,10 @@ async function syncAtelierContext(value: number | null, previousValue?: number |
       if (config) {
         atelierStore.setConfig(config)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.add({
         title: 'Atelier indisponible',
-        description: error?.message || 'Impossible de changer de contexte atelier.',
+        description: (error instanceof Error ? error.message : 'Erreur inconnue') || 'Impossible de changer de contexte atelier.',
         color: 'error',
       })
     }
@@ -1109,8 +1109,8 @@ async function confirmRdv() {
     const rdv = await rdvStore.createRdv(payload)
     toast.add({ title: 'Créneau réservé avec succès', color: 'success' })
     navigateTo(`/planning?openRdv=${rdv.id}`)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     submitting.value = false
   }

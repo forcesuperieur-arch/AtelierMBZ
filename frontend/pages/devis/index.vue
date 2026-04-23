@@ -224,8 +224,8 @@ async function submitDevis() {
     toast.add({ title: 'Devis créé', color: 'success' })
     showNew.value = false
     await loadDevis()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec', color: 'error' })
   } finally {
     submitting.value = false
   }

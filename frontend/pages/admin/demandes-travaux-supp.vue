@@ -99,8 +99,8 @@ async function load() {
   try {
     const url = statut.value ? `/demandes-travaux-supp?statut=${statut.value}` : '/demandes-travaux-supp'
     demandes.value = await api.get(url)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur chargement', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur chargement', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -112,8 +112,8 @@ async function envoyer(d: any) {
     const res = await api.post(`/demandes-travaux-supp/${d.id}/envoyer`, {})
     toast.add({ title: 'Envoyé au client', description: `Lien : ${res.lien_client}`, color: 'success' })
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     sending.value = null
   }

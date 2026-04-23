@@ -177,8 +177,8 @@ async function fetchRole() {
         }
       }
     }
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loading.value = false
   }
@@ -189,8 +189,8 @@ async function fetchModules() {
   try {
     const data = await api.get('/modules')
     modules.value = data['hydra:member'] ?? data
-  } catch (e: any) {
-    toast.add({ title: 'Erreur modules', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur modules', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     loadingModules.value = false
   }
@@ -212,8 +212,8 @@ async function saveRole() {
     })
     toast.add({ title: 'Rôle enregistré', color: 'success' })
     await fetchRole()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }

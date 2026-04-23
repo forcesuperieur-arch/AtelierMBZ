@@ -238,10 +238,10 @@ async function load() {
         essai.pointsControle = r.essaiRoutier.pointsControle.map((p: any) => ({ ...p }))
       }
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     rapport.value = null
-    if (!String(e?.message || '').includes('Aucun rapport')) {
-      toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+    if (!String((e instanceof Error ? e.message : 'Erreur inconnue') || '').includes('Aucun rapport')) {
+      toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
     }
   } finally {
     loading.value = false
@@ -263,8 +263,8 @@ async function save() {
     })
     toast.add({ title: 'Rapport enregistré', color: 'success' })
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -284,8 +284,8 @@ async function saveEssai() {
     })
     toast.add({ title: 'Essai enregistré', color: 'success' })
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingEssai.value = false
   }
@@ -327,8 +327,8 @@ async function signMeca() {
     await load()
     await nextTick()
     if (sigClientCanvas.value) setupCanvas(sigClientCanvas.value, () => hasSignedClient.value = true)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     signing.value = false
   }
@@ -341,8 +341,8 @@ async function signClient() {
     await api.post(`/rapport/${rapport.value.id}/sign-client`, { signature: sigClientCanvas.value.toDataURL('image/png') })
     toast.add({ title: 'Rapport signé', color: 'success' })
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     signing.value = false
   }
@@ -366,8 +366,8 @@ async function doRectifier() {
     toast.add({ title: 'Rapport rectifié', color: 'success' })
     showRectifier.value = false
     await load()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     rectifying.value = false
   }

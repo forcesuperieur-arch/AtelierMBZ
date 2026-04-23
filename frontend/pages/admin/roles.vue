@@ -342,8 +342,8 @@ async function saveRole() {
     showModal.value = false
     resetForm()
     await fetchRoles()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec de sauvegarde', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec de sauvegarde', color: 'error' })
   } finally {
     saving.value = false
   }
@@ -356,8 +356,8 @@ async function deleteRole(role: any) {
     await api.del(`/roles/${encodeURIComponent(role.role)}`)
     toast.add({ title: 'Rôle supprimé', color: 'success' })
     await fetchRoles()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Suppression impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Suppression impossible', color: 'error' })
   }
 }
 

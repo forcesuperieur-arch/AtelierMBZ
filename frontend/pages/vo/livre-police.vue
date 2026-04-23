@@ -80,8 +80,8 @@ async function downloadPdf() {
   pdfLoading.value = true
   try {
     await downloadPdfFile('/vo/livre-police/pdf', 'livre-police.pdf')
-  } catch (e: any) {
-    toast.add({ title: 'Erreur PDF', description: e?.message ?? 'Impossible de générer le PDF', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur PDF', description: e instanceof Error ? e.message : 'Erreur inconnue' ?? 'Impossible de générer le PDF', color: 'error' })
   } finally {
     pdfLoading.value = false
   }

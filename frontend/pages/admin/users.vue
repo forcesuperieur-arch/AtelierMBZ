@@ -333,8 +333,8 @@ async function approvePendingUser() {
     showApprove.value = false
     toast.add({ title: 'Compte SSO validé', color: 'success' })
     await fetchUsers()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Validation impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Validation impossible', color: 'error' })
   } finally {
     approving.value = false
   }
@@ -349,8 +349,8 @@ async function rejectPendingUser(u: any) {
     await api.post(`/admin/users/${user.id}/reject`, { reason })
     toast.add({ title: 'Compte refusé', color: 'success' })
     await fetchUsers()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Refus impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Refus impossible', color: 'error' })
   }
 }
 
@@ -373,8 +373,8 @@ async function toggleUserStatus(u: any) {
     })
     toast.add({ title: nextActive ? 'Utilisateur activé' : 'Utilisateur désactivé', color: 'success' })
     await fetchUsers()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec de mise à jour', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec de mise à jour', color: 'error' })
   }
 }
 
@@ -386,8 +386,8 @@ async function deleteUser(u: any) {
     await api.del(`/users/${user.id}`)
     toast.add({ title: 'Compte archivé', description: 'Les données d’accès ont été neutralisées.', color: 'success' })
     await fetchUsers()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Archivage impossible', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Archivage impossible', color: 'error' })
   }
 }
 
@@ -424,8 +424,8 @@ async function saveUser() {
     resetForm()
     await fetchUsers()
     toast.add({ title: 'Utilisateur sauvegardé', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
   }

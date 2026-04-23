@@ -254,6 +254,39 @@ definePageMeta({
 
 type StepKey = 'seller' | 'vehicle' | 'documents' | 'signature'
 
+interface VoCompanionPayload {
+  mode?: 'depot' | 'purchase'
+  partyRole?: string
+  party?: {
+    prenom?: string
+    nom?: string
+    idType?: string
+    idNumber?: string
+    idDate?: string
+  }
+  vehicule?: {
+    plaque?: string
+    marque?: string
+    modele?: string
+    vin?: string
+    annee?: string | number
+    cylindree?: string
+    typeMoto?: string
+    type_moto?: string
+  }
+  dossier?: { generatedDocuments?: unknown[] }
+  documents?: unknown[]
+  steps?: {
+    completedCount?: number
+    totalCount?: number
+    seller?: { completed?: boolean; label?: string }
+    vehicle?: { completed?: boolean; label?: string }
+    documents?: { completed?: boolean; label?: string; required?: string[]; missing?: string[] }
+    signature?: { completed?: boolean; label?: string }
+    additionalDocumentOptions?: string[]
+  }
+}
+
 const route = useRoute()
 const toast = useToast()
 const { apiBase, documentLabel } = useVoHelpers()
@@ -270,7 +303,7 @@ const {
 
 const loading = ref(true)
 const errorMessage = ref('')
-const payload = ref<any | null>(null)
+const payload = ref<VoCompanionPayload | null>(null)
 const currentStep = ref<StepKey>('seller')
 const ocrNotice = ref<{ tone: 'warning' | 'success' | 'neutral'; message: string } | null>(null)
 const busy = reactive({ seller: false, vehicle: false, documents: false, signature: false })
@@ -383,14 +416,14 @@ async function loadPayload() {
   try {
     const result = await $fetch(`${apiBase}/public/vo-companion/${token.value}`)
     applyPayload(result)
-  } catch (error: any) {
-    errorMessage.value = error?.data?.error || error?.message || 'Impossible de charger le parcours PDA.'
+  } catch (error: unknown) {
+    errorMessage.value = (error instanceof Error && 'data' in error ? (error as Record<string, unknown>).data?.error : undefined) || (error instanceof Error ? error.message : 'Erreur inconnue') || 'Impossible de charger le parcours PDA.'
   } finally {
     loading.value = false
   }
 }
 
-function applyPayload(nextPayload: any) {
+function applyPayload(nextPayload: VoCompanionPayload | null) {
   payload.value = nextPayload
 
   sellerForm.idType = nextPayload?.party?.idType || ''
@@ -410,7 +443,7 @@ function applyPayload(nextPayload: any) {
   nextTick(() => resizeSignatureCanvas())
 }
 
-function getFirstOpenStep(steps: any): StepKey {
+function getFirstOpenStep(steps: Record<StepKey, { completed?: boolean }> | undefined | null): StepKey {
   if (!steps?.seller?.completed) return 'seller'
   if (!steps?.vehicle?.completed) return 'vehicle'
   if (!steps?.documents?.completed) return 'documents'
@@ -481,8 +514,8 @@ async function saveSellerStep() {
 
     applyPayload(result)
     toast.add({ title: `${roleLabel.value} validé`, color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error?.data?.error || error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: (error instanceof Error && 'data' in error ? (error as Record<string, unknown>).data?.error : undefined) || error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     busy.seller = false
   }
@@ -520,8 +553,8 @@ async function saveVehicleStep() {
     vehiclePhotoFiles.value = []
     applyPayload(result)
     toast.add({ title: 'Véhicule validé', color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error?.data?.error || error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: (error instanceof Error && 'data' in error ? (error as Record<string, unknown>).data?.error : undefined) || error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     busy.vehicle = false
   }
@@ -553,8 +586,8 @@ async function saveDocumentsStep() {
     extraDocumentType.value = ''
     applyPayload(result)
     toast.add({ title: 'Documents validés', color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error?.data?.error || error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: (error instanceof Error && 'data' in error ? (error as Record<string, unknown>).data?.error : undefined) || error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     busy.documents = false
   }
@@ -574,8 +607,8 @@ async function saveSignatureStep() {
     applyPayload(result)
     clearSignature()
     toast.add({ title: 'Signature enregistrée', color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: 'Erreur', description: error?.data?.error || error.message, color: 'error' })
+  } catch (error: unknown) {
+    toast.add({ title: 'Erreur', description: (error instanceof Error && 'data' in error ? (error as Record<string, unknown>).data?.error : undefined) || error instanceof Error ? error.message : 'Erreur inconnue', color: 'error' })
   } finally {
     busy.signature = false
   }

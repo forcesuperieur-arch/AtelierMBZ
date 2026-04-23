@@ -758,11 +758,11 @@ async function loadCreneaux() {
     const preferredDate = form.date_rdv && (creneauxByDate.value[form.date_rdv] || []).some(slot => isSlotSelectable(form.date_rdv, slot.heure)) ? form.date_rdv : ''
     form.date_rdv = preferredDate || planningDays.value.find(day => day.availableCount > 0)?.date || start
     syncSelectedDaySlots()
-  } catch (error: any) {
+  } catch (error: unknown) {
     creneauxByDate.value = Object.fromEntries(planningDays.value.map((day) => [day.date, []]))
     creneauxList.value = []
     form.heure_debut = ''
-    errorMessage.value = error?.message || 'Erreur lors du chargement des créneaux.'
+    errorMessage.value = (error instanceof Error ? error.message : 'Erreur inconnue') || 'Erreur lors du chargement des créneaux.'
   } finally {
     loadingCreneaux.value = false
   }
@@ -815,8 +815,8 @@ async function confirmBooking() {
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data?.error || 'Erreur lors de la réservation.')
     confirmation.value = data
-  } catch (error: any) {
-    errorMessage.value = error?.message || 'Erreur lors de la réservation. Veuillez réessayer.'
+  } catch (error: unknown) {
+    errorMessage.value = (error instanceof Error ? error.message : 'Erreur inconnue') || 'Erreur lors de la réservation. Veuillez réessayer.'
   } finally {
     submitting.value = false
   }

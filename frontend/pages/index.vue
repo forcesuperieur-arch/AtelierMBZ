@@ -117,18 +117,18 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
+    <div class="grid-auto" style="margin:24px 0;">
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Évolution sur la période</span>
+          <span class="header-lg">Évolution sur la période</span>
         </template>
         <div v-if="dailyTrend.length" style="display:flex;align-items:flex-end;gap:8px;min-height:180px;overflow-x:auto;padding-top:6px;">
           <div v-for="item in dailyTrend" :key="item.date" style="min-width:44px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <span style="font-size:10px;color:#9CA3AF;">{{ item.rdvs }}</span>
+            <span class="text-xs-muted">{{ item.rdvs }}</span>
             <div style="width:24px;height:120px;display:flex;align-items:flex-end;">
               <div :style="{ width: '100%', height: Math.max(10, Math.round(Number(item.rdvs ?? 0) / dailyTrendMax * 100)) + '%', borderRadius: '8px 8px 4px 4px', background: 'linear-gradient(180deg, #FFD200 0%, #F59E0B 100%)' }"></div>
             </div>
-            <span style="font-size:10px;color:#6B7280;">{{ formatShortDay(item.date) }}</span>
+            <span class="text-xs-subtle">{{ formatShortDay(item.date) }}</span>
           </div>
         </div>
         <AppEmptyState
@@ -141,55 +141,55 @@
 
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Mix rentabilité atelier</span>
+          <span class="header-lg">Mix rentabilité atelier</span>
         </template>
         <div style="display:flex;flex-direction:column;gap:12px;">
-          <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#D1D5DB;margin-bottom:6px;">
+          <div class="card-sm">
+            <div class="flex-between text-sm-value" style="margin-bottom:6px;">
               <span>Main d’œuvre</span>
               <span>{{ formatCurrency(revenueMix.mo_ht ?? 0) }}</span>
             </div>
-            <div style="height:8px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;"><div :style="{ width: mixShare(revenueMix.mo_ht ?? 0) + '%', height: '100%', background: '#10B981' }"></div></div>
+            <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.mo_ht ?? 0) + '%', height: '100%', background: '#10B981' }"></div></div>
           </div>
-          <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#D1D5DB;margin-bottom:6px;">
+          <div class="card-sm">
+            <div class="flex-between text-sm-value" style="margin-bottom:6px;">
               <span>Pièces</span>
               <span>{{ formatCurrency(revenueMix.pieces_ht ?? 0) }}</span>
             </div>
-            <div style="height:8px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;"><div :style="{ width: mixShare(revenueMix.pieces_ht ?? 0) + '%', height: '100%', background: '#3B82F6' }"></div></div>
+            <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.pieces_ht ?? 0) + '%', height: '100%', background: '#3B82F6' }"></div></div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
-            <div style="padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);">
-              <div style="font-size:11px;color:#9CA3AF;">Factures période</div>
-              <div style="font-size:18px;font-weight:700;color:#E8E9ED;">{{ revenueMix.nb_factures ?? 0 }}</div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Factures période</div>
+              <div class="stat-value-sm">{{ revenueMix.nb_factures ?? 0 }}</div>
             </div>
-            <div style="padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);">
-              <div style="font-size:11px;color:#9CA3AF;">Total HT</div>
-              <div style="font-size:18px;font-weight:700;color:#E8E9ED;">{{ formatCurrency(revenueMix.total_ht ?? 0) }}</div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Total HT</div>
+              <div class="stat-value-sm">{{ formatCurrency(revenueMix.total_ht ?? 0) }}</div>
             </div>
           </div>
         </div>
       </UCard>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
+    <div class="grid-auto" style="margin:24px 0;">
       <UCard>
         <template #header>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Performance mécanos</span>
+          <div class="flex-between-wrap flex-wrap-gap-12">
+            <span class="header-lg">Performance mécanos</span>
             <span class="badge-count">{{ mecanicienStats.length }}</span>
           </div>
         </template>
-        <div v-if="mecanicienStats.length" style="display:flex;flex-direction:column;gap:10px;">
-          <div v-for="meca in mecanicienStats.slice(0, 6)" :key="meca.id" style="padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+        <div v-if="mecanicienStats.length" class="flex-col-10">
+          <div v-for="meca in mecanicienStats.slice(0, 6)" :key="meca.id" class="card-sm">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
               <div>
-                <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ meca.prenom }} {{ meca.nom }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">{{ meca.nb_rdvs }} interventions · {{ formatDuration(Number(meca.total_minutes || 0)) }} · {{ formatCurrency(meca.ca_genere || 0) }}</div>
+                <div class="text-lg-primary">{{ meca.prenom }} {{ meca.nom }}</div>
+                <div class="text-md-muted">{{ meca.nb_rdvs }} interventions · {{ formatDuration(Number(meca.total_minutes || 0)) }} · {{ formatCurrency(meca.ca_genere || 0) }}</div>
               </div>
-              <div style="text-align:right;">
-                <div style="font-size:12px;color:#FFD200;font-weight:700;">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
-                <div style="font-size:10px;color:#6B7280;">moyenne</div>
+              <div class="text-right">
+                <div class="text-md-muted text-warning" style="font-weight:700;">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
+                <div class="text-xs-subtle">moyenne</div>
               </div>
             </div>
           </div>
@@ -204,21 +204,21 @@
 
       <UCard>
         <template #header>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Catégories de prestations</span>
+          <div class="flex-between-wrap flex-wrap-gap-12">
+            <span class="header-lg">Catégories de prestations</span>
             <span class="badge-count">{{ topServices.length }}</span>
           </div>
         </template>
-        <div v-if="topServices.length" style="display:flex;flex-direction:column;gap:10px;">
-          <div v-for="service in topServices" :key="service.label" style="padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div v-if="topServices.length" class="flex-col-10">
+          <div v-for="service in topServices" :key="service.label" class="card-sm">
+            <div class="flex-between-wrap flex-wrap-gap-12">
               <div>
-                <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ service.label }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">{{ service.count }} passages · {{ formatDuration(Number(service.minutes || 0)) }}</div>
+                <div class="text-lg-primary">{{ service.label }}</div>
+                <div class="text-md-muted">{{ service.count }} passages · {{ formatDuration(Number(service.minutes || 0)) }}</div>
               </div>
-              <div style="text-align:right;">
-                <div style="font-size:12px;color:#FFD200;font-weight:700;">{{ formatCurrency(service.revenue || 0) }}</div>
-                <div style="font-size:10px;color:#6B7280;">potentiel</div>
+              <div class="text-right">
+                <div class="text-md-muted text-warning" style="font-weight:700;">{{ formatCurrency(service.revenue || 0) }}</div>
+                <div class="text-xs-subtle">potentiel</div>
               </div>
             </div>
           </div>
@@ -235,12 +235,12 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:24px;">
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Répartition des statuts</span>
+          <span class="header-lg">Répartition des statuts</span>
         </template>
-        <div v-if="statusBreakdown.length" style="display:flex;flex-direction:column;gap:10px;">
+        <div v-if="statusBreakdown.length" class="flex-col-10">
           <div v-for="item in statusBreakdown" :key="item.label" style="display:grid;gap:4px;">
             <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-              <span style="color:#D1D5DB;">{{ item.label }}</span>
+              <span class="text-value">{{ item.label }}</span>
               <span style="color:#9CA3AF;">{{ item.count }}</span>
             </div>
             <div style="height:7px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
@@ -258,7 +258,7 @@
 
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Occupation ressources atelier</span>
+          <span class="header-lg">Occupation ressources atelier</span>
         </template>
         <div v-if="ponts.length" class="pont-grid" style="margin:0;">
           <div v-for="pont in ponts" :key="pont.id" class="pont-card" :class="pont.current_rdv ? 'pont-occupe' : 'pont-libre'">
@@ -290,33 +290,33 @@
 
     <UCard>
       <template #header>
-        <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Synthèse pilotage</span>
+        <span class="header-lg">Synthèse pilotage</span>
       </template>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">OR ouverts</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ stats.or_ouverts ?? 0 }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">OR ouverts</div>
+          <div class="stat-value-md">{{ stats.or_ouverts ?? 0 }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">RDV en cours</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ stats.rdvs_en_cours ?? rdvsInProgress }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">RDV en cours</div>
+          <div class="stat-value-md">{{ stats.rdvs_en_cours ?? rdvsInProgress }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">Restitutions période</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ stats.restitutions ?? completedToday }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">Restitutions période</div>
+          <div class="stat-value-md">{{ stats.restitutions ?? completedToday }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">Activité / jour</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ avgDailyRdvs }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">Activité / jour</div>
+          <div class="stat-value-md">{{ avgDailyRdvs }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">Factures sur période</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ revenueMix.nb_factures ?? 0 }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">Factures sur période</div>
+          <div class="stat-value-md">{{ revenueMix.nb_factures ?? 0 }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:11px;color:#9CA3AF;">Charge / pont</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ ponts.length ? formatDuration(Math.round(Number(comparison.planned_minutes?.current ?? 0) / ponts.length)) : '0 min' }}</div>
+        <div class="card-sm">
+          <div class="text-sm-muted">Charge / pont</div>
+          <div class="stat-value-md">{{ ponts.length ? formatDuration(Math.round(Number(comparison.planned_minutes?.current ?? 0) / ponts.length)) : '0 min' }}</div>
         </div>
       </div>
     </UCard>
@@ -330,7 +330,7 @@
       </template>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div v-for="p in stockAlertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);font-size:13px;">
-          <span style="color:#D1D5DB;">{{ p.designation }} ({{ p.reference }})</span>
+          <span class="text-value">{{ p.designation }} ({{ p.reference }})</span>
           <span class="badge-count" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">Stock: {{ p.quantite_stock }}</span>
         </div>
       </div>
@@ -339,6 +339,28 @@
 </template>
 
 <script setup lang="ts">
+interface MetricDelta {
+  delta_pct?: number | string
+  delta?: number | string
+}
+
+interface RdvItem {
+  client?: { prenom?: string; nom?: string }
+  vehicule?: { marque?: string; modele?: string }
+  statut?: string
+  status?: string
+  client_nom?: string
+  vehicule_info?: string
+  heure_rdv?: string
+  heure_debut?: string
+  mecanicien?: { prenom?: string; nom?: string }
+  mecanicien_nom?: string
+  pont?: { nom?: string }
+  pont_nom?: string
+  type_intervention?: string
+  temps_estime?: number
+}
+
 const api = useApi()
 const route = useRoute()
 const atelierStore = useAtelierStore()
@@ -486,13 +508,13 @@ function formatShortDay(value: string): string {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
 }
 
-function metricDeltaText(metric: any): string {
+function metricDeltaText(metric: MetricDelta): string {
   const pct = Number(metric?.delta_pct ?? 0)
   const sign = pct > 0 ? '+' : ''
   return `${sign}${pct}% vs période préc.`
 }
 
-function metricDeltaColor(metric: any): string {
+function metricDeltaColor(metric: MetricDelta): string {
   return Number(metric?.delta ?? 0) >= 0 ? '#34D399' : '#FCA5A5'
 }
 
@@ -586,7 +608,7 @@ const columns = [
   { key: 'actions', label: '' },
 ]
 
-function normalizeRdv(r: any) {
+function normalizeRdv(r: RdvItem) {
   const c = r.client
   const v = r.vehicule
   return {
@@ -625,7 +647,7 @@ async function loadDashboard() {
     const query = params.toString() ? `?${params.toString()}` : ''
 
     const issues: string[] = []
-    const trackError = (label: string) => (e: any) => { issues.push(label); return [] }
+    const trackError = (label: string) => (e: unknown) => { issues.push(label); return [] }
 
     const [s, rdvData, alertes, pontsData, mecaData] = await Promise.all([
       api.get(`/statistiques/dashboard${query}`),
@@ -641,9 +663,9 @@ async function loadDashboard() {
     ponts.value = Array.isArray(pontsData) ? pontsData : (pontsData?.['hydra:member'] ?? pontsData?.member ?? [])
     mecanicienStats.value = Array.isArray(mecaData) ? mecaData : (mecaData?.['hydra:member'] ?? mecaData?.member ?? [])
     partialErrors.value = issues
-  } catch (e: any) {
+  } catch (e: unknown) {
     partialErrors.value = []
-    dashboardError.value = e?.message || 'Le dashboard n’a pas pu être chargé. Vérifie la connexion API puis réessaie.'
+    dashboardError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Le dashboard n’a pas pu être chargé. Vérifie la connexion API puis réessaie.'
   } finally {
     loading.value = false
   }

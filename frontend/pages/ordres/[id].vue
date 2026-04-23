@@ -414,7 +414,7 @@
             <span :style="{ fontSize:'11px', padding:'3px 10px', borderRadius:'999px', fontWeight:'700', background: rapport.isSignedByBoth ? 'rgba(16,185,129,0.15)' : rapport.signatureMecanicien ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)', color: rapport.isSignedByBoth ? '#10B981' : rapport.signatureMecanicien ? '#FBBF24' : '#9CA3AF' }">
               {{ rapport.isSignedByBoth ? '✅ Signé' : rapport.signatureMecanicien ? '⏳ Signature client requise' : '✏️ En cours' }}
             </span>
-            <a v-if="rapport.isSignedByBoth" :href="`/api/rapport/${rapport.id}/pdf`" target="_blank" class="btn btn-ghost" style="font-size:12px;">📄 PDF</a>
+            <button v-if="rapport.isSignedByBoth" class="btn btn-ghost" style="font-size:12px;" @click="openRapportPdf">📄 PDF</button>
           </div>
         </div>
       </template>
@@ -708,8 +708,8 @@ async function submitTravauxSupp() {
     newTravauxSupp.prixEstime = null
     newTravauxSupp.notesReceptionniste = ''
     await loadTravauxSupp()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingTravauxSupp.value = false
   }
@@ -777,8 +777,8 @@ async function saveInspection() {
     toast.add({ title: 'Inspection sauvegardée', color: 'success' })
     editingInspection.value = false
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingInspection.value = false
   }
@@ -805,8 +805,8 @@ async function saveEstimate() {
     toast.add({ title: 'Estimation sauvegardée', color: 'success' })
     editingEstimate.value = false
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingEstimate.value = false
   }
@@ -834,8 +834,8 @@ async function sendRapportEmail() {
     await api.post(`/rapport/${rapport.value.id}/send-email`, {})
     rapport.value = { ...rapport.value, emailSentAt: new Date().toISOString() }
     toast.add({ title: 'Rapport envoyé', description: 'Le client va recevoir le rapport par email.', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur envoi', description: e?.message || 'Échec', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur envoi', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec', color: 'error' })
   } finally {
     sendingRapportEmail.value = false
   }
@@ -894,8 +894,8 @@ async function saveSig(who: 'client' | 'atelier') {
     if (who === 'client') clientSignature.value = data
     else atelierSignature.value = data
     toast.add({ title: 'Signature enregistrée', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -1036,8 +1036,8 @@ async function applyTransition(transition: string) {
     await api.post(`/rendez-vous/${rdvId}/transition/${transition}`, {})
     toast.add({ title: 'Transition appliquée', color: 'success' })
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec transition', color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Échec transition', color: 'error' })
   } finally {
     transitioning.value = false
   }
@@ -1047,6 +1047,15 @@ async function downloadPdf() {
   try {
     const orId = ordre.value?.id
     await openPdfBlob(`/ordres-reparation/${orId}/pdf`)
+  } catch {
+    toast.add({ title: 'Erreur PDF', color: 'error' })
+  }
+}
+
+async function openRapportPdf() {
+  if (!rapport.value?.id) return
+  try {
+    await openPdfBlob(`/api/rapport/${rapport.value.id}/pdf`)
   } catch {
     toast.add({ title: 'Erreur PDF', color: 'error' })
   }
@@ -1109,8 +1118,8 @@ async function verifyIntegrity() {
       description: integrityResult.value.message,
       color: integrityResult.value.integrity_ok ? 'success' : 'error',
     })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     verifyingIntegrity.value = false
   }
@@ -1125,8 +1134,8 @@ async function doRectifierOr() {
     showRectifierModal.value = false
     rectifierMotif.value = ''
     await navigateTo(`/ordres/${res.rectified_or_id}`)
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     rectifying.value = false
   }
@@ -1185,8 +1194,8 @@ async function handlePhotoUpload(e: Event) {
     }
     toast.add({ title: `${files.length} photo(s) uploadée(s)`, color: 'success' })
     await loadPhotos()
-  } catch (err: any) {
-    toast.add({ title: 'Erreur upload', description: err?.message, color: 'error' })
+  } catch (err: unknown) {
+    toast.add({ title: 'Erreur upload', description: err instanceof Error ? err.message : 'Erreur inconnue', color: 'error' })
   } finally {
     uploadingPhoto.value = false
     input.value = ''
@@ -1233,8 +1242,8 @@ async function submitCommande() {
     Object.assign(newCommande, { reference: '', designation: '', quantite: 1, fournisseur: '', dateLivraisonEstimee: '', prixAchat: null, prixVente: null })
     await loadCommandesPieces()
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingCommande.value = false
   }
@@ -1246,8 +1255,8 @@ async function markCommandeRecue(id: number) {
     toast.add({ title: 'Marquée reçue', description: res.allReceived ? 'Toutes les pièces sont là — reprise possible.' : '', color: 'success' })
     await loadCommandesPieces()
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 
@@ -1278,8 +1287,8 @@ async function triggerGardiennage() {
     await api.post(`/rdv/${rdv.value.id}/declencher-gardiennage`, { motif: gardiennageMotif.value })
     toast.add({ title: 'Gardiennage déclenché', color: 'success' })
     await loadData()
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message, color: 'error' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     triggeringGardiennage.value = false
   }

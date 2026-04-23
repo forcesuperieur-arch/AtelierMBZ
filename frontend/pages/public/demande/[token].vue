@@ -103,8 +103,8 @@ async function load() {
   loading.value = true
   try {
     demande.value = await api.get(`/public/demandes-travaux-supp/${token}`)
-  } catch (e: any) {
-    error.value = e?.message || 'Lien invalide ou expiré.'
+  } catch (e: unknown) {
+    error.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Lien invalide ou expiré.'
   } finally {
     loading.value = false
   }
@@ -164,8 +164,8 @@ async function refuse() {
   try {
     await api.post(`/public/demandes-travaux-supp/${token}/decision`, { decision: 'refuse' })
     await load()
-  } catch (e: any) {
-    alert(e?.message || 'Erreur lors de l\'envoi')
+  } catch (e: unknown) {
+    alert((e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur lors de l\'envoi')
   } finally {
     submitting.value = false
   }
@@ -179,8 +179,8 @@ async function accept() {
   try {
     await api.post(`/public/demandes-travaux-supp/${token}/decision`, { decision: 'accepte', signature })
     await load()
-  } catch (e: any) {
-    alert(e?.message || 'Erreur lors de la signature')
+  } catch (e: unknown) {
+    alert((e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur lors de la signature')
   } finally {
     submitting.value = false
   }
