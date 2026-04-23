@@ -3,7 +3,7 @@ import { loginAsAdmin } from './helpers.mjs';
 
 test.describe('Login & Public Pages', () => {
   test('login page loads', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('text=Atelier Moto Pro')).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
@@ -16,7 +16,7 @@ test.describe('Login & Public Pages', () => {
   });
 
   test('login with invalid credentials shows error', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('input[type="email"]', 'wrong@test.com');
     await page.fill('input[type="password"]', 'wrong');
     await page.click('button[type="submit"]');
@@ -24,7 +24,7 @@ test.describe('Login & Public Pages', () => {
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     // Should redirect to /login if middleware is active
     await page.waitForTimeout(2000);
     const url = page.url();

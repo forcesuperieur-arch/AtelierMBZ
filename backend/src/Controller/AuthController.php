@@ -233,6 +233,9 @@ class AuthController extends AbstractController
                 Cookie::create('active_atelier_id')
                     ->withValue((string) $defaultActiveAtelier->getId())
                     ->withPath('/')
+                    // Volontairement non-HttpOnly : ce cookie ne contient qu'un identifiant
+                    // d'atelier (pas un secret). Il est lu par useCookie() côté Nuxt pour
+                    // l'UI multi-atelier. L'autorisation réelle est portée par le JWT.
                     ->withHttpOnly(false)
                     ->withSameSite('lax')
                     ->withSecure($this->getParameter('kernel.environment') === 'prod')
@@ -784,6 +787,8 @@ class AuthController extends AbstractController
             Cookie::create('active_atelier_id')
                 ->withValue((string) $atelier->getId())
                 ->withPath('/')
+                // Volontairement non-HttpOnly : identifiant atelier lu par useCookie() Nuxt.
+                // Pas un secret, l'autorisation est portée par le JWT.
                 ->withHttpOnly(false)
                 ->withSameSite('lax')
                 ->withSecure($this->getParameter('kernel.environment') === 'prod')

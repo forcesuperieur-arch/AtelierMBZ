@@ -9,7 +9,9 @@ use App\Service\CurrentAtelierResolver;
 use App\Service\NotificationDispatcher;
 use App\Service\NotificationProviderConfigSanitizer;
 use App\Service\NotificationTemplateCatalog;
+use App\Service\WebhookSignatureVerifier;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +28,8 @@ class NotificationProviderController extends AbstractController
         private CurrentAtelierResolver $atelierResolver,
         private NotificationProviderConfigSanitizer $configSanitizer,
         private NotificationTemplateCatalog $templateCatalog,
+        private WebhookSignatureVerifier $webhookVerifier,
+        private LoggerInterface $logger,
     ) {}
 
     // ─── Admin: Provider CRUD ───
@@ -310,12 +314,79 @@ class NotificationProviderController extends AbstractController
 
         $payload = $request->getContent();
 
+        // Vérification HMAC obligatoire avant traitement.
+        // On itère sur toutes les configs actives de ce provider (multi-tenant) et on accepte
+        // dès qu'une signature valide est trouvée. Sinon → 401 + log de sécurité.
+        if (!$this->verifyWebhookSignature($provider, $request, $payload)) {
+            $this->logger->warning('Webhook rejected: invalid signature', [
+                'provider' => $provider,
+                'ip' => $request->getClientIp(),
+                'ua' => $request->headers->get('User-Agent', ''),
+            ]);
+            return $this->json(['error' => 'Invalid signature'], 401);
+        }
+
         return match ($provider) {
             'twilio' => $this->handleTwilioWebhook($request),
             'ovh' => $this->handleOvhWebhook($request),
             'mailgun' => $this->handleMailgunWebhook($request, $payload),
             default => $this->json(['error' => 'Unsupported'], 400),
         };
+    }
+
+    private function verifyWebhookSignature(string $provider, Request $request, string $payload): bool
+    {
+        // Charge toutes les configs actives de ce provider (tous ateliers).
+        // Le webhook étant public, le TenantFilter n'est pas activé (pas de token).
+        $configs = $this->em->getRepository(NotificationProviderConfig::class)
+            ->findBy(['provider' => $provider, 'isActive' => true]);
+
+        if (count($configs) === 0) {
+            return false;
+        }
+
+        foreach ($configs as $cfg) {
+            try {
+                $decrypted = $this->encryption->decrypt($cfg->getConfigEncrypted());
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $valid = match ($provider) {
+                'twilio' => $this->webhookVerifier->verifyTwilio(
+                    $request,
+                    (string)($decrypted['auth_token'] ?? '')
+                ),
+                'mailgun' => $this->verifyMailgunFromRequest($request, $payload, (string)($decrypted['signing_key'] ?? '')),
+                'ovh' => $this->webhookVerifier->verifyOvh(
+                    $request,
+                    (string)($decrypted['webhook_secret'] ?? '')
+                ),
+                default => false,
+            };
+
+            if ($valid) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function verifyMailgunFromRequest(Request $request, string $payload, string $signingKey): bool
+    {
+        $signature = $request->request->all('signature') ?: [];
+        if (empty($signature)) {
+            $decoded = json_decode($payload, true) ?? [];
+            $signature = $decoded['signature'] ?? [];
+        }
+
+        return $this->webhookVerifier->verifyMailgun(
+            $signingKey,
+            (string)($signature['timestamp'] ?? ''),
+            (string)($signature['token'] ?? ''),
+            (string)($signature['signature'] ?? '')
+        );
     }
 
     private function findScopedProvider(int $id): ?NotificationProviderConfig

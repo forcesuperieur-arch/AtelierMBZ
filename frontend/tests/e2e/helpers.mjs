@@ -13,7 +13,7 @@ export function appUrl(path = '') {
 export async function loginAsAdmin(page) {
   const passwords = [...new Set(['Admin123!', process.env.ADMIN_PASSWORD, 'admin123'].filter(Boolean))];
 
-  await page.goto(appUrl('/login'));
+  await page.goto(appUrl('/login'), { waitUntil: 'domcontentloaded' });
 
   for (const password of passwords) {
     await page.fill('input[type="email"]', 'admin@atelier.local');
@@ -25,7 +25,7 @@ export async function loginAsAdmin(page) {
       await expect(page.locator('body')).toContainText(/dashboard|tableau|rdv|pont/i, { timeout: 15000 });
       return;
     } catch {
-      await page.goto(appUrl('/login'));
+      await page.goto(appUrl('/login'), { waitUntil: 'domcontentloaded' });
     }
   }
 

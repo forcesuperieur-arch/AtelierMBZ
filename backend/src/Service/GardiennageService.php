@@ -5,12 +5,15 @@ namespace App\Service;
 use App\Entity\ConfigAtelier;
 use App\Entity\RendezVous;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class GardiennageService
 {
     public function __construct(
         private EntityManagerInterface $em,
         private JoursOuvresService $joursOuvres,
+        private NotificationDispatcher $dispatcher,
+        private LoggerInterface $logger,
     ) {}
 
     public function peutDeclencher(RendezVous $rdv): bool
@@ -34,6 +37,52 @@ class GardiennageService
         $rdv->setGardiennageDebutPar($userId);
         $rdv->setGardiennageMotif($motif);
         $this->em->flush();
+
+        $this->notifierEntreeGardiennage($rdv);
+    }
+
+    /**
+     * Envoie un email immédiat au client à l'entrée en gardiennage.
+     * Choix produit : email seul (pas de SMS) — un client qui ne vient pas
+     * récupérer sa moto lit peu ses SMS, et le SMS coûte de l'argent.
+     * Idempotent : silently ignore si pas d'email client ou si dispatcher échoue.
+     */
+    public function notifierEntreeGardiennage(RendezVous $rdv): void
+    {
+        $client = $rdv->getClient();
+        if (!$client || !$client->getEmail()) {
+            return;
+        }
+
+        $atelierId = $rdv->getAtelierId() ?? 0;
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        $tarif = $config?->getTarifGardiennageJournalier() ?? '5.00';
+
+        $vehicule = $rdv->getVehicule();
+        $vars = [
+            'client_prenom' => $client->getPrenom() ?? '',
+            'plaque' => $vehicule?->getPlaque() ?? '',
+            'reference_rdv' => (string) $rdv->getId(),
+            'tarif_journalier' => $tarif,
+        ];
+
+        try {
+            $this->dispatcher->sendFromTemplate(
+                'gardiennage_debut',
+                'email',
+                $atelierId,
+                $client->getEmail(),
+                $vars,
+                'RendezVous',
+                $rdv->getId(),
+            );
+        } catch (\Throwable $e) {
+            // Ne bloque jamais le passage en gardiennage si l'envoi email échoue.
+            $this->logger->warning('Échec envoi email gardiennage_debut: {error}', [
+                'error' => $e->getMessage(),
+                'rdv_id' => $rdv->getId(),
+            ]);
+        }
     }
 
     public function calculerMontant(RendezVous $rdv, \DateTime $dateRestitution): string

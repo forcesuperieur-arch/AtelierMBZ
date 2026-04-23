@@ -71,36 +71,40 @@ class NotificationProviderApiTest extends WebTestCase
         $this->assertContains($client->getResponse()->getStatusCode(), [401, 403]);
     }
 
-    // ─── Webhooks (public but validated) ───
+    // ─── Webhooks (public but HMAC-validated) ───
+    // Depuis [AUDIT-V1] : tous les webhooks exigent une signature HMAC valide.
+    // Sans signature → 401. Tester un cas signé valide nécessite une config provider
+    // décryptable en base, ce qui dépasse le cadre du test fonctionnel léger.
+    // La logique de signature est couverte par WebhookSignatureVerifierTest (unit).
 
-    public function testTwilioWebhookEndpoint(): void
+    public function testTwilioWebhookRejectsUnsignedRequest(): void
     {
         $client = static::createClient();
         $client->request('POST', '/api/webhooks/notifications/twilio',
             ['MessageSid' => 'SM123', 'MessageStatus' => 'delivered'],
         );
 
-        // 200 if DB available, 500 if test DB not set up — but NOT 404 or 401
         $code = $client->getResponse()->getStatusCode();
-        $this->assertTrue(in_array($code, [200, 500], true), "Expected 200 or 500, got {$code}");
+        // 401 attendu (pas de signature) ou 500 si DB pas dispo (load des configs échoue avant)
+        $this->assertTrue(in_array($code, [401, 500], true), "Expected 401 or 500, got {$code}");
     }
 
-    public function testMailgunWebhookEndpoint(): void
+    public function testMailgunWebhookRejectsInvalidSignature(): void
     {
         $client = static::createClient();
         $client->request('POST', '/api/webhooks/notifications/mailgun', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'signature' => ['timestamp' => time(), 'token' => 'test', 'signature' => 'test'],
+                'signature' => ['timestamp' => time(), 'token' => 'test', 'signature' => 'invalid'],
                 'event-data' => ['event' => 'delivered', 'message' => ['headers' => ['message-id' => 'test-msg']]],
             ]),
         );
 
         $code = $client->getResponse()->getStatusCode();
-        $this->assertTrue(in_array($code, [200, 500], true), "Expected 200 or 500, got {$code}");
+        $this->assertTrue(in_array($code, [401, 500], true), "Expected 401 or 500, got {$code}");
     }
 
-    public function testOvhWebhookEndpoint(): void
+    public function testOvhWebhookRejectsUnsignedRequest(): void
     {
         $client = static::createClient();
         $client->request('POST', '/api/webhooks/notifications/ovh', [], [],
@@ -109,7 +113,7 @@ class NotificationProviderApiTest extends WebTestCase
         );
 
         $code = $client->getResponse()->getStatusCode();
-        $this->assertTrue(in_array($code, [200, 500], true), "Expected 200 or 500, got {$code}");
+        $this->assertTrue(in_array($code, [401, 500], true), "Expected 401 or 500, got {$code}");
     }
 
     public function testUnknownProviderWebhookReturns400(): void

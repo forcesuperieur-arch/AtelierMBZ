@@ -11,7 +11,7 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         public:
-            pattern: ^/api/(auth/login|auth/refresh|auth/google|health|public/|companion/|photos/file/|webhooks/notifications/|motos/(autocomplete|marques)|\.well-known/)
+            pattern: ^/api/(auth/login|auth/refresh|auth/google|health|public/|companion/|photos/file/|webhooks/notifications/|security/csp-report|motos/(autocomplete|marques)|\.well-known/)
             security: false
         api_root:
             pattern: ^/api$
@@ -32,6 +32,7 @@ security:
         - { path: ^/api/companion, roles: PUBLIC_ACCESS }
         - { path: ^/api/photos/file, roles: PUBLIC_ACCESS }
         - { path: ^/api/webhooks/notifications, roles: PUBLIC_ACCESS }
+        - { path: ^/api/security/csp-report, roles: PUBLIC_ACCESS }
         - { path: ^/api/motos/(autocomplete|marques), roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 

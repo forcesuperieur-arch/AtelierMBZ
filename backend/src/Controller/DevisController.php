@@ -168,7 +168,7 @@ class DevisController extends AbstractController
         $rdv->setCommentaire('Converti depuis devis ' . $devis->getNumeroDevis());
         $rdv->setDateRdv(new \DateTime('+3 days'));
         $rdv->setHeureRdv(new \DateTime('09:00'));
-        $rdv->setStatut('en_attente');
+        // Statut omis volontairement : initial_marking workflow rendez_vous = en_attente.
         $rdv->setPrixEstime($devis->getTotalTtc());
         $rdv->setAtelierId($devis->getAtelierId());
 

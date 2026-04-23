@@ -277,6 +277,9 @@
               <UFormField label="Consumer Key"><UInput v-model="form.config.consumer_key" type="password" /></UFormField>
               <UFormField label="Service Name"><UInput v-model="form.config.service_name" /></UFormField>
               <UFormField label="Sender"><UInput v-model="form.config.sender" placeholder="AtelierMoto" /></UFormField>
+              <UFormField label="Webhook secret (header X-Webhook-Token)" hint="Secret partagé pour vérifier les callbacks de statut SMS. À configurer côté OVH ou laisser vide pour désactiver les webhooks.">
+                <UInput v-model="form.config.webhook_secret" type="password" placeholder="généré aléatoirement, ex: openssl rand -hex 32" />
+              </UFormField>
             </template>
             <template v-else-if="form.provider === 'log_sms'">
               <div style="font-size:12px;color:#9CA3AF;">
@@ -287,6 +290,9 @@
               <UFormField label="API Key"><UInput v-model="form.config.api_key" type="password" /></UFormField>
               <UFormField label="Domain"><UInput v-model="form.config.domain" placeholder="mg.example.com" /></UFormField>
               <UFormField label="From email"><UInput v-model="form.config.from" type="email" placeholder="noreply@example.com" /></UFormField>
+              <UFormField label="HTTP Webhook Signing Key" hint="Différent de l'API key. Trouvable dans Mailgun → Sending → Webhooks → 'HTTP webhook signing key'. Obligatoire pour valider les callbacks de statut.">
+                <UInput v-model="form.config.signing_key" type="password" />
+              </UFormField>
             </template>
             <template v-else-if="form.provider === 'smtp_custom'">
               <UFormField label="Hôte SMTP"><UInput v-model="form.config.host" placeholder="smtp.example.com" /></UFormField>

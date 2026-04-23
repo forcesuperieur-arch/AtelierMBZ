@@ -37,6 +37,7 @@ class RendezVousController extends AbstractController
         private PhotoService $photoService,
         private RapportInterventionService $rapportService,
         private \App\Service\NotificationDispatcher $dispatcher,
+        private \App\Service\GardiennageService $gardiennageService,
     ) {}
 
     private function getAuthenticatedUser(): ?User
@@ -325,6 +326,13 @@ class RendezVousController extends AbstractController
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
         $this->em->flush();
 
+        // Notification immédiate au client à l'entrée en gardiennage (email seul, pas de SMS).
+        // Centralisé dans GardiennageService::notifierEntreeGardiennage pour cohérence avec
+        // GardiennageController::declencherGardiennage.
+        if (in_array($transitionName, ['passer_gardiennage', 'mettre_en_gardiennage'], true)) {
+            $this->gardiennageService->notifierEntreeGardiennage($rdv);
+        }
+
         if ($transitionName === "annuler" && !empty($data["proposer_alternatives"])) {
             $client = $rdv->getClient();
             if ($client) {
@@ -370,6 +378,21 @@ class RendezVousController extends AbstractController
                 $this->rendezVousStateMachine->getEnabledTransitions($rdv)
             ),
         ]);
+    }
+
+    /**
+     * Get full RDV detail (flat format with OR, rapport, essai fields).
+     * Used by the planning panel to get or_id, or_is_signed, rapport_id, etc.
+     */
+    #[Route('/api/rendez-vous/{id}/detail', methods: ['GET'])]
+    public function getRdvDetail(int $id): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($id);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->flattenRdv($rdv));
     }
 
     /**
@@ -467,10 +490,12 @@ class RendezVousController extends AbstractController
             'pont_nom' => $pont?->getNom(),
             'mecanicien_nom' => $r->getMecanicien() ? ($r->getMecanicien()->getPrenom() . ' ' . $r->getMecanicien()->getNom()) : null,
             'or_id' => $orInitial?->getId(),
+            'or_is_signed' => $orInitial?->isSigned() ?? false,
             'or_mechanic_notes' => $orInitial?->getMechanicNotes(),
             'or_mechanic_checkup' => $orInitial?->getMechanicCheckup(),
             'rapport_id' => $rapport?->getId(),
             'rapport_mecanicien_signe' => $rapport?->getSignatureMecanicien() ? true : false,
+            'rapport_is_signed_both' => $rapport?->isSignedByBoth() ?? false,
             'essai_routier_id' => $essai?->getId(),
             'essai_routier_statut' => $essai?->getStatut(),
             'essai_routier_valide' => $essai?->isValide() ?? false,

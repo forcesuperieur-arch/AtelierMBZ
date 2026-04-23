@@ -250,7 +250,7 @@ class PublicBookingController extends AbstractController
         $rdv->setCommentaire($data['commentaire'] ?? null);
         $rdv->setTempsEstime($tempsEstime);
         $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
-        $rdv->setStatut('en_attente');
+        // Statut omis volontairement : initial_marking workflow rendez_vous = en_attente.
         $rdv->setAtelierId($atelierId);
         $rdv->setSource('web'); // [I4] Marqueur RDV public
 

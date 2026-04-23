@@ -9,7 +9,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   // ─── Admin navigation ───
 
   test('Admin hub shows Notifications card', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const card = page.locator('.admin-card-label', { hasText: 'Notifications' });
@@ -17,7 +17,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   });
 
   test('Admin Notifications card navigates to providers page', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await page.locator('.admin-card', { hasText: 'Notifications' }).click();
@@ -28,7 +28,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   // ─── Providers page ───
 
   test('Providers page loads correctly', async ({ page }) => {
-    await page.goto('/admin/notifications/providers');
+    await page.goto('/admin/notifications/providers', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Page should load without error (200 status)
@@ -36,7 +36,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   });
 
   test('Provider action buttons open their modals', async ({ page }) => {
-    await page.goto('/admin/notifications/providers');
+    await page.goto('/admin/notifications/providers', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /ajouter un provider/i }).click();
@@ -54,7 +54,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   });
 
   test('Templates tab shows default notification templates', async ({ page }) => {
-    await page.goto('/admin/notifications/providers');
+    await page.goto('/admin/notifications/providers', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /templates/i }).click();
@@ -66,7 +66,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   // ─── API endpoints ───
 
   test('API: list providers returns array', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const response = await page.evaluate(async () => {
@@ -81,7 +81,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   });
 
   test('API: list templates returns array', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const response = await page.evaluate(async () => {
@@ -96,7 +96,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   });
 
   test('API: list logs returns paginated result', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const response = await page.evaluate(async () => {
@@ -179,7 +179,7 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
   // ─── Create provider (CRUD) ───
 
   test('API: create or update provider', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     const response = await page.evaluate(async () => {

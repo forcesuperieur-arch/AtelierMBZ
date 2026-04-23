@@ -51,6 +51,31 @@ export default defineNuxtConfig({
   nitro: {
     routeRules: {
       '/api/**': { proxy: 'http://localhost:8000/api/**' },
+      // CSP en mode Report-Only sur toutes les pages servies par Nuxt.
+      // Phase d'observation : on logge les violations sans bloquer, on resserrera après analyse.
+      // Politique permissive volontaire : 'unsafe-inline' / 'unsafe-eval' nécessaires pour Vue runtime + Nuxt UI.
+      // Whitelist : fonts.googleapis.com (Inter), Mercure (EventSource via /.well-known/mercure → connect-src 'self').
+      // Les violations sont envoyées sur l'endpoint back /api/security/csp-report.
+      '/**': {
+        headers: {
+          'Content-Security-Policy-Report-Only': [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' data: https://fonts.gstatic.com",
+            "img-src 'self' data: blob:",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+            "form-action 'self'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "report-uri /api/security/csp-report",
+          ].join('; '),
+          'X-Frame-Options': 'DENY',
+          'X-Content-Type-Options': 'nosniff',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+        },
+      },
     },
   },
 

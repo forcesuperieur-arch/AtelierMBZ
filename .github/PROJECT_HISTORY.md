@@ -2,6 +2,104 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-04-23 — Suite figeage : LOTs backlog safe
+
+### Fait (avec preuve d'exécution)
+- [AUDIT-V1][LOT-FIX-5] **ajoute** — Content-Security-Policy en mode **Report-Only** sur les réponses HTML du backend (Swagger `/api/docs`, preview templates admin). Bloquant à terme une fois les violations observées.
+  - Listener : [backend/src/EventListener/SecurityHeadersListener.php](backend/src/EventListener/SecurityHeadersListener.php) — pose `Content-Security-Policy-Report-Only` uniquement si `Content-Type: text/html` (skip JSON/PDF binary)
+  - Endpoint public : [backend/src/Controller/SecurityReportController.php](backend/src/Controller/SecurityReportController.php) `POST /api/security/csp-report` → 204, log `warning` avec violation + IP + UA
+  - Sécurité : [backend/config/packages/security.yaml](backend/config/packages/security.yaml) — pattern public + access_control PUBLIC_ACCESS pour `/api/security/csp-report`
+  - Politique permissive volontaire pendant phase d'observation (`unsafe-inline`, `unsafe-eval` pour Swagger)
+  - Preuve : `curl POST /api/security/csp-report` → 204, log "CSP violation reported" visible dans `docker compose logs php`
+  - Preuve : `curl GET /api/health` → pas de header CSP (JSON, OK)
+  - **TODO séparé** : CSP du front Nuxt (pages utilisateur final) à configurer dans `nuxt.config.ts` — non traité ici car sort du périmètre back. Demande arbitrage : qui sert la CSP du front, Nuxt ou Caddy ?
+- [AUDIT-V1][LOT-FIX-4] **ajoute** — notification email immédiate au client à l'entrée en gardiennage (choix produit : email seul, pas de SMS, validé par utilisateur).
+  - Template : `gardiennage_debut` (email) ajouté dans [backend/src/Service/NotificationTemplateCatalog.php](backend/src/Service/NotificationTemplateCatalog.php) avec variables `client_prenom`, `plaque`, `reference_rdv`, `tarif_journalier`
+  - Service : nouvelle méthode `notifierEntreeGardiennage(RendezVous $rdv)` dans [backend/src/Service/GardiennageService.php](backend/src/Service/GardiennageService.php) — idempotente, ne bloque jamais le passage en gardiennage si l'envoi échoue, log warning si échec
+  - Appelée depuis :
+    - [backend/src/Service/GardiennageService.php](backend/src/Service/GardiennageService.php) `declencher()` (point d'entrée GardiennageController)
+    - [backend/src/Controller/RendezVousController.php](backend/src/Controller/RendezVousController.php) après `apply()` des transitions `passer_gardiennage` / `mettre_en_gardiennage`
+  - Preuve : suite PHPUnit **201/201 OK, 742 assertions** sur DB propre
+- [AUDIT-V1][LOT-FIX-6] **sécurise** — vérification HMAC obligatoire sur les 3 webhooks providers de notifications (`/api/webhooks/notifications/{twilio|mailgun|ovh}`). Avant ce fix, n'importe qui pouvait POSTer pour falsifier les statuts `delivered`/`failed` des SMS/emails. Maintenant : signature invalide → 401 + log warning.
+  - Service : [backend/src/Service/WebhookSignatureVerifier.php](backend/src/Service/WebhookSignatureVerifier.php) (HMAC-SHA1 Twilio, HMAC-SHA256 Mailgun avec anti-replay 5 min, secret partagé OVH via header `X-Webhook-Token`)
+  - Controller : [backend/src/Controller/NotificationProviderController.php](backend/src/Controller/NotificationProviderController.php) — méthode `verifyWebhookSignature` boucle sur les configs actives du provider, accepte si une signature matche
+  - Tests unit : [backend/tests/Unit/WebhookSignatureVerifierTest.php](backend/tests/Unit/WebhookSignatureVerifierTest.php) (12 tests)
+  - Tests functional : [backend/tests/Functional/NotificationProviderApiTest.php](backend/tests/Functional/NotificationProviderApiTest.php) adaptés (rejet 401 sans signature)
+  - **Note config** : la config provider OVH doit désormais contenir une clé `webhook_secret` ; pour Mailgun une clé `signing_key` ; pour Twilio `auth_token` (déjà utilisée pour l'envoi)
+  - Champs de config ajoutés dans le form admin : [frontend/pages/admin/notifications/providers.vue](frontend/pages/admin/notifications/providers.vue) (Mailgun signing_key + OVH webhook_secret avec hints explicatifs)
+  - Preuve : suite PHPUnit **201/201 OK, 742 assertions**
+- [AUDIT-V1] retire — entité `RapportTechnicien` + relation OneToOne dans `RendezVous` + table `rapports_technicien` (dead code, 0 ligne en base, 0 usage code). Migration : [backend/migrations/Version20260423130422.php](backend/migrations/Version20260423130422.php). Preuve : `\dt rapports_technicien` → "Did not find any relation"
+- [AUDIT-V1] ajoute — FK `mecaniciens.user_id → users.id ON DELETE SET NULL`. Migration : [backend/migrations/Version20260423130654.php](backend/migrations/Version20260423130654.php). Pré-vérifié : 0 orphelin sur 16 mécaniciens. Preuve : `\d mecaniciens` montre `fk_mecaniciens_user_id`. Entité gardée avec `?int $userId` nu (pas de ManyToOne) pour ne pas casser les 5+ usages `findOneBy(['userId' => ...])`.
+- [AUDIT-V1] retire — `rapports_technicien` du TRUNCATE dans [backend/src/Command/ResetSeedCommand.php](backend/src/Command/ResetSeedCommand.php)
+- [AUDIT-V1] docs — commentaires explicites sur cookies `active_atelier_id` non-HttpOnly (volontaire) dans [backend/src/Controller/AuthController.php](backend/src/Controller/AuthController.php) L236, L787
+- [AUDIT-V1] retire — `setStatut('en_attente')` redondants (initial_marking workflow déjà = en_attente) dans [backend/src/Controller/DevisController.php](backend/src/Controller/DevisController.php) L171 et [backend/src/Controller/PublicBookingController.php](backend/src/Controller/PublicBookingController.php) L253
+- [AUDIT-V1] fix — Playwright [frontend/tests/e2e/helpers.mjs](frontend/tests/e2e/helpers.mjs) : `page.goto` avec `waitUntil: 'domcontentloaded'` pour le login admin (Nuxt dev n'émet pas `load` propre)
+- [AUDIT-V1] config — [frontend/playwright.config.mjs](frontend/playwright.config.mjs) : `navigationTimeout: 30_000` ajouté
+- [AUDIT-V1] verif — Suite PHPUnit après tous les fixes : **189/189 tests OK, 727 assertions** (2 notices = exceptions HTTP testées intentionnellement)
+- [AUDIT-V1] verif — Migration drop `rapports_technicien` : OK
+- [AUDIT-V1] verif — Migration FK `mecaniciens.user_id` : OK, contrainte visible dans `\d`
+
+### Décisions
+- **Mecanicien.userId** : on ajoute la FK SQL (intégrité protégée) mais on garde le champ `?int $userId` côté Doctrine (pas de ManyToOne). Refactorer les 5+ `findOneBy(['userId' => ...])` est un travail séparé, pas urgent vu que la FK protège déjà.
+- **Playwright `waitUntil` global** : Playwright n'a pas d'option de défaut configurable. Patch ciblé sur helpers.mjs (login admin) suffit pour la majorité des tests. Le reste demande migration vers build prod (LOT-FIX-8 toujours ouvert).
+
+### Fait (suite — LOT-FIX-5 front + LOT-FIX-8)
+- [AUDIT-V1][LOT-FIX-5] **ajoute** — CSP Report-Only sur le front Nuxt via `routeRules['/**'].headers` dans [frontend/nuxt.config.ts](frontend/nuxt.config.ts). Politique avec whitelist Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`). Headers compagnons : `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Report-uri partagé avec le back (`/api/security/csp-report`).
+  - Preuve : `curl -I http://localhost:3000/` → headers `content-security-policy-report-only`, `x-frame-options: DENY`, `x-content-type-options: nosniff`, `referrer-policy: strict-origin-when-cross-origin` confirmés
+- [AUDIT-V1][LOT-FIX-8] **fix** — patch tactique sur 9 fichiers `frontend/tests/e2e/*.spec.mjs` : ajout `{ waitUntil: 'domcontentloaded' }` sur tous les `page.goto(...)` (chaînes, variables, appels de fonction, template literals). 3 passes sed couvrant chaque pattern, suivi de syntax check `node --check` sur chaque fichier.
+  - Preuve : `grep page.goto | grep -v waitUntil` → 0 match résiduel sur les `*.spec.mjs`
+  - Preuve syntaxe : `node --check` OK sur les 9 spec files
+  - Preuve exécution Playwright : **50 passed / 34 failed (13.5 min)** — identique à la baseline pré-patch. Le patch n'a pas dégradé. Les 34 échecs résiduels viennent de la stack auth/rendering Nuxt dev (pas des timeouts de navigation), confirmant qu'un build prod reste nécessaire pour les débloquer (TODO conservé).
+
+### TODO laissés (LOTs restants)
+- [ ] LOT-FIX-8 (vraie résolution) : Playwright sur build prod Nuxt (`nuxt build` + `nuxt preview` exposé via webServer Playwright) — patch tactique waitUntil ne suffit pas pour débloquer les 34 échecs auth/rendering
+- [ ] Refacto code : transformer `Mecanicien.userId` int nu en ManyToOne User (cassera les findOneBy mais propre)
+- [ ] Confort : NotificationLog jamais lu (analytics ou drop), Mercure RBAC topics, types `unknown` au lieu de `any`
+- [ ] Avant prod : supprimer 6 comptes audit + reset mot de passe admin@atelier.local
+- [ ] CSP : observer les rapports `/api/security/csp-report` quelques jours puis durcir (retirer `unsafe-inline` / `unsafe-eval` si possible) et passer en mode bloquant
+
+---
+
+## Session 2026-04-21 — Audit complet + figeage version stable
+
+### Fait (avec preuve d'exécution)
+- [AUDIT-V1] docs — [docs/AUDIT-V1/00-INVENTAIRE.md](docs/AUDIT-V1/00-INVENTAIRE.md) : inventaire complet (62 entités, 39 controllers, 38 services, 13 listeners, 36 migrations, 189 tests back, 19 tests front, 58 pages Vue, 13 templates PDF)
+- [AUDIT-V1] docs — [docs/AUDIT-V1/01-RAPPORT-FIGEAGE.md](docs/AUDIT-V1/01-RAPPORT-FIGEAGE.md) : rapport complet avec schémas workflow, fixes appliqués, preuves d'exécution
+- [AUDIT-V1] docs — [docs/AUDIT-V1/02-BACKLOG-POST-FIGEAGE.md](docs/AUDIT-V1/02-BACKLOG-POST-FIGEAGE.md) : backlog 7 issues 🟠 reportées avec justification
+- [AUDIT-V1] fix — [backend/src/Service/NotificationTemplateCatalog.php](backend/src/Service/NotificationTemplateCatalog.php) : reconstruction structure cassée `rdv_refus`/`rdv_modifie` (templates non insérés en base avant fix). Preuve : PHPUnit 23/23 OK
+- [AUDIT-V1] fix — [backend/templates/pdf/facture.html.twig](backend/templates/pdf/facture.html.twig) : ajout mention obligatoire garantie légale L.217-3 + Art. 1641 CC. Preuve : `bin/console lint:twig` OK
+- [AUDIT-V1] fix — [backend/templates/pdf/vo_pv_rachat.html.twig](backend/templates/pdf/vo_pv_rachat.html.twig) : ajout obligation DA SIV 15 jours (Art. R.322-4 Code de la route)
+- [AUDIT-V1] fix — [backend/templates/pdf/vo_facture.html.twig](backend/templates/pdf/vo_facture.html.twig) : régime TVA rendu exclusif (`if/else` Art. 297 A vs Art. 256 CGI) + garantie légale rendue obligatoire (était conditionnelle)
+- [AUDIT-V1] fix — [backend/templates/pdf/rapport_intervention.html.twig](backend/templates/pdf/rapport_intervention.html.twig) : section garantie systématique en fallback si mécanicien oublie de remplir le champ
+- [AUDIT-V1] fix — [backend/src/EventListener/SecurityHeadersListener.php](backend/src/EventListener/SecurityHeadersListener.php) : ajout header HSTS sur connexions HTTPS uniquement (max-age 1 an + includeSubDomains)
+- [AUDIT-V1] verif — Suite PHPUnit complète : **189/189 tests OK, 727 assertions** (sortie collée dans 01-RAPPORT-FIGEAGE.md §6.1)
+- [AUDIT-V1] verif — Lint Twig 4 templates modifiés : OK
+- [AUDIT-V1] verif — Auth API : `POST /api/auth/login` → 200 avec JWT super_admin
+
+### Décisions
+- **Cookie `active_atelier_id` reste non-HttpOnly** — utilisé par 4 fichiers Nuxt via `useCookie`. C'est un identifiant numérique, pas un secret. Le JWT contrôle l'accès. Documenter en commentaire (TODO LOT-FIX-3).
+- **`Mecanicien.userId` FK manquante** — non corrigée cette session (migration risquée sur prod soft, demande backup et fenêtre maintenance). LOT-FIX-1 dédié.
+- **`RapportTechnicien` dead code** — non droppé cette session (DROP TABLE non-réversible). LOT-FIX-2 dédié après vérification table vide en prod.
+- **Playwright timeouts E2E (34/84)** — non-bug applicatif : Nuxt dev n'émet pas `load` propre. Tests qui utilisent l'API directe passent. Solution : tester sur build prod (LOT-FIX-8).
+- **`setStatut('en_attente')` redondants** dans DevisController:171 et PublicBookingController:253 → laissés en place (initial marking workflow = `en_attente`, donc inoffensifs). LOT-FIX-7 hygiène.
+
+### TODO laissés
+- [ ] backend/src/Entity/Mecanicien.php L31 : ajouter FK Doctrine vers User onDelete=SET NULL — LOT dédié (migration risquée)
+- [ ] backend/src/Entity/RapportTechnicien.php : drop entité + table + relation OneToOne dans RendezVous — LOT dédié
+- [ ] backend/src/Controller/AuthController.php L236 + L787 : ajouter commentaire expliquant cookie volontairement non-HttpOnly
+- [ ] backend/src/EventListener/RdvWorkflowListener.php : arbitrer si notif immédiate sur passer_gardiennage (templates cron déjà en place)
+- [ ] backend/src/EventListener/SecurityHeadersListener.php : ajouter CSP après tests sur tous écrans + Mercure + DomPDF
+- [ ] backend/src/Service/NotificationDispatcher.php : vérifier signature HMAC sur webhooks providers SMS/email
+- [ ] frontend/tests/e2e : passer en mode build prod ou changer waitUntil de `load` à `domcontentloaded`
+- [ ] Comptes audit (audit_super, audit_admin, audit_recep, audit_meca, audit_vo, audit_compta) avec mot de passe `Audit2026!` à supprimer avant prod
+- [ ] Mot de passe `admin@atelier.local` reset à `Audit2026!` → remettre mot de passe fort avant prod
+
+### En suspens à arbitrer
+- Notif client immédiate à l'entrée en gardiennage : oui ou laisser réceptionniste gérer oralement ?
+- Vue consolidée cross-ateliers franchiseur (CA global, stock VO agrégé) : à modéliser ?
+
+---
+
 ## Session 2026-04-22 — Booking public aligné + Phase 1 erreurs front
 
 ### Fait

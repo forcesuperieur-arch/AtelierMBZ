@@ -64,7 +64,7 @@ async function openDraftCompanion(page, kind) {
     return response.request().method() === 'POST' && response.url().includes(endpoint);
   });
 
-  await page.goto(path);
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
   const payload = await readJson(await creationResponse);
   const link = page.getByRole('link', { name: 'Ouvrir le PDA' }).first();
 
@@ -209,7 +209,7 @@ test.describe('VO companion full flow', () => {
       timeout: 15000,
     }).toBeTruthy();
 
-    await page.goto(`/vo/rachats/${draftId}?companion=1`);
+    await page.goto(`/vo/rachats/${draftId}?companion=1`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#vo-companion-zone')).toContainText('4/4 étapes');
     await expect(page.getByText('PV de rachat généré')).toBeVisible();
     await expect(page.getByText(/Signé le/)).toBeVisible();
@@ -259,7 +259,7 @@ test.describe('VO companion full flow', () => {
       timeout: 15000,
     }).toBeTruthy();
 
-    await page.goto(`/vo/depots/${draftId}?companion=1`);
+    await page.goto(`/vo/depots/${draftId}?companion=1`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#vo-companion-zone')).toContainText('4/4 étapes');
     await expect(page.getByText('Contrat depot-vente auto-rempli')).toBeVisible();
     await expect(page.getByText(/Signé le/)).toBeVisible();

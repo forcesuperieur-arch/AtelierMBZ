@@ -34,7 +34,7 @@ test.describe('Navigation Smoke Tests', () => {
       const errors = [];
       page.on('pageerror', (err) => errors.push(err.message));
 
-      const response = await page.goto(route.path);
+      const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' });
       expect(response.status()).toBeLessThan(500);
 
       await page.waitForLoadState('networkidle');

@@ -7,6 +7,7 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -27,6 +28,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(uriTemplate: '/rendez-vous'),
         new Get(uriTemplate: '/rendez-vous/{id}'),
         new Put(uriTemplate: '/rendez-vous/{id}'),
+        new Patch(uriTemplate: '/rendez-vous/{id}'),
         new Delete(uriTemplate: '/rendez-vous/{id}'),
     ],
 )]
@@ -119,10 +121,6 @@ class RendezVous
     #[ORM\JoinColumn(name: 'mecanicien_id', nullable: true)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?Mecanicien $mecanicien = null;
-
-    #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: RapportTechnicien::class, cascade: ['persist', 'remove'])]
-    #[Groups(['rdv:read'])]
-    private ?RapportTechnicien $rapportTechnicien = null;
 
     #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: EssaiRoutier::class, cascade: ['persist'])]
     #[Groups(['rdv:read'])]
@@ -263,14 +261,6 @@ class RendezVous
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
-    public function getRapportTechnicien(): ?RapportTechnicien { return $this->rapportTechnicien; }
-    public function setRapportTechnicien(?RapportTechnicien $rapportTechnicien): static {
-        $this->rapportTechnicien = $rapportTechnicien;
-        if ($rapportTechnicien !== null && $rapportTechnicien->getRendezVous() !== $this) {
-            $rapportTechnicien->setRendezVous($this);
-        }
-        return $this;
-    }
     public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }
     public function setEssaiRoutier(?EssaiRoutier $essaiRoutier): static {
         $this->essaiRoutier = $essaiRoutier;

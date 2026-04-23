@@ -16,7 +16,7 @@ test.describe('Core Business Flows', () => {
   });
 
   test('RDV wizard: step navigation', async ({ page }) => {
-    await page.goto('/rdv/new');
+    await page.goto('/rdv/new', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/prise de rdv|identification moto/i);
@@ -43,7 +43,7 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Public booking: can submit and get tracking token', async ({ page }) => {
-    await page.goto('/public/booking');
+    await page.goto('/public/booking', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Fill the form
@@ -70,7 +70,7 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Client list: search and view', async ({ page }) => {
-    await page.goto('/clients');
+    await page.goto('/clients', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Search field should be present
@@ -85,7 +85,7 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Dashboard: KPIs and pont grid visible', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Should see KPI section
@@ -93,21 +93,21 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Planning: grid and filters visible', async ({ page }) => {
-    await page.goto('/planning');
+    await page.goto('/planning', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/planning/i);
   });
 
   test('Facturation: list visible', async ({ page }) => {
-    await page.goto('/facturation');
+    await page.goto('/facturation', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/factur/i);
   });
 
   test('Workshop: tabs work', async ({ page }) => {
-    await page.goto('/workshop');
+    await page.goto('/workshop', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Ponts tab should be visible by default
@@ -122,7 +122,7 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Admin: hub cards visible', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/utilisateur/i);
@@ -131,21 +131,21 @@ test.describe('Core Business Flows', () => {
   });
 
   test('Stock: list and search', async ({ page }) => {
-    await page.goto('/stock');
+    await page.goto('/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/stock|pièce/i);
   });
 
   test('Devis: list visible', async ({ page }) => {
-    await page.goto('/devis');
+    await page.goto('/devis', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText(/devis/i);
   });
 
   test('Sidebar navigation links work', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
 
     // Test sidebar links
@@ -162,7 +162,7 @@ test.describe('Core Business Flows', () => {
         await page.waitForURL(`**${link.url}`, { timeout: 15000 });
         expect(page.url()).toContain(link.url);
         // Navigate back
-        await page.goto('/');
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
         await page.waitForLoadState('networkidle');
       }
     }

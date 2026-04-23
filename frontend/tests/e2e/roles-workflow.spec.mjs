@@ -5,7 +5,7 @@ test.describe('Roles Workflow E2E simulation', () => {
   test('Mécanicien tablet view UX verified', async ({ page }) => {
     // Assuming admin can access the mecanicien view or we just do a visual check of the changes
     await loginAsAdmin(page);
-    await page.goto('/mecanicien');
+    await page.goto('/mecanicien', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
     
     // The mecanicien view has an "A faire" list and "Démarrer" buttons if there's a task.
@@ -22,7 +22,7 @@ test.describe('Roles Workflow E2E simulation', () => {
     await loginAsAdmin(page);
     
     // Visit planning
-    await page.goto('/planning');
+    await page.goto('/planning', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toContainText(/Planning/i);
     
@@ -37,7 +37,7 @@ test.describe('Roles Workflow E2E simulation', () => {
     if(await closeBtn.count() > 0) await closeBtn.click();
     
     // Book RDV path
-    await page.goto('/rdv/new');
+    await page.goto('/rdv/new', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
     const input = page.locator('input[placeholder="Ex: KAWASAKI"]');
     if (await input.count() > 0) {

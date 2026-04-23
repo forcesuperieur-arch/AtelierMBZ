@@ -146,7 +146,7 @@ async function fetchApplicablePrestations(request, campaignId) {
 }
 
 async function getUiOptionLabel(page, purchaseId, prestationName) {
-  await page.goto(`/vo/rachats/${purchaseId}`);
+  await page.goto(`/vo/rachats/${purchaseId}`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Remise en etat VO', { exact: true }).first()).toBeVisible();
 
   await expect.poll(async () => {

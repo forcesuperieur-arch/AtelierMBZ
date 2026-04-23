@@ -7,7 +7,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification badge visible in sidebar', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const planningLink = page.locator('a[href="/planning"]');
@@ -15,7 +15,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification API: unread-count returns response', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const response = await page.evaluate(async () => {
@@ -31,7 +31,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification API: list returns paginated results', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const response = await page.evaluate(async () => {
@@ -49,7 +49,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification API: list with status=unread filter', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const response = await page.evaluate(async () => {
@@ -64,7 +64,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification API: mark-read on nonexistent returns 404', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const response = await page.evaluate(async () => {
@@ -79,7 +79,7 @@ test.describe('LOT 5 — Notifications', () => {
   });
 
   test('Notification API: acknowledge on nonexistent returns 409', async ({ page }) => {
-    await page.goto(appUrl('/'));
+    await page.goto(appUrl('/'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const response = await page.evaluate(async () => {
@@ -100,14 +100,14 @@ test.describe('LOT 5 — Notification Pop-In', () => {
   });
 
   test('Planning page loads with notification system', async ({ page }) => {
-    await page.goto(appUrl('/planning'));
+    await page.goto(appUrl('/planning'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.locator('body')).toContainText(/planning/i);
   });
 
   test('NotificationPopIn does not show when no critical notifications', async ({ page }) => {
-    await page.goto(appUrl('/planning'));
+    await page.goto(appUrl('/planning'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('domcontentloaded');
 
     const overlay = page.locator('.fixed.inset-0.z-50');

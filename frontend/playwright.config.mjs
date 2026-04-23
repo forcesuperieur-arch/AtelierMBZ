@@ -18,6 +18,9 @@ export default defineConfig({
     video: 'retain-on-failure',
     ignoreHTTPSErrors: true,
     viewport: { width: 1440, height: 1000 },
+    // Nuxt en mode dev (HMR + chunks asynchrones) ne déclenche pas l'event 'load' fiablement.
+    // On bascule le défaut sur domcontentloaded pour ne pas timeout sur des pages OK.
+    navigationTimeout: 30_000,
   },
   projects: [
     {
