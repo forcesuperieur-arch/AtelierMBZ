@@ -68,6 +68,11 @@
         <div class="admin-card-label">Templates documents</div>
         <div class="admin-card-desc">Prévisualiser les PDF par nature: opposables, CERFA, synthèses</div>
       </div>
+      <div class="admin-card" @click="navigateTo('/admin/cerfa-config')">
+        <div class="admin-card-icon">🗂️</div>
+        <div class="admin-card-label">Config CERFA</div>
+        <div class="admin-card-desc">Positions des champs sur les formulaires CERFA (DA, mandat, cession)</div>
+      </div>
     </div>
   </div>
 </template>
