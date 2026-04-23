@@ -126,6 +126,11 @@
         <h3>Garantie</h3>
         <div class="section-content">{{ rapport.garantie | nl2br }}</div>
     </div>
+    {% else %}
+    <div class="section">
+        <h3>Garantie</h3>
+        <div class="section-content">Travaux couverts par garantie {{ garantie_jours|default(30) }} jours à compter de la restitution. Pièces neuves garanties 2 ans minimum (articles L.217-3 et suivants du Code de la consommation, article 1641 du Code civil).</div>
+    </div>
     {% endif %}
 
     {% if essai %}

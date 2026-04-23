@@ -133,6 +133,14 @@
         {% endif %}
         <p>Devis valable {{ devis.joursValidite ?? 30 }} jours à compter de la date d'émission.</p>
     </div>
+
+    {% if clauses is defined and clauses|length > 0 %}
+    <div style="margin-top: 15px; font-size: 9px; color: #444; border-top: 1px solid #ddd; padding-top: 8px;">
+        {% for clause in clauses %}
+        <p><strong>{{ clause.libelle }}</strong><br>{{ clause.texte }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

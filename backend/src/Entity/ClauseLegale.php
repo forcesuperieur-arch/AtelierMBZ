@@ -20,6 +20,7 @@ class ClauseLegale
         'mentions_legales',
         'retention',
         'rgpd',
+        'vo_depot_vente_conditions',
     ];
 
     #[ORM\Id]

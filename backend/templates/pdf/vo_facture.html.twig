@@ -103,13 +103,15 @@
     <div style="clear: both;"></div>
 
     <div class="legal-mentions">
+        {# Régime TVA — mention exclusive obligatoire (Art. 297 A ou Art. 256 CGI) #}
         {% if facture.mentionTvaMarge %}
         <p><strong>TVA sur la marge :</strong> Article 297 A du CGI — TVA calculée sur la marge bénéficiaire. Le prix de vente inclut la TVA sur la marge, celle-ci n'est pas récupérable par l'acquéreur.</p>
+        {% else %}
+        <p><strong>Régime normal de TVA :</strong> Article 256 du CGI — TVA collectée selon le régime de droit commun, déductible par l'acquéreur assujetti.</p>
         {% endif %}
 
-        {% if facture.mentionGarantieConformite %}
-        <p><strong>Garantie légale de conformité :</strong> Articles L.217-3 et suivants du Code de la consommation. L'acheteur dispose de la garantie légale de conformité (2 ans) et de la garantie des vices cachés (art. 1641 du Code civil).</p>
-        {% endif %}
+        {# Garantie légale obligatoire pour vente à consommateur #}
+        <p><strong>Garantie légale de conformité :</strong> Articles L.217-3 et suivants du Code de la consommation. L'acheteur dispose de la garantie légale de conformité (2 ans) et de la garantie des vices cachés (article 1641 du Code civil).</p>
 
         {% if facture.notes %}
         <p>{{ facture.notes }}</p>

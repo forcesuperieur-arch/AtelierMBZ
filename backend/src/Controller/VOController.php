@@ -105,7 +105,10 @@ class VOController extends AbstractController
         $confirmationMissingDocuments = array_values(array_diff($missingDocuments, [VODocument::TYPE_PV_RACHAT]));
         $legalChecklist = $this->documentService->buildPurchaseLegalChecklist($purchase);
         $tokenUpdated = $this->companionWorkflowService->ensureToken($purchase);
-        $documents = $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']);
+        $documents = array_values(array_filter(
+            $this->em->getRepository(VODocument::class)->findBy(['voPurchase' => $purchase], ['uploadedAt' => 'DESC']),
+            static fn (VODocument $d): bool => VODocument::RETENTION_YEARS[$d->getType()] > 0,
+        ));
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
         $companionSteps = $this->companionWorkflowService->buildSteps($purchase, $documents);
         $incompleteCompanionSteps = $this->extractIncompleteCompanionSteps($companionSteps);
@@ -456,7 +459,10 @@ class VOController extends AbstractController
         }
 
         $tokenUpdated = $this->companionWorkflowService->ensureToken($depot);
-        $documents = $this->em->getRepository(VODocument::class)->findBy(['voDepotVente' => $depot], ['uploadedAt' => 'DESC']);
+        $documents = array_values(array_filter(
+            $this->em->getRepository(VODocument::class)->findBy(['voDepotVente' => $depot], ['uploadedAt' => 'DESC']),
+            static fn (VODocument $d): bool => VODocument::RETENTION_YEARS[$d->getType()] > 0,
+        ));
         $livrePolice = $this->em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
         $missingDocuments = $this->documentService->getMissingDocumentsDepot($depot);
         $legalChecklist = $this->documentService->buildDepotLegalChecklist($depot);

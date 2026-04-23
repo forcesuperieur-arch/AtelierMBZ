@@ -105,6 +105,11 @@
 
     <div class="section">
         <div class="section-title">CLAUSES</div>
+        {% if clauses is defined and clauses|length > 0 %}
+            {% for clause in clauses %}
+            <div class="clause">{{ clause.texte|nl2br }}</div>
+            {% endfor %}
+        {% else %}
         <div class="clause">
             1. Le dépositaire s'engage à exposer le véhicule en vue de sa vente et à en assurer la garde avec diligence.<br>
             2. Le déposant reste propriétaire du véhicule jusqu'à la réalisation de la vente.<br>
@@ -112,6 +117,7 @@
             4. En cas de vente, le dépositaire reversera au déposant le prix de vente diminué de la commission convenue, dans un délai de 15 jours.<br>
             5. Le déposant peut retirer le véhicule à tout moment, sous réserve d'un préavis de 48 heures.
         </div>
+        {% endif %}
         {% if depot.conditionsRestitution %}
         <div class="clause">
             <strong>Conditions de restitution :</strong> {{ depot.conditionsRestitution }}

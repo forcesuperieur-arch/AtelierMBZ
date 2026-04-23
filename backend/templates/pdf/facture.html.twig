@@ -121,7 +121,17 @@
         {# [SPRINT-5] I22 — Mentions légales obligatoires Art. 289 CGI #}
         {% if atelier and atelier.tvaIntracom %}<p>N° TVA intracommunautaire : {{ atelier.tvaIntracom }}</p>{% endif %}
         <p>Facture établie conformément à l'article 289 du Code général des impôts.</p>
+        {# Mention obligatoire — garantie légale de conformité #}
+        <p>Pièces neuves garanties 2 ans minimum (garantie légale de conformité — articles L.217-3 et suivants du Code de la consommation, garantie des vices cachés — article 1641 du Code civil).</p>
     </div>
+    {% if clauses is defined and clauses|length > 0 %}
+    <div style="margin-top: 20px; font-size: 9px; color: #444; border-top: 1px solid #ddd; padding-top: 8px;">
+        {% for clause in clauses %}
+        <p><strong>{{ clause.libelle }}</strong><br>{{ clause.texte }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% include 'pdf/_paddock_footer.html.twig' %}
 </body>
 </html>

@@ -83,9 +83,11 @@ class PdfService
     public function generateFacturePdf(Facture $facture): string
     {
         $atelier = $this->resolveAtelier($facture->getAtelierId());
+        $clauses = $this->resolveDocClauses(['cgv', 'garantie', 'rgpd'], $facture->getAtelierId());
 
         $html = $this->twig->render('pdf/facture.html.twig', [
             'facture' => $facture,
+            'clauses' => $clauses,
             ...$this->buildBrandingContext($atelier),
         ]);
 
@@ -98,9 +100,11 @@ class PdfService
     public function generateDevisPdf(Devis $devis): string
     {
         $atelier = $this->resolveAtelier($devis->getAtelierId());
+        $clauses = $this->resolveDocClauses(['cgv', 'rgpd'], $devis->getAtelierId());
 
         $html = $this->twig->render('pdf/devis.html.twig', [
             'devis' => $devis,
+            'clauses' => $clauses,
             ...$this->buildBrandingContext($atelier),
         ]);
 
@@ -149,9 +153,11 @@ class PdfService
     public function generateContratDepotVentePdf(VODepotVente $depot): string
     {
         $atelier = $this->resolveAtelier($depot->getAtelierId());
+        $clauses = $this->resolveDocClauses(['vo_depot_vente_conditions'], $depot->getAtelierId());
 
         $html = $this->twig->render('pdf/vo_contrat_depot_vente.html.twig', [
             'depot' => $depot,
+            'clauses' => $clauses,
             'companion_signature' => $depot->getCompanionSignatureData(),
             ...$this->buildBrandingContext($atelier),
         ]);
@@ -269,29 +275,45 @@ class PdfService
     }
 
     /**
-     * Fetch OR-relevant clauses (mandat_reparation, garantie) for an atelier.
+     * Fetch clauses for a given set of codes + atelier (atelier-specific preferred over global).
      *
+     * @param string[]     $codes
      * @return ClauseLegale[]
      */
-    private function resolveOrClauses(?int $atelierId): array
+    private function resolveDocClauses(array $codes, ?int $atelierId): array
     {
-        $codes = ['mandat_reparation', 'garantie'];
+        if (empty($codes)) {
+            return [];
+        }
 
         $qb = $this->em->createQueryBuilder()
             ->select('c')
             ->from(ClauseLegale::class, 'c')
             ->andWhere('c.code IN (:codes)')
-            ->andWhere('c.active = true')
+            ->andWhere('c.isActive = true')
             ->andWhere('c.atelierId IS NULL OR c.atelierId = :atelierId')
             ->setParameter('codes', $codes)
             ->setParameter('atelierId', $atelierId)
             ->orderBy('c.code', 'ASC')
-            ->addOrderBy('c.atelierId', 'DESC'); // atelier-specific preferred over global
+            ->addOrderBy('c.atelierId', 'DESC');
 
         /** @var ClauseLegale[] $all */
         $all = $qb->getQuery()->getResult();
 
         return $this->clauseLegaleVisibilityService->pickVisibleClauses($all, true);
+    }
+
+    /**
+     * Fetch OR-relevant clauses (mandat_reparation, garantie, retention, rgpd, accessoires).
+     *
+     * @return ClauseLegale[]
+     */
+    private function resolveOrClauses(?int $atelierId): array
+    {
+        return $this->resolveDocClauses(
+            ['mandat_reparation', 'garantie', 'retention', 'rgpd', 'accessoires'],
+            $atelierId
+        );
     }
 
     private function resolveLogoDataUri(?Atelier $atelier): ?string
