@@ -190,7 +190,7 @@ const menuItems = computed(() => {
     { to: '/suivi', icon: 'i-heroicons-eye', label: 'Suivi Live', section: 'suivi', group: 'aujourdhui' },
     { to: '/ordres', icon: 'i-heroicons-clipboard-document-list', label: 'Dossiers atelier', section: 'or', group: 'dossiers' },
     { to: '/devis', icon: 'i-heroicons-document-text', label: 'Devis', section: 'devis', group: 'dossiers' },
-    // TODO (2026-04-22) : modules en cours de réécriture — réactiver quand le flux sera vérifié end-to-end
+    // Modules facturation et stock désactivés en attendant la validation end-to-end complète
     // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation', group: 'dossiers' },
     // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock', group: 'dossiers' },
     { to: '/vo', icon: 'i-heroicons-tag', label: 'VO', section: 'vo', group: 'dossiers' },
