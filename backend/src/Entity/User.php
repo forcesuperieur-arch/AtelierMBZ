@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'users')]
@@ -42,18 +43,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $atelierId = null;
 
     #[ORM\Column(length: 100, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[Groups(['user:read', 'user:write'])]
     private string $username;
 
     #[ORM\Column(length: 200, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    #[Assert\Length(max: 200)]
     #[Groups(['user:read', 'user:write'])]
     private string $email;
 
     #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $nom = null;
 

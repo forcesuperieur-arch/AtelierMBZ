@@ -14,8 +14,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/vo')]
+#[IsGranted('ROLE_VO_MANAGER')]
 class VOStatsController extends AbstractController
 {
     public function __construct(
@@ -29,7 +31,6 @@ class VOStatsController extends AbstractController
     #[Route('/stock', methods: ['GET'])]
     public function stock(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $search = trim((string) $request->query->get('q', ''));
         $limit = max(0, min(100, $request->query->getInt('limit', 0)));
@@ -40,7 +41,6 @@ class VOStatsController extends AbstractController
     #[Route('/stats', methods: ['GET'])]
     public function stats(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->resolveAtelierId();
 
         $repo = $this->em->getRepository(VOPurchase::class);

@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity] #[ORM\Table(name: 'factures')] #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
@@ -35,6 +36,8 @@ class Facture
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
 
     #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['facture:read'])]
     private string $numeroFacture;
 
@@ -51,6 +54,8 @@ class Facture
     private ?Vehicule $vehicule = null;
 
     #[ORM\Column(length: 20, options: ['default' => 'facture'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     #[Groups(['facture:read'])]
     private string $nature = self::NATURE_FACTURE;
 
@@ -63,38 +68,47 @@ class Facture
     private ?string $motifCorrection = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $totalMoHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $totalPiecesHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $totalHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read'])]
     private string $tvaMo = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read'])]
     private string $tvaPieces = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read'])]
     private string $totalTva = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $totalTtc = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $remisePourcentage = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $remiseMontant = '0.00';
 
@@ -103,6 +117,7 @@ class Facture
     private int $tempsFactureMinutes = 0;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '65.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['facture:read', 'facture:write'])]
     private string $tauxHoraire = '65.00';
 
@@ -115,6 +130,8 @@ class Facture
     private float $tvaPiecesTaux = 20.0;
 
     #[ORM\Column(length: 50, options: ['default' => 'emise'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['facture:read', 'facture:write'])]
     private string $statut = self::STATUS_EMISE;
 
@@ -132,18 +149,23 @@ class Facture
 
     // --- RGPD: Snapshot fields (immutable copy at invoice creation) ---
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
     #[Groups(['facture:read'])]
     private ?string $snapClientNom = null;
 
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
     #[Groups(['facture:read'])]
     private ?string $snapClientPrenom = null;
 
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
+    #[Assert\Email]
     #[Groups(['facture:read'])]
     private ?string $snapClientEmail = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
     #[Groups(['facture:read'])]
     private ?string $snapClientTelephone = null;
 
@@ -152,14 +174,17 @@ class Facture
     private ?string $snapClientAdresse = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
     #[Groups(['facture:read'])]
     private ?string $snapVehiculePlaque = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['facture:read'])]
     private ?string $snapVehiculeMarque = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['facture:read'])]
     private ?string $snapVehiculeModele = null;
 

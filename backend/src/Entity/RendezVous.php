@@ -16,6 +16,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'rendez_vous')]
@@ -65,6 +66,8 @@ class RendezVous
     private \DateTimeInterface $heureRdv;
 
     #[ORM\Column(length: 200)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 200)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private string $typeIntervention;
 
@@ -73,10 +76,12 @@ class RendezVous
     private ?string $commentaire = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $prixEstime = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $prixFinal = null;
 
@@ -127,10 +132,13 @@ class RendezVous
     private ?EssaiRoutier $essaiRoutier = null;
 
     #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['rdv:read', 'ordre:read'])]
     private string $statut = 'en_attente';
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Length(max: 50)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $motifAnnulation = null;
 
@@ -139,6 +147,7 @@ class RendezVous
     private ?string $commentaireAnnulation = null;
 
     #[ORM\Column(length: 64, unique: true, nullable: true)]
+    #[Assert\Length(max: 64)]
     #[Groups(['rdv:read'])]
     private ?string $tokenSuivi = null;
 
@@ -170,10 +179,12 @@ class RendezVous
 
     // LOT 9 — Stockage & Gardiennage
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $emplacementStockage = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
     private ?string $photoStockageFilename = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -196,6 +207,7 @@ class RendezVous
 
     // [SPRINT-4] I4 — source du RDV : null = interne, 'web' = prise en ligne publique
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $source = null;
 

@@ -9,6 +9,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'clients')]
@@ -30,18 +31,26 @@ class Client
     private ?int $atelierId = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[Groups(['client:read', 'client:write', 'rdv:read', 'devis:read', 'facture:read', 'ordre:read'])]
     private string $nom;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[Groups(['client:read', 'client:write', 'rdv:read', 'devis:read', 'facture:read', 'ordre:read'])]
     private string $prenom;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     #[Groups(['client:read', 'client:write', 'rdv:read'])]
     private string $telephone;
 
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Email]
+    #[Assert\Length(max: 200)]
     #[Groups(['client:read', 'client:write', 'rdv:read'])]
     private ?string $email = null;
 
@@ -63,6 +72,7 @@ class Client
     private ?\DateTimeInterface $consentDate = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['client:read', 'client:write'])]
     private ?string $consentSource = null;
 

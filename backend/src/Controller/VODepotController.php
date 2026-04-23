@@ -28,10 +28,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 #[Route('/api/vo')]
+#[IsGranted('ROLE_VO_MANAGER')]
 class VODepotController extends AbstractController
 {
     public function __construct(
@@ -54,7 +56,6 @@ class VODepotController extends AbstractController
     #[Route('/depots', methods: ['GET'])]
     public function listDepots(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $qb = $this->em->getRepository(VODepotVente::class)->createQueryBuilder('d')
             ->leftJoin('d.vehicule', 'v')->addSelect('v')
@@ -69,7 +70,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}', methods: ['GET'])]
     public function getDepot(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
             return $this->json(['error' => 'Not found'], 404);
@@ -89,7 +89,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}/full', methods: ['GET'])]
     public function getDepotFull(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
@@ -146,7 +145,6 @@ class VODepotController extends AbstractController
     #[Route('/depots', methods: ['POST'])]
     public function createDepot(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $body = $request->toArray();
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
@@ -223,7 +221,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}', methods: ['PATCH'])]
     public function updateDepot(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
             return $this->json(['error' => 'Not found'], 404);
@@ -306,7 +303,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}/sell', methods: ['POST'])]
     public function sellDepot(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
             return $this->json(['error' => 'Not found'], 404);
@@ -435,7 +431,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}/contrat/pdf', methods: ['GET'])]
     public function downloadContratDepotPdf(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
             return $this->json(['error' => 'Not found'], 404);
@@ -452,7 +447,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}/mandat-immat/pdf', methods: ['GET'])]
     public function downloadDepotMandatImmatPdf(int $id, Request $request): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
         if (!$depot) {
             return $this->json(['error' => 'Not found'], 404);
@@ -472,7 +466,6 @@ class VODepotController extends AbstractController
     #[Route('/depots/{id}/restituer', methods: ['POST'])]
     public function restituerDepot(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);
 
         if (!$depot) {

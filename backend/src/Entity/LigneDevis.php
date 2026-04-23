@@ -2,22 +2,35 @@
 namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity] #[ORM\Table(name: 'lignes_devis')] #[ApiResource]
 class LigneDevis
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
     #[ORM\ManyToOne(targetEntity: Devis::class, inversedBy: 'lignes')] #[ORM\JoinColumn(nullable: false)] private Devis $devis;
-    #[ORM\Column(length: 50)] private string $typeLigne;
+    #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
+    private string $typeLigne;
     #[ORM\ManyToOne(targetEntity: ForfaitMO::class, inversedBy: 'lignesDevis')] #[ORM\JoinColumn(name: 'forfait_mo_id', nullable: true)] private ?ForfaitMO $forfaitMo = null;
     #[ORM\ManyToOne(targetEntity: PieceDetachee::class)] #[ORM\JoinColumn(name: 'piece_id', nullable: true)] private ?PieceDetachee $piece = null;
-    #[ORM\Column(length: 300)] private string $designation;
+    #[ORM\Column(length: 300)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 300)]
+    private string $designation;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $descriptionDetail = null;
     #[ORM\Column(options: ['default' => 1])] private int $quantite = 1;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixUnitaireHt;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
+    private string $prixUnitaireHt;
     #[ORM\Column(type: 'float', options: ['default' => 20.0])] private float $tauxTva = 20.0;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $totalLigneHt;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $totalLigneTtc;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
+    private string $totalLigneHt;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
+    private string $totalLigneTtc;
     #[ORM\Column(options: ['default' => 0])] private int $ordre = 0;
 
     public function getId(): ?int { return $this->id; }

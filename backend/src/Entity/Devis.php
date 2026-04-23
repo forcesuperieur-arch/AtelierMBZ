@@ -5,6 +5,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity] #[ORM\Table(name: 'devis')] #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
@@ -20,6 +21,8 @@ class Devis
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
 
     #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['devis:read'])]
     private string $numeroDevis;
 
@@ -40,6 +43,8 @@ class Devis
     private \DateTimeInterface $dateValidite;
 
     #[ORM\Column(length: 50, options: ['default' => 'brouillon'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['devis:read', 'devis:write'])]
     private string $statut = 'brouillon';
 
@@ -48,30 +53,37 @@ class Devis
     private ?int $kilometrage = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $totalMoHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $totalPiecesHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $totalHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $totalTtc = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $remisePourcentage = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $remiseMontant = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['devis:read', 'devis:write'])]
     private string $acompteDemande = '0.00';
 
@@ -89,30 +101,38 @@ class Devis
 
     // --- RGPD: Snapshot fields (immutable copy at creation) ---
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
     #[Groups(['devis:read'])]
     private ?string $snapClientNom = null;
 
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
     #[Groups(['devis:read'])]
     private ?string $snapClientPrenom = null;
 
     #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
+    #[Assert\Email]
     #[Groups(['devis:read'])]
     private ?string $snapClientEmail = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
     #[Groups(['devis:read'])]
     private ?string $snapClientTelephone = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
     #[Groups(['devis:read'])]
     private ?string $snapVehiculePlaque = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['devis:read'])]
     private ?string $snapVehiculeMarque = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['devis:read'])]
     private ?string $snapVehiculeModele = null;
 

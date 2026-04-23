@@ -25,9 +25,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 #[Route('/api/vo')]
+#[IsGranted('ROLE_VO_MANAGER')]
 class VODocumentController extends AbstractController
 {
     public function __construct(
@@ -46,7 +48,6 @@ class VODocumentController extends AbstractController
     #[Route('/livre-police', methods: ['GET'])]
     public function listLivrePolice(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->currentAtelierResolver->resolveAtelierId();
         if (!$atelierId) {
             return $this->json(['error' => 'Sélectionnez un atelier avant d\'ouvrir le Livre de Police.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -65,7 +66,6 @@ class VODocumentController extends AbstractController
     #[Route('/livre-police/pdf', methods: ['GET'])]
     public function downloadLivrePolicePdf(Request $request): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->currentAtelierResolver->resolveAtelierId();
         if (!$atelierId) {
             return $this->json(['error' => 'Sélectionnez un atelier avant de télécharger le Livre de Police.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -89,7 +89,6 @@ class VODocumentController extends AbstractController
     #[Route('/documents', methods: ['GET'])]
     public function listDocuments(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchaseId = $request->query->getInt('purchaseId');
         $depotId = $request->query->getInt('depotId');
 
@@ -111,7 +110,6 @@ class VODocumentController extends AbstractController
     #[Route('/documents/upload', methods: ['POST'])]
     public function uploadDocument(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $file = $request->files->get('file');
         $type = $request->request->get('type');
@@ -171,7 +169,6 @@ class VODocumentController extends AbstractController
     #[Route('/documents/alerts', methods: ['GET'])]
     public function documentAlerts(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         return $this->json($this->documentService->getAlerts($atelierId));
@@ -180,7 +177,6 @@ class VODocumentController extends AbstractController
     #[Route('/documents/{id}/download', methods: ['GET'])]
     public function downloadDocument(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $document = $this->em->getRepository(VODocument::class)->find($id);
@@ -218,7 +214,6 @@ class VODocumentController extends AbstractController
     #[Route('/purchases/{id}/vehicule', methods: ['PUT'])]
     public function updatePurchaseVehicule(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
@@ -241,7 +236,6 @@ class VODocumentController extends AbstractController
     #[Route('/depots/{id}/vehicule', methods: ['PUT'])]
     public function updateDepotVehicule(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $atelierId = $this->getAuthenticatedUser()?->getAtelierId();
 
         $depot = $this->em->getRepository(VODepotVente::class)->find($id);

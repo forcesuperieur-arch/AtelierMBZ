@@ -5,6 +5,7 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'vo_remises_en_etat')]
@@ -52,12 +53,18 @@ class VORemiseEnEtat
     private int $campaignIndex = 1;
 
     #[ORM\Column(length: 180)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 180)]
     private string $titre = 'Remise en etat VO';
 
     #[ORM\Column(length: 40, options: ['default' => self::STATUS_A_CHIFFRER])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 40)]
     private string $status = self::STATUS_A_CHIFFRER;
 
     #[ORM\Column(length: 20, options: ['default' => self::PRIORITY_NORMALE])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     private string $priority = self::PRIORITY_NORMALE;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -84,6 +91,7 @@ class VORemiseEnEtat
     private ?array $signedSnapshot = null;
 
     #[ORM\Column(length: 64, nullable: true)]
+    #[Assert\Length(max: 64)]
     private ?string $signedHash = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
@@ -94,9 +102,11 @@ class VORemiseEnEtat
     private ?\DateTimeInterface $signedAt = null;
 
     #[ORM\Column(length: 64, nullable: true)]
+    #[Assert\Length(max: 64)]
     private ?string $signedIp = null;
 
     #[ORM\Column(length: 500, nullable: true)]
+    #[Assert\Length(max: 500)]
     private ?string $signedUserAgent = null;
 
     #[ORM\Column(type: 'datetime')]

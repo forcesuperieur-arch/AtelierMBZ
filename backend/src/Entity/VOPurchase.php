@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Patch;
 use App\Entity\Trait\VOCompanionTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'vo_purchases')]
@@ -81,10 +82,12 @@ class VOPurchase
     private ?User $expert = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['vo:read', 'vo:write'])]
     private string $purchasePrice = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
     #[Groups(['vo:read', 'vo:write'])]
     private string $targetSalePrice = '0.00';
 
@@ -93,6 +96,8 @@ class VOPurchase
     private ?array $repairEstimates = null;
 
     #[ORM\Column(length: 30, options: ['default' => 'brouillon'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 30)]
     #[Groups(['vo:read'])]
     private string $status = self::STATUS_BROUILLON;
 
@@ -111,10 +116,12 @@ class VOPurchase
     // --- Identité vendeur (Livre de Police) ---
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Length(max: 50)]
     #[Groups(['vo:read', 'vo:write'])]
     private ?string $sellerIdType = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['vo:read', 'vo:write'])]
     private ?string $sellerIdNumber = null;
 
@@ -133,14 +140,19 @@ class VOPurchase
     private bool $controleTechniqueOk = false;
 
     #[ORM\Column(length: 10, options: ['default' => 'marge'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 10)]
     #[Groups(['vo:read', 'vo:write'])]
     private string $regimeTva = 'marge';
 
     #[ORM\Column(length: 20, options: ['default' => self::SIV_STATUS_A_PREPARER])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     #[Groups(['vo:read', 'vo:write'])]
     private string $sivStatus = self::SIV_STATUS_A_PREPARER;
 
     #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120)]
     #[Groups(['vo:read', 'vo:write'])]
     private ?string $sivReference = null;
 

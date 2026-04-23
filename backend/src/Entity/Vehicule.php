@@ -10,10 +10,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'vehicules')]
 #[ORM\UniqueConstraint(name: 'uniq_vehicule_vin_atelier', columns: ['vin', 'atelier_id'])]
+#[UniqueEntity(fields: ['vin', 'atelierId'], ignoreNull: true)]
 #[ApiResource(
     normalizationContext: ['groups' => ['vehicule:read']],
     denormalizationContext: ['groups' => ['vehicule:write']],
@@ -33,18 +36,23 @@ class Vehicule
     private ?int $atelierId = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     #[Groups(['vehicule:read', 'vehicule:write', 'rdv:read', 'client:read'])]
     private string $plaque;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['vehicule:read', 'vehicule:write', 'rdv:read', 'client:read', 'ordre:read'])]
     private ?string $marque = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['vehicule:read', 'vehicule:write', 'rdv:read', 'client:read', 'ordre:read'])]
     private ?string $modele = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\Range(min: 1900, max: 2100)]
     #[Groups(['vehicule:read', 'vehicule:write'])]
     private ?int $annee = null;
 

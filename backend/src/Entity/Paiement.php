@@ -3,6 +3,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity] #[ORM\Table(name: 'paiements')]
 #[ApiResource(
@@ -18,10 +19,24 @@ class Paiement
     #[ORM\Column(nullable: true)] #[Groups(['paiement:read'])] private ?int $atelierId = null;
     #[ORM\ManyToOne(targetEntity: Facture::class, inversedBy: 'paiements')] #[ORM\JoinColumn(name: 'facture_id', nullable: true)] #[Groups(['paiement:read', 'paiement:write'])] private ?Facture $facture = null;
     #[ORM\ManyToOne(targetEntity: VOFacture::class, inversedBy: 'paiements')] #[ORM\JoinColumn(name: 'vo_facture_id', nullable: true)] #[Groups(['paiement:read', 'paiement:write'])] private ?VOFacture $voFacture = null;
-    #[ORM\Column(length: 30, options: ['default' => 'encaissement'])] #[Groups(['paiement:read', 'facture:read'])] private string $typeOperation = self::TYPE_ENCAISSEMENT;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private string $montant;
-    #[ORM\Column(length: 50)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private string $modePaiement;
-    #[ORM\Column(length: 200, nullable: true)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private ?string $reference = null;
+    #[ORM\Column(length: 30, options: ['default' => 'encaissement'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 30)]
+    #[Groups(['paiement:read', 'facture:read'])]
+    private string $typeOperation = self::TYPE_ENCAISSEMENT;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Regex(pattern: '/^\d+(\.\d{1,2})?$/')]
+    #[Groups(['paiement:read', 'paiement:write', 'facture:read'])]
+    private string $montant;
+    #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
+    #[Groups(['paiement:read', 'paiement:write', 'facture:read'])]
+    private string $modePaiement;
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
+    #[Groups(['paiement:read', 'paiement:write', 'facture:read'])]
+    private ?string $reference = null;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private \DateTimeInterface $datePaiement;
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['paiement:read', 'paiement:write', 'facture:read'])] private ?string $notes = null;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['paiement:read'])] private \DateTimeInterface $createdAt;

@@ -25,8 +25,15 @@ use Symfony\Component\Serializer\SerializerInterface;
 #[Route('/api/facturation')]
 class FacturationController extends AbstractController
 {
-    private const TVA_RATE_FALLBACK = '20.00';
-    private const TAUX_HORAIRE_FALLBACK = '65.00';
+    private function getDefaultTvaRate(): string
+    {
+        return trim((string) ($_ENV['TVA_RATE_DEFAULT'] ?? '20.00'));
+    }
+
+    private function getDefaultTauxHoraire(): string
+    {
+        return trim((string) ($_ENV['TAUX_HORAIRE_DEFAULT'] ?? '65.00'));
+    }
 
     private function resolveCurrentAtelierIdOrFail(): int
     {
@@ -120,13 +127,13 @@ class FacturationController extends AbstractController
     private function getTvaRate(): string
     {
         $config = $this->getConfigAtelier();
-        return $config ? (string) ($config->getTvaMoTaux() ?? self::TVA_RATE_FALLBACK) : self::TVA_RATE_FALLBACK;
+        return $config ? (string) ($config->getTvaMoTaux() ?? $this->getDefaultTvaRate()) : $this->getDefaultTvaRate();
     }
 
     private function getTauxHoraire(): string
     {
         $config = $this->getConfigAtelier();
-        return $config ? ($config->getTauxHoraireMoStandard() ?? self::TAUX_HORAIRE_FALLBACK) : self::TAUX_HORAIRE_FALLBACK;
+        return $config ? ($config->getTauxHoraireMoStandard() ?? $this->getDefaultTauxHoraire()) : $this->getDefaultTauxHoraire();
     }
 
     private function getConfigAtelier(): ?ConfigAtelier

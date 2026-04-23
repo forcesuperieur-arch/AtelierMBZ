@@ -14,6 +14,12 @@ class PhotoService
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
     private const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+    private const MAGIC_BYTES = [
+        'image/jpeg' => ['\xFF\xD8\xFF'],
+        'image/png'  => ['\x89\x50\x4E\x47'],
+        'image/webp' => ['\x52\x49\x46\x46'],
+    ];
+
     private const TRANSITION_PHOTO_REQUIREMENTS = [
         'reception' => ['type' => 'reception', 'min' => 4],
         'terminer' => ['type' => 'apres_travaux', 'min' => 2],
@@ -40,6 +46,8 @@ class PhotoService
         if (!in_array($file->getMimeType(), self::ALLOWED_MIMES, true)) {
             throw new \InvalidArgumentException('Only JPEG, PNG, and WebP images are allowed');
         }
+
+        $this->validateMagicBytes($file);
 
         if ($file->getSize() > self::MAX_SIZE) {
             throw new \InvalidArgumentException('File too large (max 10MB)');
@@ -80,6 +88,26 @@ class PhotoService
         $this->em->flush();
 
         return $photo;
+    }
+
+    private function validateMagicBytes(UploadedFile $file): void
+    {
+        $handle = fopen($file->getPathname(), 'rb');
+        if ($handle === false) {
+            throw new \InvalidArgumentException('Unable to read uploaded file');
+        }
+        $header = fread($handle, 12);
+        fclose($handle);
+
+        foreach (self::MAGIC_BYTES as $mime => $signatures) {
+            foreach ($signatures as $sig) {
+                if (str_starts_with($header, $sig)) {
+                    return;
+                }
+            }
+        }
+
+        throw new \InvalidArgumentException('File content does not match allowed image formats');
     }
 
     public function computeHash(string $path): string

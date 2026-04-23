@@ -29,12 +29,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 #[Route('/api/vo')]
+#[IsGranted('ROLE_VO_MANAGER')]
 class VOPurchaseController extends AbstractController
 {
     public function __construct(
@@ -59,7 +61,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases', methods: ['GET'])]
     public function listPurchases(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $qb = $this->em->getRepository(VOPurchase::class)->createQueryBuilder('p')
             ->leftJoin('p.vehicule', 'v')->addSelect('v')
@@ -74,7 +75,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}', methods: ['GET'])]
     public function getPurchase(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Purchase not found'], 404);
@@ -93,7 +93,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/full', methods: ['GET'])]
     public function getPurchaseFull(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
@@ -160,7 +159,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases', methods: ['POST'])]
     public function createPurchase(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $body = $request->toArray();
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
@@ -223,7 +221,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}', methods: ['PATCH'])]
     public function updatePurchase(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -284,7 +281,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/confirm', methods: ['POST'])]
     public function confirmPurchase(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -356,7 +352,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/transition', methods: ['POST'])]
     public function transitionPurchase(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -402,7 +397,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/sell', methods: ['POST'])]
     public function sellPurchase(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -531,7 +525,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/factures', methods: ['GET'])]
     public function listFactures(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
 
         $qb = $this->em->getRepository(VOFacture::class)->createQueryBuilder('f')
             ->orderBy('f.createdAt', 'DESC');
@@ -544,7 +537,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/factures/{id}/pdf', methods: ['GET'])]
     public function downloadFacturePdf(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $facture = $this->em->getRepository(VOFacture::class)->find($id);
         if (!$facture) {
             return $this->json(['error' => 'Not found'], 404);
@@ -561,7 +553,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/pv-rachat/pdf', methods: ['GET'])]
     public function downloadPvRachatPdf(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -578,7 +569,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/cerfa-cession-achat/pdf', methods: ['GET'])]
     public function downloadPurchaseCerfaCessionPdf(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -595,7 +585,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/da-siv/pdf', methods: ['GET'])]
     public function downloadDaSivPdf(int $id): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -613,7 +602,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/mandat-immat/pdf', methods: ['GET'])]
     public function downloadPurchaseMandatImmatPdf(int $id, Request $request): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -633,7 +621,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/purchases/{id}/siv/prepare', methods: ['POST'])]
     public function preparePurchaseSiv(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $purchase = $this->em->getRepository(VOPurchase::class)->find($id);
         if (!$purchase) {
             return $this->json(['error' => 'Not found'], 404);
@@ -679,7 +666,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/margin/calculate', methods: ['POST'])]
     public function calculateMargin(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $body = $request->toArray();
 
         $regime = $body['regime'] ?? 'marge';
@@ -698,7 +684,6 @@ class VOPurchaseController extends AbstractController
     #[Route('/margin/simulate', methods: ['POST'])]
     public function simulateMargin(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_VO_MANAGER');
         $body = $request->toArray();
 
         $purchasePrice = (string) ($body['purchasePrice'] ?? '0');
