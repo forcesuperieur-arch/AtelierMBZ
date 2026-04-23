@@ -227,6 +227,7 @@ class VODepotVente
     public function setDureeMandat(int $v): static { $this->dureeMandat = $v; return $this; }
 
     public function getStatus(): string { return $this->status; }
+    /** @deprecated Use workflow transitions instead. Reserved for seeding/testing. */
     public function setStatus(string $v): static { $this->status = $v; return $this; }
 
     public function getConditionsRestitution(): ?string { return $this->conditionsRestitution; }

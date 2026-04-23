@@ -29,6 +29,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Workflow\WorkflowInterface;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
@@ -51,6 +53,8 @@ class VODepotController extends AbstractController
         private CurrentAtelierResolver $currentAtelierResolver,
         private InputNormalizer $inputNormalizer,
         private EntityNormalizer $entityNormalizer,
+        #[Target('vo_depot')]
+        private WorkflowInterface $voDepotWorkflow,
     ) {}
 
     #[Route('/depots', methods: ['GET'])]
@@ -149,9 +153,9 @@ class VODepotController extends AbstractController
 
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
         $deposant = $this->em->getRepository(Client::class)->find($body['deposantId'] ?? 0);
-        $status = (string) ($body['status'] ?? 'actif');
+        $startAsDraft = (bool) ($body['startAsDraft'] ?? false);
 
-        if (($vehicule === null || $deposant === null) && $status !== 'brouillon') {
+        if (($vehicule === null || $deposant === null) && !$startAsDraft) {
             return $this->json(['error' => 'Vehicule and deposant are required'], 400);
         }
 
@@ -167,7 +171,6 @@ class VODepotController extends AbstractController
         $depot->setCommissionType($body['commissionType'] ?? 'pourcentage');
         $depot->setCommissionValeur((string) ($body['commissionValeur'] ?? '0'));
         $depot->setDureeMandat($body['dureeMandat'] ?? $this->resolveDefaultMandatDuration());
-        $depot->setStatus($status);
         $depot->setConditionsRestitution($body['conditionsRestitution'] ?? null);
         $depot->setAssuranceInfo($body['assuranceInfo'] ?? null);
         $depot->setNotes($body['notes'] ?? null);
@@ -189,11 +192,12 @@ class VODepotController extends AbstractController
         }
 
         try {
-            $payload = $this->inTransaction(function () use ($depot) {
+            $payload = $this->inTransaction(function () use ($depot, $startAsDraft) {
                 $this->em->persist($depot);
                 $this->em->flush();
 
-                if ($depot->getStatus() !== 'brouillon') {
+                if (!$startAsDraft && $this->voDepotWorkflow->can($depot, 'activer')) {
+                    $this->voDepotWorkflow->apply($depot, 'activer');
                     $this->activateDepotRecord($depot);
                     $this->em->flush();
                 }
@@ -250,7 +254,6 @@ class VODepotController extends AbstractController
         if (isset($body['commissionType'])) $depot->setCommissionType($body['commissionType']);
         if (isset($body['commissionValeur'])) $depot->setCommissionValeur((string) $body['commissionValeur']);
         if (isset($body['dureeMandat'])) $depot->setDureeMandat($body['dureeMandat']);
-        if (isset($body['status'])) $depot->setStatus($body['status']);
         if (isset($body['conditionsRestitution'])) $depot->setConditionsRestitution($body['conditionsRestitution']);
         if (isset($body['assuranceInfo'])) $depot->setAssuranceInfo($body['assuranceInfo']);
         if (isset($body['notes'])) $depot->setNotes($body['notes']);
@@ -275,8 +278,8 @@ class VODepotController extends AbstractController
 
         try {
             $payload = $this->inTransaction(function () use ($depot) {
-                if ($depot->getStatus() === 'brouillon') {
-                    $depot->setStatus('actif');
+                if ($this->voDepotWorkflow->can($depot, 'activer')) {
+                    $this->voDepotWorkflow->apply($depot, 'activer');
                 }
 
                 $this->activateDepotRecord($depot);
@@ -363,7 +366,7 @@ class VODepotController extends AbstractController
 
                 $this->em->persist($facture);
 
-                $depot->setStatus('vendu');
+                $this->voDepotWorkflow->apply($depot, 'vendre');
                 $depot->setPrixVenteEffectif($salePrice);
                 $depot->setDateFin(new \DateTime());
 
@@ -477,7 +480,7 @@ class VODepotController extends AbstractController
         }
 
         $body = $request->toArray();
-        $depot->setStatus('restitue');
+        $this->voDepotWorkflow->apply($depot, 'restituer');
         $depot->setDateFin(new \DateTime());
 
         if (!empty($body['notes'])) {

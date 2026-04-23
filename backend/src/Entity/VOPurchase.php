@@ -234,6 +234,7 @@ class VOPurchase
     public function setRepairEstimates(?array $v): static { $this->repairEstimates = $v; return $this; }
 
     public function getStatus(): string { return $this->status; }
+    /** @deprecated Use workflow transitions instead. Reserved for seeding/testing. */
     public function setStatus(string $v): static
     {
         if (!in_array($v, self::STATUSES, true)) {

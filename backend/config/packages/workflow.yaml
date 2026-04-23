@@ -138,3 +138,29 @@ framework:
                 vendre:
                     from: [en_stock, en_vente, reserve]
                     to: vendu
+
+        vo_depot:
+            type: state_machine
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: method
+                property: status
+            supports:
+                - App\Entity\VODepotVente
+            initial_marking: brouillon
+            places:
+                - brouillon
+                - actif
+                - vendu
+                - restitue
+            transitions:
+                activer:
+                    from: brouillon
+                    to: actif
+                vendre:
+                    from: actif
+                    to: vendu
+                restituer:
+                    from: actif
+                    to: restitue

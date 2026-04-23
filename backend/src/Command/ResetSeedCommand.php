@@ -518,6 +518,7 @@ class ResetSeedCommand extends Command
         $depot->setAtelierId(1);
         $depot->setVehicule($voVehicule);
         $depot->setDeposant($deposant);
+        // [SEED-ONLY] Bypass workflow — entity will be persisted then activated via setStatus
         $depot->setStatus('actif');
         $depot->setPrixVenteSouhaite($faker->randomElement(['3500.00', '4200.00', '5800.00']));
         $depot->setCommissionType('pct');

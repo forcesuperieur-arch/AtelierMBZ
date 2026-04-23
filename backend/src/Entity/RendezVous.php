@@ -268,6 +268,7 @@ class RendezVous
     public function getMecanicien(): ?Mecanicien { return $this->mecanicien; }
     public function setMecanicien(?Mecanicien $mecanicien): static { $this->mecanicien = $mecanicien; return $this; }
     public function getStatut(): string { return $this->statut; }
+    /** @deprecated Use workflow transitions instead. Reserved for seeding/testing. */
     public function setStatut(string $statut): static { $this->statut = $statut; return $this; }
     public function getTokenSuivi(): ?string { return $this->tokenSuivi; }
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }

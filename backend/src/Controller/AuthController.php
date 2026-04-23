@@ -262,12 +262,81 @@ class AuthController extends AbstractController
 
     private function getGoogleConfig(): array
     {
+        $redirectUri = trim((string) ($_ENV['GOOGLE_OAUTH_REDIRECT_URI'] ?? ''));
+        if ($redirectUri !== '') {
+            $this->validateRedirectUri($redirectUri);
+        }
+
         return [
             'client_id' => trim((string) ($_ENV['GOOGLE_OAUTH_CLIENT_ID'] ?? '')),
             'client_secret' => trim((string) ($_ENV['GOOGLE_OAUTH_CLIENT_SECRET'] ?? '')),
-            'redirect_uri' => trim((string) ($_ENV['GOOGLE_OAUTH_REDIRECT_URI'] ?? '')),
+            'redirect_uri' => $redirectUri,
             'hosted_domain' => trim((string) ($_ENV['GOOGLE_OAUTH_HOSTED_DOMAIN'] ?? '')),
         ];
+    }
+
+    private function validateRedirectUri(string $uri): void
+    {
+        $parsed = parse_url($uri);
+        if ($parsed === false || !isset($parsed['scheme'], $parsed['host'])) {
+            throw new \RuntimeException('Invalid redirect_uri format');
+        }
+
+        $scheme = strtolower($parsed['scheme']);
+        $host = strtolower($parsed['host']);
+
+        if ($this->getParameter('kernel.environment') === 'prod' && $scheme !== 'https') {
+            throw new \RuntimeException('redirect_uri must use HTTPS in production');
+        }
+
+        $allowedDomains = array_filter(array_map(
+            'trim',
+            explode(',', $_ENV['GOOGLE_OAUTH_ALLOWED_DOMAINS'] ?? '')
+        ));
+
+        if ($allowedDomains === []) {
+            // Fallback : si aucun domaine n'est explicitement configuré,
+            // on exige au minimum que ce ne soit pas localhost en production.
+            if ($this->getParameter('kernel.environment') === 'prod' && in_array($host, ['localhost', '127.0.0.1', '[::1]'], true)) {
+                throw new \RuntimeException('localhost redirect_uri is not allowed in production');
+            }
+            return;
+        }
+
+        $domainOk = false;
+        foreach ($allowedDomains as $domain) {
+            if ($host === $domain || str_ends_with($host, '.' . $domain)) {
+                $domainOk = true;
+                break;
+            }
+        }
+
+        if (!$domainOk) {
+            throw new \RuntimeException('redirect_uri domain is not in the allowed list');
+        }
+    }
+
+    private function isRequestFromTrustedIp(Request $request): bool
+    {
+        $ip = $request->getClientIp() ?? '0.0.0.0';
+
+        if (in_array($ip, ['127.0.0.1', '::1'], true)) {
+            return true;
+        }
+
+        // RFC 1918 private ranges
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $long = ip2long($ip);
+            if (
+                ($long >= ip2long('10.0.0.0') && $long <= ip2long('10.255.255.255'))
+                || ($long >= ip2long('172.16.0.0') && $long <= ip2long('172.31.255.255'))
+                || ($long >= ip2long('192.168.0.0') && $long <= ip2long('192.168.255.255'))
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isDevSsoSimulationEnabled(): bool
@@ -404,6 +473,10 @@ class AuthController extends AbstractController
     {
         if (!$this->isDevSsoSimulationEnabled()) {
             return $this->json(['error' => 'Unavailable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$this->isRequestFromTrustedIp($request)) {
+            return $this->json(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
         }
 
         $email = strtolower(trim((string) $request->query->get('email', 'admin@atelier.local')));
