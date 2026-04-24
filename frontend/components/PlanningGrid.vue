@@ -70,39 +70,27 @@
                 @dragstart="onDragStart($event, rdv)"
                 @dragend="onDragEnd"
               >
-                <UTooltip>
-                  <div class="rdv-block-inner">
-                    <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
-                      {{ rdv.heure_debut?.slice(0, 5) }}
-                    </div>
-                    <div class="rdv-block-title">
-                      {{ rdv.type_intervention }}
-                    </div>
-                    <div class="rdv-block-client">
-                      {{ rdv.client_nom }}
-                    </div>
-                    <div v-if="rdv.source === 'web'" class="rdv-block-web">WEB</div>
-                    <div v-if="rdv.priorite" class="rdv-block-priority">
-                      <span class="priority-badge" :class="`priority-badge-${rdv.priorite}`">{{ rdv.priorite }}</span>
-                    </div>
-                    <div v-if="mecanicienFor(rdv)" class="rdv-block-meca">
-                      <span
-                        class="meca-avatar"
-                        :style="{ background: mecanicienFor(rdv)?.couleur || '#8B5CF6' }"
-                      >{{ mecanicienFor(rdv)?.initials }}</span>
-                    </div>
+                <div class="rdv-block-inner">
+                  <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
+                    {{ rdv.heure_debut?.slice(0, 5) }}
                   </div>
-                  <template #content>
-                    <div class="rdv-tooltip">
-                      <div class="rdv-tooltip-header">{{ rdv.type_intervention }}</div>
-                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Heure</span> {{ rdv.heure_debut?.slice(0,5) }} ({{ formatDurationShort(rdv.temps_estime) }})</div>
-                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Client</span> {{ rdv.client_nom || '—' }}</div>
-                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Véhicule</span> {{ rdv.vehicule_info || '—' }}</div>
-                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Statut</span> {{ rdv.status || rdv.statut || 'en_attente' }}</div>
-                      <div v-if="mecanicienFor(rdv)" class="rdv-tooltip-row"><span class="rdv-tooltip-label">Mécanicien</span> {{ mecanicienFor(rdv)?.label }}</div>
-                    </div>
-                  </template>
-                </UTooltip>
+                  <div class="rdv-block-title">
+                    {{ rdv.type_intervention }}
+                  </div>
+                  <div class="rdv-block-client">
+                    {{ rdv.client_nom }}
+                  </div>
+                  <div v-if="rdv.source === 'web'" class="rdv-block-web">WEB</div>
+                  <div v-if="rdv.priorite" class="rdv-block-priority">
+                    <span class="priority-badge" :class="`priority-badge-${rdv.priorite}`">{{ rdv.priorite }}</span>
+                  </div>
+                  <div v-if="mecanicienFor(rdv)" class="rdv-block-meca">
+                    <span
+                      class="meca-avatar"
+                      :style="{ background: mecanicienFor(rdv)?.couleur || '#8B5CF6' }"
+                    >{{ mecanicienFor(rdv)?.initials }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
