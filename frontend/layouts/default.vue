@@ -56,7 +56,7 @@
     <!-- MAIN -->
     <div class="main-area">
       <!-- TOPBAR -->
-      <header class="topbar">
+      <header class="topbar" :class="{ 'is-scrolled': topbarScrolled }">
         <button class="topbar-menu-btn" @click="appStore.toggleSidebar()" aria-label="Menu">
           <UIcon name="i-heroicons-bars-3" />
         </button>
@@ -68,7 +68,7 @@
         <div class="topbar-center-brand" aria-hidden="true">
           <img :src="topbarLogoUrl" alt="Paddock" class="topbar-center-logo" />
         </div>
-        <span class="topbar-title">{{ currentSection }}</span>
+        <AppBreadcrumbs class="topbar-breadcrumbs" />
         <div class="topbar-spacer" />
         <div v-if="canSwitchAtelierContext" class="topbar-atelier-switch">
           <span style="font-size:11px;color:#FCD34D;font-weight:700;">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
@@ -83,10 +83,24 @@
       </header>
 
       <!-- CONTENT -->
-      <main class="content">
+      <main ref="mainContent" class="content" @scroll="onMainScroll">
         <NotificationPopIn filter-type="demande_complementaire" />
-        <slot />
+        <div class="page-fade-in">
+          <slot />
+        </div>
       </main>
+
+      <AppQuickActions :actions="quickActions" />
+
+      <!-- Scroll to top -->
+      <button
+        v-if="showScrollTop"
+        class="scroll-to-top"
+        aria-label="Remonter en haut"
+        @click="scrollToTop"
+      >
+        <UIcon name="i-heroicons-arrow-up" class="w-5 h-5" />
+      </button>
     </div>
   </div>
 </template>
@@ -97,6 +111,20 @@ const appStore = useAppStore()
 const atelierStore = useAtelierStore()
 const route = useRoute()
 const { unreadCount: notifUnreadCount, fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
+
+const mainContent = ref<HTMLElement | null>(null)
+const showScrollTop = ref(false)
+const topbarScrolled = ref(false)
+
+function onMainScroll() {
+  const scrollY = mainContent.value?.scrollTop ?? 0
+  showScrollTop.value = scrollY > 500
+  topbarScrolled.value = scrollY > 8
+}
+
+function scrollToTop() {
+  mainContent.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 const atelierName = computed(() => atelierStore.branding?.nom || 'Paddock')
 const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '/branding/paddock-logo-symbol.svg')
@@ -298,6 +326,31 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   if (!canSwitch) return
   activeAtelierChoice.value = normalizeAtelierChoice(cookieValue) || normalizeAtelierChoice(defaultValue) || normalizeAtelierChoice(ateliersList.value[0]?.id) || ''
 }, { immediate: true })
+
+/* ── Quick Actions ── */
+const quickActions = computed(() => {
+  const base = '/' + (route.path.split('/')[1] || '')
+  const actions: Array<{ icon: string; label: string; to?: string; onClick?: () => void; visible?: boolean }> = []
+
+  if (base === '/' || base === '/index') {
+    if (auth.hasSection('rdv')) actions.push({ icon: 'i-heroicons-calendar-plus', label: '+ Nouveau RDV', to: '/rdv/new' })
+    if (auth.hasSection('clients')) actions.push({ icon: 'i-heroicons-user-plus', label: '+ Client', to: '/clients' })
+  } else if (base === '/planning') {
+    if (auth.hasSection('rdv')) actions.push({ icon: 'i-heroicons-calendar-plus', label: '+ RDV rapide', to: '/rdv/new' })
+    actions.push({ icon: 'i-heroicons-arrow-down-circle', label: "Aller à aujourd'hui", onClick: () => navigateTo('/planning') })
+  } else if (base === '/clients') {
+    if (auth.hasSection('clients')) actions.push({ icon: 'i-heroicons-user-plus', label: '+ Nouveau client', to: '/clients' })
+  } else if (base === '/mecanicien') {
+    actions.push({ icon: 'i-heroicons-qr-code', label: 'Scanner QR', onClick: () => navigateTo('/mecanicien?scan=1') })
+  } else if (base === '/vo') {
+    if (auth.hasSection('vo')) {
+      actions.push({ icon: 'i-heroicons-tag', label: '+ Rachat', to: '/vo/rachats/new' })
+      actions.push({ icon: 'i-heroicons-inbox-arrow-down', label: '+ Dépôt', to: '/vo/depots/new' })
+    }
+  }
+
+  return actions
+})
 </script>
 
 <style scoped>
@@ -620,6 +673,17 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   background: linear-gradient(135deg, #FBBF24, #FFD200);
   box-shadow: 0 2px 8px rgba(245,158,11,0.3);
   transform: translateY(-1px);
+}
+
+/* === BREADCRUMBS === */
+.topbar-breadcrumbs {
+  min-width: 0;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .topbar-breadcrumbs {
+    display: none;
+  }
 }
 
 /* === CONTENT === */

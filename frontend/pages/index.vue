@@ -29,312 +29,373 @@
       @retry="loadDashboard"
     />
 
-    <!-- Alert strip -->
-    <div v-else-if="alerts.length" class="alert-strip">
-      <div v-for="(a, i) in alerts" :key="i" class="alert-chip" :class="a.type">
-        <span class="alert-icon">{{ a.type === 'danger' ? '⚠️' : '⏰' }}</span>
-        {{ a.text }}
+    <!-- Alert banners dismissables -->
+    <template v-for="(a, i) in alerts" :key="i">
+      <div v-if="!dismissedAlerts.has(i)" class="alert-banner-item">
+        <AppBanner
+          :variant="a.type === 'danger' ? 'danger' : 'warning'"
+          :icon="a.type === 'danger' ? '⚠️' : '⏰'"
+          :title="a.text"
+          dismissible
+          @dismiss="dismissedAlerts.add(i)"
+        />
       </div>
-    </div>
+    </template>
 
-    <UCard style="margin-bottom:16px;">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <button
-            v-for="preset in periodPresets"
-            :key="preset.key"
-            type="button"
-            class="topbar-btn"
-            :style="{ background: selectedPeriod === preset.key ? 'rgba(255,210,0,0.14)' : 'rgba(255,255,255,0.04)', color: selectedPeriod === preset.key ? '#FFD200' : '#D1D5DB', borderColor: selectedPeriod === preset.key ? 'rgba(255,210,0,0.3)' : 'rgba(255,255,255,0.08)' }"
-            @click="applyPreset(preset.key)"
-          >
-            {{ preset.label }}
-          </button>
-        </div>
-
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
-          <input v-model="filters.from" type="date" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#E5E7EB;" />
-          <input v-model="filters.to" type="date" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#E5E7EB;" />
-          <button type="button" class="topbar-new-btn" style="font-size:12px;padding:8px 12px;" @click="loadDashboard">Actualiser</button>
-        </div>
-      </div>
-      <div style="margin-top:8px;font-size:12px;color:#9CA3AF;">
+    <AppPeriodSelector
+      :presets="periodPresets"
+      :model-value="{ from: filters.from, to: filters.to }"
+      :selected-preset="selectedPeriod"
+      @preset="applyPreset"
+      @update:model-value="({ from, to }: any) => { filters.from = from; filters.to = to; }"
+      @refresh="loadDashboard"
+    >
+      <template #summary>
         Période analysée : {{ periodSummary }} · comparée automatiquement à la période précédente équivalente.
-      </div>
-    </UCard>
-
-    <div class="grid-4">
-      <div class="stat-card">
-        <div class="stat-label">RDV SUR PÉRIODE</div>
-        <div class="stat-value">{{ Math.round(Number(comparison.rdvs?.current ?? 0)) }}</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.rdvs) }">{{ metricDeltaText(comparison.rdvs) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / GAUGE_MAX_RDV * 100, 100) + '%', background: '#FFD200' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">CA SUR PÉRIODE</div>
-        <div class="stat-value">{{ formatCurrency(comparison.ca?.current ?? 0) }}</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.ca) }">{{ metricDeltaText(comparison.ca) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / GAUGE_MAX_CA * 100, 100) + '%', background: '#14B8A6' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">PANIER MOYEN</div>
-        <div class="stat-value">{{ formatCurrency(comparison.avg_ticket?.current ?? 0) }}</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.avg_ticket) }">{{ metricDeltaText(comparison.avg_ticket) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.avg_ticket?.current ?? 0) / GAUGE_MAX_PANIER * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">OCCUPATION CAPACITÉ</div>
-        <div class="stat-value">{{ Math.round(Number(comparison.occupation?.current ?? occupationRate)) }}%</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.occupation) }">{{ pontsOccupes }}/{{ ponts.length }} ponts occupés</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.round(Number(comparison.occupation?.current ?? occupationRate)) + '%', background: '#10B981' }"></div></div>
-      </div>
-    </div>
-
-    <div class="grid-4" style="margin-top:14px;">
-      <div class="stat-card">
-        <div class="stat-label">CHARGE PLANIFIÉE</div>
-        <div class="stat-value">{{ formatDuration(comparison.planned_minutes?.current ?? plannedMinutes) }}</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.planned_minutes) }">{{ metricDeltaText(comparison.planned_minutes) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.planned_minutes?.current ?? plannedMinutes) / GAUGE_MAX_PLANNED_MIN * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">DOSSIERS CLÔTURÉS</div>
-        <div class="stat-value">{{ Math.round(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday)) }}</div>
-        <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.completed) }">{{ metricDeltaText(comparison.completed) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday) / GAUGE_MAX_COMPLETED * 100, 100) + '%', background: '#34D399' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">ALERTES PILOTAGE</div>
-        <div class="stat-value">{{ alerts.length }}</div>
-        <div class="stat-delta" :style="{ color: alerts.length ? '#FCA5A5' : '#9CA3AF' }">⏰ retards, attentes, restitutions</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(alerts.length / GAUGE_MAX_ALERTS * 100, 100) + '%', background: alerts.length ? '#EF4444' : '#6B7280' }"></div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">IMPAYÉS / STOCK</div>
-        <div class="stat-value">{{ stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0) }}</div>
-        <div class="stat-delta" style="color:#FBBF24;">{{ stockModuleEnabled ? '📦 pièces sous mini' : '💸 relances comptables' }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)) / GAUGE_MAX_STOCK * 100, 100) + '%', background: '#FBBF24' }"></div></div>
-      </div>
-    </div>
-
-    <div class="grid-auto" style="margin:24px 0;">
-      <UCard>
-        <template #header>
-          <span class="header-lg">Évolution sur la période</span>
-        </template>
-        <div v-if="dailyTrend.length" style="display:flex;align-items:flex-end;gap:8px;min-height:180px;overflow-x:auto;padding-top:6px;">
-          <div v-for="item in dailyTrend" :key="item.date" style="min-width:44px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <span class="text-xs-muted">{{ item.rdvs }}</span>
-            <div style="width:24px;height:120px;display:flex;align-items:flex-end;">
-              <div :style="{ width: '100%', height: Math.max(10, Math.round(Number(item.rdvs ?? 0) / dailyTrendMax * 100)) + '%', borderRadius: '8px 8px 4px 4px', background: 'linear-gradient(180deg, #FFD200 0%, #F59E0B 100%)' }"></div>
-            </div>
-            <span class="text-xs-subtle">{{ formatShortDay(item.date) }}</span>
-          </div>
-        </div>
-        <AppEmptyState
-          v-else
-          icon="📉"
-          title="Pas assez de volume"
-          description="L’évolution se remplit automatiquement dès que les RDV sont historisés sur la période choisie."
-        />
-      </UCard>
-
-      <UCard>
-        <template #header>
-          <span class="header-lg">Mix rentabilité atelier</span>
-        </template>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card-sm">
-            <div class="flex-between text-sm-value" style="margin-bottom:6px;">
-              <span>Main d’œuvre</span>
-              <span>{{ formatCurrency(revenueMix.mo_ht ?? 0) }}</span>
-            </div>
-            <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.mo_ht ?? 0) + '%', height: '100%', background: '#10B981' }"></div></div>
-          </div>
-          <div class="card-sm">
-            <div class="flex-between text-sm-value" style="margin-bottom:6px;">
-              <span>Pièces</span>
-              <span>{{ formatCurrency(revenueMix.pieces_ht ?? 0) }}</span>
-            </div>
-            <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.pieces_ht ?? 0) + '%', height: '100%', background: '#3B82F6' }"></div></div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
-            <div class="card-sm">
-              <div class="text-sm-muted">Factures période</div>
-              <div class="stat-value-sm">{{ revenueMix.nb_factures ?? 0 }}</div>
-            </div>
-            <div class="card-sm">
-              <div class="text-sm-muted">Total HT</div>
-              <div class="stat-value-sm">{{ formatCurrency(revenueMix.total_ht ?? 0) }}</div>
-            </div>
-          </div>
-        </div>
-      </UCard>
-    </div>
-
-    <div class="grid-auto" style="margin:24px 0;">
-      <UCard>
-        <template #header>
-          <div class="flex-between-wrap flex-wrap-gap-12">
-            <span class="header-lg">Performance mécanos</span>
-            <span class="badge-count">{{ mecanicienStats.length }}</span>
-          </div>
-        </template>
-        <div v-if="mecanicienStats.length" class="flex-col-10">
-          <div v-for="meca in mecanicienStats.slice(0, 6)" :key="meca.id" class="card-sm">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <div>
-                <div class="text-lg-primary">{{ meca.prenom }} {{ meca.nom }}</div>
-                <div class="text-md-muted">{{ meca.nb_rdvs }} interventions · {{ formatDuration(Number(meca.total_minutes || 0)) }} · {{ formatCurrency(meca.ca_genere || 0) }}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-md-muted text-warning" style="font-weight:700;">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
-                <div class="text-xs-subtle">moyenne</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <AppEmptyState
-          v-else
-          icon="👨‍🔧"
-          title="Pas assez d’historique méca"
-          description="La perf des mécaniciens se remplira au fil des interventions clôturées."
-        />
-      </UCard>
-
-      <UCard>
-        <template #header>
-          <div class="flex-between-wrap flex-wrap-gap-12">
-            <span class="header-lg">Catégories de prestations</span>
-            <span class="badge-count">{{ topServices.length }}</span>
-          </div>
-        </template>
-        <div v-if="topServices.length" class="flex-col-10">
-          <div v-for="service in topServices" :key="service.label" class="card-sm">
-            <div class="flex-between-wrap flex-wrap-gap-12">
-              <div>
-                <div class="text-lg-primary">{{ service.label }}</div>
-                <div class="text-md-muted">{{ service.count }} passages · {{ formatDuration(Number(service.minutes || 0)) }}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-md-muted text-warning" style="font-weight:700;">{{ formatCurrency(service.revenue || 0) }}</div>
-                <div class="text-xs-subtle">potentiel</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <AppEmptyState
-          v-else
-          icon="📈"
-          title="Aucune catégorie dominante"
-          description="Dès que l’atelier a du volume, tu vois ici les prestations qui pèsent vraiment dans l’activité."
-        />
-      </UCard>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:24px;">
-      <UCard>
-        <template #header>
-          <span class="header-lg">Répartition des statuts</span>
-        </template>
-        <div v-if="statusBreakdown.length" class="flex-col-10">
-          <div v-for="item in statusBreakdown" :key="item.label" style="display:grid;gap:4px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-              <span class="text-value">{{ item.label }}</span>
-              <span style="color:#9CA3AF;">{{ item.count }}</span>
-            </div>
-            <div style="height:7px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
-              <div :style="{ width: item.percent + '%', height: '100%', background: item.color }"></div>
-            </div>
-          </div>
-        </div>
-        <AppEmptyState
-          v-else
-          icon="📊"
-          title="Pas de flux à afficher"
-          description="La répartition des statuts apparaîtra dès qu’il y aura de l’activité atelier."
-        />
-      </UCard>
-
-      <UCard>
-        <template #header>
-          <span class="header-lg">Occupation ressources atelier</span>
-        </template>
-        <div v-if="ponts.length" class="pont-grid" style="margin:0;">
-          <div v-for="pont in ponts" :key="pont.id" class="pont-card" :class="pont.current_rdv ? 'pont-occupe' : 'pont-libre'">
-            <div class="pont-card-header">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="live-dot" :style="{ background: pont.current_rdv ? '#F59E0B' : '#10B981' }"></span>
-                <span class="pont-name">{{ pont.nom }}</span>
-              </div>
-              <StatusBadge :status="pont.current_rdv ? 'en_cours' : (pont.est_actif === false ? 'annule' : 'confirme')" />
-            </div>
-            <div class="pont-card-body">
-              <div v-if="pont.current_rdv">
-                <p style="font-weight:600;color:#E8E9ED;font-size:14px;">{{ pont.current_rdv.vehicule_info }}</p>
-                <p style="color:#6B7280;font-size:12px;">{{ pont.current_rdv.client_nom }} · {{ pont.current_rdv.type_intervention }}</p>
-              </div>
-              <p v-else style="color:#6B7280;font-size:13px;">Aucune intervention en cours</p>
-            </div>
-            <div class="pont-card-footer">{{ pont.next_count ?? 0 }} RDV restants aujourd'hui</div>
-          </div>
-        </div>
-        <AppEmptyState
-          v-else
-          icon="🔧"
-          title="Aucun pont remonté"
-          description="La vue live des ponts s’affichera dès que la configuration atelier sera disponible."
-        />
-      </UCard>
-    </div>
-
-    <UCard>
-      <template #header>
-        <span class="header-lg">Synthèse pilotage</span>
       </template>
+    </AppPeriodSelector>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div class="card-sm">
-          <div class="text-sm-muted">OR ouverts</div>
-          <div class="stat-value-md">{{ stats.or_ouverts ?? 0 }}</div>
+    <template v-if="loading">
+      <AppSkeletonKpi :count="4" />
+      <div class="skeleton-sections">
+        <AppSkeletonCard :lines="5" />
+        <AppSkeletonCard :lines="5" />
+      </div>
+    </template>
+
+    <template v-else>
+      <div class="kpi-grid">
+        <div class="stat-card">
+          <div class="stat-label">RDV SUR PÉRIODE</div>
+          <div class="stat-value">{{ Math.round(Number(comparison.rdvs?.current ?? 0)) }}</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.rdvs) }">{{ metricDeltaText(comparison.rdvs) }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / GAUGE_MAX_RDV * 100, 100) + '%', background: '#FFD200' }"></div></div>
         </div>
-        <div class="card-sm">
-          <div class="text-sm-muted">RDV en cours</div>
-          <div class="stat-value-md">{{ stats.rdvs_en_cours ?? rdvsInProgress }}</div>
+        <div class="stat-card">
+          <div class="stat-label">CA SUR PÉRIODE</div>
+          <div class="stat-value">{{ formatCurrency(comparison.ca?.current ?? 0) }}</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.ca) }">{{ metricDeltaText(comparison.ca) }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / GAUGE_MAX_CA * 100, 100) + '%', background: '#14B8A6' }"></div></div>
         </div>
-        <div class="card-sm">
-          <div class="text-sm-muted">Restitutions période</div>
-          <div class="stat-value-md">{{ stats.restitutions ?? completedToday }}</div>
+        <div class="stat-card">
+          <div class="stat-label">PANIER MOYEN</div>
+          <div class="stat-value">{{ formatCurrency(comparison.avg_ticket?.current ?? 0) }}</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.avg_ticket) }">{{ metricDeltaText(comparison.avg_ticket) }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.avg_ticket?.current ?? 0) / GAUGE_MAX_PANIER * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
         </div>
-        <div class="card-sm">
-          <div class="text-sm-muted">Activité / jour</div>
-          <div class="stat-value-md">{{ avgDailyRdvs }}</div>
-        </div>
-        <div class="card-sm">
-          <div class="text-sm-muted">Factures sur période</div>
-          <div class="stat-value-md">{{ revenueMix.nb_factures ?? 0 }}</div>
-        </div>
-        <div class="card-sm">
-          <div class="text-sm-muted">Charge / pont</div>
-          <div class="stat-value-md">{{ ponts.length ? formatDuration(Math.round(Number(comparison.planned_minutes?.current ?? 0) / ponts.length)) : '0 min' }}</div>
+        <div class="stat-card">
+          <div class="stat-label">OCCUPATION CAPACITÉ</div>
+          <div class="stat-value">{{ Math.round(Number(comparison.occupation?.current ?? occupationRate)) }}%</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.occupation) }">{{ pontsOccupes }}/{{ ponts.length }} ponts occupés</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.round(Number(comparison.occupation?.current ?? occupationRate)) + '%', background: '#10B981' }"></div></div>
         </div>
       </div>
-    </UCard>
 
-    <!-- Stock alerts -->
-    <UCard v-if="stockModuleEnabled && stockAlertes.length" style="margin-top:24px;border-color:rgba(239,68,68,0.2);">
-      <template #header>
-        <span style="font-size:15px;font-weight:700;color:#FCA5A5;">
-          ⚠ Alertes stock ({{ stockAlertes.length }})
-        </span>
-      </template>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div v-for="p in stockAlertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);font-size:13px;">
-          <span class="text-value">{{ p.designation }} ({{ p.reference }})</span>
-          <span class="badge-count" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">Stock: {{ p.quantite_stock }}</span>
+      <div class="kpi-grid" style="margin-top:14px;">
+        <div class="stat-card">
+          <div class="stat-label">CHARGE PLANIFIÉE</div>
+          <div class="stat-value">{{ formatDuration(comparison.planned_minutes?.current ?? plannedMinutes) }}</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.planned_minutes) }">{{ metricDeltaText(comparison.planned_minutes) }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.planned_minutes?.current ?? plannedMinutes) / GAUGE_MAX_PLANNED_MIN * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">DOSSIERS CLÔTURÉS</div>
+          <div class="stat-value">{{ Math.round(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday)) }}</div>
+          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.completed) }">{{ metricDeltaText(comparison.completed) }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday) / GAUGE_MAX_COMPLETED * 100, 100) + '%', background: '#34D399' }"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ALERTES PILOTAGE</div>
+          <div class="stat-value">{{ alerts.length }}</div>
+          <div class="stat-delta" :style="{ color: alerts.length ? '#FCA5A5' : '#9CA3AF' }">⏰ retards, attentes, restitutions</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(alerts.length / GAUGE_MAX_ALERTS * 100, 100) + '%', background: alerts.length ? '#EF4444' : '#6B7280' }"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">IMPAYÉS / STOCK</div>
+          <div class="stat-value">{{ stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0) }}</div>
+          <div class="stat-delta" style="color:#FBBF24;">{{ stockModuleEnabled ? '📦 pièces sous mini' : '💸 relances comptables' }}</div>
+          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)) / GAUGE_MAX_STOCK * 100, 100) + '%', background: '#FBBF24' }"></div></div>
         </div>
       </div>
-    </UCard>
+
+      <div class="dashboard-toolbar">
+        <UButton size="xs" variant="ghost" color="neutral" @click="expandAll">
+          <UIcon name="i-heroicons-arrows-pointing-out" class="w-4 h-4 mr-1" />
+          Voir tout
+        </UButton>
+        <UButton size="xs" variant="ghost" color="neutral" @click="collapseAll">
+          <UIcon name="i-heroicons-arrows-pointing-in" class="w-4 h-4 mr-1" />
+          Réduire tout
+        </UButton>
+      </div>
+
+      <!-- Section Charts -->
+      <UCard class="dashboard-section-card" style="margin-top:24px;">
+        <div class="dashboard-section-header" @click="sectionStates.charts = !sectionStates.charts">
+          <div class="dashboard-section-header-left">
+            <UIcon name="i-heroicons-chart-bar" class="w-5 h-5" />
+            <span class="font-semibold text-sm">Évolution et rentabilité</span>
+          </div>
+          <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.charts }" />
+        </div>
+        <div v-show="sectionStates.charts" style="margin-top:12px;">
+          <div class="grid-auto">
+            <UCard>
+              <template #header>
+                <span class="header-lg">Évolution sur la période</span>
+              </template>
+              <div v-if="dailyTrend.length" style="display:flex;align-items:flex-end;gap:8px;min-height:180px;overflow-x:auto;padding-top:6px;">
+                <div v-for="item in dailyTrend" :key="item.date" style="min-width:44px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                  <span class="text-xs-muted">{{ item.rdvs }}</span>
+                  <div style="width:24px;height:120px;display:flex;align-items:flex-end;">
+                    <div :style="{ width: '100%', height: Math.max(10, Math.round(Number(item.rdvs ?? 0) / dailyTrendMax * 100)) + '%', borderRadius: '8px 8px 4px 4px', background: 'linear-gradient(180deg, #FFD200 0%, #F59E0B 100%)' }"></div>
+                  </div>
+                  <span class="text-xs-subtle">{{ formatShortDay(item.date) }}</span>
+                </div>
+              </div>
+              <AppEmptyState
+                v-else
+                icon="📉"
+                title="Pas assez de volume"
+                description="L'évolution se remplit automatiquement dès que les RDV sont historisés sur la période choisie."
+              />
+            </UCard>
+
+            <UCard>
+              <template #header>
+                <span class="header-lg">Mix rentabilité atelier</span>
+              </template>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="card-sm">
+                  <div class="flex-between text-sm-value" style="margin-bottom:6px;">
+                    <span>Main d'œuvre</span>
+                    <span>{{ formatCurrency(revenueMix.mo_ht ?? 0) }}</span>
+                  </div>
+                  <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.mo_ht ?? 0) + '%', height: '100%', background: '#10B981' }"></div></div>
+                </div>
+                <div class="card-sm">
+                  <div class="flex-between text-sm-value" style="margin-bottom:6px;">
+                    <span>Pièces</span>
+                    <span>{{ formatCurrency(revenueMix.pieces_ht ?? 0) }}</span>
+                  </div>
+                  <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.pieces_ht ?? 0) + '%', height: '100%', background: '#3B82F6' }"></div></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+                  <div class="card-sm">
+                    <div class="text-sm-muted">Factures période</div>
+                    <div class="stat-value-sm">{{ revenueMix.nb_factures ?? 0 }}</div>
+                  </div>
+                  <div class="card-sm">
+                    <div class="text-sm-muted">Total HT</div>
+                    <div class="stat-value-sm">{{ formatCurrency(revenueMix.total_ht ?? 0) }}</div>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section Perf -->
+      <UCard class="dashboard-section-card" style="margin-top:24px;">
+        <div class="dashboard-section-header" @click="sectionStates.perf = !sectionStates.perf">
+          <div class="dashboard-section-header-left">
+            <UIcon name="i-heroicons-wrench-screwdriver" class="w-5 h-5" />
+            <span class="font-semibold text-sm">Performance et prestations</span>
+            <UBadge v-if="mecanicienStats.length + topServices.length" size="xs" color="info">{{ mecanicienStats.length + topServices.length }}</UBadge>
+          </div>
+          <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.perf }" />
+        </div>
+        <div v-show="sectionStates.perf" style="margin-top:12px;">
+          <div class="grid-auto">
+            <UCard>
+              <template #header>
+                <div class="flex-between-wrap flex-wrap-gap-12">
+                  <span class="header-lg">Performance mécanos</span>
+                  <span class="badge-count">{{ mecanicienStats.length }}</span>
+                </div>
+              </template>
+              <div v-if="mecanicienStats.length" class="flex-col-10">
+                <div v-for="meca in mecanicienStats.slice(0, 6)" :key="meca.id" class="card-sm">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                    <div>
+                      <div class="text-lg-primary">{{ meca.prenom }} {{ meca.nom }}</div>
+                      <div class="text-md-muted">{{ meca.nb_rdvs }} interventions · {{ formatDuration(Number(meca.total_minutes || 0)) }} · {{ formatCurrency(meca.ca_genere || 0) }}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-md-muted text-warning" style="font-weight:700;">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
+                      <div class="text-xs-subtle">moyenne</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <AppEmptyState
+                v-else
+                icon="👨‍🔧"
+                title="Pas assez d'historique méca"
+                description="La perf des mécaniciens se remplira au fil des interventions clôturées."
+              />
+            </UCard>
+
+            <UCard>
+              <template #header>
+                <div class="flex-between-wrap flex-wrap-gap-12">
+                  <span class="header-lg">Catégories de prestations</span>
+                  <span class="badge-count">{{ topServices.length }}</span>
+                </div>
+              </template>
+              <div v-if="topServices.length" class="flex-col-10">
+                <div v-for="service in topServices" :key="service.label" class="card-sm">
+                  <div class="flex-between-wrap flex-wrap-gap-12">
+                    <div>
+                      <div class="text-lg-primary">{{ service.label }}</div>
+                      <div class="text-md-muted">{{ service.count }} passages · {{ formatDuration(Number(service.minutes || 0)) }}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-md-muted text-warning" style="font-weight:700;">{{ formatCurrency(service.revenue || 0) }}</div>
+                      <div class="text-xs-subtle">potentiel</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <AppEmptyState
+                v-else
+                icon="📈"
+                title="Aucune catégorie dominante"
+                description="Dès que l'atelier a du volume, tu vois ici les prestations qui pèsent vraiment dans l'activité."
+              />
+            </UCard>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section Charge -->
+      <UCard class="dashboard-section-card" style="margin-top:24px;">
+        <div class="dashboard-section-header" @click="sectionStates.charge = !sectionStates.charge">
+          <div class="dashboard-section-header-left">
+            <UIcon name="i-heroicons-signal" class="w-5 h-5" />
+            <span class="font-semibold text-sm">Occupation et statuts</span>
+          </div>
+          <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.charge }" />
+        </div>
+        <div v-show="sectionStates.charge" style="margin-top:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+            <UCard>
+              <template #header>
+                <span class="header-lg">Répartition des statuts</span>
+              </template>
+              <div v-if="statusBreakdown.length" class="flex-col-10">
+                <div v-for="item in statusBreakdown" :key="item.label" style="display:grid;gap:4px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+                    <span class="text-value">{{ item.label }}</span>
+                    <span style="color:#9CA3AF;">{{ item.count }}</span>
+                  </div>
+                  <div style="height:7px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
+                    <div :style="{ width: item.percent + '%', height: '100%', background: item.color }"></div>
+                  </div>
+                </div>
+              </div>
+              <AppEmptyState
+                v-else
+                icon="📊"
+                title="Pas de flux à afficher"
+                description="La répartition des statuts apparaîtra dès qu'il y aura de l'activité atelier."
+              />
+            </UCard>
+
+            <UCard>
+              <template #header>
+                <span class="header-lg">Occupation ressources atelier</span>
+              </template>
+              <div v-if="ponts.length" class="pont-grid" style="margin:0;">
+                <div v-for="pont in ponts" :key="pont.id" class="pont-card" :class="pont.current_rdv ? 'pont-occupe' : 'pont-libre'">
+                  <div class="pont-card-header">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span class="live-dot" :style="{ background: pont.current_rdv ? '#F59E0B' : '#10B981' }"></span>
+                      <span class="pont-name">{{ pont.nom }}</span>
+                    </div>
+                    <StatusBadge :status="pont.current_rdv ? 'en_cours' : (pont.est_actif === false ? 'annule' : 'confirme')" />
+                  </div>
+                  <div class="pont-card-body">
+                    <div v-if="pont.current_rdv">
+                      <p style="font-weight:600;color:#E8E9ED;font-size:14px;">{{ pont.current_rdv.vehicule_info }}</p>
+                      <p style="color:#6B7280;font-size:12px;">{{ pont.current_rdv.client_nom }} · {{ pont.current_rdv.type_intervention }}</p>
+                    </div>
+                    <p v-else style="color:#6B7280;font-size:13px;">Aucune intervention en cours</p>
+                  </div>
+                  <div class="pont-card-footer">{{ pont.next_count ?? 0 }} RDV restants aujourd'hui</div>
+                </div>
+              </div>
+              <AppEmptyState
+                v-else
+                icon="🔧"
+                title="Aucun pont remonté"
+                description="La vue live des ponts s'affichera dès que la configuration atelier sera disponible."
+              />
+            </UCard>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section Synthèse -->
+      <UCard class="dashboard-section-card" style="margin-top:24px;">
+        <div class="dashboard-section-header" @click="sectionStates.planning = !sectionStates.planning">
+          <div class="dashboard-section-header-left">
+            <UIcon name="i-heroicons-clipboard-document-list" class="w-5 h-5" />
+            <span class="font-semibold text-sm">Synthèse pilotage</span>
+          </div>
+          <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.planning }" />
+        </div>
+        <div v-show="sectionStates.planning" style="margin-top:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+            <div class="card-sm">
+              <div class="text-sm-muted">OR ouverts</div>
+              <div class="stat-value-md">{{ stats.or_ouverts ?? 0 }}</div>
+            </div>
+            <div class="card-sm">
+              <div class="text-sm-muted">RDV en cours</div>
+              <div class="stat-value-md">{{ stats.rdvs_en_cours ?? rdvsInProgress }}</div>
+            </div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Restitutions période</div>
+              <div class="stat-value-md">{{ stats.restitutions ?? completedToday }}</div>
+            </div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Activité / jour</div>
+              <div class="stat-value-md">{{ avgDailyRdvs }}</div>
+            </div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Factures sur période</div>
+              <div class="stat-value-md">{{ revenueMix.nb_factures ?? 0 }}</div>
+            </div>
+            <div class="card-sm">
+              <div class="text-sm-muted">Charge / pont</div>
+              <div class="stat-value-md">{{ ponts.length ? formatDuration(Math.round(Number(comparison.planned_minutes?.current ?? 0) / ponts.length)) : '0 min' }}</div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section Stock alerts -->
+      <UCard v-if="stockModuleEnabled && stockAlertes.length" class="dashboard-section-card" style="margin-top:24px;">
+        <div class="dashboard-section-header" @click="sectionStates.alerts = !sectionStates.alerts">
+          <div class="dashboard-section-header-left">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5" />
+            <span class="font-semibold text-sm">Alertes stock</span>
+            <UBadge size="xs" color="error">{{ stockAlertes.length }}</UBadge>
+          </div>
+          <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.alerts }" />
+        </div>
+        <div v-show="sectionStates.alerts" style="margin-top:12px;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div v-for="p in stockAlertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);font-size:13px;">
+              <span class="text-value">{{ p.designation }} ({{ p.reference }})</span>
+              <span class="badge-count" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">Stock: {{ p.quantite_stock }}</span>
+            </div>
+          </div>
+        </div>
+      </UCard>
+    </template>
   </div>
 </template>
 
@@ -380,6 +441,32 @@ const periodPresets = [
   { key: '30d', label: '30 jours' },
   { key: '90d', label: '90 jours' },
 ]
+
+const dismissedAlerts = ref(new Set<number>())
+
+const sectionStates = ref<Record<string, boolean>>({
+  alerts: true,
+  planning: true,
+  charts: false,
+  perf: false,
+  prestations: false,
+  topMeca: false,
+  charge: false,
+  categories: false,
+})
+
+const STORAGE_KEY = 'dashboard_sections_state'
+
+watch(sectionStates, (val) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+}, { deep: true })
+
+function expandAll() {
+  Object.keys(sectionStates.value).forEach(k => sectionStates.value[k] = true)
+}
+function collapseAll() {
+  Object.keys(sectionStates.value).forEach(k => sectionStates.value[k] = false)
+}
 
 const blockedModuleBanner = computed(() => {
   const key = String(route.query.moduleDisabled || '')
@@ -623,6 +710,10 @@ function normalizeRdv(r: RdvItem) {
 }
 
 onMounted(() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    Object.assign(sectionStates.value, saved)
+  } catch { /* ignore */ }
   applyPreset('30d')
   refreshInterval = setInterval(loadDashboard, 60000)
 })
@@ -665,7 +756,7 @@ async function loadDashboard() {
     partialErrors.value = issues
   } catch (e: unknown) {
     partialErrors.value = []
-    dashboardError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Le dashboard n’a pas pu être chargé. Vérifie la connexion API puis réessaie.'
+    dashboardError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || "Le dashboard n'a pas pu être chargé. Vérifie la connexion API puis réessaie."
   } finally {
     loading.value = false
   }

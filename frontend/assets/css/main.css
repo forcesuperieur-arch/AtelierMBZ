@@ -1757,3 +1757,310 @@ main {
 .text-sm { font-size: 14px; }
 .text-md-primary { font-size: 13px; color: #E8E9ED; }
 .text-md-danger { font-size: 12px; color: #FCA5A5; }
+
+/* ========================================
+   PHASE 1 — SKELETON + PAGE TRANSITION UTILITIES
+   ======================================== */
+@keyframes skeleton-shimmer-anim {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--dark2) 25%, var(--dark3) 50%, var(--dark2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer-anim 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.page-fade-in {
+  animation: page-fade-in 300ms ease both;
+}
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================
+   PHASE 2 — DASHBOARD UX REFONTE
+   ======================================== */
+
+/* KPI responsive grid */
+.kpi-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Dashboard section collapsible */
+.dashboard-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+.dashboard-section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dashboard-section-chevron {
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+}
+.dashboard-section-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Alert banner dismiss */
+.alert-banner-item {
+  position: relative;
+  margin-bottom: 10px;
+}
+.alert-banner-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.alert-banner-dismiss:hover {
+  color: var(--text);
+}
+
+/* Period selector */
+.period-selector-card {
+  margin-bottom: 16px;
+}
+.period-selector-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.period-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.period-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-date-input {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #E5E7EB;
+  font-size: 13px;
+}
+.dashboard-date-input:focus {
+  outline: none;
+  border-color: rgba(255,210,0,0.3);
+}
+.period-summary {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* RDV type border colors (used in grid + list) */
+.rdv-type-entretien   { border-left: 3px solid var(--green) !important; }
+.rdv-type-reparation  { border-left: 3px solid var(--red) !important; }
+.rdv-type-diagnostic  { border-left: 3px solid var(--blue) !important; }
+.rdv-type-revision    { border-left: 3px solid var(--orange) !important; }
+.rdv-type-default     { border-left: 3px solid rgba(148,163,184,0.35) !important; }
+
+/* Priority badges */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.priority-badge-haute  { background: rgba(239,68,68,0.12); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.25); }
+.priority-badge-normale{ background: rgba(107,114,128,0.12); color: #9CA3AF; border: 1px solid rgba(107,114,128,0.2); }
+.priority-badge-basse  { background: rgba(59,130,246,0.12); color: #93C5FD; border: 1px solid rgba(59,130,246,0.2); }
+
+/* Mechanic avatar initials */
+.meca-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Swipe actions on mobile list */
+.swipe-card {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.swipe-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0;
+  padding-right: 0;
+}
+.swipe-action-btn {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+/* Skeleton sections layout */
+.skeleton-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+/* Expand all button */
+.dashboard-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+
+/* ========================================
+   PHASE 6 — NAVIGATION UX REFONTE
+   ======================================== */
+
+/* Scroll-to-top floating button */
+.scroll-to-top {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  z-index: 45;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--dark3);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.scroll-to-top:hover {
+  background: var(--dark2);
+  color: var(--orange);
+  border-color: rgba(255,210,0,0.2);
+  transform: translateY(-2px);
+}
+@media (max-width: 768px) {
+  .scroll-to-top {
+    bottom: 84px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Topbar shadow on scroll */
+.topbar.is-scrolled {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+/* View toggle buttons (planning + workshop) */
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.view-toggle-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: #D1D5DB;
+}
+.view-toggle-btn.active {
+  background: rgba(255,210,0,0.12);
+  border-color: rgba(255,210,0,0.25);
+  color: #FFD200;
+}
+
+/* RDV tabs in modal */
+.rdv-tabs {
+  margin-bottom: 16px;
+}
+.rdv-tabs [data-slot="list"] {
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 4px;
+}
+.rdv-tabs [data-slot="trigger"] {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+  border-radius: 6px;
+  padding: 6px 14px;
+}
+.rdv-tabs [data-slot="trigger"][data-state="active"] {
+  background: rgba(255,210,0,0.1);
+  color: #FFD200;
+}
+
+/* Slideover styling */
+.slideover-content {
+  background: var(--dark) !important;
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Bottom drawer for mechanic mobile */
+.bottom-drawer-enter-active,
+.bottom-drawer-leave-active {
+  transition: transform 0.3s ease;
+}
+.bottom-drawer-enter-from,
+.bottom-drawer-leave-to {
+  transform: translateY(100%);
+}

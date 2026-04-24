@@ -2,11 +2,24 @@
   <div>
     <AppPageHeader title="Atelier" subtitle="Pilotage des ponts, affectations mécaniciens et charge du jour." />
 
-    <AppLoadingState
-      v-if="loading"
-      title="Chargement de l’atelier"
-      description="Les statuts des ponts et de l’équipe sont en cours de récupération."
-    />
+    <template v-if="loading">
+      <template v-if="activeTab === 'ponts'">
+        <AppPageHeader title="Atelier" subtitle="Pilotage des ponts, affectations mécaniciens et charge du jour." />
+        <div class="workshop-kpi-bar mb-5">
+          <div v-for="i in 4" :key="i" class="workshop-kpi">
+            <div class="skeleton-shimmer workshop-kpi-label" style="height:10px;width:60%;margin-bottom:8px;" />
+            <div class="skeleton-shimmer" style="height:28px;width:40%;" />
+          </div>
+        </div>
+        <AppSkeletonTable v-if="viewMode === 'liste'" :rows="6" :cols="7" />
+        <WorkshopSkeletonBays v-else />
+      </template>
+      <AppLoadingState
+        v-else
+        title="Chargement de l’atelier"
+        description="Les statuts des ponts et de l’équipe sont en cours de récupération."
+      />
+    </template>
 
     <AppErrorState
       v-else-if="errorMessage"
@@ -70,142 +83,209 @@
 
       <!-- PONTS TAB -->
       <div v-if="activeTab === 'ponts'">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-          <p style="margin:0;color:#9CA3AF;font-size:13px;">Ici tu actives ou désactives un pont et tu changes le mécanicien rattaché sans passer par l’admin.</p>
-          <NuxtLink to="/planning" style="color:#FFD200;font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
-        </div>
+        <!-- Alert badges -->
+        <WorkshopAlertBadges v-model="selectedAlertFilter" :counts="alertCounts" />
 
-        <div v-if="enrichedPonts.length" class="pont-grid">
-          <div
-            v-for="pont in enrichedPonts"
-            :key="pont.id"
-            class="pont-card"
-            :class="!isActiveFlag(pont.is_active ?? pont.est_actif) ? 'pont-maintenance' : (pont.current_rdv || pont.day_schedule.length ? 'pont-occupe' : 'pont-libre')"
-          >
-            <div class="pont-card-header">
-              <span class="pont-name">{{ pont.nom }}</span>
-              <span class="status-badge" :style="pontBadgeStyle(pont)">{{ pontBadgeLabel(pont) }}</span>
-            </div>
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#9CA3AF;margin-bottom:10px;">
-              <span>Type {{ (pont.type_pont || 'atelier').toString().toUpperCase() }}</span>
-              <span>•</span>
-              <span>{{ pont.capacite_kg ? `${pont.capacite_kg} kg` : 'Capacité n.c.' }}</span>
-            </div>
-
-            <div class="pont-card-body">
-              <div style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;display:grid;gap:8px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-                  <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;">Configuration pont</div>
-                  <button
-                    class="btn btn-ghost"
-                    style="padding:5px 10px;min-height:32px;"
-                    :disabled="pontSettingSaving[pont.id]"
-                    @click="togglePontActivation(pont)"
-                  >
-                    {{ pontSettings[pont.id]?.is_active ? 'Désactiver' : 'Activer' }}
-                  </button>
-                </div>
-
-                <div>
-                  <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">Mécanicien rattaché</div>
-                  <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input" style="min-height:38px;">
-                    <option :value="null">Aucun</option>
-                    <option v-for="m in activeMecaniciens" :key="`pont-meca-${pont.id}-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
-                  </select>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;">
-                  <button class="btn btn-primary" style="padding:6px 12px;min-height:34px;" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
-                    {{ pontSettingSaving[pont.id] ? 'Enregistrement…' : 'Enregistrer l’affectation' }}
-                  </button>
-                </div>
-              </div>
-
-              <div style="padding:8px 10px;border-radius:8px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.14);margin-bottom:10px;font-size:12px;color:#E8E9ED;">
-                👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
-              </div>
-
-              <div v-if="pont.current_rdv" class="mb-2">
-                <p class="font-bold header-md" style="margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
-                <p class="text-md-muted" style="margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
-                <p class="text-md-muted" style="margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
-                <div class="mt-1"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
-                <NuxtLink :to="`/planning?openRdv=${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
-                <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
-                  <div class="progress-track-sm">
-                    <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
-                  </div>
-                  <div class="text-xs-muted mt-0">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
-                </div>
-              </div>
-
-              <div v-else-if="pont.next_rdv" class="mb-2">
-                <p class="font-bold header-md" style="margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
-                <p class="text-md-muted" style="margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
-                <p class="text-md-muted" style="margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
-              </div>
-
-              <div v-else class="mb-2">
-                <p style="color:#9CA3AF;font-size:13px;margin:0;">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourd’hui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
-              </div>
-
-              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;">
-                <div class="bg-dark rounded-lg p-2">
-                  <div class="text-xs-subtle uppercase">RDV jour</div>
-                  <div class="text-base font-bold text-primary-light">{{ pont.total_rdvs_today }}</div>
-                </div>
-                <div class="bg-dark rounded-lg p-2">
-                  <div class="text-xs-subtle uppercase">Charge</div>
-                  <div class="text-base font-bold text-primary-light">{{ pont.planned_minutes }} min</div>
-                </div>
-                <div class="bg-dark rounded-lg p-2">
-                  <div class="text-xs-subtle uppercase">File</div>
-                  <div class="text-base font-bold text-primary-light">{{ pont.next_count ?? 0 }}</div>
-                </div>
-              </div>
-
-              <div v-if="pont.day_schedule.length" style="padding-top:8px;border-top:1px solid rgba(107,114,128,0.2);">
-                <div style="font-size:11px;color:#9CA3AF;font-weight:700;margin-bottom:6px;">Planning du jour</div>
-                <div v-for="rdv in pont.day_schedule.slice(0, 3)" :key="rdv.id" style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:4px;">
-                  <span style="color:#FFD200;min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
-                  <span style="flex:1;color:#E5E7EB;">{{ rdvClientName(rdv) }}</span>
-                  <span style="color:#9CA3AF;white-space:nowrap;">{{ rdv.type_intervention || 'atelier' }}</span>
-                </div>
-              </div>
-
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-                <button
-                  v-if="getPontQuickAction(pont)?.transition"
-                  class="btn btn-primary"
-                  style="flex:1;min-width:140px;"
-                  :disabled="actioningByPont[pont.id] === getPontQuickAction(pont)?.transition"
-                  @click="runPontQuickAction(pont)"
-                >
-                  {{ actioningByPont[pont.id] === getPontQuickAction(pont)?.transition ? 'Traitement…' : getPontQuickAction(pont)?.label }}
-                </button>
-                <NuxtLink
-                  v-else-if="getPontQuickAction(pont)?.to"
-                  :to="getPontQuickAction(pont)!.to"
-                  class="btn btn-primary"
-                  style="flex:1;min-width:140px;text-decoration:none;text-align:center;"
-                >
-                  {{ getPontQuickAction(pont)?.label }}
-                </NuxtLink>
-              </div>
-            </div>
-
-            <div class="pont-card-footer">
-              {{ pont.total_rdvs_today ? `${pont.total_rdvs_today} RDV planifiés aujourd’hui` : 'Pont libre aujourd’hui' }}
-            </div>
+        <!-- View toggle -->
+        <div class="flex-between-wrap mb-4">
+          <p class="text-md-muted m-0">Filtrez les véhicules par alerte et basculez entre vue liste et vue ponts.</p>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+            <UButton
+              size="xs"
+              :variant="viewMode === 'ponts' ? 'solid' : 'ghost'"
+              color="neutral"
+              icon="i-heroicons-squares-2x2"
+              @click="viewMode = 'ponts'"
+            />
+            <UButton
+              size="xs"
+              :variant="viewMode === 'liste' ? 'solid' : 'ghost'"
+              color="neutral"
+              icon="i-heroicons-list-bullet"
+              @click="viewMode = 'liste'"
+            />
           </div>
         </div>
-        <AppEmptyState
-          v-else
-          icon="🔧"
-          title="Aucun pont visible"
-          description="Aucun pont n’est remonté pour l’atelier actif. Vérifie la configuration atelier ou recharge la page."
-        />
+
+        <!-- VUE PONTS -->
+        <div v-if="viewMode === 'ponts'">
+          <div v-if="filteredPonts.length" class="pont-grid-responsive">
+            <div
+              v-for="pont in filteredPonts"
+              :key="pont.id"
+              class="pont-card"
+              :class="pontCardClass(pont)"
+            >
+              <div class="pont-card-header">
+                <div class="flex-center" style="gap:10px;">
+                  <span class="pont-name">{{ pont.nom }}</span>
+                  <span class="status-badge" :style="pontBadgeStyle(pont)">{{ pontBadgeLabel(pont) }}</span>
+                </div>
+                <WorkshopQuickActions v-if="pont.current_rdv" :rdv="pont.current_rdv" :pont="pont" @action="handleVehicleAction" />
+              </div>
+
+              <div class="pont-card-body">
+                <!-- Config panel -->
+                <details class="pont-config-details">
+                  <summary class="pont-config-summary">
+                    <span class="text-xs-subtle uppercase">Configuration pont</span>
+                    <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 text-muted" />
+                  </summary>
+                  <div class="pont-config-body">
+                    <div class="flex-between-wrap" style="margin-bottom:8px;">
+                      <button
+                        class="btn btn-ghost"
+                        style="padding:5px 10px;min-height:32px;"
+                        :disabled="pontSettingSaving[pont.id]"
+                        @click="togglePontActivation(pont)"
+                      >
+                        {{ pontSettings[pont.id]?.is_active ? 'Désactiver' : 'Activer' }}
+                      </button>
+                    </div>
+                    <div style="margin-bottom:8px;">
+                      <div class="text-xs-subtle block-mb-1">Mécanicien rattaché</div>
+                      <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input" style="min-height:38px;">
+                        <option :value="null">Aucun</option>
+                        <option v-for="m in activeMecaniciens" :key="`pont-meca-${pont.id}-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+                      </select>
+                    </div>
+                    <div class="flex-end-gap">
+                      <button class="btn btn-primary" style="padding:6px 12px;min-height:34px;" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
+                        {{ pontSettingSaving[pont.id] ? 'Enregistrement…' : 'Enregistrer' }}
+                      </button>
+                    </div>
+                  </div>
+                </details>
+
+                <!-- Mecanicien assigne -->
+                <div class="panel-yellow text-sm-value mb-3">
+                  👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
+                </div>
+
+                <!-- Vehicle block -->
+                <div v-if="pont.current_rdv" class="mb-3">
+                  <div class="flex-center mb-2" style="gap:10px;">
+                    <div class="vehicle-photo-placeholder">
+                      <UIcon name="i-heroicons-truck" class="w-5 h-5 text-muted" />
+                    </div>
+                    <div class="flex-1">
+                      <p class="header-md m-0">{{ rdvClientName(pont.current_rdv) }}</p>
+                      <p class="text-md-muted m-0">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
+                    </div>
+                  </div>
+                  <p class="text-md-muted m-0 mb-2">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
+                  <div class="mb-2"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
+                  <WorkshopVehicleTimeline :rdv="pont.current_rdv" class="mb-3" />
+                  <div v-if="pont.current_rdv.temps_estime" class="mb-2">
+                    <div class="progress-track-sm">
+                      <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }" />
+                    </div>
+                    <div class="text-xs-muted mt-0">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
+                  </div>
+                  <NuxtLink :to="`/planning?openRdv=${pont.current_rdv.id}`" class="btn-link">Ouvrir le RDV →</NuxtLink>
+                </div>
+
+                <div v-else-if="pont.next_rdv" class="mb-3">
+                  <p class="header-md m-0 mb-1">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
+                  <p class="text-md-muted m-0 mb-1">{{ rdvClientName(pont.next_rdv) }}</p>
+                  <p class="text-md-muted m-0">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
+                </div>
+
+                <div v-else class="mb-3">
+                  <p class="text-md-muted m-0">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourdhui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
+                </div>
+
+                <!-- Mini stats -->
+                <div class="info-grid-sm mb-3">
+                  <div class="card-sm text-center">
+                    <div class="text-xs-subtle uppercase">RDV jour</div>
+                    <div class="text-base font-bold text-primary-light">{{ pont.total_rdvs_today }}</div>
+                  </div>
+                  <div class="card-sm text-center">
+                    <div class="text-xs-subtle uppercase">Charge</div>
+                    <div class="text-base font-bold text-primary-light">{{ pont.planned_minutes }} min</div>
+                  </div>
+                  <div class="card-sm text-center">
+                    <div class="text-xs-subtle uppercase">File</div>
+                    <div class="text-base font-bold text-primary-light">{{ pont.next_count ?? 0 }}</div>
+                  </div>
+                </div>
+
+                <!-- Planning du jour -->
+                <div v-if="pont.day_schedule.length" class="section-divider">
+                  <div class="text-xs-subtle uppercase mb-2">Planning du jour</div>
+                  <div v-for="rdv in pont.day_schedule.slice(0, 3)" :key="rdv.id" class="list-item-between text-sm-value">
+                    <span class="text-warning" style="min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
+                    <span class="flex-1 text-primary-light">{{ rdvClientName(rdv) }}</span>
+                    <span class="text-xs-muted">{{ rdv.type_intervention || 'atelier' }}</span>
+                  </div>
+                </div>
+
+                <!-- Quick action -->
+                <div class="action-bar">
+                  <button
+                    v-if="getPontQuickAction(pont)?.transition"
+                    class="btn btn-primary w-full"
+                    style="min-height:38px;"
+                    :disabled="actioningByPont[pont.id] === getPontQuickAction(pont)?.transition"
+                    @click="runPontQuickAction(pont)"
+                  >
+                    {{ actioningByPont[pont.id] === getPontQuickAction(pont)?.transition ? 'Traitement…' : getPontQuickAction(pont)?.label }}
+                  </button>
+                  <NuxtLink
+                    v-else-if="getPontQuickAction(pont)?.to"
+                    :to="getPontQuickAction(pont)!.to"
+                    class="btn btn-primary w-full no-underline text-center"
+                    style="min-height:38px;"
+                  >
+                    {{ getPontQuickAction(pont)?.label }}
+                  </NuxtLink>
+                </div>
+
+                <WorkshopQuickActions
+                  :actions="getPontActions(pont)"
+                  @action="handlePontAction($event, pont)"
+                />
+              </div>
+
+              <div class="pont-card-footer">
+                {{ pont.total_rdvs_today ? `${pont.total_rdvs_today} RDV planifiés aujourdhui` : 'Pont libre aujourdhui' }}
+              </div>
+            </div>
+          </div>
+          <AppEmptyState
+            v-else
+            icon="🔧"
+            title="Aucun pont visible"
+            description="Aucun pont ne correspond aux critères sélectionnés. Vérifie la configuration atelier ou recharge la page."
+          />
+        </div>
+
+        <!-- VUE LISTE -->
+        <div v-else>
+          <UCard>
+            <UTable v-if="filteredPonts.length" :data="filteredPonts" :columns="pontListColumns">
+              <template #nom-cell="{ row }">
+                <span class="font-semibold">{{ row.original.nom }}</span>
+              </template>
+              <template #status-cell="{ row }">
+                <span class="status-badge" :style="pontBadgeStyle(row.original)">{{ pontBadgeLabel(row.original) }}</span>
+              </template>
+              <template #mecanicien-cell="{ row }">
+                {{ row.original.assigned_meca ? `${row.original.assigned_meca.prenom ?? ''} ${row.original.assigned_meca.nom ?? ''}`.trim() : '—' }}
+              </template>
+              <template #vehicule-cell="{ row }">
+                {{ row.original.current_rdv ? rdvVehicleLabel(row.original.current_rdv) : (row.original.next_rdv ? `Prochain: ${rdvVehicleLabel(row.original.next_rdv)}` : '—') }}
+              </template>
+            </UTable>
+            <AppEmptyState
+              v-else
+              icon="🔧"
+              title="Aucun pont visible"
+              description="Aucun pont ne correspond aux critères sélectionnés."
+            />
+          </UCard>
+        </div>
       </div>
 
       <!-- MECAS TAB -->
@@ -253,6 +333,8 @@
 
       <!-- ALERTES TAB -->
       <div v-if="activeTab === 'alertes'">
+        <WorkshopAlertBadges v-model="selectedAlertFilter" :counts="alertCounts" />
+
         <AppEmptyState
           v-if="alertesTotalCount === 0"
           icon="✅"
@@ -496,6 +578,9 @@ const workshopConfig = ref<any>(null)
 const gardinnageActioning = reactive<Record<number, boolean>>({})
 const demandesSupp = ref<any[]>([])
 const orAttente = ref<any[]>([])
+
+const viewMode = ref<'ponts' | 'liste'>('ponts')
+const selectedAlertFilter = ref<string>('all')
 
 const absenceCols = [
   { key: 'mecanicien_nom', label: 'Mécanicien' },
@@ -789,6 +874,59 @@ function getPontQuickAction(pont: any): { label: string; transition?: string; to
   return { label: '+ Nouveau RDV', to: buildPlanningCreateLink(pont) }
 }
 
+function getPontActions(pont: any): { label: string; value: string }[] {
+  const actions: { label: string; value: string }[] = []
+  const status = getRdvStatus(pont?.current_rdv)
+  if (status === 'reserve' || status === 'confirme') {
+    actions.push({ label: 'Réceptionner', value: 'reception' })
+  }
+  if (status === 'reception') {
+    actions.push({ label: 'Démarrer', value: 'start_travail' })
+  }
+  if (status === 'en_cours') {
+    actions.push({ label: 'Mettre en pause', value: 'pause' })
+    actions.push({ label: 'Demande pièces', value: 'pieces' })
+    actions.push({ label: 'Restituer', value: 'restituer' })
+  }
+  if (!pont.current_rdv && pont.next_rdv?.id) {
+    actions.push({ label: 'Ouvrir prochain RDV', value: 'open_next' })
+  }
+  actions.push({ label: '+ Nouveau RDV', value: 'new_rdv' })
+  return actions
+}
+
+async function handlePontAction(action: string, pont: any) {
+  if (action === 'open_next') {
+    if (pont.next_rdv?.id) {
+      router.push(`/planning?openRdv=${pont.next_rdv.id}`)
+    }
+    return
+  }
+  if (action === 'new_rdv') {
+    router.push(buildPlanningCreateLink(pont))
+    return
+  }
+  if (['reception', 'start_travail', 'restituer'].includes(action)) {
+    const rdv = pont.current_rdv
+    if (!rdv?.id) return
+    actioningByPont[pont.id] = action
+    try {
+      await api.post(`/rendez-vous/${rdv.id}/transition/${action}`, {
+        pont_id: pont.id,
+        mecanicien_id: pont.assigned_meca?.id ?? pont.mecanicien?.id ?? null,
+      })
+      toast.add({ title: 'Action effectuée', color: 'success' })
+      await loadWorkshop()
+    } catch (e: unknown) {
+      toast.add({ title: 'Action impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue'), color: 'error' })
+    } finally {
+      delete actioningByPont[pont.id]
+    }
+    return
+  }
+  await handleVehicleAction(action, pont.current_rdv, pont)
+}
+
 async function runPontQuickAction(pont: any) {
   const action = getPontQuickAction(pont)
   if (!action?.transition || !pont?.current_rdv?.id) return
@@ -1048,6 +1186,139 @@ async function sortirGardiennage(rdv: any) {
   }
 }
 
+// ── Alert badge counts ──
+const alertCounts = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  const vehicles = rdvs.value.filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
+  return {
+    all: vehicles.length,
+    retard: alertesDepassements.value.length + alertesRetards.value.length,
+    pieces: 0,
+    no_show: alertesNoShow.value.length,
+    devis: orAttente.value.length + demandesSupp.value.length,
+    essai: 0,
+    photo: 0,
+  }
+})
+
+// ── Vehicles in workshop (for list view) ──
+const vehiclesInWorkshop = computed(() => {
+  const today = new Date().toISOString().slice(0, 10)
+  return rdvs.value
+    .filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
+    .map((r: any) => {
+      const pont = enrichedPonts.value.find((p: any) => p.current_rdv?.id === r.id || p.day_schedule.some((s: any) => s.id === r.id))
+      const status = getRdvStatus(r)
+      let progress = 0
+      if (r.temps_estime && (r.heure_debut_travaux || r.started_at)) {
+        const started = new Date(r.heure_debut_travaux || r.started_at)
+        if (!isNaN(started.getTime())) {
+          progress = Math.round((Date.now() - started.getTime()) / 60000 / r.temps_estime * 100)
+        }
+      }
+      return {
+        id: r.id,
+        rdv: r,
+        vehicleLabel: rdvVehicleLabel(r),
+        plaque: r.vehicule?.plaque ?? r.vehicule_plaque ?? '—',
+        clientName: rdvClientName(r),
+        pontName: pont?.nom ?? '—',
+        status,
+        progress: r.temps_estime ? progress : null,
+      }
+    })
+    .sort((a: any, b: any) => a.pontName.localeCompare(b.pontName))
+})
+
+// ── Filtered vehicles (list view) ──
+const filteredVehicles = computed(() => {
+  if (selectedAlertFilter.value === 'all') return vehiclesInWorkshop.value
+  const f = selectedAlertFilter.value
+  return vehiclesInWorkshop.value.filter((v: any) => {
+    if (f === 'retard') {
+      return alertesDepassements.value.some((a: any) => a.id === v.id) || alertesRetards.value.some((a: any) => a.id === v.id)
+    }
+    if (f === 'no_show') return alertesNoShow.value.some((a: any) => a.id === v.id)
+    if (f === 'devis') {
+      return orAttente.value.some((o: any) => o.rendezVous?.id === v.id) || demandesSupp.value.some((d: any) => d.rendezVous?.id === v.id)
+    }
+    return false
+  })
+})
+
+// ── Filtered ponts (bay view) ──
+const filteredPonts = computed(() => {
+  if (selectedAlertFilter.value === 'all') return enrichedPonts.value
+  const f = selectedAlertFilter.value
+  return enrichedPonts.value.filter((p: any) => {
+    const rdv = p.current_rdv
+    if (!rdv) return false
+    if (f === 'retard') {
+      return alertesDepassements.value.some((a: any) => a.id === rdv.id) || alertesRetards.value.some((a: any) => a.id === rdv.id)
+    }
+    if (f === 'no_show') return alertesNoShow.value.some((a: any) => a.id === rdv.id)
+    if (f === 'devis') {
+      return orAttente.value.some((o: any) => o.rendezVous?.id === rdv.id) || demandesSupp.value.some((d: any) => d.rendezVous?.id === rdv.id)
+    }
+    return false
+  })
+})
+
+const vehicleColumns = [
+  { key: 'vehicle', label: 'Véhicule' },
+  { key: 'client', label: 'Client' },
+  { key: 'pont', label: 'Pont' },
+  { key: 'status', label: 'Statut' },
+  { key: 'timeline', label: 'Avancement' },
+  { key: 'progress', label: 'Progression' },
+  { key: 'actions', label: '' },
+]
+
+const pontListColumns = [
+  { key: 'nom', label: 'Pont' },
+  { key: 'status', label: 'Statut' },
+  { key: 'mecanicien', label: 'Mécanicien' },
+  { key: 'vehicule', label: 'Véhicule' },
+]
+
+function pontCardClass(pont: any): string {
+  if (!isActiveFlag(pont.is_active ?? pont.est_actif)) return 'pont-maintenance'
+  if (alertesDepassements.value.some((a: any) => a.id === pont.current_rdv?.id)) return 'pont-retard'
+  if (pont.current_rdv) return 'pont-occupe'
+  if (pont.day_schedule?.length) return 'pont-planifie'
+  return 'pont-libre'
+}
+
+async function handleVehicleAction(action: string, rdv?: any, pont?: any) {
+  if (!rdv?.id) return
+  if (action === 'start') {
+    try {
+      await api.post(`/rendez-vous/${rdv.id}/transition/start_travail`, {})
+      toast.add({ title: 'Intervention démarrée', color: 'success' })
+      await loadWorkshop()
+    } catch (e: unknown) {
+      toast.add({ title: 'Impossible', description: (e instanceof Error ? e.message : 'Erreur'), color: 'error' })
+    }
+  } else if (action === 'livre') {
+    try {
+      await api.post(`/rendez-vous/${rdv.id}/transition/restituer`, {})
+      toast.add({ title: 'Véhicule livré', color: 'success' })
+      await loadWorkshop()
+    } catch (e: unknown) {
+      toast.add({ title: 'Impossible', description: (e instanceof Error ? e.message : 'Erreur'), color: 'error' })
+    }
+  } else {
+    const labels: Record<string, string> = {
+      pause: 'Mettre en pause',
+      pieces: 'Demande de pièces',
+      devis: 'Envoi devis',
+      contact: 'Contacter client',
+      note: 'Ajouter note',
+    }
+    toast.add({ title: labels[action] || 'Action', description: 'Fonctionnalité à venir.', color: 'info' })
+  }
+}
+
 async function refreshWorkshop() {
   refreshing.value = true
   try {
@@ -1062,11 +1333,112 @@ onMounted(() => {
   if (validTabs.includes(queryTab)) {
     activeTab.value = queryTab
   }
+  const savedView = localStorage.getItem('workshop-view-mode')
+  if (savedView === 'liste' || savedView === 'ponts') viewMode.value = savedView
   loadWorkshop()
 })
+
+watch(viewMode, (v) => localStorage.setItem('workshop-view-mode', v))
 
 watch(activeTab, (tab) => {
   if (route.query.tab === tab) return
   router.replace({ query: { ...route.query, tab } })
 })
 </script>
+
+<style scoped>
+.view-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+}
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: #9CA3AF;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.view-toggle-btn:hover {
+  color: #E8E9ED;
+  background: rgba(255,255,255,0.04);
+}
+.view-toggle-btn.active {
+  background: var(--dark3);
+  color: var(--orange);
+  border-color: rgba(255,210,0,0.2);
+}
+.vehicle-photo-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--dark3);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pont-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1023px) {
+  .pont-grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 639px) {
+  .pont-grid-responsive {
+    grid-template-columns: 1fr;
+  }
+}
+.pont-config-details {
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.02);
+  overflow: hidden;
+}
+.pont-config-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pont-config-summary::-webkit-details-marker {
+  display: none;
+}
+.pont-config-body {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pont-retard {
+  border-left: 3px solid var(--red);
+}
+.pont-planifie {
+  border-left: 3px solid var(--orange);
+}
+</style>

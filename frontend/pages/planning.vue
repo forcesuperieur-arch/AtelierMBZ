@@ -9,7 +9,12 @@
       </template>
     </AppPageHeader>
 
-    <div v-if="loading" class="loading-shimmer" style="height:400px;border-radius:14px;"></div>
+    <template v-if="loading">
+      <div class="grid-4" style="margin-bottom:20px;">
+        <AppSkeletonKpi v-for="i in 4" :key="i" />
+      </div>
+      <AppSkeletonTable :rows="8" :cols="7" />
+    </template>
 
     <template v-else>
       <div class="grid-4" style="margin-bottom:20px;">
@@ -35,49 +40,79 @@
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <span style="color:#6B7280;font-weight:600;">Légende :</span>
-          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(107,114,128,0.18);border:1px solid rgba(148,163,184,0.35);"></span><span class="text-muted">À valider</span></span>
-          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span class="text-muted">Créneau réservé</span></span>
-          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span class="text-muted">Confirmé atelier</span></span>
-          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span class="text-muted">En cours</span></span>
-          <span class="flex-center-gap-sm"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span class="text-muted">Terminé / historisé</span></span>
+      <div class="planning-legend-bar">
+        <div class="planning-legend-items">
+          <span class="planning-legend-label">Légende :</span>
+          <span class="flex-center-gap-sm"><span class="legend-dot" style="background:rgba(107,114,128,0.18);border-color:rgba(148,163,184,0.35);"></span><span class="text-muted">À valider</span></span>
+          <span class="flex-center-gap-sm"><span class="legend-dot" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.35);"></span><span class="text-muted">Créneau réservé</span></span>
+          <span class="flex-center-gap-sm"><span class="legend-dot" style="background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.35);"></span><span class="text-muted">Confirmé atelier</span></span>
+          <span class="flex-center-gap-sm"><span class="legend-dot" style="background:rgba(20,184,166,0.15);border-color:rgba(20,184,166,0.4);"></span><span class="text-muted">En cours</span></span>
+          <span class="flex-center-gap-sm"><span class="legend-dot" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);"></span><span class="text-muted">Terminé / historisé</span></span>
         </div>
         <div style="color:#CBD5E1;">
           Horaires atelier : <strong style="color:#F8FAFC;">{{ hourRangeLabel }}</strong> · {{ openDaysLabel }}
         </div>
       </div>
 
-      <div v-if="mecaniciens.length" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:#6B7280;">Mécaniciens :</span>
+      <div v-if="mecaniciens.length" class="planning-meca-filter">
+        <span class="planning-meca-label">Mécaniciens :</span>
         <button
           v-for="m in mecaniciens"
           :key="m.id"
-          style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
-          :style="{
-            background: activeMecas.includes(m.id) ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.03)',
-            border: activeMecas.includes(m.id) ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
-            color: activeMecas.includes(m.id) ? '#C4B5FD' : '#6B7280',
-          }"
+          type="button"
+          class="meca-chip"
+          :class="{ active: activeMecas.includes(m.id) }"
           @click="toggleMeca(m.id)"
         >
-          <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: m.couleur || '#8B5CF6' }"></span>
+          <span class="meca-chip-dot" :style="{ background: m.couleur || '#8B5CF6' }"></span>
           {{ m.prenom }} {{ m.nom?.charAt(0) }}.
         </button>
         <button
           v-if="activeMecas.length"
-          style="padding:5px 10px;border-radius:20px;font-size:11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:#6B7280;cursor:pointer;"
+          type="button"
+          class="meca-chip meca-chip-reset"
           @click="activeMecas = []"
         >
           ✕ Tous
         </button>
       </div>
 
+      <AppEmptyState
+        v-if="!activePlanningRdvs.length"
+        icon="📭"
+        title="Aucun rendez-vous"
+        description="Il n'y a pas de RDV dans la période sélectionnée."
+        :action-label="canCreateRdv ? 'Créer un RDV' : ''"
+        @action="openQuickCreate()"
+      />
+      <div v-else-if="isPastWeek" class="planning-past-banner">
+        <UIcon name="i-heroicons-archive-box" class="w-4 h-4" />
+        <span>Journée terminée · {{ activePlanningRdvs.length }} RDV dans cette période</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+        <UButton
+          size="xs"
+          :variant="viewMode === 'grid' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-heroicons-table-cells"
+          @click="viewMode = 'grid'"
+        />
+        <UButton
+          size="xs"
+          :variant="viewMode === 'list' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-heroicons-list-bullet"
+          @click="viewMode = 'list'"
+        />
+      </div>
+
       <PlanningGrid
+        v-if="viewMode === 'grid'"
         :ponts="ponts"
         :rdvs="activePlanningRdvs"
         :horaires="horaires"
+        :mecaniciens="mecaniciens"
         :can-create="canCreateRdv"
         :can-drag="canEditRdv"
         @select-rdv="onSelectRdv"
@@ -85,19 +120,35 @@
         @create-at="onCreateAt"
         @dates-changed="onWeekChanged"
       />
+      <PlanningList
+        v-else
+        :rdvs="activePlanningRdvs"
+        :mecaniciens="mecaniciens"
+        :can-create="canCreateRdv"
+        @select-rdv="onSelectRdv"
+        @action-transition="onListTransition"
+        @create-request="openQuickCreate"
+      />
     </template>
 
+    <!-- Quick Create Modal -->
     <AppModal v-model:open="showQuickCreateModal" size="xl">
       <template #content>
         <UCard>
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <span style="font-weight:700;color:#E8E9ED;">Créer un RDV rapide</span>
-              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showQuickCreateModal = false" />
+              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="showQuickCreateModal = false" />
             </div>
           </template>
 
-          <div class="flex-col-gap-lg">
+          <div v-if="quickSubmitting" class="flex-col-gap-lg">
+            <AppSkeletonCard :lines="4" />
+            <AppSkeletonCard :lines="4" />
+            <AppSkeletonCard :lines="3" />
+          </div>
+
+          <div v-else class="flex-col-gap-lg">
             <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Date</label>
@@ -278,204 +329,309 @@
       </template>
     </AppModal>
 
-    <AppModal v-model:open="showRdvModal" size="xl">
+
+    <!-- Edit Modal (tabs) -->
+    <UModal v-model:open="showRdvModal" :ui="{ content: 'max-w-3xl' }">
       <template #content>
-        <UCard>
-          <template #header>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span style="font-weight:700;color:#E8E9ED;font-size:15px;">RDV #{{ selectedRdv?.id }}</span>
-                <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
-                <span v-if="selectedIsHistorical" style="font-size:11px;color:#10B981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
-              </div>
-              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showRdvModal = false" />
+        <div class="rdv-modal">
+          <div class="rdv-modal-header">
+            <div class="rdv-modal-header-title">
+              <span>RDV #{{ selectedRdv?.id }}</span>
+              <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
+              <span v-if="selectedIsHistorical" class="rdv-historical-badge">Historisé · figé</span>
             </div>
-          </template>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="showRdvModal = false" />
+          </div>
 
-          <div v-if="modalLoading" class="panel-sm text-muted">Chargement du rendez-vous…</div>
+          <div v-if="modalLoading" class="rdv-tab-panel">
+            <AppSkeletonCard :lines="5" />
+            <AppSkeletonCard :lines="4" />
+          </div>
 
-          <div v-else-if="selectedRdv" class="flex-col-gap-lg">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-              <div><span class="text-subtle">Date :</span> <span class="text-value">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
-              <div><span class="text-subtle">Heure :</span> <span class="text-value">{{ selectedRdv.heure_debut }}</span></div>
-              <div><span class="text-subtle">Client :</span> <span class="text-value">{{ selectedRdv.client_nom || '—' }}</span><!-- [SPRINT-4] I4 — Badge RDV web public --><span v-if="selectedRdv.source === 'web'" style="margin-left:8px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(59,130,246,0.2);color:#93C5FD;border:1px solid rgba(59,130,246,0.3);letter-spacing:0.05em;">PUBLIC</span></div>
-              <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ selectedRdv.vehicule_info || '—' }}</span></div>
-              <div><span class="text-subtle">Pont :</span> <span class="text-value">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
-              <div><span class="text-subtle">Mécanicien :</span> <span class="text-value">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
-            </div>
-
-            <div class="info-grid">
-              <div class="panel-sm text-md-value">
-                <div class="header-md" style="margin-bottom:10px;">Client et véhicule</div>
-                <div class="info-grid-sm">
-                  <div v-if="selectedRdv.client?.telephone || selectedRdv.client_telephone"><span class="text-subtle">Téléphone :</span> <span class="text-value">{{ selectedRdv.client?.telephone || selectedRdv.client_telephone }}</span></div>
-                  <div v-if="selectedRdv.client?.email || selectedRdv.client_email"><span class="text-subtle">Email :</span> <span class="text-value">{{ selectedRdv.client?.email || selectedRdv.client_email }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque"><span class="text-subtle">Plaque :</span> <span class="text-value">{{ selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.cylindree || selectedRdv.vehicule?.annee"><span class="text-subtle">Moto :</span> <span class="text-value">{{ [selectedRdv.vehicule?.cylindree ? `${selectedRdv.vehicule.cylindree}cc` : '', selectedRdv.vehicule?.annee || ''].filter(Boolean).join(' · ') }}</span></div>
-                  <div v-if="selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type"><span class="text-subtle">Type :</span> <span class="text-value">{{ selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type }}</span></div>
-                </div>
-              </div>
-
-              <div class="panel-sm text-md-value">
-                <div class="header-md" style="margin-bottom:10px;">Lecture dossier</div>
-                <div class="info-grid-sm">
-                  <div><span class="text-subtle">Statut métier :</span> <span class="text-value">{{ workflowStatusHint }}</span></div>
-                  <div v-if="selectedRdv.kilometrage || selectedRdv.km_reception"><span class="text-subtle">Km réception :</span> <span class="text-value">{{ selectedRdv.kilometrage || selectedRdv.km_reception }}</span></div>
-                  <div v-if="selectedReceptionState.observations"><span class="text-subtle">État réception :</span> <span class="text-value">{{ selectedReceptionState.observations }}</span></div>
-                  <div v-if="selectedReceptionState.reception_notes"><span class="text-subtle">Notes réception :</span> <span class="text-value">{{ selectedReceptionState.reception_notes }}</span></div>
-                  <div v-if="selectedRdv.ordresReparation?.length"><span class="text-subtle">OR :</span> <span class="text-value">{{ selectedRdv.ordresReparation.length }} dossier(s) lié(s)</span></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel-sm">
-              <div class="header-md" style="margin-bottom:10px;">Édition rapide / affectation</div>
-              <div class="info-grid">
-                <div class="form-group">
-                  <label class="form-label">Date</label>
-                  <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Heure début</label>
-                  <input v-model="editForm.heure_debut" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Prestation / type</label>
-                  <input v-model="editForm.type_intervention" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Durée estimée</label>
-                  <input
-                    v-model="editDureeHHMM"
-                    type="time"
-                    class="form-input"
-                    :disabled="selectedIsHistorical || !canEditRdv || prestationLocked"
-                  />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Pont</label>
-                  <select v-model.number="editForm.pont_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
-                    <option :value="null">Non assigné</option>
-                    <option v-for="p in assignablePonts" :key="`edit-p-${p.id}`" :value="p.id">{{ p.nom }} · {{ getPontMecanicienLabel(p) }}</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Mécanicien affecté</label>
-                  <div class="form-input form-input-static">{{ editAssignedMecanicienLabel }}</div>
-                </div>
-              </div>
-
-              <div class="form-group mt-3">
-                <label class="form-label">Motif client</label>
-                <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
-              </div>
-
-              <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
-                Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
-              </div>
-
-              <!-- Enhanced Reception Panel -->
-              <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                  <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
-                  <UButton color="yellow" variant="ghost" size="sm" icon="i-heroicons-arrow-path" label="Statut PDA" @click="refreshCompanionStatus" />
-                </div>
-
-                <!-- Companion QR + Link -->
-                <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                  <div style="flex:1;">
-                    <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:6px;">📱 Compagnon PDA</div>
-                    <p style="font-size:11px;color:#9CA3AF;margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                      <input :value="companionUrl" class="form-input" style="font-size:13px;flex:1;min-height:44px;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
-                      <UButton color="gray" variant="ghost" icon="i-heroicons-clipboard-document" @click="copyCompanionUrl" style="min-height:44px;" />
+          <template v-else>
+            <UTabs v-model="editTab" :items="rdvEditTabItems" class="rdv-tabs">
+              <template #default="{ item }">
+                <!-- Onglet 1 — Général -->
+                <div v-if="item.value === '0'" class="rdv-tab-panel">
+                  <div class="info-grid">
+                    <div class="form-group">
+                      <label class="form-label">Date</label>
+                      <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Heure début</label>
+                      <input v-model="editForm.heure_debut" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Prestation / type</label>
+                      <input v-model="editForm.type_intervention" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Durée estimée</label>
+                      <input v-model="editDureeHHMM" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Pont</label>
+                      <select v-model.number="editForm.pont_id" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                        <option :value="null">Non assigné</option>
+                        <option v-for="p in assignablePonts" :key="`edit-p-${p.id}`" :value="p.id">{{ p.nom }} · {{ getPontMecanicienLabel(p) }}</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Mécanicien affecté</label>
+                      <div class="form-input form-input-static">{{ editAssignedMecanicienLabel }}</div>
                     </div>
                   </div>
-                  <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
-                    <img :src="companionQrUrl" alt="QR Code" style="width:100px;height:100px;border-radius:8px;background:white;padding:4px;" />
-                    <div style="font-size:10px;color:#6B7280;margin-top:4px;">Scanner avec le tél.</div>
+                  <div class="form-group mt-3">
+                    <label class="form-label">Motif client</label>
+                    <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
+                  </div>
+                  <div v-if="prestationLocked" class="panel-sm" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
+                    Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
                   </div>
                 </div>
 
-                <!-- Companion Live Status -->
-                <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-                  <div class="reception-status-pill" :class="{ done: companionStatus.photos_count > 0 }">
-                    📸 {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
+                <!-- Onglet 2 — Détails -->
+                <div v-else-if="item.value === '1'" class="rdv-tab-panel">
+                  <div class="info-grid">
+                    <div class="form-group">
+                      <label class="form-label">Priorité</label>
+                      <select v-model="editForm.priorite" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                        <option value="haute">Haute</option>
+                        <option value="normale">Normale</option>
+                        <option value="basse">Basse</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Tags</label>
+                      <input v-model="editTagsInput" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Urgent, garantie, client-fidèle…" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Kilométrage réception</label>
+                      <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Observations visuelles</label>
+                      <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
+                    </div>
                   </div>
-                  <div class="reception-status-pill" :class="{ done: companionStatus.checkup_done > 0 }">
-                    🔎 Checkup {{ companionStatus.checkup_done || 0 }}/10
-                  </div>
-                  <div class="reception-status-pill" :class="{ done: companionStatus.has_signature }">
-                    ✍️ Signature {{ companionStatus.has_signature ? '✓' : '✗' }}
+                  <div class="form-group mt-3">
+                    <label class="form-label">Notes réception</label>
+                    <textarea v-model="receptionForm.notes_reception" class="form-input" rows="3" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
                   </div>
                 </div>
 
-                <!-- Reception fields -->
-                <div class="info-grid">
-                  <div class="form-group">
-                    <label class="form-label">Kilométrage réception</label>
-                    <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
+                <!-- Onglet 3 — Planning -->
+                <div v-else-if="item.value === '2'" class="rdv-tab-panel">
+                  <div v-if="!editForm.mecanicien_id && !selectedRdv?.mecanicien_id" class="panel-sm text-muted">
+                    Aucun mécanicien sélectionné. Choisissez un pont ou un mécanicien dans l'onglet Général pour voir son planning.
                   </div>
-                  <div class="form-group">
-                    <label class="form-label">Observations visuelles</label>
-                    <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
+                  <div v-else>
+                    <div class="panel-sm" style="margin-bottom:12px;">
+                      <div class="header-md" style="margin-bottom:8px;">Planning de {{ editAssignedMecanicienLabel }}</div>
+                      <div class="text-sm-muted">Semaine du {{ currentViewRange.start }} au {{ currentViewRange.end }}</div>
+                    </div>
+                    <div v-if="!currentMecanicienRdvs.length" class="text-muted" style="padding:12px 0;">Aucun RDV assigné à ce mécanicien sur la période.</div>
+                    <div v-else class="planning-mini-list">
+                      <div
+                        v-for="r in currentMecanicienRdvs"
+                        :key="r.id"
+                        class="planning-mini-item"
+                      >
+                        <div class="planning-mini-date">{{ formatDateDisplay(r.date_rdv) }}</div>
+                        <div class="planning-mini-time">{{ r.heure_debut?.slice(0,5) }}</div>
+                        <div class="planning-mini-type">{{ r.type_intervention || '—' }}</div>
+                        <div class="planning-mini-client">{{ r.client_nom || '—' }}</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="form-group mt-3">
-                  <label class="form-label">Notes réception</label>
-                  <textarea v-model="receptionForm.notes_reception" class="form-input" rows="2" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
                 </div>
 
-                <!-- Signature warning -->
-                <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
-                  ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
+                <!-- Onglet 4 — Historique -->
+                <div v-else-if="item.value === '3'" class="rdv-tab-panel">
+                  <div v-if="!selectedRdvHistory.length" class="panel-sm text-muted">
+                    Aucun historique de modifications disponible pour ce rendez-vous.
+                  </div>
+                  <div v-else class="planning-history-list">
+                    <div v-for="(entry, idx) in selectedRdvHistory" :key="idx" class="planning-history-item">
+                      <div class="planning-history-date">{{ entry.date }}</div>
+                      <div class="planning-history-action">{{ entry.action }}</div>
+                      <div class="planning-history-user">{{ entry.user }}</div>
+                    </div>
+                  </div>
                 </div>
+              </template>
+            </UTabs>
+
+            <div class="rdv-modal-footer">
+              <UButton color="neutral" variant="ghost" @click="showRdvModal = false">Annuler</UButton>
+              <div class="rdv-modal-footer-nav">
+                <UButton v-if="editTab !== '0'" color="neutral" variant="ghost" @click="prevTab">Précédent</UButton>
+                <UButton v-if="editTab !== String(rdvEditTabItems.length - 1)" color="neutral" variant="ghost" @click="nextTab">Suivant</UButton>
               </div>
-
-              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap;">
-                <button class="btn btn-ghost" @click="showRdvModal = false">Fermer</button>
-                <button v-if="canEditRdv && !selectedIsHistorical" class="btn btn-primary" :disabled="editSaving" @click="saveRdvChanges">
-                  {{ editSaving ? 'Sauvegarde…' : 'Enregistrer les modifications' }}
-                </button>
-                <button v-if="canDeleteSelected" class="btn" style="background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);" :disabled="deleting" @click="deleteSelectedRdv">
-                  {{ deleting ? 'Suppression…' : 'Supprimer le RDV' }}
-                </button>
-              </div>
+              <UButton v-if="canEditRdv && !selectedIsHistorical" color="primary" :loading="editSaving" @click="saveRdvChanges">
+                Enregistrer
+              </UButton>
             </div>
-
-            <div class="panel-sm">
-              <div class="header-md" style="margin-bottom:10px;">Workflow atelier</div>
-              <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px;color:#CBD5E1;border:1px solid rgba(255,255,255,0.06);">
-                {{ workflowTransitionHint }}
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button
-                  v-for="transition in availableTransitions"
-                  :key="transition.name"
-                  class="btn"
-                  :style="transitionButtonStyle(transition.color)"
-                  :disabled="transitioning === transition.name || selectedIsHistorical"
-                  @click="applyTransition(transition.name)"
-                >
-                  {{ transitioning === transition.name ? 'Traitement…' : transitionLabel(transition) }}
-                </button>
-              </div>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" class="text-md-value">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
-            </div>
-          </div>
-        </UCard>
+          </template>
+        </div>
       </template>
-    </AppModal>
+    </UModal>
+
+    <!-- Slide-over Detail -->
+    <USlideover v-model:open="showRdvSlideover" side="right" :ui="{ content: 'max-w-lg' }">
+      <template #content>
+        <div class="rdv-slideover">
+          <div class="rdv-slideover-header">
+            <div class="min-w-0">
+              <div class="rdv-slideover-client">{{ selectedRdv?.client_nom || 'Client inconnu' }}</div>
+              <div class="rdv-slideover-vehicle">{{ selectedRdv?.vehicule_info || '—' }}</div>
+              <div class="rdv-slideover-meta">
+                <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
+                <span v-if="selectedRdv?.source === 'web'" class="rdv-slideover-web">PUBLIC</span>
+              </div>
+            </div>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="closeRdvSlideover" />
+          </div>
+
+          <div v-if="modalLoading" class="p-4 text-muted">Chargement du rendez-vous…</div>
+
+          <div v-else-if="selectedRdv" class="rdv-slideover-body">
+            <UAccordion :items="slideoverAccordionItems" :ui="{ item: 'border-b border-white/5' }">
+              <template #default="{ item }">
+                <!-- Infos RDV -->
+                <div v-if="item.value === 'infos'" class="accordion-panel">
+                  <div class="info-grid-sm">
+                    <div><span class="text-subtle">Date :</span> <span class="text-value">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
+                    <div><span class="text-subtle">Heure :</span> <span class="text-value">{{ selectedRdv.heure_debut }}</span></div>
+                    <div><span class="text-subtle">Pont :</span> <span class="text-value">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
+                    <div><span class="text-subtle">Mécanicien :</span> <span class="text-value">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
+                    <div><span class="text-subtle">Type :</span> <span class="text-value">{{ selectedRdv.type_intervention || '—' }}</span></div>
+                    <div><span class="text-subtle">Durée estimée :</span> <span class="text-value">{{ selectedRdv.temps_estime }} min</span></div>
+                  </div>
+                  <div v-if="selectedRdv.commentaire_client || selectedRdv.commentaire" class="mt-3 text-md-value" style="white-space:pre-wrap;">{{ selectedRdv.commentaire_client || selectedRdv.commentaire }}</div>
+                </div>
+
+                <!-- Véhicule -->
+                <div v-else-if="item.value === 'vehicule'" class="accordion-panel">
+                  <div class="info-grid-sm">
+                    <div v-if="selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque"><span class="text-subtle">Plaque :</span> <span class="text-value">{{ selectedRdv.vehicule?.plaque || selectedRdv.vehicule_plaque }}</span></div>
+                    <div v-if="selectedRdv.vehicule?.marque || selectedRdv.vehicule_marque"><span class="text-subtle">Marque :</span> <span class="text-value">{{ selectedRdv.vehicule?.marque || selectedRdv.vehicule_marque }}</span></div>
+                    <div v-if="selectedRdv.vehicule?.modele || selectedRdv.vehicule_modele"><span class="text-subtle">Modèle :</span> <span class="text-value">{{ selectedRdv.vehicule?.modele || selectedRdv.vehicule_modele }}</span></div>
+                    <div v-if="selectedRdv.vehicule?.cylindree || selectedRdv.vehicule_cylindree"><span class="text-subtle">Cylindrée :</span> <span class="text-value">{{ selectedRdv.vehicule?.cylindree || selectedRdv.vehicule_cylindree }}cc</span></div>
+                    <div v-if="selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type"><span class="text-subtle">Type :</span> <span class="text-value">{{ selectedRdv.vehicule?.typeMoto || selectedRdv.vehicule_type }}</span></div>
+                  </div>
+                </div>
+
+                <!-- Client -->
+                <div v-else-if="item.value === 'client'" class="accordion-panel">
+                  <div class="info-grid-sm">
+                    <div><span class="text-subtle">Nom :</span> <span class="text-value">{{ selectedRdv.client_nom || '—' }}</span></div>
+                    <div v-if="selectedRdv.client?.telephone || selectedRdv.client_telephone"><span class="text-subtle">Téléphone :</span> <span class="text-value">{{ selectedRdv.client?.telephone || selectedRdv.client_telephone }}</span></div>
+                    <div v-if="selectedRdv.client?.email || selectedRdv.client_email"><span class="text-subtle">Email :</span> <span class="text-value">{{ selectedRdv.client?.email || selectedRdv.client_email }}</span></div>
+                  </div>
+                </div>
+
+                <!-- Actions rapides -->
+                <div v-else-if="item.value === 'actions'" class="accordion-panel">
+                  <div class="panel-sm text-md-value">
+                    <div class="header-md" style="margin-bottom:10px;">Workflow atelier</div>
+                    <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px;color:#CBD5E1;border:1px solid rgba(255,255,255,0.06);">
+                      {{ workflowTransitionHint }}
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <button
+                        v-for="transition in availableTransitions"
+                        :key="transition.name"
+                        class="btn"
+                        :style="transitionButtonStyle(transition.color)"
+                        :disabled="transitioning === transition.name || selectedIsHistorical"
+                        @click="applyTransition(transition.name)"
+                      >
+                        {{ transitioning === transition.name ? 'Traitement…' : transitionLabel(transition) }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Reception Panel -->
+                  <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                      <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
+                      <UButton color="warning" variant="ghost" size="sm" icon="i-heroicons-arrow-path" label="Statut PDA" @click="refreshCompanionStatus" />
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                      <div style="flex:1;">
+                        <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:6px;">📱 Compagnon PDA</div>
+                        <p style="font-size:11px;color:#9CA3AF;margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                          <input :value="companionUrl" class="form-input" style="font-size:13px;flex:1;min-height:44px;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
+                          <UButton color="neutral" variant="ghost" icon="i-heroicons-clipboard-document" @click="copyCompanionUrl" style="min-height:44px;" />
+                        </div>
+                      </div>
+                      <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
+                        <img :src="companionQrUrl" alt="QR Code" style="width:100px;height:100px;border-radius:8px;background:white;padding:4px;" />
+                        <div style="font-size:10px;color:#6B7280;margin-top:4px;">Scanner avec le tél.</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+                      <div class="reception-status-pill" :class="{ done: companionStatus.photos_count > 0 }">
+                        📸 {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
+                      </div>
+                      <div class="reception-status-pill" :class="{ done: companionStatus.checkup_done > 0 }">
+                        🔎 Checkup {{ companionStatus.checkup_done || 0 }}/10
+                      </div>
+                      <div class="reception-status-pill" :class="{ done: companionStatus.has_signature }">
+                        ✍️ Signature {{ companionStatus.has_signature ? '✓' : '✗' }}
+                      </div>
+                    </div>
+                    <div class="info-grid">
+                      <div class="form-group">
+                        <label class="form-label">Kilométrage réception</label>
+                        <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Observations visuelles</label>
+                        <input v-model="receptionForm.etat_vehicule" class="form-input" placeholder="Rayure, choc, état extérieur…" :disabled="selectedIsHistorical" />
+                      </div>
+                    </div>
+                    <div class="form-group mt-3">
+                      <label class="form-label">Notes réception</label>
+                      <textarea v-model="receptionForm.notes_reception" class="form-input" rows="2" placeholder="Contexte comptoir, point de vigilance réception…" :disabled="selectedIsHistorical"></textarea>
+                    </div>
+                    <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
+                      ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </UAccordion>
+          </div>
+
+          <div v-if="selectedRdv && !modalLoading" class="rdv-slideover-footer">
+            <UButton v-if="canEditRdv && !selectedIsHistorical" color="primary" icon="i-heroicons-pencil-square" @click="openRdvEditModal">Modifier</UButton>
+            <UButton v-if="canDeleteSelected" color="error" variant="soft" icon="i-heroicons-trash" @click="deleteSelectedRdv">Supprimer</UButton>
+            <UButton
+              v-for="transition in availableTransitions.slice(0, 2)"
+              :key="transition.name"
+              :color="(transition.color as any)"
+              variant="soft"
+              @click="applyTransition(transition.name)"
+            >
+              {{ transitionLabel(transition) }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </USlideover>
+
+    <!-- Annulation Modal -->
     <AppModal v-model:open="showAnnulationModal" size="md">
       <template #default>
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
               <h3 class="text-xl font-bold">{{ selectedRdv?.statut === "en_attente" ? "Refuser la demande" : "Annuler le rendez-vous" }}</h3>
-              <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="showAnnulationModal = false" />
+              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="showAnnulationModal = false" />
             </div>
           </template>
 
@@ -514,7 +670,6 @@
         </UCard>
       </template>
     </AppModal>
-
   </div>
 </template>
 
@@ -544,8 +699,12 @@ const activeMecas = ref<number[]>([])
 const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
 
 const showRdvModal = ref(false)
+const showRdvSlideover = ref(false)
 const showAnnulationModal = ref(false)
 const annulationTempName = ref("annuler")
+const editTab = ref('0')
+const viewMode = ref<'grid' | 'list'>('grid')
+const selectedRdvHistory = ref<any[]>([])
 
 const ANNULATION_MOTIFS = [
   { label: "Client décommandé", value: "client_desiste" },
@@ -606,6 +765,8 @@ const editForm = reactive({
   commentaire: '',
   mecanicien_id: null as number | null,
   pont_id: null as number | null,
+  priorite: 'normale' as 'haute' | 'normale' | 'basse',
+  tags: [] as string[],
 })
 
 const editDureeHHMM = computed({
@@ -619,6 +780,11 @@ const editDureeHHMM = computed({
     const [h, m] = val.split(':').map(Number)
     editForm.temps_estime = ((h ?? 0) * 60) + (m ?? 0) || 15
   },
+})
+
+const editTagsInput = computed({
+  get: () => (editForm.tags || []).join(', '),
+  set: (val: string) => { editForm.tags = val.split(',').map(s => s.trim()).filter(Boolean) }
 })
 
 const receptionForm = reactive({
@@ -976,6 +1142,42 @@ const hourRangeLabel = computed(() => {
   return `${starts.sort()[0]} → ${ends.sort().slice(-1)[0]}`
 })
 
+const isPastWeek = computed(() => {
+  const end = currentViewRange.value.end
+  return end && end < new Date().toISOString().slice(0, 10)
+})
+
+const rdvEditTabItems = computed(() => [
+  { label: 'Général', value: '0', icon: 'i-heroicons-user' },
+  { label: 'Détails', value: '1', icon: 'i-heroicons-document-text' },
+  { label: 'Planning', value: '2', icon: 'i-heroicons-calendar' },
+  ...(selectedRdv.value?.id ? [{ label: 'Historique', value: '3', icon: 'i-heroicons-clock' }] : []),
+])
+
+const slideoverAccordionItems = computed(() => [
+  { label: 'Infos RDV', value: 'infos', icon: 'i-heroicons-information-circle' },
+  { label: 'Véhicule', value: 'vehicule', icon: 'i-heroicons-truck' },
+  { label: 'Client', value: 'client', icon: 'i-heroicons-user' },
+  { label: 'Actions rapides', value: 'actions', icon: 'i-heroicons-bolt' },
+])
+
+function prevTab() {
+  const idx = Number(editTab.value)
+  if (idx > 0) editTab.value = String(idx - 1)
+}
+
+function nextTab() {
+  const max = (rdvEditTabItems.value.length || 4) - 1
+  const idx = Number(editTab.value)
+  if (idx < max) editTab.value = String(idx + 1)
+}
+
+function onListTransition(payload: { rdv: any; name: string }) {
+  selectedRdv.value = normalizeRdv(payload.rdv)
+  hydrateEditForms(selectedRdv.value)
+  applyTransition(payload.name)
+}
+
 const kpis = computed(() => {
   const rdvs = activePlanningRdvs.value
   const today = new Date().toISOString().slice(0, 10)
@@ -1081,6 +1283,8 @@ function hydrateEditForms(rdv: any) {
   editForm.commentaire = rdv.commentaire || ''
   editForm.mecanicien_id = toNullableNumber(rdv.mecanicien?.id ?? rdv.mecanicien_id)
   editForm.pont_id = toNullableNumber(rdv.pont?.id ?? rdv.pont_id)
+  editForm.priorite = rdv.priorite || 'normale'
+  editForm.tags = Array.isArray(rdv.tags) ? rdv.tags : []
   receptionForm.kilometrage = rdv.kilometrage ? String(rdv.kilometrage) : ''
   const receptionState = parseReceptionState(rdv.etat_vehicule_reception ?? rdv.etat_vehicule ?? rdv.etatVehicule)
   receptionForm.etat_vehicule = receptionState.observations || ''
@@ -1340,19 +1544,32 @@ async function reloadSelectedRdv(id: number) {
     selectedRdv.value = fresh
     hydrateEditForms(fresh)
     await loadAvailableTransitions(id)
+    selectedRdvHistory.value = []
   }
 }
 
 async function onSelectRdv(rdv: any) {
-  showRdvModal.value = true
+  showRdvSlideover.value = true
   modalLoading.value = true
   selectedRdv.value = normalizeRdv(rdv)
   hydrateEditForms(selectedRdv.value)
+  selectedRdvHistory.value = []
   try {
     await reloadSelectedRdv(Number(rdv.id))
   } finally {
     modalLoading.value = false
   }
+}
+
+function openRdvEditModal() {
+  editTab.value = '0'
+  showRdvModal.value = true
+}
+
+function closeRdvSlideover() {
+  showRdvSlideover.value = false
+  selectedRdv.value = null
+  selectedRdvHistory.value = []
 }
 
 async function onMoveRdv(payload: { id: number; date: string; time: string }) {
@@ -1523,6 +1740,16 @@ async function applyTransition(name: string, options: any = {}) {
   }
 }
 
+const currentMecanicienRdvs = computed(() => {
+  const mecaId = editForm.mecanicien_id ?? selectedRdv.value?.mecanicien_id
+  if (!mecaId) return []
+  const start = currentViewRange.value.start
+  const end = currentViewRange.value.end
+  return normalizedRdvs.value.filter((r: any) =>
+    r.mecanicien_id === mecaId && r.date_rdv >= start && r.date_rdv <= end
+  ).sort((a: any, b: any) => String(a.date_rdv + a.heure_debut).localeCompare(String(b.date_rdv + b.heure_debut)))
+})
+
 async function deleteSelectedRdv() {
   if (!selectedRdv.value?.id || !canDeleteSelected.value) return
   const confirmed = globalThis.confirm?.('Supprimer définitivement ce rendez-vous ?')
@@ -1532,6 +1759,7 @@ async function deleteSelectedRdv() {
   try {
     await api.del(`/rendez-vous/${selectedRdv.value.id}`)
     showRdvModal.value = false
+    showRdvSlideover.value = false
     selectedRdv.value = null
     toast.add({ title: 'RDV supprimé', color: 'success' })
     await refreshPlanning()
@@ -1660,4 +1888,270 @@ onUnmounted(() => {
   border-color: rgba(16,185,129,0.25);
   color: #6EE7B7;
 }
+
+.planning-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.view-toggle-btn.active {
+  background: rgba(255,210,0,0.1);
+  color: #FFD200;
+}
+.planning-legend-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.planning-legend-items {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.planning-legend-label {
+  color: #6B7280;
+  font-weight: 600;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid;
+  display: inline-block;
+}
+.planning-meca-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.planning-meca-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+}
+.meca-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #6B7280;
+}
+.meca-chip.active {
+  background: rgba(139,92,246,0.12);
+  border-color: rgba(139,92,246,0.3);
+  color: #C4B5FD;
+}
+.meca-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.meca-chip-reset {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.planning-past-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: rgba(59,130,246,0.06);
+  border: 1px solid rgba(59,130,246,0.15);
+  font-size: 13px;
+  color: #93C5FD;
+}
+
+/* Modal tabs */
+.rdv-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+.rdv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.rdv-modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  color: #E8E9ED;
+  font-size: 15px;
+}
+.rdv-historical-badge {
+  font-size: 11px;
+  color: #10B981;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.rdv-tabs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px;
+}
+.rdv-tab-panel {
+  padding: 16px 0;
+  min-height: 200px;
+}
+.rdv-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: var(--dark2);
+}
+.rdv-modal-footer-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* Slideover */
+.rdv-slideover {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.rdv-slideover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.rdv-slideover-client {
+  font-size: 16px;
+  font-weight: 700;
+  color: #E8E9ED;
+  line-height: 1.2;
+}
+.rdv-slideover-vehicle {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+.rdv-slideover-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.rdv-slideover-web {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #93C5FD;
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.25);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.rdv-slideover-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px;
+}
+.rdv-slideover-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: var(--dark2);
+}
+.accordion-panel {
+  padding: 12px 0;
+  font-size: 13px;
+}
+.info-grid-sm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+@media (max-width: 640px) {
+  .info-grid-sm {
+    grid-template-columns: 1fr;
+  }
+}
+.planning-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.planning-mini-item {
+  display: grid;
+  grid-template-columns: 120px 60px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+}
+.planning-mini-date { color: #CBD5E1; }
+.planning-mini-time { color: #FFD200; font-weight: 700; }
+.planning-mini-type { color: #E8E9ED; }
+.planning-mini-client { color: #9CA3AF; text-align: right; }
+.planning-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.planning-history-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+}
+.planning-history-date { color: #6B7280; min-width: 90px; }
+.planning-history-action { color: #E8E9ED; flex: 1; }
+.planning-history-user { color: #9CA3AF; }
 </style>

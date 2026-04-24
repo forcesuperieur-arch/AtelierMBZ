@@ -63,24 +63,46 @@
               <div
                 v-for="rdv in getRdvsStartingAt(day.date, slot.minutes)"
                 :key="rdv.id"
-                :class="['rdv-block', rdvStatusClass(rdv.status), { 'is-draggable': canDragRdv(rdv) }]"
+                :class="['rdv-block', rdvStatusClass(rdv.status), rdvTypeClass(rdv.type_intervention), { 'is-draggable': canDragRdv(rdv) }]"
                 :draggable="canDragRdv(rdv)"
                 :style="rdvStyle(rdv)"
                 @click.stop="$emit('select-rdv', rdv)"
                 @dragstart="onDragStart($event, rdv)"
                 @dragend="onDragEnd"
               >
-                <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
-                  {{ rdv.heure_debut?.slice(0, 5) }}
-                </div>
-                <div style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                  {{ rdv.type_intervention }}
-                </div>
-                <div style="font-size:10px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                  {{ rdv.client_nom }}
-                </div>
-                <!-- [SPRINT-4] I4 — Badge RDV web public -->
-                <div v-if="rdv.source === 'web'" style="font-size:9px;font-weight:700;letter-spacing:.05em;color:#93C5FD;opacity:.9;">WEB</div>
+                <UTooltip>
+                  <div class="rdv-block-inner">
+                    <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
+                      {{ rdv.heure_debut?.slice(0, 5) }}
+                    </div>
+                    <div class="rdv-block-title">
+                      {{ rdv.type_intervention }}
+                    </div>
+                    <div class="rdv-block-client">
+                      {{ rdv.client_nom }}
+                    </div>
+                    <div v-if="rdv.source === 'web'" class="rdv-block-web">WEB</div>
+                    <div v-if="rdv.priorite" class="rdv-block-priority">
+                      <span class="priority-badge" :class="`priority-badge-${rdv.priorite}`">{{ rdv.priorite }}</span>
+                    </div>
+                    <div v-if="mecanicienFor(rdv)" class="rdv-block-meca">
+                      <span
+                        class="meca-avatar"
+                        :style="{ background: mecanicienFor(rdv)?.couleur || '#8B5CF6' }"
+                      >{{ mecanicienFor(rdv)?.initials }}</span>
+                    </div>
+                  </div>
+                  <template #content>
+                    <div class="rdv-tooltip">
+                      <div class="rdv-tooltip-header">{{ rdv.type_intervention }}</div>
+                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Heure</span> {{ rdv.heure_debut?.slice(0,5) }} ({{ formatDurationShort(rdv.temps_estime) }})</div>
+                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Client</span> {{ rdv.client_nom || '—' }}</div>
+                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Véhicule</span> {{ rdv.vehicule_info || '—' }}</div>
+                      <div class="rdv-tooltip-row"><span class="rdv-tooltip-label">Statut</span> {{ rdv.status || rdv.statut || 'en_attente' }}</div>
+                      <div v-if="mecanicienFor(rdv)" class="rdv-tooltip-row"><span class="rdv-tooltip-label">Mécanicien</span> {{ mecanicienFor(rdv)?.label }}</div>
+                    </div>
+                  </template>
+                </UTooltip>
               </div>
             </div>
           </template>
@@ -107,6 +129,7 @@ const props = withDefaults(defineProps<{
   ponts?: Array<{ id: number; nom: string }>
   rdvs?: Array<any>
   horaires?: Array<any>
+  mecaniciens?: Array<any>
   canCreate?: boolean
   canDrag?: boolean
   historicalStatuses?: string[]
@@ -114,6 +137,7 @@ const props = withDefaults(defineProps<{
   ponts: () => [],
   rdvs: () => [],
   horaires: () => [],
+  mecaniciens: () => [],
   canCreate: false,
   canDrag: false,
   historicalStatuses: () => ['termine', 'restitue', 'facture', 'paye', 'annule'],
@@ -446,6 +470,33 @@ function rdvStatusClass(status: string) {
   return `rdv-status-${status || 'en_attente'}`
 }
 
+function rdvTypeClass(type?: string) {
+  const t = String(type || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  if (t.includes('entretien')) return 'rdv-type-entretien'
+  if (t.includes('reparation')) return 'rdv-type-reparation'
+  if (t.includes('diagnostic')) return 'rdv-type-diagnostic'
+  if (t.includes('revision') || t.includes('vidange')) return 'rdv-type-revision'
+  return 'rdv-type-default'
+}
+
+function mecanicienFor(rdv: any) {
+  const id = rdv.mecanicien_id ?? rdv.mecanicien?.id
+  if (!id) return null
+  const m = (props.mecaniciens || []).find((x: any) => Number(x.id) === Number(id))
+  if (!m) return null
+  const label = `${m.prenom ?? ''} ${m.nom ?? ''}`.trim()
+  const initials = `${m.prenom?.[0] ?? ''}${m.nom?.[0] ?? ''}`.toUpperCase()
+  return { ...m, label, initials }
+}
+
+function formatDurationShort(minutes?: number) {
+  const m = Number(minutes) || 0
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  const rm = m % 60
+  return rm ? `${h}h${rm}` : `${h}h`
+}
+
 function isHistoricalStatus(status: string) {
   return (props.historicalStatuses || []).includes(status)
 }
@@ -536,5 +587,59 @@ function onDragEnd() {
 }
 .rdv-block.is-draggable:active {
   cursor: grabbing;
+}
+.rdv-block-inner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.rdv-block-title {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rdv-block-client {
+  font-size: 10px;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rdv-block-web {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #93C5FD;
+  opacity: 0.9;
+}
+.rdv-block-priority {
+  margin-top: 2px;
+}
+.rdv-block-meca {
+  margin-top: 2px;
+}
+.rdv-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+.rdv-tooltip-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #E8E9ED;
+  margin-bottom: 2px;
+}
+.rdv-tooltip-row {
+  font-size: 11px;
+  color: #CBD5E1;
+}
+.rdv-tooltip-label {
+  color: #6B7280;
+  font-weight: 600;
+  margin-right: 4px;
 }
 </style>
