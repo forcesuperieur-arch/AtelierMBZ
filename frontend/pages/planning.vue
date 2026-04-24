@@ -424,39 +424,8 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- TAB 1: DÉTAILS -->
-            <div v-show="editTab === '1'" class="flex-col-gap-lg">
-              <div class="panel-sm">
-                <div class="info-grid">
-                  <div class="form-group">
-                    <label class="form-label">Durée estimée</label>
-                    <input v-model="editDureeHHMM" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Priorité</label>
-                    <select v-model="editForm.priorite" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
-                      <option value="haute">Haute</option>
-                      <option value="normale">Normale</option>
-                      <option value="basse">Basse</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Tags</label>
-                    <input v-model="editTagsInput" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Urgent, garantie, client-fidèle…" />
-                  </div>
-                </div>
-                <div class="form-group mt-3">
-                  <label class="form-label">Commentaire</label>
-                  <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
-                </div>
-                <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
-                  Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
-                </div>
-              </div>
-
-              <!-- Reception Panel -->
+              <!-- Reception Panel (déplacé du tab Détails vers Général) -->
               <div v-if="isReceptionEligible" style="padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                   <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
@@ -505,6 +474,38 @@
                   ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
                 </div>
               </div>
+            </div>
+
+            <!-- TAB 1: DÉTAILS -->
+            <div v-show="editTab === '1'" class="flex-col-gap-lg">
+              <div class="panel-sm">
+                <div class="info-grid">
+                  <div class="form-group">
+                    <label class="form-label">Durée estimée</label>
+                    <input v-model="editDureeHHMM" type="time" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Priorité</label>
+                    <select v-model="editForm.priorite" class="form-input" :disabled="selectedIsHistorical || !canEditRdv">
+                      <option value="haute">Haute</option>
+                      <option value="normale">Normale</option>
+                      <option value="basse">Basse</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Tags</label>
+                    <input v-model="editTagsInput" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Urgent, garantie, client-fidèle…" />
+                  </div>
+                </div>
+                <div class="form-group mt-3">
+                  <label class="form-label">Commentaire</label>
+                  <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Description du besoin exprimé par le client…"></textarea>
+                </div>
+                <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
+                  Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
+                </div>
+              </div>
+
             </div>
 
             <!-- TAB 2: PLANNING -->
@@ -592,45 +593,7 @@
       </template>
     </AppModal>
 
-    <!-- Detail Modal -->
-    <AppModal v-model:open="showRdvSlideover" size="md">
-      <template #content>
-        <UCard v-if="selectedRdv">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-bold text-base">{{ selectedRdv.type_intervention || 'RDV' }}</div>
-                <div class="text-xs text-gray-400">{{ selectedRdv.client_nom }} · {{ selectedRdv.vehicule_info }}</div>
-              </div>
-              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="closeRdvSlideover" />
-            </div>
-          </template>
-          <div v-if="modalLoading" class="space-y-3">
-            <AppSkeletonCard :lines="4" />
-          </div>
-          <div v-else class="space-y-4">
-            <div class="grid grid-cols-2 gap-3 text-sm">
-              <div><span class="text-gray-500">Date</span> {{ selectedRdv.date_rdv }}</div>
-              <div><span class="text-gray-500">Heure</span> {{ selectedRdv.heure_debut?.slice(0,5) }}</div>
-              <div><span class="text-gray-500">Durée</span> {{ selectedRdv.temps_estime }} min</div>
-              <div><span class="text-gray-500">Statut</span> <StatusBadge :status="selectedRdv.status || selectedRdv.statut" /></div>
-            </div>
-            <div v-if="selectedRdv.commentaire" class="text-sm bg-dark2 p-3 rounded-lg">{{ selectedRdv.commentaire }}</div>
-            <div class="flex flex-wrap gap-2">
-              <UButton v-if="canEditRdv" size="sm" color="warning" @click="openRdvEditModal">Modifier</UButton>
-              <UButton
-                v-for="t in availableTransitions"
-                :key="t.name"
-                size="sm"
-                :color="(t.color as any)"
-                @click="applyTransition(t.name)"
-              >{{ t.label }}</UButton>
-              <UButton v-if="canDeleteSelected" size="sm" color="error" variant="soft" @click="deleteSelectedRdv">Supprimer</UButton>
-            </div>
-          </div>
-        </UCard>
-      </template>
-    </AppModal>
+
 
     <!-- Annulation Modal -->
     <AppModal v-model:open="showAnnulationModal" size="md">
@@ -707,7 +670,6 @@ const activeMecas = ref<number[]>([])
 const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
 
 const showRdvModal = ref(false)
-const showRdvSlideover = ref(false)
 const showAnnulationModal = ref(false)
 const annulationTempName = ref("annuler")
 const editTab = ref('0')
@@ -1557,7 +1519,8 @@ async function reloadSelectedRdv(id: number) {
 }
 
 async function onSelectRdv(rdv: any) {
-  showRdvSlideover.value = true
+  editTab.value = '0'
+  showRdvModal.value = true
   modalLoading.value = true
   selectedRdv.value = normalizeRdv(rdv)
   hydrateEditForms(selectedRdv.value)
@@ -1567,17 +1530,6 @@ async function onSelectRdv(rdv: any) {
   } finally {
     modalLoading.value = false
   }
-}
-
-function openRdvEditModal() {
-  editTab.value = '0'
-  showRdvModal.value = true
-}
-
-function closeRdvSlideover() {
-  showRdvSlideover.value = false
-  selectedRdv.value = null
-  selectedRdvHistory.value = []
 }
 
 async function onMoveRdv(payload: { id: number; date: string; time: string }) {
@@ -1767,7 +1719,6 @@ async function deleteSelectedRdv() {
   try {
     await api.del(`/rendez-vous/${selectedRdv.value.id}`)
     showRdvModal.value = false
-    showRdvSlideover.value = false
     selectedRdv.value = null
     toast.add({ title: 'RDV supprimé', color: 'success' })
     await refreshPlanning()
@@ -1839,8 +1790,13 @@ let companionPollInterval: ReturnType<typeof setInterval>
 watch(showRdvModal, (open: boolean) => {
   clearInterval(companionPollInterval)
   if (open && isReceptionEligible.value) {
-    refreshCompanionStatus()
-    companionPollInterval = setInterval(refreshCompanionStatus, 4000)
+    // Petit délai pour laisser selectedRdv être hydraté par reloadSelectedRdv
+    setTimeout(() => {
+      if (showRdvModal.value && isReceptionEligible.value) {
+        refreshCompanionStatus()
+        companionPollInterval = setInterval(refreshCompanionStatus, 4000)
+      }
+    }, 300)
   }
 })
 
