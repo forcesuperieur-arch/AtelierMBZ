@@ -592,43 +592,45 @@
       </template>
     </AppModal>
 
-    <!-- Slide-over Detail -->
-    <USlideover v-model:open="showRdvSlideover" side="right" :ui="{ content: 'w-full max-w-lg' }">
-      <UCard v-if="selectedRdv">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-bold text-base">{{ selectedRdv.type_intervention || 'RDV' }}</div>
-              <div class="text-xs text-gray-400">{{ selectedRdv.client_nom }} · {{ selectedRdv.vehicule_info }}</div>
+    <!-- Detail Modal -->
+    <AppModal v-model:open="showRdvSlideover" size="md">
+      <template #content>
+        <UCard v-if="selectedRdv">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-bold text-base">{{ selectedRdv.type_intervention || 'RDV' }}</div>
+                <div class="text-xs text-gray-400">{{ selectedRdv.client_nom }} · {{ selectedRdv.vehicule_info }}</div>
+              </div>
+              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="closeRdvSlideover" />
             </div>
-            <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark" @click="closeRdvSlideover" />
+          </template>
+          <div v-if="modalLoading" class="space-y-3">
+            <AppSkeletonCard :lines="4" />
           </div>
-        </template>
-        <div v-if="modalLoading" class="space-y-3">
-          <AppSkeletonCard :lines="4" />
-        </div>
-        <div v-else class="space-y-4">
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div><span class="text-gray-500">Date</span> {{ selectedRdv.date_rdv }}</div>
-            <div><span class="text-gray-500">Heure</span> {{ selectedRdv.heure_debut?.slice(0,5) }}</div>
-            <div><span class="text-gray-500">Durée</span> {{ selectedRdv.temps_estime }} min</div>
-            <div><span class="text-gray-500">Statut</span> <StatusBadge :status="selectedRdv.status || selectedRdv.statut" /></div>
+          <div v-else class="space-y-4">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div><span class="text-gray-500">Date</span> {{ selectedRdv.date_rdv }}</div>
+              <div><span class="text-gray-500">Heure</span> {{ selectedRdv.heure_debut?.slice(0,5) }}</div>
+              <div><span class="text-gray-500">Durée</span> {{ selectedRdv.temps_estime }} min</div>
+              <div><span class="text-gray-500">Statut</span> <StatusBadge :status="selectedRdv.status || selectedRdv.statut" /></div>
+            </div>
+            <div v-if="selectedRdv.commentaire" class="text-sm bg-dark2 p-3 rounded-lg">{{ selectedRdv.commentaire }}</div>
+            <div class="flex flex-wrap gap-2">
+              <UButton v-if="canEditRdv" size="sm" color="warning" @click="openRdvEditModal">Modifier</UButton>
+              <UButton
+                v-for="t in availableTransitions"
+                :key="t.name"
+                size="sm"
+                :color="(t.color as any)"
+                @click="applyTransition(t.name)"
+              >{{ t.label }}</UButton>
+              <UButton v-if="canDeleteSelected" size="sm" color="error" variant="soft" @click="deleteSelectedRdv">Supprimer</UButton>
+            </div>
           </div>
-          <div v-if="selectedRdv.commentaire" class="text-sm bg-dark2 p-3 rounded-lg">{{ selectedRdv.commentaire }}</div>
-          <div class="flex flex-wrap gap-2">
-            <UButton v-if="canEditRdv" size="sm" color="yellow" @click="openRdvEditModal">Modifier</UButton>
-            <UButton
-              v-for="t in availableTransitions"
-              :key="t.name"
-              size="sm"
-              :color="t.color"
-              @click="applyTransition(t.name)"
-            >{{ t.label }}</UButton>
-            <UButton v-if="canDeleteSelected" size="sm" color="red" variant="soft" @click="deleteSelectedRdv">Supprimer</UButton>
-          </div>
-        </div>
-      </UCard>
-    </USlideover>
+        </UCard>
+      </template>
+    </AppModal>
 
     <!-- Annulation Modal -->
     <AppModal v-model:open="showAnnulationModal" size="md">
