@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\AuditLog;
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\EssaiRoutier;
@@ -449,6 +450,43 @@ class RendezVousController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/api/rendez-vous/{id}/history', methods: ['GET'])]
+    public function getHistory(int $id): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($id);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $currentUser = $this->getAuthenticatedUser();
+        $qb = $this->em->getRepository(AuditLog::class)->createQueryBuilder('a')
+            ->where('a.entityId = :entityId')
+            ->andWhere('a.entityType IN (:entityTypes)')
+            ->setParameter('entityId', $id)
+            ->setParameter('entityTypes', ['rdv', 'rendez_vous'])
+            ->orderBy('a.createdAt', 'DESC')
+            ->setMaxResults(100);
+
+        if (!$this->isGranted('ROLE_SUPER_ADMIN') && $currentUser?->getAtelierId() !== null) {
+            $qb
+                ->andWhere('a.atelierId = :atelierId')
+                ->setParameter('atelierId', $currentUser->getAtelierId());
+        }
+
+        $entries = $qb->getQuery()->getResult();
+
+        return $this->json([
+            'items' => array_map(fn (AuditLog $entry) => [
+                'id' => $entry->getId(),
+                'action' => $this->formatAuditAction($entry->getAction(), $entry->getDetails()),
+                'date' => $entry->getCreatedAt()->format('Y-m-d H:i'),
+                'created_at' => $entry->getCreatedAt()->format(DATE_ATOM),
+                'details' => $this->formatAuditDetails($entry->getAction(), $entry->getDetails()),
+                'user' => $entry->getUsername(),
+            ], $entries),
+        ]);
+    }
+
     private function flattenRdv(RendezVous $r): array
     {
         $client = $r->getClient();
@@ -530,6 +568,51 @@ class RendezVousController extends AbstractController
         }
 
         $decoded = json_decode($payload, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function formatAuditAction(string $action, ?string $details): string
+    {
+        $payload = $this->decodeAuditDetails($details);
+
+        return match ($action) {
+            'create' => 'Creation du rendez-vous',
+            'workflow_transition' => sprintf(
+                'Transition workflow%s',
+                !empty($payload['transition']) ? ' : ' . (string) $payload['transition'] : ''
+            ),
+            default => str_replace('_', ' ', ucfirst($action)),
+        };
+    }
+
+    private function formatAuditDetails(string $action, ?string $details): ?string
+    {
+        $payload = $this->decodeAuditDetails($details);
+        if ($payload === null) {
+            return $details;
+        }
+
+        return match ($action) {
+            'create' => sprintf(
+                'Type: %s%s',
+                (string) ($payload['type'] ?? '—'),
+                !empty($payload['statut']) ? ' · Statut initial: ' . (string) $payload['statut'] : ''
+            ),
+            'workflow_transition' => sprintf(
+                'Nouveau statut: %s',
+                (string) ($payload['new_status'] ?? $payload['statut'] ?? '—')
+            ),
+            default => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        };
+    }
+
+    private function decodeAuditDetails(?string $details): ?array
+    {
+        if (!is_string($details) || trim($details) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($details, true);
         return is_array($decoded) ? $decoded : null;
     }
 }

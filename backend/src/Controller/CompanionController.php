@@ -146,6 +146,8 @@ class CompanionController extends AbstractController
                 'plaque' => $vehicule->getPlaque(),
                 'marque' => $vehicule->getMarque(),
                 'modele' => $vehicule->getModele(),
+                'type_variante' => $vehicule->getTypeVariante(),
+                'denomination_commerciale' => $vehicule->getDenominationCommerciale(),
             ] : null,
             'photos' => array_map(fn(PhotoIntervention $p) => [
                 'id' => $p->getId(),
@@ -230,6 +232,7 @@ class CompanionController extends AbstractController
         $photo->setRendezVous($rdv);
         $photo->setFilename($filename);
         $photo->setOriginalName($file->getClientOriginalName());
+        $photo->setType('reception');
         $photo->setDescription($request->request->get('description', 'Photo réception'));
         $photo->setAtelierId($rdv->getAtelierId());
 
@@ -397,6 +400,8 @@ class CompanionController extends AbstractController
         if (isset($data['cylindree'])) $vehicule->setCylindree((string) $data['cylindree']);
         if (isset($data['type_moto'])) $vehicule->setTypeMoto($data['type_moto']);
         if (isset($data['plaque'])) $vehicule->setPlaque($data['plaque']);
+        if (isset($data['type_variante'])) $vehicule->setTypeVariante($data['type_variante'] ?: null);
+        if (isset($data['denomination_commerciale'])) $vehicule->setDenominationCommerciale($data['denomination_commerciale'] ?: null);
 
         $this->em->flush();
 
@@ -410,6 +415,8 @@ class CompanionController extends AbstractController
                 'annee' => $vehicule->getAnnee(),
                 'cylindree' => $vehicule->getCylindree(),
                 'type_moto' => $vehicule->getTypeMoto(),
+                'type_variante' => $vehicule->getTypeVariante(),
+                'denomination_commerciale' => $vehicule->getDenominationCommerciale(),
             ],
         ]);
     }

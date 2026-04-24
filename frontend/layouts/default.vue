@@ -341,7 +341,7 @@ const quickActions = computed(() => {
   } else if (base === '/clients') {
     if (auth.hasSection('clients')) actions.push({ icon: 'i-heroicons-user-plus', label: '+ Nouveau client', to: '/clients' })
   } else if (base === '/mecanicien') {
-    actions.push({ icon: 'i-heroicons-qr-code', label: 'Scanner QR', onClick: () => navigateTo('/mecanicien?scan=1') })
+    actions.push({ icon: 'i-heroicons-calendar-days', label: 'Voir planning', to: '/planning' })
   } else if (base === '/vo') {
     if (auth.hasSection('vo')) {
       actions.push({ icon: 'i-heroicons-tag', label: '+ Rachat', to: '/vo/rachats/new' })

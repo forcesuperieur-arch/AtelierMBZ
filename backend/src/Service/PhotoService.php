@@ -21,7 +21,9 @@ class PhotoService
     ];
 
     private const TRANSITION_PHOTO_REQUIREMENTS = [
-        'reception' => ['type' => 'reception', 'min' => 4],
+        // Au moins 1 photo de réception obligatoire (uploadée via Companion client).
+        // Le Companion assigne automatiquement type='reception' depuis la v2.
+        'reception' => ['type' => 'reception', 'min' => 1],
         'terminer' => ['type' => 'apres_travaux', 'min' => 2],
         'restituer' => ['type' => 'restitution', 'min' => 3],
     ];

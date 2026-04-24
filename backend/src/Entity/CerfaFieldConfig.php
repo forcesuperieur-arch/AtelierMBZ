@@ -71,6 +71,21 @@ class CerfaFieldConfig
     #[Groups(['cerfa_config:read'])]
     private string $fieldType = self::TYPE_TEXT;
 
+    /** Largeur d'une case pour les champs boxés/date (mm). 0 = valeur par défaut du moteur. */
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => 0])]
+    #[Groups(['cerfa_config:read'])]
+    private string $charBoxWidth = '0';
+
+    /** Espace entre cases pour les champs boxés/date (mm). */
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => 0])]
+    #[Groups(['cerfa_config:read'])]
+    private string $charGap = '0';
+
+    /** Espace entre groupes JJ/MM/AAAA pour les champs date (mm). 0 = valeur par défaut. */
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => 0])]
+    #[Groups(['cerfa_config:read'])]
+    private string $dateGroupGap = '0';
+
     /** Description facultative pour l'admin */
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['cerfa_config:read'])]
@@ -125,6 +140,15 @@ class CerfaFieldConfig
 
     public function getFieldType(): string { return $this->fieldType; }
     public function setFieldType(string $v): static { $this->fieldType = $v; return $this; }
+
+    public function getCharBoxWidth(): string { return $this->charBoxWidth; }
+    public function setCharBoxWidth(string $v): static { $this->charBoxWidth = $v; return $this; }
+
+    public function getCharGap(): string { return $this->charGap; }
+    public function setCharGap(string $v): static { $this->charGap = $v; return $this; }
+
+    public function getDateGroupGap(): string { return $this->dateGroupGap; }
+    public function setDateGroupGap(string $v): static { $this->dateGroupGap = $v; return $this; }
 
     public function getDescription(): ?string { return $this->description; }
     public function setDescription(?string $v): static { $this->description = $v; return $this; }

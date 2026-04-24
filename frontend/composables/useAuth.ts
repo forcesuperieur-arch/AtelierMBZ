@@ -4,6 +4,20 @@ import { useAtelierStore } from '~/stores/atelier'
 export function useAuth() {
   const store = useAuthStore()
   const api = useApi()
+  const config = useRuntimeConfig()
+
+  async function silentRefresh(): Promise<boolean> {
+    try {
+      const res = await globalThis.fetch(`${config.public.apiBase}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      return res.ok
+    } catch {
+      return false
+    }
+  }
 
   async function login(email: string, password: string) {
     const data = await api.post('/auth/login', { email, password })
@@ -59,6 +73,16 @@ export function useAuth() {
       store.setUser(data)
       return data
     } catch {
+      const refreshed = await silentRefresh()
+      if (refreshed) {
+        try {
+          const data = await api.get('/auth/me')
+          store.setUser(data)
+          return data
+        } catch {
+        }
+      }
+
       store.clearUser()
       useAtelierStore().clearModules()
       return null
@@ -142,6 +166,7 @@ export function useAuth() {
     exchangeGoogleCode,
     logout,
     fetchMe,
+    silentRefresh,
     hasSection,
     hasPerm,
     hasStatsAccess,

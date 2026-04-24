@@ -121,6 +121,18 @@
                 <label>Police (pt)</label>
                 <input type="number" step="0.5" min="5" max="14" v-model="selectedField.font_size" @change="onPanelChange(selectedField, 'font_size')" class="panel-input" />
               </div>
+              <div class="pf-row">
+                <label>Largeur case (mm)</label>
+                <input type="number" step="0.05" min="0" v-model="selectedField.char_box_width" @change="onPanelChange(selectedField, 'char_box_width')" class="panel-input" />
+              </div>
+              <div class="pf-row">
+                <label>Écart cases (mm)</label>
+                <input type="number" step="0.05" min="0" v-model="selectedField.char_gap" @change="onPanelChange(selectedField, 'char_gap')" class="panel-input" />
+              </div>
+              <div class="pf-row">
+                <label>Écart groupes date (mm)</label>
+                <input type="number" step="0.05" min="0" v-model="selectedField.date_group_gap" @change="onPanelChange(selectedField, 'date_group_gap')" class="panel-input" />
+              </div>
               <div class="pf-row pf-row--check">
                 <label>Actif</label>
                 <input
@@ -178,7 +190,7 @@
           <table class="cerfa-table">
             <thead>
               <tr>
-                <th>Champ</th><th>Type</th><th>X (mm)</th><th>Y (mm)</th><th>Largeur</th><th>Police</th><th>Actif</th><th></th>
+                <th>Champ</th><th>Type</th><th>X (mm)</th><th>Y (mm)</th><th>Largeur</th><th>Police</th><th>Case</th><th>Écart</th><th>Écart date</th><th>Actif</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -192,6 +204,9 @@
                 <td><input type="number" step="0.1" class="coord-input" :value="field.y" @change="queueUpdate(field, 'y', ($event.target as HTMLInputElement).value)" /></td>
                 <td><input type="number" step="0.5" class="coord-input" :value="field.width" @change="queueUpdate(field, 'width', ($event.target as HTMLInputElement).value)" /></td>
                 <td><input type="number" step="0.5" min="5" max="14" class="coord-input coord-input--sm" :value="field.font_size" @change="queueUpdate(field, 'font_size', ($event.target as HTMLInputElement).value)" /></td>
+                <td><input type="number" step="0.05" min="0" class="coord-input" :value="field.char_box_width" @change="queueUpdate(field, 'char_box_width', ($event.target as HTMLInputElement).value)" /></td>
+                <td><input type="number" step="0.05" min="0" class="coord-input" :value="field.char_gap" @change="queueUpdate(field, 'char_gap', ($event.target as HTMLInputElement).value)" /></td>
+                <td><input type="number" step="0.05" min="0" class="coord-input" :value="field.date_group_gap" @change="queueUpdate(field, 'date_group_gap', ($event.target as HTMLInputElement).value)" /></td>
                 <td><input type="checkbox" :checked="field.is_active" @change="queueUpdate(field, 'is_active', ($event.target as HTMLInputElement).checked)" /></td>
                 <td class="actions-cell">
                   <button v-if="pendingFields.has(field.id)" class="btn-save" :disabled="savingId === field.id" @click="saveField(field)">
@@ -224,6 +239,9 @@ interface CerfaField {
   y: string
   width: string
   font_size: string
+  char_box_width: string
+  char_gap: string
+  date_group_gap: string
   field_type: string
   description: string | null
   is_active: boolean

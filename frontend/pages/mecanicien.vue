@@ -1,43 +1,41 @@
 <template>
   <div class="pb-24">
-    <!-- Header de page amélioré -->
-    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div class="avatar-circle" style="width:56px;height:56px;font-size:18px;font-weight:700;">{{ initials }}</div>
+        <div class="avatar-circle">{{ initials }}</div>
         <div>
-          <div style="font-size:18px;font-weight:700;color:#F9FAFB;">Espace Mécanicien</div>
-          <div style="font-size:13px;color:#6B7280;">{{ todayLabel }}</div>
+          <div class="page-title">Espace Mécanicien</div>
+          <div style="font-size:12px;color:#6B7280;">{{ todayLabel }}</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <NuxtLink to="/profile" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);" title="Mon profil">
+        <NuxtLink to="/profile" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);" title="Mon profil">
           <UIcon name="i-heroicons-user-circle" class="w-5 h-5" />
         </NuxtLink>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
-        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+        <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">EN COURS</div>
           <div style="font-size:22px;font-weight:700;color:#F59E0B;">{{ kpis.enCours }}</div>
         </div>
-        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+        <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">À FAIRE</div>
           <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ kpis.aFaire }}</div>
         </div>
-        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+        <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">TERMINÉS</div>
           <div style="font-size:22px;font-weight:700;color:#10B981;">{{ kpis.termines }}</div>
         </div>
-        <div class="stat-card flex-1 card-sm" style="min-width:70px;">
+        <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">JOURNÉE</div>
           <div style="font-size:22px;font-weight:700;color:#FFD200;">{{ kpis.pctDone }}%</div>
         </div>
       </div>
     </div>
 
-    <!-- Skeleton state -->
     <div v-if="loading" class="space-y-4">
-      <AppSkeletonCard :lines="3" />
-      <AppSkeletonCard :lines="5" />
+      <AppSkeletonCard lines="3" />
+      <AppSkeletonCard lines="5" />
     </div>
 
     <div v-else>
@@ -63,11 +61,25 @@
           </div>
         </template>
 
-        <!-- Navigation interne sticky -->
-        <MecanicienNav v-if="activeRdv" v-model="activeMecaSection" :sections="mecaNavSections" />
+        <MecanicienNav
+          v-if="activeRdv"
+          v-model="activeSection"
+          :sections="[
+            { id: 'intervention', label: 'Intervention', badge: interventionBadge },
+            { id: 'checkup', label: 'Check-up', badge: checkupBadge },
+            { id: 'essai', label: 'Essai', badge: essaiBadge },
+            { id: 'travaux', label: 'Travaux', badge: travauxBadge },
+            { id: 'photos', label: 'Photos', badge: photosBadge },
+            { id: 'notes', label: 'Notes' },
+          ]"
+        />
 
-        <!-- Section Intervention -->
-        <MecanicienSection title="Intervention" section-key="meca-intervention" icon="🔧" :badge="navBadgeIntervention" :default-open="true">
+        <MecanicienSection
+          title="Intervention"
+          section-key="intervention"
+          icon="🔧"
+          :default-open="true"
+        >
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;font-size:13px;">
             <div><span class="text-subtle">Client :</span> <span class="text-value">{{ activeRdv.client_nom }}</span></div>
             <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ activeRdv.vehicule_info }}</span></div>
@@ -103,35 +115,37 @@
             </div>
           </div>
 
-          <!-- Live Chrono visuel -->
-          <MecanicienChrono
-            v-if="activeRdv.temps_estime && activeRdv.status === 'en_cours'"
-            :pct="chronoPct"
-            :display-time="chronoDisplayTime"
-            label="Temps écoulé"
-            :elapsed-label="formatDuration(elapsedSeconds)"
-            :total-label="formatDuration(plannedSeconds)"
-            :overtime-label="formatDuration(overtimeSeconds)"
-          />
-        </MecanicienSection>
-
-        <!-- Section Check-up -->
-        <MecanicienSection title="Check-up" section-key="meca-checkup" icon="🔍" :badge="navBadgeCheckup">
-          <div class="text-xs-subtle mb-3">Le rapport est enregistré dans le dossier atelier. {{ checkupDone }}/{{ checkupItems.length }} vérifiés</div>
-          <MecanicienCheckupGrid
-            :checkup="checkupForm"
-            :items="checkupItems"
-            :photos="{}"
-            @toggle="toggleCheckupItem"
-          />
-          <UButton label="💾 Sauvegarder le Checkup" color="info" variant="outline" size="md" @click="persistWorkshopReport()" :loading="persistingCheckup" class="w-full justify-center mt-3 min-h-12 font-semibold" />
-        </MecanicienSection>
-
-        <!-- Section Essai -->
-        <MecanicienSection title="Essai" section-key="meca-essai" icon="🏍" :badge="navBadgeEssai">
-          <div class="flex-between-wrap flex-wrap-gap mb-2">
-            <span class="text-xs-subtle">{{ essaiFilledCount }}/{{ essaiPoints.length }} points renseignés</span>
+          <div v-if="activeRdv.temps_estime && activeRdv.status === 'en_cours'" style="margin-top:16px;">
+            <MecanicienChrono
+              :elapsed="elapsedSeconds"
+              :total="plannedSeconds"
+              :status="activeRdv?.status"
+            />
           </div>
+        </MecanicienSection>
+
+        <MecanicienSection
+          title="Check-up"
+          section-key="checkup"
+          icon="✅"
+          :default-open="false"
+        >
+          <div class="text-xs-subtle mb-2">Le rapport est enregistré dans le dossier atelier.</div>
+          <MecanicienCheckupGrid
+            :checkup="checkup"
+            :items="checkupItems"
+            :photos="checkupPhotos"
+            @toggle="cycleCheckup"
+          />
+          <UButton label="💾 Sauvegarder le Checkup" color="info" variant="outline" size="md" @click="persistWorkshopReport()" :loading="persistingCheckup" style="margin-top:12px;width:100%;justify-content:center;height:44px;font-weight:600;" />
+        </MecanicienSection>
+
+        <MecanicienSection
+          title="Essai routier"
+          section-key="essai"
+          icon="🏍"
+          :default-open="false"
+        >
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
             <div>
               <label class="text-xs-subtle block-mb-2">Km départ</label>
@@ -171,13 +185,28 @@
           </div>
         </MecanicienSection>
 
-        <!-- Section Travaux -->
-        <MecanicienSection title="Travaux" section-key="meca-travaux" icon="🔨" :badge="navBadgeTravaux">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-size:15px;font-weight:600;color:#E8E9ED;">Travaux complémentaires</span>
+        <MecanicienSection
+          title="Notes"
+          section-key="notes"
+          icon="📝"
+          :default-open="false"
+        >
+          <textarea v-model="interventionNotes" class="form-input" rows="2" placeholder="Notes techniques, observations…" />
+          <div class="flex-end-gap mt-3">
+            <UButton label="Sauvegarder" color="neutral" variant="outline" size="md" @click="saveInterventionNotes" :loading="savingNotes" class="min-h-11" />
+          </div>
+        </MecanicienSection>
+
+        <MecanicienSection
+          title="Travaux"
+          section-key="travaux"
+          icon="🔩"
+          :default-open="false"
+        >
+          <div class="text-xs-subtle mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             <UButton :label="showSupplementaryForm ? 'Fermer' : 'Créer une demande'" color="neutral" variant="outline" size="sm" @click="showSupplementaryForm = !showSupplementaryForm" class="min-h-11" />
           </div>
-          <div class="text-xs-subtle mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
           <div v-if="showSupplementaryForm" style="display:grid;gap:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
             <textarea v-model="supplementaryForm.description" class="form-input" rows="3" placeholder="Décrire le problème constaté, le risque et la recommandation technique…" />
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">
@@ -195,12 +224,12 @@
           </div>
         </MecanicienSection>
 
-        <!-- Section Photos -->
-        <MecanicienSection title="Photos" section-key="meca-photos" icon="📷" :badge="navBadgePhotos">
-          <div class="flex-between-wrap flex-wrap-gap mb-2">
-            <span class="header-md">Photos d'intervention</span>
-            <span class="text-xs-subtle">Après travaux: {{ afterWorkPhotosCount }}/2 · Restitution: {{ restitutionPhotosCount }}/3</span>
-          </div>
+        <MecanicienSection
+          title="Photos"
+          section-key="photos"
+          icon="📷"
+          :default-open="false"
+        >
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
             <label class="flex-col-gap-sm">
               <span class="text-xs-subtle">Type</span>
@@ -213,8 +242,8 @@
               <input v-model="photoDescription" class="form-input" placeholder="Ex: fuite observée" />
             </label>
           </div>
-          <input id="meca-photo-input" ref="photoFileInput" type="file" accept="image/*" capture="environment" class="hidden" @change="handlePhotoUpload" />
-          <label for="meca-photo-input" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:12px;border:1px dashed rgba(255,210,0,0.4);background:rgba(255,210,0,0.06);font-size:15px;font-weight:700;color:#FDE68A;cursor:pointer;min-height:56px;">
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:12px;border:1px dashed rgba(255,210,0,0.4);background:rgba(255,210,0,0.06);font-size:15px;font-weight:700;color:#FDE68A;cursor:pointer;min-height:56px;">
+            <input type="file" accept="image/*" capture="environment" style="display:none;" @change="handlePhotoUpload" />
             <span>{{ uploadingPhoto ? 'Upload en cours…' : '📷 Ajouter des photos (Caméra)' }}</span>
           </label>
           <div v-if="mechanicPhotoGroups.length" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
@@ -236,15 +265,6 @@
             </div>
           </div>
           <div v-else style="margin-top:10px;font-size:12px;color:#6B7280;">Aucune photo d'intervention pour ce RDV.</div>
-        </MecanicienSection>
-
-        <!-- Section Notes -->
-        <MecanicienSection title="Notes" section-key="meca-notes" icon="📝" :badge="navBadgeNotes">
-          <label style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:6px;display:block;">Notes intervention</label>
-          <textarea v-model="interventionNotes" class="form-input" rows="2" placeholder="Notes techniques, observations…" />
-          <div class="flex-end-gap mt-3">
-            <UButton label="Sauvegarder" color="neutral" variant="outline" size="md" @click="saveInterventionNotes" :loading="savingNotes" class="min-h-11" />
-          </div>
         </MecanicienSection>
       </UCard>
 
@@ -421,77 +441,14 @@
       </div>
     </div>
 
-    <!-- Bottom action bar améliorée -->
+    <!-- Mobile-First Sticky Bottom Action Bar -->
     <div v-if="activeRdv && !rapportRdvId" class="sticky-action-bar">
-      <!-- Desktop -->
-      <div class="hidden md:flex w-full items-center gap-3">
-        <div class="flex items-center gap-2 flex-1">
-          <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork" class="whitespace-nowrap flex-1 justify-center min-h-12" />
-          <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts" class="whitespace-nowrap flex-1 justify-center min-h-12" />
-          <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork" class="whitespace-nowrap flex-1 justify-center min-h-12" />
-          <UButton v-if="activeRdv.status === 'en_cours' && !essaiRoutierValide" label="🏍 Valider essai" color="warning" variant="solid" size="md" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="!canValidateRoadTest" class="whitespace-nowrap flex-1 justify-center min-h-12" />
-          <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" variant="solid" size="md" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" class="whitespace-nowrap flex-1 justify-center min-h-12" />
-        </div>
-        <div class="w-px h-10 bg-white/10 shrink-0" />
-        <div class="flex items-center gap-2 shrink-0">
-          <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" class="inline-flex items-center justify-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold min-h-12" style="background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.2);color:#FFD200;text-decoration:none;">📋 OR</NuxtLink>
-        </div>
-        <div class="w-px h-10 bg-white/10 shrink-0" />
-        <div class="flex items-center gap-2 shrink-0">
-          <UButton label="📷 Photos" color="neutral" variant="outline" size="md" @click="scrollToSection('photos')" class="min-h-12 whitespace-nowrap" />
-          <UButton label="➕" color="primary" variant="solid" size="md" @click="triggerPhotoUpload" class="min-h-12 px-3" />
-        </div>
-      </div>
-
-      <!-- Mobile drawer -->
-      <div class="md:hidden w-full">
-        <button
-          type="button"
-          class="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-lg border"
-          style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);color:#D1D5DB;min-height:48px;"
-          @click="bottomDrawerOpen = !bottomDrawerOpen"
-        >
-          <span>Actions</span>
-          <UIcon :name="bottomDrawerOpen ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'" class="w-4 h-4" />
-        </button>
-        <Transition
-          enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="max-h-0 opacity-0"
-          enter-to-class="max-h-[600px] opacity-100"
-          leave-active-class="transition-all duration-200 ease-in"
-          leave-from-class="max-h-[600px] opacity-100"
-          leave-to-class="max-h-0 opacity-0"
-        >
-          <div v-show="bottomDrawerOpen" class="overflow-hidden mt-2 space-y-3">
-            <!-- Transitions -->
-            <div class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-wider" style="color:#6B7280;">Transitions</div>
-              <div class="grid grid-cols-2 gap-2">
-                <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork; bottomDrawerOpen = false" class="w-full justify-center min-h-12" />
-                <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts; bottomDrawerOpen = false" class="w-full justify-center min-h-12" />
-                <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork; bottomDrawerOpen = false" class="w-full justify-center min-h-12" />
-                <UButton v-if="activeRdv.status === 'en_cours' && !essaiRoutierValide" label="🏍 Valider essai" color="warning" variant="solid" size="md" @click="saveActiveRoadTest; bottomDrawerOpen = false" :loading="savingRoadTest" :disabled="!canValidateRoadTest" class="w-full justify-center min-h-12" />
-                <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" variant="solid" size="md" @click="finishWork; bottomDrawerOpen = false" :loading="finishing" :disabled="!essaiRoutierValide" class="w-full justify-center min-h-12 col-span-2" />
-              </div>
-            </div>
-            <!-- Documents -->
-            <div class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-wider" style="color:#6B7280;">Documents</div>
-              <div class="grid grid-cols-2 gap-2">
-                <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" class="inline-flex items-center justify-center gap-1 px-4 py-3 rounded-lg text-sm font-semibold min-h-12" style="background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.2);color:#FFD200;text-decoration:none;" @click="bottomDrawerOpen = false">📋 OR</NuxtLink>
-              </div>
-            </div>
-            <!-- Photos -->
-            <div class="space-y-2">
-              <div class="text-xs font-bold uppercase tracking-wider" style="color:#6B7280;">Photos</div>
-              <div class="grid grid-cols-2 gap-2">
-                <UButton label="📷 Voir photos" color="neutral" variant="outline" size="md" @click="scrollToSection('photos'); bottomDrawerOpen = false" class="w-full justify-center min-h-12" />
-                <UButton label="➕ Ajouter photo" color="primary" variant="solid" size="md" @click="triggerPhotoUpload(); bottomDrawerOpen = false" class="w-full justify-center min-h-12" />
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </div>
+      <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
+      <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
+      <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
+      
+      <UButton v-if="activeRdv.status === 'en_cours' && !essaiRoutierValide" label="🏍 Valider essai" color="warning" variant="solid" size="md" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="!canValidateRoadTest" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
+      <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" variant="solid" size="md" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
     </div>
   </div>
 </template>
@@ -521,56 +478,25 @@ const pendingFinishTransition = ref(false)
 const now = ref(Date.now())
 let chronoTimer: ReturnType<typeof setInterval> | null = null
 
-// --- Phase 4 UX additions ---
-const activeMecaSection = ref('intervention')
-const bottomDrawerOpen = ref(false)
-const photoFileInput = ref<HTMLInputElement | null>(null)
+const activeSection = ref('intervention')
+const elapsedSeconds = computed(() => Math.round((now.value - getStartTime()) / 1000))
+const plannedSeconds = computed(() => (activeRdv.value?.temps_estime || 0) * 60)
+const checkupPhotos = computed<Record<string, string>>(() => ({}))
+const travauxSupp = computed(() => (activeRdv.value as any)?.demandes_travaux_supp || (activeRdv.value as any)?.travaux_supplementaires || [])
 
-const chronoRunning = computed(() => activeRdv.value?.status === 'en_cours' && elapsedMin.value > 0)
-const checkupOkCount = computed(() => Object.values(checkupForm).filter(v => v === 'ok').length)
-const essaiDone = computed(() => essaiRoutierValide.value)
-const travauxSupp = computed(() => [])
-const photos = computed(() => rdvPhotos.value)
-
-const navBadgeIntervention = computed(() => {
-  if (!activeRdv.value) return ''
-  if (['en_pause', 'en_attente_pieces'].includes(activeRdv.value.status)) return '⚠️'
-  return ''
+const interventionBadge = computed(() => {
+  if (activeRdv.value?.status === 'en_cours' && elapsedSeconds.value > 0) return '✓'
+  return undefined
 })
-const navBadgeCheckup = computed(() => {
-  if (checkupDone.value === checkupItems.length) return '✓'
-  if (checkupDone.value > 0) return '⚠️'
-  return ''
+const checkupBadge = computed(() => {
+  const nokCount = Object.values(checkup).filter(v => v === 'nok').length
+  if (nokCount > 0) return '⚠️'
+  if (checkupDone.value > 0) return `${checkupDone.value}/10`
+  return undefined
 })
-const navBadgeEssai = computed(() => {
-  if (essaiRoutierValide.value) return '✓'
-  if (essaiFilledCount.value > 0) return '⚠️'
-  return ''
-})
-const navBadgeTravaux = computed(() => showSupplementaryForm.value ? '⚠️' : '')
-const navBadgePhotos = computed(() => rdvPhotos.value.length > 0 ? '✓' : '')
-const navBadgeNotes = computed(() => interventionNotes.value.trim() ? '✓' : '')
-
-const mecaNavSections = computed(() => [
-  { id: 'intervention', label: 'Intervention', badge: chronoRunning.value ? '✓' : undefined },
-  { id: 'checkup', label: 'Check-up', badge: `${checkupOkCount.value}/10` },
-  { id: 'essai', label: 'Essai', badge: essaiDone.value ? '✓' : undefined },
-  { id: 'travaux', label: 'Travaux', badge: travauxSupp.value.length > 0 ? String(travauxSupp.value.length) : undefined },
-  { id: 'photos', label: 'Photos', badge: photos.value.length > 0 ? String(photos.value.length) : undefined },
-  { id: 'notes', label: 'Notes' },
-])
-
-function scrollToSection(id: string) {
-  activeMecaSection.value = id
-  const el = document.getElementById(`section-meca-${id}`) || document.getElementById(`section-${id}`)
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-}
-
-function triggerPhotoUpload() {
-  photoFileInput.value?.click()
-}
+const essaiBadge = computed(() => essaiRoutierValide.value ? '✓' : undefined)
+const travauxBadge = computed(() => travauxSupp.value.length > 0 ? `${travauxSupp.value.length}` : undefined)
+const photosBadge = computed(() => rdvPhotos.value.length > 0 ? `${rdvPhotos.value.length}` : undefined)
 
 // --- Rapport d'intervention ---
 const rapportRdvId = ref<number | null>(null)
@@ -860,17 +786,13 @@ const checkupItems = [
   { key: 'cablerie', label: 'Câblerie' },
   { key: 'general', label: 'État général' },
 ]
-const checkupForm = reactive<Record<string, string>>({})
-const checkupDone = computed(() => Object.values(checkupForm).filter(v => v === 'ok' || v === 'nok').length)
-const checkupPhotos = computed(() => {
-  const map: Record<string, string> = {}
-  return map
-})
+const checkup = reactive<Record<string, string>>({})
+const checkupDone = computed(() => Object.values(checkup).filter(v => v === 'ok' || v === 'nok').length)
 
-function toggleCheckupItem(key: string) {
-  if (!checkupForm[key]) checkupForm[key] = 'ok'
-  else if (checkupForm[key] === 'ok') checkupForm[key] = 'nok'
-  else checkupForm[key] = ''
+function cycleCheckup(key: string) {
+  if (!checkup[key]) checkup[key] = 'ok'
+  else if (checkup[key] === 'ok') checkup[key] = 'nok'
+  else checkup[key] = ''
 }
 
 const initials = computed(() => {
@@ -929,7 +851,7 @@ const activeRdvStatusHint = computed(() => {
     case 'en_attente_pieces':
       return 'Le dossier reste côté atelier mais la reprise doit attendre la réception des pièces nécessaires.'
     default:
-      return 'L\u2019intervention est en cours sur le pont.'
+      return 'L’intervention est en cours sur le pont.'
   }
 })
 const activeRdvStatusStyle = computed(() => {
@@ -962,7 +884,7 @@ const priorityAction = computed(() => {
   if (activeRdv.value?.status === 'en_attente_pieces') return 'Pièces attendues: reprendre dès réception et validation comptoir'
   if (activeRdv.value?.status === 'en_pause') return 'Intervention en pause: reprendre ou basculer en attente pièces selon le cas réel'
   if (activeRdv.value && progressPct.value > 100) return `⚠️ Intervention en cours en retard — terminer rapidement`
-  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l\u2019essai routier avant clôture'
+  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
   if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
   return null
 })
@@ -991,12 +913,6 @@ const chronoDisplay = computed(() => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(Math.max(0, s)).padStart(2, '0')}`
 })
 
-const chronoPct = computed(() => progressPct.value)
-const chronoDisplayTime = computed(() => chronoDisplay.value)
-const elapsedSeconds = computed(() => elapsedMin.value)
-const plannedSeconds = computed(() => activeRdv.value?.temps_estime || 0)
-const overtimeSeconds = computed(() => Math.max(0, elapsedMin.value - (activeRdv.value?.temps_estime || 0)))
-
 function getStartTime(): number {
   const rdv = activeRdv.value
   if (!rdv) return Date.now()
@@ -1015,10 +931,10 @@ function parseEtatVehicule(raw: any) {
 }
 
 function applySavedWorkshopReport() {
-  Object.keys(checkupForm).forEach((key) => { delete checkupForm[key] })
+  Object.keys(checkup).forEach((key) => { delete checkup[key] })
   const savedCheckup = activeRdv.value?.or_mechanic_checkup ?? {}
   Object.entries(savedCheckup).forEach(([key, value]) => {
-    if (value) checkupForm[key] = String(value)
+    if (value) checkup[key] = String(value)
   })
   interventionNotes.value = activeRdv.value?.or_mechanic_notes ?? ''
   if (essaiForm.kmDebut == null && activeRdv.value?.km_reception != null) {
@@ -1037,14 +953,14 @@ async function persistWorkshopReport(showToast = true) {
     }
 
     await api.patch(`/mecanicien/me/rapport/${orId}`, {
-      mechanic_checkup: { ...checkupForm },
+      mechanic_checkup: { ...checkup },
       mechanic_notes: interventionNotes.value,
     })
 
     myRdvs.value = myRdvs.value.map((rdv: any) => rdv.id === activeRdv.value?.id
       ? {
           ...rdv,
-          or_mechanic_checkup: { ...checkupForm },
+          or_mechanic_checkup: { ...checkup },
           or_mechanic_notes: interventionNotes.value,
         }
       : rdv)
@@ -1166,7 +1082,7 @@ async function finishWork() {
     return
   }
   if (!essaiRoutierValide.value) {
-    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l\u2019essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
+    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l’essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
     return
   }
   finishing.value = true
@@ -1176,7 +1092,7 @@ async function finishWork() {
     await openRapport(terminatedId)
     if (!rapport.value?.signatureMecanicien) {
       pendingFinishTransition.value = true
-      toast.add({ title: 'Signature mécanicien requise', description: 'Signez le rapport d\u2019intervention pour clôturer le RDV.', color: 'warning' })
+      toast.add({ title: 'Signature mécanicien requise', description: 'Signez le rapport d’intervention pour clôturer le RDV.', color: 'warning' })
       return
     }
     await completeFinishTransition(terminatedId)

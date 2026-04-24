@@ -38,19 +38,19 @@ class CerfaOverlayService
         // Déclarant professionnel
         $this->markCheckbox($pdf, $c['declarant_checkbox']['x'], $c['declarant_checkbox']['y'], true);
         $this->drawLineText($pdf, $c['declarant_nom']['x'], $c['declarant_nom']['y'], $c['declarant_nom']['w'], $atelier->getNom(), $c['declarant_nom']['fs']);
-        $this->drawBoxedText($pdf, $c['declarant_siren']['x'], $c['declarant_siren']['y'], 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, $c['declarant_siren']['fs']);
+        $this->drawConfiguredBoxedText($pdf, $c['declarant_siren'], $this->toSiren($atelier->getSiret()), 9, 4.4, 0.25);
 
         $this->drawLineText($pdf, $c['declarant_num_voie']['x'], $c['declarant_num_voie']['y'], $c['declarant_num_voie']['w'], $atelierAddress['streetNumber'], $c['declarant_num_voie']['fs']);
         $this->drawLineText($pdf, $c['declarant_ext_voie']['x'], $c['declarant_ext_voie']['y'], $c['declarant_ext_voie']['w'], $atelierAddress['streetExtension'], $c['declarant_ext_voie']['fs']);
         $this->drawLineText($pdf, $c['declarant_type_voie']['x'], $c['declarant_type_voie']['y'], $c['declarant_type_voie']['w'], $atelierAddress['streetType'], $c['declarant_type_voie']['fs']);
         $this->drawLineText($pdf, $c['declarant_nom_voie']['x'], $c['declarant_nom_voie']['y'], $c['declarant_nom_voie']['w'], $atelierAddress['streetName'], $c['declarant_nom_voie']['fs']);
-        $this->drawBoxedText($pdf, $c['declarant_cp']['x'], $c['declarant_cp']['y'], 5.1, 0.15, $atelierAddress['postalCode'], 5, $c['declarant_cp']['fs']);
+        $this->drawConfiguredBoxedText($pdf, $c['declarant_cp'], $atelierAddress['postalCode'], 5, 5.1, 0.15);
         $this->drawLineText($pdf, $c['declarant_ville']['x'], $c['declarant_ville']['y'], $c['declarant_ville']['w'], $atelierAddress['city'], $c['declarant_ville']['fs']);
 
-        $this->drawDateBoxes($pdf, $c['date_acquisition']['x'], $c['date_acquisition']['y'], $purchaseDate, 4.9, 0.2, $c['date_acquisition']['fs']);
-        // Cases motif/provenance (non configurables — toujours vides en acquisition pro)
-        $this->drawBoxedText($pdf, 95.0, 63.6, 4.9, 0.2, '', 2, 8);
-        $this->drawBoxedText($pdf, 107.0, 63.6, 4.9, 0.2, '', 2, 8);
+        $this->drawConfiguredDateBoxes($pdf, $c['date_acquisition'], $purchaseDate, 4.9, 0.2);
+        // Cases motif/provenance (pilotables via config, laissées vides en acquisition pro)
+        $this->drawConfiguredBoxedText($pdf, $c['acquisition_motif_case_1'], '', 2, 4.9, 0.2);
+        $this->drawConfiguredBoxedText($pdf, $c['acquisition_motif_case_2'], '', 2, 4.9, 0.2);
 
         // Véhicule
         $this->drawLineText($pdf, $c['vehicle_plaque']['x'], $c['vehicle_plaque']['y'], $c['vehicle_plaque']['w'], $vehicle?->getPlaque(), $c['vehicle_plaque']['fs']);
@@ -61,29 +61,28 @@ class CerfaOverlayService
         $this->drawLineText($pdf, $c['vehicle_genre']['x'], $c['vehicle_genre']['y'], $c['vehicle_genre']['w'], $vehicle?->getGenreNational(), $c['vehicle_genre']['fs']);
 
         $hasCertificate = trim((string) $vehicle?->getNumeroFormuleCg()) !== '';
-        $this->markCheckbox($pdf, 81.7, 97.0, $hasCertificate);
-        $this->markCheckbox($pdf, 98.3, 97.0, !$hasCertificate);
-        $this->drawBoxedText($pdf, 46.0, 105.8, 5.1, 0.15, '', 8, 8);
-        $this->drawLineText($pdf, 113.0, 105.8, 58.0, $vehicle?->getNumeroFormuleCg(), 8);
-        $this->drawLineText($pdf, 57.0, 121.0, 142.0, $hasCertificate ? '' : 'Certificat d\'immatriculation non renseigné', 8);
+        $this->markCheckbox($pdf, $c['vehicle_certificat_present_checkbox']['x'], $c['vehicle_certificat_present_checkbox']['y'], $hasCertificate);
+        $this->markCheckbox($pdf, $c['vehicle_certificat_absent_checkbox']['x'], $c['vehicle_certificat_absent_checkbox']['y'], !$hasCertificate);
+        $this->drawConfiguredBoxedText($pdf, $c['vehicle_certificat_num_formule'], '', 8, 5.1, 0.15);
+        $this->drawLineText($pdf, $c['vehicle_num_formule_cg']['x'], $c['vehicle_num_formule_cg']['y'], $c['vehicle_num_formule_cg']['w'], $vehicle?->getNumeroFormuleCg(), $c['vehicle_num_formule_cg']['fs']);
+        $this->drawLineText($pdf, $c['vehicle_certificat_absence_note']['x'], $c['vehicle_certificat_absence_note']['y'], $c['vehicle_certificat_absence_note']['w'], $hasCertificate ? '' : 'Certificat d\'immatriculation non renseigné', $c['vehicle_certificat_absence_note']['fs']);
 
         // Signature déclarant
         $this->drawLineText($pdf, $c['ville_signature']['x'], $c['ville_signature']['y'], $c['ville_signature']['w'], $atelier->getVille(), $c['ville_signature']['fs']);
-        $this->drawDateBoxes($pdf, $c['date_signature']['x'], $c['date_signature']['y'], $purchaseDate, 4.9, 0.2, $c['date_signature']['fs']);
+        $this->drawConfiguredDateBoxes($pdf, $c['date_signature'], $purchaseDate, 4.9, 0.2);
 
         // Vendeur (bas de page)
         $this->drawLineText($pdf, $c['vendeur_nom']['x'], $c['vendeur_nom']['y'], $c['vendeur_nom']['w'], $this->formatPersonLabel($seller), $c['vendeur_nom']['fs']);
-        $this->drawBoxedText($pdf, 153.0, 205.1, 4.4, 0.25, '', 9, 8); // SIREN vendeur particulier (vide)
+        $this->drawConfiguredBoxedText($pdf, $c['vendeur_siren'], '', 9, 4.4, 0.25); // SIREN vendeur particulier (vide)
         $this->drawLineText($pdf, $c['vendeur_num_voie']['x'], $c['vendeur_num_voie']['y'], $c['vendeur_num_voie']['w'], $sellerAddress['streetNumber'], $c['vendeur_num_voie']['fs']);
         $this->drawLineText($pdf, $c['vendeur_ext_voie']['x'], $c['vendeur_ext_voie']['y'], $c['vendeur_ext_voie']['w'], $sellerAddress['streetExtension'], $c['vendeur_ext_voie']['fs']);
         $this->drawLineText($pdf, $c['vendeur_type_voie']['x'], $c['vendeur_type_voie']['y'], $c['vendeur_type_voie']['w'], $sellerAddress['streetType'], $c['vendeur_type_voie']['fs']);
         $this->drawLineText($pdf, $c['vendeur_nom_voie']['x'], $c['vendeur_nom_voie']['y'], $c['vendeur_nom_voie']['w'], $sellerAddress['streetName'], $c['vendeur_nom_voie']['fs']);
-        $this->drawBoxedText($pdf, $c['vendeur_cp']['x'], $c['vendeur_cp']['y'], 5.1, 0.15, $sellerAddress['postalCode'], 5, $c['vendeur_cp']['fs']);
+        $this->drawConfiguredBoxedText($pdf, $c['vendeur_cp'], $sellerAddress['postalCode'], 5, 5.1, 0.15);
         $this->drawLineText($pdf, $c['vendeur_ville']['x'], $c['vendeur_ville']['y'], $c['vendeur_ville']['w'], $sellerAddress['city'], $c['vendeur_ville']['fs']);
-        $this->drawDateBoxes($pdf, $c['date_cession_vendeur']['x'], $c['date_cession_vendeur']['y'], $purchaseDate, 4.9, 0.2, $c['date_cession_vendeur']['fs']);
-        // Deuxième bloc signature vendeur (certifié exact) — non configurable
-        $this->drawLineText($pdf, 15.0, 246.9, 45.0, $atelier->getVille(), 7);
-        $this->drawDateBoxes($pdf, 70.0, 246.9, $purchaseDate, 4.9, 0.2, 8);
+        $this->drawConfiguredDateBoxes($pdf, $c['date_cession_vendeur'], $purchaseDate, 4.9, 0.2);
+        $this->drawLineText($pdf, $c['vendeur_ville_certifiee_exact']['x'], $c['vendeur_ville_certifiee_exact']['y'], $c['vendeur_ville_certifiee_exact']['w'], $atelier->getVille(), $c['vendeur_ville_certifiee_exact']['fs']);
+        $this->drawConfiguredDateBoxes($pdf, $c['vendeur_date_certifiee_exact'], $purchaseDate, 4.9, 0.2);
 
         $pdf->Output('F', $outputPath);
 
@@ -106,7 +105,7 @@ class CerfaOverlayService
 
         // Mandant (acheteur)
         $this->drawLineText($pdf, $c['mandant_nom']['x'], $c['mandant_nom']['y'], $c['mandant_nom']['w'], $this->formatPersonLabel($buyer), $c['mandant_nom']['fs']);
-        $this->drawLineText($pdf, 142.5, 46.5, 55.8, '', 8); // SIREN acheteur particulier (vide)
+        $this->drawLineText($pdf, $c['mandant_siren']['x'], $c['mandant_siren']['y'], $c['mandant_siren']['w'], '', $c['mandant_siren']['fs']); // SIREN acheteur particulier (vide)
 
         $this->drawLineText($pdf, $c['mandant_num_voie']['x'], $c['mandant_num_voie']['y'], $c['mandant_num_voie']['w'], $buyerAddress['streetNumber'], $c['mandant_num_voie']['fs']);
         $this->drawLineText($pdf, $c['mandant_ext_voie']['x'], $c['mandant_ext_voie']['y'], $c['mandant_ext_voie']['w'], $buyerAddress['streetExtension'], $c['mandant_ext_voie']['fs']);
@@ -123,14 +122,14 @@ class CerfaOverlayService
 
         // Véhicule
         $this->drawLineText($pdf, $c['vehicle_marque']['x'], $c['vehicle_marque']['y'], $c['vehicle_marque']['w'], $vehicle?->getMarque(), $c['vehicle_marque']['fs']);
-        $this->drawBoxedText($pdf, $c['vehicle_vin']['x'], $c['vehicle_vin']['y'], 5.25, 0.2, $vehicle?->getVin(), 17, $c['vehicle_vin']['fs']);
+        $this->drawConfiguredBoxedText($pdf, $c['vehicle_vin'], $vehicle?->getVin(), 17, 5.25, 0.2);
         $this->drawLineText($pdf, $c['vehicle_plaque']['x'], $c['vehicle_plaque']['y'], $c['vehicle_plaque']['w'], $vehicle?->getPlaque(), $c['vehicle_plaque']['fs']);
 
         // Signature
         $this->drawLineText($pdf, $c['ville_signature']['x'], $c['ville_signature']['y'], $c['ville_signature']['w'], $atelier->getVille(), $c['ville_signature']['fs']);
-        $this->drawBoxedText($pdf, $c['date_signature_jour']['x'], $c['date_signature_jour']['y'], 4.2, 0.15, $signatureDate->format('d'), 2, $c['date_signature_jour']['fs']);
-        $this->drawBoxedText($pdf, $c['date_signature_mois']['x'], $c['date_signature_mois']['y'], 4.2, 0.15, $signatureDate->format('m'), 2, $c['date_signature_mois']['fs']);
-        $this->drawBoxedText($pdf, $c['date_signature_annee']['x'], $c['date_signature_annee']['y'], 4.2, 0.15, $signatureDate->format('Y'), 4, $c['date_signature_annee']['fs']);
+        $this->drawConfiguredBoxedText($pdf, $c['date_signature_jour'], $signatureDate->format('d'), 2, 4.2, 0.15);
+        $this->drawConfiguredBoxedText($pdf, $c['date_signature_mois'], $signatureDate->format('m'), 2, 4.2, 0.15);
+        $this->drawConfiguredBoxedText($pdf, $c['date_signature_annee'], $signatureDate->format('Y'), 4, 4.2, 0.15);
 
         $pdf->Output('F', $outputPath);
 
@@ -155,8 +154,8 @@ class CerfaOverlayService
 
             // Véhicule
             $this->drawLineText($pdf, $c['vehicle_plaque']['x'], $c['vehicle_plaque']['y'], $c['vehicle_plaque']['w'], $vehicle?->getPlaque(), $c['vehicle_plaque']['fs']);
-            $this->drawBoxedText($pdf, $c['vehicle_vin']['x'], $c['vehicle_vin']['y'], 5.0, 0.2, $vehicle?->getVin(), 17, $c['vehicle_vin']['fs']);
-            $this->drawDateBoxes($pdf, $c['vehicle_mec']['x'], $c['vehicle_mec']['y'], $vehicle?->getDatePremiereMiseEnCirculation(), 4.6, 0.15, $c['vehicle_mec']['fs']);
+            $this->drawConfiguredBoxedText($pdf, $c['vehicle_vin'], $vehicle?->getVin(), 17, 5.0, 0.2);
+            $this->drawConfiguredDateBoxes($pdf, $c['vehicle_mec'], $vehicle?->getDatePremiereMiseEnCirculation(), 4.6, 0.15);
             $this->drawLineText($pdf, $c['vehicle_marque']['x'], $c['vehicle_marque']['y'], $c['vehicle_marque']['w'], $vehicle?->getMarque(), $c['vehicle_marque']['fs']);
             $this->drawLineText($pdf, $c['vehicle_type_variante']['x'], $c['vehicle_type_variante']['y'], $c['vehicle_type_variante']['w'], $vehicle?->getTypeVariante(), $c['vehicle_type_variante']['fs']);
             $this->drawLineText($pdf, $c['vehicle_genre']['x'], $c['vehicle_genre']['y'], $c['vehicle_genre']['w'], $vehicle?->getGenreNational(), $c['vehicle_genre']['fs']);
@@ -164,47 +163,47 @@ class CerfaOverlayService
             $this->drawLineText($pdf, $c['vehicle_kilometrage']['x'], $c['vehicle_kilometrage']['y'], $c['vehicle_kilometrage']['w'], $vehicle?->getMileage() !== null ? (string) $vehicle->getMileage() : '', $c['vehicle_kilometrage']['fs']);
 
             $hasCertificate = trim((string) $vehicle?->getNumeroFormuleCg()) !== '';
-            $this->markCheckbox($pdf, 12.7, 65.0, $hasCertificate);
-            $this->drawBoxedText($pdf, $c['vehicle_num_formule_cg']['x'], $c['vehicle_num_formule_cg']['y'], 4.7, 0.15, $vehicle?->getNumeroFormuleCg(), 11, $c['vehicle_num_formule_cg']['fs']);
-            $this->markCheckbox($pdf, 123.0, 65.0, !$hasCertificate);
-            $this->drawLineText($pdf, 154.0, 64.5, 43.0, $hasCertificate ? '' : 'Absence du certificat à régulariser', 6.5);
-            $this->drawDateBoxes($pdf, 74.0, 77.0, null, 4.6, 0.15, 7);
+            $this->markCheckbox($pdf, $c['vehicle_certificat_present_checkbox']['x'], $c['vehicle_certificat_present_checkbox']['y'], $hasCertificate);
+            $this->drawConfiguredBoxedText($pdf, $c['vehicle_num_formule_cg'], $vehicle?->getNumeroFormuleCg(), 11, 4.7, 0.15);
+            $this->markCheckbox($pdf, $c['vehicle_certificat_absent_checkbox']['x'], $c['vehicle_certificat_absent_checkbox']['y'], !$hasCertificate);
+            $this->drawLineText($pdf, $c['vehicle_certificat_absence_note']['x'], $c['vehicle_certificat_absence_note']['y'], $c['vehicle_certificat_absence_note']['w'], $hasCertificate ? '' : 'Absence du certificat à régulariser', $c['vehicle_certificat_absence_note']['fs']);
+            $this->drawConfiguredDateBoxes($pdf, $c['vehicle_ct_date'], null, 4.6, 0.15);
 
             // Vendeur
-            $this->markCheckbox($pdf, 12.7, 89.0, true);
+            $this->markCheckbox($pdf, $c['vendeur_checkbox']['x'], $c['vendeur_checkbox']['y'], true);
             $this->drawLineText($pdf, $c['vendeur_nom']['x'], $c['vendeur_nom']['y'], $c['vendeur_nom']['w'], $this->formatPersonLabel($seller), $c['vendeur_nom']['fs']);
-            $this->drawBoxedText($pdf, 147.0, 100.5, 4.4, 0.25, '', 9, 7); // SIREN vendeur particulier (vide)
+            $this->drawConfiguredBoxedText($pdf, $c['vendeur_siren'], '', 9, 4.4, 0.25); // SIREN vendeur particulier (vide)
             $this->drawLineText($pdf, $c['vendeur_num_voie']['x'], $c['vendeur_num_voie']['y'], $c['vendeur_num_voie']['w'], $sellerAddress['streetNumber'], $c['vendeur_num_voie']['fs']);
             $this->drawLineText($pdf, $c['vendeur_ext_voie']['x'], $c['vendeur_ext_voie']['y'], $c['vendeur_ext_voie']['w'], $sellerAddress['streetExtension'], $c['vendeur_ext_voie']['fs']);
             $this->drawLineText($pdf, $c['vendeur_type_voie']['x'], $c['vendeur_type_voie']['y'], $c['vendeur_type_voie']['w'], $sellerAddress['streetType'], $c['vendeur_type_voie']['fs']);
             $this->drawLineText($pdf, $c['vendeur_nom_voie']['x'], $c['vendeur_nom_voie']['y'], $c['vendeur_nom_voie']['w'], $sellerAddress['streetName'], $c['vendeur_nom_voie']['fs']);
-            $this->drawBoxedText($pdf, $c['vendeur_cp']['x'], $c['vendeur_cp']['y'], 5.1, 0.15, $sellerAddress['postalCode'], 5, $c['vendeur_cp']['fs']);
+            $this->drawConfiguredBoxedText($pdf, $c['vendeur_cp'], $sellerAddress['postalCode'], 5, 5.1, 0.15);
             $this->drawLineText($pdf, $c['vendeur_ville']['x'], $c['vendeur_ville']['y'], $c['vendeur_ville']['w'], $sellerAddress['city'], $c['vendeur_ville']['fs']);
 
-            $this->markCheckbox($pdf, 65.5, 129.5, true);
-            $this->drawDateBoxes($pdf, $c['date_cession']['x'], $c['date_cession']['y'], $date, 4.6, 0.15, $c['date_cession']['fs']);
-            $this->drawBoxedText($pdf, 56.0, 136.0, 4.6, 0.15, '', 2, 7); // heure (non utilisée)
-            $this->drawBoxedText($pdf, 67.0, 136.0, 4.6, 0.15, '', 2, 7); // minutes (non utilisées)
-            $this->markCheckbox($pdf, 12.7, 146.5, true);
-            $this->markCheckbox($pdf, 12.7, 153.5, true);
+            $this->markCheckbox($pdf, $c['cession_checkbox']['x'], $c['cession_checkbox']['y'], true);
+            $this->drawConfiguredDateBoxes($pdf, $c['date_cession'], $date, 4.6, 0.15);
+            $this->drawConfiguredBoxedText($pdf, $c['date_cession_heure'], '', 2, 4.6, 0.15); // heure (non utilisée)
+            $this->drawConfiguredBoxedText($pdf, $c['date_cession_minute'], '', 2, 4.6, 0.15); // minutes (non utilisées)
+            $this->markCheckbox($pdf, $c['vendeur_case_1_checkbox']['x'], $c['vendeur_case_1_checkbox']['y'], true);
+            $this->markCheckbox($pdf, $c['vendeur_case_2_checkbox']['x'], $c['vendeur_case_2_checkbox']['y'], true);
             $this->drawLineText($pdf, $c['ville_cession_vendeur']['x'], $c['ville_cession_vendeur']['y'], $c['ville_cession_vendeur']['w'], $atelier->getVille(), $c['ville_cession_vendeur']['fs']);
-            $this->drawDateBoxes($pdf, $c['date_cession_vendeur']['x'], $c['date_cession_vendeur']['y'], $date, 4.6, 0.15, $c['date_cession_vendeur']['fs']);
+            $this->drawConfiguredDateBoxes($pdf, $c['date_cession_vendeur'], $date, 4.6, 0.15);
 
             // Acheteur (atelier pro)
-            $this->markCheckbox($pdf, 12.7, 215.5, true);
+            $this->markCheckbox($pdf, $c['acheteur_checkbox']['x'], $c['acheteur_checkbox']['y'], true);
             $this->drawLineText($pdf, $c['acheteur_nom']['x'], $c['acheteur_nom']['y'], $c['acheteur_nom']['w'], $atelier->getNom(), $c['acheteur_nom']['fs']);
-            $this->drawBoxedText($pdf, $c['acheteur_siren']['x'], $c['acheteur_siren']['y'], 4.4, 0.25, $this->toSiren($atelier->getSiret()), 9, $c['acheteur_siren']['fs']);
-            $this->drawDateBoxes($pdf, 24.0, 230.0, null, 4.6, 0.15, 7); // date naissance (non utilisée)
+            $this->drawConfiguredBoxedText($pdf, $c['acheteur_siren'], $this->toSiren($atelier->getSiret()), 9, 4.4, 0.25);
+            $this->drawConfiguredDateBoxes($pdf, $c['acheteur_date_naissance'], null, 4.6, 0.15); // date naissance (non utilisée)
             $this->drawLineText($pdf, $c['acheteur_num_voie']['x'], $c['acheteur_num_voie']['y'], $c['acheteur_num_voie']['w'], $atelierAddress['streetNumber'], $c['acheteur_num_voie']['fs']);
             $this->drawLineText($pdf, $c['acheteur_ext_voie']['x'], $c['acheteur_ext_voie']['y'], $c['acheteur_ext_voie']['w'], $atelierAddress['streetExtension'], $c['acheteur_ext_voie']['fs']);
             $this->drawLineText($pdf, $c['acheteur_type_voie']['x'], $c['acheteur_type_voie']['y'], $c['acheteur_type_voie']['w'], $atelierAddress['streetType'], $c['acheteur_type_voie']['fs']);
             $this->drawLineText($pdf, $c['acheteur_nom_voie']['x'], $c['acheteur_nom_voie']['y'], $c['acheteur_nom_voie']['w'], $atelierAddress['streetName'], $c['acheteur_nom_voie']['fs']);
-            $this->drawBoxedText($pdf, $c['acheteur_cp']['x'], $c['acheteur_cp']['y'], 5.1, 0.15, $atelierAddress['postalCode'], 5, $c['acheteur_cp']['fs']);
+            $this->drawConfiguredBoxedText($pdf, $c['acheteur_cp'], $atelierAddress['postalCode'], 5, 5.1, 0.15);
             $this->drawLineText($pdf, $c['acheteur_ville']['x'], $c['acheteur_ville']['y'], $c['acheteur_ville']['w'], $atelierAddress['city'], $c['acheteur_ville']['fs']);
-            $this->markCheckbox($pdf, 12.7, 259.0, true);
-            $this->markCheckbox($pdf, 12.7, 263.5, true);
+            $this->markCheckbox($pdf, $c['acheteur_case_1_checkbox']['x'], $c['acheteur_case_1_checkbox']['y'], true);
+            $this->markCheckbox($pdf, $c['acheteur_case_2_checkbox']['x'], $c['acheteur_case_2_checkbox']['y'], true);
             $this->drawLineText($pdf, $c['ville_cession_acheteur']['x'], $c['ville_cession_acheteur']['y'], $c['ville_cession_acheteur']['w'], $atelier->getVille(), $c['ville_cession_acheteur']['fs']);
-            $this->drawDateBoxes($pdf, $c['date_cession_acheteur']['x'], $c['date_cession_acheteur']['y'], $date, 4.6, 0.15, $c['date_cession_acheteur']['fs']);
+            $this->drawConfiguredDateBoxes($pdf, $c['date_cession_acheteur'], $date, 4.6, 0.15);
         }
 
         $pdf->Output('F', $outputPath);
@@ -235,6 +234,9 @@ class CerfaOverlayService
                 'y'  => (float) $config->getY(),
                 'w'  => (float) $config->getWidth(),
                 'fs' => (float) $config->getFontSize(),
+                'bw' => (float) $config->getCharBoxWidth(),
+                'bg' => (float) $config->getCharGap(),
+                'dg' => (float) $config->getDateGroupGap(),
             ];
         }
 
@@ -247,6 +249,9 @@ class CerfaOverlayService
                     'y'  => (float) $d['y'],
                     'w'  => (float) $d['width'],
                     'fs' => (float) $d['font_size'],
+                    'bw' => (float) ($d['char_box_width'] ?? 0),
+                    'bg' => (float) ($d['char_gap'] ?? 0),
+                    'dg' => (float) ($d['date_group_gap'] ?? 0),
                 ];
             }
         }
@@ -328,6 +333,37 @@ class CerfaOverlayService
         $this->drawBoxedText($pdf, $x, $y, $boxWidth, $gap, $date->format('d'), 2, $fontSize);
         $this->drawBoxedText($pdf, $x + (3 * ($boxWidth + $gap)), $y, $boxWidth, $gap, $date->format('m'), 2, $fontSize);
         $this->drawBoxedText($pdf, $x + (6 * ($boxWidth + $gap)), $y, $boxWidth, $gap, $date->format('Y'), 4, $fontSize);
+    }
+
+    /** @param array{x:float,y:float,w:float,fs:float,bw?:float,bg?:float,dg?:float} $field */
+    private function drawConfiguredBoxedText(Fpdi $pdf, array $field, ?string $text, int $maxChars, float $defaultBoxWidth, float $defaultGap): void
+    {
+        $boxWidth = (($field['bw'] ?? 0.0) > 0) ? (float) $field['bw'] : $defaultBoxWidth;
+        $gap = (($field['bg'] ?? 0.0) > 0) ? (float) $field['bg'] : $defaultGap;
+
+        $this->drawBoxedText($pdf, (float) $field['x'], (float) $field['y'], $boxWidth, $gap, $text, $maxChars, (float) $field['fs']);
+    }
+
+    /** @param array{x:float,y:float,w:float,fs:float,bw?:float,bg?:float,dg?:float} $field */
+    private function drawConfiguredDateBoxes(Fpdi $pdf, array $field, ?\DateTimeInterface $date, float $defaultBoxWidth, float $defaultGap): void
+    {
+        if (!$date) {
+            return;
+        }
+
+        $boxWidth = (($field['bw'] ?? 0.0) > 0) ? (float) $field['bw'] : $defaultBoxWidth;
+        $gap = (($field['bg'] ?? 0.0) > 0) ? (float) $field['bg'] : $defaultGap;
+        $defaultGroupGap = $boxWidth + $gap;
+        $groupGap = (($field['dg'] ?? 0.0) > 0) ? (float) $field['dg'] : $defaultGroupGap;
+
+        $x = (float) $field['x'];
+        $y = (float) $field['y'];
+        $fs = (float) $field['fs'];
+        $step = $boxWidth + $gap;
+
+        $this->drawBoxedText($pdf, $x, $y, $boxWidth, $gap, $date->format('d'), 2, $fs);
+        $this->drawBoxedText($pdf, $x + (2 * $step) + $groupGap, $y, $boxWidth, $gap, $date->format('m'), 2, $fs);
+        $this->drawBoxedText($pdf, $x + (4 * $step) + (2 * $groupGap), $y, $boxWidth, $gap, $date->format('Y'), 4, $fs);
     }
 
     private function markCheckbox(Fpdi $pdf, float $x, float $y, bool $checked): void

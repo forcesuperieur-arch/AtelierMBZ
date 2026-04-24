@@ -286,6 +286,37 @@
                 Le client accepte les travaux décrits et confirme l'état du véhicule à la réception.
               </p>
 
+              <div class="companion-clauses">
+                <div class="companion-clauses__header">
+                  <strong>Conditions et RGPD</strong>
+                </div>
+
+                <p v-if="clausesLoading" class="companion-clauses__meta">Chargement des clauses en cours…</p>
+                <p v-else-if="clausesError" class="companion-clauses__meta companion-clauses__meta--error">{{ clausesError }}</p>
+
+                <template v-else>
+                  <label
+                    v-for="clause in signatureClauses"
+                    :key="clause.code"
+                    class="companion-clause-item"
+                  >
+                    <input
+                      :id="`clause-${clause.code}`"
+                      v-model="acceptedClauses[clause.code]"
+                      type="checkbox"
+                    />
+                    <div class="companion-clause-item__content">
+                      <span class="companion-clause-item__title">{{ clause.libelle || humanizeClauseCode(clause.code) }}</span>
+                      <p class="companion-clause-item__text">{{ clause.texte }}</p>
+                    </div>
+                  </label>
+
+                  <p v-if="missingAcceptedClauseLabels.length" class="companion-clauses__meta companion-clauses__meta--warn">
+                    Acceptation requise avant signature : {{ missingAcceptedClauseLabels.join(', ') }}
+                  </p>
+                </template>
+              </div>
+
               <div class="sig-canvas-wrapper">
                 <canvas
                   ref="sigCanvas"
@@ -306,7 +337,7 @@
                 <button
                   class="companion-validate-btn"
                   style="flex:2;"
-                  :disabled="sigSaving || !hasDrawn"
+                  :disabled="sigSaving || !hasDrawn || clausesLoading || missingAcceptedClauseLabels.length > 0"
                   @click="submitSignature"
                 >
                   {{ sigSaving ? 'Envoi…' : '✓ Valider la signature' }}
@@ -352,13 +383,27 @@ const resignMode = ref(false)
 const sigCanvas = ref<HTMLCanvasElement | null>(null)
 const checkupSaving = ref(false)
 const checkupNotes = ref('')
+const clausesLoading = ref(false)
+const clausesError = ref('')
 
-type OcrFieldKey = 'plaque' | 'marque' | 'modele' | 'vin' | 'annee' | 'cylindree' | 'type_moto'
+type SignatureClause = {
+  code: string
+  libelle: string
+  texte: string
+  version: number | null
+}
+
+const signatureClauses = ref<SignatureClause[]>([])
+const acceptedClauses = reactive<Record<string, boolean>>({})
+
+type OcrFieldKey = 'plaque' | 'marque' | 'modele' | 'type_variante' | 'denomination_commerciale' | 'vin' | 'annee' | 'cylindree' | 'type_moto'
 
 const ocrFields: Array<{ key: OcrFieldKey; label: string }> = [
   { key: 'plaque', label: 'Plaque (A)' },
   { key: 'marque', label: 'Marque (D.1)' },
   { key: 'modele', label: 'Modèle (D.2)' },
+  { key: 'type_variante', label: 'Type / Variante / Version (D.2.1)' },
+  { key: 'denomination_commerciale', label: 'Dénomination commerciale (D.3)' },
   { key: 'vin', label: 'VIN (E)' },
   { key: 'annee', label: 'Mise en circulation (B)' },
   { key: 'cylindree', label: 'Cylindrée (P.1)' },
@@ -391,6 +436,49 @@ function setFeedback(message = '', isError = false) {
   statusMessage.value = isError ? '' : message
 }
 
+function humanizeClauseCode(code: string) {
+  const map: Record<string, string> = {
+    cgv: 'Conditions generales',
+    garantie: 'Garantie',
+    rgpd: 'Protection des donnees (RGPD)',
+  }
+  return map[code] || code.toUpperCase()
+}
+
+function resetAcceptedClauses() {
+  Object.keys(acceptedClauses).forEach((key) => {
+    delete acceptedClauses[key]
+  })
+}
+
+async function loadSignatureClauses(force = false) {
+  if (!token.value) return
+  if (!force && signatureClauses.value.length > 0) return
+
+  clausesLoading.value = true
+  clausesError.value = ''
+  try {
+    const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/clauses`)
+    await ensureOk(res, 'Impossible de charger les clauses de signature')
+    const payload = await res.json()
+    signatureClauses.value = Array.isArray(payload) ? payload : []
+
+    resetAcceptedClauses()
+    signatureClauses.value.forEach((clause) => {
+      acceptedClauses[clause.code] = false
+    })
+  } catch (e: unknown) {
+    signatureClauses.value = []
+    clausesError.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de charger les clauses de signature'
+  } finally {
+    clausesLoading.value = false
+  }
+}
+
+const missingAcceptedClauseLabels = computed(() => signatureClauses.value
+  .filter((clause) => !acceptedClauses[clause.code])
+  .map((clause) => clause.libelle || humanizeClauseCode(clause.code)))
+
 function loadSavedCheckup() {
   Object.keys(checkup).forEach((key) => { delete checkup[key] })
   const savedCheckup = rdv.value?.checkup ?? {}
@@ -398,8 +486,12 @@ function loadSavedCheckup() {
     if (value) checkup[key] = String(value)
   })
   checkupNotes.value = rdv.value?.checkup_notes ?? ''
-  carteGriseScanned.value = Array.isArray(rdv.value?.photos)
-    && rdv.value.photos.some((photo: any) => String(photo?.description || '').toLowerCase().includes('carte grise'))
+  carteGriseScanned.value = Boolean(
+    rdv.value?.vehicule?.vin
+    || rdv.value?.vehicule?.annee
+    || rdv.value?.vehicule?.cylindree
+    || rdv.value?.vehicule?.type_moto,
+  )
 }
 
 async function readApiError(res: Response, fallback: string) {
@@ -701,18 +793,7 @@ async function onCarteGriseSelected(e: Event) {
 
   try {
     setFeedback('')
-    // Upload as photo too
-    const preparedFile = await normalizeImage(file)
-    const fd = new FormData()
-    fd.append('photo', preparedFile)
-    fd.append('description', 'Carte grise')
-    const uploadRes = await globalThis.fetch(`${apiBase}/companion/${token.value}/photo`, {
-      method: 'POST',
-      body: fd,
-    })
-    await ensureOk(uploadRes, 'Impossible d’envoyer la carte grise')
-
-    // Client-side OCR with Tesseract.js
+    // OCR local uniquement: on retranscrit les champs sans persister l'image de carte grise.
     const { createWorker } = await import('tesseract.js')
     const worker = await createWorker('fra+nld+eng')
     const { data: { text } } = await worker.recognize(file)
@@ -727,13 +808,15 @@ async function onCarteGriseSelected(e: Event) {
       plaque: rdv.value?.vehicule?.plaque || '',
       marque: rdv.value?.vehicule?.marque || '',
       modele: rdv.value?.vehicule?.modele || '',
+      type_variante: rdv.value?.vehicule?.type_variante || rdv.value?.vehicule?.typeVariante || '',
+      denomination_commerciale: rdv.value?.vehicule?.denomination_commerciale || rdv.value?.vehicule?.denominationCommerciale || '',
       vin: rdv.value?.vehicule?.vin || '',
       annee: rdv.value?.vehicule?.annee ? String(rdv.value.vehicule.annee) : '',
       cylindree: rdv.value?.vehicule?.cylindree || '',
       type_moto: rdv.value?.vehicule?.type_moto || '',
     }
     carteGriseScanned.value = true
-    setFeedback('La photo est bien enregistrée. L’OCR a échoué, vous pouvez corriger les champs manuellement.', true)
+    setFeedback('OCR indisponible sur cette image. Corrigez les champs manuellement puis appliquez au véhicule.', true)
   } finally {
     ocrProcessing.value = false
     input.value = ''
@@ -743,6 +826,11 @@ async function onCarteGriseSelected(e: Event) {
 function parseCarteGriseText(text: string): Record<string, string> {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
   const joined = lines.join(' ')
+  const compact = joined
+    .replace(/[|]/g, 'I')
+    .replace(/\u2013|\u2014/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
   const base = rdv.value?.vehicule || {}
 
   const extractFirst = (...patterns: RegExp[]) => {
@@ -777,35 +865,82 @@ function parseCarteGriseText(text: string): Record<string, string> {
   }
 
   const modeleCandidate = extractFirst(
-    /(?:\bD[.\s]?2(?:[.\s]?1)?\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
-    /(?:\bD[.\s]?3\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
-    /(?:modele|model|commerciale?|handelsbenaming)[\s:.-]*([A-Z0-9\s/-]{2,30})/i,
+    /(?:\bD[.\s]?2\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,30})/i,
+    /(?:modele|model)[\s:.-]*([A-Z0-9\s/-]{2,30})/i,
   )
-  const vinCandidate = extractFirst(
+  let typeVarianteCandidate = extractFirst(
+    /(?:\bD[.\s]?2[.\s]?1\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,35})/i,
+  )
+  let denominationCandidate = extractFirst(
+    /(?:\bD[.\s]?3\b\s*[:\-]?)\s*([A-Z0-9\s/-]{2,35})/i,
+    /(?:denomination commerciale|commerciale?|handelsbenaming)[\s:.-]*([A-Z0-9\s/-]{2,35})/i,
+  )
+  if (!typeVarianteCandidate) {
+    const d21Line = compact.match(/(?:^|\s)D\s*[.,]?\s*2\s*[.,]?\s*1\s*[:\-]?\s*([A-Z0-9\s/-]{2,35})(?:\s|$)/i)
+    if (d21Line?.[1]) {
+      typeVarianteCandidate = d21Line[1]
+    }
+  }
+  if (!denominationCandidate) {
+    const d3Line = compact.match(/(?:^|\s)D\s*[.,]?\s*3\s*[:\-]?\s*([A-Z0-9\s/-]{2,35})(?:\s|$)/i)
+    if (d3Line?.[1]) {
+      denominationCandidate = d3Line[1]
+    }
+  }
+  let vinCandidate = extractFirst(
     /(?:\bE\b\s*[:\-]?)\s*([A-HJ-NPR-Z0-9]{11,17})/i,
     /(?:chassis(?:nummer)?|num[ée]ro de ch[âa]ssis|n[°o]\s*de\s*s[ée]rie)[\s:.-]*([A-HJ-NPR-Z0-9]{11,17})/i,
     /\b([A-HJ-NPR-Z0-9]{17})\b/i,
   )
-  const yearCandidate = extractFirst(
+  if (!vinCandidate) {
+    const vinMatch = compact.match(/(?:^|\s)E\s*[:\-]?\s*([A-HJ-NPR-Z0-9\s]{14,22})(?:\s|$)/i)
+    if (vinMatch?.[1]) {
+      vinCandidate = vinMatch[1].replace(/\s+/g, '')
+    }
+  }
+
+  let yearCandidate = extractFirst(
     /(?:\bB\b\s*[:\-]?)\s*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
     /(?:\bI\b\s*[:\-]?)\s*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
     /(?:premi[èe]re immatriculation|eerste inschrijving)[\s:.-]*(\d{2}[/.\-]\d{2}[/.\-]\d{4}|\d{4})/i,
     /\b(19\d{2}|20\d{2})\b/,
   )
-  const cylCandidate = extractFirst(
+  if (!yearCandidate) {
+    const bLine = compact.match(/(?:^|\s)B\s*[:\-]?\s*(\d{2}[/.\-]\d{2}[/.\-]\d{4})/i)
+    if (bLine?.[1]) {
+      yearCandidate = bLine[1]
+    }
+  }
+
+  let cylCandidate = extractFirst(
     /(?:\bP[.\s]?1\b\s*[:\-]?)\s*([0-9OQDISBZ]{2,4})/i,
     /([0-9OQDISBZ]{2,4})\s*(?:cm[³3]|cc|CM3)/i,
   )
-  const typeCandidate = extractFirst(
+  if (!cylCandidate) {
+    const pLine = compact.match(/(?:^|\s)P\s*[.,]?\s*1\s*[:\-]?\s*([0-9OQDISBZ]{2,5})/i)
+    if (pLine?.[1]) {
+      cylCandidate = pLine[1]
+    }
+  }
+
+  let typeCandidate = extractFirst(
     /(?:\bJ[.\s]?1\b\s*[:\-]?)\s*([A-Z0-9]{2,8})/i,
     /(?:genre|carrosserie|voertuigtype)[\s:.-]*([A-Z0-9]{2,8})/i,
     /\b(MTL|MTT1|MTT2|CL|QM|TM|L3E|L1E)\b/i,
   )
+  if (!typeCandidate) {
+    const jLine = compact.match(/(?:^|\s)J\s*[.,]?\s*1\s*[:\-]?\s*([A-Z0-9]{2,8})/i)
+    if (jLine?.[1]) {
+      typeCandidate = jLine[1]
+    }
+  }
 
   const initial: Record<OcrFieldKey, string> = {
     plaque: normalizePlate(plaqueCandidate || base?.plaque || ''),
     marque: marqueCandidate ? selectBestCandidate(marqueCandidate, [...knownBrands, String(base?.marque || '')].filter(Boolean)) : String(base?.marque || ''),
     modele: String(modeleCandidate || base?.modele || '').trim(),
+    type_variante: String(typeVarianteCandidate || base?.type_variante || base?.typeVariante || '').trim(),
+    denomination_commerciale: String(denominationCandidate || base?.denomination_commerciale || base?.denominationCommerciale || '').trim(),
     vin: normalizeVin(vinCandidate || base?.vin || ''),
     annee: normalizeYear(yearCandidate || base?.annee || ''),
     cylindree: normalizeCylindree(cylCandidate || base?.cylindree || ''),
@@ -926,6 +1061,12 @@ function clearSignature() {
 
 async function submitSignature() {
   if (!sigCanvas.value || !hasDrawn.value) return
+
+  if (missingAcceptedClauseLabels.value.length > 0) {
+    setFeedback('Vous devez accepter toutes les clauses avant de signer.', true)
+    return
+  }
+
   sigSaving.value = true
   setFeedback('')
   try {
@@ -933,7 +1074,12 @@ async function submitSignature() {
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/signature`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signature: dataUrl }),
+      body: JSON.stringify({
+        signature: dataUrl,
+        clausesAcceptees: signatureClauses.value
+          .filter((clause) => acceptedClauses[clause.code])
+          .map((clause) => clause.code),
+      }),
     })
     await ensureOk(res, 'Erreur signature')
     rdv.value.has_signature = true
@@ -948,6 +1094,12 @@ async function submitSignature() {
     sigSaving.value = false
   }
 }
+
+watch(activeSection, async (value) => {
+  if (value === 'signature') {
+    await loadSignatureClauses()
+  }
+})
 
 // --- [C7] Restitution canvas + signature ---
 const restitutionData = ref<any>(null)
@@ -1308,6 +1460,57 @@ onUnmounted(() => {
   border-radius: 14px;
   overflow: hidden;
   border: 2px solid rgba(255,255,255,0.12);
+}
+.companion-clauses {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+}
+.companion-clauses__header {
+  margin-bottom: 8px;
+  color: #E8E9ED;
+  font-size: 13px;
+}
+.companion-clauses__meta {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin: 0;
+}
+.companion-clauses__meta--warn {
+  color: #FCD34D;
+  margin-top: 8px;
+}
+.companion-clauses__meta--error {
+  color: #FCA5A5;
+}
+.companion-clause-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.companion-clause-item:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.companion-clause-item__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.companion-clause-item__title {
+  font-size: 12px;
+  color: #E8E9ED;
+  font-weight: 700;
+}
+.companion-clause-item__text {
+  margin: 0;
+  font-size: 12px;
+  color: #C9CED8;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 .ocr-spinner {
   width: 40px;

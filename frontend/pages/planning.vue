@@ -533,7 +533,10 @@
 
             <!-- TAB 3: HISTORIQUE -->
             <div v-show="editTab === '3'" class="flex-col-gap-lg">
-              <div v-if="!selectedRdvHistory.length" class="panel-sm text-muted">
+              <div v-if="selectedRdvHistoryLoading" class="panel-sm text-muted">
+                Chargement de l'historique…
+              </div>
+              <div v-else-if="!selectedRdvHistory.length" class="panel-sm text-muted">
                 Aucun historique de modifications disponible pour ce rendez-vous.
               </div>
               <div v-else style="display:flex;flex-direction:column;gap:8px;">
@@ -556,10 +559,22 @@
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button
-                  v-for="transition in availableTransitions"
+                  v-for="transition in primaryTransitions"
                   :key="transition.name"
                   class="btn"
                   :style="transitionButtonStyle(transition.color)"
+                  :disabled="transitioning === transition.name || selectedIsHistorical"
+                  @click="applyTransition(transition.name)"
+                >
+                  {{ transitioning === transition.name ? 'Traitement…' : transitionLabel(transition) }}
+                </button>
+              </div>
+              <div v-if="secondaryTransitions.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">
+                <button
+                  v-for="transition in secondaryTransitions"
+                  :key="transition.name"
+                  class="btn btn-ghost btn-sm"
+                  style="font-size:11px;opacity:0.75;"
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
@@ -668,6 +683,8 @@ const horaires = ref<any[]>([])
 const prestations = ref<any[]>([])
 const activeMecas = ref<number[]>([])
 const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
+const primaryTransitions = computed(() => availableTransitions.value.filter(t => !SECONDARY_TRANSITIONS.has(t.name)))
+const secondaryTransitions = computed(() => availableTransitions.value.filter(t => SECONDARY_TRANSITIONS.has(t.name)))
 
 const showRdvModal = ref(false)
 const showAnnulationModal = ref(false)
@@ -675,6 +692,7 @@ const annulationTempName = ref("annuler")
 const editTab = ref('0')
 const viewMode = ref<'grid' | 'list'>('grid')
 const selectedRdvHistory = ref<any[]>([])
+const selectedRdvHistoryLoading = ref(false)
 
 const ANNULATION_MOTIFS = [
   { label: "Client décommandé", value: "client_desiste" },
@@ -828,6 +846,8 @@ const HIDDEN_RECEPTION_TRANSITIONS = [
   'reprendre_demain',
   'no_show' // using declarer_no_show instead
 ]
+
+const SECONDARY_TRANSITIONS = new Set(['annuler', 'declarer_no_show', 'reporter', 'mettre_en_gardiennage', 'passer_gardiennage'])
 
 const canCreateRdv = computed(() => hasPerm('rdv.create'))
 const canEditRdv = computed(() => hasPerm('rdv.edit'))
@@ -1227,7 +1247,7 @@ function toggleMeca(id: number) {
 
 function fallbackTransitionsForStatus(status?: string) {
   const byStatus: Record<string, string[]> = {
-    en_attente: ['reserver', 'annuler'],
+    en_attente: ['reserver', 'confirmer', 'annuler'],
     reserve: ['confirmer', 'annuler'],
     confirme: ['reception', 'annuler'],
     reception: ['start_travail'],
@@ -1515,6 +1535,22 @@ async function reloadSelectedRdv(id: number) {
     hydrateEditForms(fresh)
     await loadAvailableTransitions(id)
     selectedRdvHistory.value = []
+    selectedRdvHistoryLoading.value = false
+    if (editTab.value === '3') {
+      await loadSelectedRdvHistory(id)
+    }
+  }
+}
+
+async function loadSelectedRdvHistory(id: number) {
+  selectedRdvHistoryLoading.value = true
+  try {
+    const data = await api.get(`/rendez-vous/${id}/history`)
+    selectedRdvHistory.value = Array.isArray(data?.items) ? data.items : []
+  } catch {
+    selectedRdvHistory.value = []
+  } finally {
+    selectedRdvHistoryLoading.value = false
   }
 }
 
@@ -1525,6 +1561,7 @@ async function onSelectRdv(rdv: any) {
   selectedRdv.value = normalizeRdv(rdv)
   hydrateEditForms(selectedRdv.value)
   selectedRdvHistory.value = []
+  selectedRdvHistoryLoading.value = false
   try {
     await reloadSelectedRdv(Number(rdv.id))
   } finally {
@@ -1694,7 +1731,26 @@ async function applyTransition(name: string, options: any = {}) {
     toast.add({ title, color: 'success' })
     await refreshPlanning()
   } catch (e: unknown) {
-    toast.add({ title: 'Transition impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
+    const err = e as any
+    const data = err?.data
+    // Erreur photos manquantes — message contextuel
+    if (data?.missing_photos) {
+      const mp = data.missing_photos
+      const typeLabels: Record<string, string> = {
+        reception: 'réception (via Companion)',
+        apres_travaux: 'après travaux',
+        restitution: 'restitution',
+      }
+      const typeLabel = typeLabels[mp.type] ?? mp.type
+      toast.add({
+        title: `Photos ${typeLabel} manquantes`,
+        description: `${mp.missing} photo(s) requise(s) — demandez au client de les prendre via le Companion avant de passer à cette étape.`,
+        color: 'error',
+        duration: 8000,
+      })
+    } else {
+      toast.add({ title: 'Transition impossible', description: (e instanceof Error ? e.message : 'Erreur inconnue') || 'Erreur inconnue', color: 'error' })
+    }
   } finally {
     transitioning.value = ''
   }
@@ -1798,6 +1854,14 @@ watch(showRdvModal, (open: boolean) => {
       }
     }, 300)
   }
+})
+
+watch([editTab, () => selectedRdv.value?.id], async ([tab, id]) => {
+  if (tab !== '3' || !id || selectedRdvHistoryLoading.value) {
+    return
+  }
+
+  await loadSelectedRdvHistory(Number(id))
 })
 
 watch(isReceptionEligible, (eligible: boolean) => {
