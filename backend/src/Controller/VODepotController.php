@@ -154,8 +154,10 @@ class VODepotController extends AbstractController
         $vehicule = $this->em->getRepository(Vehicule::class)->find($body['vehiculeId'] ?? 0);
         $deposant = $this->em->getRepository(Client::class)->find($body['deposantId'] ?? 0);
         $startAsDraft = (bool) ($body['startAsDraft'] ?? false);
+        $explicitStatus = (string) ($body['status'] ?? '');
+        $isDraftRequest = $startAsDraft || $explicitStatus === 'brouillon';
 
-        if (($vehicule === null || $deposant === null) && !$startAsDraft) {
+        if (($vehicule === null || $deposant === null) && !$isDraftRequest) {
             return $this->json(['error' => 'Vehicule and deposant are required'], 400);
         }
 
@@ -192,11 +194,11 @@ class VODepotController extends AbstractController
         }
 
         try {
-            $payload = $this->inTransaction(function () use ($depot, $startAsDraft) {
+            $payload = $this->inTransaction(function () use ($depot, $isDraftRequest) {
                 $this->em->persist($depot);
                 $this->em->flush();
 
-                if (!$startAsDraft && $this->voDepotWorkflow->can($depot, 'activer')) {
+                if (!$isDraftRequest && $this->voDepotWorkflow->can($depot, 'activer')) {
                     $this->voDepotWorkflow->apply($depot, 'activer');
                     $this->activateDepotRecord($depot);
                     $this->em->flush();

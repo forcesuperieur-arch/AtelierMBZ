@@ -85,7 +85,7 @@ class VODepotVente
     #[Assert\NotBlank]
     #[Assert\Length(max: 30)]
     #[Groups(['vo:read', 'vo:write'])]
-    private string $status = 'actif';
+    private string $status = 'brouillon';
 
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['vo:read', 'vo:write'])]

@@ -601,7 +601,7 @@ class VOControllerTest extends WebTestCase
             [],
             $this->authHeaders($fixture['user']),
             json_encode([
-                'status' => 'brouillon',
+                'startAsDraft' => true,
                 'prixVenteSouhaite' => '11900.00',
                 'commissionType' => 'pourcentage',
                 'commissionValeur' => '10.00',
