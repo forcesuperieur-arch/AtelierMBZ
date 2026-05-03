@@ -7,30 +7,30 @@
     </AppPageHeader>
 
     <!-- Stat cards -->
-    <div class="grid-4" style="margin-bottom:20px;">
+    <div class="grid-4 mb-5">
       <div class="stat-card">
         <div class="stat-label">👥 Total Clients</div>
         <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--blue);" :style="{ width: '100%' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill blue w-full"></div></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">📅 Avec RDV</div>
         <div class="stat-value">{{ stats.avec_rdv }}</div>
-        <div class="stat-delta" style="color:#10B981;">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
+        <div class="stat-delta text-green">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">🏍️ Total Véhicules</div>
         <div class="stat-value">{{ stats.vehicules }}</div>
-        <div class="stat-delta" style="color:#9CA3AF;">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
+        <div class="stat-delta text-muted">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">💰 CA Total</div>
         <div class="stat-value">{{ formatCA(stats.ca_total) }}</div>
-        <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--orange);" :style="{ width: stats.ca_total > 0 ? '65%' : '0%' }"></div></div>
+        <div class="stat-bar"><div class="stat-bar-fill orange" :class="stats.ca_total > 0 ? 'w-65' : 'w-0'"></div></div>
       </div>
     </div>
 
-    <UCard style="margin-bottom:16px;">
+    <UCard class="mb-4">
       <UInput v-model="search" placeholder="Rechercher un client..." @input="debouncedFetch" />
     </UCard>
 
@@ -40,47 +40,46 @@
           <span class="text-sm">{{ row.original.vehicules_count ?? 0 }} véhicule(s)</span>
         </template>
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <NuxtLink :to="`/clients/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+          <AppInlineActions>
+            <AppActionLink :to="`/clients/${row.original.id}`" variant="primary">Voir →</AppActionLink>
             <button
               v-if="row.original.can_anonymize !== false"
-              class="btn btn-ghost"
-              style="font-size:11px;padding:4px 8px;color:#EF4444;"
+              class="btn btn-ghost btn-danger-xs"
               @click="anonymizeClient(row.original)"
               :disabled="anonymizingId === row.original.id"
             >
               {{ anonymizingId === row.original.id ? '…' : '🧹 Anonymiser' }}
             </button>
-          </div>
+          </AppInlineActions>
         </template>
       </UTable>
       <!-- Pagination -->
-      <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-        <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; fetchClients()" style="font-size:12px;padding:6px 12px;">← Préc</button>
-        <button v-for="p in visiblePages" :key="p" class="btn" :class="p === page ? 'btn-primary' : 'btn-ghost'" @click="page = p; fetchClients()" style="font-size:12px;padding:6px 12px;min-width:36px;">{{ p }}</button>
-        <button class="btn btn-ghost" :disabled="page >= totalPages" @click="page++; fetchClients()" style="font-size:12px;padding:6px 12px;">Suiv →</button>
+      <div v-if="totalPages > 1" class="pagination">
+        <button class="btn btn-ghost pagination-btn" :disabled="page <= 1" @click="page--; fetchClients()">← Préc</button>
+        <button v-for="p in visiblePages" :key="p" class="btn pagination-btn" :class="p === page ? 'btn-primary' : 'btn-ghost'" @click="page = p; fetchClients()">{{ p }}</button>
+        <button class="btn btn-ghost pagination-btn" :disabled="page >= totalPages" @click="page++; fetchClients()">Suiv →</button>
       </div>
-      <div style="text-align:center;font-size:11px;color:#6B7280;margin-top:6px;">{{ totalItems }} client(s) au total</div>
+      <div class="pagination-total">{{ totalItems }} client(s) au total</div>
     </UCard>
 
     <!-- New client modal -->
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau client</span></template>
-          <form @submit.prevent="createClient" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <template #header><span class="modal-title">Nouveau client</span></template>
+          <form @submit.prevent="createClient" class="form-stack">
+            <div class="form-grid-2">
               <UFormField label="Prénom"><UInput v-model="newClient.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="newClient.nom" required /></UFormField>
               <UFormField label="Téléphone"><UInput v-model="newClient.telephone" required /></UFormField>
               <UFormField label="Email"><UInput v-model="newClient.email" type="email" /></UFormField>
             </div>
             <UFormField label="Adresse"><UInput v-model="newClient.adresse" /></UFormField>
-            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
-              <input type="checkbox" v-model="consentRGPD" style="margin-top:3px;accent-color:#FFD200;" />
-              <span style="font-size:12px;color:#9CA3AF;">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" style="color:#FFD200;">politique de confidentialité</NuxtLink>.</span>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="consentRGPD" class="checkbox-input" />
+              <span class="checkbox-text">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" class="link-yellow">politique de confidentialité</NuxtLink>.</span>
             </label>
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="form-footer">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
               <UButton type="submit" label="Créer" :loading="creating" :disabled="!consentRGPD" />
             </div>
@@ -140,9 +139,9 @@ async function fetchClients() {
     params.set('page', String(page.value))
     params.set('limit', String(pageSize))
     const data = await api.get(`/clients?${params}`)
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    totalItems.value = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
-    clients.value = raw.map((c: any) => ({
+    const paginated = unwrapHydraPaginated(data)
+    totalItems.value = paginated.totalItems
+    clients.value = paginated.items.map((c: any) => ({
       ...c,
       vehicules_count: c.vehicules?.length ?? 0,
     }))
@@ -215,3 +214,27 @@ onMounted(() => {
   })
 })
 </script>
+
+<style scoped>
+.mb-5 { margin-bottom:20px; }
+.mb-4 { margin-bottom:16px; }
+.stat-bar-fill.blue { background:var(--blue); }
+.stat-bar-fill.orange { background:var(--orange); }
+.w-full { width:100%; }
+.w-65 { width:65%; }
+.w-0 { width:0%; }
+.text-green { color:#10B981; }
+.text-muted { color:#9CA3AF; }
+.pagination { display:flex; justify-content:center; gap:6px; margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06); }
+.pagination-btn { font-size:12px; padding:6px 12px; min-width:36px; }
+.pagination-total { text-align:center; font-size:11px; color:#6B7280; margin-top:6px; }
+.modal-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.checkbox-label { display:flex; align-items:flex-start; gap:8px; cursor:pointer; }
+.checkbox-input { margin-top:3px; accent-color:#FFD200; }
+.checkbox-text { font-size:12px; color:#9CA3AF; }
+.link-yellow { color:#FFD200; }
+.form-footer { display:flex; justify-content:flex-end; gap:8px; }
+.btn-danger-xs { font-size:11px; padding:4px 8px; color:#EF4444; }
+</style>
