@@ -346,6 +346,11 @@ const quickActions = computed(() => {
       actions.push({ icon: 'i-heroicons-tag', label: '+ Rachat', to: '/vo/rachats/new' })
       actions.push({ icon: 'i-heroicons-inbox-arrow-down', label: '+ Dépôt', to: '/vo/depots/new' })
     }
+  } else if (base === '/stock') {
+    if (auth.hasSection('stock')) {
+      actions.push({ icon: 'i-heroicons-plus-circle', label: '+ Nouvelle pièce', to: '/stock' })
+      actions.push({ icon: 'i-heroicons-truck', label: '+ Commande fournisseur', to: '/stock/fournisseurs' })
+    }
   }
 
   return actions
