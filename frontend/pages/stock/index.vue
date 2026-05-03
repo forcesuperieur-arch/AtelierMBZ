@@ -10,6 +10,22 @@
       </template>
     </AppPageHeader>
 
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
+      <UCard style="padding:14px;">
+        <div style="font-size:12px;color:#9CA3AF;">Références</div>
+        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ stockStore.pieces.length }}</div>
+      </UCard>
+      <UCard style="padding:14px;">
+        <div style="font-size:12px;color:#9CA3AF;">Valeur stock (achat)</div>
+        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ formatCurrency(totalStockValue) }}</div>
+      </UCard>
+      <UCard style="padding:14px;">
+        <div style="font-size:12px;color:#9CA3AF;">Alertes</div>
+        <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ stockStore.alertes.length }}</div>
+      </UCard>
+    </div>
+
     <!-- Alerts -->
     <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:rgba(239,68,68,0.2);">
       <template #header>
@@ -136,6 +152,14 @@ const pieceForm = reactive({
   quantite_maximale: 50, emplacement: '', tva_taux: 20,
 })
 const ajustementForm = reactive({ quantite: 0, motif: '' })
+
+const totalStockValue = computed(() => {
+  return stockStore.pieces.reduce((sum: number, p: any) => {
+    const qte = Number(p.quantite_stock) || 0
+    const prix = Number(p.prix_achat_ht) || 0
+    return sum + qte * prix
+  }, 0)
+})
 
 const columns = [
   { key: 'reference', label: 'Réf.' },
