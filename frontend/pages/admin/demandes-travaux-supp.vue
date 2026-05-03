@@ -6,50 +6,49 @@
       </template>
     </AppPageHeader>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button v-for="f in filters" :key="f.value" class="btn" :class="statut === f.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="statut = f.value">
+    <div class="filter-bar">
+      <button v-for="f in filters" :key="f.value" class="btn filter-btn" :class="statut === f.value ? 'btn-primary' : 'btn-ghost'" @click="statut = f.value">
         {{ f.label }}
       </button>
     </div>
 
     <UCard>
-      <div v-if="loading" style="text-align:center;padding:32px;color:#9CA3AF;">Chargement…</div>
-      <div v-else-if="filtered.length === 0" style="text-align:center;padding:32px;color:#6B7280;">Aucune demande.</div>
-      <div v-else style="display:flex;flex-direction:column;gap:10px;">
-        <div v-for="d in filtered" :key="d.id" style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:240px;">
-              <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;">
-                <span style="font-weight:800;color:#E8E9ED;font-size:14px;">#{{ d.id }} — {{ d.client_nom || '—' }}</span>
-                <span :style="statutStyle(d.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">{{ labelStatut(d.statut) }}</span>
-                <span v-if="d.urgence === 'urgent'" style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.14);color:#FCA5A5;font-weight:700;">URGENT</span>
+      <div v-if="loading" class="loading-center">Chargement…</div>
+      <AppEmptyState v-else-if="filtered.length === 0" icon="📭" title="Aucune demande." />
+      <div v-else class="demande-list">
+        <div v-for="d in filtered" :key="d.id" class="demande-card">
+          <div class="demande-header">
+            <div class="demande-left">
+              <div class="demande-title-row">
+                <span class="demande-title">#{{ d.id }} — {{ d.client_nom || '—' }}</span>
+                <AppStatusBadge :variant="statutVariant(d.statut)" size="sm">{{ labelStatut(d.statut) }}</AppStatusBadge>
+                <AppStatusBadge v-if="d.urgence === 'urgent'" variant="error" size="sm">URGENT</AppStatusBadge>
               </div>
-              <div style="font-size:12px;color:#9CA3AF;">
+              <div class="demande-vehicle">
                 <span v-if="d.vehicule_info">{{ d.vehicule_info }}</span>
                 <span v-if="d.vehicule_plaque"> • {{ d.vehicule_plaque }}</span>
-                <span> • RDV <NuxtLink :to="`/planning?openRdv=${d.rendez_vous_id}`" style="color:#FFD200;">#{{ d.rendez_vous_id }}</NuxtLink></span>
+                <span> • RDV <NuxtLink :to="`/planning?openRdv=${d.rendez_vous_id}`" class="link-yellow">#{{ d.rendez_vous_id }}</NuxtLink></span>
               </div>
-              <div v-if="d.description" style="margin-top:6px;font-size:12px;color:#D1D5DB;font-style:italic;">« {{ d.description }} »</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <span v-for="(p, i) in d.prestations" :key="i" style="font-size:11px;padding:3px 9px;border-radius:6px;background:rgba(139,92,246,0.14);color:#C4B5FD;">
+              <div v-if="d.description" class="demande-desc">« {{ d.description }} »</div>
+              <div class="prestation-list">
+                <span v-for="(p, i) in d.prestations" :key="i" class="prestation-chip">
                   {{ p.designation }} — {{ formatEuro(p.prix_ttc) }}
                 </span>
               </div>
             </div>
-            <div style="text-align:right;min-width:140px;">
-              <div style="font-size:16px;font-weight:800;color:#FFD200;">{{ formatEuro(d.prix_estime) }}</div>
-              <div style="font-size:11px;color:#6B7280;">~{{ d.temps_estime }} min</div>
-              <div v-if="d.decision_client_at" style="font-size:11px;color:#9CA3AF;margin-top:4px;">
+            <div class="demande-right">
+              <div class="demande-price">{{ formatEuro(d.prix_estime) }}</div>
+              <div class="demande-time">~{{ d.temps_estime }} min</div>
+              <div v-if="d.decision_client_at" class="demande-date">
                 Décidé le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}
               </div>
             </div>
           </div>
 
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);">
+          <div class="demande-actions">
             <button
               v-if="['en_attente', 'en_attente_validation'].includes(d.statut)"
-              class="btn btn-primary"
-              style="font-size:12px;padding:6px 14px;"
+              class="btn btn-primary btn-sm"
               :disabled="sending === d.id"
               @click="envoyer(d)"
             >
@@ -57,15 +56,13 @@
             </button>
             <button
               v-if="d.token && d.statut === 'en_attente_decision_client'"
-              class="btn btn-ghost"
-              style="font-size:12px;padding:6px 14px;"
+              class="btn btn-ghost btn-sm"
               @click="copyLink(d.token)"
             >🔗 Copier le lien client</button>
             <NuxtLink
               v-if="d.or_complementaire_id"
               :to="`/ordres/${d.or_complementaire_id}`"
-              class="btn btn-ghost"
-              style="font-size:12px;padding:6px 14px;text-decoration:none;"
+              class="btn btn-ghost btn-sm"
             >📄 Voir OR complémentaire</NuxtLink>
           </div>
         </div>
@@ -139,15 +136,20 @@ function labelStatut(s: string): string {
   }[s] || s
 }
 
-function statutStyle(s: string) {
-  const map: Record<string, string> = {
-    en_attente: 'background:rgba(156,163,175,0.14);color:#9CA3AF;',
-    en_attente_validation: 'background:rgba(156,163,175,0.14);color:#9CA3AF;',
-    en_attente_decision_client: 'background:rgba(251,191,36,0.14);color:#FCD34D;',
-    accepte: 'background:rgba(16,185,129,0.14);color:#6EE7B7;',
-    refuse: 'background:rgba(239,68,68,0.14);color:#FCA5A5;',
+function statutVariant(s: string): 'neutral' | 'warning' | 'success' | 'error' | 'default' {
+  switch (s) {
+    case 'en_attente':
+    case 'en_attente_validation':
+      return 'neutral'
+    case 'en_attente_decision_client':
+      return 'warning'
+    case 'accepte':
+      return 'success'
+    case 'refuse':
+      return 'error'
+    default:
+      return 'default'
   }
-  return map[s] || 'background:rgba(255,255,255,0.06);color:#9CA3AF;'
 }
 
 function formatEuro(v: any): string {
@@ -158,3 +160,26 @@ function formatEuro(v: any): string {
 watch(statut, load)
 onMounted(load)
 </script>
+
+<style scoped>
+.filter-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.filter-btn { font-size:12px; padding:6px 14px; }
+.loading-center { text-align:center; padding:32px; color:#9CA3AF; }
+.demande-list { display:flex; flex-direction:column; gap:10px; }
+.demande-card { padding:14px; border:1px solid rgba(255,255,255,0.06); border-radius:12px; background:rgba(255,255,255,0.02); }
+.demande-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.demande-left { flex:1; min-width:240px; }
+.demande-title-row { display:flex; gap:10px; align-items:center; margin-bottom:4px; }
+.demande-title { font-weight:800; color:#E8E9ED; font-size:14px; }
+.demande-vehicle { font-size:12px; color:#9CA3AF; }
+.link-yellow { color:#FFD200; }
+.demande-desc { margin-top:6px; font-size:12px; color:#D1D5DB; font-style:italic; }
+.prestation-list { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.prestation-chip { font-size:11px; padding:3px 9px; border-radius:6px; background:rgba(139,92,246,0.14); color:#C4B5FD; }
+.demande-right { text-align:right; min-width:140px; }
+.demande-price { font-size:16px; font-weight:800; color:#FFD200; }
+.demande-time { font-size:11px; color:#6B7280; }
+.demande-date { font-size:11px; color:#9CA3AF; margin-top:4px; }
+.demande-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); }
+.btn-sm { font-size:12px; padding:6px 14px; }
+</style>
