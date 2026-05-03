@@ -6,16 +6,25 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity] #[ORM\Table(name: 'commandes_fournisseur')] #[ApiResource]
 class CommandeFournisseur
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['commande:read'])] private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
-    #[ORM\Column(length: 50, unique: true)] #[Groups(['commande:read'])] private string $numeroCommande;
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
+    #[Groups(['commande:read'])]
+    private string $numeroCommande;
     #[ORM\ManyToOne(targetEntity: Fournisseur::class, inversedBy: 'commandes')]
     #[ORM\JoinColumn(name: 'fournisseur_id', nullable: false)] #[Groups(['commande:read'])] private Fournisseur $fournisseur;
-    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])] #[Groups(['commande:read'])] private string $statut = 'en_attente';
+    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
+    #[Groups(['commande:read'])]
+    private string $statut = 'en_attente';
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['commande:read'])] private \DateTimeInterface $dateCommande;
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['commande:read'])] private ?\DateTimeInterface $datePrevueLivraison = null;
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['commande:read'])] private ?\DateTimeInterface $dateReception = null;

@@ -188,7 +188,7 @@ class SeedCommand extends Command
             $user->setEmail("meca" . ($i + 1) . "@atelier.local");
             $user->setRole('mecanicien');
             $user->setAtelierId(1);
-            $user->setHashedPassword($this->hasher->hashPassword($user, 'meca123'));
+            $user->setHashedPassword($this->hasher->hashPassword($user, bin2hex(random_bytes(16))));
             $this->em->persist($user);
             $this->em->flush();
 

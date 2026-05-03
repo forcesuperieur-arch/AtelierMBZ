@@ -6,9 +6,9 @@
 
 | # | Problème | Fichier(s) | Agent responsable | Statut |
 |---|---|---|---|---|
-| 1 | **Injection SQL** via `sprintf` dans `nextDocumentNumber` | `FacturationController.php:203,207` | GuardSec | 🔴 Ouvert |
-| 2 | **Mots de passe hardcodés** en seed | `SeedCommand.php:191`, `ResetSeedCommand.php:165` | GuardSec | 🔴 Ouvert |
-| 3 | **Endpoints sans `#[IsGranted]`** | `CerfaFieldConfigController`, `MotosLookupController`, `SlotController`, `FacturationController`, `StatistiquesController`, `RendezVousFacturationCompatController` | GuardSec | 🔴 Ouvert |
+| 1 | **Injection SQL** via `sprintf` dans `nextDocumentNumber` | `FacturationController.php:203,207` | GuardSec | ✅ Résolu — validation regex du prefix ajoutée |
+| 2 | **Mots de passe hardcodés** en seed | `SeedCommand.php:191`, `ResetSeedCommand.php:165` | GuardSec | ✅ Résolu — remplacés par `bin2hex(random_bytes(16))` |
+| 3 | **Endpoints sans `#[IsGranted]`** | `CerfaFieldConfigController`, `MotosLookupController`, `SlotController`, `FacturationController`, `StatistiquesController`, `RendezVousFacturationCompatController` | GuardSec | ✅ Résolu — `#[IsGranted('ROLE_USER')]` ou `ROLE_SUPER_ADMIN` ajouté sur chaque classe |
 | 4 | **39 entités sans tests** | `backend/src/Entity/*` (liste complète dans `agent-testpilot`) | TestPilot | 🔴 Ouvert |
 | 5 | **51 entités sans validation Symfony** | `backend/src/Entity/*` | GuardSec | 🔴 Ouvert |
 
@@ -29,7 +29,7 @@
 
 | # | Problème | Fichier(s) | Agent responsable | Statut |
 |---|---|---|---|---|
-| 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | 🟡 Ouvert |
+| 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | ✅ Résolu — `npm audit fix` appliqué, 0 vulnérabilités |
 | 15 | **Uploads sans magic bytes** | `ConfigController`, `CompanionController`, `VODocumentService` | GuardSec | 🟡 Ouvert |
 | 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | 🟡 Ouvert |
 | 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | 🟡 Ouvert |

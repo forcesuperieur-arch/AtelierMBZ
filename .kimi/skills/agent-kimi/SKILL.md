@@ -61,7 +61,7 @@ Je ne touche pas aux pièces directement. Je coordonne. Je vérifie. Je livre.
 |---|---|---|---|
 | 2026-05-01 | Module Stock complet | ✅ Backend + Frontend + Intégration OR | Le stock se pilote par `StockMovementService`, jamais directement |
 | 2026-05-03 | Migration + Tests + Seed | ✅ Migration mouvements_stock + 13 tests + seed | PHP n'est pas local, il faut générer les migrations manuellement |
-| 2026-05-03 | Organisation skills | ✅ 15 skills créés, 6 agents + moi | L'utilisateur veut une identité forte et de l'autonomie |
+| 2026-05-03 | Mission GuardSec — sécurisation API | ✅ Injection SQL bouchée, 6 controllers sécurisés, mots de passe randomisés, validations entités, npm audit fix | GuardSec a fait son premier tour de garde |
 
 ### Ce que je sais de toi (l'utilisateur)
 - Tu veux que je sois **autonome**, que je ne m'arrête pas pour demander la permission

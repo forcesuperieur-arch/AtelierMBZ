@@ -13,6 +13,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pieces_detachees')]
@@ -39,6 +40,8 @@ class PieceDetachee
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
 
     #[ORM\Column(length: 100, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read', 'piece_utilisee:read'])]
     private string $reference;
 
@@ -47,6 +50,8 @@ class PieceDetachee
     private ?string $referenceFournisseur = null;
 
     #[ORM\Column(length: 200)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 200)]
     #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read', 'piece_utilisee:read'])]
     private string $nom;
 
@@ -59,10 +64,12 @@ class PieceDetachee
     private ?string $categorie = null;
 
     #[ORM\Column(options: ['default' => 0])]
+    #[Assert\PositiveOrZero]
     #[Groups(['piece:read', 'piece:write'])]
     private int $quantiteStock = 0;
 
     #[ORM\Column(options: ['default' => 5])]
+    #[Assert\PositiveOrZero]
     #[Groups(['piece:read', 'piece:write'])]
     private int $quantiteMinimale = 5;
 

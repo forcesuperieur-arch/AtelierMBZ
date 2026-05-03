@@ -162,7 +162,7 @@ class ResetSeedCommand extends Command
             $user->setEmail($email);
             $user->setRole('mecanicien');
             $user->setAtelierId(1);
-            $user->setHashedPassword($this->hasher->hashPassword($user, 'meca123'));
+            $user->setHashedPassword($this->hasher->hashPassword($user, bin2hex(random_bytes(16))));
             $this->em->persist($user);
             $this->em->flush(); // flush pour avoir l'ID
 

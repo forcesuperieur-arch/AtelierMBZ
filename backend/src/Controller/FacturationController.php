@@ -18,11 +18,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api/facturation')]
+#[IsGranted('ROLE_USER')]
 class FacturationController extends AbstractController
 {
     private function getDefaultTvaRate(): string
@@ -197,6 +199,12 @@ class FacturationController extends AbstractController
     {
         $conn = $this->em->getConnection();
         $year = date('Y');
+
+        // Sanitize prefix to prevent SQL injection on object names
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $prefix)) {
+            throw new \InvalidArgumentException('Prefix de document invalide');
+        }
+
         $seqName = strtolower($prefix) . '_seq_' . $year;
 
         try {

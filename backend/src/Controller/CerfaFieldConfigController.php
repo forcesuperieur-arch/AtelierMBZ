@@ -11,12 +11,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * Gestion de la configuration des positions de champs CERFA.
  * ROLE_SUPER_ADMIN uniquement — les positions sont globales (pas multi-tenant).
  */
 #[Route('/api/admin/cerfa-config')]
+#[IsGranted('ROLE_SUPER_ADMIN')]
 final class CerfaFieldConfigController extends AbstractController
 {
     public function __construct(
