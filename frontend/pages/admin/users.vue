@@ -2,9 +2,9 @@
   <div>
     <AppPageHeader title="Utilisateurs" back-to="/admin">
       <template #badge>
-        <span v-if="pendingCount" class="status-badge" style="background:rgba(251,191,36,0.16);color:#FCD34D;">
+        <AppStatusBadge v-if="pendingCount" variant="warning" size="sm">
           {{ pendingCount }} en attente SSO
-        </span>
+        </AppStatusBadge>
       </template>
       <template #actions>
         <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Ajouter</button>
@@ -14,40 +14,40 @@
     <UCard>
       <UTable :data="users" :columns="columns" :loading="loading">
         <template #username-cell="{ row }">
-          <span style="font-family:monospace;font-size:12px;color:#93C5FD;">{{ row.original.username }}</span>
+          <span class="font-mono-blue">{{ row.original.username }}</span>
         </template>
         <template #role-cell="{ row }">
-          <span class="status-badge" style="background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ roleLabel(row.original.role) }}</span>
+          <AppStatusBadge variant="info" size="sm">{{ roleLabel(row.original.role) }}</AppStatusBadge>
         </template>
         <template #auth_provider-cell="{ row }">
-          <span class="status-badge" :style="row.original.auth_provider === 'google' ? 'background:rgba(34,197,94,0.14);color:#86EFAC;' : 'background:rgba(59,130,246,0.14);color:#93C5FD;'">
+          <AppStatusBadge :variant="row.original.auth_provider === 'google' ? 'success' : 'info'" size="sm">
             {{ row.original.auth_provider === 'google' ? 'Google' : 'Local' }}
-          </span>
+          </AppStatusBadge>
         </template>
         <template #access_status-cell="{ row }">
-          <span class="status-badge" :style="statusBadgeStyle(row.original.access_status)">
+          <AppStatusBadge :variant="accessStatusVariant(row.original.access_status)" size="sm">
             {{ accessStatusLabel(row.original.access_status) }}
-          </span>
+          </AppStatusBadge>
         </template>
         <template #role_metier-cell="{ row }">
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <span style="color:#E8E9ED;font-size:12px;font-weight:600;">{{ row.original.role_metier?.libelle || 'Auto / non défini' }}</span>
-            <span style="color:#9CA3AF;font-size:11px;">{{ row.original.role_metier?.code || 'hérité du profil d’accès' }}</span>
+          <div class="role-cell">
+            <span class="role-label">{{ row.original.role_metier?.libelle || 'Auto / non défini' }}</span>
+            <span class="role-code">{{ row.original.role_metier?.code || 'hérité du profil d’accès' }}</span>
           </div>
         </template>
         <template #is_active-cell="{ row }">
           <StatusBadge :status="row.original.is_active ? 'confirme' : 'annule'" />
         </template>
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:#86EFAC;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openApproveModal(row.original)">✅ Valider</button>
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="rejectPendingUser(row.original)">⛔ Refuser</button>
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editUser(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleUserStatus(row.original)">
+          <AppInlineActions>
+            <button v-if="row.original.access_status === 'pending_validation'" class="btn-action-success" @click="openApproveModal(row.original)">✅ Valider</button>
+            <button v-if="row.original.access_status === 'pending_validation'" class="btn-action-danger" @click="rejectPendingUser(row.original)">⛔ Refuser</button>
+            <button class="btn-action-primary" @click="editUser(row.original)">✏ Modifier</button>
+            <button class="btn-action-info" @click="toggleUserStatus(row.original)">
               {{ row.original.is_active ? '⏸ Désactiver' : '▶ Activer' }}
             </button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
-          </div>
+            <button class="btn-action-danger" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
@@ -55,9 +55,9 @@
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvel' }} utilisateur</span></template>
-          <form @submit.prevent="saveUser" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <template #header><span class="modal-title">{{ editId ? 'Modifier' : 'Nouvel' }} utilisateur</span></template>
+          <form @submit.prevent="saveUser" class="form-stack">
+            <div class="form-grid-2">
               <UFormField label="Prénom"><UInput v-model="userForm.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="userForm.nom" required /></UFormField>
               <UFormField label="Email"><UInput v-model="userForm.email" type="email" required /></UFormField>
@@ -65,19 +65,14 @@
                 <UInput v-model="userForm.username" :placeholder="buildUsername(userForm)" />
               </UFormField>
               <UFormField label="Profil d'accès">
-                <select
-                  v-model="userForm.role"
-                  class="form-input"
-                  style="background:#171B24;color:#E8E9ED;"
-                  required
-                >
-                  <option v-for="role in roleOptions" :key="role.value" :value="role.value" style="background:#171B24;color:#E8E9ED;">
+                <select v-model="userForm.role" class="form-input form-select-dark" required>
+                  <option v-for="role in roleOptions" :key="role.value" :value="role.value" class="form-select-dark">
                     {{ role.label }}
                   </option>
                 </select>
               </UFormField>
               <UFormField label="Rôle métier">
-                <select v-model="userForm.role_metier_id" class="form-input" style="background:#171B24;color:#E8E9ED;">
+                <select v-model="userForm.role_metier_id" class="form-input form-select-dark">
                   <option :value="null">Automatique selon le profil</option>
                   <option v-for="roleMetier in assignableRoleMetiers" :key="roleMetier.id" :value="roleMetier.id">
                     {{ roleMetier.libelle }}
@@ -88,10 +83,10 @@
                 <UInput v-model="userForm.password" type="password" required />
               </UFormField>
             </div>
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div class="form-helper">
               Le login sera utilisé pour la connexion si besoin. S'il existe déjà, un suffixe automatique sera ajouté.
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="form-footer">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
               <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
@@ -103,24 +98,24 @@
     <AppModal v-model:open="showApprove" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Valider un compte SSO</span></template>
-          <form @submit.prevent="approvePendingUser" style="display:flex;flex-direction:column;gap:12px;">
+          <template #header><span class="modal-title">Valider un compte SSO</span></template>
+          <form @submit.prevent="approvePendingUser" class="form-stack">
             <UFormField label="Atelier">
-              <select v-model="approveForm.atelier_id" class="form-input" style="background:#171B24;color:#E8E9ED;" required>
+              <select v-model="approveForm.atelier_id" class="form-input form-select-dark" required>
                 <option :value="null" disabled>Sélectionner un atelier</option>
                 <option v-for="atelier in ateliers" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
               </select>
             </UFormField>
             <UFormField label="Rôle métier final">
-              <select v-model="approveForm.role_metier_id" class="form-input" style="background:#171B24;color:#E8E9ED;" required>
+              <select v-model="approveForm.role_metier_id" class="form-input form-select-dark" required>
                 <option :value="null" disabled>Sélectionner un rôle métier</option>
                 <option v-for="role in filteredRoleMetiers" :key="role.id" :value="role.id">{{ role.libelle }}</option>
               </select>
             </UFormField>
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div class="form-helper">
               L’utilisateur sera activé après affectation de l’atelier et du rôle métier.
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="form-footer">
               <UButton label="Annuler" variant="outline" @click="showApprove = false" />
               <UButton type="submit" label="Valider le compte" :loading="approving" />
             </div>
@@ -257,12 +252,12 @@ function accessStatusLabel(status: string) {
   }
 }
 
-function statusBadgeStyle(status: string) {
+function accessStatusVariant(status: string): 'warning' | 'error' | 'neutral' | 'success' {
   switch (status) {
-    case 'pending_validation': return 'background:rgba(251,191,36,0.16);color:#FCD34D;'
-    case 'disabled': return 'background:rgba(239,68,68,0.16);color:#FCA5A5;'
-    case 'archived': return 'background:rgba(107,114,128,0.18);color:#D1D5DB;'
-    default: return 'background:rgba(34,197,94,0.14);color:#86EFAC;'
+    case 'pending_validation': return 'warning'
+    case 'disabled': return 'error'
+    case 'archived': return 'neutral'
+    default: return 'success'
   }
 }
 
@@ -435,8 +430,7 @@ async function fetchUsers() {
   loading.value = true
   try {
     const data = await api.get('/users')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    users.value = raw.map((u: any) => normalizeUser(u))
+    users.value = unwrapHydraOrEmpty(data).map((u: any) => normalizeUser(u))
   } finally {
     loading.value = false
   }
@@ -445,8 +439,7 @@ async function fetchUsers() {
 async function fetchAteliers() {
   try {
     const data = await api.get('/ateliers')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    ateliers.value = raw
+    ateliers.value = unwrapHydraOrEmpty(data)
   } catch {
     ateliers.value = []
   }
@@ -455,8 +448,7 @@ async function fetchAteliers() {
 async function fetchRoleMetiers() {
   try {
     const data = await api.get('/roles-metier')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    roleMetiers.value = raw
+    roleMetiers.value = unwrapHydraOrEmpty(data)
   } catch {
     roleMetiers.value = []
   }
@@ -465,7 +457,7 @@ async function fetchRoleMetiers() {
 async function fetchRoleOptions() {
   try {
     const data = await api.get('/roles')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+    const raw = unwrapHydraOrEmpty(data)
     const unique = new Map<string, { value: string; label: string }>()
 
     for (const option of defaultRoleOptions) {
@@ -497,3 +489,20 @@ onMounted(async () => {
   await Promise.all([fetchUsers(), fetchRoleOptions(), fetchAteliers(), fetchRoleMetiers()])
 })
 </script>
+
+<style scoped>
+.font-mono-blue { font-family:monospace; font-size:12px; color:#93C5FD; }
+.role-cell { display:flex; flex-direction:column; gap:4px; }
+.role-label { color:#E8E9ED; font-size:12px; font-weight:600; }
+.role-code { color:#9CA3AF; font-size:11px; }
+.modal-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-select-dark { background:#171B24; color:#E8E9ED; }
+.form-helper { font-size:12px; color:#9CA3AF; }
+.form-footer { display:flex; justify-content:flex-end; gap:8px; }
+.btn-action-success { color:#86EFAC; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-danger { color:#FCA5A5; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-primary { color:#FFD200; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-info { color:#93C5FD; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+</style>
