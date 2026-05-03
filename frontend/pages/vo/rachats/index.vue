@@ -71,7 +71,7 @@
           {{ formatPrice(row.original.targetSalePrice) }}
         </template>
         <template #margin-cell="{ row }">
-          <span :style="{ color: Number(row.original.margin || 0) >= 0 ? '#22c55e' : '#ef4444', fontWeight: '700' }">
+          <span :class="[Number(row.original.margin || 0) >= 0 ? 'text-green' : 'text-red', 'font-bold']">
             {{ formatPrice(row.original.margin || 0) }}
           </span>
         </template>
@@ -186,6 +186,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.text-green { color:#22c55e; }
+.text-red { color:#ef4444; }
+.font-bold { font-weight:700; }
 .vo-header {
   display: flex;
   align-items: flex-start;

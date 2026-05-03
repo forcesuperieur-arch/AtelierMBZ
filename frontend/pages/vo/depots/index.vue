@@ -69,7 +69,7 @@
           {{ formatPrice(row.original.commissionAmount || 0) }}
         </template>
         <template #joursRestants-cell="{ row }">
-          <span :style="{ color: row.original.mandatExpire ? '#ef4444' : Number(row.original.joursRestants ?? 999) <= 7 ? '#f59e0b' : '#d1d5db', fontWeight: '700' }">
+          <span :class="[row.original.mandatExpire ? 'text-red' : Number(row.original.joursRestants ?? 999) <= 7 ? 'text-amber' : 'text-light', 'font-bold']">
             {{ row.original.mandatExpire ? 'Expiré' : `${row.original.joursRestants ?? 0} j` }}
           </span>
         </template>
@@ -165,6 +165,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.text-red { color:#ef4444; }
+.text-amber { color:#f59e0b; }
+.text-light { color:#d1d5db; }
+.font-bold { font-weight:700; }
 .vo-header {
   display: flex;
   align-items: flex-start;

@@ -48,7 +48,7 @@
               </div>
               <div v-if="item.source === 'purchase'">
                 <span class="vo-k">Marge</span>
-                <strong :style="{ color: Number(item.marge || 0) >= 0 ? '#22c55e' : '#ef4444' }">{{ formatPrice(item.marge || 0) }}</strong>
+                <strong :class="Number(item.marge || 0) >= 0 ? 'text-green' : 'text-red'">{{ formatPrice(item.marge || 0) }}</strong>
               </div>
               <div v-else>
                 <span class="vo-k">Net déposant</span>
@@ -126,6 +126,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.text-green { color:#22c55e; }
+.text-red { color:#ef4444; }
 .vo-header {
   display: flex;
   align-items: flex-start;
