@@ -8,111 +8,91 @@
       </template>
     </AppPageHeader>
 
-    <div style="margin-bottom:16px;padding:12px 14px;border:1px solid rgba(255,210,0,0.18);border-radius:12px;background:rgba(255,210,0,0.05);">
-      <div style="font-size:13px;font-weight:700;color:#FCD34D;">Cette page sert à structurer l’atelier.</div>
-      <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">Les mécaniciens sont créés depuis les logins dans Utilisateurs. Le planning gère ensuite les RDV au quotidien.</div>
+    <div class="info-banner">
+      <div class="info-banner-title">Cette page sert à structurer l'atelier.</div>
+      <div class="info-banner-text">Les mécaniciens sont créés depuis les logins dans Utilisateurs. Le planning gère ensuite les RDV au quotidien.</div>
     </div>
 
-    <div class="grid-4" style="margin-bottom:20px;">
-      <div class="stat-card">
-        <div class="stat-label">Ponts actifs</div>
-        <div class="stat-value">{{ activePontsCount }}</div>
-        <div class="stat-delta" style="color:#10B981;">{{ ponts.length }} total</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ponts sans mécano</div>
-        <div class="stat-value">{{ unassignedPonts.length }}</div>
-        <div class="stat-delta" :style="unassignedPonts.length ? 'color:#FCA5A5;' : 'color:#10B981;'">{{ unassignedPonts.length ? 'à affecter' : 'RAS' }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Mécanos actifs</div>
-        <div class="stat-value">{{ activeMecaniciensCount }}</div>
-        <div class="stat-delta" style="color:#93C5FD;">{{ linkedMecaniciensCount }} liés à un login</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Mécanos sans pont</div>
-        <div class="stat-value">{{ mecaniciensWithoutPont.length }}</div>
-        <div class="stat-delta" :style="mecaniciensWithoutPont.length ? 'color:#FBBF24;' : 'color:#10B981;'">{{ mecaniciensWithoutPont.length ? 'répartition à finir' : 'équipe affectée' }}</div>
-      </div>
+    <div class="kpi-grid">
+      <AppKpiCard label="Ponts actifs" :value="activePontsCount" variant="green" />
+      <AppKpiCard label="Ponts sans mécano" :value="unassignedPonts.length" :variant="unassignedPonts.length ? 'red' : 'green'" />
+      <AppKpiCard label="Mécanos actifs" :value="activeMecaniciensCount" variant="blue" />
+      <AppKpiCard label="Mécanos sans pont" :value="mecaniciensWithoutPont.length" :variant="mecaniciensWithoutPont.length ? 'amber' : 'green'" />
     </div>
 
-    <div v-if="alerts.length" style="margin-bottom:16px;padding:12px 14px;border:1px solid rgba(245,158,11,0.2);border-radius:12px;background:rgba(245,158,11,0.06);">
-      <div style="font-size:13px;font-weight:700;color:#FBBF24;">Points à corriger</div>
-      <ul style="margin:8px 0 0 18px;padding:0;color:#E5E7EB;font-size:12px;display:grid;gap:4px;">
+    <div v-if="alerts.length" class="alert-banner">
+      <div class="alert-banner-title">Points à corriger</div>
+      <ul class="alert-banner-list">
         <li v-for="alert in alerts" :key="alert">{{ alert }}</li>
       </ul>
     </div>
 
-    <UCard style="margin-bottom:16px;">
+    <UCard class="mb-4">
       <template #header>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div class="card-header">
           <div>
-            <div style="font-size:15px;font-weight:700;color:#E8E9ED;">Équipe atelier</div>
-            <div style="font-size:12px;color:#9CA3AF;">Vue utile : login lié, pont affecté et charge du jour</div>
+            <div class="card-title">Équipe atelier</div>
+            <div class="card-subtitle">Vue utile : login lié, pont affecté et charge du jour</div>
           </div>
         </div>
       </template>
 
-      <div v-if="mecanicienCards.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
-        <div
-          v-for="meca in mecanicienCards"
-          :key="meca.id"
-          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);display:grid;gap:8px;"
-        >
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div v-if="mecanicienCards.length" class="meca-grid">
+        <div v-for="meca in mecanicienCards" :key="meca.id" class="meca-card">
+          <div class="meca-card-header">
             <div>
-              <div style="font-size:14px;font-weight:700;color:#E8E9ED;">{{ meca.prenom }} {{ meca.nom }}</div>
-              <div style="font-size:12px;color:#9CA3AF;">{{ meca.loginLabel }}</div>
+              <div class="meca-name">{{ meca.prenom }} {{ meca.nom }}</div>
+              <div class="meca-login">{{ meca.loginLabel }}</div>
             </div>
-            <StatusBadge :status="meca.isActive ? 'confirme' : 'annule'" />
+            <AppStatusBadge :status="meca.isActive ? 'confirme' : 'annule'" />
           </div>
-          <div style="font-size:12px;color:#D1D5DB;">Pont : <strong style="color:#E8E9ED;">{{ meca.pontNom }}</strong></div>
-          <div style="font-size:12px;color:#D1D5DB;">RDV du jour : <strong style="color:#E8E9ED;">{{ meca.rdvToday }}</strong></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" style="font-size:12px;padding:6px 10px;" @click="goToPlanning">Planning</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:6px 10px;" @click="goToUsers">Login</button>
+          <div class="meca-info">Pont : <strong>{{ meca.pontNom }}</strong></div>
+          <div class="meca-info">RDV du jour : <strong>{{ meca.rdvToday }}</strong></div>
+          <div class="meca-actions">
+            <button class="btn btn-ghost btn-sm" @click="goToPlanning">Planning</button>
+            <button class="btn btn-ghost btn-sm" @click="goToUsers">Login</button>
           </div>
         </div>
       </div>
-      <div v-else style="padding:12px;color:#9CA3AF;">Aucun mécanicien actif sur cet atelier.</div>
+      <div v-else class="text-muted">Aucun mécanicien actif sur cet atelier.</div>
     </UCard>
 
     <UCard>
       <template #header>
         <div>
-          <div style="font-size:15px;font-weight:700;color:#E8E9ED;">Postes de travail</div>
-          <div style="font-size:12px;color:#9CA3AF;">Affectation structurelle des ponts, pas l’ordonnancement des RDV</div>
+          <div class="card-title">Postes de travail</div>
+          <div class="card-subtitle">Affectation structurelle des ponts, pas l'ordonnancement des RDV</div>
         </div>
       </template>
 
       <UTable :data="pontRows" :columns="columns" :loading="loading">
         <template #type_pont-cell="{ row }">
-          <div style="display:grid;gap:2px;">
-            <span style="color:#E8E9ED;font-weight:600;">{{ row.original.type_pont || 'moto' }}</span>
-            <span style="color:#9CA3AF;font-size:11px;">{{ row.original.capacite_kg || 500 }} kg</span>
+          <div class="type-cell">
+            <span class="type-label">{{ row.original.type_pont || 'moto' }}</span>
+            <span class="type-meta">{{ row.original.capacite_kg || 500 }} kg</span>
           </div>
         </template>
         <template #mecanicien-cell="{ row }">
-          <span v-if="row.original.mecanicien_nom" style="color:#E8E9ED;">{{ row.original.mecanicien_nom }}</span>
-          <span v-else style="color:#FCA5A5;">Non assigné</span>
+          <span v-if="row.original.mecanicien_nom" class="text-light">{{ row.original.mecanicien_nom }}</span>
+          <span v-else class="text-red">Non assigné</span>
         </template>
         <template #charge-cell="{ row }">
-          <div style="display:grid;gap:2px;">
-            <span style="color:#E8E9ED;font-weight:600;">{{ row.original.rdv_today }} RDV</span>
-            <span style="color:#9CA3AF;font-size:11px;">{{ row.original.load_minutes }} min planifiées</span>
+          <div class="charge-cell">
+            <span class="charge-label">{{ row.original.rdv_today }} RDV</span>
+            <span class="charge-meta">{{ row.original.load_minutes }} min planifiées</span>
           </div>
         </template>
         <template #est_actif-cell="{ row }">
-          <StatusBadge :status="row.original.est_actif ? 'confirme' : 'annule'" />
+          <AppStatusBadge :status="row.original.est_actif ? 'confirme' : 'annule'" />
         </template>
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPont(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleActive(row.original)">
+          <AppInlineActions>
+            <button class="btn-action-primary" @click="editPont(row.original)">✏ Modifier</button>
+            <button class="btn-action-info" @click="toggleActive(row.original)">
               {{ row.original.est_actif ? '🔒 Désactiver' : '🔓 Activer' }}
             </button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePont(row.original)">🗄 Archiver</button>
-          </div>
+            <button class="btn-action-danger" @click="deletePont(row.original)">🗄 Archiver</button>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
@@ -121,17 +101,17 @@
       <template #content>
         <UCard>
           <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;">{{ editId ? 'Modifier' : 'Nouveau' }} pont</span>
-              <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+            <div class="modal-header">
+              <span class="modal-title">{{ editId ? 'Modifier' : 'Nouveau' }} pont</span>
+              <button class="modal-close" @click="showModal = false">✕</button>
             </div>
           </template>
-          <form @submit.prevent="savePont" style="display:flex;flex-direction:column;gap:12px;">
+          <form @submit.prevent="savePont" class="form-stack">
             <div class="form-group">
               <label class="form-label">Nom *</label>
               <input v-model="form.nom" class="form-input" required placeholder="Ex: Pont A" />
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">Type de pont</label>
                 <select v-model="form.type_pont" class="form-input">
@@ -157,11 +137,11 @@
                 <option v-for="m in activeMecaniciens" :key="m.id" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
               </select>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div class="checkbox-row">
               <input id="pont-actif" v-model="form.est_actif" type="checkbox" />
-              <label for="pont-actif" style="font-size:13px;color:#9CA3AF;">Pont actif</label>
+              <label for="pont-actif" class="checkbox-label">Pont actif</label>
             </div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+            <div class="form-footer">
               <button type="button" class="btn btn-ghost" @click="showModal = false">Annuler</button>
               <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Enregistrement…' : editId ? 'Modifier' : 'Créer' }}</button>
             </div>
@@ -226,7 +206,7 @@ const alerts = computed(() => {
   const items: string[] = []
   if (unassignedPonts.value.length) items.push(`${unassignedPonts.value.length} pont(s) actif(s) sans mécanicien assigné.`)
   if (mecaniciensWithoutPont.value.length) items.push(`${mecaniciensWithoutPont.value.length} mécanicien(s) actif(s) sans pont de rattachement.`)
-  if (linkedMecaniciensCount.value < activeMecaniciensCount.value) items.push(`Certains mécaniciens n’ont pas encore de login lié visible.`)
+  if (linkedMecaniciensCount.value < activeMecaniciensCount.value) items.push(`Certains mécaniciens n'ont pas encore de login lié visible.`)
   return items
 })
 
@@ -380,10 +360,10 @@ async function refreshData() {
     api.get('/rendez-vous?itemsPerPage=2000&order[createdAt]=desc').catch(() => []),
   ])
 
-  const rawPonts = pontData?.['hydra:member'] ?? pontData?.member ?? (Array.isArray(pontData) ? pontData : [])
-  const rawMecas = mecaData?.['hydra:member'] ?? mecaData?.member ?? (Array.isArray(mecaData) ? mecaData : [])
-  const rawUsers = userData?.['hydra:member'] ?? userData?.member ?? (Array.isArray(userData) ? userData : [])
-  const rawRdvs = rdvData?.['hydra:member'] ?? rdvData?.member ?? (Array.isArray(rdvData) ? rdvData : [])
+  const rawPonts = unwrapHydraOrEmpty(pontData)
+  const rawMecas = unwrapHydraOrEmpty(mecaData)
+  const rawUsers = unwrapHydraOrEmpty(userData)
+  const rawRdvs = unwrapHydraOrEmpty(rdvData)
 
   ponts.value = rawPonts.map((p: any) => ({
     ...p,
@@ -404,3 +384,44 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.info-banner { margin-bottom:16px; padding:12px 14px; border:1px solid rgba(255,210,0,0.18); border-radius:12px; background:rgba(255,210,0,0.05); }
+.info-banner-title { font-size:13px; font-weight:700; color:#FCD34D; }
+.info-banner-text { font-size:12px; color:#E5E7EB; margin-top:4px; }
+.alert-banner { margin-bottom:16px; padding:12px 14px; border:1px solid rgba(245,158,11,0.2); border-radius:12px; background:rgba(245,158,11,0.06); }
+.alert-banner-title { font-size:13px; font-weight:700; color:#FBBF24; }
+.alert-banner-list { margin:8px 0 0 18px; padding:0; color:#E5E7EB; font-size:12px; display:grid; gap:4px; }
+.card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.card-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.card-subtitle { font-size:12px; color:#9CA3AF; }
+.meca-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+.meca-card { padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); display:grid; gap:8px; }
+.meca-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.meca-name { font-size:14px; font-weight:700; color:#E8E9ED; }
+.meca-login { font-size:12px; color:#9CA3AF; }
+.meca-info { font-size:12px; color:#D1D5DB; }
+.meca-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.type-cell { display:grid; gap:2px; }
+.type-label { color:#E8E9ED; font-weight:600; }
+.type-meta { color:#9CA3AF; font-size:11px; }
+.text-light { color:#E8E9ED; }
+.text-red { color:#FCA5A5; }
+.charge-cell { display:grid; gap:2px; }
+.charge-label { color:#E8E9ED; font-weight:600; }
+.charge-meta { color:#9CA3AF; font-size:11px; }
+.btn-action-primary { color:#FFD200; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-info { color:#93C5FD; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-danger { color:#FCA5A5; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; }
+.modal-title { font-weight:600; }
+.modal-close { background:none; border:none; color:#9CA3AF; font-size:18px; cursor:pointer; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.checkbox-row { display:flex; align-items:center; gap:8px; }
+.checkbox-label { font-size:13px; color:#9CA3AF; }
+.form-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+.btn-sm { font-size:12px; padding:6px 10px; }
+.text-muted { padding:12px; color:#9CA3AF; }
+.mb-4 { margin-bottom:16px; }
+</style>

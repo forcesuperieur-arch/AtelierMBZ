@@ -3,29 +3,29 @@
     <AppPageHeader title="Gestion des prestations" back-to="/admin">
       <template #actions>
         <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
-        <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
+        <button class="topbar-new-btn btn-purple" @click="bootstrapCatalog">Initialiser le catalogue</button>
       </template>
     </AppPageHeader>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button v-for="cat in categoryFilters" :key="cat.value" class="btn" :class="filterCat === cat.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="filterCat = cat.value">
+    <div class="filter-bar">
+      <button v-for="cat in categoryFilters" :key="cat.value" class="btn filter-btn" :class="filterCat === cat.value ? 'btn-primary' : 'btn-ghost'" @click="filterCat = cat.value">
         {{ cat.label }}
       </button>
     </div>
 
     <UCard>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="font-size:13px;color:#D1D5DB;">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
-        <div style="font-size:12px;color:#9CA3AF;">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
+      <div class="card-header-row">
+        <div class="card-header-text">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
+        <div class="card-header-meta">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
       </div>
 
       <UTable :data="filteredPrestations" :columns="columns" :loading="loading">
         <template #categorie-cell="{ row }">
-          <span style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(139,92,246,0.1);color:#C4B5FD;">{{ row.original.categorie_nom || '—' }}</span>
+          <span class="badge-purple-sm">{{ row.original.categorie_nom || '—' }}</span>
         </template>
 
         <template #prix_ht-cell="{ row }">
-          <span style="color:#FFD200;font-weight:600;">{{ formatCurrency(row.original.prix_ht) }}</span>
+          <span class="text-yellow-bold">{{ formatCurrency(row.original.prix_ht) }}</span>
         </template>
 
         <template #temps_estime-cell="{ row }">
@@ -33,27 +33,27 @@
         </template>
 
         <template #type_tarif-cell="{ row }">
-          <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(255,210,0,0.1);color:#FFD200;">{{ labelTypeTarif(row.original.type_tarif) }}</span>
+          <span class="badge-amber-sm">{{ labelTypeTarif(row.original.type_tarif) }}</span>
         </template>
 
         <template #tarifs_moto-cell="{ row }">
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <span style="font-size:12px;color:#E8E9ED;">{{ row.original.enabledCount }} type(s) actif(s)</span>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <span v-for="mode in row.original.modes" :key="`${row.original.id}-${mode}`" style="font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(139,92,246,0.14);color:#C4B5FD;">
+          <div class="tarif-stack">
+            <span class="tarif-count">{{ row.original.enabledCount }} type(s) actif(s)</span>
+            <div class="tarif-modes">
+              <span v-for="mode in row.original.modes" :key="`${row.original.id}-${mode}`" class="badge-purple-xs">
                 {{ labelTypeTarif(mode) }}
               </span>
-              <span v-if="!row.original.modes.length" style="font-size:10px;color:#9CA3AF;">Non configuré</span>
+              <span v-if="!row.original.modes.length" class="text-muted-xs">Non configuré</span>
             </div>
           </div>
         </template>
 
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPrestation(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openTarifModal(row.original)">⚙ Tarifs moto</button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
-          </div>
+          <AppInlineActions>
+            <button class="btn-action-primary" @click="editPrestation(row.original)">✏ Modifier</button>
+            <button class="btn-action-info" @click="openTarifModal(row.original)">⚙ Tarifs moto</button>
+            <button class="btn-action-danger" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
@@ -62,13 +62,13 @@
       <template #content>
         <UCard>
           <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
-              <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+            <div class="modal-header">
+              <span class="modal-title">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
+              <button class="modal-close" @click="showModal = false">✕</button>
             </div>
           </template>
 
-          <form @submit.prevent="savePrestation" style="display:flex;flex-direction:column;gap:12px;">
+          <form @submit.prevent="savePrestation" class="form-stack">
             <div class="form-group">
               <label class="form-label">Nom *</label>
               <input v-model="form.nom" class="form-input" required placeholder="Ex: Vidange" />
@@ -79,7 +79,7 @@
               <textarea v-model="form.description" class="form-input" rows="2" placeholder="Description optionnelle" />
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">Prix HT (€) *</label>
                 <input v-model.number="form.prix_ht" type="number" step="0.01" class="form-input" required />
@@ -107,7 +107,7 @@
               </select>
             </div>
 
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+            <div class="form-footer">
               <button type="button" class="btn btn-ghost" @click="showModal = false">Annuler</button>
               <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Enregistrement…' : editId ? 'Modifier' : 'Créer' }}</button>
             </div>
@@ -120,31 +120,31 @@
       <template #content>
         <UCard>
           <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div class="modal-header">
               <div>
-                <div style="font-weight:700;color:#E8E9ED;">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">Forfait, horaire ou sur devis selon chaque type de moto.</div>
+                <div class="modal-title">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
+                <div class="modal-subtitle">Forfait, horaire ou sur devis selon chaque type de moto.</div>
               </div>
-              <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button type="button" class="modal-close" @click="showTarifModal = false">✕</button>
             </div>
           </template>
 
-          <div v-if="!activeMotoCategories.length" style="font-size:13px;color:#FCA5A5;">Aucun type moto actif n'est disponible pour cette configuration.</div>
+          <div v-if="!activeMotoCategories.length" class="text-error">Aucun type moto actif n'est disponible pour cette configuration.</div>
 
-          <div v-else style="display:flex;flex-direction:column;gap:12px;">
-            <div v-for="row in tarifRows" :key="row.categorie_id" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;background:rgba(255,255,255,0.02);">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div v-else class="form-stack">
+            <div v-for="row in tarifRows" :key="row.categorie_id" class="tarif-card">
+              <div class="tarif-card-header">
                 <div>
-                  <div style="font-weight:700;color:#E8E9ED;">{{ row.categorie_label }}</div>
-                  <div style="font-size:11px;color:#9CA3AF;">Active ou masque cette prestation pour ce type.</div>
+                  <div class="tarif-card-title">{{ row.categorie_label }}</div>
+                  <div class="tarif-card-subtitle">Active ou masque cette prestation pour ce type.</div>
                 </div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#D1D5DB;">
+                <label class="checkbox-label">
                   <input v-model="row.is_active" type="checkbox" :true-value="1" :false-value="0" />
                   Activée
                 </label>
               </div>
 
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '12px', opacity: Number(row.is_active) === 1 ? 1 : 0.55 }">
+              <div class="form-grid-3" :class="{ 'opacity-55': Number(row.is_active) !== 1 }">
                 <div class="form-group">
                   <label class="form-label">Mode tarif</label>
                   <select v-model="row.type_tarif" class="form-input" :disabled="Number(row.is_active) !== 1">
@@ -163,10 +163,10 @@
                 </div>
               </div>
 
-              <div v-if="row.type_tarif === 'devis'" style="font-size:11px;color:#9CA3AF;margin-top:8px;">Le montant sera saisi au cas par cas sur le devis.</div>
+              <div v-if="row.type_tarif === 'devis'" class="form-helper">Le montant sera saisi au cas par cas sur le devis.</div>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+            <div class="form-footer">
               <button type="button" class="btn btn-ghost" @click="showTarifModal = false">Annuler</button>
               <button type="button" class="btn btn-primary" :disabled="modalSaving" @click="saveTarifModal">{{ modalSaving ? 'Enregistrement…' : 'Enregistrer la pop-in' }}</button>
             </div>
@@ -266,10 +266,6 @@ function labelTypeTarif(value: string) {
   if (value === 'horaire') return 'Horaire'
   if (value === 'devis') return 'Sur devis'
   return 'Forfait'
-}
-
-function unwrapList(data: any) {
-  return data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
 }
 
 function extractId(value: any): number | null {
@@ -506,13 +502,13 @@ async function fetchData() {
   ])
 
   if (prestationsResult.status === 'fulfilled') {
-    prestations.value = unwrapList(prestationsResult.value)
+    prestations.value = normalizePrestations(unwrapHydraOrEmpty(prestationsResult.value))
   }
   if (categoriesResult.status === 'fulfilled') {
-    motoCategories.value = unwrapList(categoriesResult.value)
+    motoCategories.value = normalizeCategories(unwrapHydraOrEmpty(categoriesResult.value))
   }
   if (grillesResult.status === 'fulfilled') {
-    grilles.value = normalizeGrilles(unwrapList(grillesResult.value))
+    grilles.value = normalizeGrilles(unwrapHydraOrEmpty(grillesResult.value))
   }
 }
 
@@ -541,3 +537,38 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.btn-purple { background:rgba(139,92,246,0.15); color:#C4B5FD; }
+.filter-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.filter-btn { font-size:12px; padding:6px 14px; }
+.card-header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.card-header-text { font-size:13px; color:#D1D5DB; }
+.card-header-meta { font-size:12px; color:#9CA3AF; }
+.badge-purple-sm { font-size:11px; padding:3px 10px; border-radius:6px; background:rgba(139,92,246,0.1); color:#C4B5FD; }
+.text-yellow-bold { color:#FFD200; font-weight:600; }
+.badge-amber-sm { font-size:11px; padding:3px 10px; border-radius:999px; background:rgba(255,210,0,0.1); color:#FFD200; }
+.tarif-stack { display:flex; flex-direction:column; gap:6px; }
+.tarif-count { font-size:12px; color:#E8E9ED; }
+.tarif-modes { display:flex; gap:4px; flex-wrap:wrap; }
+.badge-purple-xs { font-size:10px; padding:2px 8px; border-radius:999px; background:rgba(139,92,246,0.14); color:#C4B5FD; }
+.text-muted-xs { font-size:10px; color:#9CA3AF; }
+.btn-action-primary { color:#FFD200; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-info { color:#93C5FD; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-danger { color:#FCA5A5; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; }
+.modal-title { font-weight:600; }
+.modal-close { background:none; border:none; color:#9CA3AF; font-size:18px; cursor:pointer; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.form-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+.text-error { font-size:13px; color:#FCA5A5; }
+.tarif-card { border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; background:rgba(255,255,255,0.02); }
+.tarif-card-header { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.tarif-card-title { font-weight:700; color:#E8E9ED; }
+.tarif-card-subtitle { font-size:11px; color:#9CA3AF; }
+.checkbox-label { display:flex; align-items:center; gap:6px; font-size:12px; color:#D1D5DB; }
+.form-helper { font-size:11px; color:#9CA3AF; margin-top:8px; }
+.opacity-55 { opacity:0.55; }
+</style>
