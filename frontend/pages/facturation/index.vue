@@ -250,6 +250,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ title: 'Facturation' })
 const billingStore = useBillingStore()
 const api = useApi()
 const toast = useToast()
