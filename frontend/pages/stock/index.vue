@@ -3,6 +3,7 @@
     <AppPageHeader title="Stock — Pièces détachées">
       <template #actions>
         <div style="display:flex;gap:8px;">
+          <button class="topbar-new-btn" style="background:rgba(255,255,255,0.08);" @click="exportCsv">📥 Export CSV</button>
           <NuxtLink to="/stock/fournisseurs" class="topbar-new-btn" style="background:rgba(255,255,255,0.08);">Fournisseurs</NuxtLink>
           <NuxtLink to="/stock/commandes" class="topbar-new-btn" style="background:rgba(255,255,255,0.08);">Commandes</NuxtLink>
           <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
@@ -267,6 +268,29 @@ function mouvementColor(t: string) {
   if (t === 'entree' || t === 'reception') return 'color:#10B981;'
   if (t === 'sortie' || t === 'commande') return 'color:#EF4444;'
   return 'color:#FBBF24;'
+}
+
+function exportCsv() {
+  const pieces = stockStore.pieces
+  const headers = ['Référence', 'Désignation', 'Catégorie', 'Stock', 'Seuil', 'Prix achat HT', 'Prix vente HT', 'Emplacement']
+  const rows = pieces.map(p => [
+    p.reference,
+    p.designation,
+    p.categorie || '',
+    p.quantite_stock,
+    p.seuil_alerte,
+    p.prix_achat_ht,
+    p.prix_vente_ht,
+    p.emplacement || '',
+  ])
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `inventaire-stock-${new Date().toISOString().slice(0,10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 onMounted(() => stockStore.fetchPieces())
