@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { unwrapHydra } from '~/utils/hydra'
 
 interface PieceDetachee {
   id: number
@@ -85,7 +86,7 @@ export const useStockStore = defineStore('stock', {
         const api = useApi()
         const qs = search ? `?nom=${encodeURIComponent(search)}` : ''
         const raw = await api.get(`/stock/pieces${qs}`)
-        const items = Array.isArray(raw) ? raw : (raw['hydra:member'] ?? raw['member'] ?? [])
+        const items = unwrapHydra(raw)
         this.pieces = items.map(normalizePiece)
       } finally {
         this.loading = false
@@ -129,7 +130,7 @@ export const useStockStore = defineStore('stock', {
         const api = useApi()
         const qs = statut ? `?statut=${encodeURIComponent(statut)}` : ''
         const raw = await api.get(`/stock/commandes${qs}`)
-        this.commandes = raw?.member ?? raw?.['hydra:member'] ?? raw ?? []
+        this.commandes = unwrapHydra(raw)
       } finally {
         this.loadingCommandes = false
       }
@@ -155,7 +156,7 @@ export const useStockStore = defineStore('stock', {
         const api = useApi()
         const qs = pieceId ? `?piece_id=${pieceId}` : ''
         const raw = await api.get(`/stock/mouvements${qs}`)
-        this.mouvements = raw?.member ?? raw?.['hydra:member'] ?? raw ?? []
+        this.mouvements = unwrapHydra(raw)
       } finally {
         this.loadingMouvements = false
       }

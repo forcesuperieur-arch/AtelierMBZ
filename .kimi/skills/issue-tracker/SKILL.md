@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | 1 | **Injection SQL** via `sprintf` dans `nextDocumentNumber` | `FacturationController.php:203,207` | GuardSec | ✅ Résolu — validation regex du prefix ajoutée |
 | 2 | **Mots de passe hardcodés** en seed | `SeedCommand.php:191`, `ResetSeedCommand.php:165` | GuardSec | ✅ Résolu — remplacés par `bin2hex(random_bytes(16))` |
-| 3 | **Endpoints sans `#[IsGranted]`** | `CerfaFieldConfigController`, `MotosLookupController`, `SlotController`, `FacturationController`, `StatistiquesController`, `RendezVousFacturationCompatController` | GuardSec | ✅ Résolu — `#[IsGranted('ROLE_USER')]` ou `ROLE_SUPER_ADMIN` ajouté sur chaque classe |
+| 3 | **Endpoints sans `#[IsGranted]`** | 13 controllers identifiés | GuardSec | ✅ Résolu — `#[IsGranted` ajouté sur tous les controllers internes (Mecanicien, RdvPrestationCatalog, AdminAtelier, AdminUserProvisioning, etc.) |
 | 4 | **39 entités sans tests** | `backend/src/Entity/*` (liste complète dans `agent-testpilot`) | TestPilot | 🔴 Ouvert |
 | 5 | **51 entités sans validation Symfony** | `backend/src/Entity/*` | GuardSec | 🔴 Ouvert |
 
@@ -16,7 +16,7 @@
 
 | # | Problème | Fichier(s) | Agent responsable | Statut |
 |---|---|---|---|---|
-| 6 | **God classes backend** (>500 lignes) | `AuthController` (793), `VOPurchaseController` (739), `FacturationController` (645), `RendezVousController` (549), `VODepotController` (547), `CompanionController` (543), `VORemiseEnEtatController` (530), `DemandeTravauxSuppController` (474), `PublicVoCompanionController` (434) | ArchiTech | 🟠 Ouvert |
+| 6 | **God classes backend** (>500 lignes) | `AuthController` (793), `VOPurchaseController` (739), `FacturationController` (645), `RendezVousController` (549), `VODepotController` (547), `CompanionController` (543), `VORemiseEnEtatController` (530), `DemandeTravauxSuppController` (474), `PublicVoCompanionController` (434) | ArchiTech | 🟠 En cours — `StatistiquesController` allégé de 100 lignes via `StatisticsService` |
 | 7 | **God classes frontend** (>50 KB) | `planning.vue` (96 KB), `ordres/[id].vue` (75 KB), `workshop.vue` (63 KB), `mecanicien.vue` (58 KB), `rdv/new.vue` (55 KB), `public/companion/[token].vue` (53 KB) | FrontCraft | 🟠 Ouvert |
 | 8 | **`status` vs `statut`** incohérent | 18 entités | ArchiTech | 🟠 Ouvert |
 | 9 | **Duplication RGPD snapshot** | `Facture`, `Devis`, `OrdreReparation` | ArchiTech | 🟠 Ouvert |
