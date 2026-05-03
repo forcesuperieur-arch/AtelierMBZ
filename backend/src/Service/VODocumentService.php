@@ -19,6 +19,13 @@ class VODocumentService
         'image/webp',
     ];
 
+    private const MAGIC_BYTES = [
+        'application/pdf' => ["\x25\x50\x44\x46"],
+        'image/jpeg'      => ["\xFF\xD8\xFF"],
+        'image/png'       => ["\x89\x50\x4E\x47"],
+        'image/webp'      => ["\x52\x49\x46\x46"],
+    ];
+
     private const PURCHASE_REQUIRED_DOCS = [
         VODocument::TYPE_CERFA_CESSION_ACHAT,
         VODocument::TYPE_CARTE_GRISE,
@@ -57,6 +64,7 @@ class VODocumentService
 
         $mimeType = $file->getMimeType() ?? $file->getClientMimeType() ?? 'application/octet-stream';
         $this->assertAllowedMimeType($mimeType);
+        $this->validateMagicBytes((string) file_get_contents($file->getPathname()), $mimeType);
 
         $safeFilename = bin2hex(random_bytes(16)) . '.' . ($file->guessExtension() ?? 'bin');
         $file->move($uploadDir, $safeFilename);
@@ -84,6 +92,7 @@ class VODocumentService
         ?\DateTimeInterface $dateExpiration = null,
     ): VODocument {
         $this->assertAllowedMimeType($mimeType);
+        $this->validateMagicBytes($content, $mimeType);
 
         $uploadDir = $this->projectDir . '/public/uploads/vo';
         if (!is_dir($uploadDir)) {
@@ -542,6 +551,22 @@ class VODocumentService
         if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
             throw new \InvalidArgumentException('Type de fichier non autorise. Formats acceptes : PDF, JPEG, PNG, WebP.');
         }
+    }
+
+    private function validateMagicBytes(string $content, string $mimeType): void
+    {
+        $signatures = self::MAGIC_BYTES[$mimeType] ?? [];
+        if ($signatures === []) {
+            return;
+        }
+
+        foreach ($signatures as $sig) {
+            if (str_starts_with($content, $sig)) {
+                return;
+            }
+        }
+
+        throw new \InvalidArgumentException('Le contenu du fichier ne correspond pas au format declare.');
     }
 
     private function guessExtensionFromMimeType(string $mimeType): string
