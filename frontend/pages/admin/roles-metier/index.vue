@@ -6,12 +6,12 @@
       </template>
     </AppPageHeader>
 
-    <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">
-      <span style="color:#6B7280;">Chargement...</span>
+    <div v-if="loading" class="loading-center">
+      <span class="loading-text">Chargement...</span>
     </div>
 
     <UCard v-else-if="!isSuperAdmin">
-      <div style="padding:8px 0;color:#FCA5A5;font-weight:600;">Accès réservé au superadmin.</div>
+      <div class="access-denied">Accès réservé au superadmin.</div>
     </UCard>
 
     <AppErrorState
@@ -28,20 +28,20 @@
         <div class="empty-state-sub">
           Créez votre premier rôle métier (chef d'atelier, comptable, etc.) pour affecter des permissions granulaires aux utilisateurs.
         </div>
-        <button class="btn btn-primary empty-state-action" style="font-size:13px;" @click="showCreate = true">+ Créer le premier rôle</button>
+        <button class="btn btn-primary empty-state-action btn-sm" @click="showCreate = true">+ Créer le premier rôle</button>
       </div>
       <UTable v-else :data="roles" :columns="columns">
         <template #libelle-cell="{ row }">
           <div>
-            <div style="font-weight:700;color:#E8E9ED;">{{ row.original.libelle }}</div>
-            <div style="font-size:12px;color:#6B7280;">{{ row.original.code }}</div>
+            <div class="role-label">{{ row.original.libelle }}</div>
+            <div class="role-key">{{ row.original.code }}</div>
           </div>
         </template>
 
         <template #baseRole-cell="{ row }">
-          <span class="status-badge" :style="row.original.baseRole === 'ROLE_ADMIN' ? 'background:rgba(252,211,77,0.12);color:#FCD34D;' : 'background:rgba(147,197,253,0.12);color:#93C5FD;'">
+          <AppStatusBadge :variant="row.original.baseRole === 'ROLE_ADMIN' ? 'warning' : 'info'" size="sm">
             {{ row.original.baseRole === 'ROLE_ADMIN' ? 'Admin' : 'User' }}
-          </span>
+          </AppStatusBadge>
         </template>
 
         <template #permissions-cell="{ row }">
@@ -49,23 +49,16 @@
             <span v-for="p in row.original.permissions?.slice(0, 5)" :key="p.id" class="access-chip permission-chip">
               {{ p.module }}.{{ p.action }}
             </span>
-            <span v-if="(row.original.permissions?.length ?? 0) > 5" style="font-size:11px;color:#6B7280;">
+            <span v-if="(row.original.permissions?.length ?? 0) > 5" class="text-muted">
               +{{ row.original.permissions.length - 5 }}
             </span>
           </div>
         </template>
 
         <template #isSystemTemplate-cell="{ row }">
-          <span
-            :style="{
-              display: 'inline-block', padding: '4px 10px', borderRadius: '999px',
-              fontSize: '11px', fontWeight: '700',
-              color: row.original.isSystemTemplate ? '#FCD34D' : '#9CA3AF',
-              background: row.original.isSystemTemplate ? 'rgba(252,211,77,0.12)' : 'rgba(156,163,175,0.12)'
-            }"
-          >
+          <AppStatusBadge :variant="row.original.isSystemTemplate ? 'warning' : 'neutral'" size="sm">
             {{ row.original.isSystemTemplate ? 'Système' : 'Personnalisé' }}
-          </span>
+          </AppStatusBadge>
         </template>
 
         <template #isActive-cell="{ row }">
@@ -73,14 +66,14 @@
         </template>
 
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="navigateTo(`/admin/roles-metier/${row.original.id}`)">✏ Modifier</button>
+          <AppInlineActions>
+            <button class="btn-action-primary" @click="navigateTo(`/admin/roles-metier/${row.original.id}`)">✏ Modifier</button>
             <button
               v-if="!row.original.isSystemTemplate"
-              style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;"
+              class="btn-action-danger"
               @click="deleteRole(row.original)"
             >✖ Supprimer</button>
-          </div>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
@@ -89,9 +82,9 @@
     <AppModal v-model:open="showCreate" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau rôle métier</span></template>
-          <form @submit.prevent="createRole" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <template #header><span class="modal-title">Nouveau rôle métier</span></template>
+          <form @submit.prevent="createRole" class="form-stack">
+            <div class="form-grid-2">
               <UFormField label="Code"><UInput v-model="createForm.code" placeholder="ex: chef_atelier" required /></UFormField>
               <UFormField label="Libellé"><UInput v-model="createForm.libelle" placeholder="ex: Chef d'atelier" required /></UFormField>
               <UFormField label="Rôle de base">
@@ -101,7 +94,7 @@
             <UFormField label="Description">
               <UTextarea v-model="createForm.description" :rows="2" />
             </UFormField>
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="form-footer">
               <UButton label="Annuler" variant="outline" @click="showCreate = false" />
               <UButton type="submit" label="Créer" :loading="saving" />
             </div>
@@ -154,7 +147,7 @@ async function fetchRoles() {
   errorMessage.value = ''
   try {
     const data = await api.get('/roles-metier')
-    roles.value = data['hydra:member'] ?? data
+    roles.value = unwrapHydraOrEmpty(data)
   } catch (e: unknown) {
     errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Impossible de charger les rôles métier.'
     toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
@@ -197,3 +190,22 @@ onMounted(() => {
   fetchRoles()
 })
 </script>
+
+<style scoped>
+.loading-center { display:flex; justify-content:center; padding:48px; }
+.loading-text { color:#6B7280; }
+.access-denied { padding:8px 0; color:#FCA5A5; font-weight:600; }
+.btn-sm { font-size:13px; }
+.role-label { font-weight:700; color:#E8E9ED; }
+.role-key { font-size:12px; color:#6B7280; }
+.text-muted { font-size:11px; color:#6B7280; }
+.btn-action-primary { color:#FFD200; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.btn-action-danger { color:#FCA5A5; font-size:12px; font-weight:600; background:none; border:none; cursor:pointer; }
+.modal-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-footer { display:flex; justify-content:flex-end; gap:8px; }
+.chip-list { display:flex; flex-wrap:wrap; gap:6px; }
+.access-chip { display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+.permission-chip { color:#C4B5FD; background:rgba(139,92,246,0.12); }
+</style>
