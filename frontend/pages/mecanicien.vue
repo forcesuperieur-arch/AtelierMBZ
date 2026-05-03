@@ -1,34 +1,34 @@
 <template>
   <div class="pb-24">
-    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-      <div style="display:flex;align-items:center;gap:14px;">
+    <div class="page-header justify-between">
+      <div class="flex items-center gap-3.5">
         <div class="avatar-circle">{{ initials }}</div>
         <div>
           <div class="page-title">Espace Mécanicien</div>
-          <div style="font-size:12px;color:#6B7280;">{{ todayLabel }}</div>
+          <div class="header-date">{{ todayLabel }}</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <NuxtLink to="/profile" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);" title="Mon profil">
+      <div class="flex items-center gap-2">
+        <NuxtLink to="/profile" class="profile-btn" title="Mon profil">
           <UIcon name="i-heroicons-user-circle" class="w-5 h-5" />
         </NuxtLink>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
         <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">EN COURS</div>
-          <div style="font-size:22px;font-weight:700;color:#F59E0B;">{{ kpis.enCours }}</div>
+          <div class="kpi-value-orange">{{ kpis.enCours }}</div>
         </div>
         <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">À FAIRE</div>
-          <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ kpis.aFaire }}</div>
+          <div class="kpi-value-light">{{ kpis.aFaire }}</div>
         </div>
         <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">TERMINÉS</div>
-          <div style="font-size:22px;font-weight:700;color:#10B981;">{{ kpis.termines }}</div>
+          <div class="kpi-value-green">{{ kpis.termines }}</div>
         </div>
         <div class="stat-card card-sm">
           <div class="text-xs-subtle mb-1">JOURNÉE</div>
-          <div style="font-size:22px;font-weight:700;color:#FFD200;">{{ kpis.pctDone }}%</div>
+          <div class="kpi-value-yellow">{{ kpis.pctDone }}%</div>
         </div>
       </div>
     </div>
@@ -40,23 +40,23 @@
 
     <div v-else>
       <!-- Priority card -->
-      <div v-if="priorityAction" style="margin-bottom:20px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.15);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:14px;">⚡</span>
-          <span style="font-size:13px;font-weight:600;color:#FFD200;">Prochaine action</span>
+      <div v-if="priorityAction" class="panel-yellow mb-5">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-sm">⚡</span>
+          <span class="text-warning-md">Prochaine action</span>
         </div>
-        <p style="font-size:13px;color:#D1D5DB;">{{ priorityAction }}</p>
+        <p class="text-md-value">{{ priorityAction }}</p>
       </div>
 
       <!-- Active intervention -->
-      <UCard v-if="activeRdv" style="margin-bottom:24px;border-color:rgba(245,158,11,0.3);">
+      <UCard v-if="activeRdv" class="mb-6 card-warning-border">
         <template #header>
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-            <span style="font-size:16px;font-weight:700;color:#F59E0B;min-height:44px;display:flex;align-items:center;">🔧 {{ activeRdvStatusTitle }}</span>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:44px;">
-              <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" style="font-size:13px;color:#FFD200;text-decoration:none;font-weight:600;padding:12px 16px;background:rgba(255,210,0,0.1);border-radius:8px;">📋 Dossier atelier</NuxtLink>
-              <span class="badge-pill" :style="activeRdvStatusStyle">{{ activeRdvStatusLabel }}</span>
-              <span class="badge-pill" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
+          <div class="flex-between-wrap gap-3">
+            <span class="section-title-warning min-h-11 flex items-center">🔧 {{ activeRdvStatusTitle }}</span>
+            <div class="flex items-center gap-2 flex-wrap min-h-11">
+              <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" class="link-dossier">📋 Dossier atelier</NuxtLink>
+              <span class="badge-pill" :class="activeRdvStatusClass">{{ activeRdvStatusLabel }}</span>
+              <span class="badge-pill" :class="essaiRoutierValide ? 'badge-pill-success' : 'badge-pill-warning'">{{ essaiStatusLabel }}</span>
             </div>
           </div>
         </template>
@@ -80,42 +80,42 @@
           icon="🔧"
           :default-open="true"
         >
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;font-size:13px;">
+          <div class="grid-auto-sm text-md-primary">
             <div><span class="text-subtle">Client :</span> <span class="text-value">{{ activeRdv.client_nom }}</span></div>
             <div><span class="text-subtle">Véhicule :</span> <span class="text-value">{{ activeRdv.vehicule_info }}</span></div>
             <div><span class="text-subtle">Type :</span> <span class="text-value">{{ activeRdv.type_intervention }}</span></div>
             <div><span class="text-subtle">Pont :</span> <span class="text-value">{{ activeRdv.pont_nom }}</span></div>
           </div>
-          <div v-if="activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire" style="margin-top:12px;font-size:13px;">
+          <div v-if="activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire" class="mt-3 text-md-primary">
             <span class="text-subtle">Motif client :</span>
             <p class="text-value">{{ activeRdv.commentaire_client || activeRdv.description_probleme || activeRdv.commentaire }}</p>
           </div>
 
-          <div v-if="activeRdv.status !== 'en_cours'" style="margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:#D1D5DB;">
-            <strong style="display:block;margin-bottom:4px;color:#F9FAFB;">{{ activeRdvStatusLabel }}</strong>
+          <div v-if="activeRdv.status !== 'en_cours'" class="mt-3 panel-sm-alt text-md-muted">
+            <strong class="block-mb-1-light">{{ activeRdvStatusLabel }}</strong>
             <span>{{ activeRdvStatusHint }}</span>
           </div>
 
-          <div v-if="receptionPoints.length || receptionObservations || receptionFuelLevel || receptionPriority || activeRdv.vehicule_plaque || activeRdv.km_reception !== null" style="margin-top:14px;padding:12px;border-radius:10px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.18);">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-              <span style="font-size:13px;font-weight:600;color:#BFDBFE;">📥 Contexte réception</span>
-              <span style="font-size:11px;padding:3px 8px;border-radius:999px;" :style="{ background: activeRdv.or_signe ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: activeRdv.or_signe ? '#6EE7B7' : '#FCA5A5' }">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
+          <div v-if="receptionPoints.length || receptionObservations || receptionFuelLevel || receptionPriority || activeRdv.vehicule_plaque || activeRdv.km_reception !== null" class="mt-3.5 reception-context">
+            <div class="list-item-between mb-2">
+              <span class="text-info-md">📥 Contexte réception</span>
+              <span class="badge-pill" :class="activeRdv.or_signe ? 'badge-pill-success' : 'badge-pill-danger'">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px;">
+            <div class="info-grid-sm text-md-muted">
               <div v-if="activeRdv.vehicule_plaque"><span class="text-subtle">Plaque :</span> <span class="text-value">{{ activeRdv.vehicule_plaque }}</span></div>
               <div v-if="activeRdv.km_reception !== null"><span class="text-subtle">Km réception :</span> <span class="text-value">{{ activeRdv.km_reception }}</span></div>
               <div v-if="receptionPriority"><span class="text-subtle">Priorité :</span> <span class="text-value">{{ receptionPriority }}</span></div>
               <div v-if="receptionFuelLevel"><span class="text-subtle">Carburant :</span> <span class="text-value">{{ receptionFuelLevel }}</span></div>
             </div>
-            <div v-if="receptionPoints.length" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+            <div v-if="receptionPoints.length" class="flex flex-wrap gap-1.5 mt-2">
               <span v-for="(point, idx) in receptionPoints" :key="`${idx}-${point}`" class="badge-pill text-value">{{ point }}</span>
             </div>
-            <div v-if="receptionObservations" style="margin-top:10px;font-size:12px;color:#D1D5DB;">
+            <div v-if="receptionObservations" class="mt-2 text-md-muted">
               <span class="text-subtle">Observations :</span> {{ receptionObservations }}
             </div>
           </div>
 
-          <div v-if="activeRdv.temps_estime && activeRdv.status === 'en_cours'" style="margin-top:16px;">
+          <div v-if="activeRdv.temps_estime && activeRdv.status === 'en_cours'" class="mt-4">
             <MecanicienChrono
               :elapsed="elapsedSeconds"
               :total="plannedSeconds"
@@ -137,7 +137,7 @@
             :photos="checkupPhotos"
             @toggle="cycleCheckup"
           />
-          <UButton label="💾 Sauvegarder le Checkup" color="info" variant="outline" size="md" @click="persistWorkshopReport()" :loading="persistingCheckup" style="margin-top:12px;width:100%;justify-content:center;height:44px;font-weight:600;" />
+          <UButton label="💾 Sauvegarder le Checkup" color="info" variant="outline" size="md" @click="persistWorkshopReport()" :loading="persistingCheckup" class="mt-3 w-full justify-center min-h-11 font-semibold" />
         </MecanicienSection>
 
         <MecanicienSection
@@ -146,7 +146,7 @@
           icon="🏍"
           :default-open="false"
         >
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
+          <div class="grid-auto-xs mb-2">
             <div>
               <label class="text-xs-subtle block-mb-2">Km départ</label>
               <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" />
@@ -160,28 +160,24 @@
               <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" />
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;">
+          <div class="grid-auto-sm-6">
             <button
               v-for="pt in essaiPoints" :key="`active-${pt.key}`"
               type="button"
               class="btn btn-outline flex-center-gap min-h-11"
-              :style="{
-                background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)',
-                border: essaiForm.pointsControle[pt.key] === 'ok' ? '1px solid rgba(16,185,129,0.25)' : essaiForm.pointsControle[pt.key] === 'nok' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.1)',
-                color: essaiForm.pointsControle[pt.key] === 'ok' ? '#6EE7B7' : essaiForm.pointsControle[pt.key] === 'nok' ? '#FCA5A5' : '#9CA3AF',
-              }"
+              :class="essaiBtnClass(pt.key)"
               @click="cycleEssaiPoint(pt.key)"
             >
               <span class="text-xl">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
               {{ pt.label }}
             </button>
           </div>
-          <div v-if="essaiHasNok" style="margin-top:12px;">
-            <label style="font-size:13px;color:#E8E9ED;font-weight:600;display:block;margin-bottom:6px;">Actions correctives</label>
+          <div v-if="essaiHasNok" class="mt-3">
+            <label class="text-md-primary font-semibold block mb-1">Actions correctives</label>
             <textarea v-model="essaiForm.actionsCorrectives" class="form-input w-full" rows="3" placeholder="Décrire les corrections effectuées…" />
           </div>
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;">
-            <span style="font-size:12px;color:#9CA3AF;line-height:1.4;">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
+          <div class="flex-between-wrap mt-4">
+            <span class="text-md-muted leading-snug">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
           </div>
         </MecanicienSection>
 
@@ -204,19 +200,19 @@
           :default-open="false"
         >
           <div class="text-xs-subtle mb-2">Le mécanicien décrit le besoin et la priorité. Le chiffrage reste côté réception.</div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="flex-end-gap mb-3">
             <UButton :label="showSupplementaryForm ? 'Fermer' : 'Créer une demande'" color="neutral" variant="outline" size="sm" @click="showSupplementaryForm = !showSupplementaryForm" class="min-h-11" />
           </div>
-          <div v-if="showSupplementaryForm" style="display:grid;gap:10px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+          <div v-if="showSupplementaryForm" class="flex-col-10 p-3 form-panel">
             <textarea v-model="supplementaryForm.description" class="form-input" rows="3" placeholder="Décrire le problème constaté, le risque et la recommandation technique…" />
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">
+            <div class="grid-auto-sm-8 items-end">
               <label class="flex-col-gap-sm">
                 <span class="text-xs-subtle">Priorité</span>
                 <select v-model="supplementaryForm.urgence" class="form-input">
                   <option v-for="option in supplementaryUrgencyOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
               </label>
-              <div style="font-size:11px;color:#9CA3AF;">{{ activeProblemPhotoIds.length ? `${activeProblemPhotoIds.length} photo(s) problème jointes automatiquement.` : 'Ajoute des photos de type problème pour documenter la demande.' }}</div>
+              <div class="text-sm-muted">{{ activeProblemPhotoIds.length ? `${activeProblemPhotoIds.length} photo(s) problème jointes automatiquement.` : 'Ajoute des photos de type problème pour documenter la demande.' }}</div>
             </div>
             <div class="flex-end-gap mt-3">
               <UButton label="Envoyer à la réception" color="primary" variant="solid" size="md" @click="createSupplementaryRequest" :loading="creatingSupplementary" class="min-h-11" />
@@ -230,7 +226,7 @@
           icon="📷"
           :default-open="false"
         >
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
+          <div class="grid-auto-md mb-2">
             <label class="flex-col-gap-sm">
               <span class="text-xs-subtle">Type</span>
               <select v-model="photoUploadType" class="form-input">
@@ -242,49 +238,49 @@
               <input v-model="photoDescription" class="form-input" placeholder="Ex: fuite observée" />
             </label>
           </div>
-          <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;border-radius:12px;border:1px dashed rgba(255,210,0,0.4);background:rgba(255,210,0,0.06);font-size:15px;font-weight:700;color:#FDE68A;cursor:pointer;min-height:56px;">
-            <input type="file" accept="image/*" capture="environment" style="display:none;" @change="handlePhotoUpload" />
+          <label class="photo-upload-label">
+            <input type="file" accept="image/*" capture="environment" class="hidden" @change="handlePhotoUpload" />
             <span>{{ uploadingPhoto ? 'Upload en cours…' : '📷 Ajouter des photos (Caméra)' }}</span>
           </label>
-          <div v-if="mechanicPhotoGroups.length" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+          <div v-if="mechanicPhotoGroups.length" class="flex-col-gap mt-3">
             <div v-for="group in mechanicPhotoGroups" :key="group.type">
-              <div style="font-size:11px;font-weight:700;color:#9CA3AF;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">{{ photoTypeLabel(group.type) }} · {{ group.photos.length }}</div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;">
+              <div class="photo-group-title">{{ photoTypeLabel(group.type) }} · {{ group.photos.length }}</div>
+              <div class="photo-grid-sm">
                 <a
                   v-for="photo in group.photos"
                   :key="photo.id"
                   :href="photoUrl(photo)"
                   target="_blank"
                   rel="noreferrer"
-                  style="display:block;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);text-decoration:none;"
+                  class="photo-item"
                 >
-                  <img :src="photoUrl(photo)" :alt="photo.description || 'Photo intervention'" class="w-full rounded-lg block" style="height:88px;object-fit:cover;" />
+                  <img :src="photoUrl(photo)" :alt="photo.description || 'Photo intervention'" class="w-full rounded-lg block photo-thumb" />
                   <div class="mt-1 text-xs-muted leading-snug">{{ photo.description || 'Sans description' }}</div>
                 </a>
               </div>
             </div>
           </div>
-          <div v-else style="margin-top:10px;font-size:12px;color:#6B7280;">Aucune photo d'intervention pour ce RDV.</div>
+          <div v-else class="mt-2 text-sm-muted">Aucune photo d'intervention pour ce RDV.</div>
         </MecanicienSection>
       </UCard>
 
       <!-- Todo: RDVs to do -->
-      <UCard style="margin-bottom:24px;">
+      <UCard class="mb-6">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📋 À faire ({{ todoRdvs.length }})</span>
+          <span class="header-lg">📋 À faire ({{ todoRdvs.length }})</span>
         </template>
         <div v-if="!todoRdvs.length" class="empty-state-sub">
           Toutes les interventions sont terminées 🎉
         </div>
         <div v-else class="flex-col-gap">
-          <div v-for="rdv in todoRdvs" :key="rdv.id" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);">
+          <div v-for="rdv in todoRdvs" :key="rdv.id" class="flex-col-gap p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
             <div>
-              <p style="font-weight:700;color:#E8E9ED;font-size:15px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
-              <p style="font-size:14px;color:#9CA3AF;margin-top:4px;">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
-              <p v-if="rdv.temps_estime" style="font-size:13px;color:#D1D5DB;margin-top:6px;">⏱ {{ formatDuration(rdv.temps_estime) }}</p>
+              <p class="header-lg">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
+              <p class="text-sm text-muted mt-1">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
+              <p v-if="rdv.temps_estime" class="text-md-value mt-1.5">⏱ {{ formatDuration(rdv.temps_estime) }}</p>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
-              <StatusBadge :status="rdv.status" />
+            <div class="flex items-center gap-3 mt-1">
+              <AppStatusBadge :variant="rdvStatusVariant(rdv.status)">{{ rdvStatusLabel(rdv.status) }}</AppStatusBadge>
               <UButton v-if="rdv.status === 'reception'" size="md" label="🔧 Démarrer" color="primary" @click="startWork(rdv.id)" class="min-h-11 flex-1 justify-center text-sm font-semibold" />
             </div>
           </div>
@@ -292,23 +288,23 @@
       </UCard>
 
       <!-- Done: Completed RDVs -->
-      <UCard v-if="doneRdvs.length">
+      <UCard v-if="doneRdvs.length" class="mb-6">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#10B981;">✅ Terminés ({{ doneRdvs.length }})</span>
+          <span class="header-lg text-green">✅ Terminés ({{ doneRdvs.length }})</span>
         </template>
         <div class="flex-col-gap">
-          <div v-for="rdv in doneRdvs" :key="rdv.id" style="display:flex;flex-direction:column;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);font-size:14px;background:rgba(255,255,255,0.01);" :style="{ opacity: rdv.status === 'termine' ? 1 : 0.7 }">
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-              <span style="color:#10B981;font-size:16px;">✅</span>
+          <div v-for="rdv in doneRdvs" :key="rdv.id" class="flex-col p-4 rounded-xl border border-white/[0.04] text-sm bg-white/[0.01]" :class="{ 'opacity-70': rdv.status !== 'termine' }">
+            <div class="flex items-start gap-2">
+              <span class="text-green-xl">✅</span>
               <div>
-                <div style="color:#E8E9ED;font-weight:600;margin-bottom:4px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</div>
-                <div style="color:#9CA3AF;font-size:13px;">{{ rdv.type_intervention }}</div>
-                <div v-if="rdv.status === 'termine' && !rdv.rapport_mecanicien_signe" style="display:inline-block;margin-top:8px;padding:4px 8px;border-radius:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#F59E0B;font-weight:600;">Rapport à signer</div>
+                <div class="text-primary-light font-semibold mb-1">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</div>
+                <div class="text-muted text-xs">{{ rdv.type_intervention }}</div>
+                <div v-if="rdv.status === 'termine' && !rdv.rapport_mecanicien_signe" class="badge-warning-inline mt-2">Rapport à signer</div>
               </div>
             </div>
-            <div style="display:flex;gap:12px;align-items:center;margin-top:16px;">
+            <div class="flex items-center gap-3 mt-4">
               <UButton v-if="rdv.status === 'termine'" size="md" :label="rdv.rapport_mecanicien_signe ? '📋 Rapport signé' : '📋 Rapport'" :color="rdv.rapport_mecanicien_signe ? 'success' : 'warning'" variant="outline" @click="openRapport(rdv.id)" class="min-h-11 flex-1 justify-center font-semibold" />
-              <NuxtLink :to="`/planning?openRdv=${rdv.id}`" style="color:#000;background:#FFD200;font-size:13px;text-decoration:none;font-weight:700;padding:12px;border-radius:8px;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;flex:1;">Détails (Planning)</NuxtLink>
+              <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn-planning">Détails (Planning)</NuxtLink>
             </div>
           </div>
         </div>
@@ -318,9 +314,9 @@
     <!-- Rapport d'intervention panel -->
     <div v-if="rapportRdvId" class="modal-overlay" @click.self="closeRapport">
       <div class="modal-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <h2 style="font-size:17px;font-weight:700;color:#E8E9ED;">📋 Rapport d'intervention</h2>
-          <button @click="closeRapport" style="font-size:18px;color:#6B7280;background:none;border:none;cursor:pointer;">✕</button>
+        <div class="flex-between mb-5">
+          <h2 class="header-lg">📋 Rapport d'intervention</h2>
+          <button @click="closeRapport" class="btn-close">✕</button>
         </div>
 
         <div v-if="rapportLoading" class="empty-state">Chargement…</div>
@@ -328,12 +324,12 @@
 
         <div v-else-if="rapport">
           <div v-if="rapport.isSignedByBoth" class="text-center bg-success-soft rounded-lg mb-4">
-            <div style="font-size:32px;margin-bottom:8px;">✅</div>
-            <p style="color:#6EE7B7;font-weight:700;">Rapport signé par les deux parties</p>
-            <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:8px;background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.2);color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">📄 Télécharger PDF</a>
+            <div class="text-4xl mb-2">✅</div>
+            <p class="text-success-bright font-bold">Rapport signé par les deux parties</p>
+            <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" class="link-pdf mt-3">📄 Télécharger PDF</a>
           </div>
 
-          <div v-else style="display:flex;flex-direction:column;gap:16px;">
+          <div v-else class="flex-col-gap">
             <!-- Travaux réalisés -->
             <div>
               <label class="form-label block-mb-1">Travaux réalisés <span class="text-danger">*</span></label>
@@ -353,7 +349,7 @@
             </div>
 
             <!-- Kilométrage restitution + prochaine révision -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="info-grid">
               <div>
                 <label class="form-label block-mb-1">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signatureMecanicien" />
@@ -366,8 +362,8 @@
 
             <!-- Essai routier -->
             <div class="panel-sm">
-              <div style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:12px;">🏍 Essai routier</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div class="text-md-primary font-semibold mb-3">🏍 Essai routier</div>
+              <div class="grid grid-cols-3 gap-2 mb-3">
                 <div>
                   <label class="text-xs-subtle block-mb-2">Km départ</label>
                   <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
@@ -381,17 +377,13 @@
                   <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="grid grid-cols-2 gap-2">
                 <button
                   v-for="pt in essaiPoints" :key="pt.key"
                   type="button"
                   :disabled="!!rapport.signatureMecanicien"
                   class="btn btn-outline flex-center-gap min-h-11"
-                  :style="{
-                    background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)',
-                    border: essaiForm.pointsControle[pt.key] === 'ok' ? '1px solid rgba(16,185,129,0.25)' : essaiForm.pointsControle[pt.key] === 'nok' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(255,255,255,0.1)',
-                    color: essaiForm.pointsControle[pt.key] === 'ok' ? '#6EE7B7' : essaiForm.pointsControle[pt.key] === 'nok' ? '#FCA5A5' : '#9CA3AF',
-                  }"
+                  :class="essaiBtnClass(pt.key)"
                   @click="cycleEssaiPoint(pt.key)"
                 >
                   <span class="text-xl">{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
@@ -417,18 +409,18 @@
             />
 
             <!-- Signature mécanicien -->
-            <div v-if="!rapport.signatureMecanicien" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
-              <p style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:8px;">✍️ Signature mécanicien</p>
-              <p style="font-size:12px;color:#9CA3AF;margin-bottom:10px;">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
+            <div v-if="!rapport.signatureMecanicien" class="section-divider">
+              <p class="text-md-primary font-semibold mb-2">✍️ Signature mécanicien</p>
+              <p class="text-md-muted mb-2.5">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
               <canvas
                 ref="sigRapportCanvas"
                 width="580" height="180"
                 @pointerdown="startRapportDraw" @pointermove="drawRapport" @pointerup="endRapportDraw" @pointerleave="endRapportDraw"
                 class="sig-canvas"
               ></canvas>
-              <div style="display:flex;gap:8px;margin-top:12px;">
-                <UButton label="↺ Effacer" color="neutral" variant="outline" size="md" @click="clearRapportSig" style="flex:1;min-height:48px;" />
-                <UButton label="✓ Signer le rapport" color="success" variant="solid" size="md" @click="signRapport" :loading="rapportSigning" :disabled="!rapportSigDrawn" style="flex:2;font-size:15px;font-weight:700;min-height:48px;" />
+              <div class="flex gap-2 mt-3">
+                <UButton label="↺ Effacer" color="neutral" variant="outline" size="md" @click="clearRapportSig" class="flex-1 min-h-12" />
+                <UButton label="✓ Signer le rapport" color="success" variant="solid" size="md" @click="signRapport" :loading="rapportSigning" :disabled="!rapportSigDrawn" class="flex-[2] text-base font-bold min-h-12" />
               </div>
               <div v-if="rapportSignError" class="mt-2 bg-danger-soft rounded text-md-danger">{{ rapportSignError }}</div>
             </div>
@@ -443,12 +435,12 @@
 
     <!-- Mobile-First Sticky Bottom Action Bar -->
     <div v-if="activeRdv && !rapportRdvId" class="sticky-action-bar">
-      <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
-      <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts" style="white-space:nowrap;flex:1;justify-content:center;height:44px;" />
-      <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
+      <UButton v-if="activeRdv.status === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="md" @click="pauseCurrentWork" class="whitespace-nowrap flex-1 justify-center min-h-11" />
+      <UButton v-if="['en_cours', 'en_pause'].includes(activeRdv.status)" label="📦 Pièces" color="warning" variant="outline" size="md" @click="waitForParts" class="whitespace-nowrap flex-1 justify-center min-h-11" />
+      <UButton v-if="activeRdv.status === 'en_pause' || activeRdv.status === 'en_attente_pieces'" label="▶️ Reprendre" color="primary" variant="solid" size="md" @click="resumeCurrentWork" class="whitespace-nowrap flex-[2] justify-center min-h-11" />
       
-      <UButton v-if="activeRdv.status === 'en_cours' && !essaiRoutierValide" label="🏍 Valider essai" color="warning" variant="solid" size="md" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="!canValidateRoadTest" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
-      <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" variant="solid" size="md" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" style="white-space:nowrap;flex:2;justify-content:center;height:44px;" />
+      <UButton v-if="activeRdv.status === 'en_cours' && !essaiRoutierValide" label="🏍 Valider essai" color="warning" variant="solid" size="md" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="!canValidateRoadTest" class="whitespace-nowrap flex-[2] justify-center min-h-11" />
+      <UButton v-if="canFinishCurrentRdv" label="✅ Terminer" color="success" variant="solid" size="md" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" class="whitespace-nowrap flex-[2] justify-center min-h-11" />
     </div>
   </div>
 </template>
@@ -851,19 +843,64 @@ const activeRdvStatusHint = computed(() => {
     case 'en_attente_pieces':
       return 'Le dossier reste côté atelier mais la reprise doit attendre la réception des pièces nécessaires.'
     default:
-      return 'L’intervention est en cours sur le pont.'
+      return 'L\u2019intervention est en cours sur le pont.'
   }
 })
-const activeRdvStatusStyle = computed(() => {
+const activeRdvStatusClass = computed(() => {
   switch (activeRdv.value?.status) {
     case 'en_pause':
-      return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
+      return 'badge-pill-warning'
     case 'en_attente_pieces':
-      return { background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }
+      return 'badge-pill-danger'
     default:
-      return { background: 'rgba(16,185,129,0.12)', color: '#6EE7B7' }
+      return 'badge-pill-success'
   }
 })
+
+function essaiBtnClass(key: string) {
+  const val = essaiForm.pointsControle[key]
+  if (val === 'ok') return 'essai-btn-ok'
+  if (val === 'nok') return 'essai-btn-nok'
+  return 'essai-btn-default'
+}
+
+function rdvStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'reception': return 'warning'
+    case 'en_cours': return 'success'
+    case 'termine': return 'success'
+    case 'restitue': return 'success'
+    case 'confirme': return 'info'
+    case 'annule': return 'danger'
+    case 'a_regulariser': return 'danger'
+    case 'reserve': return 'default'
+    case 'en_attente': return 'default'
+    default: return 'default'
+  }
+}
+
+function rdvStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    en_attente: 'A valider',
+    reserve: 'Réservé',
+    confirme: 'Confirmé',
+    reception: 'Réception',
+    en_cours: 'En cours',
+    termine: 'Terminé',
+    restitue: 'Restitué',
+    facture: 'Facturé',
+    paye: 'Payé',
+    annule: 'Annulé',
+    a_regulariser: 'À régulariser',
+    avoir: 'Avoir',
+    avoir_partiellement_rembourse: 'Avoir partiellement remboursé',
+    avoir_rembourse: 'Avoir remboursé',
+    partiellement_payee: 'Partiellement payée',
+    corrigee: 'Corrigée par avoir',
+  }
+  return map[status] || status
+}
+
 const canValidateRoadTest = computed(() => {
   const kmDebut = Number(essaiForm.kmDebut ?? 0)
   const kmFin = Number(essaiForm.kmFin ?? 0)
@@ -884,7 +921,7 @@ const priorityAction = computed(() => {
   if (activeRdv.value?.status === 'en_attente_pieces') return 'Pièces attendues: reprendre dès réception et validation comptoir'
   if (activeRdv.value?.status === 'en_pause') return 'Intervention en pause: reprendre ou basculer en attente pièces selon le cas réel'
   if (activeRdv.value && progressPct.value > 100) return `⚠️ Intervention en cours en retard — terminer rapidement`
-  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
+  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l\u2019essai routier avant clôture'
   if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
   return null
 })
@@ -1082,7 +1119,7 @@ async function finishWork() {
     return
   }
   if (!essaiRoutierValide.value) {
-    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l’essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
+    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l\u2019essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
     return
   }
   finishing.value = true
@@ -1092,7 +1129,7 @@ async function finishWork() {
     await openRapport(terminatedId)
     if (!rapport.value?.signatureMecanicien) {
       pendingFinishTransition.value = true
-      toast.add({ title: 'Signature mécanicien requise', description: 'Signez le rapport d’intervention pour clôturer le RDV.', color: 'warning' })
+      toast.add({ title: 'Signature mécanicien requise', description: 'Signez le rapport d\u2019intervention pour clôturer le RDV.', color: 'warning' })
       return
     }
     await completeFinishTransition(terminatedId)
@@ -1163,3 +1200,232 @@ onUnmounted(() => {
   if (chronoTimer) clearInterval(chronoTimer)
 })
 </script>
+
+<style scoped>
+.header-date {
+  font-size: 12px;
+  color: #6B7280;
+}
+.profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+.kpi-value-orange {
+  font-size: 22px;
+  font-weight: 700;
+  color: #F59E0B;
+}
+.kpi-value-light {
+  font-size: 22px;
+  font-weight: 700;
+  color: #E8E9ED;
+}
+.kpi-value-green {
+  font-size: 22px;
+  font-weight: 700;
+  color: #10B981;
+}
+.kpi-value-yellow {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FFD200;
+}
+.text-warning-md {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFD200;
+}
+.card-warning-border {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.section-title-warning {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F59E0B;
+}
+.link-dossier {
+  font-size: 13px;
+  color: #FFD200;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 12px 16px;
+  background: rgba(255, 210, 0, 0.1);
+  border-radius: 8px;
+}
+.badge-pill-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6EE7B7;
+}
+.badge-pill-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #FCD34D;
+}
+.badge-pill-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #FCA5A5;
+}
+.panel-sm-alt {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.block-mb-1-light {
+  display: block;
+  margin-bottom: 4px;
+  color: #F9FAFB;
+}
+.reception-context {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+.text-info-md {
+  font-size: 13px;
+  font-weight: 600;
+  color: #BFDBFE;
+}
+.grid-auto-xs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.grid-auto-sm-6 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+}
+.essai-btn-ok {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6EE7B7;
+}
+.essai-btn-nok {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #FCA5A5;
+}
+.essai-btn-default {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9CA3AF;
+}
+.form-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.grid-auto-sm-8 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.grid-auto-md {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.photo-upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 210, 0, 0.4);
+  background: rgba(255, 210, 0, 0.06);
+  font-size: 15px;
+  font-weight: 700;
+  color: #FDE68A;
+  cursor: pointer;
+  min-height: 56px;
+}
+.photo-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9CA3AF;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.photo-item {
+  display: block;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+}
+.photo-thumb {
+  height: 88px;
+  object-fit: cover;
+}
+.text-green {
+  color: #10B981;
+}
+.text-green-xl {
+  color: #10B981;
+  font-size: 16px;
+}
+.badge-warning-inline {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  font-size: 12px;
+  color: #F59E0B;
+  font-weight: 600;
+}
+.btn-planning {
+  color: #000;
+  background: #FFD200;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+.btn-close {
+  font-size: 18px;
+  color: #6B7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.text-success-bright {
+  color: #6EE7B7;
+}
+.link-pdf {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 210, 0, 0.1);
+  border: 1px solid rgba(255, 210, 0, 0.2);
+  color: #FFD200;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+</style>

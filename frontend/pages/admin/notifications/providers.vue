@@ -3,7 +3,7 @@
     <AppPageHeader title="Providers Notifications" back-to="/admin" />
 
     <!-- Tabs -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <div class="tabs-bar">
       <button class="btn" :class="tab === 'providers' ? 'btn-primary' : 'btn-ghost'" @click="tab = 'providers'">
         📡 Providers
       </button>
@@ -17,14 +17,14 @@
 
     <!-- Providers Tab -->
     <div v-if="tab === 'providers'">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div style="font-size:14px;color:#9CA3AF;">
+      <div class="section-header">
+        <div class="section-description">
           Configurez vos fournisseurs SMS et Email avec fallback automatique.
         </div>
         <button class="btn btn-primary" @click="showAddModal = true">+ Ajouter un provider</button>
       </div>
 
-      <div v-if="loadingProviders" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
+      <div v-if="loadingProviders" class="loading-state">Chargement...</div>
 
       <AppErrorState
         v-else-if="providersError && !providers.length"
@@ -33,35 +33,37 @@
         @retry="fetchProviders"
       />
 
-      <div v-else style="display:flex;flex-direction:column;gap:12px;">
+      <div v-else class="providers-stack">
         <!-- SMS Providers -->
         <UCard>
           <template #header>
-            <span style="font-size:14px;font-weight:700;color:#E8E9ED;">📱 SMS</span>
+            <span class="card-header-title">📱 SMS</span>
           </template>
-          <div v-if="smsProviders.length === 0" class="empty-state" style="padding:24px 16px;">
-            <div class="empty-state-icon" style="font-size:28px;">📱</div>
-            <div class="empty-state-sub">Aucun provider SMS configuré.</div>
-            <button class="btn btn-primary empty-state-action" style="font-size:12px;" @click="form.channel = 'sms'; showAddModal = true">+ Configurer un provider SMS</button>
-          </div>
-          <div v-else style="display:flex;flex-direction:column;gap:8px;">
+          <AppEmptyState
+            v-if="smsProviders.length === 0"
+            icon="📱"
+            title="Aucun provider SMS configuré."
+            actionLabel="+ Configurer un provider SMS"
+            @action="form.channel = 'sms'; showAddModal = true"
+          />
+          <div v-else class="provider-list">
             <div v-for="p in smsProviders" :key="p.id" class="provider-row">
-              <div style="display:flex;align-items:center;gap:10px;flex:1;">
+              <div class="provider-row-main">
                 <span :class="['provider-badge', p.isActive ? 'active' : 'inactive']">
                   {{ p.provider }}
                 </span>
                 <span v-if="p.isPrimary" class="tag tag-primary">Principal</span>
                 <span v-if="p.isFallback" class="tag tag-fallback">Fallback</span>
-                <span style="color:#6B7280;font-size:12px;">Priorité: {{ p.priority }}</span>
-                <span v-if="p.hasConfig" style="color:#10B981;font-size:12px;">✓ Configuré</span>
-                <span v-else style="color:#EF4444;font-size:12px;">✗ Non configuré</span>
+                <span class="color-muted font-sm">Priorité: {{ p.priority }}</span>
+                <span v-if="p.hasConfig" class="color-success font-sm">✓ Configuré</span>
+                <span v-else class="color-error font-sm">✗ Non configuré</span>
               </div>
-              <div style="display:flex;gap:6px;">
+              <AppInlineActions>
                 <button class="btn btn-ghost btn-sm" @click="editProvider(p)">⚙️</button>
                 <button class="btn btn-ghost btn-sm" @click="testProviderModal(p)">🧪</button>
-                <button class="btn btn-ghost btn-sm" style="color:#EF4444;" @click="deleteProvider(p)">🗑</button>
-              </div>
-              <div v-if="p.lastTestAt" style="width:100%;font-size:11px;margin-top:4px;" :style="{ color: p.lastTestSuccess ? '#10B981' : '#EF4444' }">
+                <button class="btn btn-ghost btn-sm action-delete" @click="deleteProvider(p)">🗑</button>
+              </AppInlineActions>
+              <div v-if="p.lastTestAt" class="last-test-info" :class="p.lastTestSuccess ? 'text-success' : 'text-error'">
                 Dernier test: {{ formatDate(p.lastTestAt) }} — {{ p.lastTestSuccess ? 'Succès' : 'Échec' }}
               </div>
             </div>
@@ -71,30 +73,32 @@
         <!-- Email Providers -->
         <UCard>
           <template #header>
-            <span style="font-size:14px;font-weight:700;color:#E8E9ED;">📧 Email</span>
+            <span class="card-header-title">📧 Email</span>
           </template>
-          <div v-if="emailProviders.length === 0" class="empty-state" style="padding:24px 16px;">
-            <div class="empty-state-icon" style="font-size:28px;">📧</div>
-            <div class="empty-state-sub">Aucun provider Email configuré.</div>
-            <button class="btn btn-primary empty-state-action" style="font-size:12px;" @click="form.channel = 'email'; showAddModal = true">+ Configurer un provider Email</button>
-          </div>
-          <div v-else style="display:flex;flex-direction:column;gap:8px;">
+          <AppEmptyState
+            v-if="emailProviders.length === 0"
+            icon="📧"
+            title="Aucun provider Email configuré."
+            actionLabel="+ Configurer un provider Email"
+            @action="form.channel = 'email'; showAddModal = true"
+          />
+          <div v-else class="provider-list">
             <div v-for="p in emailProviders" :key="p.id" class="provider-row">
-              <div style="display:flex;align-items:center;gap:10px;flex:1;">
+              <div class="provider-row-main">
                 <span :class="['provider-badge', p.isActive ? 'active' : 'inactive']">
                   {{ p.provider }}
                 </span>
                 <span v-if="p.isPrimary" class="tag tag-primary">Principal</span>
                 <span v-if="p.isFallback" class="tag tag-fallback">Fallback</span>
-                <span style="color:#6B7280;font-size:12px;">Priorité: {{ p.priority }}</span>
-                <span v-if="p.hasConfig" style="color:#10B981;font-size:12px;">✓ Configuré</span>
-                <span v-else style="color:#EF4444;font-size:12px;">✗ Non configuré</span>
+                <span class="color-muted font-sm">Priorité: {{ p.priority }}</span>
+                <span v-if="p.hasConfig" class="color-success font-sm">✓ Configuré</span>
+                <span v-else class="color-error font-sm">✗ Non configuré</span>
               </div>
-              <div style="display:flex;gap:6px;">
+              <AppInlineActions>
                 <button class="btn btn-ghost btn-sm" @click="editProvider(p)">⚙️</button>
                 <button class="btn btn-ghost btn-sm" @click="testProviderModal(p)">🧪</button>
-                <button class="btn btn-ghost btn-sm" style="color:#EF4444;" @click="deleteProvider(p)">🗑</button>
-              </div>
+                <button class="btn btn-ghost btn-sm action-delete" @click="deleteProvider(p)">🗑</button>
+              </AppInlineActions>
             </div>
           </div>
         </UCard>
@@ -103,7 +107,7 @@
 
     <!-- Templates Tab -->
     <div v-if="tab === 'templates'">
-      <div v-if="loadingTemplates" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
+      <div v-if="loadingTemplates" class="loading-state">Chargement...</div>
       <AppErrorState
         v-else-if="templatesError && !templates.length"
         title="Templates indisponibles"
@@ -117,24 +121,24 @@
         description="Les templates de notifications seront créés automatiquement dès la première synchronisation."
       />
       <UCard v-else>
-        <table style="width:100%;font-size:13px;">
+        <table class="data-table">
           <thead>
-            <tr style="color:#9CA3AF;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <th style="padding:8px;text-align:left;">Code</th>
-              <th style="padding:8px;text-align:left;">Canal</th>
-              <th style="padding:8px;text-align:left;">Libellé</th>
-              <th style="padding:8px;text-align:left;">Sujet</th>
-              <th style="padding:8px;text-align:center;">Actif</th>
+            <tr class="table-header-row">
+              <th class="table-cell">Code</th>
+              <th class="table-cell">Canal</th>
+              <th class="table-cell">Libellé</th>
+              <th class="table-cell">Sujet</th>
+              <th class="table-cell-center">Actif</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in templates" :key="t.id" style="border-bottom:1px solid rgba(255,255,255,0.04);">
-              <td style="padding:8px;"><code style="font-size:12px;color:#60A5FA;">{{ t.code }}</code></td>
-              <td style="padding:8px;">{{ t.channel === 'sms' ? '📱' : t.channel === 'email' ? '📧' : '🔔' }} {{ t.channel }}</td>
-              <td style="padding:8px;color:#E8E9ED;">{{ t.libelle }}</td>
-              <td style="padding:8px;color:#9CA3AF;">{{ t.sujet || '—' }}</td>
-              <td style="padding:8px;text-align:center;">
-                <span :style="{ color: t.isActive ? '#10B981' : '#EF4444' }">{{ t.isActive ? '✓' : '✗' }}</span>
+            <tr v-for="t in templates" :key="t.id" class="table-body-row">
+              <td class="table-cell"><code class="table-code">{{ t.code }}</code></td>
+              <td class="table-cell">{{ t.channel === 'sms' ? '📱' : t.channel === 'email' ? '📧' : '🔔' }} {{ t.channel }}</td>
+              <td class="table-cell color-light">{{ t.libelle }}</td>
+              <td class="table-cell color-subtle">{{ t.sujet || '—' }}</td>
+              <td class="table-cell-center">
+                <span :class="t.isActive ? 'text-success' : 'text-error'">{{ t.isActive ? '✓' : '✗' }}</span>
               </td>
             </tr>
           </tbody>
@@ -144,13 +148,13 @@
 
     <!-- Logs Tab -->
     <div v-if="tab === 'logs'">
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <select v-model="logFilter.channel" class="form-select" style="width:auto;font-size:12px;">
+      <div class="filters-bar">
+        <select v-model="logFilter.channel" class="form-select select-auto">
           <option value="">Tous canaux</option>
           <option value="sms">SMS</option>
           <option value="email">Email</option>
         </select>
-        <select v-model="logFilter.status" class="form-select" style="width:auto;font-size:12px;">
+        <select v-model="logFilter.status" class="form-select select-auto">
           <option value="">Tous statuts</option>
           <option value="sent">Envoyé</option>
           <option value="delivered">Délivré</option>
@@ -160,7 +164,7 @@
         <button class="btn btn-ghost btn-sm" @click="fetchLogs()">Actualiser</button>
       </div>
 
-      <div v-if="loadingLogs" style="text-align:center;padding:32px;color:#6B7280;">Chargement...</div>
+      <div v-if="loadingLogs" class="loading-state">Chargement...</div>
       <AppErrorState
         v-else-if="logsError && !logs.length"
         title="Historique indisponible"
@@ -174,29 +178,29 @@
           title="Aucun envoi enregistré"
           description="L'historique apparaîtra dès le premier SMS ou email envoyé depuis l'atelier."
         />
-        <table v-else style="width:100%;font-size:13px;">
+        <table v-else class="data-table">
           <thead>
-            <tr style="color:#9CA3AF;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <th style="padding:8px;text-align:left;">Date</th>
-              <th style="padding:8px;text-align:left;">Canal</th>
-              <th style="padding:8px;text-align:left;">Provider</th>
-              <th style="padding:8px;text-align:left;">Destinataire</th>
-              <th style="padding:8px;text-align:left;">Template</th>
-              <th style="padding:8px;text-align:center;">Statut</th>
-              <th style="padding:8px;text-align:left;">Erreur</th>
+            <tr class="table-header-row">
+              <th class="table-cell">Date</th>
+              <th class="table-cell">Canal</th>
+              <th class="table-cell">Provider</th>
+              <th class="table-cell">Destinataire</th>
+              <th class="table-cell">Template</th>
+              <th class="table-cell-center">Statut</th>
+              <th class="table-cell">Erreur</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="l in logs" :key="l.id" style="border-bottom:1px solid rgba(255,255,255,0.04);">
-              <td style="padding:8px;white-space:nowrap;">{{ formatDate(l.sentAt) }}</td>
-              <td style="padding:8px;">{{ l.channel === 'sms' ? '📱' : '📧' }}</td>
-              <td style="padding:8px;">{{ l.provider }}</td>
-              <td style="padding:8px;color:#E8E9ED;">{{ l.toRecipient }}</td>
-              <td style="padding:8px;"><code style="font-size:11px;color:#60A5FA;">{{ l.templateCode || '—' }}</code></td>
-              <td style="padding:8px;text-align:center;">
-                <StatusBadge :status="l.status" />
+            <tr v-for="l in logs" :key="l.id" class="table-body-row">
+              <td class="table-cell-nowrap">{{ formatDate(l.sentAt) }}</td>
+              <td class="table-cell">{{ l.channel === 'sms' ? '📱' : '📧' }}</td>
+              <td class="table-cell">{{ l.provider }}</td>
+              <td class="table-cell color-light">{{ l.toRecipient }}</td>
+              <td class="table-cell"><code class="table-code-xs">{{ l.templateCode || '—' }}</code></td>
+              <td class="table-cell-center">
+                <AppStatusBadge :variant="logStatusVariant(l.status)">{{ l.status }}</AppStatusBadge>
               </td>
-              <td style="padding:8px;color:#EF4444;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">
+              <td class="table-cell error-cell">
                 {{ l.errorMessage || '' }}
               </td>
             </tr>
@@ -212,8 +216,8 @@
       @update:open="(value) => { if (!value) closeModals() }"
     >
       <template #header>{{ showEditModal ? 'Modifier le provider' : 'Ajouter un provider' }}</template>
-      <form @submit.prevent="showEditModal ? saveEdit() : saveNew()" style="display:flex;flex-direction:column;gap:12px;">
-        <div v-if="!showEditModal" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <form @submit.prevent="showEditModal ? saveEdit() : saveNew()" class="form-stack">
+        <div v-if="!showEditModal" class="form-grid-2">
           <UFormField label="Canal">
             <select v-model="form.channel" class="form-select" required>
               <option value="">Choisir…</option>
@@ -237,35 +241,35 @@
           </UFormField>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div class="form-grid-3">
           <UFormField label="Priorité">
             <UInput v-model.number="form.priority" type="number" min="1" max="10" />
           </UFormField>
           <UFormField label="Principal">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <label class="checkbox-label">
               <input type="checkbox" v-model="form.isPrimary" />
-              <span style="font-size:13px;color:#E8E9ED;">Oui</span>
+              <span class="checkbox-text">Oui</span>
             </label>
           </UFormField>
           <UFormField label="Fallback">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <label class="checkbox-label">
               <input type="checkbox" v-model="form.isFallback" />
-              <span style="font-size:13px;color:#E8E9ED;">Oui</span>
+              <span class="checkbox-text">Oui</span>
             </label>
           </UFormField>
         </div>
 
         <div
           v-if="showEditModal && form.hasExistingConfig"
-          style="padding:10px 12px;border-radius:6px;background:rgba(96,165,250,0.08);color:#BFDBFE;font-size:12px;"
+          class="info-box"
         >
           Des identifiants sont déjà enregistrés pour ce provider. Laissez un champ vide pour conserver la valeur actuelle.
         </div>
 
         <!-- Dynamic config fields based on provider -->
-        <UCard v-if="form.provider" style="background:rgba(255,255,255,0.02);">
-          <template #header><span style="font-size:13px;font-weight:600;color:#E8E9ED;">🔑 Clés API</span></template>
-          <div style="display:flex;flex-direction:column;gap:10px;">
+        <UCard v-if="form.provider" class="card-subtle">
+          <template #header><span class="card-header-title-sm">🔑 Clés API</span></template>
+          <div class="form-stack-sm">
             <template v-if="form.provider === 'twilio'">
               <UFormField label="Account SID"><UInput v-model="form.config.account_sid" placeholder="ACxxxxx" /></UFormField>
               <UFormField label="Auth Token"><UInput v-model="form.config.auth_token" type="password" /></UFormField>
@@ -282,7 +286,7 @@
               </UFormField>
             </template>
             <template v-else-if="form.provider === 'log_sms'">
-              <div style="font-size:12px;color:#9CA3AF;">
+              <div class="color-subtle font-sm">
                 Mode développement : les SMS sont journalisés localement pour validation sans fournisseur externe.
               </div>
             </template>
@@ -304,7 +308,7 @@
           </div>
         </UCard>
 
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+        <div class="form-actions-mt">
           <button type="button" class="btn btn-ghost" @click="closeModals">Annuler</button>
           <button type="submit" class="btn btn-primary" :disabled="saving">
             {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
@@ -316,15 +320,15 @@
     <!-- Test Modal -->
     <AppModal v-model:open="showTestModal" size="sm">
       <template #header>Tester le provider {{ testTarget?.provider }}</template>
-      <form @submit.prevent="runTest" style="display:flex;flex-direction:column;gap:12px;">
+      <form @submit.prevent="runTest" class="form-stack">
         <UFormField :label="testTarget?.channel === 'sms' ? 'Numéro de téléphone' : 'Adresse email'">
           <UInput v-model="testRecipient" :type="testTarget?.channel === 'email' ? 'email' : 'tel'" required
             :placeholder="testTarget?.channel === 'sms' ? '+33612345678' : 'test@example.com'" />
         </UFormField>
-        <div v-if="testResult" :style="{ padding: '12px', borderRadius: '6px', background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: testResult.success ? '#10B981' : '#EF4444', fontSize: '13px' }">
+        <div v-if="testResult" :class="['test-result-box', testResult.success ? 'success' : 'error']">
           {{ testResult.success ? '✓ Test réussi' : '✗ Échec: ' + testResult.error }}
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <div class="form-actions">
           <button type="button" class="btn btn-ghost" @click="showTestModal = false">Fermer</button>
           <button type="submit" class="btn btn-primary" :disabled="testing">
             {{ testing ? 'Envoi...' : 'Envoyer le test' }}
@@ -381,6 +385,13 @@ const testing = ref(false);
 
 // Logs filter
 const logFilter = ref({ channel: '', status: '' });
+
+function logStatusVariant(status) {
+  if (status === 'delivered') return 'success';
+  if (status === 'sent') return 'info';
+  if (status === 'failed' || status === 'bounced') return 'danger';
+  return 'default';
+}
 
 async function fetchProviders() {
   loadingProviders.value = true;
@@ -552,5 +563,216 @@ onMounted(() => fetchProviders());
   padding: 8px 10px;
   font-size: 13px;
   width: 100%;
+}
+
+/* Layout */
+.tabs-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.section-description {
+  font-size: 14px;
+  color: #9CA3AF;
+}
+.loading-state {
+  text-align: center;
+  padding: 32px;
+  color: #6B7280;
+}
+.providers-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.provider-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.last-test-info {
+  width: 100%;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Typography */
+.font-sm {
+  font-size: 12px;
+}
+
+/* Colors */
+.text-success {
+  color: #10B981;
+}
+.text-error {
+  color: #EF4444;
+}
+.color-success {
+  color: #10B981;
+}
+.color-error {
+  color: #EF4444;
+}
+.color-muted {
+  color: #6B7280;
+}
+.color-light {
+  color: #E8E9ED;
+}
+.color-subtle {
+  color: #9CA3AF;
+}
+.action-delete {
+  color: #EF4444;
+}
+
+/* Card headers */
+.card-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #E8E9ED;
+}
+.card-header-title-sm {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E8E9ED;
+}
+
+/* Tables */
+.data-table {
+  width: 100%;
+  font-size: 13px;
+}
+.table-header-row {
+  color: #9CA3AF;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.table-body-row {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.table-cell {
+  padding: 8px;
+  text-align: left;
+}
+.table-cell-center {
+  padding: 8px;
+  text-align: center;
+}
+.table-cell-nowrap {
+  padding: 8px;
+  white-space: nowrap;
+}
+.table-code {
+  font-size: 12px;
+  color: #60A5FA;
+}
+.table-code-xs {
+  font-size: 11px;
+  color: #60A5FA;
+}
+
+/* Filters */
+.filters-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.select-auto {
+  width: auto;
+  font-size: 12px;
+}
+
+/* Forms */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.form-stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.checkbox-text {
+  font-size: 13px;
+  color: #E8E9ED;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.form-actions-mt {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Info box */
+.info-box {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(96,165,250,0.08);
+  color: #BFDBFE;
+  font-size: 12px;
+}
+
+/* Cards */
+.card-subtle {
+  background: rgba(255,255,255,0.02);
+}
+
+/* Test result */
+.test-result-box {
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.test-result-box.success {
+  background: rgba(16,185,129,0.1);
+  color: #10B981;
+}
+.test-result-box.error {
+  background: rgba(239,68,68,0.1);
+  color: #EF4444;
+}
+
+/* Error cell */
+.error-cell {
+  color: #EF4444;
+  font-size: 11px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

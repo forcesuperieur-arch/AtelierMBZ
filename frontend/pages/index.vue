@@ -68,53 +68,53 @@
         <div class="stat-card">
           <div class="stat-label">RDV SUR PÉRIODE</div>
           <div class="stat-value">{{ Math.round(Number(comparison.rdvs?.current ?? 0)) }}</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.rdvs) }">{{ metricDeltaText(comparison.rdvs) }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / GAUGE_MAX_RDV * 100, 100) + '%', background: '#FFD200' }"></div></div>
+          <AppDeltaText :delta="comparison.rdvs?.delta" class="stat-delta">{{ metricDeltaText(comparison.rdvs) }}</AppDeltaText>
+          <AppProgressBar :value="Number(comparison.rdvs?.current ?? 0)" :max="GAUGE_MAX_RDV" color="#FFD200" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">CA SUR PÉRIODE</div>
           <div class="stat-value">{{ formatCurrency(comparison.ca?.current ?? 0) }}</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.ca) }">{{ metricDeltaText(comparison.ca) }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / GAUGE_MAX_CA * 100, 100) + '%', background: '#14B8A6' }"></div></div>
+          <AppDeltaText :delta="comparison.ca?.delta" class="stat-delta">{{ metricDeltaText(comparison.ca) }}</AppDeltaText>
+          <AppProgressBar :value="Number(comparison.ca?.current ?? 0)" :max="GAUGE_MAX_CA" color="#14B8A6" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">PANIER MOYEN</div>
           <div class="stat-value">{{ formatCurrency(comparison.avg_ticket?.current ?? 0) }}</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.avg_ticket) }">{{ metricDeltaText(comparison.avg_ticket) }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.avg_ticket?.current ?? 0) / GAUGE_MAX_PANIER * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
+          <AppDeltaText :delta="comparison.avg_ticket?.delta" class="stat-delta">{{ metricDeltaText(comparison.avg_ticket) }}</AppDeltaText>
+          <AppProgressBar :value="Number(comparison.avg_ticket?.current ?? 0)" :max="GAUGE_MAX_PANIER" color="#8B5CF6" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">OCCUPATION CAPACITÉ</div>
           <div class="stat-value">{{ Math.round(Number(comparison.occupation?.current ?? occupationRate)) }}%</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.occupation) }">{{ pontsOccupes }}/{{ ponts.length }} ponts occupés</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.round(Number(comparison.occupation?.current ?? occupationRate)) + '%', background: '#10B981' }"></div></div>
+          <AppDeltaText :delta="comparison.occupation?.delta" class="stat-delta">{{ pontsOccupes }}/{{ ponts.length }} ponts occupés</AppDeltaText>
+          <AppProgressBar :value="Math.round(Number(comparison.occupation?.current ?? occupationRate))" :max="100" color="#10B981" height="4px" class="mt-3" />
         </div>
       </div>
 
-      <div class="kpi-grid" style="margin-top:14px;">
+      <div class="kpi-grid mt-14">
         <div class="stat-card">
           <div class="stat-label">CHARGE PLANIFIÉE</div>
           <div class="stat-value">{{ formatDuration(comparison.planned_minutes?.current ?? plannedMinutes) }}</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.planned_minutes) }">{{ metricDeltaText(comparison.planned_minutes) }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.planned_minutes?.current ?? plannedMinutes) / GAUGE_MAX_PLANNED_MIN * 100, 100) + '%', background: '#8B5CF6' }"></div></div>
+          <AppDeltaText :delta="comparison.planned_minutes?.delta" class="stat-delta">{{ metricDeltaText(comparison.planned_minutes) }}</AppDeltaText>
+          <AppProgressBar :value="Number(comparison.planned_minutes?.current ?? plannedMinutes)" :max="GAUGE_MAX_PLANNED_MIN" color="#8B5CF6" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">DOSSIERS CLÔTURÉS</div>
           <div class="stat-value">{{ Math.round(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday)) }}</div>
-          <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.completed) }">{{ metricDeltaText(comparison.completed) }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.completed?.current ?? stats.restitutions ?? completedToday) / GAUGE_MAX_COMPLETED * 100, 100) + '%', background: '#34D399' }"></div></div>
+          <AppDeltaText :delta="comparison.completed?.delta" class="stat-delta">{{ metricDeltaText(comparison.completed) }}</AppDeltaText>
+          <AppProgressBar :value="Number(comparison.completed?.current ?? stats.restitutions ?? completedToday)" :max="GAUGE_MAX_COMPLETED" color="#34D399" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">ALERTES PILOTAGE</div>
           <div class="stat-value">{{ alerts.length }}</div>
-          <div class="stat-delta" :style="{ color: alerts.length ? '#FCA5A5' : '#9CA3AF' }">⏰ retards, attentes, restitutions</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(alerts.length / GAUGE_MAX_ALERTS * 100, 100) + '%', background: alerts.length ? '#EF4444' : '#6B7280' }"></div></div>
+          <div class="stat-delta" :class="alerts.length ? 'text-danger' : 'text-muted'">⏰ retards, attentes, restitutions</div>
+          <AppProgressBar :value="alerts.length" :max="GAUGE_MAX_ALERTS" :color="alerts.length ? '#EF4444' : '#6B7280'" height="4px" class="mt-3" />
         </div>
         <div class="stat-card">
           <div class="stat-label">IMPAYÉS / STOCK</div>
           <div class="stat-value">{{ stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0) }}</div>
-          <div class="stat-delta" style="color:#FBBF24;">{{ stockModuleEnabled ? '📦 pièces sous mini' : '💸 relances comptables' }}</div>
-          <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)) / GAUGE_MAX_STOCK * 100, 100) + '%', background: '#FBBF24' }"></div></div>
+          <div class="stat-delta text-amber">{{ stockModuleEnabled ? '📦 pièces sous mini' : '💸 relances comptables' }}</div>
+          <AppProgressBar :value="stockModuleEnabled ? (stats.stock_alerts ?? stockAlertes.length) : (stats.impayees_count ?? 0)" :max="GAUGE_MAX_STOCK" color="#FBBF24" height="4px" class="mt-3" />
         </div>
       </div>
 
@@ -130,7 +130,7 @@
       </div>
 
       <!-- Section Charts -->
-      <UCard class="dashboard-section-card" style="margin-top:24px;">
+      <UCard class="dashboard-section-card mt-24">
         <div class="dashboard-section-header" @click="sectionStates.charts = !sectionStates.charts">
           <div class="dashboard-section-header-left">
             <UIcon name="i-heroicons-chart-bar" class="w-5 h-5" />
@@ -138,21 +138,13 @@
           </div>
           <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.charts }" />
         </div>
-        <div v-show="sectionStates.charts" style="margin-top:12px;">
+        <div v-show="sectionStates.charts" class="mt-3">
           <div class="grid-auto">
             <UCard>
               <template #header>
                 <span class="header-lg">Évolution sur la période</span>
               </template>
-              <div v-if="dailyTrend.length" style="display:flex;align-items:flex-end;gap:8px;min-height:180px;overflow-x:auto;padding-top:6px;">
-                <div v-for="item in dailyTrend" :key="item.date" style="min-width:44px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                  <span class="text-xs-muted">{{ item.rdvs }}</span>
-                  <div style="width:24px;height:120px;display:flex;align-items:flex-end;">
-                    <div :style="{ width: '100%', height: Math.max(10, Math.round(Number(item.rdvs ?? 0) / dailyTrendMax * 100)) + '%', borderRadius: '8px 8px 4px 4px', background: 'linear-gradient(180deg, #FFD200 0%, #F59E0B 100%)' }"></div>
-                  </div>
-                  <span class="text-xs-subtle">{{ formatShortDay(item.date) }}</span>
-                </div>
-              </div>
+              <AppMiniBarChart v-if="dailyTrend.length" :data="dailyTrend.map(item => ({ label: formatShortDay(item.date), value: Number(item.rdvs ?? 0), max: dailyTrendMax }))" />
               <AppEmptyState
                 v-else
                 icon="📉"
@@ -165,22 +157,22 @@
               <template #header>
                 <span class="header-lg">Mix rentabilité atelier</span>
               </template>
-              <div style="display:flex;flex-direction:column;gap:12px;">
+              <div class="flex-col-gap-md">
                 <div class="card-sm">
-                  <div class="flex-between text-sm-value" style="margin-bottom:6px;">
+                  <div class="flex-between text-sm-value mb-6">
                     <span>Main d'œuvre</span>
                     <span>{{ formatCurrency(revenueMix.mo_ht ?? 0) }}</span>
                   </div>
-                  <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.mo_ht ?? 0) + '%', height: '100%', background: '#10B981' }"></div></div>
+                  <AppProgressBar :value="mixShare(revenueMix.mo_ht ?? 0)" :max="100" color="#10B981" height="8px" />
                 </div>
                 <div class="card-sm">
-                  <div class="flex-between text-sm-value" style="margin-bottom:6px;">
+                  <div class="flex-between text-sm-value mb-6">
                     <span>Pièces</span>
                     <span>{{ formatCurrency(revenueMix.pieces_ht ?? 0) }}</span>
                   </div>
-                  <div class="progress-track-xs"><div :style="{ width: mixShare(revenueMix.pieces_ht ?? 0) + '%', height: '100%', background: '#3B82F6' }"></div></div>
+                  <AppProgressBar :value="mixShare(revenueMix.pieces_ht ?? 0)" :max="100" color="#3B82F6" height="8px" />
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+                <div class="grid-2-sm">
                   <div class="card-sm">
                     <div class="text-sm-muted">Factures période</div>
                     <div class="stat-value-sm">{{ revenueMix.nb_factures ?? 0 }}</div>
@@ -197,7 +189,7 @@
       </UCard>
 
       <!-- Section Perf -->
-      <UCard class="dashboard-section-card" style="margin-top:24px;">
+      <UCard class="dashboard-section-card mt-24">
         <div class="dashboard-section-header" @click="sectionStates.perf = !sectionStates.perf">
           <div class="dashboard-section-header-left">
             <UIcon name="i-heroicons-wrench-screwdriver" class="w-5 h-5" />
@@ -206,7 +198,7 @@
           </div>
           <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.perf }" />
         </div>
-        <div v-show="sectionStates.perf" style="margin-top:12px;">
+        <div v-show="sectionStates.perf" class="mt-3">
           <div class="grid-auto">
             <UCard>
               <template #header>
@@ -217,13 +209,13 @@
               </template>
               <div v-if="mecanicienStats.length" class="flex-col-10">
                 <div v-for="meca in mecanicienStats.slice(0, 6)" :key="meca.id" class="card-sm">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                  <div class="flex-between-gap-10">
                     <div>
                       <div class="text-lg-primary">{{ meca.prenom }} {{ meca.nom }}</div>
                       <div class="text-md-muted">{{ meca.nb_rdvs }} interventions · {{ formatDuration(Number(meca.total_minutes || 0)) }} · {{ formatCurrency(meca.ca_genere || 0) }}</div>
                     </div>
                     <div class="text-right">
-                      <div class="text-md-muted text-warning" style="font-weight:700;">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
+                      <div class="text-md-muted text-warning font-bold">{{ Math.round(Number(meca.avg_minutes || 0)) }} min</div>
                       <div class="text-xs-subtle">moyenne</div>
                     </div>
                   </div>
@@ -252,7 +244,7 @@
                       <div class="text-md-muted">{{ service.count }} passages · {{ formatDuration(Number(service.minutes || 0)) }}</div>
                     </div>
                     <div class="text-right">
-                      <div class="text-md-muted text-warning" style="font-weight:700;">{{ formatCurrency(service.revenue || 0) }}</div>
+                      <div class="text-md-muted text-warning font-bold">{{ formatCurrency(service.revenue || 0) }}</div>
                       <div class="text-xs-subtle">potentiel</div>
                     </div>
                   </div>
@@ -270,7 +262,7 @@
       </UCard>
 
       <!-- Section Charge -->
-      <UCard class="dashboard-section-card" style="margin-top:24px;">
+      <UCard class="dashboard-section-card mt-24">
         <div class="dashboard-section-header" @click="sectionStates.charge = !sectionStates.charge">
           <div class="dashboard-section-header-left">
             <UIcon name="i-heroicons-signal" class="w-5 h-5" />
@@ -278,21 +270,19 @@
           </div>
           <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.charge }" />
         </div>
-        <div v-show="sectionStates.charge" style="margin-top:12px;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+        <div v-show="sectionStates.charge" class="mt-3">
+          <div class="grid-auto">
             <UCard>
               <template #header>
                 <span class="header-lg">Répartition des statuts</span>
               </template>
               <div v-if="statusBreakdown.length" class="flex-col-10">
-                <div v-for="item in statusBreakdown" :key="item.label" style="display:grid;gap:4px;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+                <div v-for="item in statusBreakdown" :key="item.label" class="flex-col-gap-xs">
+                  <div class="status-row">
                     <span class="text-value">{{ item.label }}</span>
-                    <span style="color:#9CA3AF;">{{ item.count }}</span>
+                    <span class="text-muted">{{ item.count }}</span>
                   </div>
-                  <div style="height:7px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
-                    <div :style="{ width: item.percent + '%', height: '100%', background: item.color }"></div>
-                  </div>
+                  <AppProgressBar :value="item.count" :max="statusBreakdownTotal" :color="item.color" height="7px" />
                 </div>
               </div>
               <AppEmptyState
@@ -307,21 +297,21 @@
               <template #header>
                 <span class="header-lg">Occupation ressources atelier</span>
               </template>
-              <div v-if="ponts.length" class="pont-grid" style="margin:0;">
+              <div v-if="ponts.length" class="pont-grid m-0">
                 <div v-for="pont in ponts" :key="pont.id" class="pont-card" :class="pont.current_rdv ? 'pont-occupe' : 'pont-libre'">
                   <div class="pont-card-header">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <span class="live-dot" :style="{ background: pont.current_rdv ? '#F59E0B' : '#10B981' }"></span>
+                    <div class="flex-center-gap-8">
+                      <span class="live-dot" :class="pont.current_rdv ? 'dot-orange' : 'dot-green'"></span>
                       <span class="pont-name">{{ pont.nom }}</span>
                     </div>
                     <StatusBadge :status="pont.current_rdv ? 'en_cours' : (pont.est_actif === false ? 'annule' : 'confirme')" />
                   </div>
                   <div class="pont-card-body">
                     <div v-if="pont.current_rdv">
-                      <p style="font-weight:600;color:#E8E9ED;font-size:14px;">{{ pont.current_rdv.vehicule_info }}</p>
-                      <p style="color:#6B7280;font-size:12px;">{{ pont.current_rdv.client_nom }} · {{ pont.current_rdv.type_intervention }}</p>
+                      <p class="pont-detail-title">{{ pont.current_rdv.vehicule_info }}</p>
+                      <p class="pont-detail-sub">{{ pont.current_rdv.client_nom }} · {{ pont.current_rdv.type_intervention }}</p>
                     </div>
-                    <p v-else style="color:#6B7280;font-size:13px;">Aucune intervention en cours</p>
+                    <p v-else class="pont-empty">Aucune intervention en cours</p>
                   </div>
                   <div class="pont-card-footer">{{ pont.next_count ?? 0 }} RDV restants aujourd'hui</div>
                 </div>
@@ -338,7 +328,7 @@
       </UCard>
 
       <!-- Section Synthèse -->
-      <UCard class="dashboard-section-card" style="margin-top:24px;">
+      <UCard class="dashboard-section-card mt-24">
         <div class="dashboard-section-header" @click="sectionStates.planning = !sectionStates.planning">
           <div class="dashboard-section-header-left">
             <UIcon name="i-heroicons-clipboard-document-list" class="w-5 h-5" />
@@ -346,8 +336,8 @@
           </div>
           <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.planning }" />
         </div>
-        <div v-show="sectionStates.planning" style="margin-top:12px;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div v-show="sectionStates.planning" class="mt-3">
+          <div class="grid-auto-sm">
             <div class="card-sm">
               <div class="text-sm-muted">OR ouverts</div>
               <div class="stat-value-md">{{ stats.or_ouverts ?? 0 }}</div>
@@ -377,7 +367,7 @@
       </UCard>
 
       <!-- Section Stock alerts -->
-      <UCard v-if="stockModuleEnabled && stockAlertes.length" class="dashboard-section-card" style="margin-top:24px;">
+      <UCard v-if="stockModuleEnabled && stockAlertes.length" class="dashboard-section-card mt-24">
         <div class="dashboard-section-header" @click="sectionStates.alerts = !sectionStates.alerts">
           <div class="dashboard-section-header-left">
             <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5" />
@@ -386,11 +376,11 @@
           </div>
           <UIcon name="i-heroicons-chevron-down" class="dashboard-section-chevron" :class="{ rotated: !sectionStates.alerts }" />
         </div>
-        <div v-show="sectionStates.alerts" style="margin-top:12px;">
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div v-for="p in stockAlertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);font-size:13px;">
+        <div v-show="sectionStates.alerts" class="mt-3">
+          <div class="flex-col-gap-sm">
+            <div v-for="p in stockAlertes" :key="p.id" class="stock-alert-row">
               <span class="text-value">{{ p.designation }} ({{ p.reference }})</span>
-              <span class="badge-count" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">Stock: {{ p.quantite_stock }}</span>
+              <span class="badge-count badge-danger">Stock: {{ p.quantite_stock }}</span>
             </div>
           </div>
         </div>
@@ -551,6 +541,11 @@ const statusBreakdown = computed(() => {
     .sort((a: any, b: any) => b.count - a.count)
 })
 
+const statusBreakdownTotal = computed(() => {
+  const rows = Array.isArray(stats.value?.active_by_status) ? stats.value.active_by_status : []
+  return rows.reduce((sum: number, row: any) => sum + Number(row.count ?? 0), 0) || 1
+})
+
 const topServices = computed(() => {
   const source = Array.isArray(stats.value?.top_services) ? stats.value.top_services : []
   if (source.length) {
@@ -599,10 +594,6 @@ function metricDeltaText(metric: MetricDelta): string {
   const pct = Number(metric?.delta_pct ?? 0)
   const sign = pct > 0 ? '+' : ''
   return `${sign}${pct}% vs période préc.`
-}
-
-function metricDeltaColor(metric: MetricDelta): string {
-  return Number(metric?.delta ?? 0) >= 0 ? '#34D399' : '#FCA5A5'
 }
 
 function mixShare(value: number | string): number {
@@ -762,3 +753,24 @@ async function loadDashboard() {
   }
 }
 </script>
+
+<style scoped>
+.mt-14 { margin-top: 14px; }
+.mt-24 { margin-top: 24px; }
+.mb-6 { margin-bottom: 6px; }
+.flex-col-gap-md { display: flex; flex-direction: column; gap: 12px; }
+.flex-col-gap-xs { display: flex; flex-direction: column; gap: 4px; }
+.grid-2-sm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.flex-between-gap-10 { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.flex-center-gap-8 { display: flex; align-items: center; gap: 8px; }
+.grid-auto-sm { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.text-amber { color: #FBBF24; }
+.dot-orange { background: #F59E0B; }
+.dot-green { background: #10B981; }
+.badge-danger { background: rgba(239,68,68,0.12); color: #FCA5A5; }
+.status-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.pont-detail-title { font-weight: 600; color: #E8E9ED; font-size: 14px; }
+.pont-detail-sub { color: #6B7280; font-size: 12px; }
+.pont-empty { color: #6B7280; font-size: 13px; }
+.stock-alert-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.05); font-size: 13px; }
+</style>

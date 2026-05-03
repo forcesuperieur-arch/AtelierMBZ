@@ -7,8 +7,8 @@
         <AppPageHeader title="Atelier" subtitle="Pilotage des ponts, affectations mécaniciens et charge du jour." />
         <div class="workshop-kpi-bar mb-5">
           <div v-for="i in 4" :key="i" class="workshop-kpi">
-            <div class="skeleton-shimmer workshop-kpi-label" style="height:10px;width:60%;margin-bottom:8px;" />
-            <div class="skeleton-shimmer" style="height:28px;width:40%;" />
+            <div class="skeleton-shimmer skeleton-shimmer-sm workshop-kpi-label" />
+            <div class="skeleton-shimmer skeleton-shimmer-md" />
           </div>
         </div>
         <AppSkeletonTable v-if="viewMode === 'liste'" :rows="6" :cols="7" />
@@ -37,8 +37,8 @@
         :description="`Certaines sections sont indisponibles : ${partialIssues.join(', ')}.`"
       />
 
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="workshop-header-bar">
+        <div class="flex-wrap-gap">
           <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
           <NuxtLink class="btn btn-primary no-underline" to="/planning">Ouvrir le planning</NuxtLink>
           <NuxtLink class="btn btn-ghost no-underline" :to="buildPlanningCreateLink()">+ RDV rapide</NuxtLink>
@@ -61,8 +61,8 @@
           <div class="workshop-kpi-value">{{ kpis.activeMecas }}</div>
         </div>
         <div class="workshop-kpi">
-          <div class="workshop-kpi-label" :style="kpis.conflicts > 0 ? 'color:#FCA5A5;' : ''">CONFLITS</div>
-          <div class="workshop-kpi-value" :style="kpis.conflicts > 0 ? 'color:#FCA5A5;' : ''">{{ kpis.conflicts }}</div>
+          <div class="workshop-kpi-label" :class="{ 'text-danger': kpis.conflicts > 0 }">CONFLITS</div>
+          <div class="workshop-kpi-value" :class="{ 'text-danger': kpis.conflicts > 0 }">{{ kpis.conflicts }}</div>
         </div>
       </div>
 
@@ -72,11 +72,11 @@
         <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'">👤 Mécaniciens</button>
         <button class="tab" :class="{ active: activeTab === 'alertes' }" @click="activeTab = 'alertes'">
           ⚠️ Alertes
-          <span v-if="alertesTotalCount > 0" style="margin-left:6px;background:rgba(239,68,68,0.22);color:#FCA5A5;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">{{ alertesTotalCount }}</span>
+          <span v-if="alertesTotalCount > 0" class="tab-badge-danger">{{ alertesTotalCount }}</span>
         </button>
         <button class="tab" :class="{ active: activeTab === 'gardiennage' }" @click="activeTab = 'gardiennage'">
           🅿 Gardiennage
-          <span v-if="gardinnageRdvs.length" style="margin-left:6px;background:rgba(239,68,68,0.18);color:#FCA5A5;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:700;">{{ gardinnageRdvs.length }}</span>
+          <span v-if="gardinnageRdvs.length" class="tab-badge-warning">{{ gardinnageRdvs.length }}</span>
         </button>
         <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'">📅 Absences</button>
       </div>
@@ -89,7 +89,7 @@
         <!-- View toggle -->
         <div class="flex-between-wrap mb-4">
           <p class="text-md-muted m-0">Filtrez les véhicules par alerte et basculez entre vue liste et vue ponts.</p>
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+          <div class="view-toggle-group">
             <UButton
               size="xs"
               :variant="viewMode === 'ponts' ? 'solid' : 'ghost'"
@@ -117,9 +117,9 @@
               :class="pontCardClass(pont)"
             >
               <div class="pont-card-header">
-                <div class="flex-center" style="gap:10px;">
+                <div class="flex-center gap-2">
                   <span class="pont-name">{{ pont.nom }}</span>
-                  <span class="status-badge" :style="pontBadgeStyle(pont)">{{ pontBadgeLabel(pont) }}</span>
+                  <span class="status-badge" :class="pontBadgeClass(pont)">{{ pontBadgeLabel(pont) }}</span>
                 </div>
                 <WorkshopQuickActions v-if="pont.current_rdv" :rdv="pont.current_rdv" :pont="pont" @action="handleVehicleAction" />
               </div>
@@ -132,25 +132,24 @@
                     <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 text-muted" />
                   </summary>
                   <div class="pont-config-body">
-                    <div class="flex-between-wrap" style="margin-bottom:8px;">
+                    <div class="flex-between-wrap mb-2">
                       <button
-                        class="btn btn-ghost"
-                        style="padding:5px 10px;min-height:32px;"
+                        class="btn btn-ghost btn-sm-compact"
                         :disabled="pontSettingSaving[pont.id]"
                         @click="togglePontActivation(pont)"
                       >
                         {{ pontSettings[pont.id]?.is_active ? 'Désactiver' : 'Activer' }}
                       </button>
                     </div>
-                    <div style="margin-bottom:8px;">
+                    <div class="mb-2">
                       <div class="text-xs-subtle block-mb-1">Mécanicien rattaché</div>
-                      <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input" style="min-height:38px;">
+                      <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input select-sm">
                         <option :value="null">Aucun</option>
                         <option v-for="m in activeMecaniciens" :key="`pont-meca-${pont.id}-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
                       </select>
                     </div>
                     <div class="flex-end-gap">
-                      <button class="btn btn-primary" style="padding:6px 12px;min-height:34px;" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
+                      <button class="btn btn-primary btn-md-compact" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
                         {{ pontSettingSaving[pont.id] ? 'Enregistrement…' : 'Enregistrer' }}
                       </button>
                     </div>
@@ -164,7 +163,7 @@
 
                 <!-- Vehicle block -->
                 <div v-if="pont.current_rdv" class="mb-3">
-                  <div class="flex-center mb-2" style="gap:10px;">
+                  <div class="flex-center gap-2 mb-2">
                     <div class="vehicle-photo-placeholder">
                       <UIcon name="i-heroicons-truck" class="w-5 h-5 text-muted" />
                     </div>
@@ -177,9 +176,12 @@
                   <div class="mb-2"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
                   <WorkshopVehicleTimeline :rdv="pont.current_rdv" class="mb-3" />
                   <div v-if="pont.current_rdv.temps_estime" class="mb-2">
-                    <div class="progress-track-sm">
-                      <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }" />
-                    </div>
+                    <AppProgressBar
+                      :value="Math.min(pontProgress(pont), 100)"
+                      :max="100"
+                      :color="pontProgress(pont) > 100 ? '#EF4444' : '#FFD200'"
+                      height="6px"
+                    />
                     <div class="text-xs-muted mt-0">{{ pontProgress(pont) }}% · {{ formatDuration(pont.current_rdv.temps_estime) }} estimées</div>
                   </div>
                   <NuxtLink :to="`/planning?openRdv=${pont.current_rdv.id}`" class="btn-link">Ouvrir le RDV →</NuxtLink>
@@ -215,7 +217,7 @@
                 <div v-if="pont.day_schedule.length" class="section-divider">
                   <div class="text-xs-subtle uppercase mb-2">Planning du jour</div>
                   <div v-for="rdv in pont.day_schedule.slice(0, 3)" :key="rdv.id" class="list-item-between text-sm-value">
-                    <span class="text-warning" style="min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
+                    <span class="text-warning time-label">{{ formatHourLabel(rdv.heure_rdv) }}</span>
                     <span class="flex-1 text-primary-light">{{ rdvClientName(rdv) }}</span>
                     <span class="text-xs-muted">{{ rdv.type_intervention || 'atelier' }}</span>
                   </div>
@@ -226,7 +228,6 @@
                   <button
                     v-if="getPontQuickAction(pont)?.transition"
                     class="btn btn-primary w-full"
-                    style="min-height:38px;"
                     :disabled="actioningByPont[pont.id] === getPontQuickAction(pont)?.transition"
                     @click="runPontQuickAction(pont)"
                   >
@@ -234,9 +235,8 @@
                   </button>
                   <NuxtLink
                     v-else-if="getPontQuickAction(pont)?.to"
-                    :to="getPontQuickAction(pont)!.to"
+                    :to="getPontQuickAction(pont)?.to"
                     class="btn btn-primary w-full no-underline text-center"
-                    style="min-height:38px;"
                   >
                     {{ getPontQuickAction(pont)?.label }}
                   </NuxtLink>
@@ -269,7 +269,7 @@
                 <span class="font-semibold">{{ row.original.nom }}</span>
               </template>
               <template #status-cell="{ row }">
-                <span class="status-badge" :style="pontBadgeStyle(row.original)">{{ pontBadgeLabel(row.original) }}</span>
+                <span class="status-badge" :class="pontBadgeClass(row.original)">{{ pontBadgeLabel(row.original) }}</span>
               </template>
               <template #mecanicien-cell="{ row }">
                 {{ row.original.assigned_meca ? `${row.original.assigned_meca.prenom ?? ''} ${row.original.assigned_meca.nom ?? ''}`.trim() : '—' }}
@@ -291,34 +291,37 @@
       <!-- MECAS TAB -->
       <div v-if="activeTab === 'mecas'" class="meca-grid">
         <div v-for="m in enrichedMecas" :key="m.id" class="meca-card">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;" :style="{ background: m.statusColor + '15', border: '1px solid ' + m.statusColor + '30', color: m.statusColor }">
+          <div class="meca-card-header">
+            <div class="meca-avatar-circle" :class="m.statusClass">
               {{ (m.prenom?.[0] ?? '') + (m.nom?.[0] ?? '') }}
             </div>
             <div class="flex-1">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-weight:700;color:#E8E9ED;">{{ m.prenom }} {{ m.nom }}</span>
-                <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:9999px;" :style="{ background: m.statusColor + '20', color: m.statusColor }">{{ m.statusLabel }}</span>
+              <div class="meca-name-row">
+                <span class="meca-name">{{ m.prenom }} {{ m.nom }}</span>
+                <span class="meca-pill" :class="m.pillClass">{{ m.statusLabel }}</span>
               </div>
-              <div style="font-size:12px;color:#6B7280;">{{ m.specialite ?? 'Mécanicien' }}</div>
+              <div class="meca-role">{{ m.specialite ?? 'Mécanicien' }}</div>
             </div>
           </div>
           <!-- Specialties -->
-          <div v-if="m.specialites?.length" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
-            <span v-for="s in m.specialites" :key="s" style="font-size:10px;padding:2px 8px;border-radius:9999px;background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ s }}</span>
+          <div v-if="m.specialites?.length" class="meca-specialties">
+            <span v-for="s in m.specialites" :key="s" class="specialty-tag">{{ s }}</span>
           </div>
           <!-- Current intervention -->
-          <div v-if="m.currentRdv" style="padding:8px 10px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);font-size:12px;margin-bottom:10px;">
-            <div style="color:#F59E0B;font-weight:600;margin-bottom:4px;">🔧 En intervention</div>
-            <div style="color:#D1D5DB;">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
+          <div v-if="m.currentRdv" class="intervention-box">
+            <div class="intervention-label">🔧 En intervention</div>
+            <div class="intervention-detail">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
             <div v-if="m.currentRdv.temps_estime" class="mt-1">
-              <div class="progress-track-sm">
-                <div :style="{ width: Math.min(m.progressPct, 100) + '%', height: '100%', background: m.progressPct > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
-              </div>
+              <AppProgressBar
+                :value="Math.min(m.progressPct, 100)"
+                :max="100"
+                :color="m.progressPct > 100 ? '#EF4444' : '#FFD200'"
+                height="6px"
+              />
               <div class="text-xs-muted mt-0">{{ m.progressPct }}%</div>
             </div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:#9CA3AF;">
+          <div class="meca-footer">
             <span>📧 {{ m.email ?? '–' }}</span>
             <span>{{ m.rdvCount }} RDV aujourd'hui</span>
           </div>
@@ -342,21 +345,21 @@
           description="Pas de dépassement, ni de no-show, ni de demande en attente sur l'atelier en ce moment."
         />
 
-        <div v-else style="display:flex;flex-direction:column;gap:20px;">
+        <div v-else class="alertes-container">
 
           <!-- Dépassements -->
           <div v-if="alertesDepassements.length">
-            <div style="font-size:11px;font-weight:700;color:#FCA5A5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔴 Dépassements en cours ({{ alertesDepassements.length }})</div>
+            <div class="alert-header-danger">🔴 Dépassements en cours ({{ alertesDepassements.length }})</div>
             <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesDepassements"
                 :key="`dep-${rdv.id}`"
-                style="padding:12px 16px;border-radius:10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+                class="list-item-between alert-item-danger"
               >
                 <div>
                   <div class="header-md">{{ rdvClientName(rdv) }}</div>
                   <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — {{ rdv.type_intervention || 'atelier' }}</div>
-                  <div style="font-size:11px;color:#FCA5A5;margin-top:2px;">+{{ formatDuration(rdvOverrunMinutes(rdv)) }} de dépassement</div>
+                  <div class="alert-detail-danger">+{{ formatDuration(rdvOverrunMinutes(rdv)) }} de dépassement</div>
                 </div>
                 <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost text-md-muted no-underline">Voir →</NuxtLink>
               </div>
@@ -365,12 +368,12 @@
 
           <!-- No-show du jour -->
           <div v-if="alertesNoShow.length">
-            <div style="font-size:11px;font-weight:700;color:#FDBA74;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟠 No-show du jour ({{ alertesNoShow.length }})</div>
+            <div class="alert-header-warning">🟠 No-show du jour ({{ alertesNoShow.length }})</div>
             <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesNoShow"
                 :key="`ns-${rdv.id}`"
-                style="padding:12px 16px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+                class="list-item-between alert-item-warning"
               >
                 <div>
                   <div class="header-md">{{ rdvClientName(rdv) }}</div>
@@ -383,17 +386,17 @@
 
           <!-- Retards réception -->
           <div v-if="alertesRetards.length">
-            <div style="font-size:11px;font-weight:700;color:#FCD34D;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟡 Retards de réception ({{ alertesRetards.length }})</div>
+            <div class="alert-header-amber">🟡 Retards de réception ({{ alertesRetards.length }})</div>
             <div class="flex-col-gap-sm">
               <div
                 v-for="rdv in alertesRetards"
                 :key="`ret-${rdv.id}`"
-                style="padding:12px 16px;border-radius:10px;background:rgba(250,204,21,0.05);border:1px solid rgba(250,204,21,0.15);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+                class="list-item-between alert-item-amber"
               >
                 <div>
                   <div class="header-md">{{ rdvClientName(rdv) }}</div>
                   <div class="text-md-muted">{{ rdvVehicleLabel(rdv) }} — prévu à {{ formatHourLabel(rdv.heure_rdv) }}</div>
-                  <div style="font-size:11px;color:#FCD34D;margin-top:2px;">+{{ formatDuration(rdvRetardMinutes(rdv)) }} sans réception</div>
+                  <div class="alert-detail-amber">+{{ formatDuration(rdvRetardMinutes(rdv)) }} sans réception</div>
                 </div>
                 <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="btn btn-ghost text-md-muted no-underline">Réceptionner →</NuxtLink>
               </div>
@@ -402,22 +405,22 @@
 
           <!-- Demandes travaux supp en attente -->
           <div v-if="demandesSupp.length">
-            <div style="font-size:11px;font-weight:700;color:#C4B5FD;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🟣 Demandes travaux complémentaires ({{ demandesSupp.length }})</div>
+            <div class="alert-header-purple">🟣 Demandes travaux complémentaires ({{ demandesSupp.length }})</div>
             <div class="flex-col-gap-sm">
               <div
                 v-for="d in demandesSupp"
                 :key="`ds-${d.id}`"
-                style="padding:12px 16px;border-radius:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+                class="list-item-start alert-item-info"
               >
                 <div class="flex-1">
-                  <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:2px;">
+                  <div class="demande-title">
                     {{ d.rendezVous ? rdvClientName(d.rendezVous) : 'Client' }}
                   </div>
-                  <div style="font-size:12px;color:#9CA3AF;margin-bottom:4px;">{{ d.description || 'Aucune description' }}</div>
+                  <div class="demande-desc">{{ d.description || 'Aucune description' }}</div>
                   <div class="text-xs-subtle">Créée le {{ formatDateCourt(d.createdAt) }}</div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-                  <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:9999px;background:rgba(139,92,246,0.18);color:#C4B5FD;">{{ d.statut }}</span>
+                <div class="demande-actions">
+                  <span class="demande-status-badge">{{ d.statut }}</span>
                   <NuxtLink
                     v-if="d.rendezVous?.id"
                     :to="`/planning?openRdv=${d.rendezVous.id}`"
@@ -430,17 +433,17 @@
 
           <!-- OR en attente de signature -->
           <div v-if="orAttente.length">
-            <div style="font-size:11px;font-weight:700;color:#5EEAD4;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔵 OR en attente de signature ({{ orAttente.length }})</div>
+            <div class="alert-header-teal">🔵 OR en attente de signature ({{ orAttente.length }})</div>
             <div class="flex-col-gap-sm">
               <div
                 v-for="or in orAttente"
                 :key="`or-${or.id}`"
-                style="padding:12px 16px;border-radius:10px;background:rgba(20,184,166,0.05);border:1px solid rgba(20,184,166,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"
+                class="list-item-between alert-item-teal"
               >
                 <div>
                   <div class="header-md">{{ or.snapClientNom ?? or.snap_client_nom ?? 'Client' }} {{ or.snapClientPrenom ?? or.snap_client_prenom ?? '' }}</div>
                   <div class="text-md-muted">OR {{ or.numeroOr ?? or.numero_or }} — {{ or.snapVehiculeMarque ?? or.snap_vehicule_marque ?? '' }} {{ or.snapVehiculeModele ?? or.snap_vehicule_modele ?? '' }}</div>
-                  <div v-if="or.motifRectification ?? or.motif_rectification" style="font-size:11px;color:#5EEAD4;margin-top:2px;">Motif : {{ or.motifRectification ?? or.motif_rectification }}</div>
+                  <div v-if="or.motifRectification ?? or.motif_rectification" class="alert-detail-teal">Motif : {{ or.motifRectification ?? or.motif_rectification }}</div>
                 </div>
                 <NuxtLink :to="`/ordres/${or.id}`" class="btn btn-ghost text-md-muted no-underline">Ouvrir l'OR →</NuxtLink>
               </div>
@@ -453,17 +456,17 @@
       <!-- GARDIENNAGE TAB -->
       <div v-if="activeTab === 'gardiennage'">
         <!-- Résumé -->
-        <div v-if="gardinnageRdvs.length" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-          <div style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.18);">
+        <div v-if="gardinnageRdvs.length" class="gardiennage-summary-bar">
+          <div class="gardiennage-card-danger">
             <div class="text-sm-muted uppercase font-semibold">Motos en gardiennage</div>
             <div class="stat-value-md text-danger">{{ gardinnageRdvs.length }}</div>
           </div>
-          <div style="padding:12px 18px;border-radius:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);">
+          <div class="gardiennage-card-warning">
             <div class="text-sm-muted uppercase font-semibold">Montant total estimé</div>
-            <div style="font-size:22px;font-weight:700;color:#FCD34D;">{{ gardiennageTotalEstime }}€</div>
+            <div class="gardiennage-value-warning">{{ gardiennageTotalEstime }}€</div>
           </div>
-          <div v-if="gardinnageUrgents > 0" style="padding:12px 18px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);">
-            <div style="font-size:11px;color:#FCA5A5;text-transform:uppercase;font-weight:600;letter-spacing:.04em;">⚠ Actions requises</div>
+          <div v-if="gardinnageUrgents > 0" class="gardiennage-card-urgent">
+            <div class="gardiennage-urgent-label">⚠ Actions requises</div>
             <div class="stat-value-md text-danger">{{ gardinnageUrgents }}</div>
           </div>
         </div>
@@ -475,49 +478,49 @@
           description="Aucune moto n'est actuellement en gardiennage. Les véhicules non-récupérés après réparation apparaîtront ici."
         />
 
-        <div v-else style="display:flex;flex-direction:column;gap:10px;">
+        <div v-else class="gardiennage-list">
           <div
             v-for="rdv in gardinnageSorted"
             :key="rdv.id"
-            style="border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.07);"
-            :style="{ background: gardinnagePhase(rdv).bg }"
+            class="gardiennage-item"
+            :class="gardinnagePhase(rdv).cardClass"
           >
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div class="gardiennage-item-header">
               <!-- Infos principales -->
-              <div style="flex:1;min-width:240px;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div class="gardiennage-item-info">
+                <div class="gardiennage-item-meta">
                   <span
-                    style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:9999px;"
-                    :style="{ background: gardinnagePhase(rdv).badgeBg, color: gardinnagePhase(rdv).badgeColor }"
+                    class="gardiennage-badge"
+                    :class="gardinnagePhase(rdv).badgeClass"
                   >
                     {{ gardinnagePhase(rdv).label }}
                   </span>
-                  <span style="font-size:12px;font-weight:700;color:#E8E9ED;">
+                  <span class="gardiennage-days">
                     J+{{ joursCalendaires(rdv.gardiennageDebutAt) }}
                   </span>
-                  <span style="font-size:11px;color:#6B7280;">depuis le {{ formatDateCourt(rdv.gardiennageDebutAt) }}</span>
+                  <span class="gardiennage-date">depuis le {{ formatDateCourt(rdv.gardiennageDebutAt) }}</span>
                 </div>
 
-                <div style="font-size:14px;font-weight:700;color:#E8E9ED;margin-bottom:2px;">
+                <div class="gardiennage-client">
                   {{ rdvClientName(rdv) }}
                 </div>
-                <div style="font-size:12px;color:#9CA3AF;margin-bottom:2px;">
+                <div class="gardiennage-vehicle">
                   {{ rdvVehicleLabel(rdv) }}
-                  <span v-if="rdv.vehicule?.plaque || rdv.vehicule_plaque" style="margin-left:6px;font-family:monospace;color:#FFD200;font-size:11px;">{{ rdv.vehicule?.plaque ?? rdv.vehicule_plaque }}</span>
+                  <span v-if="rdv.vehicule?.plaque || rdv.vehicule_plaque" class="gardiennage-plaque">{{ rdv.vehicule?.plaque ?? rdv.vehicule_plaque }}</span>
                 </div>
-                <div v-if="rdv.gardiennageMotif" style="font-size:11px;color:#6B7280;margin-top:4px;font-style:italic;">{{ rdv.gardiennageMotif }}</div>
+                <div v-if="rdv.gardiennageMotif" class="gardiennage-motif">{{ rdv.gardiennageMotif }}</div>
               </div>
 
               <!-- Montant estimé -->
               <div class="text-right">
-                <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600;margin-bottom:2px;">Montant estimé</div>
-                <div style="font-size:18px;font-weight:700;color:#FCD34D;">{{ gardinnageMontantEstime(rdv) }}€</div>
+                <div class="gardiennage-montant-label">Montant estimé</div>
+                <div class="gardiennage-montant-value">{{ gardinnageMontantEstime(rdv) }}€</div>
                 <div class="text-xs-subtle">{{ joursCalendaires(rdv.gardiennageDebutAt) }}j × {{ workshopConfig?.tarifGardiennageJournalier ?? '5.00' }}€/j</div>
               </div>
             </div>
 
             <!-- Actions -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+            <div class="gardiennage-actions">
               <NuxtLink
                 :to="`/planning?openRdv=${rdv.id}`"
                 class="btn btn-ghost text-md-muted no-underline"
@@ -525,8 +528,7 @@
                 Voir le dossier →
               </NuxtLink>
               <button
-                class="btn btn-primary"
-                style="font-size:12px;"
+                class="btn btn-primary text-xs"
                 :disabled="gardinnageActioning[rdv.id]"
                 @click="sortirGardiennage(rdv)"
               >
@@ -796,7 +798,8 @@ const enrichedMecas = computed(() => {
       currentRdv,
       progressPct,
       statusLabel: isAbsent ? 'Absent' : isWorking ? 'En intervention' : 'Disponible',
-      statusColor: isAbsent ? '#EF4444' : isWorking ? '#F59E0B' : '#22C55E',
+      statusClass: isAbsent ? 'meca-status-absent' : isWorking ? 'meca-status-working' : 'meca-status-available',
+      pillClass: isAbsent ? 'meca-pill-absent' : isWorking ? 'meca-pill-working' : 'meca-pill-available',
       specialites: normalizeSpecialites(m.specialites ?? m.competences),
     }
   })
@@ -809,17 +812,11 @@ function pontBadgeLabel(pont: any): string {
   return 'Disponible'
 }
 
-function pontBadgeStyle(pont: any) {
-  if (!isActiveFlag(pont.is_active ?? pont.est_actif)) {
-    return { background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }
-  }
-  if (pont.current_rdv) {
-    return { background: 'rgba(20,184,166,0.12)', color: '#5EEAD4' }
-  }
-  if (pont.day_schedule?.length) {
-    return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
-  }
-  return { background: 'rgba(34,197,94,0.12)', color: '#86EFAC' }
+function pontBadgeClass(pont: any): string {
+  if (!isActiveFlag(pont.is_active ?? pont.est_actif)) return 'badge-hors-service'
+  if (pont.current_rdv) return 'badge-en-cours'
+  if (pont.day_schedule?.length) return 'badge-planifie'
+  return 'badge-disponible'
 }
 
 function pontProgress(pont: any) {
@@ -1135,18 +1132,18 @@ function formatDateCourt(d: string | null): string {
   try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return d }
 }
 
-function gardinnagePhase(rdv: any): { label: string; bg: string; badgeBg: string; badgeColor: string; urgence: number } {
+function gardinnagePhase(rdv: any): { label: string; cardClass: string; badgeClass: string; urgence: number } {
   const cfg = workshopConfig.value
   const r1 = Math.round((cfg?.delaiRelance1JoursOuvres ?? 15) * 1.4)
   const r2 = Math.round((cfg?.delaiRelance2JoursOuvres ?? 30) * 1.4)
   const ra = Math.round((cfg?.delaiProposeGardiennageJoursOuvres ?? 45) * 1.4)
   const rp = Math.round((cfg?.delaiProcedureAbandonJoursOuvres ?? 180) * 1.4)
   const jours = joursCalendaires(rdv.gardiennageDebutAt)
-  if (jours >= rp) return { label: 'Procédure abandon', bg: 'rgba(127,0,0,0.12)', badgeBg: 'rgba(185,28,28,0.25)', badgeColor: '#FCA5A5', urgence: 4 }
-  if (jours >= ra) return { label: 'Abandon possible', bg: 'rgba(239,68,68,0.08)', badgeBg: 'rgba(239,68,68,0.2)', badgeColor: '#FCA5A5', urgence: 3 }
-  if (jours >= r2) return { label: 'Relance 2', bg: 'rgba(245,120,15,0.07)', badgeBg: 'rgba(234,88,12,0.2)', badgeColor: '#FDBA74', urgence: 2 }
-  if (jours >= r1) return { label: 'Relance 1', bg: 'rgba(245,158,11,0.06)', badgeBg: 'rgba(245,158,11,0.2)', badgeColor: '#FCD34D', urgence: 1 }
-  return { label: 'Récent', bg: 'rgba(255,255,255,0.03)', badgeBg: 'rgba(34,197,94,0.15)', badgeColor: '#86EFAC', urgence: 0 }
+  if (jours >= rp) return { label: 'Procédure abandon', cardClass: 'gard-phase-abandon-proc', badgeClass: 'gard-badge-abandon-proc', urgence: 4 }
+  if (jours >= ra) return { label: 'Abandon possible', cardClass: 'gard-phase-abandon-possible', badgeClass: 'gard-badge-abandon-possible', urgence: 3 }
+  if (jours >= r2) return { label: 'Relance 2', cardClass: 'gard-phase-relance2', badgeClass: 'gard-badge-relance2', urgence: 2 }
+  if (jours >= r1) return { label: 'Relance 1', cardClass: 'gard-phase-relance1', badgeClass: 'gard-badge-relance1', urgence: 1 }
+  return { label: 'Récent', cardClass: 'gard-phase-recent', badgeClass: 'gard-badge-recent', urgence: 0 }
 }
 
 function gardinnageMontantEstime(rdv: any): string {
@@ -1347,98 +1344,491 @@ watch(activeTab, (tab) => {
 </script>
 
 <style scoped>
-.view-toggle-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255,255,255,0.03);
-  padding: 4px;
-  border-radius: var(--radius);
-  border: 1px solid var(--glass-border);
-}
-.view-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid transparent;
-  color: #9CA3AF;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-}
-.view-toggle-btn:hover {
-  color: #E8E9ED;
-  background: rgba(255,255,255,0.04);
-}
-.view-toggle-btn.active {
-  background: var(--dark3);
-  color: var(--orange);
-  border-color: rgba(255,210,0,0.2);
-}
-.vehicle-photo-placeholder {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  background: var(--dark3);
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.pont-grid-responsive {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-@media (max-width: 1023px) {
-  .pont-grid-responsive {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (max-width: 639px) {
-  .pont-grid-responsive {
-    grid-template-columns: 1fr;
-  }
-}
-.pont-config-details {
-  margin-bottom: 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--glass-border);
-  background: rgba(255,255,255,0.02);
-  overflow: hidden;
-}
-.pont-config-summary {
+/* Skeleton shimmer sizes */
+.skeleton-shimmer-sm { height: 10px; width: 60%; margin-bottom: 8px; }
+.skeleton-shimmer-md { height: 28px; width: 40%; }
+
+/* Workshop header */
+.workshop-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 11px;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* Tab badges */
+.tab-badge-danger {
+  margin-left: 6px;
+  background: rgba(239,68,68,0.22);
+  color: #FCA5A5;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 10px;
   font-weight: 700;
-  color: #9CA3AF;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
-.pont-config-summary::-webkit-details-marker {
-  display: none;
+.tab-badge-warning {
+  margin-left: 6px;
+  background: rgba(239,68,68,0.18);
+  color: #FCA5A5;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
 }
-.pont-config-body {
-  padding: 0 12px 12px;
+
+/* Pont badges */
+.badge-hors-service {
+  background: rgba(239,68,68,0.12);
+  color: #FCA5A5;
+}
+.badge-en-cours {
+  background: rgba(20,184,166,0.12);
+  color: #5EEAD4;
+}
+.badge-planifie {
+  background: rgba(245,158,11,0.12);
+  color: #FCD34D;
+}
+.badge-disponible {
+  background: rgba(34,197,94,0.12);
+  color: #86EFAC;
+}
+
+/* Compact buttons */
+.btn-sm-compact {
+  padding: 5px 10px;
+  min-height: 32px;
+}
+.btn-md-compact {
+  padding: 6px 12px;
+  min-height: 34px;
+}
+
+/* Select small */
+.select-sm {
+  min-height: 38px;
+}
+
+/* Time label in schedule */
+.time-label {
+  min-width: 42px;
+}
+
+/* Mecanicien avatar */
+.meca-avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.meca-status-absent {
+  background: #EF444415;
+  border: 1px solid #EF444430;
+  color: #EF4444;
+}
+.meca-status-working {
+  background: #F59E0B15;
+  border: 1px solid #F59E0B30;
+  color: #F59E0B;
+}
+.meca-status-available {
+  background: #22C55E15;
+  border: 1px solid #22C55E30;
+  color: #22C55E;
+}
+
+/* Mecanicien pill */
+.meca-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+.meca-pill-absent {
+  background: #EF444420;
+  color: #EF4444;
+}
+.meca-pill-working {
+  background: #F59E0B20;
+  color: #F59E0B;
+}
+.meca-pill-available {
+  background: #22C55E20;
+  color: #22C55E;
+}
+
+/* Mecanicien card layout */
+.meca-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.meca-name-row {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
-.pont-retard {
-  border-left: 3px solid var(--red);
+.meca-name {
+  font-weight: 700;
+  color: #E8E9ED;
 }
-.pont-planifie {
-  border-left: 3px solid var(--orange);
+.meca-role {
+  font-size: 12px;
+  color: #6B7280;
+}
+.meca-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.meca-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+/* Specialty tag */
+.specialty-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(139,92,246,0.12);
+  color: #C4B5FD;
+}
+
+/* Intervention box */
+.intervention-box {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.15);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.intervention-label {
+  color: #F59E0B;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.intervention-detail {
+  color: #D1D5DB;
+}
+
+/* Alert section headers */
+.alert-header-danger {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FCA5A5;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.alert-header-warning {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FDBA74;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.alert-header-amber {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FCD34D;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.alert-header-purple {
+  font-size: 11px;
+  font-weight: 700;
+  color: #C4B5FD;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.alert-header-teal {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5EEAD4;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+
+/* Alert items */
+.alert-item-danger {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.07);
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.alert-item-warning {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.18);
+}
+.alert-item-amber {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(250,204,21,0.05);
+  border: 1px solid rgba(250,204,21,0.15);
+}
+.alert-item-info {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(139,92,246,0.06);
+  border: 1px solid rgba(139,92,246,0.18);
+}
+.alert-item-teal {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(20,184,166,0.05);
+  border: 1px solid rgba(20,184,166,0.18);
+}
+
+/* Alert detail text */
+.alert-detail-danger {
+  font-size: 11px;
+  color: #FCA5A5;
+  margin-top: 2px;
+}
+.alert-detail-amber {
+  font-size: 11px;
+  color: #FCD34D;
+  margin-top: 2px;
+}
+.alert-detail-teal {
+  font-size: 11px;
+  color: #5EEAD4;
+  margin-top: 2px;
+}
+
+/* List item with align-items: flex-start */
+.list-item-start {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Demande item text */
+.demande-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #E8E9ED;
+  margin-bottom: 2px;
+}
+.demande-desc {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin-bottom: 4px;
+}
+.demande-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.demande-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(139,92,246,0.18);
+  color: #C4B5FD;
+}
+
+/* Alert container */
+.alertes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Gardiennage summary bar */
+.gardiennage-summary-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.gardiennage-card-danger {
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.18);
+}
+.gardiennage-card-warning {
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.15);
+}
+.gardiennage-card-urgent {
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.gardiennage-urgent-label {
+  font-size: 11px;
+  color: #FCA5A5;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.gardiennage-value-warning {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FCD34D;
+}
+
+/* Gardiennage list */
+.gardiennage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Gardiennage item */
+.gardiennage-item {
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.gardiennage-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gardiennage-item-info {
+  flex: 1;
+  min-width: 240px;
+}
+.gardiennage-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.gardiennage-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+.gardiennage-days {
+  font-size: 12px;
+  font-weight: 700;
+  color: #E8E9ED;
+}
+.gardiennage-date {
+  font-size: 11px;
+  color: #6B7280;
+}
+.gardiennage-client {
+  font-size: 14px;
+  font-weight: 700;
+  color: #E8E9ED;
+  margin-bottom: 2px;
+}
+.gardiennage-vehicle {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin-bottom: 2px;
+}
+.gardiennage-plaque {
+  margin-left: 6px;
+  font-family: monospace;
+  color: #FFD200;
+  font-size: 11px;
+}
+.gardiennage-motif {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 4px;
+  font-style: italic;
+}
+.gardiennage-montant-label {
+  font-size: 10px;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.gardiennage-montant-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FCD34D;
+}
+.gardiennage-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Gardiennage phases */
+.gard-phase-abandon-proc {
+  background: rgba(127,0,0,0.12);
+}
+.gard-phase-abandon-possible {
+  background: rgba(239,68,68,0.08);
+}
+.gard-phase-relance2 {
+  background: rgba(245,120,15,0.07);
+}
+.gard-phase-relance1 {
+  background: rgba(245,158,11,0.06);
+}
+.gard-phase-recent {
+  background: rgba(255,255,255,0.03);
+}
+
+.gard-badge-abandon-proc {
+  background: rgba(185,28,28,0.25);
+  color: #FCA5A5;
+}
+.gard-badge-abandon-possible {
+  background: rgba(239,68,68,0.2);
+  color: #FCA5A5;
+}
+.gard-badge-relance2 {
+  background: rgba(234,88,12,0.2);
+  color: #FDBA74;
+}
+.gard-badge-relance1 {
+  background: rgba(245,158,11,0.2);
+  color: #FCD34D;
+}
+.gard-badge-recent {
+  background: rgba(34,197,94,0.15);
+  color: #86EFAC;
+}
+
+/* Gap utility for flex-center */
+.gap-2 {
+  gap: 8px;
+}
+
+/* Text size utility */
+.text-xs {
+  font-size: 12px;
 }
 </style>

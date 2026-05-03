@@ -2,8 +2,8 @@
   <div class="progress-track" :class="[`h-${height}`]">
     <div
       class="progress-fill"
-      :class="[`bg-${colorVariant}`]"
-      :style="{ width: `${Math.min((value / max) * 100, 100)}%` }"
+      :class="[colorClass]"
+      :style="fillStyle"
     />
   </div>
 </template>
@@ -19,29 +19,32 @@ const props = withDefaults(defineProps<{
   height: '8px',
 })
 
-const colorVariant = computed(() => {
-  const map: Record<string, string> = {
-    '#FFD200': 'primary',
-    '#14B8A6': 'teal',
-    '#8B5CF6': 'violet',
-    '#10B981': 'green',
-    '#34D399': 'emerald',
-    '#EF4444': 'red',
-    '#6B7280': 'gray',
-    '#FBBF24': 'amber',
-    '#3B82F6': 'blue',
-    '#F59E0B': 'orange',
-    '#60A5FA': 'sky',
-    '#A78BFA': 'purple',
-    '#C4B5FD': 'lavender',
-    '#5EEAD4': 'cyan',
-    '#22C55E': 'success',
-    '#86EFAC': 'light-green',
-    '#93C5FD': 'light-blue',
-    '#FCA5A5': 'light-red',
-    '#FCD34D': 'light-amber',
-  }
-  return map[props.color] || 'primary'
+const colorMap: Record<string, string> = {
+  '#FFD200': 'primary',
+  '#14B8A6': 'teal',
+  '#8B5CF6': 'violet',
+  '#10B981': 'green',
+  '#34D399': 'emerald',
+  '#EF4444': 'red',
+  '#6B7280': 'gray',
+  '#FBBF24': 'amber',
+  '#3B82F6': 'blue',
+  '#F59E0B': 'orange',
+  '#60A5FA': 'sky',
+  '#A78BFA': 'purple',
+  '#C4B5FD': 'lavender',
+  '#5EEAD4': 'cyan',
+  '#22C55E': 'success',
+  '#86EFAC': 'light-green',
+  '#93C5FD': 'light-blue',
+  '#FCA5A5': 'light-red',
+  '#FCD34D': 'light-amber',
+}
+
+const colorClass = computed(() => colorMap[props.color] || '')
+const fillStyle = computed(() => {
+  if (colorMap[props.color]) return {}
+  return { background: props.color }
 })
 </script>
 
@@ -80,4 +83,5 @@ const colorVariant = computed(() => {
 .bg-light-blue { background: #93C5FD; }
 .bg-light-red { background: #FCA5A5; }
 .bg-light-amber { background: #FCD34D; }
+.bg-slate { background: #9CA3AF; }
 </style>
