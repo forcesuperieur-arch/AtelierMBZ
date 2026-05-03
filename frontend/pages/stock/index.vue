@@ -41,11 +41,14 @@
     </UCard>
 
     <UCard style="margin-bottom:16px;">
-      <UInput v-model="search" placeholder="Rechercher une pièce..." @input="debouncedFetch" />
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <UInput v-model="search" placeholder="Rechercher une pièce..." @input="debouncedFetch" style="flex:1;min-width:200px;" />
+        <USelectMenu v-model="categorieFilter" :options="categories" placeholder="Toutes catégories" clearable style="min-width:180px;" />
+      </div>
     </UCard>
 
     <UCard>
-      <UTable :data="stockStore.pieces" :columns="columns" :loading="stockStore.loading">
+      <UTable :data="filteredPieces" :columns="columns" :loading="stockStore.loading">
         <template #quantite_stock-cell="{ row }">
           <span :class="row.original.quantite_stock <= row.original.seuil_alerte ? 'text-red-500 font-bold' : ''">
             {{ row.original.quantite_stock }}
@@ -140,6 +143,7 @@ definePageMeta({ title: 'Stock' })
 const stockStore = useStockStore()
 const toast = useToast()
 const search = ref('')
+const categorieFilter = ref('')
 const showNew = ref(false)
 const saving = ref(false)
 const editId = ref<number | null>(null)
@@ -161,6 +165,17 @@ const totalStockValue = computed(() => {
     const prix = Number(p.prix_achat_ht) || 0
     return sum + qte * prix
   }, 0)
+})
+
+const categories = computed(() => {
+  const set = new Set<string>()
+  stockStore.pieces.forEach((p: any) => { if (p.categorie) set.add(p.categorie) })
+  return Array.from(set).sort()
+})
+
+const filteredPieces = computed(() => {
+  if (!categorieFilter.value) return stockStore.pieces
+  return stockStore.pieces.filter((p: any) => p.categorie === categorieFilter.value)
 })
 
 const columns = [
