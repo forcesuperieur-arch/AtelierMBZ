@@ -1,0 +1,54 @@
+# Issue Tracker — Registre des Problèmes
+
+> Ce fichier est vivant. Je le mets à jour après chaque session.
+
+## 🔴 CRITIQUE — À traiter en priorité
+
+| # | Problème | Fichier(s) | Agent responsable | Statut |
+|---|---|---|---|---|
+| 1 | **Injection SQL** via `sprintf` dans `nextDocumentNumber` | `FacturationController.php:203,207` | GuardSec | 🔴 Ouvert |
+| 2 | **Mots de passe hardcodés** en seed | `SeedCommand.php:191`, `ResetSeedCommand.php:165` | GuardSec | 🔴 Ouvert |
+| 3 | **Endpoints sans `#[IsGranted]`** | `CerfaFieldConfigController`, `MotosLookupController`, `SlotController`, `FacturationController`, `StatistiquesController`, `RendezVousFacturationCompatController` | GuardSec | 🔴 Ouvert |
+| 4 | **39 entités sans tests** | `backend/src/Entity/*` (liste complète dans `agent-testpilot`) | TestPilot | 🔴 Ouvert |
+| 5 | **51 entités sans validation Symfony** | `backend/src/Entity/*` | GuardSec | 🔴 Ouvert |
+
+## 🟠 HAUTE — Dettes structurantes
+
+| # | Problème | Fichier(s) | Agent responsable | Statut |
+|---|---|---|---|---|
+| 6 | **God classes backend** (>500 lignes) | `AuthController` (793), `VOPurchaseController` (739), `FacturationController` (645), `RendezVousController` (549), `VODepotController` (547), `CompanionController` (543), `VORemiseEnEtatController` (530), `DemandeTravauxSuppController` (474), `PublicVoCompanionController` (434) | ArchiTech | 🟠 Ouvert |
+| 7 | **God classes frontend** (>50 KB) | `planning.vue` (96 KB), `ordres/[id].vue` (75 KB), `workshop.vue` (63 KB), `mecanicien.vue` (58 KB), `rdv/new.vue` (55 KB), `public/companion/[token].vue` (53 KB) | FrontCraft | 🟠 Ouvert |
+| 8 | **`status` vs `statut`** incohérent | 18 entités | ArchiTech | 🟠 Ouvert |
+| 9 | **Duplication RGPD snapshot** | `Facture`, `Devis`, `OrdreReparation` | ArchiTech | 🟠 Ouvert |
+| 10 | **Duplication VO** (Purchase/Depot) | `VOPurchaseController`, `VODepotController`, `VOCompanionTrait` | ArchiTech | 🟠 Ouvert |
+| 11 | **normalize* dupliqué frontend** | `planning.vue`, `clients/[id].vue`, `admin/ponts.vue` | FrontCraft | 🟠 Ouvert |
+| 12 | **snake_case massif dans Vue** | ~15 fichiers majeurs | FrontCraft | 🟠 Ouvert |
+| 13 | **Méthodes `@deprecated` encore utilisées** | `MecanicienController`, `ResetSeedCommand` | ArchiTech | 🟠 Ouvert |
+
+## 🟡 MOYENNE — Améliorations
+
+| # | Problème | Fichier(s) | Agent responsable | Statut |
+|---|---|---|---|---|
+| 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | 🟡 Ouvert |
+| 15 | **Uploads sans magic bytes** | `ConfigController`, `CompanionController`, `VODocumentService` | GuardSec | 🟡 Ouvert |
+| 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | 🟡 Ouvert |
+| 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | 🟡 Ouvert |
+| 18 | **Tests E2E incomplets** | Manquent : facturation, OR, CERFA, gardiennage | TestPilot | 🟡 Ouvert |
+| 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | 🟡 Ouvert |
+| 20 | **Rôles legacy** (`role` string + `RoleMetier`) | `User`, `RoleMetier` | ArchiTech | 🟡 Ouvert |
+
+## 🟢 FAIBLE — Refontes futures
+
+| # | Problème | Fichier(s) | Agent responsable | Statut |
+|---|---|---|---|---|
+| 21 | **Génération PDF dispersée** | 10+ méthodes dans 4 controllers | ArchiTech | 🟢 Ouvert |
+| 22 | **Store VO monolithique** (512 lignes) | `stores/vo.ts` | FrontCraft | 🟢 Ouvert |
+| 23 | **InterventionType deprecated** | Entière entité | ArchiTech | 🟢 Ouvert |
+| 24 | **ConfigController mixte** | Config + bootstrap + logo + seed | ArchiTech | 🟢 Ouvert |
+
+## Historique des résolutions
+| Date | Problème | Agent | Commit |
+|---|---|---|---|
+| 2026-05-01 | Module Stock complet (backend + frontend + tests) | Multi-agent | `5201969` |
+| 2026-05-03 | Migration mouvements_stock + seed + tests | Multi-agent | `b9dcb3c` |
+| 2026-05-03 | Création skill system (7 skills) | DocuMind | `b9dcb3c` |

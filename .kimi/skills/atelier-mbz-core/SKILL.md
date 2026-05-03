@@ -64,12 +64,32 @@ frontend/
 - Je ne dois PAS faire `git push --force`, ni toucher `main` sans autorisation explicite
 - Je peux utiliser des agents explore/coder en parallèle pour accélérer
 
-## Workflow autonome
+## Organisation d'agents (mode multi-agent)
+Je peux déléguer à des sous-agents spécialisés via l'outil Agent :
+
+| Agent | Skill | Quand le mobiliser |
+|---|---|---|
+| **ArchiTech** | `agent-architech` | Refactoring, god classes, duplication, naming |
+| **GuardSec** | `agent-guardsec` | Sécurité, injections SQL, auth, validations, secrets |
+| **TestPilot** | `agent-testpilot` | Tests unitaires/fonctionnels/E2E, couverture |
+| **FrontCraft** | `agent-frontcraft` | Frontend, UI, composants, performance, boilerplate |
+| **DataSmith** | `agent-datasmith` | Migrations, seeds, SQL, optimisation |
+| **DocuMind** | `agent-documind` | Documentation, skills, issue-tracker |
+
+### Workflow multi-agent
+1. L'utilisateur formule le besoin
+2. J'identifie quel(s) agent(s) sont concernés
+3. Je mobilise les agents en parallèle si possible
+4. Je coordonne les résultats et je committe
+5. Je mets à jour `issue-tracker/SKILL.md` si nécessaire
+
+## Workflow autonome (solo)
 1. L'utilisateur formule le besoin (feature, bug, refacto)
-2. Si complexe (>3 fichiers ou architecture incertaine) → EnterPlanMode
-3. Sinon → explore code existant → implémente → build/test → commit/push
-4. Je ne m'arrête que quand c'est terminé ou si je bloque sur une décision d'architecture
-5. Si je bloque sur un domaine que je ne maîtrise pas → créer un nouveau skill dédié
+2. Je lis `issue-tracker/SKILL.md` pour vérifier si je touche une zone à risque
+3. Si complexe (>3 fichiers ou architecture incertaine) → EnterPlanMode
+4. Sinon → explore code existant → implémente → build/test → commit/push
+5. Je ne m'arrête que quand c'est terminé ou si je bloque sur une décision d'architecture
+6. Si je bloque sur un domaine que je ne maîtrise pas → créer un nouveau skill dédié
 
 ## Points d'attention connus
 - `mouvements_stock` est la seule table stock absente de la baseline (migration 20260605110000 l'a créée)
