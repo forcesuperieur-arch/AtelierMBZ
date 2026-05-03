@@ -2,16 +2,17 @@
   <div>
     <AppPageHeader title="Mon profil" subtitle="Compte et contexte de connexion." />
 
-    <div v-if="!user" class="empty-state">
-      <div class="empty-state-icon">👤</div>
-      <div class="empty-state-title">Profil indisponible</div>
-      <div class="empty-state-sub">Reconnectez-vous pour rafraîchir votre session.</div>
-    </div>
+    <AppEmptyState
+      v-if="!user"
+      icon="i-heroicons-user"
+      title="Profil indisponible"
+      description="Reconnectez-vous pour rafraîchir votre session."
+    />
 
-    <div v-else style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <UCard>
         <template #header>
-          <span style="font-size:14px;font-weight:700;color:var(--text-strong);">👤 Identité</span>
+          <h3 class="text-sm font-bold text-text-primary">👤 Identité</h3>
         </template>
         <div class="profile-grid">
           <div><span class="lbl">Prénom</span><span class="val">{{ user.prenom || '—' }}</span></div>
@@ -21,8 +22,9 @@
           <div>
             <span class="lbl">Méthode de connexion</span>
             <span class="val">
-              <span v-if="user.auth_provider === 'google'" class="status-badge" style="background:rgba(34,197,94,0.14);color:#86EFAC;">Google SSO</span>
-              <span v-else class="status-badge" style="background:rgba(59,130,246,0.14);color:#93C5FD;">{{ user.auth_provider || 'local' }}</span>
+              <AppStatusBadge :variant="user.auth_provider === 'google' ? 'success' : 'info'">
+                {{ user.auth_provider === 'google' ? 'Google SSO' : (user.auth_provider || 'local') }}
+              </AppStatusBadge>
             </span>
           </div>
         </div>
@@ -30,50 +32,41 @@
 
       <UCard>
         <template #header>
-          <span style="font-size:14px;font-weight:700;color:var(--text-strong);">🎭 Rôle &amp; permissions</span>
+          <h3 class="text-sm font-bold text-text-primary">🎭 Rôle &amp; permissions</h3>
         </template>
         <div class="profile-grid">
-          <div>
-            <span class="lbl">Rôle métier</span>
-            <span class="val">{{ roleMetierLabel }}</span>
-          </div>
-          <div>
-            <span class="lbl">Rôle de base</span>
-            <span class="val">{{ baseRoleLabel }}</span>
-          </div>
+          <div><span class="lbl">Rôle métier</span><span class="val">{{ roleMetierLabel }}</span></div>
+          <div><span class="lbl">Rôle de base</span><span class="val">{{ baseRoleLabel }}</span></div>
           <div v-if="extraRoles.length">
             <span class="lbl">Rôles techniques</span>
-            <span class="val" style="display:flex;flex-wrap:wrap;gap:4px;">
-              <span v-for="r in extraRoles" :key="r" class="status-badge" style="background:rgba(255,255,255,0.06);color:var(--text-muted);font-size:10px;">{{ r }}</span>
+            <span class="val flex flex-wrap gap-1">
+              <AppStatusBadge v-for="r in extraRoles" :key="r" variant="default" size="sm">{{ r }}</AppStatusBadge>
             </span>
           </div>
           <div v-if="user.role_metier?.permissions?.length">
             <span class="lbl">Permissions accordées</span>
-            <span class="val" style="font-size:12px;color:var(--text-muted);">{{ user.role_metier.permissions.length }} entrée(s)</span>
+            <span class="val text-xs text-gray-500">{{ user.role_metier.permissions.length }} entrée(s)</span>
           </div>
         </div>
       </UCard>
 
       <UCard>
         <template #header>
-          <span style="font-size:14px;font-weight:700;color:var(--text-strong);">🏢 Atelier actif</span>
+          <h3 class="text-sm font-bold text-text-primary">🏢 Atelier actif</h3>
         </template>
-        <div v-if="!user.atelier_id && !isSuperAdmin" class="alert alert--warning" style="margin:0;">
+        <div v-if="!user.atelier_id && !isSuperAdmin" class="alert alert--warning m-0">
           <div class="alert-title">⚠️ Aucun atelier affecté</div>
           <div class="alert-body">Demandez à un administrateur de vous rattacher à un atelier pour accéder aux écrans opérationnels.</div>
         </div>
         <div v-else class="profile-grid">
-          <div>
-            <span class="lbl">Nom</span>
-            <span class="val">{{ user.atelier_nom || (isSuperAdmin ? 'Tous (vue super-admin)' : '—') }}</span>
-          </div>
+          <div><span class="lbl">Nom</span><span class="val">{{ user.atelier_nom || (isSuperAdmin ? 'Tous (vue super-admin)' : '—') }}</span></div>
           <div v-if="user.atelier_id">
             <span class="lbl">ID atelier</span>
-            <span class="val" style="font-family:monospace;font-size:12px;color:var(--text-muted);">#{{ user.atelier_id }}</span>
+            <span class="val font-mono text-xs text-gray-500">#{{ user.atelier_id }}</span>
           </div>
           <div v-if="canSwitchAtelier">
             <span class="lbl">Changer d'atelier</span>
-            <select :value="user.atelier_id ?? ''" class="form-input" style="max-width:280px;" @change="onSwitch(($event.target as HTMLSelectElement).value)">
+            <select :value="user.atelier_id ?? ''" class="form-input max-w-[280px]" @change="onSwitch(($event.target as HTMLSelectElement).value)">
               <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
             </select>
           </div>
@@ -82,20 +75,21 @@
 
       <UCard>
         <template #header>
-          <span style="font-size:14px;font-weight:700;color:var(--text-strong);">⚙ Session</span>
+          <h3 class="text-sm font-bold text-text-primary">⚙ Session</h3>
         </template>
         <div class="profile-grid">
           <div>
             <span class="lbl">Statut du compte</span>
             <span class="val">
-              <span v-if="user.access_status === 'active'" class="status-badge" style="background:rgba(16,185,129,0.14);color:#6EE7B7;">Actif</span>
-              <span v-else class="status-badge" style="background:rgba(245,158,11,0.14);color:#FCD34D;">{{ user.access_status || 'inconnu' }}</span>
+              <AppStatusBadge :variant="user.access_status === 'active' ? 'success' : 'warning'">
+                {{ user.access_status === 'active' ? 'Actif' : (user.access_status || 'inconnu') }}
+              </AppStatusBadge>
             </span>
           </div>
         </div>
-        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" @click="refreshMe">↻ Rafraîchir</button>
-          <button class="btn" style="background:rgba(239,68,68,0.14);color:#FCA5A5;border:1px solid rgba(239,68,68,0.28);" @click="auth.logout()">Se déconnecter</button>
+        <div class="mt-4 flex gap-2 flex-wrap">
+          <UButton variant="ghost" icon="i-heroicons-arrow-path" @click="refreshMe">Rafraîchir</UButton>
+          <UButton color="error" variant="soft" icon="i-heroicons-arrow-right-on-rectangle" @click="auth.logout()">Se déconnecter</UButton>
         </div>
       </UCard>
     </div>
