@@ -15,28 +15,19 @@
       />
     </UCard>
 
-    <div v-else style="display:flex;flex-direction:column;gap:16px;">
+    <div v-else class="page-stack">
       <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Total ateliers</div>
-          <div class="kpi-value">{{ ateliers.length }}</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Ateliers actifs</div>
-          <div class="kpi-value">{{ activeCount }}</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Configs prêtes</div>
-          <div class="kpi-value">{{ readyCount }}</div>
-        </div>
+        <AppKpiCard label="Total ateliers" :value="ateliers.length" />
+        <AppKpiCard label="Ateliers actifs" :value="activeCount" variant="green" />
+        <AppKpiCard label="Configs prêtes" :value="readyCount" variant="blue" />
       </div>
 
       <UCard>
         <template #header>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="card-header">
             <div>
-              <div style="font-size:15px;font-weight:700;color:#E8E9ED;">Parc multiatelier</div>
-              <div style="font-size:12px;color:#9CA3AF;">Un atelier créé ici devient immédiatement sélectionnable dans le switch super-admin.</div>
+              <div class="card-title">Parc multiatelier</div>
+              <div class="card-subtitle">Un atelier créé ici devient immédiatement sélectionnable dans le switch super-admin.</div>
             </div>
             <button class="btn-secondary" @click="loadAteliers">↻ Actualiser</button>
           </div>
@@ -73,11 +64,11 @@
               <span class="status-chip" :class="atelier.has_config ? 'is-ready' : 'is-warning'">
                 {{ atelier.has_config ? 'Config prête' : 'Config créée au premier accès' }}
               </span>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+              <AppInlineActions>
                 <button class="btn-sm" @click="switchAtelier(atelier, false)">🎯 Activer</button>
                 <button class="btn-sm btn-outline" @click="switchAtelier(atelier, true)">⚙ Configurer</button>
                 <button class="btn-sm btn-outline" @click="openEdit(atelier)">✏ Modifier</button>
-              </div>
+              </AppInlineActions>
             </div>
           </div>
         </div>
@@ -88,11 +79,11 @@
       <template #default>
         <UCard>
           <template #header>
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier l’atelier' : 'Créer un atelier' }}</span>
+            <span class="modal-title">{{ editId ? 'Modifier l’atelier' : 'Créer un atelier' }}</span>
           </template>
 
-          <form @submit.prevent="saveAtelier" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <form @submit.prevent="saveAtelier" class="form-stack">
+            <div class="form-grid-2">
               <UFormField label="Nom de l’atelier">
                 <UInput v-model="atelierForm.nom" required />
               </UFormField>
@@ -120,8 +111,8 @@
               <UFormField label="Plan / licence">
                 <UInput v-model="atelierForm.plan" placeholder="starter" />
               </UFormField>
-              <div style="display:flex;align-items:flex-end;padding-bottom:6px;">
-                <label style="display:flex;align-items:center;gap:8px;color:#E8E9ED;font-size:13px;cursor:pointer;">
+              <div class="checkbox-wrapper">
+                <label class="checkbox-label">
                   <input v-model="atelierForm.actif" type="checkbox" />
                   Atelier actif
                 </label>
@@ -132,11 +123,11 @@
               <UTextarea v-model="atelierForm.adresse" :rows="3" placeholder="Adresse complète de l’atelier" />
             </UFormField>
 
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div class="form-helper">
               La configuration atelier est initialisée automatiquement pour éviter les collisions multi-site.
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="form-footer">
               <UButton label="Annuler" variant="outline" @click="showModal = false" />
               <UButton type="submit" :label="editId ? 'Enregistrer' : 'Créer l’atelier'" :loading="saving" />
             </div>
@@ -364,148 +355,41 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 </script>
 
 <style scoped>
-.page-subtitle {
-  color: #9CA3AF;
-  font-size: 12px;
-  margin-top: 2px;
-}
+.page-stack { display:flex; flex-direction:column; gap:16px; }
+.card-header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.card-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.card-subtitle { font-size:12px; color:#9CA3AF; }
+.modal-title { font-size:15px; font-weight:700; color:#E8E9ED; }
+.form-stack { display:flex; flex-direction:column; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.checkbox-wrapper { display:flex; align-items:flex-end; padding-bottom:6px; }
+.checkbox-label { display:flex; align-items:center; gap:8px; color:#E8E9ED; font-size:13px; cursor:pointer; }
+.form-helper { font-size:12px; color:#9CA3AF; }
+.form-footer { display:flex; justify-content:flex-end; gap:8px; }
 
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
+.kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 
-.kpi-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 14px 16px;
-}
+.atelier-list { display: flex; flex-direction: column; gap: 12px; }
+.atelier-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
+.atelier-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.atelier-name { color: #E8E9ED; font-size: 15px; font-weight: 800; }
+.atelier-meta { color: #9CA3AF; font-size: 12px; line-height: 1.4; }
+.atelier-actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
 
-.kpi-label {
-  color: #9CA3AF;
-  font-size: 12px;
-  margin-bottom: 6px;
-}
+.status-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+.is-active { background: rgba(16,185,129,0.14); color: #86EFAC; }
+.is-inactive { background: rgba(239,68,68,0.14); color: #FCA5A5; }
+.is-current { background: rgba(59,130,246,0.14); color: #93C5FD; }
+.is-ready { background: rgba(94,234,212,0.14); color: #99F6E4; }
+.is-warning { background: rgba(251,191,36,0.14); color: #FCD34D; }
 
-.kpi-value {
-  color: #E8E9ED;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.atelier-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.atelier-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
-}
-
-.atelier-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.atelier-name {
-  color: #E8E9ED;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.atelier-meta {
-  color: #9CA3AF;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.atelier-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.is-active {
-  background: rgba(16,185,129,0.14);
-  color: #86EFAC;
-}
-
-.is-inactive {
-  background: rgba(239,68,68,0.14);
-  color: #FCA5A5;
-}
-
-.is-current {
-  background: rgba(59,130,246,0.14);
-  color: #93C5FD;
-}
-
-.is-ready {
-  background: rgba(94,234,212,0.14);
-  color: #99F6E4;
-}
-
-.is-warning {
-  background: rgba(251,191,36,0.14);
-  color: #FCD34D;
-}
-
-.btn-sm,
-.btn-secondary,
-.btn-outline {
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-sm,
-.btn-secondary {
-  background: rgba(255,255,255,0.06);
-  color: #E8E9ED;
-}
-
-.btn-outline {
-  background: transparent;
-  color: #C4B5FD;
-}
+.btn-sm, .btn-secondary, .btn-outline { border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.btn-sm, .btn-secondary { background: rgba(255,255,255,0.06); color: #E8E9ED; }
+.btn-outline { background: transparent; color: #C4B5FD; }
 
 @media (max-width: 900px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .atelier-row {
-    grid-template-columns: 1fr;
-  }
-
-  .atelier-actions {
-    align-items: flex-start;
-  }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .atelier-row { grid-template-columns: 1fr; }
+  .atelier-actions { align-items: flex-start; }
 }
 </style>
