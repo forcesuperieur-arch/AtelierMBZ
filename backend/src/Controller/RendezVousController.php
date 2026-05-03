@@ -4,17 +4,17 @@ namespace App\Controller;
 use App\Entity\AuditLog;
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
-use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
-use App\Entity\OrdreReparation;
 use App\Entity\Pont;
 use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Entity\User;
 use App\Entity\Vehicule;
+use App\Service\AuditFormatter;
 use App\Service\AuditService;
 use App\Service\PhotoService;
 use App\Service\RapportInterventionService;
+use App\Service\RendezVousViewService;
 use App\Service\RendezVousWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,6 +39,8 @@ class RendezVousController extends AbstractController
         private RapportInterventionService $rapportService,
         private \App\Service\NotificationDispatcher $dispatcher,
         private \App\Service\GardiennageService $gardiennageService,
+        private RendezVousViewService $viewService,
+        private AuditFormatter $auditFormatter,
     ) {}
 
     private function getAuthenticatedUser(): ?User
@@ -127,7 +129,7 @@ class RendezVousController extends AbstractController
             'statut' => $rdv->getStatut(),
         ]));
 
-        return $this->json($this->flattenRdv($rdv), Response::HTTP_CREATED);
+        return $this->json($this->viewService->flatten($rdv), Response::HTTP_CREATED);
     }
 
     /**
@@ -163,7 +165,7 @@ class RendezVousController extends AbstractController
                 ], Response::HTTP_CONFLICT);
             }
 
-            $essai = $this->findLatestEssai($rdv);
+            $essai = $this->viewService->findLatestEssai($rdv);
             if (!$essai || !$essai->isValide()) {
                 return $this->json([
                     'error' => 'Essai routier obligatoire avant clôture. Créez et validez un essai routier pour ce RDV.',
@@ -171,7 +173,7 @@ class RendezVousController extends AbstractController
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            $ordreInitial = $this->findInitialOrdre($rdv);
+            $ordreInitial = $this->viewService->findInitialOrdre($rdv);
             if ($essai->getStatut() === 'anomalie_detectee' && trim((string) ($ordreInitial?->getMechanicNotes() ?? '')) === '') {
                 return $this->json([
                     'error' => 'Une anomalie a été détectée à l\'essai routier. Renseignez les notes mécanicien avant de terminer.',
@@ -297,7 +299,7 @@ class RendezVousController extends AbstractController
 
         // Start/stop work time tracking + LOT 3 side effects
         if ($transitionName === 'start_travail') {
-            $ordreInitial = $this->findInitialOrdre($rdv);
+            $ordreInitial = $this->viewService->findInitialOrdre($rdv);
 
             if (!$ordreInitial || !$ordreInitial->getSignatureClient()) {
                 return $this->json([
@@ -393,7 +395,7 @@ class RendezVousController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
-        return $this->json($this->flattenRdv($rdv));
+        return $this->json($this->viewService->flatten($rdv));
     }
 
     /**
@@ -446,7 +448,7 @@ class RendezVousController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        $data = array_map(fn(RendezVous $r) => $this->flattenRdv($r), $rdvs);
+        $data = array_map(fn(RendezVous $r) => $this->viewService->flatten($r), $rdvs);
         return $this->json($data);
     }
 
@@ -478,141 +480,14 @@ class RendezVousController extends AbstractController
         return $this->json([
             'items' => array_map(fn (AuditLog $entry) => [
                 'id' => $entry->getId(),
-                'action' => $this->formatAuditAction($entry->getAction(), $entry->getDetails()),
+                'action' => $this->auditFormatter->formatAction($entry->getAction(), $entry->getDetails()),
                 'date' => $entry->getCreatedAt()->format('Y-m-d H:i'),
                 'created_at' => $entry->getCreatedAt()->format(DATE_ATOM),
-                'details' => $this->formatAuditDetails($entry->getAction(), $entry->getDetails()),
+                'details' => $this->auditFormatter->formatDetails($entry->getAction(), $entry->getDetails()),
                 'user' => $entry->getUsername(),
             ], $entries),
         ]);
     }
 
-    private function flattenRdv(RendezVous $r): array
-    {
-        $client = $r->getClient();
-        $vehicule = $r->getVehicule();
-        $pont = $r->getPont();
-        $orInitial = $this->findInitialOrdre($r);
-        $essai = $this->findLatestEssai($r);
-        $rapport = $this->rapportService->findLatestForRdv($r);
-        $etatVehiculeReception = $this->decodeJson($r->getEtatVehicule());
 
-        return [
-            'id' => $r->getId(),
-            'date_rdv' => $r->getDateRdv()->format('Y-m-d'),
-            'heure_debut' => $r->getHeureRdv()->format('H:i'),
-            'heure_rdv' => $r->getHeureRdv()->format('H:i:s'),
-            'type_intervention' => $r->getTypeIntervention(),
-            'statut' => $r->getStatut(),
-            'status' => $r->getStatut(),
-            'commentaire' => $r->getCommentaire(),
-            'commentaire_client' => $r->getCommentaire(),
-            'description_probleme' => $r->getCommentaire(),
-            'temps_estime' => $r->getTempsEstime(),
-            'temps_effectif_minutes' => $r->getTempsEffectifMinutes(),
-            'heure_debut_travail' => $r->getHeureDebutTravail()?->format('Y-m-d H:i:s'),
-            'heure_debut_travaux' => $r->getHeureDebutTravail()?->format('Y-m-d H:i:s'),
-            'heure_fin_travail' => $r->getHeureFinTravail()?->format('Y-m-d H:i:s'),
-            'gardiennage_debut_at' => $r->getGardiennageDebutAt()?->format('Y-m-d H:i:s'),
-            'gardiennage_motif' => $r->getGardiennageMotif(),
-            'motif_annulation' => $r->getMotifAnnulation(),
-            'commentaire_annulation' => $r->getCommentaireAnnulation(),
-            'client_nom' => $client ? ($client->getPrenom() . ' ' . $client->getNom()) : null,
-            'client_telephone' => $client?->getTelephone(),
-            'client_email' => $client?->getEmail(),
-            'vehicule_info' => $vehicule ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? '')) : null,
-            'vehicule_plaque' => $vehicule?->getPlaque(),
-            'vehicule_type' => $vehicule?->getTypeMoto(),
-            'km_reception' => $r->getKilometrage(),
-            'etat_vehicule_reception' => $etatVehiculeReception,
-            'pont_nom' => $pont?->getNom(),
-            'mecanicien_nom' => $r->getMecanicien() ? ($r->getMecanicien()->getPrenom() . ' ' . $r->getMecanicien()->getNom()) : null,
-            'or_id' => $orInitial?->getId(),
-            'or_is_signed' => $orInitial?->isSigned() ?? false,
-            'or_mechanic_notes' => $orInitial?->getMechanicNotes(),
-            'or_mechanic_checkup' => $orInitial?->getMechanicCheckup(),
-            'rapport_id' => $rapport?->getId(),
-            'rapport_mecanicien_signe' => $rapport?->getSignatureMecanicien() ? true : false,
-            'rapport_is_signed_both' => $rapport?->isSignedByBoth() ?? false,
-            'essai_routier_id' => $essai?->getId(),
-            'essai_routier_statut' => $essai?->getStatut(),
-            'essai_routier_valide' => $essai?->isValide() ?? false,
-            'token_suivi' => $r->getTokenSuivi(),
-        ];
-    }
-
-    private function findInitialOrdre(RendezVous $rdv): ?OrdreReparation
-    {
-        return $this->em->getRepository(OrdreReparation::class)->findOneBy(
-            ['rendezVous' => $rdv, 'typeOr' => 'initial'],
-            ['id' => 'DESC'],
-        ) ?? $this->em->getRepository(OrdreReparation::class)->findOneBy(
-            ['rendezVous' => $rdv],
-            ['id' => 'DESC'],
-        );
-    }
-
-    private function findLatestEssai(RendezVous $rdv): ?EssaiRoutier
-    {
-        return $rdv->getEssaiRoutier()
-            ?? $this->em->getRepository(EssaiRoutier::class)->findOneBy(
-                ['rendezVous' => $rdv],
-                ['id' => 'DESC'],
-            );
-    }
-
-    private function decodeJson(?string $payload): ?array
-    {
-        if ($payload === null || trim($payload) === '') {
-            return null;
-        }
-
-        $decoded = json_decode($payload, true);
-        return is_array($decoded) ? $decoded : null;
-    }
-
-    private function formatAuditAction(string $action, ?string $details): string
-    {
-        $payload = $this->decodeAuditDetails($details);
-
-        return match ($action) {
-            'create' => 'Creation du rendez-vous',
-            'workflow_transition' => sprintf(
-                'Transition workflow%s',
-                !empty($payload['transition']) ? ' : ' . (string) $payload['transition'] : ''
-            ),
-            default => str_replace('_', ' ', ucfirst($action)),
-        };
-    }
-
-    private function formatAuditDetails(string $action, ?string $details): ?string
-    {
-        $payload = $this->decodeAuditDetails($details);
-        if ($payload === null) {
-            return $details;
-        }
-
-        return match ($action) {
-            'create' => sprintf(
-                'Type: %s%s',
-                (string) ($payload['type'] ?? '—'),
-                !empty($payload['statut']) ? ' · Statut initial: ' . (string) $payload['statut'] : ''
-            ),
-            'workflow_transition' => sprintf(
-                'Nouveau statut: %s',
-                (string) ($payload['new_status'] ?? $payload['statut'] ?? '—')
-            ),
-            default => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        };
-    }
-
-    private function decodeAuditDetails(?string $details): ?array
-    {
-        if (!is_string($details) || trim($details) === '') {
-            return null;
-        }
-
-        $decoded = json_decode($details, true);
-        return is_array($decoded) ? $decoded : null;
-    }
 }
