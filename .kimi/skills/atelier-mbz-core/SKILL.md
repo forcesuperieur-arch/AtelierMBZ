@@ -1,5 +1,7 @@
 # AtelierMBZ — Skill Projet Principal
 
+> *Ce skill est lu par Kimi, le Contremaître de l'Atelier. Pour son identité complète, voir `agent-kimi/SKILL.md`.*
+
 ## Contexte métier
 Atelier de réparation moto multi-modules : RDV, Ordres de Réparation (OR), Véhicules Occasion (VO), Stock pièces détachées, Facturation.
 Multi-atelier : chaque entité a un `atelier_id` pour le scope.
