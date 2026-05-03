@@ -167,5 +167,20 @@ export const useStockStore = defineStore('stock', {
       await this.fetchMouvements()
       await this.fetchPieces()
     },
+
+    async togglePiece(id: number) {
+      const api = useApi()
+      const res = await api.post(`/stock/pieces/${id}/toggle`)
+      const idx = this.pieces.findIndex(p => p.id === id)
+      if (idx >= 0) {
+        this.pieces[idx] = { ...this.pieces[idx], is_active: res.is_active }
+      }
+      return res
+    },
+
+    async fetchInventaire() {
+      const api = useApi()
+      return await api.get('/stock/inventaire')
+    },
   },
 })

@@ -57,6 +57,7 @@
           <div style="display:flex;gap:8px;">
             <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
             <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openMouvements(row.original)">📜 Mouvements</button>
+            <button style="color:#9CA3AF;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="togglePiece(row.original)">{{ row.original.is_active === false ? '▶ Activer' : '⏸ Désactiver' }}</button>
           </div>
         </template>
       </UTable>
@@ -208,6 +209,15 @@ async function savePiece() {
     toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     saving.value = false
+  }
+}
+
+async function togglePiece(p: any) {
+  try {
+    await stockStore.togglePiece(p.id)
+    toast.add({ title: p.is_active === false ? 'Pièce activée' : 'Pièce désactivée', color: 'success' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

@@ -323,6 +323,46 @@ class StockController extends AbstractController
         return $this->json(['id' => $f->getId(), 'nom' => $f->getNom()], Response::HTTP_CREATED);
     }
 
+    #[Route('/pieces/{id}/toggle', methods: ['POST'])]
+    public function togglePiece(PieceDetachee $piece): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $piece->setIsActive($piece->getIsActive() ? 0 : 1);
+        $this->em->persist($piece);
+        $this->em->flush();
+
+        $this->audit->log('toggle_piece', 'PieceDetachee', $piece->getId(), json_encode(['is_active' => $piece->getIsActive()]));
+
+        return $this->json(['id' => $piece->getId(), 'is_active' => $piece->getIsActive()]);
+    }
+
+    // ─── Inventory ──────────────────────────────────────────────────────────
+
+    #[Route('/inventaire', methods: ['GET'])]
+    public function inventaire(): JsonResponse
+    {
+        $atelierId = $this->resolveAtelierId();
+
+        $qb = $this->em->getRepository(PieceDetachee::class)->createQueryBuilder('p')
+            ->where('p.isActive = 1')
+            ->orderBy('p.reference', 'ASC');
+
+        if ($atelierId !== null) {
+            $qb->andWhere('p.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+
+        $pieces = $qb->getQuery()->getResult();
+        $data = json_decode($this->serializer->serialize($pieces, 'json', ['groups' => ['piece:read']]), true);
+
+        return $this->json([
+            'total_references' => count($pieces),
+            'alertes' => count(array_filter($pieces, fn($p) => ($p['quantite_stock'] ?? 0) <= ($p['quantite_minimale'] ?? 0))),
+            'valeur_achat' => array_reduce($pieces, fn($sum, $p) => $sum + (($p['quantite_stock'] ?? 0) * (float) ($p['prix_achat_ht'] ?? 0)), 0.0),
+            'pieces' => $data,
+        ]);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
 
     private function resolveAtelierId(): ?int
