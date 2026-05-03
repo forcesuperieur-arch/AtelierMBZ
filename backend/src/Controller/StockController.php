@@ -363,6 +363,56 @@ class StockController extends AbstractController
         ]);
     }
 
+    #[Route('/stats', methods: ['GET'])]
+    public function stats(): JsonResponse
+    {
+        $atelierId = $this->resolveAtelierId();
+
+        $qbPieces = $this->em->getRepository(PieceDetachee::class)->createQueryBuilder('p')
+            ->where('p.isActive = 1');
+        if ($atelierId !== null) {
+            $qbPieces->andWhere('p.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+        $pieces = $qbPieces->getQuery()->getResult();
+
+        $qbAlertes = $this->em->getRepository(PieceDetachee::class)->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->where('p.isActive = 1')
+            ->andWhere('p.quantiteStock <= p.quantiteMinimale');
+        if ($atelierId !== null) {
+            $qbAlertes->andWhere('p.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+        $alertes = (int) $qbAlertes->getQuery()->getSingleScalarResult();
+
+        $qbCommandes = $this->em->getRepository(CommandeFournisseur::class)->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->where('c.statut = :statut')
+            ->setParameter('statut', 'en_attente');
+        if ($atelierId !== null) {
+            $qbCommandes->andWhere('c.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+        $commandesEnAttente = (int) $qbCommandes->getQuery()->getSingleScalarResult();
+
+        $qbMouvements = $this->em->getRepository(MouvementStock::class)->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->where('m.createdAt >= :today')
+            ->setParameter('today', new \DateTime('today'));
+        if ($atelierId !== null) {
+            $qbMouvements->andWhere('m.atelierId = :atelierId')->setParameter('atelierId', $atelierId);
+        }
+        $mouvementsAujourdhui = (int) $qbMouvements->getQuery()->getSingleScalarResult();
+
+        $valeurAchat = array_reduce($pieces, fn($sum, $p) => $sum + ($p->getQuantiteStock() * (float) $p->getPrixAchatHt()), 0.0);
+
+        return $this->json([
+            'total_references' => count($pieces),
+            'alertes' => $alertes,
+            'valeur_achat' => round($valeurAchat, 2),
+            'commandes_en_attente' => $commandesEnAttente,
+            'mouvements_aujourdhui' => $mouvementsAujourdhui,
+        ]);
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
 
     private function resolveAtelierId(): ?int

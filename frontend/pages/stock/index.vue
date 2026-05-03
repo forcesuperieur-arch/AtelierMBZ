@@ -15,7 +15,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
       <UCard style="padding:14px;">
         <div style="font-size:12px;color:#9CA3AF;">Références</div>
-        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ stockStore.pieces.length }}</div>
+        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ totalReferences }}</div>
       </UCard>
       <UCard style="padding:14px;">
         <div style="font-size:12px;color:#9CA3AF;">Valeur stock (achat)</div>
@@ -23,7 +23,15 @@
       </UCard>
       <UCard style="padding:14px;">
         <div style="font-size:12px;color:#9CA3AF;">Alertes</div>
-        <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ stockStore.alertes.length }}</div>
+        <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ alertesCount }}</div>
+      </UCard>
+      <UCard style="padding:14px;">
+        <div style="font-size:12px;color:#9CA3AF;">Cmds en attente</div>
+        <div style="font-size:22px;font-weight:700;color:#FBBF24;">{{ commandesEnAttente }}</div>
+      </UCard>
+      <UCard style="padding:14px;">
+        <div style="font-size:12px;color:#9CA3AF;">Mouvements aujourd'hui</div>
+        <div style="font-size:22px;font-weight:700;color:#6EE7B7;">{{ mouvementsAujourdhui }}</div>
       </UCard>
     </div>
 
@@ -159,13 +167,13 @@ const pieceForm = reactive({
 })
 const ajustementForm = reactive({ quantite: 0, motif: '' })
 
-const totalStockValue = computed(() => {
-  return stockStore.pieces.reduce((sum: number, p: any) => {
-    const qte = Number(p.quantite_stock) || 0
-    const prix = Number(p.prix_achat_ht) || 0
-    return sum + qte * prix
-  }, 0)
-})
+const stats = ref<any>(null)
+
+const totalStockValue = computed(() => stats.value?.valeur_achat ?? 0)
+const totalReferences = computed(() => stats.value?.total_references ?? stockStore.pieces.length)
+const alertesCount = computed(() => stats.value?.alertes ?? stockStore.alertes.length)
+const commandesEnAttente = computed(() => stats.value?.commandes_en_attente ?? 0)
+const mouvementsAujourdhui = computed(() => stats.value?.mouvements_aujourdhui ?? 0)
 
 const categories = computed(() => {
   const set = new Set<string>()
@@ -308,5 +316,8 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
-onMounted(() => stockStore.fetchPieces())
+onMounted(async () => {
+  await stockStore.fetchPieces()
+  stats.value = await stockStore.fetchStats()
+})
 </script>

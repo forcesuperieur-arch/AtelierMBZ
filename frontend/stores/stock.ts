@@ -182,5 +182,10 @@ export const useStockStore = defineStore('stock', {
       const api = useApi()
       return await api.get('/stock/inventaire')
     },
+
+    async fetchStats() {
+      const api = useApi()
+      return await api.get('/stock/stats')
+    },
   },
 })
