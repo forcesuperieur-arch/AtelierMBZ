@@ -33,7 +33,7 @@
       <div>
         <strong>QR compagnon immédiat</strong>
         <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces du déposant et de la moto, puis reprendre la saisie métier avec les informations déjà captées.</p>
-        <div class="vo-inline-actions" style="margin-top: 10px;">
+        <div class="vo-inline-actions vo-mt-10">
           <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
             {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
           </button>
@@ -136,7 +136,7 @@
             <label class="vo-field">
               <span>Marque</span>
               <input v-model="vehicleForm.marque" class="vo-input" @input="onVehicleMarqueInput" @blur="hideVehicleMarqueSuggestions" />
-              <div v-if="vehicleMarqueSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+              <div v-if="vehicleMarqueSuggestions.length" class="vo-search-list vo-mt-6">
                 <button
                   v-for="item in vehicleMarqueSuggestions"
                   :key="`depot-brand-${item}`"
@@ -151,7 +151,7 @@
             <label class="vo-field">
               <span>Modèle</span>
               <input v-model="vehicleForm.modele" class="vo-input" @input="onVehicleModeleInput" @blur="hideVehicleModeleSuggestions" />
-              <div v-if="vehicleModeleSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+              <div v-if="vehicleModeleSuggestions.length" class="vo-search-list vo-mt-6">
                 <button
                   v-for="item in vehicleModeleSuggestions"
                   :key="`depot-model-${item.id || item.modele}`"
@@ -350,7 +350,7 @@
             <strong>Compagnon dès le début</strong>
             <span v-if="draftCompanion?.companion?.publicPath">Le brouillon dépôt-vente est actif. Tu peux déjà scanner les pièces sur le PDA pendant que tu termines le mandat.</span>
             <span v-else>Le brouillon PDA se prépare automatiquement pour lancer le scan sans attendre.</span>
-            <div class="vo-inline-actions" style="margin-top: 10px;">
+            <div class="vo-inline-actions vo-mt-10">
               <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
                 {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
               </button>
@@ -1114,4 +1114,7 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: #EF4444;
 }
+
+.vo-mt-6 { margin-top: 6px; }
+.vo-mt-10 { margin-top: 10px; }
 </style>

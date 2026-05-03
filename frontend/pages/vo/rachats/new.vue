@@ -33,7 +33,7 @@
       <div>
         <strong>QR compagnon immédiat</strong>
         <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces et récupérer les informations utiles du dossier avant contrôle comptoir.</p>
-        <div class="vo-inline-actions" style="margin-top: 10px;">
+        <div class="vo-inline-actions vo-mt-10">
           <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
             {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
           </button>
@@ -139,7 +139,7 @@
               <label class="vo-field">
                 <span>Marque</span>
                 <input v-model="vehicleForm.marque" class="vo-input" @input="onVehicleMarqueInput" @blur="hideVehicleMarqueSuggestions" />
-                <div v-if="vehicleMarqueSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+                <div v-if="vehicleMarqueSuggestions.length" class="vo-search-list vo-mt-6">
                   <button
                     v-for="item in vehicleMarqueSuggestions"
                     :key="`purchase-brand-${item}`"
@@ -154,7 +154,7 @@
               <label class="vo-field">
                 <span>Modèle</span>
                 <input v-model="vehicleForm.modele" class="vo-input" @input="onVehicleModeleInput" @blur="hideVehicleModeleSuggestions" />
-                <div v-if="vehicleModeleSuggestions.length" class="vo-search-list" style="margin-top:6px;">
+                <div v-if="vehicleModeleSuggestions.length" class="vo-search-list vo-mt-6">
                   <button
                     v-for="item in vehicleModeleSuggestions"
                     :key="`purchase-model-${item.id || item.modele}`"
@@ -379,7 +379,7 @@
           <div v-if="marginSimulation" class="vo-sim-box">
             <div>
               <span class="vo-summary-label">Marge nette</span>
-              <strong :style="{ color: marginSimulation.is_profitable ? '#22c55e' : '#ef4444' }">{{ formatPrice(marginSimulation.net_margin) }}</strong>
+              <strong :class="{ 'vo-text-green': marginSimulation.is_profitable, 'vo-text-red': !marginSimulation.is_profitable }">{{ formatPrice(marginSimulation.net_margin) }}</strong>
             </div>
             <div>
               <span class="vo-summary-label">Marge %</span>
@@ -1236,4 +1236,9 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: #EF4444;
 }
+
+.vo-mt-6 { margin-top: 6px; }
+.vo-mt-10 { margin-top: 10px; }
+.vo-text-green { color: #22c55e; }
+.vo-text-red { color: #ef4444; }
 </style>
