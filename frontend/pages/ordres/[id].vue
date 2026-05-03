@@ -581,6 +581,7 @@
         <div style="display:flex;gap:6px;align-items:center;">
           <span :style="commandeStatusStyle(c.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">{{ commandeStatusLabel(c.statut) }}</span>
           <button v-if="c.statut !== 'recue' && c.statut !== 'installee' && c.statut !== 'annulee'" class="btn btn-primary" style="font-size:11px;padding:4px 10px;" @click="markCommandeRecue(c.id)">✅ Reçue</button>
+          <button v-if="c.statut === 'recue'" class="btn btn-primary" style="font-size:11px;padding:4px 10px;background:#10B981 !important;border-color:#10B981 !important;" @click="markCommandeInstallee(c.id)">🔧 Installer</button>
         </div>
       </div>
     </UCard>
@@ -1257,6 +1258,17 @@ async function markCommandeRecue(id: number) {
     await loadData()
   } catch (e: unknown) {
     toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
+  }
+}
+
+async function markCommandeInstallee(id: number) {
+  try {
+    await api.post(`/commandes-pieces/${id}/installer`, {})
+    toast.add({ title: 'Pièce installée', description: 'Stock décrémenté automatiquement.', color: 'success' })
+    await loadCommandesPieces()
+    await loadData()
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur installation', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 

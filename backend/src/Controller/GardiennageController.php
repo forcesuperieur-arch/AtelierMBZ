@@ -4,9 +4,13 @@ namespace App\Controller;
 
 use App\Entity\CommandePiece;
 use App\Entity\OrdreReparation;
+use App\Entity\PieceDetachee;
+use App\Entity\PieceUtilisee;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Service\AuditService;
 use App\Service\GardiennageService;
+use App\Service\StockMovementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,6 +29,7 @@ class GardiennageController extends AbstractController
         private GardiennageService $gardiennageService,
         private AuditService $audit,
         private WorkflowInterface $rendezVousStateMachine,
+        private StockMovementService $stockMovementService,
     ) {}
 
     // ── Gardiennage ──
@@ -213,6 +218,59 @@ class GardiennageController extends AbstractController
             'allReceived' => $allReceived,
             'canReprendre' => $allReceived && $this->rendezVousStateMachine->can($rdv, 'reprendre_apres_pieces'),
         ]);
+    }
+
+    #[Route('/api/commandes-pieces/{id}/installer', methods: ['POST'])]
+    public function installerCommande(int $id): JsonResponse
+    {
+        $commande = $this->em->getRepository(CommandePiece::class)->find($id);
+        if (!$commande) {
+            return $this->json(['error' => 'Commande not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($commande->getStatut() !== 'recue') {
+            return $this->json(['error' => 'La pièce doit être reçue avant installation'], Response::HTTP_CONFLICT);
+        }
+
+        $rdv = $commande->getRendezVous();
+        $user = $this->getUser() instanceof User ? $this->getUser() : null;
+
+        // Chercher une pièce en stock correspondant à la référence
+        $piece = $this->em->getRepository(PieceDetachee::class)->createQueryBuilder('p')
+            ->where('p.reference = :ref OR p.referenceFournisseur = :ref')
+            ->andWhere('p.isActive = 1')
+            ->setParameter('ref', $commande->getReference())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($piece) {
+            try {
+                $this->stockMovementService->consumeForRdv($piece, $commande->getQuantite(), $rdv, $user);
+            } catch (\LogicException $e) {
+                return $this->json(['error' => $e->getMessage()], Response::HTTP_CONFLICT);
+            }
+
+            // Créer le lien PieceUtilisee
+            $utilisee = new PieceUtilisee();
+            $utilisee->setRendezVous($rdv);
+            $utilisee->setPiece($piece);
+            $utilisee->setQuantite($commande->getQuantite());
+            $utilisee->setPrixVenteUnitaire($commande->getPrixVente());
+            $this->em->persist($utilisee);
+        }
+
+        $commande->setStatut('installee');
+        $this->em->persist($commande);
+        $this->em->flush();
+
+        $this->audit->log('commande_piece_installee', 'commande_piece', $commande->getId(), json_encode([
+            'reference' => $commande->getReference(),
+            'quantite' => $commande->getQuantite(),
+            'piece_id' => $piece?->getId(),
+        ]));
+
+        return $this->json($this->serializeCommande($commande));
     }
 
     private function serializeCommande(CommandePiece $c): array
