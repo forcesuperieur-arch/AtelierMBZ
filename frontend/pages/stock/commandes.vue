@@ -26,10 +26,16 @@
           <span class="text-sm font-bold">{{ formatCurrency(row.original.total_ttc) }}</span>
         </template>
         <template #actions-cell="{ row }">
-          <button v-if="row.original.statut === 'en_attente'" class="btn btn-primary" style="font-size:12px;padding:4px 10px;" @click="openReception(row.original)">
-            📥 Réceptionner
-          </button>
-          <span v-else class="text-sm" style="color:#10B981;">✅ Reçue le {{ formatDate(row.original.date_reception) }}</span>
+          <div style="display:flex;gap:6px;">
+            <button v-if="row.original.statut === 'en_attente'" class="btn btn-primary" style="font-size:12px;padding:4px 10px;" @click="openReception(row.original)">
+              📥 Réceptionner
+            </button>
+            <button v-if="row.original.statut === 'en_attente'" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:#FCA5A5;" @click="annulerCommande(row.original)">
+              ✕ Annuler
+            </button>
+            <span v-if="row.original.statut === 'recue'" class="text-sm" style="color:#10B981;">✅ Reçue le {{ formatDate(row.original.date_reception) }}</span>
+            <span v-if="row.original.statut === 'annulee'" class="text-sm" style="color:#9CA3AF;">❌ Annulée</span>
+          </div>
         </template>
       </UTable>
     </UCard>
@@ -120,6 +126,18 @@ async function saveReception() {
     toast.add({ title: 'Erreur réception', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     savingReception.value = false
+  }
+}
+
+async function annulerCommande(cmd: any) {
+  if (!confirm(`Annuler la commande ${cmd.numero_commande} ?`)) return
+  try {
+    const api = useApi()
+    await api.post(`/stock/commandes/${cmd.id}/annuler`)
+    toast.add({ title: 'Commande annulée', color: 'success' })
+    await stockStore.fetchCommandes()
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur annulation', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   }
 }
 </script>

@@ -273,6 +273,31 @@ class StockController extends AbstractController
         return $this->json(['success' => true, 'statut' => $commande->getStatut()]);
     }
 
+    #[Route('/commandes/{id}/annuler', methods: ['POST'])]
+    public function annulerCommande(int $id): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $commande = $this->em->getRepository(CommandeFournisseur::class)->find($id);
+        if (!$commande) {
+            return $this->json(['error' => 'Commande introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($commande->getStatut() === 'recue') {
+            return $this->json(['error' => 'Impossible d\'annuler une commande déjà reçue'], Response::HTTP_CONFLICT);
+        }
+
+        $commande->setStatut('annulee');
+        $this->em->persist($commande);
+        $this->em->flush();
+
+        $this->audit->log('annuler_commande_fournisseur', 'CommandeFournisseur', $commande->getId(), json_encode([
+            'numero_commande' => $commande->getNumeroCommande(),
+        ]));
+
+        return $this->json(['success' => true, 'statut' => $commande->getStatut()]);
+    }
+
     // ─── Suppliers ──────────────────────────────────────────────────────────
 
     #[Route('/fournisseurs', methods: ['GET'])]
