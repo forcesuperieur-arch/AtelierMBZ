@@ -3,8 +3,8 @@
     <AppPageHeader title="Journal d'audit" back-to="/admin" />
 
     <!-- Filtres serveur -->
-    <UCard style="margin-bottom:16px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:flex-end;">
+    <UCard class="mb-4">
+      <div class="filter-grid">
         <div class="form-group">
           <label class="form-label">Date début</label>
           <input v-model="filters.dateFrom" type="date" class="form-input" @change="resetAndFetch" />
@@ -89,12 +89,12 @@
           <label class="form-label">IP</label>
           <input v-model="filters.ip" class="form-input" placeholder="192.168…" @keyup.enter="resetAndFetch" />
         </div>
-        <div style="display:flex;gap:8px;align-items:flex-end;">
-          <button class="btn btn-primary" style="font-size:13px;flex:1;" @click="resetAndFetch">Filtrer</button>
-          <button class="btn btn-ghost" style="font-size:13px;" title="Réinitialiser" @click="resetFilters">✕</button>
+        <div class="filter-actions">
+          <button class="btn btn-primary btn-sm flex-1" @click="resetAndFetch">Filtrer</button>
+          <button class="btn btn-ghost btn-sm" title="Réinitialiser" @click="resetFilters">✕</button>
         </div>
       </div>
-      <div v-if="totalItems > 0" style="margin-top:10px;font-size:12px;color:#6B7280;">
+      <div v-if="totalItems > 0" class="results-count">
         {{ totalItems.toLocaleString('fr-FR') }} entrée{{ totalItems > 1 ? 's' : '' }} trouvée{{ totalItems > 1 ? 's' : '' }}
       </div>
     </UCard>
@@ -107,7 +107,7 @@
     />
 
     <UCard v-else>
-      <div v-if="loading" style="padding:32px;text-align:center;color:var(--text-subtle);">Chargement…</div>
+      <div v-if="loading" class="loading-center">Chargement…</div>
       <AppEmptyState
         v-else-if="!logs.length"
         icon="📜"
@@ -116,7 +116,7 @@
       />
       <div v-else>
         <!-- En-tête -->
-        <div style="display:grid;grid-template-columns:155px 130px 130px 160px 1fr 36px;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">
+        <div class="audit-header">
           <span>Date</span>
           <span>Action</span>
           <span>Utilisateur</span>
@@ -127,48 +127,48 @@
         <!-- Lignes -->
         <template v-for="log in logs" :key="log.id">
           <div
-            style="display:grid;grid-template-columns:155px 130px 130px 160px 1fr 36px;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:start;cursor:pointer;"
-            :style="expandedId === log.id ? 'background:rgba(255,255,255,0.03);' : ''"
+            class="audit-row"
+            :class="{ expanded: expandedId === log.id }"
             @click="toggleExpand(log.id)"
           >
-            <span style="color:#6B7280;font-family:monospace;font-size:11px;white-space:nowrap;">{{ formatDate(log.createdAt) }}</span>
+            <span class="audit-date">{{ formatDate(log.createdAt) }}</span>
             <span>
-              <span :style="actionBadgeStyle(log.action)" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;">
+              <AppStatusBadge :variant="actionVariant(log.action)" size="sm">
                 {{ actionLabel(log.action) }}
-              </span>
+              </AppStatusBadge>
             </span>
-            <span style="color:#E8E9ED;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="log.username || ''">
+            <span class="audit-username" :title="log.username || ''">
               {{ log.username || '—' }}
             </span>
-            <span style="color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              <span v-if="log.entityType" style="color:#E8E9ED;">{{ entityLabel(log.entityType) }}</span>
-              <span v-if="log.entityId" style="color:#6B7280;margin-left:4px;">#{{ log.entityId }}</span>
+            <span class="audit-entity">
+              <span v-if="log.entityType" class="audit-entity-type">{{ entityLabel(log.entityType) }}</span>
+              <span v-if="log.entityId" class="audit-entity-id">#{{ log.entityId }}</span>
               <span v-if="!log.entityType && !log.entityId">—</span>
             </span>
-            <span style="color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="detailsPreview(log.details)">
+            <span class="audit-details" :title="detailsPreview(log.details)">
               {{ detailsPreview(log.details) || '—' }}
             </span>
-            <span style="color:#6B7280;font-family:monospace;font-size:10px;overflow:hidden;text-overflow:ellipsis;" :title="log.ipAddress || ''">
+            <span class="audit-ip" :title="log.ipAddress || ''">
               {{ log.ipAddress || '—' }}
             </span>
           </div>
           <!-- Détails expandés -->
-          <div v-if="expandedId === log.id && log.details" style="padding:10px 14px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Détails complets</div>
-            <pre style="font-family:monospace;font-size:11px;color:#93C5FD;white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;max-height:300px;overflow-y:auto;">{{ detailsFormatted(log.details) }}</pre>
+          <div v-if="expandedId === log.id && log.details" class="audit-expanded">
+            <div class="audit-expanded-title">Détails complets</div>
+            <pre class="audit-pre">{{ detailsFormatted(log.details) }}</pre>
           </div>
         </template>
       </div>
     </UCard>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:16px;flex-wrap:wrap;">
-      <button class="btn btn-ghost" style="font-size:12px;" :disabled="page <= 1" @click="goToPage(page - 1)">← Préc.</button>
+    <div v-if="totalPages > 1" class="pagination">
+      <button class="btn btn-ghost btn-sm" :disabled="page <= 1" @click="goToPage(page - 1)">← Préc.</button>
       <template v-for="p in paginationRange" :key="p">
-        <span v-if="p === '...'" style="color:#6B7280;padding:0 4px;">…</span>
-        <button v-else class="btn" :class="page === p ? 'btn-primary' : 'btn-ghost'" style="min-width:36px;padding:6px 10px;font-size:12px;" @click="goToPage(Number(p))">{{ p }}</button>
+        <span v-if="p === '...'" class="pagination-ellipsis">…</span>
+        <button v-else class="btn pagination-btn" :class="page === p ? 'btn-primary' : 'btn-ghost'" @click="goToPage(Number(p))">{{ p }}</button>
       </template>
-      <button class="btn btn-ghost" style="font-size:12px;" :disabled="page >= totalPages" @click="goToPage(page + 1)">Suiv. →</button>
+      <button class="btn btn-ghost btn-sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">Suiv. →</button>
     </div>
   </div>
 </template>
@@ -283,31 +283,17 @@ function actionLabel(a: string) {
   return ACTION_LABELS[a] || a
 }
 
-const ACTION_COLORS: Record<string, string> = {
-  create: 'background:rgba(16,185,129,0.15);color:#6EE7B7;',
-  update: 'background:rgba(59,130,246,0.15);color:#93C5FD;',
-  delete: 'background:rgba(239,68,68,0.15);color:#FCA5A5;',
-  workflow_transition: 'background:rgba(245,158,11,0.15);color:#FCD34D;',
-  payment: 'background:rgba(16,185,129,0.15);color:#6EE7B7;',
-  credit_note: 'background:rgba(239,68,68,0.15);color:#FCA5A5;',
-  refund: 'background:rgba(239,68,68,0.15);color:#FCA5A5;',
-  rgpd_anonymize: 'background:rgba(239,68,68,0.2);color:#FCA5A5;',
-  rgpd_purge_identity: 'background:rgba(239,68,68,0.2);color:#FCA5A5;',
-  lp_create_achat: 'background:rgba(139,92,246,0.15);color:#C4B5FD;',
-  lp_create_depot_vente: 'background:rgba(139,92,246,0.15);color:#C4B5FD;',
-  lp_record_sale: 'background:rgba(139,92,246,0.15);color:#C4B5FD;',
-  siv_transition: 'background:rgba(245,158,11,0.15);color:#FCD34D;',
-  prepare_siv_vo_purchase: 'background:rgba(245,158,11,0.15);color:#FCD34D;',
-}
-
-function actionBadgeStyle(a: string) {
-  // Groupes génériques si pas de couleur exacte
-  if (ACTION_COLORS[a]) return ACTION_COLORS[a]
-  if (a?.startsWith('create_') || a?.startsWith('lp_create_')) return 'background:rgba(16,185,129,0.15);color:#6EE7B7;'
-  if (a?.startsWith('update_')) return 'background:rgba(59,130,246,0.15);color:#93C5FD;'
-  if (a?.startsWith('sign_')) return 'background:rgba(139,92,246,0.15);color:#C4B5FD;'
-  if (a?.startsWith('rgpd_')) return 'background:rgba(239,68,68,0.2);color:#FCA5A5;'
-  return 'background:rgba(255,255,255,0.07);color:#9CA3AF;'
+function actionVariant(a: string): 'success' | 'info' | 'error' | 'warning' | 'default' {
+  if (a === 'create' || a === 'payment') return 'success'
+  if (a?.startsWith('create_') || a?.startsWith('lp_create_')) return 'success'
+  if (a === 'update' || a?.startsWith('update_')) return 'info'
+  if (a === 'delete' || a === 'credit_note' || a === 'refund') return 'error'
+  if (a?.startsWith('rgpd_')) return 'error'
+  if (a === 'workflow_transition') return 'warning'
+  if (a?.startsWith('siv_') || a === 'prepare_siv_vo_purchase') return 'warning'
+  if (a?.startsWith('sign_')) return 'info'
+  if (a === 'mecanicien_create_essai' || a === 'mecanicien_save_rapport') return 'info'
+  return 'default'
 }
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -374,10 +360,9 @@ async function fetchLogs() {
     if (filters.ip) params.set('ipAddress', filters.ip)
     params.set('order[createdAt]', 'desc')
     const data = await api.get(`/audit_logs?${params}`)
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    logs.value = raw
-    const total = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
-    totalItems.value = Number(total)
+    const paginated = unwrapHydraPaginated(data)
+    logs.value = paginated.items
+    totalItems.value = paginated.totalItems
     totalPages.value = Math.max(1, Math.ceil(totalItems.value / ITEMS_PER_PAGE))
   } catch (e: unknown) {
     logs.value = []
@@ -397,3 +382,29 @@ onMounted(async () => {
   await fetchLogs()
 })
 </script>
+
+<style scoped>
+.mb-4 { margin-bottom:16px; }
+.filter-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; align-items:flex-end; }
+.filter-actions { display:flex; gap:8px; align-items:flex-end; }
+.btn-sm { font-size:13px; }
+.flex-1 { flex:1; }
+.results-count { margin-top:10px; font-size:12px; color:#6B7280; }
+.loading-center { padding:32px; text-align:center; color:var(--text-subtle); }
+.audit-header { display:grid; grid-template-columns:155px 130px 130px 160px 1fr 36px; gap:10px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.08); font-size:11px; font-weight:600; color:#6B7280; text-transform:uppercase; letter-spacing:.05em; }
+.audit-row { display:grid; grid-template-columns:155px 130px 130px 160px 1fr 36px; gap:10px; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; align-items:start; cursor:pointer; }
+.audit-row.expanded { background:rgba(255,255,255,0.03); }
+.audit-date { color:#6B7280; font-family:monospace; font-size:11px; white-space:nowrap; }
+.audit-username { color:#E8E9ED; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.audit-entity { color:#9CA3AF; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.audit-entity-type { color:#E8E9ED; }
+.audit-entity-id { color:#6B7280; margin-left:4px; }
+.audit-details { color:#9CA3AF; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.audit-ip { color:#6B7280; font-family:monospace; font-size:10px; overflow:hidden; text-overflow:ellipsis; }
+.audit-expanded { padding:10px 14px 14px; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.08); }
+.audit-expanded-title { font-size:11px; font-weight:600; color:#6B7280; margin-bottom:6px; text-transform:uppercase; letter-spacing:.05em; }
+.audit-pre { font-family:monospace; font-size:11px; color:#93C5FD; white-space:pre-wrap; word-break:break-all; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; max-height:300px; overflow-y:auto; }
+.pagination { display:flex; justify-content:center; align-items:center; gap:6px; margin-top:16px; flex-wrap:wrap; }
+.pagination-ellipsis { color:#6B7280; padding:0 4px; }
+.pagination-btn { min-width:36px; padding:6px 10px; font-size:12px; }
+</style>
