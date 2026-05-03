@@ -71,8 +71,8 @@
         <AppBreadcrumbs class="topbar-breadcrumbs" />
         <div class="topbar-spacer" />
         <div v-if="canSwitchAtelierContext" class="topbar-atelier-switch">
-          <span style="font-size:11px;color:#FCD34D;font-weight:700;">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
-          <select v-model="activeAtelierChoice" @change="onSwitchAtelier" style="background:#1a1d26;color:#E8E9ED;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;font-size:12px;">
+          <span class="text-[11px] text-amber-300 font-bold">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
+          <select v-model="activeAtelierChoice" @change="onSwitchAtelier" class="atelier-select">
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
         </div>
@@ -677,6 +677,15 @@ const quickActions = computed(() => {
   background: linear-gradient(135deg, #FBBF24, #FFD200);
   box-shadow: 0 2px 8px rgba(245,158,11,0.3);
   transform: translateY(-1px);
+}
+
+.atelier-select {
+  background: #1a1d26;
+  color: #E8E9ED;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 /* === BREADCRUMBS === */

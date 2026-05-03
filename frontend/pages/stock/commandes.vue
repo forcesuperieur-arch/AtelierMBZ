@@ -2,58 +2,109 @@
   <div>
     <AppPageHeader title="Commandes fournisseurs">
       <template #actions>
-        <NuxtLink to="/stock/fournisseurs" class="topbar-new-btn">+ Nouvelle commande</NuxtLink>
+        <UButton to="/stock/fournisseurs" icon="i-heroicons-plus">Nouvelle commande</UButton>
       </template>
     </AppPageHeader>
 
-    <UCard style="margin-bottom:16px;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn" :class="filter === '' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;" @click="filter = ''; stockStore.fetchCommandes()">Toutes</button>
-        <button class="btn" :class="filter === 'en_attente' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;" @click="filter = 'en_attente'; stockStore.fetchCommandes('en_attente')">En attente</button>
-        <button class="btn" :class="filter === 'recue' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;" @click="filter = 'recue'; stockStore.fetchCommandes('recue')">Reçues</button>
+    <UCard class="mb-4">
+      <div class="flex gap-2 flex-wrap">
+        <UButton
+          v-for="f in filters"
+          :key="f.value"
+          size="sm"
+          :variant="filter === f.value ? 'solid' : 'ghost'"
+          @click="filter = f.value; stockStore.fetchCommandes(f.value || undefined)"
+        >
+          {{ f.label }}
+        </UButton>
       </div>
     </UCard>
 
     <UCard>
-      <UTable :data="stockStore.commandes" :columns="columns" :loading="stockStore.loadingCommandes">
+      <AppEmptyState
+        v-if="!stockStore.loadingCommandes && !stockStore.commandes.length"
+        icon="i-heroicons-clipboard-document-list"
+        title="Aucune commande"
+        description="Créez une commande depuis la page Fournisseurs."
+      >
+        <UButton to="/stock/fournisseurs" icon="i-heroicons-plus">Nouvelle commande</UButton>
+      </AppEmptyState>
+      <UTable
+        v-else
+        :data="stockStore.commandes"
+        :columns="columns"
+        :loading="stockStore.loadingCommandes"
+      >
         <template #fournisseur-cell="{ row }">
           <span class="text-sm">{{ row.original.fournisseur?.nom ?? '—' }}</span>
         </template>
         <template #statut-cell="{ row }">
-          <span class="status-badge" :style="statusStyle(row.original.statut)">{{ statusLabel(row.original.statut) }}</span>
+          <AppStatusBadge :variant="statusVariant(row.original.statut)">
+            {{ statusLabel(row.original.statut) }}
+          </AppStatusBadge>
         </template>
         <template #total_ttc-cell="{ row }">
           <span class="text-sm font-bold">{{ formatCurrency(row.original.total_ttc) }}</span>
         </template>
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:6px;">
-            <button v-if="row.original.statut === 'en_attente'" class="btn btn-primary" style="font-size:12px;padding:4px 10px;" @click="openReception(row.original)">
-              📥 Réceptionner
-            </button>
-            <button v-if="row.original.statut === 'en_attente'" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:#FCA5A5;" @click="annulerCommande(row.original)">
-              ✕ Annuler
-            </button>
-            <span v-if="row.original.statut === 'recue'" class="text-sm" style="color:#10B981;">✅ Reçue le {{ formatDate(row.original.date_reception) }}</span>
-            <span v-if="row.original.statut === 'annulee'" class="text-sm" style="color:#9CA3AF;">❌ Annulée</span>
-          </div>
+          <AppInlineActions>
+            <UButton
+              v-if="row.original.statut === 'en_attente'"
+              size="xs"
+              icon="i-heroicons-arrow-down-tray"
+              @click="openReception(row.original)"
+            >
+              Réceptionner
+            </UButton>
+            <UButton
+              v-if="row.original.statut === 'en_attente'"
+              size="xs"
+              variant="ghost"
+              color="error"
+              icon="i-heroicons-x-mark"
+              @click="annulerCommande(row.original)"
+            >
+              Annuler
+            </UButton>
+            <span v-if="row.original.statut === 'recue'" class="text-sm text-emerald-400">
+              Reçue le {{ formatDate(row.original.date_reception) }}
+            </span>
+            <span v-if="row.original.statut === 'annulee'" class="text-sm text-gray-500">
+              Annulée
+            </span>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
 
     <AppModal v-model:open="showReception" size="lg">
       <UCard v-if="selectedCommande">
-        <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Réception {{ selectedCommande.numero_commande }}</span></template>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div v-for="l in selectedCommande.lignes" :key="l.id" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);">
+        <template #header>
+          <h3 class="text-base font-bold text-text-primary">Réception {{ selectedCommande.numero_commande }}</h3>
+        </template>
+        <div class="flex flex-col gap-3">
+          <div
+            v-for="l in selectedCommande.lignes"
+            :key="l.id"
+            class="flex items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg bg-white/5"
+          >
             <div>
               <div class="text-sm font-bold">{{ l.piece?.nom ?? l.piece?.designation ?? 'Pièce #' + l.piece_id }}</div>
-              <div class="text-sm" style="color:#9CA3AF;">Commandée : {{ l.quantite_demandee }} — Déjà reçue : {{ l.quantite_recue ?? 0 }}</div>
+              <div class="text-sm text-gray-400">
+                Commandée : {{ l.quantite_demandee }} — Déjà reçue : {{ l.quantite_recue ?? 0 }}
+              </div>
             </div>
             <UFormField label="Qté reçue">
-              <UInput v-model="receptionMap[l.id]" type="number" min="0" :max="l.quantite_demandee - (l.quantite_recue ?? 0)" style="width:100px;" />
+              <UInput
+                v-model="receptionMap[l.id]"
+                type="number"
+                min="0"
+                :max="l.quantite_demandee - (l.quantite_recue ?? 0)"
+                class="w-24"
+              />
             </UFormField>
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <div class="flex justify-end gap-2">
             <UButton label="Annuler" variant="outline" @click="showReception = false" />
             <UButton label="Valider la réception" :loading="savingReception" @click="saveReception" />
           </div>
@@ -73,6 +124,12 @@ const savingReception = ref(false)
 const selectedCommande = ref<any>(null)
 const receptionMap = reactive<Record<number, number>>({})
 
+const filters = [
+  { value: '', label: 'Toutes' },
+  { value: 'en_attente', label: 'En attente' },
+  { value: 'recue', label: 'Reçues' },
+]
+
 const columns = [
   { key: 'numero_commande', label: 'N°' },
   { key: 'fournisseur', label: 'Fournisseur' },
@@ -85,10 +142,10 @@ const columns = [
 function statusLabel(s: string) {
   return { en_attente: 'En attente', recue: 'Reçue', annulee: 'Annulée' }[s] ?? s
 }
-function statusStyle(s: string) {
-  if (s === 'recue') return 'background:rgba(16,185,129,0.15);color:#10B981;'
-  if (s === 'en_attente') return 'background:rgba(251,191,36,0.15);color:#FBBF24;'
-  return 'background:rgba(255,255,255,0.06);color:#9CA3AF;'
+function statusVariant(s: string) {
+  if (s === 'recue') return 'success'
+  if (s === 'en_attente') return 'warning'
+  return 'default'
 }
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v || 0)

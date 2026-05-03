@@ -2,26 +2,43 @@
   <div>
     <AppPageHeader title="Fournisseurs">
       <template #actions>
-        <button class="topbar-new-btn" @click="showNew = true">+ Nouveau fournisseur</button>
+        <UButton icon="i-heroicons-plus" @click="showNew = true">Nouveau fournisseur</UButton>
       </template>
     </AppPageHeader>
 
     <UCard>
-      <UTable :data="stockStore.fournisseurs" :columns="columns" :loading="stockStore.loading">
+      <AppEmptyState
+        v-if="!stockStore.loading && !stockStore.fournisseurs.length"
+        icon="i-heroicons-truck"
+        title="Aucun fournisseur"
+        description="Ajoutez votre premier fournisseur de pièces détachées."
+      >
+        <UButton icon="i-heroicons-plus" @click="showNew = true">Créer un fournisseur</UButton>
+      </AppEmptyState>
+      <UTable
+        v-else
+        :data="stockStore.fournisseurs"
+        :columns="columns"
+        :loading="stockStore.loading"
+      >
         <template #delai_livraison_jours-cell="{ row }">
           <span class="text-sm">{{ row.original.delai_livraison_jours ?? 3 }} j</span>
         </template>
         <template #actions-cell="{ row }">
-          <button class="btn btn-ghost" style="font-size:12px;" @click="selectFournisseur(row.original)">Commander →</button>
+          <AppInlineActions>
+            <AppActionLink variant="primary" @click="selectFournisseur(row.original)">Commander →</AppActionLink>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
 
     <AppModal v-model:open="showNew" size="lg">
       <UCard>
-        <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau fournisseur</span></template>
-        <form @submit.prevent="saveFournisseur" style="display:flex;flex-direction:column;gap:12px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <template #header>
+          <h3 class="text-base font-bold text-text-primary">Nouveau fournisseur</h3>
+        </template>
+        <form @submit.prevent="saveFournisseur" class="flex flex-col gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Nom"><UInput v-model="form.nom" required /></UFormField>
             <UFormField label="Contact"><UInput v-model="form.contact" /></UFormField>
             <UFormField label="Téléphone"><UInput v-model="form.telephone" /></UFormField>
@@ -31,7 +48,7 @@
           </div>
           <UFormField label="Adresse"><UInput v-model="form.adresse" /></UFormField>
           <UFormField label="Notes"><UInput v-model="form.notes" /></UFormField>
-          <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <div class="flex justify-end gap-2">
             <UButton label="Annuler" variant="outline" @click="showNew = false" />
             <UButton type="submit" label="Créer" :loading="saving" />
           </div>
@@ -41,20 +58,41 @@
 
     <AppModal v-model:open="showCommande" size="lg">
       <UCard v-if="selectedFournisseur">
-        <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Commande {{ selectedFournisseur.nom }}</span></template>
-        <form @submit.prevent="saveCommande" style="display:flex;flex-direction:column;gap:12px;">
-          <div v-for="(l, i) in lignes" :key="i" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;">
+        <template #header>
+          <h3 class="text-base font-bold text-text-primary">Commande {{ selectedFournisseur.nom }}</h3>
+        </template>
+        <form @submit.prevent="saveCommande" class="flex flex-col gap-3">
+          <div
+            v-for="(l, i) in lignes"
+            :key="i"
+            class="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_auto] gap-2 items-end"
+          >
             <UFormField :label="i === 0 ? 'Pièce' : ''">
               <USelectMenu v-model="l.piece_id" :options="pieceOptions" placeholder="Choisir..." />
             </UFormField>
             <UFormField :label="i === 0 ? 'Qté' : ''"><UInput v-model="l.quantite" type="number" min="1" /></UFormField>
             <UFormField :label="i === 0 ? 'Prix U. HT' : ''"><UInput v-model="l.prix_unitaire_ht" type="number" step="0.01" /></UFormField>
-            <button type="button" class="btn btn-ghost" style="color:#EF4444;font-size:12px;" @click="lignes.splice(i, 1)">✕</button>
+            <UButton
+              type="button"
+              variant="ghost"
+              color="error"
+              icon="i-heroicons-x-mark"
+              class="mb-1"
+              @click="lignes.splice(i, 1)"
+            />
           </div>
-          <button type="button" class="btn btn-ghost" style="font-size:12px;" @click="lignes.push({ piece_id: null, quantite: 1, prix_unitaire_ht: 0 })">+ Ajouter une ligne</button>
+          <UButton
+            type="button"
+            variant="ghost"
+            icon="i-heroicons-plus"
+            class="self-start"
+            @click="lignes.push({ piece_id: null, quantite: 1, prix_unitaire_ht: 0 })"
+          >
+            Ajouter une ligne
+          </UButton>
           <UFormField label="Date prévue livraison"><UInput v-model="commandeForm.date_prevue_livraison" type="date" /></UFormField>
           <UFormField label="Notes"><UInput v-model="commandeForm.notes" /></UFormField>
-          <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <div class="flex justify-end gap-2">
             <UButton label="Annuler" variant="outline" @click="showCommande = false" />
             <UButton type="submit" label="Commander" :loading="savingCommande" />
           </div>
