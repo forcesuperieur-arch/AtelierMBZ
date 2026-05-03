@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { unwrapHydraOrEmpty } from '~/utils/hydra'
 
 interface Facture {
   id: number
@@ -29,8 +30,7 @@ export const useBillingStore = defineStore('billing', {
         const api = useApi()
         const qs = params ? '?' + new URLSearchParams(params).toString() : ''
         const raw = await api.get(`/facturation${qs}`)
-        const items = Array.isArray(raw) ? raw : (raw['hydra:member'] ?? raw['member'] ?? [])
-        this.factures = items.map(normalizeFacture)
+        this.factures = unwrapHydraOrEmpty(raw).map(normalizeFacture)
       } finally {
         this.loading = false
       }

@@ -14,6 +14,11 @@ export function unwrapHydra<T>(response: unknown): T[] {
   return []
 }
 
+export function unwrapHydraOrEmpty<T>(response: unknown): T[] {
+  if (!response) return []
+  return unwrapHydra<T>(response)
+}
+
 export function unwrapHydraPaginated<T>(response: unknown): {
   items: T[]
   totalItems: number

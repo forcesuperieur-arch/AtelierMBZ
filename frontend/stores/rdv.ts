@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { unwrapHydraOrEmpty } from '~/utils/hydra'
 
 interface Rdv {
   id: number
@@ -141,9 +142,7 @@ export const useRdvStore = defineStore('rdv', {
         params.set('itemsPerPage', '200')
         const qs = params.toString()
         const raw = await api.get(`/rendez-vous${qs ? '?' + qs : ''}`)
-        // API Platform may return hydra collection or plain array
-        const items = Array.isArray(raw) ? raw : (raw['hydra:member'] ?? raw['member'] ?? [])
-        this.rdvs = items.map(normalizeRdv)
+        this.rdvs = unwrapHydraOrEmpty(raw).map(normalizeRdv)
       } finally {
         this.loading = false
       }
