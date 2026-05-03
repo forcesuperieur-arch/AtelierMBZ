@@ -31,8 +31,8 @@
 |---|---|---|---|---|
 | 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | ✅ Résolu — `npm audit fix` appliqué, 0 vulnérabilités |
 | 15 | **Uploads sans magic bytes** | `ConfigController`, `CompanionController`, `VODocumentService` | GuardSec | 🟡 Ouvert |
-| 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | 🟡 Ouvert |
-| 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | 🟡 Ouvert |
+| 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | ✅ Résolu — `utils/hydra.ts` créé |
+| 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | ✅ Résolu — `composables/useAsyncAction.ts` créé |
 | 18 | **Tests E2E incomplets** | Manquent : facturation, OR, CERFA, gardiennage | TestPilot | 🟡 Ouvert |
 | 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | 🟡 Ouvert |
 | 20 | **Rôles legacy** (`role` string + `RoleMetier`) | `User`, `RoleMetier` | ArchiTech | 🟡 Ouvert |

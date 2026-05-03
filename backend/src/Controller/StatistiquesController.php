@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\Facture;
 use App\Entity\RendezVous;
 use App\Entity\User;
+use App\Service\StatisticsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,7 +19,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class StatistiquesController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private StatisticsService $statsService,
+    ) {}
 
     private function getAuthenticatedUser(): ?User
     {
@@ -33,13 +37,13 @@ class StatistiquesController extends AbstractController
     #[Route('/dashboard', methods: ['GET'])]
     public function dashboard(Request $request): JsonResponse
     {
-        $this->assertStatsAccess();
+        $this->statsService->assertStatsAccess();
 
         $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 
-        [$fromDate, $toDate, $periodKey] = $this->resolveDateRange($request);
+        [$fromDate, $toDate, $periodKey] = $this->statsService->resolveDateRange($request);
         $from = $fromDate->format('Y-m-d');
         $to = $toDate->format('Y-m-d');
         $days = max(1, (int) $fromDate->diff($toDate)->days + 1);
@@ -285,79 +289,17 @@ class StatistiquesController extends AbstractController
                 'nb_factures' => $nbFactures,
             ],
             'comparison' => [
-                'rdvs' => $this->compareMetric($rdvsPeriod, $rdvsPrev),
-                'ca' => $this->compareMetric($caPeriod, $caPrev),
-                'avg_ticket' => $this->compareMetric($avgTicket, $avgTicketPrev),
-                'planned_minutes' => $this->compareMetric($plannedMinutes, $plannedMinutesPrev),
-                'completed' => $this->compareMetric($completedCurrent, $completedPrev),
-                'occupation' => $this->compareMetric($occupationCurrent, $occupationPrev),
+                'rdvs' => $this->statsService->compareMetric($rdvsPeriod, $rdvsPrev),
+                'ca' => $this->statsService->compareMetric($caPeriod, $caPrev),
+                'avg_ticket' => $this->statsService->compareMetric($avgTicket, $avgTicketPrev),
+                'planned_minutes' => $this->statsService->compareMetric($plannedMinutes, $plannedMinutesPrev),
+                'completed' => $this->statsService->compareMetric($completedCurrent, $completedPrev),
+                'occupation' => $this->statsService->compareMetric($occupationCurrent, $occupationPrev),
             ],
         ]);
     }
 
-    private function assertStatsAccess(): void
-    {
-        if ($this->isGranted('ROLE_SUPER_ADMIN') || $this->isGranted('ROLE_RESPONSABLE_ATELIER') || $this->isGranted('ROLE_RESPONSABLE_MAGASIN') || $this->isGranted('ROLE_COMPTABLE')) {
-            return;
-        }
 
-        $roleMetierCode = $this->getAuthenticatedUser()?->getRoleMetier()?->getCode();
-
-        if (in_array($roleMetierCode, ['responsable_atelier', 'responsable_magasin', 'comptable'], true)) {
-            return;
-        }
-
-        if ($this->isGranted('ROLE_ADMIN') && $roleMetierCode === null) {
-            return;
-        }
-
-        throw $this->createAccessDeniedException('La page Stat est réservée au responsable atelier et aux profils supérieurs.');
-    }
-
-    private function resolveDateRange(Request $request): array
-    {
-        $periodKey = (string) $request->query->get('period', '30d');
-        $today = new \DateTimeImmutable('today');
-
-        try {
-            $fromInput = $request->query->get('from');
-            $toInput = $request->query->get('to');
-
-            if ($fromInput && $toInput) {
-                $fromDate = new \DateTimeImmutable((string) $fromInput);
-                $toDate = new \DateTimeImmutable((string) $toInput);
-
-                if ($fromDate > $toDate) {
-                    [$fromDate, $toDate] = [$toDate, $fromDate];
-                }
-
-                return [$fromDate, $toDate, 'custom'];
-            }
-        } catch (\Throwable) {
-        }
-
-        return match ($periodKey) {
-            'today' => [$today, $today, 'today'],
-            '7d' => [$today->modify('-6 days'), $today, '7d'],
-            '90d' => [$today->modify('-89 days'), $today, '90d'],
-            default => [$today->modify('-29 days'), $today, '30d'],
-        };
-    }
-
-    private function compareMetric(float|int $current, float|int $previous): array
-    {
-        $delta = $current - $previous;
-        $deltaPct = $previous !== 0.0 && $previous !== 0
-            ? round(($delta / $previous) * 100, 1)
-            : ($current > 0 ? 100.0 : 0.0);
-
-        return [
-            'current' => round((float) $current, 2),
-            'previous' => round((float) $previous, 2),
-            'delta' => round((float) $delta, 2),
-            'delta_pct' => $deltaPct,
-        ];
-    }
 
     /**
      * Monthly revenue breakdown.
@@ -365,7 +307,7 @@ class StatistiquesController extends AbstractController
     #[Route('/ca', methods: ['GET'])]
     public function chiffreAffaires(Request $request): JsonResponse
     {
-        $this->assertStatsAccess();
+        $this->statsService->assertStatsAccess();
 
         $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
@@ -399,13 +341,13 @@ class StatistiquesController extends AbstractController
     #[Route('/mecaniciens', methods: ['GET'])]
     public function mecaniciens(Request $request): JsonResponse
     {
-        $this->assertStatsAccess();
+        $this->statsService->assertStatsAccess();
 
         $user = $this->getAuthenticatedUser();
         $atelierId = $user?->getAtelierId();
         $conn = $this->em->getConnection();
 
-        [$fromDate, $toDate] = $this->resolveDateRange($request);
+        [$fromDate, $toDate] = $this->statsService->resolveDateRange($request);
         $from = $fromDate->format('Y-m-d');
         $to = $toDate->format('Y-m-d');
 
