@@ -79,9 +79,9 @@
               </div>
               <div class="h-1 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  class="h-full rounded-full transition-[width] duration-1000"
+                  class="h-full rounded-full transition-[width] duration-1000 progress-fill"
                   :class="getProgress(rdv) > 100 ? 'bg-red-500' : 'bg-teal-500'"
-                  :style="{ width: getProgress(rdv) + '%' }"
+                  :style="{ '--w': getProgress(rdv) + '%' }"
                 />
               </div>
             </div>
@@ -272,5 +272,8 @@ onUnmounted(() => {
 .rdv-row--active {
   background: rgba(20, 184, 166, 0.06);
   border-color: rgba(20, 184, 166, 0.2);
+}
+.progress-fill {
+  width: var(--w);
 }
 </style>
