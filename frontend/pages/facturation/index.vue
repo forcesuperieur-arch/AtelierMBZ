@@ -1,7 +1,8 @@
 <template>
   <div>
-    <div class="page-header">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
       <div class="page-title">Facturation</div>
+      <button class="topbar-new-btn" style="font-size:12px;padding:6px 12px;" @click="exportFec">📊 Export FEC</button>
     </div>
 
     <UCard style="margin-bottom:16px;">
@@ -272,6 +273,11 @@ const paiement = reactive({
   reference: '',
   notes: '',
 })
+
+function exportFec() {
+  const url = `${(useRuntimeConfig().public.apiBase || '')}/facturation/fec`
+  window.open(url, '_blank')
+}
 
 const resteAPayer = computed(() => {
   if (!selectedFacture.value) return 0
