@@ -1,3 +1,5 @@
+import { devWarn } from '~/utils/devLog'
+
 interface NotificationItem {
   id: number
   type: string
@@ -48,7 +50,7 @@ export const useNotifications = () => {
       const data = await get<{ items: NotificationItem[] }>(`/notifications?${params.toString()}`)
       notifications.value = data.items || []
     } catch (e) {
-      console.warn('[Notifications] Failed to fetch', e)
+      devWarn('[Notifications] Failed to fetch', e)
     }
   }
 
@@ -57,7 +59,7 @@ export const useNotifications = () => {
       const data = await get<{ count: number }>(`/notifications/unread-count${buildQuerySuffix(atelierId)}`)
       unreadCount.value = data.count
     } catch (e) {
-      console.warn('[Notifications] Failed to fetch count', e)
+      devWarn('[Notifications] Failed to fetch count', e)
     }
   }
 
@@ -105,12 +107,12 @@ export const useNotifications = () => {
           const notif = JSON.parse(event.data)
           handleIncoming(notif)
         } catch (e) {
-          console.warn('[Mercure] Failed to parse notification', e)
+          devWarn('[Mercure] Failed to parse notification', e)
         }
       }
 
       eventSource.onerror = () => {
-        console.warn('[Mercure] Connection error, falling back to polling')
+        devWarn('[Mercure] Connection error, falling back to polling')
         disconnect()
         startPolling()
       }
@@ -165,7 +167,7 @@ export const useNotifications = () => {
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
     } catch (e) {
-      console.warn('[Notifications] Failed to mark read', e)
+      devWarn('[Notifications] Failed to mark read', e)
     }
   }
 
