@@ -33,13 +33,13 @@ use Symfony\Component\Serializer\Annotation\Groups;
 class PieceDetachee
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
-    #[Groups(['piece:read', 'mouvement:read', 'commande:read'])]
+    #[Groups(['piece:read', 'mouvement:read', 'commande:read', 'piece_utilisee:read'])]
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
 
     #[ORM\Column(length: 100, unique: true)]
-    #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read'])]
+    #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read', 'piece_utilisee:read'])]
     private string $reference;
 
     #[ORM\Column(length: 100, nullable: true)]
@@ -47,7 +47,7 @@ class PieceDetachee
     private ?string $referenceFournisseur = null;
 
     #[ORM\Column(length: 200)]
-    #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read'])]
+    #[Groups(['piece:read', 'piece:write', 'mouvement:read', 'commande:read', 'piece_utilisee:read'])]
     private string $nom;
 
     #[ORM\Column(type: 'text', nullable: true)]

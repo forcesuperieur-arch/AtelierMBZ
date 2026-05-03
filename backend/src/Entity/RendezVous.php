@@ -41,7 +41,7 @@ class RendezVous
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['rdv:read'])]
+    #[Groups(['rdv:read', 'piece_utilisee:read'])]
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)]
