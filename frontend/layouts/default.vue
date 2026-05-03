@@ -218,9 +218,8 @@ const menuItems = computed(() => {
     { to: '/suivi', icon: 'i-heroicons-eye', label: 'Suivi Live', section: 'suivi', group: 'aujourdhui' },
     { to: '/ordres', icon: 'i-heroicons-clipboard-document-list', label: 'Dossiers atelier', section: 'or', group: 'dossiers' },
     { to: '/devis', icon: 'i-heroicons-document-text', label: 'Devis', section: 'devis', group: 'dossiers' },
-    // Modules facturation et stock désactivés en attendant la validation end-to-end complète
-    // { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation', group: 'dossiers' },
-    // { to: '/stock', icon: '📦', label: 'Stock', section: 'stock', group: 'dossiers' },
+    { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation', group: 'dossiers' },
+    { to: '/stock', icon: '📦', label: 'Stock', section: 'stock', group: 'dossiers' },
     { to: '/vo', icon: 'i-heroicons-tag', label: 'VO', section: 'vo', group: 'dossiers' },
     { to: '/clients', icon: 'i-heroicons-user-group', label: 'Clients', section: 'clients', group: 'referentiels' },
     { to: '/motos', icon: 'i-heroicons-truck', label: 'Fiches moto', section: 'motos', group: 'referentiels' },
