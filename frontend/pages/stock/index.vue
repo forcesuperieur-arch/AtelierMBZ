@@ -40,7 +40,7 @@
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;">
             <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="showMouvements(row.original)">📜 Mouvements</button>
+            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openMouvements(row.original)">📜 Mouvements</button>
           </div>
         </template>
       </UTable>
@@ -186,7 +186,7 @@ async function savePiece() {
   }
 }
 
-function showMouvements(p: any) {
+function openMouvements(p: any) {
   selectedPiece.value = p
   stockStore.fetchMouvements(p.id)
   showMouvements.value = true
