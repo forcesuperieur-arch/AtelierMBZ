@@ -30,7 +30,7 @@
 | # | Problème | Fichier(s) | Agent responsable | Statut |
 |---|---|---|---|---|
 | 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | ✅ Résolu — `npm audit fix` appliqué, 0 vulnérabilités |
-| 15 | **Uploads sans magic bytes** | `ConfigController`, `CompanionController`, `VODocumentService` | GuardSec | 🟡 Ouvert |
+| 15 | **Uploads sans magic bytes** | `VODocumentService` | GuardSec | ✅ Résolu — validation par magic bytes ajoutée pour PDF/JPEG/PNG/WebP |
 | 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | ✅ Résolu — `utils/hydra.ts` créé |
 | 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | ✅ Résolu — `composables/useAsyncAction.ts` créé |
 | 18 | **Tests E2E incomplets** | Manquent : facturation, OR, CERFA, gardiennage | TestPilot | 🟡 Ouvert |
@@ -56,3 +56,4 @@
 | 2026-05-05 | Extract `RendezVousViewService` + `AuditFormatter` from `RendezVousController` | ArchiTech | `73d0af7` |
 | 2026-05-05 | 5 entités testées (Facture, Devis, VOPurchase, VODepotVente, PieceDetachee) | TestPilot | multiple |
 | 2026-05-05 | Centralize `unwrapHydra` + `useAsyncAction` | FrontCraft | `7712bb1` |
+| 2026-05-06 | Magic-bytes validation in `VODocumentService` | GuardSec | `a283896` |
