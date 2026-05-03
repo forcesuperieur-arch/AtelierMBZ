@@ -12,16 +12,16 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource]
 class Fournisseur
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
+    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['fournisseur:read'])]
     private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
-    #[ORM\Column(length: 200)] private string $nom;
-    #[ORM\Column(length: 200, nullable: true)] private ?string $contact = null;
-    #[ORM\Column(length: 20, nullable: true)] private ?string $telephone = null;
-    #[ORM\Column(length: 200, nullable: true)] private ?string $email = null;
+    #[ORM\Column(length: 200)] #[Groups(['fournisseur:read', 'commande:read'])] private string $nom;
+    #[ORM\Column(length: 200, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $contact = null;
+    #[ORM\Column(length: 20, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $telephone = null;
+    #[ORM\Column(length: 200, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $email = null;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $adresse = null;
     #[ORM\Column(length: 20, nullable: true)] private ?string $siret = null;
-    #[ORM\Column(options: ['default' => 3])] private int $delaiLivraisonJours = 3;
+    #[ORM\Column(options: ['default' => 3])] #[Groups(['fournisseur:read'])] private int $delaiLivraisonJours = 3;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $notes = null;
     #[ORM\Column(options: ['default' => 1])] private int $isActive = 1;
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] private \DateTimeInterface $createdAt;

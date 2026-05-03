@@ -5,24 +5,25 @@ use ApiPlatform\Metadata\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity] #[ORM\Table(name: 'commandes_fournisseur')] #[ApiResource]
 class CommandeFournisseur
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
+    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['commande:read'])] private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
-    #[ORM\Column(length: 50, unique: true)] private string $numeroCommande;
+    #[ORM\Column(length: 50, unique: true)] #[Groups(['commande:read'])] private string $numeroCommande;
     #[ORM\ManyToOne(targetEntity: Fournisseur::class, inversedBy: 'commandes')]
-    #[ORM\JoinColumn(name: 'fournisseur_id', nullable: false)] private Fournisseur $fournisseur;
-    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])] private string $statut = 'en_attente';
-    #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] private \DateTimeInterface $dateCommande;
-    #[ORM\Column(type: 'datetime', nullable: true)] private ?\DateTimeInterface $datePrevueLivraison = null;
-    #[ORM\Column(type: 'datetime', nullable: true)] private ?\DateTimeInterface $dateReception = null;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])] private string $totalHt = '0.00';
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])] private string $totalTtc = '0.00';
-    #[ORM\Column(type: 'text', nullable: true)] private ?string $notes = null;
+    #[ORM\JoinColumn(name: 'fournisseur_id', nullable: false)] #[Groups(['commande:read'])] private Fournisseur $fournisseur;
+    #[ORM\Column(length: 50, options: ['default' => 'en_attente'])] #[Groups(['commande:read'])] private string $statut = 'en_attente';
+    #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])] #[Groups(['commande:read'])] private \DateTimeInterface $dateCommande;
+    #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['commande:read'])] private ?\DateTimeInterface $datePrevueLivraison = null;
+    #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['commande:read'])] private ?\DateTimeInterface $dateReception = null;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])] #[Groups(['commande:read'])] private string $totalHt = '0.00';
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])] #[Groups(['commande:read'])] private string $totalTtc = '0.00';
+    #[ORM\Column(type: 'text', nullable: true)] #[Groups(['commande:read'])] private ?string $notes = null;
     #[ORM\OneToMany(targetEntity: LigneCommandeFournisseur::class, mappedBy: 'commande', cascade: ['persist', 'remove'])]
-    private Collection $lignes;
+    #[Groups(['commande:read'])] private Collection $lignes;
 
     public function __construct() { $this->dateCommande = new \DateTime(); $this->lignes = new ArrayCollection(); }
 
