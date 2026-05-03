@@ -40,7 +40,18 @@
           <span class="text-sm">{{ row.original.vehicules_count ?? 0 }} véhicule(s)</span>
         </template>
         <template #actions-cell="{ row }">
-          <NuxtLink :to="`/clients/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <NuxtLink :to="`/clients/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+            <button
+              v-if="row.original.can_anonymize !== false"
+              class="btn btn-ghost"
+              style="font-size:11px;padding:4px 8px;color:#EF4444;"
+              @click="anonymizeClient(row.original)"
+              :disabled="anonymizingId === row.original.id"
+            >
+              {{ anonymizingId === row.original.id ? '…' : '🧹 Anonymiser' }}
+            </button>
+          </div>
         </template>
       </UTable>
       <!-- Pagination -->
@@ -103,6 +114,7 @@ const visiblePages = computed(() => {
 
 const newClient = reactive({ prenom: '', nom: '', telephone: '', email: '', adresse: '' })
 const consentRGPD = ref(false)
+const anonymizingId = ref<number | null>(null)
 
 const stats = reactive({ total: 0, avec_rdv: 0, vehicules: 0, ca_total: 0 })
 
@@ -171,6 +183,22 @@ async function createClient() {
     toast.add({ title: 'Erreur', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
   } finally {
     creating.value = false
+  }
+}
+
+async function anonymizeClient(client: any) {
+  if (!confirm(`⚠️ ATTENTION : Cette action est IRRÉVERSIBLE.\n\nToutes les données personnelles de ${client.prenom} ${client.nom} seront effacées.\nLes factures et ordres conserveront un snapshot conforme aux obligations légales.\n\nConfirmez-vous l'anonymisation ?`)) {
+    return
+  }
+  anonymizingId.value = client.id
+  try {
+    await api.post(`/clients/${client.id}/anonymize`)
+    toast.add({ title: 'Client anonymisé', description: 'Les données personnelles ont été effacées.', color: 'success' })
+    await fetchClients()
+  } catch (e: unknown) {
+    toast.add({ title: 'Erreur anonymisation', description: e instanceof Error ? e.message : 'Erreur inconnue', color: 'error' })
+  } finally {
+    anonymizingId.value = null
   }
 }
 
