@@ -2,63 +2,85 @@
   <div>
     <AppPageHeader title="Stock — Pièces détachées">
       <template #actions>
-        <div style="display:flex;gap:8px;">
-          <button class="topbar-new-btn" style="background:rgba(255,255,255,0.08);" @click="exportCsv">📥 Export CSV</button>
-          <NuxtLink to="/stock/fournisseurs" class="topbar-new-btn" style="background:rgba(255,255,255,0.08);">Fournisseurs</NuxtLink>
-          <NuxtLink to="/stock/commandes" class="topbar-new-btn" style="background:rgba(255,255,255,0.08);">Commandes</NuxtLink>
-          <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
+        <div class="flex gap-2 flex-wrap">
+          <UButton variant="ghost" icon="i-heroicons-arrow-down-tray" @click="exportCsv">
+            Export CSV
+          </UButton>
+          <UButton to="/stock/fournisseurs" variant="ghost" icon="i-heroicons-truck">
+            Fournisseurs
+          </UButton>
+          <UButton to="/stock/commandes" variant="ghost" icon="i-heroicons-clipboard-document-list">
+            Commandes
+          </UButton>
+          <UButton icon="i-heroicons-plus" @click="resetForm(); showNew = true">
+            Nouvelle pièce
+          </UButton>
         </div>
       </template>
     </AppPageHeader>
 
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
-      <UCard style="padding:14px;">
-        <div style="font-size:12px;color:#9CA3AF;">Références</div>
-        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ totalReferences }}</div>
-      </UCard>
-      <UCard style="padding:14px;">
-        <div style="font-size:12px;color:#9CA3AF;">Valeur stock (achat)</div>
-        <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ formatCurrency(totalStockValue) }}</div>
-      </UCard>
-      <UCard style="padding:14px;">
-        <div style="font-size:12px;color:#9CA3AF;">Alertes</div>
-        <div style="font-size:22px;font-weight:700;color:#FCA5A5;">{{ alertesCount }}</div>
-      </UCard>
-      <UCard style="padding:14px;">
-        <div style="font-size:12px;color:#9CA3AF;">Cmds en attente</div>
-        <div style="font-size:22px;font-weight:700;color:#FBBF24;">{{ commandesEnAttente }}</div>
-      </UCard>
-      <UCard style="padding:14px;">
-        <div style="font-size:12px;color:#9CA3AF;">Mouvements aujourd'hui</div>
-        <div style="font-size:22px;font-weight:700;color:#6EE7B7;">{{ mouvementsAujourdhui }}</div>
-      </UCard>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+      <AppKpiCard label="Références" :value="totalReferences" />
+      <AppKpiCard label="Valeur stock (achat)" :value="formatCurrency(totalStockValue)" />
+      <AppKpiCard label="Alertes" :value="alertesCount" variant="danger" />
+      <AppKpiCard label="Cmds en attente" :value="commandesEnAttente" variant="warning" />
+      <AppKpiCard label="Mouvements aujourd'hui" :value="mouvementsAujourdhui" variant="success" />
     </div>
 
     <!-- Alerts -->
-    <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:rgba(239,68,68,0.2);">
-      <template #header>
-        <span style="font-size:15px;font-weight:700;color:#FCA5A5;">⚠ Alertes stock ({{ stockStore.alertes.length }})</span>
-      </template>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div v-for="p in stockStore.alertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);">
-          <span style="color:#D1D5DB;">{{ p.designation }}</span>
-          <span class="status-badge" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</span>
+    <AppAlertCard v-if="stockStore.alertes.length">
+      <template #title>Alertes stock ({{ stockStore.alertes.length }})</template>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div
+          v-for="p in stockStore.alertes"
+          :key="p.id"
+          class="flex items-center justify-between text-sm px-3 py-2 rounded-lg border border-red-500/15 bg-red-500/5"
+        >
+          <span class="text-gray-300">{{ p.designation }}</span>
+          <AppStatusBadge variant="danger">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</AppStatusBadge>
         </div>
       </div>
-    </UCard>
+    </AppAlertCard>
 
-    <UCard style="margin-bottom:16px;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-        <UInput v-model="search" placeholder="Rechercher une pièce..." @input="debouncedFetch" style="flex:1;min-width:200px;" />
-        <USelectMenu v-model="categorieFilter" :options="categories" placeholder="Toutes catégories" clearable style="min-width:180px;" />
+    <!-- Filters -->
+    <UCard class="mb-4">
+      <div class="flex gap-3 flex-wrap items-end">
+        <UInput
+          v-model="search"
+          placeholder="Rechercher une pièce..."
+          icon="i-heroicons-magnifying-glass"
+          class="flex-1 min-w-[200px]"
+          @input="debouncedFetch"
+        />
+        <USelectMenu
+          v-model="categorieFilter"
+          :options="categories"
+          placeholder="Toutes catégories"
+          clearable
+          class="min-w-[180px]"
+        />
       </div>
     </UCard>
 
+    <!-- Table -->
     <UCard>
-      <UTable :data="filteredPieces" :columns="columns" :loading="stockStore.loading">
+      <AppEmptyState
+        v-if="!stockStore.loading && !filteredPieces.length"
+        icon="i-heroicons-cube"
+        title="Aucune pièce"
+        description="Commencez par créer une nouvelle pièce détachée."
+      >
+        <UButton icon="i-heroicons-plus" @click="resetForm(); showNew = true">Créer une pièce</UButton>
+      </AppEmptyState>
+      <UTable
+        v-else
+        :data="filteredPieces"
+        :columns="columns"
+        :loading="stockStore.loading"
+      >
         <template #quantite_stock-cell="{ row }">
-          <span :class="row.original.quantite_stock <= row.original.seuil_alerte ? 'text-red-500 font-bold' : ''">
+          <span :class="row.original.quantite_stock <= row.original.seuil_alerte ? 'text-red-400 font-bold' : ''">
             {{ row.original.quantite_stock }}
           </span>
         </template>
@@ -66,11 +88,13 @@
           <span class="text-sm">{{ formatCurrency(row.original.prix_vente_ht) }}</span>
         </template>
         <template #actions-cell="{ row }">
-          <div style="display:flex;gap:8px;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openMouvements(row.original)">📜 Mouvements</button>
-            <button style="color:#9CA3AF;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="togglePiece(row.original)">{{ row.original.is_active === false ? '▶ Activer' : '⏸ Désactiver' }}</button>
-          </div>
+          <AppInlineActions>
+            <AppActionLink variant="primary" @click="editPiece(row.original)">Modifier</AppActionLink>
+            <AppActionLink variant="secondary" @click="openMouvements(row.original)">Mouvements</AppActionLink>
+            <AppActionLink variant="muted" @click="togglePiece(row.original)">
+              {{ row.original.is_active === false ? 'Activer' : 'Désactiver' }}
+            </AppActionLink>
+          </AppInlineActions>
         </template>
       </UTable>
     </UCard>
@@ -79,9 +103,11 @@
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</span></template>
-          <form @submit.prevent="savePiece" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <template #header>
+            <h3 class="text-base font-bold text-text-primary">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</h3>
+          </template>
+          <form @submit.prevent="savePiece" class="flex flex-col gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <UFormField label="Référence"><UInput v-model="pieceForm.reference" required /></UFormField>
               <UFormField label="Désignation"><UInput v-model="pieceForm.designation" required /></UFormField>
               <UFormField label="Réf. fournisseur"><UInput v-model="pieceForm.reference_fournisseur" /></UFormField>
@@ -94,7 +120,7 @@
               <UFormField label="Emplacement"><UInput v-model="pieceForm.emplacement" /></UFormField>
               <UFormField label="TVA (%)"><UInput v-model="pieceForm.tva_taux" type="number" step="0.01" /></UFormField>
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="flex justify-end gap-2">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />
               <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
@@ -107,21 +133,30 @@
     <AppModal v-model:open="showMouvements" size="lg">
       <UCard v-if="selectedPiece">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Mouvements — {{ selectedPiece.designation }}</span>
+          <h3 class="text-base font-bold text-text-primary">Mouvements — {{ selectedPiece.designation }}</h3>
         </template>
-        <div v-if="stockStore.loadingMouvements" style="text-align:center;padding:20px;color:#9CA3AF;">Chargement…</div>
-        <div v-else-if="!stockStore.mouvements.length" style="text-align:center;padding:20px;color:#9CA3AF;">Aucun mouvement</div>
-        <div v-else style="display:flex;flex-direction:column;gap:8px;">
-          <div v-for="m in stockStore.mouvements" :key="m.id" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);">
+        <AppLoadingState v-if="stockStore.loadingMouvements" title="Chargement des mouvements…" />
+        <AppEmptyState
+          v-else-if="!stockStore.mouvements.length"
+          icon="i-heroicons-arrows-right-left"
+          title="Aucun mouvement"
+          description="Cette pièce n'a pas encore d'historique de mouvements."
+        />
+        <div v-else class="flex flex-col gap-2">
+          <div
+            v-for="m in stockStore.mouvements"
+            :key="m.id"
+            class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-white/5"
+          >
             <div>
-              <span class="text-sm font-bold" :style="mouvementColor(m.type)">{{ mouvementLabel(m.type) }}</span>
-              <span class="text-sm" style="color:#9CA3AF;margin-left:6px;">{{ m.quantite }} unité(s)</span>
-              <div v-if="m.motif" class="text-sm" style="color:#6B7280;margin-top:2px;">{{ m.motif }}</div>
+              <span class="text-sm font-bold" :class="mouvementColorClass(m.type)">{{ mouvementLabel(m.type) }}</span>
+              <span class="text-sm text-gray-400 ml-1.5">{{ m.quantite }} unité(s)</span>
+              <div v-if="m.motif" class="text-sm text-gray-500 mt-0.5">{{ m.motif }}</div>
             </div>
-            <span class="text-sm" style="color:#6B7280;">{{ formatDate(m.created_at) }}</span>
+            <span class="text-sm text-gray-500">{{ formatDate(m.created_at) }}</span>
           </div>
         </div>
-        <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;">
+        <div class="mt-3 flex justify-end gap-2">
           <UButton label="Ajustement manuel" @click="openAjustement" />
           <UButton label="Fermer" variant="outline" @click="showMouvements = false" />
         </div>
@@ -131,12 +166,16 @@
     <!-- Ajustement modal -->
     <AppModal v-model:open="showAjustement" size="md">
       <UCard v-if="selectedPiece">
-        <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Ajustement — {{ selectedPiece.designation }}</span></template>
-        <form @submit.prevent="saveAjustement" style="display:flex;flex-direction:column;gap:12px;">
-          <div style="font-size:13px;color:#9CA3AF;">Stock actuel : <strong style="color:#E8E9ED;">{{ selectedPiece.quantite_stock }}</strong></div>
+        <template #header>
+          <h3 class="text-base font-bold text-text-primary">Ajustement — {{ selectedPiece.designation }}</h3>
+        </template>
+        <form @submit.prevent="saveAjustement" class="flex flex-col gap-3">
+          <p class="text-sm text-gray-400">
+            Stock actuel : <strong class="text-text-primary">{{ selectedPiece.quantite_stock }}</strong>
+          </p>
           <UFormField label="Nouvelle quantité"><UInput v-model="ajustementForm.quantite" type="number" required /></UFormField>
           <UFormField label="Motif"><UInput v-model="ajustementForm.motif" required placeholder="Inventaire, casse, correction…" /></UFormField>
-          <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <div class="flex justify-end gap-2">
             <UButton label="Annuler" variant="outline" @click="showAjustement = false" />
             <UButton type="submit" label="Valider" :loading="savingAjustement" />
           </div>
@@ -287,10 +326,10 @@ function mouvementLabel(t: string) {
   const map: Record<string, string> = { entree: 'Entrée', sortie: 'Sortie', ajustement: 'Ajustement', reception: 'Réception', commande: 'Commande' }
   return map[t] ?? t
 }
-function mouvementColor(t: string) {
-  if (t === 'entree' || t === 'reception') return 'color:#10B981;'
-  if (t === 'sortie' || t === 'commande') return 'color:#EF4444;'
-  return 'color:#FBBF24;'
+function mouvementColorClass(t: string) {
+  if (t === 'entree' || t === 'reception') return 'text-emerald-400'
+  if (t === 'sortie' || t === 'commande') return 'text-red-400'
+  return 'text-amber-400'
 }
 
 function exportCsv() {
@@ -311,7 +350,7 @@ function exportCsv() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `inventaire-stock-${new Date().toISOString().slice(0,10)}.csv`
+  a.download = `inventaire-stock-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
