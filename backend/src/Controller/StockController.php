@@ -162,7 +162,7 @@ class StockController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        $data = json_decode($this->serializer->serialize($items, 'json', ['groups' => ['commande:read', 'piece:read']]), true);
+        $data = json_decode($this->serializer->serialize($items, 'json', ['groups' => ['commande:read', 'piece:read', 'fournisseur:read']]), true);
         return $this->json([
             'member' => $data,
             'totalItems' => $total,

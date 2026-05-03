@@ -12,10 +12,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource]
 class Fournisseur
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['fournisseur:read'])]
+    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['fournisseur:read', 'piece:read', 'commande:read'])]
     private ?int $id = null;
     #[ORM\Column(nullable: true)] private ?int $atelierId = null;
-    #[ORM\Column(length: 200)] #[Groups(['fournisseur:read', 'commande:read'])] private string $nom;
+    #[ORM\Column(length: 200)] #[Groups(['fournisseur:read', 'commande:read', 'piece:read'])] private string $nom;
     #[ORM\Column(length: 200, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $contact = null;
     #[ORM\Column(length: 20, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $telephone = null;
     #[ORM\Column(length: 200, nullable: true)] #[Groups(['fournisseur:read'])] private ?string $email = null;
