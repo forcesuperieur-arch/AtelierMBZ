@@ -57,3 +57,7 @@
 | 2026-05-05 | 5 entités testées (Facture, Devis, VOPurchase, VODepotVente, PieceDetachee) | TestPilot | multiple |
 | 2026-05-05 | Centralize `unwrapHydra` + `useAsyncAction` | FrontCraft | `7712bb1` |
 | 2026-05-06 | Magic-bytes validation in `VODocumentService` | GuardSec | `a283896` |
+| 2026-05-06 | `devWarn` utility + console.warn cleanup | FrontCraft | `6156f73` |
+| 2026-05-06 | Fournisseur entity tests | TestPilot | `ed744b8` |
+| 2026-05-06 | Design system components (AppKpiCard, AppStatusBadge, AppActionLink, AppAlertCard, AppInlineActions) | FrontCraft-Design | `ec82cf6` |
+| 2026-05-06 | Refactor stock/* + layout + tarifs + motos + profile (0 inline styles) | FrontCraft-Design | `932b9de`…`f2bca9b` |
