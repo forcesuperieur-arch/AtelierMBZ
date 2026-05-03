@@ -1,34 +1,22 @@
 <template>
   <div>
-    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div class="page-header-flex">
       <div class="page-title">Ordres de réparation</div>
-      <button class="btn btn-ghost" style="font-size:12px;" @click="exportCsv">📥 Export CSV</button>
+      <button class="btn btn-ghost btn-sm" @click="exportCsv">📥 Export CSV</button>
     </div>
 
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
-      <div class="stat-card">
-        <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Ouverts</div>
-        <div style="font-size:22px;font-weight:700;color:#F59E0B;">{{ kpis.open }}</div>
-      </div>
-      <div class="stat-card">
-        <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">En atelier</div>
-        <div style="font-size:22px;font-weight:700;color:#FFD200;">{{ kpis.live }}</div>
-      </div>
-      <div class="stat-card">
-        <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">À réceptionner</div>
-        <div style="font-size:22px;font-weight:700;color:#14B8A6;">{{ kpis.reception }}</div>
-      </div>
-      <div class="stat-card">
-        <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Finalisés</div>
-        <div style="font-size:22px;font-weight:700;color:#10B981;">{{ kpis.completed }}</div>
-      </div>
+    <div class="kpi-grid">
+      <AppKpiCard label="Ouverts" :value="kpis.open" variant="amber" />
+      <AppKpiCard label="En atelier" :value="kpis.live" />
+      <AppKpiCard label="À réceptionner" :value="kpis.reception" variant="green" />
+      <AppKpiCard label="Finalisés" :value="kpis.completed" variant="green" />
     </div>
 
     <!-- Search + Filter -->
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <input v-model="search" class="form-input" placeholder="Rechercher OR, client, véhicule, plaque…" style="flex:1;min-width:200px;" />
-      <select v-model="statusFilter" class="form-input" style="width:180px;">
+    <div class="filter-bar">
+      <input v-model="search" class="form-input flex-1" placeholder="Rechercher OR, client, véhicule, plaque…" />
+      <select v-model="statusFilter" class="form-input input-fixed-w">
         <option value="">Tous les statuts</option>
         <option value="reserve">Créneau réservé</option>
         <option value="confirme">Confirmé atelier</option>
@@ -41,25 +29,22 @@
     </div>
 
     <UCard>
-      <div v-if="loading" style="padding:32px;text-align:center;color:#6B7280;">Chargement…</div>
-      <div v-else-if="!filteredOrdres.length" style="padding:32px;text-align:center;color:#6B7280;">
-        <div style="font-size:36px;margin-bottom:8px;">🧾</div>
-        <p>Aucun OR trouvé</p>
-      </div>
-      <div v-else style="display:flex;flex-direction:column;gap:10px;">
-        <NuxtLink v-for="o in filteredOrdres" :key="o.id" :to="`/ordres/${o.id}`" style="text-decoration:none;display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);transition:border-color 0.2s;" class="or-card-link">
-          <div style="display:flex;align-items:center;gap:14px;">
-            <div style="font-size:13px;font-weight:700;color:#FFD200;min-width:110px;">{{ o.numero_or }}</div>
+      <div v-if="loading" class="loading-center">Chargement…</div>
+      <AppEmptyState v-else-if="!filteredOrdres.length" icon="🧾" title="Aucun OR trouvé" />
+      <div v-else class="or-list">
+        <NuxtLink v-for="o in filteredOrdres" :key="o.id" :to="`/ordres/${o.id}`" class="or-card">
+          <div class="or-left">
+            <div class="or-number">{{ o.numero_or }}</div>
             <div>
-              <p style="font-weight:600;color:#E8E9ED;font-size:13px;">{{ o.client_nom || '—' }}</p>
-              <p style="font-size:12px;color:#6B7280;">{{ o.vehicule_info }} {{ o.plaque ? '· ' + o.plaque : '' }}</p>
+              <p class="or-client">{{ o.client_nom || '—' }}</p>
+              <p class="or-meta">{{ o.vehicule_info }} {{ o.plaque ? '· ' + o.plaque : '' }}</p>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <span v-if="o.montant" style="font-size:13px;font-weight:700;color:#FFD200;">{{ formatEuro(o.montant) }}</span>
+          <div class="or-right">
+            <span v-if="o.montant" class="or-amount">{{ formatEuro(o.montant) }}</span>
             <StatusBadge :status="o.status" />
-            <span style="font-size:12px;color:#6B7280;">{{ o.date_label }}</span>
-            <span style="color:#FFD200;font-size:12px;font-weight:600;">→</span>
+            <span class="or-date">{{ o.date_label }}</span>
+            <span class="or-arrow">→</span>
           </div>
         </NuxtLink>
       </div>
@@ -137,8 +122,7 @@ function exportCsv() {
 onMounted(async () => {
   try {
     const data = await api.get('/ordres-reparation')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    ordres.value = raw.map(normalizeOrdre)
+    ordres.value = unwrapHydraOrEmpty(data).map(normalizeOrdre)
   } finally {
     loading.value = false
   }
@@ -146,5 +130,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.or-card-link:hover { border-color: rgba(255,210,0,0.3) !important; }
+.page-header-flex { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+.filter-bar { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+.flex-1 { flex:1; min-width:200px; }
+.input-fixed-w { width:180px; }
+.loading-center { padding:32px; text-align:center; color:#6B7280; }
+.or-list { display:flex; flex-direction:column; gap:10px; }
+.or-card { text-decoration:none; display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); transition:border-color 0.2s; }
+.or-card:hover { border-color: rgba(255,210,0,0.3); }
+.or-left { display:flex; align-items:center; gap:14px; }
+.or-number { font-size:13px; font-weight:700; color:#FFD200; min-width:110px; }
+.or-client { font-weight:600; color:#E8E9ED; font-size:13px; }
+.or-meta { font-size:12px; color:#6B7280; }
+.or-right { display:flex; align-items:center; gap:12px; }
+.or-amount { font-size:13px; font-weight:700; color:#FFD200; }
+.or-date { font-size:12px; color:#6B7280; }
+.or-arrow { color:#FFD200; font-size:12px; font-weight:600; }
 </style>
