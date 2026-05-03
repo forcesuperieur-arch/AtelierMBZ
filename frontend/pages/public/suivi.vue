@@ -1,34 +1,34 @@
 <template>
   <div class="public-card">
     <div class="public-card-header">
-      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
-      <h1 class="text-gradient" style="font-size:22px;font-weight:800;">Suivi de rendez-vous</h1>
+      <div class="emoji-lg">🔍</div>
+      <h1 class="text-gradient title-xl">Suivi de rendez-vous</h1>
     </div>
 
-    <div v-if="!rdv" style="display:flex;flex-direction:column;gap:16px;">
+    <div v-if="!rdv" class="form-stack">
       <UFormField label="Code de suivi">
         <UInput v-model="token" placeholder="Entrez votre code de suivi..." />
       </UFormField>
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
+      <button class="topbar-new-btn btn-full" @click="lookup" :disabled="loading">
         {{ loading ? 'Recherche...' : 'Rechercher' }}
       </button>
-      <p v-if="error" style="font-size:13px;color:#FCA5A5;text-align:center;">{{ error }}</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
     </div>
 
-    <div v-else style="display:flex;flex-direction:column;gap:16px;">
-      <div style="text-align:center;">
+    <div v-else class="form-stack">
+      <div class="text-center">
         <StatusBadge :status="rdv.statut" />
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-        <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date_rdv }}</span></div>
-        <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure_rdv }}</span></div>
-        <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
-        <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule ? `${rdv.vehicule.marque} ${rdv.vehicule.modele}` : '' }}</span></div>
+      <div class="info-grid">
+        <div><span class="label-muted">Date :</span> <span class="value-light">{{ rdv.date_rdv }}</span></div>
+        <div><span class="label-muted">Heure :</span> <span class="value-light">{{ rdv.heure_rdv }}</span></div>
+        <div><span class="label-muted">Type :</span> <span class="value-light">{{ rdv.type_intervention }}</span></div>
+        <div><span class="label-muted">Véhicule :</span> <span class="value-light">{{ rdv.vehicule ? `${rdv.vehicule.marque} ${rdv.vehicule.modele}` : '' }}</span></div>
       </div>
 
       <!-- Progress steps -->
-      <div style="margin-top:24px;">
+      <div class="mt-6">
         <div class="progress-steps">
           <div
             v-for="(step, i) in progressSteps"
@@ -36,28 +36,17 @@
             class="progress-step"
           >
             <div
-              :style="{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: '700',
-                background: step.done ? 'linear-gradient(135deg, #FFD200, #D97706)' : 'rgba(255,255,255,0.06)',
-                color: step.done ? '#111' : '#6B7280',
-                transition: 'all 0.3s',
-              }"
+              class="step-circle"
+              :class="{ done: step.done }"
             >
               {{ i + 1 }}
             </div>
-            <span style="font-size:10px;margin-top:4px;text-align:center;color:#6B7280;">{{ step.label }}</span>
+            <span class="step-label">{{ step.label }}</span>
           </div>
         </div>
       </div>
 
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:rgba(255,255,255,0.06);color:#D1D5DB;margin-top:16px;" @click="rdv = null; token = ''">
+      <button class="topbar-new-btn btn-full-secondary" @click="rdv = null; token = ''">
         Nouvelle recherche
       </button>
     </div>
@@ -111,3 +100,20 @@ onMounted(() => {
   if (token.value) lookup()
 })
 </script>
+
+<style scoped>
+.emoji-lg { font-size:32px; margin-bottom:8px; }
+.title-xl { font-size:22px; font-weight:800; }
+.form-stack { display:flex; flex-direction:column; gap:16px; }
+.btn-full { width:100%; justify-content:center; padding:12px; font-size:14px; }
+.error-text { font-size:13px; color:#FCA5A5; text-align:center; }
+.text-center { text-align:center; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px; }
+.label-muted { color:#6B7280; }
+.value-light { color:#D1D5DB; }
+.mt-6 { margin-top:24px; }
+.step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:rgba(255,255,255,0.06); color:#6B7280; transition:all 0.3s; }
+.step-circle.done { background:linear-gradient(135deg, #FFD200, #D97706); color:#111; }
+.step-label { font-size:10px; margin-top:4px; text-align:center; color:#6B7280; }
+.btn-full-secondary { width:100%; justify-content:center; padding:10px; font-size:13px; background:rgba(255,255,255,0.06); color:#D1D5DB; margin-top:16px; }
+</style>
