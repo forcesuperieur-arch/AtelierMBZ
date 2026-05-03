@@ -258,6 +258,9 @@ class FacturationController extends AbstractController
     {
         $this->assertFacturationReadAccess();
 
+        $page = max(1, (int) $request->query->get('page', 1));
+        $itemsPerPage = min(100, max(1, (int) $request->query->get('itemsPerPage', 50)));
+
         $qb = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
             ->orderBy('f.createdAt', 'DESC');
 
@@ -270,9 +273,23 @@ class FacturationController extends AbstractController
             $qb->andWhere('f.statut = :statut')->setParameter('statut', $statut);
         }
 
-        $factures = $qb->getQuery()->getResult();
+        // [SPRINT-5] I12 — Pagination server-side
+        $countQb = clone $qb;
+        $totalItems = (int) $countQb->select('COUNT(f.id)')->getQuery()->getSingleScalarResult();
+
+        $factures = $qb
+            ->setFirstResult(($page - 1) * $itemsPerPage)
+            ->setMaxResults($itemsPerPage)
+            ->getQuery()
+            ->getResult();
+
         $data = json_decode($this->serializer->serialize($factures, 'json', ['groups' => ['facture:read']]), true);
-        return $this->json($data);
+        return $this->json([
+            'member' => $data,
+            'totalItems' => $totalItems,
+            'page' => $page,
+            'itemsPerPage' => $itemsPerPage,
+        ]);
     }
 
     #[Route('/rendez-vous/{rdvId}/preview-facture', methods: ['GET'])]
@@ -668,5 +685,87 @@ class FacturationController extends AbstractController
             'total_paye' => $facture->getMontantPaye(),
             'reste_a_payer' => $facture->getResteAPayer(),
         ]);
+    }
+
+    #[Route('/fec', methods: ['GET'])]
+    public function exportFec(Request $request): Response
+    {
+        $this->assertFacturationReadAccess();
+
+        $year = (int) $request->query->get('year', date('Y'));
+        $start = new \DateTime("$year-01-01");
+        $end = new \DateTime("$year-12-31 23:59:59");
+
+        $qb = $this->em->getRepository(Facture::class)->createQueryBuilder('f')
+            ->where('f.dateCreation >= :start')
+            ->andWhere('f.dateCreation <= :end')
+            ->orderBy('f.dateCreation', 'ASC')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end);
+
+        if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
+            $qb->andWhere('f.atelierId = :atelierId')
+                ->setParameter('atelierId', $this->resolveCurrentAtelierIdOrFail());
+        }
+
+        $factures = $qb->getQuery()->getResult();
+
+        $output = fopen('php://temp', 'r+');
+        // BOM UTF-8 for Excel
+        fprintf($output, "\xEF\xBB\xBF");
+
+        // Header
+        fputcsv($output, [
+            'JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate',
+            'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib',
+            'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit',
+            'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise',
+        ], ';');
+
+        foreach ($factures as $facture) {
+            /** @var Facture $facture */
+            $date = $facture->getDateCreation()->format('Ymd');
+            $pieceRef = $facture->getNumeroFacture();
+            $clientName = trim(($facture->getSnapClientPrenom() ?? '') . ' ' . ($facture->getSnapClientNom() ?? ''));
+
+            // HT
+            fputcsv($output, [
+                'VEN', 'Ventes', $pieceRef, $date,
+                '706000', 'Prestations de services', '', $clientName,
+                $pieceRef, $date, 'Facture ' . $pieceRef . ' — HT',
+                str_replace('.', ',', (string) $facture->getTotalHt()), '0',
+                '', '', $date, '', '',
+            ], ';');
+
+            // TVA
+            if (bccomp($facture->getTotalTva(), '0', 2) > 0) {
+                fputcsv($output, [
+                    'VEN', 'Ventes', $pieceRef, $date,
+                    '445710', 'TVA collectée', '', $clientName,
+                    $pieceRef, $date, 'Facture ' . $pieceRef . ' — TVA',
+                    str_replace('.', ',', (string) $facture->getTotalTva()), '0',
+                    '', '', $date, '', '',
+                ], ';');
+            }
+
+            // TTC (client)
+            fputcsv($output, [
+                'VEN', 'Ventes', $pieceRef, $date,
+                '411000', 'Clients — ' . $clientName, '', $clientName,
+                $pieceRef, $date, 'Facture ' . $pieceRef . ' — TTC',
+                '0', str_replace('.', ',', (string) $facture->getTotalTtc()),
+                '', '', $date, '', '',
+            ], ';');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        $response = new Response($csv);
+        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="FEC-' . $year . '.csv"');
+
+        return $response;
     }
 }
