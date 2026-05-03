@@ -118,6 +118,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ title: 'Stock' })
 const stockStore = useStockStore()
 const toast = useToast()
 const search = ref('')

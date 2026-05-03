@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ title: 'Fournisseurs' })
 const stockStore = useStockStore()
 const toast = useToast()
 const router = useRouter()

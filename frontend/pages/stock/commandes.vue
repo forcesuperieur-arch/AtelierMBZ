@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ title: 'Commandes fournisseurs' })
 const stockStore = useStockStore()
 const toast = useToast()
 const filter = ref('')
