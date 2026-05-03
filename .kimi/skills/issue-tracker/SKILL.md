@@ -9,7 +9,7 @@
 | 1 | **Injection SQL** via `sprintf` dans `nextDocumentNumber` | `FacturationController.php:203,207` | GuardSec | ✅ Résolu — validation regex du prefix ajoutée |
 | 2 | **Mots de passe hardcodés** en seed | `SeedCommand.php:191`, `ResetSeedCommand.php:165` | GuardSec | ✅ Résolu — remplacés par `bin2hex(random_bytes(16))` |
 | 3 | **Endpoints sans `#[IsGranted]`** | 13 controllers identifiés | GuardSec | ✅ Résolu — `#[IsGranted` ajouté sur tous les controllers internes (Mecanicien, RdvPrestationCatalog, AdminAtelier, AdminUserProvisioning, etc.) |
-| 4 | **34 entités sans tests** | `backend/src/Entity/*` (liste complète dans `agent-testpilot`) | TestPilot | 🔴 Ouvert — 5 entités couvertes (Facture, Devis, VOPurchase, VODepotVente, PieceDetachee) |
+| 4 | **33 entités sans tests** | `backend/src/Entity/*` (liste complète dans `agent-testpilot`) | TestPilot | 🔴 Ouvert — 6 entités couvertes (Facture, Devis, VOPurchase, VODepotVente, PieceDetachee, Fournisseur) |
 | 5 | **51 entités sans validation Symfony** | `backend/src/Entity/*` | GuardSec | 🔴 Ouvert |
 
 ## 🟠 HAUTE — Dettes structurantes
@@ -34,7 +34,7 @@
 | 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | ✅ Résolu — `utils/hydra.ts` créé |
 | 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | ✅ Résolu — `composables/useAsyncAction.ts` créé |
 | 18 | **Tests E2E incomplets** | Manquent : facturation, OR, CERFA, gardiennage | TestPilot | 🟡 Ouvert |
-| 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | 🟡 Ouvert |
+| 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | ✅ Résolu — remplacés par `devWarn` (no-op en production) |
 | 20 | **Rôles legacy** (`role` string + `RoleMetier`) | `User`, `RoleMetier` | ArchiTech | 🟡 Ouvert |
 
 ## 🟢 FAIBLE — Refontes futures
