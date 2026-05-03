@@ -194,6 +194,30 @@ class GardiennageController extends AbstractController
         $commande->setStatut('recue');
         $commande->setDateLivraisonReelle(new \DateTime());
 
+        // Auto-réception stock si une PieceDetachee correspondante existe
+        $piece = $this->em->getRepository(PieceDetachee::class)->createQueryBuilder('p')
+            ->where('p.reference = :ref OR p.referenceFournisseur = :ref')
+            ->andWhere('p.isActive = 1')
+            ->setParameter('ref', $commande->getReference())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($piece) {
+            $user = $this->getUser() instanceof User ? $this->getUser() : null;
+            $this->stockMovementService->recordMovement(
+                $piece,
+                \App\Entity\MouvementStock::TYPE_RECEPTION,
+                $commande->getQuantite(),
+                $commande->getPrixAchat(),
+                sprintf('Réception commande pièce OR #%d — %s', $commande->getId(), $commande->getDesignation()),
+                null,
+                $commande->getRendezVous(),
+                $user,
+                $commande->getAtelierId(),
+            );
+        }
+
         // Check if all commandes for this RDV are received
         $rdv = $commande->getRendezVous();
         $pending = $this->em->getRepository(CommandePiece::class)->createQueryBuilder('c')
