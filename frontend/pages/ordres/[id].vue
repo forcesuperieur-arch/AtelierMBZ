@@ -586,6 +586,21 @@
       </div>
     </UCard>
 
+    <!-- Pièces utilisées (stock) -->
+    <UCard v-if="rdv?.id" style="margin-bottom:20px;">
+      <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">🔩 Pièces utilisées (stock)</span></template>
+      <div v-if="!piecesUtilisees.length" style="padding:14px;text-align:center;color:#6B7280;font-size:12px;">Aucune pièce consommée sur cet OR.</div>
+      <div v-for="p in piecesUtilisees" :key="p.id" style="padding:10px 12px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:240px;">
+          <div style="font-size:13px;color:#E8E9ED;font-weight:600;">{{ p.piece?.nom || 'Pièce #' + p.piece?.id }} <span style="color:#9CA3AF;font-weight:400;">— Réf. {{ p.piece?.reference }}</span></div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">
+            <span>Qté {{ p.quantite }}</span>
+            <span v-if="p.prix_vente_unitaire"> · Prix vente {{ formatCurrency(Number(p.prix_vente_unitaire)) }}</span>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Gardiennage (LOT 9) -->
     <UCard v-if="rdv?.id && (rdv.statut === 'termine' || rdv.gardiennage_debut_at || rdv.gardiennageDebutAt)" style="margin-bottom:20px;">
       <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">🏪 Gardiennage</span></template>
@@ -1205,6 +1220,7 @@ async function handlePhotoUpload(e: Event) {
 
 // ── LOT 9 : Commandes de pièces ──
 const commandesPieces = ref<any[]>([])
+const piecesUtilisees = ref<any[]>([])
 const showCommandeForm = ref(false)
 const savingCommande = ref(false)
 const newCommande = reactive({
@@ -1222,6 +1238,14 @@ async function loadCommandesPieces() {
   try {
     commandesPieces.value = await api.get(`/rdv/${rdv.value.id}/commandes-pieces`)
   } catch { commandesPieces.value = [] }
+}
+
+async function loadPiecesUtilisees() {
+  if (!rdv.value?.id) return
+  try {
+    const res = await api.get(`/piece_utilisees?rendezVous=${rdv.value.id}`)
+    piecesUtilisees.value = Array.isArray(res) ? res : (res['hydra:member'] ?? res['member'] ?? [])
+  } catch { piecesUtilisees.value = [] }
 }
 
 async function submitCommande() {
@@ -1316,7 +1340,7 @@ async function loadGardiennageMontant() {
 // Watch rdv load for additional data
 watch(() => rdv.value?.id, async (id) => {
   if (!id) return
-  await Promise.all([loadPhotos(), loadCommandesPieces()])
+  await Promise.all([loadPhotos(), loadCommandesPieces(), loadPiecesUtilisees()])
   if (rdv.value?.gardiennage_debut_at || rdv.value?.gardiennageDebutAt) {
     await loadGardiennageMontant()
   }
