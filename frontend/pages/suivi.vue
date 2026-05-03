@@ -2,75 +2,87 @@
   <div>
     <AppPageHeader title="Suivi Live des Interventions" subtitle="Mise à jour en temps réel par mécanicien">
       <template #actions>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="live-dot"></div>
-          <span style="font-size:13px;font-weight:600;color:var(--green);">Live</span>
+        <div class="flex items-center gap-2">
+          <div class="live-dot" />
+          <span class="text-sm font-semibold text-emerald-400">Live</span>
         </div>
       </template>
     </AppPageHeader>
 
     <!-- Alert strip -->
-    <div class="alert-strip" style="margin-bottom:20px;">
-      <div class="alert-chip" :class="enCoursCount > 0 ? 'success' : ''" style="border-color:rgba(20,184,166,0.25);background:rgba(20,184,166,0.06);color:#5EEAD4;">
+    <div class="alert-strip mb-5">
+      <div class="alert-chip" :class="enCoursCount > 0 ? 'alert-chip--success' : ''">
         🛠️ En cours: {{ enCoursCount }}
       </div>
-      <div class="alert-chip" :class="imminentsCount > 0 ? 'warning' : ''" :style="imminentsCount > 0 ? '' : 'border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#6B7280;'">
+      <div class="alert-chip" :class="imminentsCount > 0 ? 'alert-chip--warning' : 'alert-chip--muted'">
         ⏰ Démarrages imminents: {{ imminentsCount }}
       </div>
-      <div class="alert-chip" :class="retardsCount > 0 ? 'danger' : ''" :style="retardsCount > 0 ? '' : 'border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#6B7280;'">
+      <div class="alert-chip" :class="retardsCount > 0 ? 'alert-chip--danger' : 'alert-chip--muted'">
         ⚠️ Retards: {{ retardsCount }}
       </div>
     </div>
 
-    <div v-if="loading" class="loading-shimmer" style="height:300px;border-radius:14px;"></div>
+    <AppLoadingState
+      v-if="loading"
+      title="Chargement du suivi"
+      description="Récupération des interventions en cours…"
+    />
 
-    <div v-else-if="!mecaGroups.length" style="padding:40px;text-align:center;color:#6B7280;font-size:14px;">
-      Aucune intervention en cours
-    </div>
+    <AppEmptyState
+      v-else-if="!mecaGroups.length"
+      icon="i-heroicons-wrench"
+      title="Aucune intervention en cours"
+      description="Le suivi s'actualisera automatiquement dès qu'un mécanicien démarrera un RDV."
+    />
 
-    <div v-else style="display:flex;flex-direction:column;gap:16px;">
-      <div v-for="group in mecaGroups" :key="group.mecanicien_id || 'unassigned'" style="background:var(--dark2);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
+    <div v-else class="flex flex-col gap-4">
+      <div
+        v-for="group in mecaGroups"
+        :key="group.mecanicien_id || 'unassigned'"
+        class="meca-group"
+      >
         <!-- Mechanic header -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#C4B5FD;">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="meca-avatar">
             {{ group.initials }}
           </div>
           <div>
-            <div style="font-weight:700;color:#E8E9ED;font-size:15px;">{{ group.mecanicien_nom || 'Non assigné' }}</div>
-            <div style="font-size:12px;color:#6B7280;">{{ group.rdvs.length }} intervention(s) aujourd'hui</div>
+            <div class="text-[15px] font-bold text-text-primary">{{ group.mecanicien_nom || 'Non assigné' }}</div>
+            <div class="text-xs text-gray-500">{{ group.rdvs.length }} intervention(s) aujourd'hui</div>
           </div>
         </div>
 
         <!-- Interventions -->
-        <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="flex flex-col gap-2.5">
           <div
             v-for="rdv in group.rdvs"
             :key="rdv.id"
-            style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:10px;transition:all 0.15s;"
-            :style="{
-              background: rdv.status === 'en_cours' ? 'rgba(20,184,166,0.06)' : 'rgba(255,255,255,0.02)',
-              border: rdv.status === 'en_cours' ? '1px solid rgba(20,184,166,0.2)' : '1px solid rgba(255,255,255,0.06)',
-            }"
+            class="rdv-row"
+            :class="{ 'rdv-row--active': rdv.status === 'en_cours' }"
           >
             <!-- Time -->
-            <div style="min-width:50px;text-align:center;">
-              <div style="font-size:14px;font-weight:700;color:#E8E9ED;">{{ rdv.heure_debut?.slice(0, 5) }}</div>
+            <div class="min-w-[50px] text-center">
+              <div class="text-sm font-bold text-text-primary">{{ rdv.heure_debut?.slice(0, 5) }}</div>
             </div>
 
             <!-- Info -->
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;color:#E8E9ED;">{{ rdv.client_nom }}</div>
-              <div style="font-size:12px;color:#6B7280;">{{ rdv.type_intervention }} — {{ rdv.vehicule_info }}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-text-primary truncate">{{ rdv.client_nom }}</div>
+              <div class="text-xs text-gray-500 truncate">{{ rdv.type_intervention }} — {{ rdv.vehicule_info }}</div>
             </div>
 
             <!-- Progress bar for en_cours -->
-            <div v-if="rdv.status === 'en_cours'" style="width:120px;">
-              <div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-bottom:3px;">
+            <div v-if="rdv.status === 'en_cours'" class="w-[120px] flex-shrink-0">
+              <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
                 <span>{{ getElapsed(rdv) }} min</span>
                 <span>{{ rdv.duree_estimee || 60 }} min</span>
               </div>
-              <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-                <div style="height:100%;border-radius:2px;transition:width 1s;" :style="{ width: getProgress(rdv) + '%', background: getProgress(rdv) > 100 ? '#EF4444' : '#14B8A6' }"></div>
+              <div class="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-[width] duration-1000"
+                  :class="getProgress(rdv) > 100 ? 'bg-red-500' : 'bg-teal-500'"
+                  :style="{ width: getProgress(rdv) + '%' }"
+                />
               </div>
             </div>
 
@@ -78,7 +90,9 @@
             <StatusBadge :status="rdv.status" />
 
             <!-- Link -->
-            <NuxtLink :to="`/planning?openRdv=${rdv.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+            <NuxtLink :to="`/planning?openRdv=${rdv.id}`" class="text-amber-400 text-xs font-semibold hover:underline flex-shrink-0">
+              Voir →
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -180,8 +194,7 @@ function getProgress(rdv: any): number {
 async function fetchData() {
   try {
     const data = await api.get(`/rendez-vous?date_rdv=${today}&itemsPerPage=200`)
-    const items = Array.isArray(data) ? data : (data?.['hydra:member'] ?? data?.member ?? [])
-    rdvs.value = items
+    rdvs.value = unwrapHydraOrEmpty(data)
   } catch {}
 }
 
@@ -195,3 +208,69 @@ onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval)
 })
 </script>
+
+<style scoped>
+.alert-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.alert-chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #6B7280;
+}
+.alert-chip--success {
+  border-color: rgba(20, 184, 166, 0.25);
+  background: rgba(20, 184, 166, 0.06);
+  color: #5EEAD4;
+}
+.alert-chip--warning {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+  color: #FCD34D;
+}
+.alert-chip--danger {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.06);
+  color: #FCA5A5;
+}
+.meca-group {
+  background: var(--dark2, #1A1D26);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.06));
+  border-radius: 12px;
+  padding: 20px;
+}
+.meca-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #C4B5FD;
+  flex-shrink: 0;
+}
+.rdv-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  transition: all 150ms ease;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rdv-row--active {
+  background: rgba(20, 184, 166, 0.06);
+  border-color: rgba(20, 184, 166, 0.2);
+}
+</style>
