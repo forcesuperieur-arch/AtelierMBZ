@@ -2,12 +2,12 @@
   <div>
     <AppPageHeader title="Grille Tarifaire" subtitle="Vue rapide des prestations atelier et de leurs prix publics." />
 
-    <UCard style="margin-bottom:16px;">
-      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-        <UFormField label="Recherche" style="min-width:260px;">
+    <UCard class="mb-4">
+      <div class="flex gap-3 items-end flex-wrap">
+        <UFormField label="Recherche" class="min-w-[260px]">
           <UInput v-model="search" placeholder="Prestation, catégorie..." />
         </UFormField>
-        <div style="margin-left:auto;font-size:12px;color:#9CA3AF;">
+        <div class="ml-auto text-xs text-gray-400">
           {{ filteredPrestations.length }} prestation(s) affichée(s)
         </div>
       </div>
@@ -27,18 +27,16 @@
     />
 
     <template v-else>
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <div class="flex gap-2 mb-5 flex-wrap">
         <button
           v-for="cat in categories"
           :key="cat"
-          style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;"
-          :style="{
-            background: selectedCat === cat ? 'rgba(255,210,0,0.1)' : 'rgba(255,255,255,0.03)',
-            border: selectedCat === cat ? '1px solid rgba(255,210,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
-            color: selectedCat === cat ? '#FFD200' : '#6B7280',
-          }"
+          class="category-pill"
+          :class="{ 'category-pill--active': selectedCat === cat }"
           @click="selectedCat = selectedCat === cat ? '' : cat"
-        >{{ cat }}</button>
+        >
+          {{ cat }}
+        </button>
       </div>
 
       <UCard>
@@ -50,7 +48,7 @@
             {{ formatAmount(row.original.prix_base_ht) }}
           </template>
           <template #prix_base_ttc-cell="{ row }">
-            <span style="font-weight:700;color:#FFD200;">{{ formatAmount(row.original.prix_base_ttc) }}</span>
+            <span class="font-bold text-amber-400">{{ formatAmount(row.original.prix_base_ttc) }}</span>
           </template>
         </UTable>
         <AppEmptyState
@@ -84,23 +82,29 @@ const columns = [
 ]
 
 const categories = computed(() => {
-  const cats = new Set(prestations.value.map(p => p.categorie).filter(Boolean))
-  return Array.from(cats).sort()
+  const set = new Set(prestations.value.map(p => p.categorie).filter(Boolean))
+  return Array.from(set).sort()
 })
 
 const filteredPrestations = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return prestations.value.filter((p: any) => {
-    const matchesCat = !selectedCat.value || p.categorie === selectedCat.value
-    if (!matchesCat) return false
-    if (!query) return true
-    return [p.nom, p.categorie].filter(Boolean).join(' ').toLowerCase().includes(query)
-  })
+  let list = prestations.value
+  if (selectedCat.value) {
+    list = list.filter(p => p.categorie === selectedCat.value)
+  }
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    list = list.filter(p =>
+      p.nom?.toLowerCase().includes(q) ||
+      p.categorie?.toLowerCase().includes(q) ||
+      p.description?.toLowerCase().includes(q)
+    )
+  }
+  return list
 })
 
-function formatAmount(v: number | string) {
-  const amount = Number(v)
-  return Number.isFinite(amount) && amount > 0 ? formatCurrency(amount) : '—'
+function formatAmount(v: number | null) {
+  if (v == null) return '–'
+  return formatCurrency(v)
 }
 
 function resetFilters() {
@@ -111,19 +115,12 @@ function resetFilters() {
 async function loadPrestations() {
   loading.value = true
   errorMessage.value = ''
-
   try {
     const data = await api.get('/prestations')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    prestations.value = raw.map((p: any) => ({
-      ...p,
-      temps_estime_minutes: Number(p.temps_estime_minutes ?? 0),
-      prix_base_ht: Number(p.prix_base_ht ?? 0),
-      prix_base_ttc: Number(p.prix_base_ttc ?? 0),
-    }))
+    prestations.value = Array.isArray(data) ? data : (data?.['hydra:member'] ?? [])
   } catch (e: unknown) {
-    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'La grille tarifaire n’a pas pu être chargée.'
-    toast.add({ title: 'Erreur tarifs', description: errorMessage.value, color: 'error' })
+    errorMessage.value = e instanceof Error ? e.message : 'Impossible de charger les tarifs'
+    toast.add({ title: 'Erreur', description: errorMessage.value, color: 'error' })
   } finally {
     loading.value = false
   }
@@ -131,3 +128,26 @@ async function loadPrestations() {
 
 onMounted(loadPrestations)
 </script>
+
+<style scoped>
+.category-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #6B7280;
+}
+.category-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.category-pill--active {
+  background: rgba(255, 210, 0, 0.1);
+  border-color: rgba(255, 210, 0, 0.3);
+  color: #FFD200;
+}
+</style>

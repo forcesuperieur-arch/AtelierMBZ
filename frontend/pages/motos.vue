@@ -2,15 +2,15 @@
   <div>
     <AppPageHeader title="Catalogue Motos" subtitle="Référentiel des modèles pour accélérer la saisie véhicule." />
 
-    <UCard style="margin-bottom:16px;">
-      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+    <UCard class="mb-4">
+      <div class="flex flex-wrap gap-3 items-end">
         <UFormField label="Catégorie">
           <USelect v-model="selectedCat" :options="catOptions" placeholder="Toutes" />
         </UFormField>
         <UFormField label="Recherche">
           <UInput v-model="search" placeholder="Marque, modèle..." />
         </UFormField>
-        <div style="margin-left:auto;font-size:12px;color:#9CA3AF;">
+        <div class="ml-auto text-xs text-gray-400">
           {{ filtered.length }} modèle(s) affiché(s)
         </div>
       </div>
@@ -32,7 +32,7 @@
     <UCard v-else>
       <UTable v-if="filtered.length" :data="filtered" :columns="columns" :loading="loading">
         <template #actions-cell="{ row }">
-          <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openDetails(row.original)">Détails</button>
+          <AppActionLink variant="primary" @click="openDetails(row.original)">Détails</AppActionLink>
         </template>
       </UTable>
       <AppEmptyState
@@ -48,16 +48,16 @@
       <template #content>
         <UCard v-if="selectedModel">
           <template #header>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div class="flex items-center justify-between gap-2.5">
               <div>
-                <div style="font-size:16px;font-weight:800;color:#E8E9ED;">{{ selectedModel.marque }} {{ selectedModel.modele }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">{{ selectedModel.categorie_nom || 'Catégorie non renseignée' }}</div>
+                <div class="text-base font-extrabold text-text-primary">{{ selectedModel.marque }} {{ selectedModel.modele }}</div>
+                <div class="text-xs text-gray-400">{{ selectedModel.categorie_nom || 'Catégorie non renseignée' }}</div>
               </div>
-              <button class="btn btn-ghost" @click="selectedModel = null">Fermer</button>
+              <UButton variant="ghost" @click="selectedModel = null">Fermer</UButton>
             </div>
           </template>
 
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="detail-card"><span>Marque</span><strong>{{ selectedModel.marque || '—' }}</strong></div>
             <div class="detail-card"><span>Modèle</span><strong>{{ selectedModel.modele || '—' }}</strong></div>
             <div class="detail-card"><span>Catégorie</span><strong>{{ selectedModel.categorie_nom || '—' }}</strong></div>
@@ -83,66 +83,59 @@ const categories = ref<any[]>([])
 const selectedCat = ref('')
 const search = ref('')
 const selectedModel = ref<any>(null)
-
-const detailOpen = computed({
-  get: () => Boolean(selectedModel.value),
-  set: (value: boolean) => {
-    if (!value) selectedModel.value = null
-  },
-})
-
-const catOptions = computed(() => [
-  { value: '', label: 'Toutes' },
-  ...categories.value.map(c => ({ value: String(c.id), label: c.nom })),
-])
-
-const filtered = computed(() => {
-  let list = models.value
-  if (selectedCat.value) list = list.filter(m => String(m.categorie_id) === selectedCat.value)
-  if (search.value) {
-    const s = search.value.toLowerCase()
-    list = list.filter(m => m.marque?.toLowerCase().includes(s) || m.modele?.toLowerCase().includes(s))
-  }
-  return list
-})
+const detailOpen = computed({ get: () => !!selectedModel.value, set: (v) => { if (!v) selectedModel.value = null } })
 
 const columns = [
   { key: 'marque', label: 'Marque' },
   { key: 'modele', label: 'Modèle' },
   { key: 'categorie_nom', label: 'Catégorie' },
   { key: 'cylindree_min', label: 'Cylindrée' },
+  { key: 'annee_debut', label: 'Année' },
   { key: 'actions', label: '' },
 ]
 
-function openDetails(model: any) {
-  selectedModel.value = model
-}
+const catOptions = computed(() => [
+  { label: 'Toutes', value: '' },
+  ...categories.value.map(c => ({ label: c.nom, value: c.nom })),
+])
+
+const filtered = computed(() => {
+  let list = models.value
+  if (selectedCat.value) {
+    list = list.filter(m => m.categorie_nom === selectedCat.value)
+  }
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    list = list.filter(m =>
+      m.marque?.toLowerCase().includes(q) ||
+      m.modele?.toLowerCase().includes(q)
+    )
+  }
+  return list
+})
 
 function resetFilters() {
   selectedCat.value = ''
   search.value = ''
 }
 
+function openDetails(m: any) {
+  selectedModel.value = m
+}
+
 async function loadCatalog() {
   loading.value = true
   errorMessage.value = ''
-
   try {
     const [mData, cData] = await Promise.all([
-      api.get('/motos/modeles'),
-      api.get('/motos/categories'),
+      api.get('/motos'),
+      api.get('/moto-categories'),
     ])
-    const rawCats = cData?.['hydra:member'] ?? cData?.member ?? (Array.isArray(cData) ? cData : [])
-    categories.value = rawCats
-    const rawModels = mData?.['hydra:member'] ?? mData?.member ?? (Array.isArray(mData) ? mData : [])
-    models.value = rawModels.map((m: any) => ({
-      ...m,
-      categorie_id: m.categorie?.id ?? m.categorie_id,
-      categorie_nom: m.categorie?.nom ?? m.categorie_nom ?? '',
-    }))
+    models.value = Array.isArray(mData) ? mData : (mData?.['hydra:member'] ?? [])
+    categories.value = Array.isArray(cData) ? cData : (cData?.['hydra:member'] ?? [])
   } catch (e: unknown) {
-    errorMessage.value = (e instanceof Error ? e.message : 'Erreur inconnue') || 'Le catalogue moto n’a pas pu être chargé.'
-    toast.add({ title: 'Catalogue indisponible', description: errorMessage.value, color: 'error' })
+    errorMessage.value = e instanceof Error ? e.message : 'Impossible de charger le catalogue'
+    toast.add({ title: 'Erreur', description: errorMessage.value, color: 'error' })
   } finally {
     loading.value = false
   }
@@ -155,22 +148,17 @@ onMounted(loadCatalog)
 .detail-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
 }
-
 .detail-card span {
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #9CA3AF;
+  color: #6B7280;
 }
-
 .detail-card strong {
-  color: #E8E9ED;
   font-size: 14px;
+  color: #E8E9ED;
 }
 </style>

@@ -22,7 +22,7 @@
 | 9 | **Duplication RGPD snapshot** | `Facture`, `Devis`, `OrdreReparation` | ArchiTech | 🟠 Ouvert |
 | 10 | **Duplication VO** (Purchase/Depot) | `VOPurchaseController`, `VODepotController`, `VOCompanionTrait` | ArchiTech | 🟠 Ouvert |
 | 11 | **normalize* dupliqué frontend** | `planning.vue`, `clients/[id].vue`, `admin/ponts.vue` | FrontCraft | 🟠 Ouvert |
-| 12 | **snake_case massif dans Vue** | ~15 fichiers majeurs | FrontCraft | 🟠 Ouvert |
+| 12 | **snake_case massif dans Vue** | ~15 fichiers majeurs | FrontCraft | 🟠 En cours — refactor progressif des pages stock, tarifs, motos |
 | 13 | **Méthodes `@deprecated` encore utilisées** | `MecanicienController`, `ResetSeedCommand` | ArchiTech | 🟠 Ouvert |
 
 ## 🟡 MOYENNE — Améliorations
@@ -31,10 +31,10 @@
 |---|---|---|---|---|
 | 14 | **Vulnérabilité postcss** (<8.5.10) | `frontend/package-lock.json` | GuardSec | ✅ Résolu — `npm audit fix` appliqué, 0 vulnérabilités |
 | 15 | **Uploads sans magic bytes** | `VODocumentService` | GuardSec | ✅ Résolu — validation par magic bytes ajoutée pour PDF/JPEG/PNG/WebP |
-| 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | ✅ Résolu — `utils/hydra.ts` créé |
+| 16 | **Pas d'unwrapHydra centralisé** | 15+ duplications | FrontCraft | ✅ Résolu — `utils/hydra.ts` créé, adopté dans stock/rdv/billing |
 | 17 | **Pas de `useAsyncAction` composable** | 40+ pages avec try/catch/toast/loading | FrontCraft | ✅ Résolu — `composables/useAsyncAction.ts` créé |
 | 18 | **Tests E2E incomplets** | Manquent : facturation, OR, CERFA, gardiennage | TestPilot | 🟡 Ouvert |
-| 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | ✅ Résolu — remplacés par `devWarn` (no-op en production) |
+| 19 | **Console.warn en prod** | `useNotifications.ts` (5 occurences) | FrontCraft | ✅ Résolu — `devWarn` créé, no-op en production |
 | 20 | **Rôles legacy** (`role` string + `RoleMetier`) | `User`, `RoleMetier` | ArchiTech | 🟡 Ouvert |
 
 ## 🟢 FAIBLE — Refontes futures
