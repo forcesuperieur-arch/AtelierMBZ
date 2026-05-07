@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            margin: 110px 20px 70px 20px;
+        }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 9px;
+            color: #111;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            position: fixed;
+            top: -95px;
+            left: 0;
+            right: 0;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .header-table td {
+            vertical-align: top;
+        }
+        .logo-paddock {
+            max-width: 90px;
+            max-height: 40px;
+        }
+        .logo-atelier {
+            max-width: 70px;
+            max-height: 30px;
+        }
+        .header-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e3a5f;
+            margin: 0;
+        }
+        .header-meta {
+            font-size: 8px;
+            color: #555;
+            margin-top: 2px;
+        }
+        .footer {
+            position: fixed;
+            bottom: -55px;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #ccc;
+            padding-top: 6px;
+            font-size: 7px;
+            color: #666;
+            text-align: center;
+        }
+        .page-number:after {
+            content: counter(page);
+        }
+        table.register {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-family: DejaVu Sans Mono, monospace;
+            font-size: 8px;
+        }
+        table.register th {
+            background: #1e3a5f;
+            color: #fff;
+            padding: 4px 3px;
+            text-align: left;
+            border: 1px solid #1e3a5f;
+        }
+        table.register td {
+            padding: 3px;
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #eee;
+            border-right: 1px solid #eee;
+            vertical-align: top;
+        }
+        table.register tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .col-date { width: 9%; }
+        .col-type { width: 8%; }
+        .col-immat { width: 10%; }
+        .col-desc { width: 28%; }
+        .col-vend { width: 13%; }
+        .col-ache { width: 13%; }
+        .col-prix { width: 11%; }
+        .col-hash { width: 8%; font-size: 6px; text-align: center; }
+
+        .type-label {
+            text-transform: uppercase;
+            font-size: 7px;
+            font-weight: bold;
+            padding: 1px 3px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        .type-achat { background: #dbeafe; color: #1e40af; }
+        .type-depot_vente { background: #fef3c7; color: #92400e; }
+        .type-vente { background: #dcfce7; color: #166534; }
+
+        .hash-section {
+            margin-top: 16px;
+            page-break-inside: avoid;
+        }
+        .hash-section h3 {
+            font-size: 9px;
+            color: #1e3a5f;
+            margin-bottom: 4px;
+        }
+        .hash-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: DejaVu Sans Mono, monospace;
+            font-size: 7px;
+        }
+        .hash-table th {
+            background: #f1f5f9;
+            padding: 3px;
+            text-align: left;
+            border: 1px solid #cbd5e1;
+        }
+        .hash-table td {
+            padding: 3px;
+            border: 1px solid #e2e8f0;
+            word-break: break-all;
+        }
+
+        .stats-box {
+            margin-top: 10px;
+            padding: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            font-size: 8px;
+        }
+        .stats-box strong {
+            color: #1e3a5f;
+        }
+
+        .mention-legale {
+            margin-top: 12px;
+            font-size: 7px;
+            color: #64748b;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td style="width: 60px;">
+                    {% if paddock_logo_data_uri %}
+                        <img src="{{ paddock_logo_data_uri }}" alt="Paddock" class="logo-paddock">
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="header-title">LIVRE DE POLICE — {{ atelier and atelier.nom ? atelier.nom|upper : 'ATELIER MOTO' }}</div>
+                    <div class="header-meta">
+                        Document généré le {{ exportDate|date('d/m/Y à H:i') }}
+                        {% if filters.date_debut is defined or filters.date_fin is defined %}
+                            — Période :
+                            {% if filters.date_debut is defined %}du {{ filters.date_debut }}{% endif %}
+                            {% if filters.date_fin is defined %}au {{ filters.date_fin }}{% endif %}
+                        {% else %}
+                            — Toutes les entrées
+                        {% endif %}
+                        {% if filters.type is defined %}
+                            — Filtre type : {{ filters.type }}
+                        {% endif %}
+                    </div>
+                </td>
+                <td style="text-align: right; width: 70px;">
+                    {% if logo_data_uri %}
+                        <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo-atelier">
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Document généré le {{ exportDate|date('d/m/Y à H:i') }} — Vérification d'intégrité : {{ globalHash|slice(0, 16) }}…<br>
+        Page <span class="page-number"></span> — {{ paddock_brand|default('Paddock') }} — Registre immuable
+    </div>
+
+    <table class="register">
+        <thead>
+            <tr>
+                <th class="col-date">Date</th>
+                <th class="col-type">Type</th>
+                <th class="col-immat">Immat.</th>
+                <th class="col-desc">Description</th>
+                <th class="col-vend">Vendeur</th>
+                <th class="col-ache">Acheteur</th>
+                <th class="col-prix">Prix</th>
+                <th class="col-hash">Intégrité</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>
+                    {{ e.dateAcquisition|date('d/m/Y') }}
+                    {% if e.dateVente %}<br><span style="color:#059669;">→ {{ e.dateVente|date('d/m/Y') }}</span>{% endif %}
+                </td>
+                <td>
+                    {% set typeClass = 'type-' ~ e.type %}
+                    <span class="type-label {{ typeClass }}">
+                        {% if e.type == 'achat' %}RACHAT{% elseif e.type == 'depot_vente' %}DÉPÔT{% else %}{{ e.type|upper }}{% endif %}
+                    </span>
+                    {% if e.dateVente %}<br><span class="type-label type-vente">VENTE</span>{% endif %}
+                </td>
+                <td>{{ e.immatriculation }}</td>
+                <td>{{ e.descriptionBien }}</td>
+                <td>{{ e.vendeurPrenom }} {{ e.vendeurNom }}</td>
+                <td>
+                    {% if e.acheteurNom %}
+                        {{ e.acheteurPrenom ?? '' }} {{ e.acheteurNom }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    A: {{ e.prixAchat|number_format(2, ',', ' ') }} €
+                    {% if e.prixVente %}<br>V: {{ e.prixVente|number_format(2, ',', ' ') }} €{% endif %}
+                </td>
+                <td style="text-align: center;">
+                    {% if e.integrityHash %}
+                        <span style="color:#059669;">✓</span><br>
+                        <span style="font-size:5px; color:#64748b;">{{ e.integrityHash|slice(0,8) }}</span>
+                    {% else %}
+                        <span style="color:#94a3b8;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="stats-box">
+        <strong>Récapitulatif :</strong> {{ stats.total }} entrée{{ stats.total > 1 ? 's' : '' }},
+        {{ stats.hashed }} hash d'intégrité vérifié{{ stats.hashed > 1 ? 's' : '' }}.
+    </div>
+
+    {% if stats.hashed > 0 %}
+    <div class="hash-section">
+        <h3>Détail des empreintes d'intégrité (SHA-256)</h3>
+        <table class="hash-table">
+            <thead>
+                <tr>
+                    <th style="width:8%;">N° ordre</th>
+                    <th style="width:12%;">Immatriculation</th>
+                    <th style="width:80%;">Hash SHA-256</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries|filter(e => e.integrityHash) %}
+                <tr>
+                    <td>{{ e.numeroOrdre }}</td>
+                    <td>{{ e.immatriculation }}</td>
+                    <td>{{ e.integrityHash }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="mention-legale">
+        Registre tenu conformément aux articles 321-7 et 321-8 du Code Pénal et au décret n° 2009-1104.
+        Ce document est un extrait du Livre de Police immuable. Toute modification est interdite.
+        Conservation légale : 5 ans.
+    </div>
+</body>
+</html>

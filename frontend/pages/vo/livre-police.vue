@@ -79,7 +79,7 @@ async function downloadPdf() {
   if (pdfLoading.value) return
   pdfLoading.value = true
   try {
-    await downloadPdfFile('/vo/livre-police/pdf', 'livre-police.pdf')
+    await downloadPdfFile('/vo/livre-de-police/export-pdf', 'livre-de-police-export.pdf')
   } catch (e: unknown) {
     toast.add({ title: 'Erreur PDF', description: e instanceof Error ? e.message : 'Erreur inconnue' ?? 'Impossible de générer le PDF', color: 'error' })
   } finally {

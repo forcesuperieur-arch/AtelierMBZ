@@ -137,6 +137,14 @@ class VOLivrePolice
     #[Groups(['livrepolice:read'])]
     private ?string $acheteurAdresse = null;
 
+    /**
+     * [LOT-0] Hash SHA-256 d'intégrité pour preuve d'immuabilité LP (Art. 321-7 CP).
+     * Calculé au persist par VOLivrePoliceService (chemin futur). Nullable pour compat existant.
+     */
+    #[ORM\Column(type: 'string', length: 64, nullable: true)]
+    #[Groups(['livrepolice:read'])]
+    private ?string $integrityHash = null;
+
     // --- Relations ---
 
     #[ORM\OneToOne(targetEntity: VOPurchase::class)]
@@ -209,6 +217,8 @@ class VOLivrePolice
     public function setAcheteurPrenom(?string $v): static { $this->acheteurPrenom = $v; return $this; }
     public function getAcheteurAdresse(): ?string { return $this->acheteurAdresse; }
     public function setAcheteurAdresse(?string $v): static { $this->acheteurAdresse = $v; return $this; }
+    public function getIntegrityHash(): ?string { return $this->integrityHash; }
+    public function setIntegrityHash(?string $v): static { $this->integrityHash = $v; return $this; }
     public function getVoPurchase(): ?VOPurchase { return $this->voPurchase; }
     public function setVoPurchase(?VOPurchase $v): static { $this->voPurchase = $v; return $this; }
     public function getVoDepotVente(): ?VODepotVente { return $this->voDepotVente; }
