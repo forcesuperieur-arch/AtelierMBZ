@@ -473,9 +473,17 @@ class PdfService
 
     private function renderPdf(string $html, string $filename, string $orientation = 'portrait'): string
     {
+        // Dompdf + php-font-lib consomment beaucoup de mémoire lors du rendu,
+        // notamment au premier chargement des polices. On augmente la limite
+        // pour éviter les fatal error dans les suites de tests fonctionnels
+        // ou les documents avec beaucoup de pages.
+        ini_set('memory_limit', '512M');
+
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('fontDir', $this->projectDir . '/vendor/dompdf/dompdf/lib/fonts');
+        $options->set('fontCache', $this->projectDir . '/var/dompdf-font-cache');
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
@@ -489,6 +497,12 @@ class PdfService
 
         $filePath = $outputDir . '/' . $filename . '.pdf';
         file_put_contents($filePath, $dompdf->output());
+
+        // Libérer explicitement la mémoire lourde de Dompdf pour éviter les fuites
+        // entre les appels successifs (tests fonctionnels, workers, etc.).
+        $dompdf = null;
+        $html = null;
+        gc_collect_cycles();
 
         return $filePath;
     }
