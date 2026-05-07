@@ -143,6 +143,8 @@ class RendezVousController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
+        $this->denyAccessUnlessGranted($transition, $rdv);
+
         $data = json_decode($request->getContent(), true) ?? [];
         $transitionName = $transition;
 
