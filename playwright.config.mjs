@@ -22,6 +22,12 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     viewport: { width: 1440, height: 1000 },
   },
+  webServer: {
+    command: 'cd frontend && npm run build && npm run preview',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
   projects: [
     {
       name: 'chromium',
