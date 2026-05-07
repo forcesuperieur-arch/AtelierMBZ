@@ -1,0 +1,5 @@
+[      36ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[      36ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[      37ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[     162ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/l6Ce84bV.js:974
+[     453ms] [WARNING] [Icon] failed to load icon `heroicons:motorcycle` @ http://localhost/_nuxt/l6Ce84bV.js:986

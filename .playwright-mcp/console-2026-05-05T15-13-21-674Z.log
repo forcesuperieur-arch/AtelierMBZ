@@ -1,0 +1,7 @@
+[      56ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[      56ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[      56ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[     153ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/CwATNCJ1.js:974
+[     562ms] [WARNING] [Icon] failed to load icon `heroicons:motorcycle` @ http://localhost/_nuxt/CwATNCJ1.js:986
+[  571634ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/rendez-vous?date_rdv=2026-05-05&itemsPerPage=200:0
+[  571741ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/auth/refresh:0

@@ -1,0 +1,5 @@
+[      40ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[      40ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[      40ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[     198ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/rPq9oxpi.js:974
+[     397ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost/api/mecanicien/me/counts:0

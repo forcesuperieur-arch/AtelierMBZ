@@ -1,0 +1,51 @@
+[     906ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[     927ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[     927ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[    1331ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/DH-6MoIC.js:974
+[ 4930590ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/DH-6MoIC.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/DH-6MoIC.js:44:120979)
+    at vs.create (http://localhost/_nuxt/DH-6MoIC.js:854:3168)
+    at http://localhost/_nuxt/DH-6MoIC.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/DH-6MoIC.js:854:1253)
+    at n (http://localhost/_nuxt/DH-6MoIC.js:975:159986)
+[ 4930617ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/DH-6MoIC.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/DH-6MoIC.js:44:120979)
+    at vs.create (http://localhost/_nuxt/DH-6MoIC.js:854:3168)
+    at http://localhost/_nuxt/DH-6MoIC.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/DH-6MoIC.js:854:1253)
+    at n (http://localhost/_nuxt/DH-6MoIC.js:975:159986)
+[ 4930617ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/DH-6MoIC.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/DH-6MoIC.js:44:120979)
+    at vs.create (http://localhost/_nuxt/DH-6MoIC.js:854:3168)
+    at http://localhost/_nuxt/DH-6MoIC.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/DH-6MoIC.js:854:1253)
+    at n (http://localhost/_nuxt/DH-6MoIC.js:975:159986)
+[ 4930617ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/DH-6MoIC.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/DH-6MoIC.js:44:120979)
+    at vs.create (http://localhost/_nuxt/DH-6MoIC.js:854:3168)
+    at http://localhost/_nuxt/DH-6MoIC.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/DH-6MoIC.js:854:1253)
+    at n (http://localhost/_nuxt/DH-6MoIC.js:975:159986)
+[ 4930618ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/DH-6MoIC.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/DH-6MoIC.js:44:120979)
+    at vs.create (http://localhost/_nuxt/DH-6MoIC.js:854:3168)
+    at http://localhost/_nuxt/DH-6MoIC.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/DH-6MoIC.js:854:1253)
+    at n (http://localhost/_nuxt/DH-6MoIC.js:975:159986)
+[ 4930531ms] [WARNING] [Icon] failed to load icon `heroicons:motorcycle` @ http://localhost/_nuxt/DH-6MoIC.js:986
+[ 4947323ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/statistiques/mecaniciens?from=2026-04-06&to=2026-05-05:0
+[ 4947350ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/statistiques/dashboard?from=2026-04-06&to=2026-05-05:0
+[ 4947385ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/stock/alertes:0
+[ 4947446ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/ponts/status:0
+[ 4947634ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/rendez-vous?dateRdv[after]=2026-05-05&dateRdv[before]=2026-05-05&itemsPerPage=200:0
+[ 4947793ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/auth/refresh:0

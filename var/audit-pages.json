@@ -1,0 +1,910 @@
+{
+  "total": 41,
+  "ok": 0,
+  "errors": [
+    {
+      "path": "/login",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/2fa",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/cover",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/public/booking",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/public/mentions-legales",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/public/politique-confidentialite",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/public/suivi",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/planning",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/workshop",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/mecanicien",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/clients",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/clients/123",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/motos",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/stock",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/tarifs",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/devis",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/devis/123",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/facturation",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/ordres",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/ordres/123",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/rdv",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/rdv/123",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/rdv/new",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/suivi",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/vo",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/vo/depots",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/vo/rachats",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/vo/documents",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/vo/factures",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/profile",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/params",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/users",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/config",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/ponts",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/prestations",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/roles",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/ateliers",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/notifications",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    },
+    {
+      "path": "/admin/notifications/providers",
+      "status": "nearly_empty",
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ]
+    }
+  ],
+  "details": [
+    {
+      "path": "/login",
+      "url": "http://localhost:3000/login",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_login.png"
+    },
+    {
+      "path": "/2fa",
+      "url": "http://localhost:3000/2fa",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_2fa.png"
+    },
+    {
+      "path": "/cover",
+      "url": "http://localhost:3000/cover",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_cover.png"
+    },
+    {
+      "path": "/public/booking",
+      "url": "http://localhost:3000/public/booking",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_public_booking.png"
+    },
+    {
+      "path": "/public/mentions-legales",
+      "url": "http://localhost:3000/public/mentions-legales",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_public_mentions_legales.png"
+    },
+    {
+      "path": "/public/politique-confidentialite",
+      "url": "http://localhost:3000/public/politique-confidentialite",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_public_politique_confidentialite.png"
+    },
+    {
+      "path": "/public/suivi",
+      "url": "http://localhost:3000/public/suivi",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_public_suivi.png"
+    },
+    {
+      "path": "/",
+      "url": "http://localhost:3000/",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_.png"
+    },
+    {
+      "path": "/planning",
+      "url": "http://localhost:3000/planning",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_planning.png"
+    },
+    {
+      "path": "/workshop",
+      "url": "http://localhost:3000/workshop",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_workshop.png"
+    },
+    {
+      "path": "/mecanicien",
+      "url": "http://localhost:3000/mecanicien",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_mecanicien.png"
+    },
+    {
+      "path": "/clients",
+      "url": "http://localhost:3000/clients",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_clients.png"
+    },
+    {
+      "path": "/clients/123",
+      "url": "http://localhost:3000/clients/123",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_clients_123.png"
+    },
+    {
+      "path": "/motos",
+      "url": "http://localhost:3000/motos",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_motos.png"
+    },
+    {
+      "path": "/stock",
+      "url": "http://localhost:3000/stock",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_stock.png"
+    },
+    {
+      "path": "/tarifs",
+      "url": "http://localhost:3000/tarifs",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_tarifs.png"
+    },
+    {
+      "path": "/devis",
+      "url": "http://localhost:3000/devis",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_devis.png"
+    },
+    {
+      "path": "/devis/123",
+      "url": "http://localhost:3000/devis/123",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_devis_123.png"
+    },
+    {
+      "path": "/facturation",
+      "url": "http://localhost:3000/facturation",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_facturation.png"
+    },
+    {
+      "path": "/ordres",
+      "url": "http://localhost:3000/ordres",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_ordres.png"
+    },
+    {
+      "path": "/ordres/123",
+      "url": "http://localhost:3000/ordres/123",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_ordres_123.png"
+    },
+    {
+      "path": "/rdv",
+      "url": "http://localhost:3000/rdv",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_rdv.png"
+    },
+    {
+      "path": "/rdv/123",
+      "url": "http://localhost:3000/rdv/123",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_rdv_123.png"
+    },
+    {
+      "path": "/rdv/new",
+      "url": "http://localhost:3000/rdv/new",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_rdv_new.png"
+    },
+    {
+      "path": "/suivi",
+      "url": "http://localhost:3000/suivi",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_suivi.png"
+    },
+    {
+      "path": "/vo",
+      "url": "http://localhost:3000/vo",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_vo.png"
+    },
+    {
+      "path": "/vo/depots",
+      "url": "http://localhost:3000/vo/depots",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_vo_depots.png"
+    },
+    {
+      "path": "/vo/rachats",
+      "url": "http://localhost:3000/vo/rachats",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_vo_rachats.png"
+    },
+    {
+      "path": "/vo/documents",
+      "url": "http://localhost:3000/vo/documents",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_vo_documents.png"
+    },
+    {
+      "path": "/vo/factures",
+      "url": "http://localhost:3000/vo/factures",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_vo_factures.png"
+    },
+    {
+      "path": "/profile",
+      "url": "http://localhost:3000/profile",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_profile.png"
+    },
+    {
+      "path": "/params",
+      "url": "http://localhost:3000/params",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_params.png"
+    },
+    {
+      "path": "/admin",
+      "url": "http://localhost:3000/admin",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin.png"
+    },
+    {
+      "path": "/admin/users",
+      "url": "http://localhost:3000/admin/users",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_users.png"
+    },
+    {
+      "path": "/admin/config",
+      "url": "http://localhost:3000/admin/config",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_config.png"
+    },
+    {
+      "path": "/admin/ponts",
+      "url": "http://localhost:3000/admin/ponts",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_ponts.png"
+    },
+    {
+      "path": "/admin/prestations",
+      "url": "http://localhost:3000/admin/prestations",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_prestations.png"
+    },
+    {
+      "path": "/admin/roles",
+      "url": "http://localhost:3000/admin/roles",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_roles.png"
+    },
+    {
+      "path": "/admin/ateliers",
+      "url": "http://localhost:3000/admin/ateliers",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_ateliers.png"
+    },
+    {
+      "path": "/admin/notifications",
+      "url": "http://localhost:3000/admin/notifications",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_notifications.png"
+    },
+    {
+      "path": "/admin/notifications/providers",
+      "url": "http://localhost:3000/admin/notifications/providers",
+      "status": "nearly_empty",
+      "httpStatus": 200,
+      "title": "Paddock",
+      "bodyLength": 0,
+      "errors": [
+        "Refused to apply style from 'http://localhost:3000/_nuxt/entry.BPpyHtrt.css' because its MIME type ('application/json') is not a supported stylesheet MIME type, and strict MIME checking is enabled.",
+        "Failed to load resource: the server responded with a status of 500 (Server Error)"
+      ],
+      "warnings": [],
+      "screenshot": "/home/cmoreau/projects/mon-projet/AtelierMBZ/var/screenshots/_admin_notifications_providers.png"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ use App\Entity\OrdreReparation;
 use App\Entity\Prestation;
 use App\Entity\RendezVous;
 use App\Entity\User;
+use App\Service\DocumentNumberingService;
 use App\Service\MercureNotifier;
 use App\Service\OrdreReparationPolicy;
 use App\Service\PrestationCatalogService;
@@ -30,6 +31,7 @@ class DemandeTravauxSuppController extends AbstractController
         private OrdreReparationPolicy $orPolicy,
         private MercureNotifier $mercureNotifier,
         private RateLimiterFactory $publicDemandeLimiter,
+        private DocumentNumberingService $numberingService,
     ) {}
 
     private function ensurePublicRateLimit(Request $request): ?JsonResponse
@@ -395,7 +397,8 @@ class DemandeTravauxSuppController extends AbstractController
 
         $or = new OrdreReparation();
         $or->setRendezVous($rdv);
-        $or->setNumeroOr(($orInitial ? $orInitial->getNumeroOr() : 'OR-' . $rdv->getId() . '-' . date('Ymd')) . '-C' . $demande->getId());
+        $baseNumero = $orInitial ? $orInitial->getNumeroOr() : $this->numberingService->nextOrdreReparationNumber();
+        $or->setNumeroOr($baseNumero . '-C' . $demande->getId());
         $or->setTypeOr('complementaire');
         $or->setTravaux(implode("\n", $travauxLines));
         $or->setDemandeTravauxSupp($demande);

@@ -1,0 +1,25 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Vérification 2FA" [level=1] [ref=e9]
+      - paragraph [ref=e10]: Entrez le code envoyé sur votre téléphone
+    - generic [ref=e13]:
+      - textbox "pin input 1 of 6" [active] [ref=e14]:
+        - /placeholder: ""
+      - textbox "pin input 2 of 6" [ref=e15]:
+        - /placeholder: ""
+      - textbox "pin input 3 of 6" [ref=e16]:
+        - /placeholder: ""
+      - textbox "pin input 4 of 6" [ref=e17]:
+        - /placeholder: ""
+      - textbox "pin input 5 of 6" [ref=e18]:
+        - /placeholder: ""
+      - textbox "pin input 6 of 6" [ref=e19]:
+        - /placeholder: ""
+      - textbox [ref=e20]
+    - button "Vérifier" [ref=e21]
+    - paragraph [ref=e22]:
+      - text: Code non reçu ?
+      - button "Renvoyer" [ref=e23]
+  - region "Notifications (F8)":
+    - list

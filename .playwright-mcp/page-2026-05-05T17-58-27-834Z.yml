@@ -1,0 +1,245 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e53]:
+    - navigation [ref=e54]:
+      - link "Paddock" [ref=e55] [cursor=pointer]:
+        - /url: /
+        - img "Paddock" [ref=e56]
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - link "Dashboard" [ref=e59] [cursor=pointer]:
+            - /url: /
+          - generic:
+            - generic: Dashboard
+        - generic [ref=e61]:
+          - link "Planning" [ref=e62] [cursor=pointer]:
+            - /url: /planning
+          - generic:
+            - generic: Planning
+        - generic [ref=e64]:
+          - link "Atelier" [ref=e65] [cursor=pointer]:
+            - /url: /workshop
+          - generic:
+            - generic: Atelier
+        - generic [ref=e67]:
+          - link "VO" [ref=e68] [cursor=pointer]:
+            - /url: /vo
+          - generic:
+            - generic: VO
+        - generic [ref=e70]:
+          - link "Clients" [ref=e71] [cursor=pointer]:
+            - /url: /clients
+          - generic:
+            - generic: Clients
+        - generic [ref=e73]:
+          - link "Motos" [ref=e74] [cursor=pointer]:
+            - /url: /motos
+          - generic:
+            - generic: Motos
+        - generic [ref=e76]:
+          - link "Devis" [ref=e77] [cursor=pointer]:
+            - /url: /devis
+          - generic:
+            - generic: Devis
+        - generic [ref=e79]:
+          - link "Facturation" [ref=e80] [cursor=pointer]:
+            - /url: /facturation
+          - generic:
+            - generic: Facturation
+        - generic [ref=e82]:
+          - link "Stock" [ref=e83] [cursor=pointer]:
+            - /url: /stock
+          - generic:
+            - generic: Stock
+        - generic [ref=e85]:
+          - link "Admin" [ref=e86] [cursor=pointer]:
+            - /url: /admin
+          - generic:
+            - generic: Admin
+      - generic [ref=e88]:
+        - button "U" [ref=e89] [cursor=pointer]:
+          - generic "U" [ref=e90]:
+            - generic [ref=e91]: U
+        - button "Mon profil" [ref=e92] [cursor=pointer]
+        - button "Déconnexion" [ref=e94] [cursor=pointer]
+    - generic [ref=e96]:
+      - banner [ref=e97]:
+        - generic [ref=e98]:
+          - button [ref=e99]
+          - generic [ref=e101]:
+            - generic [ref=e102]: A
+            - generic [ref=e103]: Atelier
+          - navigation "breadcrumb" [ref=e104]:
+            - list [ref=e105]:
+              - listitem [ref=e106]:
+                - link "Accueil" [ref=e107] [cursor=pointer]:
+                  - /url: /
+                  - generic [ref=e108]: Accueil
+        - generic [ref=e109]:
+          - button "Rechercher K" [ref=e110]:
+            - generic [ref=e112]: Rechercher
+            - generic [ref=e113]: K
+          - button "Ouvrir l'historique des notifications" [ref=e114]
+          - generic "Connecté en temps réel" [ref=e116]
+          - generic [ref=e118]:
+            - button [ref=e119] [cursor=pointer]
+            - button [ref=e122] [cursor=pointer]
+          - link "Nouveau RDV" [ref=e125] [cursor=pointer]:
+            - /url: /rdv/new
+            - generic [ref=e127]: Nouveau RDV
+      - main [ref=e128]:
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e133]:
+              - heading "Poste de contrôle" [level=1] [ref=e134]:
+                - generic [ref=e135]: Poste de contrôle
+              - paragraph [ref=e136]: mardi 5 mai 2026 · Vue d'ensemble temps réel.
+            - button "Actualiser" [ref=e138]:
+              - generic [ref=e140]: Actualiser
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - generic [ref=e145]: "266"
+              - generic [ref=e146]: RDVs sur période
+              - generic [ref=e147]: 100%
+            - generic [ref=e151]:
+              - generic [ref=e154]: 480 €
+              - generic [ref=e155]: CA sur période
+              - generic [ref=e156]: 100%
+            - generic [ref=e160]:
+              - generic [ref=e163]: 15 €
+              - generic [ref=e164]: Panier moyen
+              - generic [ref=e165]: 100%
+            - generic [ref=e169]:
+              - generic [ref=e172]: 0%
+              - generic [ref=e173]: Occupation
+              - generic [ref=e174]: 0/0 ponts
+              - generic [ref=e175]: 0%
+          - generic [ref=e178]:
+            - generic [ref=e182]: Actions rapides
+            - generic [ref=e183]:
+              - link "Nouveau RDV Client + véhicule + créneau" [ref=e184] [cursor=pointer]:
+                - /url: /rdv/new
+                - generic [ref=e187]:
+                  - generic [ref=e188]: Nouveau RDV
+                  - generic [ref=e189]: Client + véhicule + créneau
+              - link "Nouveau client Fiche + véhicule" [ref=e190] [cursor=pointer]:
+                - /url: /clients
+                - generic [ref=e193]:
+                  - generic [ref=e194]: Nouveau client
+                  - generic [ref=e195]: Fiche + véhicule
+              - link "Ordre de réparation Signer + envoyer" [ref=e196] [cursor=pointer]:
+                - /url: /workshop
+                - generic [ref=e199]:
+                  - generic [ref=e200]: Ordre de réparation
+                  - generic [ref=e201]: Signer + envoyer
+              - link "Nouveau rachat VO Fiche + estimation" [ref=e202] [cursor=pointer]:
+                - /url: /vo
+                - generic [ref=e205]:
+                  - generic [ref=e206]: Nouveau rachat VO
+                  - generic [ref=e207]: Fiche + estimation
+          - generic [ref=e208]:
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - generic [ref=e212]: Ponts en temps réel
+                - generic [ref=e213]: 0/0
+              - link "Voir l'atelier →" [ref=e214] [cursor=pointer]:
+                - /url: /workshop
+            - paragraph [ref=e217]: Aucun pont configuré
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e223]: Alertes live
+              - generic [ref=e224]:
+                - button "Toutes" [ref=e225] [cursor=pointer]
+                - button "Critiques" [ref=e226] [cursor=pointer]
+                - button "Attentes" [ref=e227] [cursor=pointer]
+                - button "Imminents" [ref=e228] [cursor=pointer]
+              - generic [ref=e231]: Aucune alerte active
+            - generic [ref=e232]:
+              - generic [ref=e236]: RDVs sans mécanicien
+              - generic [ref=e239]: Tous les RDVs sont affectés
+          - generic [ref=e240]:
+            - generic [ref=e244]: Analytics
+            - generic [ref=e245]:
+              - generic [ref=e248]:
+                - application "area chart with 2 data series" [ref=e249]:
+                  - generic [ref=e252]:
+                    - generic "100" [ref=e253]
+                    - generic "80" [ref=e254]
+                    - generic "60" [ref=e255]
+                    - generic "40" [ref=e256]
+                    - generic "20" [ref=e257]
+                    - generic "0" [ref=e258]
+                  - generic [ref=e267]:
+                    - generic "04-06" [ref=e268]
+                    - generic "04-08" [ref=e269]
+                    - generic "04-10" [ref=e270]
+                    - generic "04-12" [ref=e271]
+                    - generic "04-14" [ref=e272]
+                    - generic "04-16" [ref=e273]
+                    - generic "04-18" [ref=e274]
+                    - generic "04-20" [ref=e275]
+                    - generic "04-22" [ref=e276]
+                    - generic "04-24" [ref=e277]
+                    - generic "04-26" [ref=e278]
+                    - generic "04-28" [ref=e279]
+                    - generic "04-30" [ref=e280]
+                    - generic "05-02" [ref=e281]
+                    - generic "05-04" [ref=e282]
+                - generic [ref=e283]:
+                  - button "RDVs, visible. Press Enter or Space to toggle." [ref=e284] [cursor=pointer]:
+                    - generic [ref=e285]:
+                      - img
+                    - generic [ref=e286]: RDVs
+                  - button "CA (€), visible. Press Enter or Space to toggle." [ref=e287] [cursor=pointer]:
+                    - generic [ref=e288]:
+                      - img
+                    - generic [ref=e289]: CA (€)
+                - tooltip: ● ●
+              - application "bar chart with 1 data series" [ref=e293]
+              - generic [ref=e297]:
+                - application "donut chart with 2 data series" [ref=e298]
+                - generic [ref=e307]:
+                  - button "Main d'œuvre, visible. Press Enter or Space to toggle." [ref=e308] [cursor=pointer]:
+                    - generic [ref=e309]:
+                      - img
+                    - generic [ref=e310]: Main d'œuvre
+                  - button "Pièces, visible. Press Enter or Space to toggle." [ref=e311] [cursor=pointer]:
+                    - generic [ref=e312]:
+                      - img
+                    - generic [ref=e313]: Pièces
+                - tooltip: ● ●
+              - generic [ref=e316]:
+                - application "donut chart with 7 data series" [ref=e317]
+                - generic [ref=e326]:
+                  - button "reception, visible. Press Enter or Space to toggle." [ref=e327] [cursor=pointer]:
+                    - generic [ref=e328]:
+                      - img
+                    - generic [ref=e329]: reception
+                  - button "en_cours, visible. Press Enter or Space to toggle." [ref=e330] [cursor=pointer]:
+                    - generic [ref=e331]:
+                      - img
+                    - generic [ref=e332]: en_cours
+                  - button "facture, visible. Press Enter or Space to toggle." [ref=e333] [cursor=pointer]:
+                    - generic [ref=e334]:
+                      - img
+                    - generic [ref=e335]: facture
+                  - button "reserve, visible. Press Enter or Space to toggle." [ref=e336] [cursor=pointer]:
+                    - generic [ref=e337]:
+                      - img
+                    - generic [ref=e338]: reserve
+                  - button "en_attente, visible. Press Enter or Space to toggle." [ref=e339] [cursor=pointer]:
+                    - generic [ref=e340]:
+                      - img
+                    - generic [ref=e341]: en_attente
+                  - button "en_gardiennage, visible. Press Enter or Space to toggle." [ref=e342] [cursor=pointer]:
+                    - generic [ref=e343]:
+                      - img
+                    - generic [ref=e344]: en_gardiennage
+                  - button "confirme, visible. Press Enter or Space to toggle." [ref=e345] [cursor=pointer]:
+                    - generic [ref=e346]:
+                      - img
+                    - generic [ref=e347]: confirme
+                - tooltip: ● ● ● ● ● ● ●
+              - application "bar chart with 1 data series" [ref=e351]
+      - button [ref=e354]
+  - region "Notifications (F8)":
+    - list

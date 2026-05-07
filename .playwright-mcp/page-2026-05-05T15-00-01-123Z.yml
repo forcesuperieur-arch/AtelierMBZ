@@ -1,0 +1,33 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - img "Paddock" [ref=e9]
+        - paragraph [ref=e10]: Connexion à votre espace atelier
+      - generic [ref=e11]:
+        - button "Continuer avec Google" [ref=e12]
+        - generic [ref=e15]: ou accès local de secours
+        - generic [ref=e17]:
+          - textbox "admin@atelier.local" [active] [ref=e21]
+          - textbox "Mot de passe" [ref=e25]
+          - button "Se connecter" [ref=e26]
+        - link "Mot de passe oublié ?" [ref=e28] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e29]:
+        - generic [ref=e32]: Tests SSO dev
+        - generic [ref=e33]:
+          - textbox "nouveau.google.test@atelier.local" [ref=e37]
+          - generic [ref=e38]:
+            - textbox "Prénom" [ref=e42]: Google
+            - textbox "Nom" [ref=e46]: Test
+          - generic [ref=e47]:
+            - button "Simuler accès validé" [ref=e48]
+            - button "Simuler demande de création" [ref=e49]
+    - contentinfo [ref=e50]:
+      - link "Mentions légales" [ref=e51] [cursor=pointer]:
+        - /url: /public/mentions-legales
+      - text: "|"
+      - link "Politique de confidentialité" [ref=e52] [cursor=pointer]:
+        - /url: /public/politique-confidentialite
+  - region "Notifications (F8)":
+    - list

@@ -1,0 +1,1 @@
+import{_ as o}from"./DlAUqK2U.js";import{o as t,c as r,I as s}from"./firVXbAn.js";const a={},c={class:"min-h-screen bg-body-page max-w-md mx-auto relative"};function n(e,m){return t(),r("div",c,[s(e.$slots,"default")])}const d=o(a,[["render",n]]);export{d as default};

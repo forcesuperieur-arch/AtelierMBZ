@@ -1,0 +1,1 @@
+import{_ as t}from"./DlAUqK2U.js";import{o as s,c as o,I as r}from"./firVXbAn.js";const c={},n={class:"min-h-screen bg-body-page flex items-center justify-center"};function a(e,f){return s(),o("div",n,[r(e.$slots,"default")])}const l=t(c,[["render",a]]);export{l as default};

@@ -1,0 +1,5 @@
+[      37ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[      37ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[      37ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[     133ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/Bhx5IRAB.js:974
+[   19863ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost/api/auth/login:0

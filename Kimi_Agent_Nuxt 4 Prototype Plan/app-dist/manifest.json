@@ -1,0 +1,13 @@
+{
+  "name": "AtelierPaddock",
+  "short_name": "Paddock",
+  "description": "Gestion d'atelier moto",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e4e3de",
+  "theme_color": "#e85913",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

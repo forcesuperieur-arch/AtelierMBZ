@@ -8,6 +8,7 @@ use App\Entity\RapportIntervention;
 use App\Entity\RendezVous;
 use App\Message\GeneratePdfMessage;
 use App\Service\ClauseLegaleVisibilityService;
+use App\Service\DocumentNumberingService;
 use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -31,6 +32,7 @@ class CompanionController extends AbstractController
         private ClauseLegaleVisibilityService $clauseVisibilityService,
         private WorkflowInterface $rendezVousStateMachine,
         private MessageBusInterface $bus,
+        private DocumentNumberingService $numberingService,
     ) {}
 
     private function ensureRateLimit(Request $request): ?JsonResponse
@@ -323,7 +325,7 @@ class CompanionController extends AbstractController
         if (!$or) {
             $or = new OrdreReparation();
             $or->setRendezVous($rdv);
-            $or->setNumeroOr('OR-' . $rdv->getId() . '-' . date('Ymd'));
+            $or->setNumeroOr($this->numberingService->nextOrdreReparationNumber());
             $or->setTypeOr('initial');
             $or->snapshotFromRdv();
             $this->em->persist($or);

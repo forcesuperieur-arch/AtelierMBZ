@@ -1,0 +1,100 @@
+[     554ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[     555ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[     555ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[     774ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/CwATNCJ1.js:974
+[   37516ms] [WARNING] [Icon] failed to load icon `heroicons:motorcycle` @ http://localhost/_nuxt/CwATNCJ1.js:986
+[   37972ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/CwATNCJ1.js:854:1253)
+    at n (http://localhost/_nuxt/CwATNCJ1.js:975:159986)
+[   37973ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/CwATNCJ1.js:854:1253)
+    at n (http://localhost/_nuxt/CwATNCJ1.js:975:159986)
+[   37973ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/CwATNCJ1.js:854:1253)
+    at n (http://localhost/_nuxt/CwATNCJ1.js:975:159986)
+[   37973ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/CwATNCJ1.js:854:1253)
+    at n (http://localhost/_nuxt/CwATNCJ1.js:975:159986)
+[   37973ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/CwATNCJ1.js:854:1253)
+    at n (http://localhost/_nuxt/CwATNCJ1.js:975:159986)
+[   67684ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/CwATNCJ1.js:854:9703)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:148268
+    at new Promise (<anonymous>)
+[   67685ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/CwATNCJ1.js:854:9703)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:148268
+    at new Promise (<anonymous>)
+[   67685ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/CwATNCJ1.js:854:9703)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:148268
+    at new Promise (<anonymous>)
+[   67685ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/CwATNCJ1.js:854:9703)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:148268
+    at new Promise (<anonymous>)
+[   67685ms] TypeError: Cannot read properties of undefined (reading 'text')
+    at ES.getAccessibleChartLabel (http://localhost/_nuxt/CwATNCJ1.js:44:130309)
+    at ES.setupElements (http://localhost/_nuxt/CwATNCJ1.js:44:120979)
+    at vs.create (http://localhost/_nuxt/CwATNCJ1.js:854:3168)
+    at http://localhost/_nuxt/CwATNCJ1.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/CwATNCJ1.js:854:9703)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/CwATNCJ1.js:44:148268
+    at new Promise (<anonymous>)

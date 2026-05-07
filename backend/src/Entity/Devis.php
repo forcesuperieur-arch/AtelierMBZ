@@ -149,7 +149,7 @@ class Devis
     private Collection $lignes;
 
     public function __construct() { $this->dateCreation = new \DateTime(); $this->dateValidite = (new \DateTime())->modify('+30 days'); $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); $this->lignes = new ArrayCollection(); }
-    #[ORM\PrePersist] public function prePersist(): void { if (!isset($this->numeroDevis) || $this->numeroDevis === '') { $this->numeroDevis = 'DEV-' . date('Y') . '-' . str_pad((string)random_int(1, 99999), 5, '0', STR_PAD_LEFT); } if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } $this->snapshotClientData(); }
+    #[ORM\PrePersist] public function prePersist(): void { /* numeroDevis géré par DevisNumeroSubscriber (séquence PG atomique) */ if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } $this->snapshotClientData(); }
     public function snapshotClientData(): void {
         if ($this->client && !$this->snapClientNom) {
             $this->snapClientNom = $this->client->getNom();

@@ -1,0 +1,59 @@
+[     774ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap:0
+[     775ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap:0
+[     775ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap:0
+[    1041ms] [LOG] [PWA] Service Worker registered: http://localhost/ @ http://localhost/_nuxt/Dn65S1xN.js:974
+[   15345ms] [WARNING] [Icon] failed to load icon `heroicons:motorcycle` @ http://localhost/_nuxt/Dn65S1xN.js:986
+[   15837ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/Dn65S1xN.js:854:1253)
+    at n (http://localhost/_nuxt/Dn65S1xN.js:975:159986)
+[   15838ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:2284
+    at new Promise (<anonymous>)
+    at Proxy.render (http://localhost/_nuxt/Dn65S1xN.js:854:1253)
+    at n (http://localhost/_nuxt/Dn65S1xN.js:975:159986)
+[   26908ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:9911
+    at new Promise (<anonymous>)
+    at vs.update (http://localhost/_nuxt/Dn65S1xN.js:854:9703)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:16737
+[   26911ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:9911
+    at new Promise (<anonymous>)
+    at vs.update (http://localhost/_nuxt/Dn65S1xN.js:854:9703)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:16737
+[   45507ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/Dn65S1xN.js:854:9703)
+    at http://localhost/_nuxt/Dn65S1xN.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/Dn65S1xN.js:44:148268
+    at new Promise (<anonymous>)
+[   45508ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at yr.parseDataAxisCharts (http://localhost/_nuxt/Dn65S1xN.js:44:135801)
+    at yr.parseData (http://localhost/_nuxt/Dn65S1xN.js:44:145007)
+    at vs.create (http://localhost/_nuxt/Dn65S1xN.js:854:3721)
+    at http://localhost/_nuxt/Dn65S1xN.js:854:9911
+    at new Promise (<anonymous>)
+    at Proxy.update (http://localhost/_nuxt/Dn65S1xN.js:854:9703)
+    at http://localhost/_nuxt/Dn65S1xN.js:44:149252
+    at Array.forEach (<anonymous>)
+    at http://localhost/_nuxt/Dn65S1xN.js:44:148268
+    at new Promise (<anonymous>)
