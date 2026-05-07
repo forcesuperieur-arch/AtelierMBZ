@@ -622,7 +622,7 @@ class CompanionController extends AbstractController
         }
 
         $rapport->setSignatureClient($signatureData);
-        $rapport->setSigneClientAt(new \DateTimeImmutable());
+        $rapport->setSigneClientAt(new \DateTime());
         if ($rapport->getStatut() !== 'rectifie') {
             $rapport->setStatut('signe');
         }
