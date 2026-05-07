@@ -55,14 +55,14 @@ class NotificationContextTest extends WebTestCase
             ->setSeverity('info')
             ->setTitle('Notif atelier A ' . $suffix)
             ->setMessage('Message A')
-            ->setTargetRoles(['ROLE_SERVICE_CLIENT']);
+            ->setTargetRole('ROLE_SERVICE_CLIENT');
         $notifB = (new Notification())
             ->setAtelierId((int) $atelierB->getId())
             ->setType('test')
             ->setSeverity('warning')
             ->setTitle('Notif atelier B ' . $suffix)
             ->setMessage('Message B')
-            ->setTargetRoles(['ROLE_SERVICE_CLIENT']);
+            ->setTargetRole('ROLE_SERVICE_CLIENT');
 
         $em->persist($notifA);
         $em->persist($notifB);

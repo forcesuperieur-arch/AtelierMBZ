@@ -440,7 +440,8 @@ class AuthController extends AbstractController
             ->setActionUrl('/admin/users')
             ->setRelatedEntityType('user')
             ->setRelatedEntityId($user->getId())
-            ->setTargetRoles(['ROLE_SUPER_ADMIN']);
+            ->setTargetRoles(['ROLE_SUPER_ADMIN'])
+            ->setTargetRole('ROLE_SUPER_ADMIN');
 
         $this->em->persist($notification);
 

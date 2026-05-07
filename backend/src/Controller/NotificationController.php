@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Notification;
+use App\Security\Voter\NotificationVoter;
 use App\Service\CurrentAtelierResolver;
 use App\Service\MercureNotifier;
 use Doctrine\ORM\EntityManagerInterface;
@@ -126,11 +127,10 @@ class NotificationController extends AbstractController
     {
         $user = $this->getUser();
         $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
-        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
 
-        // Ownership check
+        // Ownership check via voter → 404 si pas destinataire
         $notif = $this->em->getRepository(Notification::class)->find($id);
-        if (!$notif || !$this->isNotificationVisibleToUser($notif, $userId, $userRoles)) {
+        if (!$notif || !$this->isGranted(NotificationVoter::VIEW, $notif)) {
             return $this->json(['error' => 'Notification introuvable'], Response::HTTP_NOT_FOUND);
         }
 
@@ -168,10 +168,9 @@ class NotificationController extends AbstractController
     {
         $user = $this->getUser();
         $userId = method_exists($user, 'getId') ? (int) $user->getId() : 0;
-        $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
 
         $notif = $this->em->getRepository(Notification::class)->find($id);
-        if (!$notif || !$this->isNotificationVisibleToUser($notif, $userId, $userRoles)) {
+        if (!$notif || !$this->isGranted(NotificationVoter::VIEW, $notif)) {
             return $this->json(['error' => 'Notification introuvable'], Response::HTTP_NOT_FOUND);
         }
 
@@ -216,33 +215,6 @@ class NotificationController extends AbstractController
 
         $qb->andWhere('(' . implode(' OR ', $conditions) . ')')
             ->setParameter('ownUserId', $userId);
-    }
-
-    /**
-     * Check if a single notification is visible to a given user.
-     */
-    private function isNotificationVisibleToUser(Notification $notif, int $userId, array $userRoles): bool
-    {
-        // Directly targeted
-        if ($notif->getTargetUserId() === $userId) {
-            return true;
-        }
-
-        // Broadcast (no specific target)
-        if ($notif->getTargetUserId() === null && $notif->getTargetRoles() === []) {
-            return true;
-        }
-
-        // Role match
-        if ($notif->getTargetRoles() !== []) {
-            foreach ($notif->getTargetRoles() as $role) {
-                if (in_array($role, $userRoles, true)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private function serializeNotif(Notification $n): array
