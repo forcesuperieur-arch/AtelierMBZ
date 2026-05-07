@@ -164,7 +164,7 @@ class VOPurchaseWorkflowSubscriberTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testGuardMettreEnVenteThrowsWhenNotVendable(): void
+    public function testGuardMettreEnVenteBlocksWhenNotVendable(): void
     {
         [$subscriber] = $this->createSubscriber(
             verdict: ['status' => 'non_vendable', 'summary' => '2 blocage(s) à lever avant vente.']
@@ -173,10 +173,8 @@ class VOPurchaseWorkflowSubscriberTest extends TestCase
 
         $event = $this->createGuardEvent($purchase, 'mettre_en_vente');
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Le véhicule ne peut pas être mis en vente');
-
         $subscriber->onGuardMettreEnVente($event);
+        $this->assertTrue($event->isBlocked());
     }
 
     public function testGuardMettreEnVenteIgnoresNonMettreEnVenteTransition(): void
@@ -205,17 +203,15 @@ class VOPurchaseWorkflowSubscriberTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testGuardVendreThrowsWhenSivNotRegistered(): void
+    public function testGuardVendreBlocksWhenSivNotRegistered(): void
     {
         [$subscriber] = $this->createSubscriber();
         $purchase = $this->createPurchase(sivRegistered: false);
 
         $event = $this->createGuardEvent($purchase, 'vendre');
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('La DA SIV doit être enregistrée avant la vente.');
-
         $subscriber->onGuardVendre($event);
+        $this->assertTrue($event->isBlocked());
     }
 
     // ─── Completed : confirmer ───

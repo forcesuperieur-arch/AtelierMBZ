@@ -36,7 +36,10 @@ class SecurityHeadersListener
         $contentType = (string) $headers->get('Content-Type', '');
         if (str_contains($contentType, 'text/html')) {
             // Politique permissive volontaire pendant la phase d'observation (Report-Only).
-            // Resserrer après analyse des logs CSP.
+            // TODO LOT-2 : après 7j d'observation sans violation, basculer vers :
+            //   script-src 'self' (retirer unsafe-inline / unsafe-eval)
+            //   style-src 'self' (retirer unsafe-inline)
+            //   et passer de Content-Security-Policy-Report-Only à Content-Security-Policy
             $csp = implode('; ', [
                 "default-src 'self'",
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Swagger UI a besoin d'unsafe-eval
