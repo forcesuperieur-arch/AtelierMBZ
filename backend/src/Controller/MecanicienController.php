@@ -40,7 +40,7 @@ class MecanicienController extends AbstractController
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $user->getMecanicien();
         if (!$mecanicien) {
             return $this->json([
                 'error' => 'Aucun profil mécanicien lié à ce compte.',
@@ -69,7 +69,7 @@ class MecanicienController extends AbstractController
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $user->getMecanicien();
         if (!$mecanicien) {
             return $this->json([
                 'error' => 'Aucun profil mécanicien lié.',
@@ -105,7 +105,7 @@ class MecanicienController extends AbstractController
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $user->getMecanicien();
         if (!$mecanicien) {
             return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
         }
@@ -158,7 +158,7 @@ class MecanicienController extends AbstractController
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $user->getMecanicien();
         if (!$mecanicien) {
             return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
         }

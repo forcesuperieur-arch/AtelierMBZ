@@ -21,7 +21,7 @@ final class UserMecanicienSyncService
         }
 
         /** @var Mecanicien|null $mecanicien */
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $userId]);
+        $mecanicien = $user->getMecanicien();
 
         if (!$this->shouldHaveLinkedMecanicien($user)) {
             if ($mecanicien instanceof Mecanicien) {
@@ -37,7 +37,7 @@ final class UserMecanicienSyncService
             }
 
             $mecanicien = new Mecanicien();
-            $mecanicien->setUserId($userId);
+            $mecanicien->setUser($user);
             $this->em->persist($mecanicien);
         }
 

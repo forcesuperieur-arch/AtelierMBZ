@@ -84,6 +84,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?RoleMetier $roleMetier = null;
 
+    #[ORM\OneToOne(targetEntity: Mecanicien::class, mappedBy: 'user')]
+    private ?Mecanicien $mecanicien = null;
+
     #[ORM\Column(length: 30, options: ['default' => 'local'])]
     #[Groups(['user:read', 'user:write'])]
     private string $authProvider = 'local';
@@ -153,6 +156,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoleMetier(): ?RoleMetier { return $this->roleMetier; }
     public function setRoleMetier(?RoleMetier $roleMetier): static { $this->roleMetier = $roleMetier; return $this; }
+
+    public function getMecanicien(): ?Mecanicien { return $this->mecanicien; }
+    public function setMecanicien(?Mecanicien $mecanicien): static { $this->mecanicien = $mecanicien; return $this; }
 
     public function getAuthProvider(): string { return $this->authProvider; }
     public function setAuthProvider(string $authProvider): static { $this->authProvider = $authProvider; return $this; }

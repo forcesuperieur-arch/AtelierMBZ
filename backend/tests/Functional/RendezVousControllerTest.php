@@ -337,7 +337,7 @@ class RendezVousControllerTest extends WebTestCase
             ->setPrenom('Test')
             ->setCouleur('#123456')
             ->setIsActive(1)
-            ->setUserId($user->getId());
+            ->setUser($user);
 
         $client = (new Client())
             ->setAtelierId(1)

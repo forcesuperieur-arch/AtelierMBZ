@@ -435,7 +435,7 @@ class RendezVousController extends AbstractController
 
         // [SPRINT-5] I25 — mecanicienId toujours forcé depuis le JWT, jamais depuis un paramètre de requête.
         // Pas besoin de valider un mecanicien_id extérieur : on résout via userId du token.
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $user->getMecanicien();
         if (!$mecanicien) {
             return $this->json([]);
         }
