@@ -44,7 +44,7 @@ Suite au swarm LOT 1-5-6-7-11, deux régressions critiques bloquaient la suite d
   - **Preuve** : `VOControllerTest.php` (12 tests, 144 assertions) passe sans fatal error mémoire, pic ~278 MB sous limite 512 M ✅
 
 ### TODO laissés
-- [ ] `VOPurchaseController::purchase` : `testPurchaseRequiresSivDeclarationBeforeSale` retourne 400 au lieu de 422 — à vérifier (modification préexistante sur `workflow->can('vendre')`)
+- [x] `VOPurchaseController::purchase` : `testPurchaseRequiresSivDeclarationBeforeSale` — **FIXÉ** : réorganisation des vérifications métier avant `workflow->can('vendre')` préserve le retour 422 détaillé
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct sans workflow Symfony
 - [ ] CSP : passage Report-Only → blocking (après analyse logs)
 
@@ -86,7 +86,7 @@ Approche agent swarm sur 2 vagues pour attaquer en parallèle les lots bloquants
 - [x] `CompanionController` + `SuiviController` : publiques par design — **DOCUMENTÉ** : docblocks explicites ajoutés sur les deux contrôleurs
 - [x] `PdfService` fatal error mémoire Dompdf — **FIXÉ** : `ini_set('memory_limit', '512M')` + cache font disque + libération explicite `gc_collect_cycles()` (12 tests VO passent, pic ~278 MB sous limite)
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct — pas de workflow Symfony défini, mais règle métier exige transitions. À arbitrer : créer workflows ou garder setter + validation manuelle
-- [ ] 5 tests pré-existants restants : Facture x2, PieceDetachee x1, `testPurchaseRequiresSivDeclarationBeforeSale` (400 au lieu de 422)
+- [ ] 4 tests pré-existants restants : Facture x2, PieceDetachee x1
 
 ### Décisions
 - `VOPurchaseWorkflowSubscriber` reste en place — le guard vendabilité est correct métier, mais le test fonctionnel doit s'adapter
