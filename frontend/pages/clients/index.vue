@@ -150,12 +150,10 @@ async function fetchClients() {
   }
 }
 
-let timeout: ReturnType<typeof setTimeout>
-function debouncedFetch() {
-  clearTimeout(timeout)
+const debouncedFetch = useDebounceFn(() => {
   page.value = 1
-  timeout = setTimeout(fetchClients, 300)
-}
+  fetchClients()
+}, 300)
 
 async function createClient() {
   creating.value = true

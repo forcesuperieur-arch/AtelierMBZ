@@ -4,11 +4,22 @@
  *   const debouncedSearch = useDebounceFn((query: string) => { ... }, 300)
  *   debouncedSearch('hello')
  */
-export function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number = 300): (...args: Parameters<T>) => void {
+type DebouncedFn<T extends (...args: any[]) => any> = ((...args: Parameters<T>) => void) & { cancel: () => void }
+
+export function useDebounceFn<T extends (...args: any[]) => any>(fn: T, delay: number = 300): DebouncedFn<T> {
   let timer: ReturnType<typeof setTimeout> | null = null
 
-  return (...args: Parameters<T>) => {
+  const debounced = (...args: Parameters<T>) => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => fn(...args), delay)
   }
+
+  debounced.cancel = () => {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+  }
+
+  return debounced
 }

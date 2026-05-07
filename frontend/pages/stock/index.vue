@@ -240,11 +240,7 @@ function resetForm() {
   Object.assign(pieceForm, { reference: '', designation: '', reference_fournisseur: '', categorie: '', prix_achat_ht: 0, prix_vente_ht: 0, quantite_stock: 0, seuil_alerte: 5, quantite_maximale: 50, emplacement: '', tva_taux: 20 })
 }
 
-let timeout: ReturnType<typeof setTimeout>
-function debouncedFetch() {
-  clearTimeout(timeout)
-  timeout = setTimeout(() => stockStore.fetchPieces(search.value), 300)
-}
+const debouncedFetch = useDebounceFn(() => stockStore.fetchPieces(search.value), 300)
 
 function editPiece(p: any) {
   editId.value = p.id

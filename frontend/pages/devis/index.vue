@@ -183,16 +183,17 @@ function formatDate(d: string) {
   try { return new Date(d).toLocaleDateString('fr-FR') } catch { return d }
 }
 
-let searchTimer: any = null
+const debouncedSearchClients = useDebounceFn(async () => {
+  if (newDevis.clientSearch.length < 2) { clientResults.value = []; return }
+  try {
+    const data = await api.get(`/clients?search=${encodeURIComponent(newDevis.clientSearch)}`)
+    clientResults.value = unwrapHydraOrEmpty(data)
+  } catch { clientResults.value = [] }
+}, 300)
+
 function searchClients() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(async () => {
-    if (newDevis.clientSearch.length < 2) { clientResults.value = []; return }
-    try {
-      const data = await api.get(`/clients?search=${encodeURIComponent(newDevis.clientSearch)}`)
-      clientResults.value = unwrapHydraOrEmpty(data)
-    } catch { clientResults.value = [] }
-  }, 300)
+  if (newDevis.clientSearch.length < 2) { clientResults.value = []; debouncedSearchClients.cancel(); return }
+  debouncedSearchClients()
 }
 
 function selectClient(c: any) {

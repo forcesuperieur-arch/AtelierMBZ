@@ -447,26 +447,25 @@ const workflowSteps = computed(() => {
   ]
 })
 
-let buyerTimer: ReturnType<typeof setTimeout> | null = null
-let saleSimulationTimer: ReturnType<typeof setTimeout> | null = null
+const debouncedSearchBuyers = useDebounceFn(async (value: string) => {
+  buyerResults.value = await searchClients(value)
+}, 250)
+
+const debouncedSaleSimulation = useDebounceFn(() => {
+  runSaleSimulation()
+}, 250)
 
 watch(buyerSearch, (value) => {
-  if (buyerTimer) clearTimeout(buyerTimer)
   if (value.trim().length < 2) {
     buyerResults.value = []
+    debouncedSearchBuyers.cancel()
     return
   }
-
-  buyerTimer = setTimeout(async () => {
-    buyerResults.value = await searchClients(value)
-  }, 250)
+  debouncedSearchBuyers(value)
 })
 
 watch(() => saleForm.salePrice, () => {
-  if (saleSimulationTimer) clearTimeout(saleSimulationTimer)
-  saleSimulationTimer = setTimeout(() => {
-    runSaleSimulation()
-  }, 250)
+  debouncedSaleSimulation()
 })
 
 async function loadDetail() {

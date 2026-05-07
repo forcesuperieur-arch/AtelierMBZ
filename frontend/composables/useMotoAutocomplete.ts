@@ -31,9 +31,6 @@ export function useMotoAutocomplete(options: MotoAutocompleteOptions) {
   const allMarques = ref<string[]>([])
   const selectedModele = ref<MotoSuggestionItem | null>(null)
 
-  let marqueTimer: ReturnType<typeof setTimeout> | null = null
-  let modeleTimer: ReturnType<typeof setTimeout> | null = null
-
   function readField(key?: string) {
     return key ? String(options.form[key] ?? '') : ''
   }
@@ -48,54 +45,46 @@ export function useMotoAutocomplete(options: MotoAutocompleteOptions) {
     return direct || ''
   }
 
-  async function onMarqueInput() {
-    if (marqueTimer) clearTimeout(marqueTimer)
+  const onMarqueInput = useDebounceFn(async () => {
+    const query = readField(options.marqueKey).trim()
+    if (query.length < 1) {
+      marqueSuggestions.value = []
+      return
+    }
 
-    marqueTimer = setTimeout(async () => {
-      const query = readField(options.marqueKey).trim()
-      if (query.length < 1) {
-        marqueSuggestions.value = []
-        return
-      }
-
-      if (!allMarques.value.length) {
-        try {
-          const data = await api.get('/motos/marques')
-          allMarques.value = Array.isArray(data) ? data : (data?.marques ?? [])
-        } catch {
-          allMarques.value = []
-        }
-      }
-
-      marqueSuggestions.value = allMarques.value
-        .filter(item => String(item).toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 8)
-    }, 180)
-  }
-
-  async function onModeleInput() {
-    if (modeleTimer) clearTimeout(modeleTimer)
-
-    modeleTimer = setTimeout(async () => {
-      const marque = readField(options.marqueKey).trim()
-      const query = readField(options.modeleKey).trim()
-
-      if (query.length < 1 && marque.length < 1) {
-        modeleSuggestions.value = []
-        return
-      }
-
+    if (!allMarques.value.length) {
       try {
-        const params = new URLSearchParams({ limit: '10' })
-        if (marque) params.set('marque', marque)
-        if (query) params.set('query', query)
-        const data = await api.get(`/motos/autocomplete?${params.toString()}`)
-        modeleSuggestions.value = Array.isArray(data) ? data : []
+        const data = await api.get('/motos/marques')
+        allMarques.value = Array.isArray(data) ? data : (data?.marques ?? [])
       } catch {
-        modeleSuggestions.value = []
+        allMarques.value = []
       }
-    }, 220)
-  }
+    }
+
+    marqueSuggestions.value = allMarques.value
+      .filter(item => String(item).toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 8)
+  }, 180)
+
+  const onModeleInput = useDebounceFn(async () => {
+    const marque = readField(options.marqueKey).trim()
+    const query = readField(options.modeleKey).trim()
+
+    if (query.length < 1 && marque.length < 1) {
+      modeleSuggestions.value = []
+      return
+    }
+
+    try {
+      const params = new URLSearchParams({ limit: '10' })
+      if (marque) params.set('marque', marque)
+      if (query) params.set('query', query)
+      const data = await api.get(`/motos/autocomplete?${params.toString()}`)
+      modeleSuggestions.value = Array.isArray(data) ? data : []
+    } catch {
+      modeleSuggestions.value = []
+    }
+  }, 220)
 
   function selectMarque(value: string) {
     writeField(options.marqueKey, value)

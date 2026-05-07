@@ -550,8 +550,14 @@ const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 const uploadedDocTypes = computed(() => new Set(documentRows.value.filter(row => row.type && row.file).map(row => row.type)))
 const missingConfirmationDocs = computed(() => requiredPurchaseDocs.filter(type => !uploadedDocTypes.value.has(type)))
 
-let sellerSearchTimer: ReturnType<typeof setTimeout> | null = null
-let simulationTimer: ReturnType<typeof setTimeout> | null = null
+const debouncedSearchSellers = useDebounceFn(async (value: string) => {
+  sellerResults.value = await searchClients(value)
+}, 250)
+
+const debouncedMarginSimulation = useDebounceFn(() => {
+  runMarginSimulation()
+}, 250)
+
 let companionPollTimer: number | null = null
 
 function refreshOnFocus() {
@@ -559,15 +565,12 @@ function refreshOnFocus() {
 }
 
 watch(sellerSearch, (value) => {
-  if (sellerSearchTimer) clearTimeout(sellerSearchTimer)
   if (value.trim().length < 2) {
     sellerResults.value = []
+    debouncedSearchSellers.cancel()
     return
   }
-
-  sellerSearchTimer = setTimeout(async () => {
-    sellerResults.value = await searchClients(value)
-  }, 250)
+  debouncedSearchSellers(value)
 })
 
 watch([
@@ -576,10 +579,7 @@ watch([
   () => purchaseForm.regimeTva,
   freItems,
 ], () => {
-  if (simulationTimer) clearTimeout(simulationTimer)
-  simulationTimer = setTimeout(() => {
-    runMarginSimulation()
-  }, 250)
+  debouncedMarginSimulation()
 }, { deep: true })
 
 function selectSeller(client: any) {
@@ -903,8 +903,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (sellerSearchTimer) clearTimeout(sellerSearchTimer)
-  if (simulationTimer) clearTimeout(simulationTimer)
+  debouncedSearchSellers.cancel()
+  debouncedMarginSimulation.cancel()
   if (companionPollTimer) clearInterval(companionPollTimer)
   if (import.meta.client) {
     window.removeEventListener('focus', refreshOnFocus)

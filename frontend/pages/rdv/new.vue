@@ -785,14 +785,14 @@ function selectPlanningSlot(date: string, slot: SlotItem) {
 }
 
 // Client search
-let searchTimeout: ReturnType<typeof setTimeout>
+const debouncedSearchClients = useDebounceFn(async () => {
+  const data = await api.get(`/clients?search=${encodeURIComponent(clientSearch.value.trim())}`)
+  clientResults.value = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+}, 300)
+
 function searchClients() {
-  clearTimeout(searchTimeout)
-  if (clientSearch.value.length < 2) { clientResults.value = []; return }
-  searchTimeout = setTimeout(async () => {
-    const data = await api.get(`/clients?search=${encodeURIComponent(clientSearch.value.trim())}`)
-    clientResults.value = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-  }, 300)
+  if (clientSearch.value.length < 2) { clientResults.value = []; debouncedSearchClients.cancel(); return }
+  debouncedSearchClients()
 }
 
 function selectClient(c: any) {
@@ -914,21 +914,17 @@ function togglePresta(id: number) {
 }
 
 // Moto base autocomplete
-let marqueTimeout: ReturnType<typeof setTimeout>
-function onMarqueInput() {
-  clearTimeout(marqueTimeout)
-  marqueTimeout = setTimeout(async () => {
-    const q = form.vehicule_marque.trim()
-    if (q.length < 1) { marqueSuggestions.value = []; return }
-    if (!allMarques.value.length) {
-      try {
-        const data = await api.get('/motos/marques')
-        allMarques.value = Array.isArray(data) ? data : (data?.marques ?? [])
-      } catch { allMarques.value = [] }
-    }
-    marqueSuggestions.value = allMarques.value.filter(m => m.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
-  }, 200)
-}
+const onMarqueInput = useDebounceFn(async () => {
+  const q = form.vehicule_marque.trim()
+  if (q.length < 1) { marqueSuggestions.value = []; return }
+  if (!allMarques.value.length) {
+    try {
+      const data = await api.get('/motos/marques')
+      allMarques.value = Array.isArray(data) ? data : (data?.marques ?? [])
+    } catch { allMarques.value = [] }
+  }
+  marqueSuggestions.value = allMarques.value.filter(m => m.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
+}, 200)
 
 function selectMarque(m: string) {
   form.vehicule_marque = m
@@ -967,18 +963,14 @@ function deferHideModeleSuggestions() {
   }, 200)
 }
 
-let modeleTimeout: ReturnType<typeof setTimeout>
-function onModeleInput() {
-  clearTimeout(modeleTimeout)
-  modeleTimeout = setTimeout(async () => {
-    const q = form.vehicule_modele.trim()
-    if (q.length < 1 || !form.vehicule_marque) { modeleSuggestions.value = []; return }
-    try {
-      const data = await api.get(`/motos/autocomplete?marque=${encodeURIComponent(form.vehicule_marque)}&query=${encodeURIComponent(q)}&limit=10`)
-      modeleSuggestions.value = Array.isArray(data) ? data : []
-    } catch { modeleSuggestions.value = [] }
-  }, 250)
-}
+const onModeleInput = useDebounceFn(async () => {
+  const q = form.vehicule_modele.trim()
+  if (q.length < 1 || !form.vehicule_marque) { modeleSuggestions.value = []; return }
+  try {
+    const data = await api.get(`/motos/autocomplete?marque=${encodeURIComponent(form.vehicule_marque)}&query=${encodeURIComponent(q)}&limit=10`)
+    modeleSuggestions.value = Array.isArray(data) ? data : []
+  } catch { modeleSuggestions.value = [] }
+}, 250)
 
 // Créneaux disponibles
 async function loadCreneaux() {

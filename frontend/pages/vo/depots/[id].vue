@@ -370,18 +370,17 @@ const workflowSteps = computed(() => {
   ]
 })
 
-let buyerTimer: ReturnType<typeof setTimeout> | null = null
+const debouncedSearchBuyers = useDebounceFn(async (value: string) => {
+  buyerResults.value = await searchClients(value)
+}, 250)
 
 watch(buyerSearch, (value) => {
-  if (buyerTimer) clearTimeout(buyerTimer)
   if (value.trim().length < 2) {
     buyerResults.value = []
+    debouncedSearchBuyers.cancel()
     return
   }
-
-  buyerTimer = setTimeout(async () => {
-    buyerResults.value = await searchClients(value)
-  }, 250)
+  debouncedSearchBuyers(value)
 })
 
 async function loadDetail() {

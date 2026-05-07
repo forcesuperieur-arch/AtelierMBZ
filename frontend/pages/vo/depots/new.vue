@@ -510,7 +510,10 @@ const draftPublicUrl = computed(() => {
 })
 const { dataUrl: draftQrCodeUrl } = useQrCode(draftPublicUrl, 180)
 
-let deposantSearchTimer: ReturnType<typeof setTimeout> | null = null
+const debouncedSearchDeposants = useDebounceFn(async (value: string) => {
+  deposantResults.value = await searchClients(value)
+}, 250)
+
 let companionPollTimer: number | null = null
 
 function refreshOnFocus() {
@@ -518,15 +521,12 @@ function refreshOnFocus() {
 }
 
 watch(deposantSearch, (value) => {
-  if (deposantSearchTimer) clearTimeout(deposantSearchTimer)
   if (value.trim().length < 2) {
     deposantResults.value = []
+    debouncedSearchDeposants.cancel()
     return
   }
-
-  deposantSearchTimer = setTimeout(async () => {
-    deposantResults.value = await searchClients(value)
-  }, 250)
+  debouncedSearchDeposants(value)
 })
 
 function selectDeposant(client: any) {
@@ -805,7 +805,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (deposantSearchTimer) clearTimeout(deposantSearchTimer)
+  debouncedSearchDeposants.cancel()
   if (companionPollTimer) clearInterval(companionPollTimer)
   if (import.meta.client) {
     window.removeEventListener('focus', refreshOnFocus)

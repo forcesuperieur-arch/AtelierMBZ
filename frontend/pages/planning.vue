@@ -1358,22 +1358,22 @@ async function openRdvFromQuery() {
   router.replace({ query: nextQuery }).catch(() => {})
 }
 
-let quickClientSearchTimeout: ReturnType<typeof setTimeout>
+const debouncedSearchQuickClients = useDebounceFn(async () => {
+  try {
+    const data = await api.get(`/clients?search=${encodeURIComponent(quickClientSearch.value.trim())}`)
+    quickClientResults.value = unwrapList(data)
+  } catch {
+    quickClientResults.value = []
+  }
+}, 250)
+
 function searchQuickClients() {
-  clearTimeout(quickClientSearchTimeout)
   if (quickClientSearch.value.trim().length < 2) {
     quickClientResults.value = []
+    debouncedSearchQuickClients.cancel()
     return
   }
-
-  quickClientSearchTimeout = setTimeout(async () => {
-    try {
-      const data = await api.get(`/clients?search=${encodeURIComponent(quickClientSearch.value.trim())}`)
-      quickClientResults.value = unwrapList(data)
-    } catch {
-      quickClientResults.value = []
-    }
-  }, 250)
+  debouncedSearchQuickClients()
 }
 
 function selectQuickClient(client: any) {
