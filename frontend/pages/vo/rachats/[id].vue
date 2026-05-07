@@ -561,7 +561,8 @@ async function runSaleSimulation() {
       regime: detail.value.regimeTva,
       freItems: detail.value.repairEstimates || [],
     })
-  } catch {
+  } catch (err) {
+    console.error('Erreur simulation marge:', err)
     saleSimulation.value = null
   }
 }

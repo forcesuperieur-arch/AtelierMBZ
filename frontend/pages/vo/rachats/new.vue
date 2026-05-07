@@ -667,7 +667,8 @@ async function runMarginSimulation() {
       regime: purchaseForm.regimeTva,
       freItems: freItems.value.filter(item => item.label.trim() || item.amount.trim()),
     })
-  } catch {
+  } catch (err) {
+    console.error('Erreur simulation marge:', err)
     marginSimulation.value = null
   }
 }

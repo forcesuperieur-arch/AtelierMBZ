@@ -465,7 +465,8 @@ async function onVehicleDocumentChange(event: Event) {
     const ocrResult = await recognizeCarteGrise(normalized, payload.value?.vehicule || {})
     Object.assign(vehicleForm, ocrResult)
     ocrNotice.value = summarizeOcrComparison(ocrResult, payload.value?.vehicule || {})
-  } catch {
+  } catch (err) {
+    console.error('Erreur OCR carte grise:', err)
     ocrNotice.value = {
       tone: 'warning',
       message: 'Lecture OCR impossible. Tu peux saisir les informations véhicule manuellement.',

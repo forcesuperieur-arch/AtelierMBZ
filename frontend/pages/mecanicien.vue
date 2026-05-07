@@ -583,7 +583,8 @@ async function loadRdvPhotos(rdvId?: number | null) {
 
   try {
     rdvPhotos.value = await api.get(`/photos/rdv/${rdvId}`)
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement photos RDV:', err)
     rdvPhotos.value = []
   }
 }

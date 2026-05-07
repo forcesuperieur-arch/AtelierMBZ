@@ -681,7 +681,8 @@ async function loadAteliers() {
     }
 
     form.atelier_id = selectedAtelierId.value
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement ateliers:', err)
     atelierOptions.value = authStore.user?.atelier_id
       ? [{ id: authStore.user.atelier_id, nom: authStore.user.atelier_nom || 'Atelier Moto' }]
       : []
@@ -850,8 +851,9 @@ async function searchVehicule() {
 
     try {
       data = await api.get(`/vehicule/${encodeURIComponent(query)}`)
-    } catch {
-      const collection = await api.get(`/vehicules?plaque=${encodeURIComponent(query)}`).catch(() => null)
+    } catch (err) {
+      console.error('Erreur recherche véhicule par ID:', err)
+      const collection = await api.get(`/vehicules?plaque=${encodeURIComponent(query)}`).catch((e) => { console.error('Erreur recherche véhicule par plaque:', e); return null })
       const items = collection?.['hydra:member'] ?? collection?.member ?? (Array.isArray(collection) ? collection : [])
       data = items[0] ?? null
     }
@@ -874,7 +876,8 @@ async function searchVehicule() {
       showManualVehicle.value = true
       form.vehicule_plaque = formatRegistrationOrVin(query)
     }
-  } catch {
+  } catch (err) {
+    console.error('Erreur recherche véhicule:', err)
     vehiculeFound.value = false
     showManualVehicle.value = true
     form.vehicule_plaque = formatRegistrationOrVin(query)
@@ -899,7 +902,8 @@ async function loadPrestations() {
       .filter((p: any) => prestationMatchesVehicle(p))
 
     selectedPrestas.value = selectedPrestas.value.filter(id => prestations.value.some(p => p.id === id))
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement prestations:', err)
     prestations.value = []
     selectedPrestas.value = []
   } finally {
@@ -921,7 +925,7 @@ const onMarqueInput = useDebounceFn(async () => {
     try {
       const data = await api.get('/motos/marques')
       allMarques.value = Array.isArray(data) ? data : (data?.marques ?? [])
-    } catch { allMarques.value = [] }
+    } catch (err) { console.error('Erreur chargement marques:', err); allMarques.value = [] }
   }
   marqueSuggestions.value = allMarques.value.filter(m => m.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
 }, 200)
@@ -969,7 +973,7 @@ const onModeleInput = useDebounceFn(async () => {
   try {
     const data = await api.get(`/motos/autocomplete?marque=${encodeURIComponent(form.vehicule_marque)}&query=${encodeURIComponent(q)}&limit=10`)
     modeleSuggestions.value = Array.isArray(data) ? data : []
-  } catch { modeleSuggestions.value = [] }
+  } catch (err) { console.error('Erreur autocomplete modèles:', err); modeleSuggestions.value = [] }
 }, 250)
 
 // Créneaux disponibles
@@ -991,7 +995,8 @@ async function loadCreneaux() {
     const preferredDate = form.date_rdv && (creneauxByDate.value[form.date_rdv] || []).some(slot => isSlotSelectable(form.date_rdv, slot.heure)) ? form.date_rdv : ''
     form.date_rdv = preferredDate || planningDays.value.find(day => day.availableCount > 0)?.date || start
     syncSelectedDaySlots()
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement créneaux:', err)
     creneauxByDate.value = Object.fromEntries(planningDays.value.map((day) => [day.date, []]))
     creneauxList.value = []
     form.heure_debut = ''

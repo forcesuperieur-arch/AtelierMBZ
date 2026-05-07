@@ -89,7 +89,8 @@ async function lookup() {
     const res = await fetch(`${baseURL}/public/suivi/${token.value}`)
     if (!res.ok) throw new Error()
     rdv.value = await res.json()
-  } catch {
+  } catch (err) {
+    console.error('Erreur lookup suivi:', err)
     error.value = 'Aucun rendez-vous trouvé avec ce code'
   } finally {
     loading.value = false

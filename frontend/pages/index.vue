@@ -704,7 +704,7 @@ onMounted(() => {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     Object.assign(sectionStates.value, saved)
-  } catch { /* ignore */ }
+  } catch (err) { console.warn('Dashboard localStorage parse error:', err) }
   applyPreset('30d')
   refreshInterval = setInterval(loadDashboard, 60000)
 })

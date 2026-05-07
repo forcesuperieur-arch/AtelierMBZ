@@ -585,7 +585,8 @@ async function loadAteliers() {
     if (ateliersList.value.length === 1) {
       selectedAtelierId.value = ateliersList.value[0].id
     }
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement ateliers:', err)
     ateliersList.value = []
   } finally {
     loadingAteliers.value = false
@@ -721,7 +722,8 @@ async function loadPrestations() {
       .filter((p: any) => p.is_active !== false && p.is_active !== 0)
       .filter((p: any) => prestationMatchesVehicle(p))
     selectedPrestas.value = selectedPrestas.value.filter(id => prestations.value.some(p => p.id === id))
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement prestations:', err)
     prestations.value = []
     selectedPrestas.value = []
   } finally {

@@ -168,7 +168,8 @@ onMounted(async () => {
   try {
     const config = await auth.getGoogleLoginConfig({ mode: 'login', email: devSsoEmail.value })
     showDevSso.value = Boolean(config?.simulated)
-  } catch {
+  } catch (err) {
+    console.error('Erreur config SSO:', err)
     showDevSso.value = false
   }
 

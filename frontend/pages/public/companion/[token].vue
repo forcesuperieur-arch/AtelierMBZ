@@ -499,6 +499,7 @@ async function readApiError(res: Response, fallback: string) {
     const payload = await res.json()
     return payload?.error || payload?.message || fallback
   } catch {
+    // Réponse non-JSON ou vide — fallback explicite attendu
     return fallback
   }
 }
@@ -539,7 +540,8 @@ async function normalizeImage(file: File): Promise<File> {
 
     const safeName = file.name.replace(/\.[^.]+$/, '') || 'photo'
     return new File([blob], `${safeName}.jpg`, { type: 'image/jpeg' })
-  } catch {
+  } catch (err) {
+    console.warn('Image normalization failed, returning original:', err)
     return file
   }
 }

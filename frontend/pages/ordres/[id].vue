@@ -701,7 +701,7 @@ async function loadTravauxSupp() {
   try {
     const data = await api.get(`/demande_travaux_supps?rendezVous=${rdv.value.id}`)
     travauxSupp.value = Array.isArray(data) ? data : data?.['hydra:member'] ?? data?.member ?? []
-  } catch { travauxSupp.value = [] }
+  } catch (err) { console.error('Erreur chargement travaux supplémentaires:', err); travauxSupp.value = [] }
 }
 
 async function submitTravauxSupp() {
@@ -1098,13 +1098,14 @@ async function loadData() {
       try {
         const trans = await api.get(`/rendez-vous/${rdvId}/transitions`)
         availableTransitions.value = Array.isArray(trans) ? trans : trans?.transitions ?? []
-      } catch { availableTransitions.value = [] }
+      } catch (err) { console.error('Erreur chargement transitions:', err); availableTransitions.value = [] }
       // Load travaux supplementaires
       await loadTravauxSupp()
       // Load rapport d'intervention (LOT 8)
       await loadRapport()
     }
-  } catch {
+  } catch (err) {
+    console.error('Erreur chargement ordre:', err)
     ordre.value = null
   }
 }
@@ -1192,7 +1193,7 @@ async function loadPhotos() {
   if (!rdv.value?.id) return
   try {
     photos.value = await api.get(`/photos/rdv/${rdv.value.id}`)
-  } catch { photos.value = [] }
+  } catch (err) { console.error('Erreur chargement photos:', err); photos.value = [] }
 }
 
 async function handlePhotoUpload(e: Event) {
@@ -1237,7 +1238,7 @@ async function loadCommandesPieces() {
   if (!rdv.value?.id) return
   try {
     commandesPieces.value = await api.get(`/rdv/${rdv.value.id}/commandes-pieces`)
-  } catch { commandesPieces.value = [] }
+  } catch (err) { console.error('Erreur chargement commandes pièces:', err); commandesPieces.value = [] }
 }
 
 async function loadPiecesUtilisees() {
@@ -1245,7 +1246,7 @@ async function loadPiecesUtilisees() {
   try {
     const res = await api.get(`/piece_utilisees?rendezVous=${rdv.value.id}`)
     piecesUtilisees.value = Array.isArray(res) ? res : (res['hydra:member'] ?? res['member'] ?? [])
-  } catch { piecesUtilisees.value = [] }
+  } catch (err) { console.error('Erreur chargement pièces utilisées:', err); piecesUtilisees.value = [] }
 }
 
 async function submitCommande() {
@@ -1334,7 +1335,7 @@ async function loadGardiennageMontant() {
   if (!rdv.value?.id) return
   try {
     gardiennageMontant.value = await api.get(`/rdv/${rdv.value.id}/gardiennage-montant`)
-  } catch { gardiennageMontant.value = null }
+  } catch (err) { console.error('Erreur chargement gardiennage:', err); gardiennageMontant.value = null }
 }
 
 // Watch rdv load for additional data
