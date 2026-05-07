@@ -1,6 +1,12 @@
 <?php
 namespace App\Controller;
 
+/**
+ * Controller PUBLIC — accessible via token non-devinable en path segment.
+ * Aucune authentification JWT requise. Chaque méthode valide le token passé en argument.
+ * Ne PAS ajouter #[IsGranted] au niveau classe.
+ */
+
 use App\Entity\ClauseLegale;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;

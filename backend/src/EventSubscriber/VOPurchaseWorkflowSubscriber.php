@@ -45,6 +45,10 @@ final class VOPurchaseWorkflowSubscriber
     #[AsEventListener(event: 'workflow.vo_purchase.guard.mettre_en_vente')]
     public function onGuardMettreEnVente(GuardEvent $event): void
     {
+        if ($event->getTransition()->getName() !== 'mettre_en_vente') {
+            return;
+        }
+
         /** @var VOPurchase $purchase */
         $purchase = $event->getSubject();
         $verdict = $this->documentService->buildPurchaseSaleVerdict($purchase);

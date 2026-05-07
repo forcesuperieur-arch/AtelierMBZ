@@ -179,6 +179,19 @@ class VOPurchaseWorkflowSubscriberTest extends TestCase
         $subscriber->onGuardMettreEnVente($event);
     }
 
+    public function testGuardMettreEnVenteIgnoresNonMettreEnVenteTransition(): void
+    {
+        [$subscriber] = $this->createSubscriber(
+            verdict: ['status' => 'non_vendable', 'summary' => '2 blocage(s) à lever avant vente.']
+        );
+        $purchase = $this->createPurchase();
+
+        $event = $this->createGuardEvent($purchase, 'confirmer');
+
+        $subscriber->onGuardMettreEnVente($event);
+        $this->addToAssertionCount(1);
+    }
+
     // ─── Guard : vendre ───
 
     public function testGuardVendreAllowsWhenSivRegistered(): void
