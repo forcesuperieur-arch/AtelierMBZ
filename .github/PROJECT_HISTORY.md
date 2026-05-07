@@ -33,11 +33,12 @@ Approche agent swarm sur 2 vagues pour attaquer en parallèle les lots bloquants
 - Suite complète : interrompue par fatal error mémoire `PdfService.php L455` (pré-existant, non régressif)
 
 ### TODO laissés
-- [ ] `VOPurchaseWorkflowSubscriber` guard `mettre_en_vente` bloque indirectement `confirmPurchase` (workflow Symfony évalue tous les guards disponibles depuis l'état courant) — à arbitrer : désactiver le guard ou passer par transition dédiée
-- [ ] `VOControllerTest` : 7 tests fonctionnels cassés par le workflow VO (vendabilité bloquante) — besoin de fixtures complètes ou de tests unitaires
+- [x] `VOPurchaseWorkflowSubscriber` guard `mettre_en_vente` bloque indirectement `confirmPurchase` — corrigé en Phase 1 (guard scope explicite sur transition name)
+- [x] `CompanionController` + `SuiviController` — documentés comme publics par design
+- [ ] `VOControllerTest` : tests fonctionnels restants cassés par fatal error Dompdf mémoire (pré-existant, non régressif)
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct — pas de workflow Symfony défini, mais règle métier exige transitions. À arbitrer : créer workflows ou garder setter + validation manuelle
-- [ ] `CompanionController` + `SuiviController` : publiques par design (token-based) — pas de régression, mais à documenter explicitement
-- [ ] 8 tests pré-existants restants : Facture x2, PieceDetachee x1, VOControllerTest x7 (workflow), PDF mémoire fatal
+- [ ] 8 tests pré-existants restants : Facture x2, PieceDetachee x1, PDF mémoire fatal
+- [ ] Durcissement CSP : passer de Report-Only à bloquant après observation (TODO code ajouté en Phase 2)
 
 ### Décisions
 - `VOPurchaseWorkflowSubscriber` reste en place — le guard vendabilité est correct métier, mais le test fonctionnel doit s'adapter
