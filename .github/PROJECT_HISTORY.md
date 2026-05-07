@@ -21,7 +21,7 @@ Trois agents locaux + Kimi distant ont travaillé sans coordination → divergen
   - `AtelierCatalogBootstrapService::DEFAULT_CATALOG` (13 prestations standard)
   - Méthode `createFromDefaultCatalog(int)` appelée si `resolveSourceAtelierId()` null
   - Test `testEnsurePrestationsUsesDefaultCatalogWhenNoSourceAtelier`
-  - **[Implémenté, non vérifié end-to-end]** — kernel boot KO sur ce distant à cause incompat doctrine.yaml (cf. TODO)
+  - Preuve : `bin/phpunit --filter testEnsurePrestationsUsesDefaultCatalog` → `OK (1 test, 3 assertions)` (après commit `cf95ff0` qui répare le kernel)
 - **Commit `35aa6d4` [FEAT] PWA — icônes + manifest** (5 fichiers, +140/-12) :
   - `frontend/public/manifest.json` créé (theme `#D4A843` or, bg `#111111` noir)
   - `frontend/public/branding/paddock-icon-{192,512}.png` générés depuis `paddock-logo-symbol.svg`
@@ -30,6 +30,19 @@ Trois agents locaux + Kimi distant ont travaillé sans coordination → divergen
   - Preuve : `curl -I http://localhost/manifest.json` → 200, `curl -I http://localhost/branding/paddock-icon-192.png` → 200, vue rendue OK (view_image)
 - **Push réussi** : `d7a8504..35aa6d4 cleanup/printemps-2026 -> cleanup/printemps-2026`
 
+### Fait après push initial — réparation kernel cassé sur le distant
+- **Commit `cf95ff0` [FIX] backend boot — config Symfony 7.2 / Doctrine 4 / DBAL 4** (4 fichiers, +8/-6)
+  - `doctrine.yaml` : suppression 4 options obsolètes (`use_savepoints`, `auto_generate_proxy_classes`, `enable_lazy_ghost_objects`, `report_fields_where_declared`) — incompatibles doctrine-bundle 2.18 + DBAL 4.4 + ORM 3.6
+  - `routes/framework.yaml` : `errors.xml` → `errors.php`
+  - `services.yaml` : 6 bindings explicites pour `RateLimiterFactory $X` (Symfony 7.2 ne crée pas l'auto-alias par nom de paramètre pour la classe concrète, seulement pour l'interface)
+  - `HealthController.php` : `Routing\Annotation\Route` → `Routing\Attribute\Route` (la classe Annotation n'existe plus → route silencieusement ignorée)
+- **Preuves** :
+  - `curl /api/health` → 200 `{"status":"ok"}`
+  - `curl POST /api/auth/login` → 200 + JWT
+  - `curl /admin/prestations` → 200
+  - `curl /manifest.json` → 200, `curl /branding/paddock-icon-192.png` → 200
+  - `bin/phpunit --filter testEnsurePrestationsUsesDefaultCatalog` → `OK (1 test, 3 assertions)`
+
 ### Décisions
 - Abandon commits locaux Phase 1+2/3.1/3.2/3.3, [LOT-VIS-PLANNING], Phase 5/6, WIP partiels — redondants avec FrontCraft/Kimi distant + commit `[MIGRATION]` qui supprimait entités stock obsolète vs distant qui les a rebuild en module complet (`feat(stock): module stock complet`)
 - Le module **Stock n'est plus "en réécriture"** — il est REBUILD et ACTIF côté distant : `Fournisseur`, `CommandeFournisseur`, `LigneCommandeFournisseur`, `MouvementStock`, KPIs, export CSV/FEC, anonymisation RGPD, intégration OR (consommation/réception auto)
@@ -37,7 +50,6 @@ Trois agents locaux + Kimi distant ont travaillé sans coordination → divergen
 - Pas de fix `doctrine.yaml` malgré erreurs (`use_savepoints`, `auto_generate_proxy_classes`, `enable_lazy_ghost_objects`, `report_fields_where_declared` "Unrecognized option") car risque casse prod si vendor change
 
 ### TODO laissés
-- [ ] **CRITIQUE — Distant** : config Doctrine incompatible avec vendor installé. Boot kernel KO → tous tests Functional KO sur ce distant. À investiguer : version `doctrine/dbal` + `doctrine/orm` dans `composer.lock` vs options dans `backend/config/packages/doctrine.yaml`. Sans ce fix, impossible de prouver `testEnsurePrestationsUsesDefaultCatalogWhenNoSourceAtelier`.
 - [ ] **Distant** : 8 tests Unit cassés pré-existants (Devis x4, Facture x2, PieceDetachee x1, StockMovementService x1) — non touchés
 - [ ] **Coordination agents** : règle absolue désormais → `git fetch && git pull --rebase` AVANT toute session, et tag de backup avant tout reset
 - [ ] **Audit design** demandé par utilisateur : largement déjà fait sur le distant (FrontCraft-Design ~25 commits + refactor(ui) zero inline styles). Reste à auditer : modales, slideovers, pop-ins. À refaire en session dédiée APRÈS fix doctrine config.
