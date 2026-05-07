@@ -8,6 +8,27 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final class AtelierCatalogBootstrapService
 {
+    /**
+     * Catalogue de référence utilisé en fallback quand aucun atelier-source
+     * n'existe encore (premier atelier créé avant app:seed).
+     * Format : [code, nom, categorie, prixHt, prixTtc, tempsMinutes, description, typeVehicule, typeTarif]
+     */
+    private const DEFAULT_CATALOG = [
+        ['DIAG-45',    'Diagnostic / recherche de panne',     'diagnostic',    '49.17', '59.00',  45,  'Lecture défauts, contrôle visuel et premier diagnostic.',              'tous',   'forfait'],
+        ['VID-SCOOT',  'Forfait vidange scooter',             'entretien',     '57.50', '69.00',  45,  'Vidange moteur avec contrôle des niveaux et serrages.',                'scooter','forfait'],
+        ['VID-MOTO',   'Forfait vidange moto',                'entretien',     '74.17', '89.00',  60,  'Vidange standard et contrôle sécurité atelier.',                       'moto',   'forfait'],
+        ['REV-INT',    'Révision intermédiaire',              'entretien',     '107.50','129.00', 90,  'Contrôle des points de sécurité et entretien courant.',                'tous',   'forfait'],
+        ['REV-CPL',    'Révision complète',                   'entretien',     '182.50','219.00', 180, 'Révision atelier complète avec essai et vérifications.',               'tous',   'forfait'],
+        ['PNEU-AV',    'Forfait pneu avant',                  'pneumatique',   '29.17', '35.00',  30,  'Montage et équilibrage du pneu avant.',                                'moto',   'forfait'],
+        ['PNEU-AR',    'Forfait pneu arrière',                'pneumatique',   '32.50', '39.00',  35,  'Montage et équilibrage du pneu arrière.',                              'moto',   'forfait'],
+        ['PNEU-SET',   'Forfait train de pneus',              'pneumatique',   '62.50', '75.00',  75,  'Montage et équilibrage avant + arrière.',                              'moto',   'forfait'],
+        ['FREIN-AV',   'Forfait plaquettes avant',            'freinage',      '57.50', '69.00',  60,  'Remplacement plaquettes avant et contrôle du circuit.',                'tous',   'forfait'],
+        ['FREIN-AR',   'Forfait plaquettes arrière',          'freinage',      '49.17', '59.00',  45,  'Remplacement plaquettes arrière et contrôle.',                         'tous',   'forfait'],
+        ['KIT-CHAINE', 'Forfait kit chaîne',                  'transmission',  '99.17', '119.00', 75,  'Pose du kit chaîne avec réglage tension et alignement.',               'moto',   'forfait'],
+        ['BATTERIE',   'Forfait batterie / charge',           'electricite',   '40.83', '49.00',  30,  'Contrôle charge, tension et remplacement simple.',                     'tous',   'forfait'],
+        ['HIVER',      'Forfait hivernage / remise en route', 'saisonnier',    '65.83', '79.00',  60,  'Contrôle complet après immobilisation et remise en route.',            'tous',   'forfait'],
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
     ) {
@@ -29,7 +50,7 @@ final class AtelierCatalogBootstrapService
         try {
             $sourceAtelierId = $this->resolveSourceAtelierId($atelierId);
             if (!$sourceAtelierId) {
-                return 0;
+                return $this->createFromDefaultCatalog($atelierId);
             }
 
             $prestationRepo = $this->em->getRepository(Prestation::class);
@@ -144,6 +165,38 @@ final class AtelierCatalogBootstrapService
                 $filters->enable('tenant_filter');
             }
         }
+    }
+
+    private function createFromDefaultCatalog(int $atelierId): int
+    {
+        $repo = $this->em->getRepository(Prestation::class);
+
+        if ($repo->count(['atelierId' => $atelierId]) > 0) {
+            return 0;
+        }
+
+        $created = 0;
+        foreach (self::DEFAULT_CATALOG as [$code, $nom, $categorie, $prixHt, $prixTtc, $temps, $description, $typeVehicule, $typeTarif]) {
+            $p = (new Prestation())
+                ->setAtelierId($atelierId)
+                ->setCode($this->buildUniqueCode($code, $atelierId))
+                ->setNom($nom)
+                ->setDescription($description)
+                ->setCategorie($categorie)
+                ->setPrixBaseHt($prixHt)
+                ->setPrixBaseTtc($prixTtc)
+                ->setTempsEstimeMinutes($temps)
+                ->setTypeTarif($typeTarif)
+                ->setTypeVehicule($typeVehicule)
+                ->setIsForfait('forfait' === $typeTarif ? 1 : 0)
+                ->setIsActive(1);
+            $this->em->persist($p);
+            $created++;
+        }
+
+        $this->em->flush();
+
+        return $created;
     }
 
     private function resolveSourceAtelierId(int $atelierId): ?int

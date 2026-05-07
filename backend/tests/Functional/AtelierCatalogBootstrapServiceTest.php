@@ -94,4 +94,65 @@ class AtelierCatalogBootstrapServiceTest extends KernelTestCase
             $em->flush();
         }
     }
+
+    public function testEnsurePrestationsUsesDefaultCatalogWhenNoSourceAtelier(): void
+    {
+        self::bootKernel();
+
+        $container = static::getContainer();
+        $em = $container->get(EntityManagerInterface::class);
+        $service = $container->get(AtelierCatalogBootstrapService::class);
+        $suffix = bin2hex(random_bytes(4));
+
+        // Atelier isolé — aucun autre atelier n'a de prestations (ou ce nouvel atelier est seul)
+        $targetAtelier = (new Atelier())
+            ->setNom('Isolated ' . $suffix)
+            ->setSlug('isolated-' . $suffix)
+            ->setPlan('starter')
+            ->setActif(true);
+
+        $em->persist($targetAtelier);
+        $em->flush();
+
+        $filters = $em->getFilters();
+        if ($filters->isEnabled('tenant_filter')) {
+            $filters->disable('tenant_filter');
+        }
+
+        // Supprimer les prestations éventuelles de cet atelier avant le test
+        foreach ($em->getRepository(Prestation::class)->findBy(['atelierId' => (int) $targetAtelier->getId()]) as $p) {
+            $em->remove($p);
+        }
+        $em->flush();
+
+        try {
+            $created = $service->ensurePrestationsForAtelier((int) $targetAtelier->getId());
+
+            $em->clear();
+            $prestations = $em->getRepository(Prestation::class)->findBy(['atelierId' => (int) $targetAtelier->getId()]);
+
+            $this->assertGreaterThan(0, $created, 'Le bootstrap doit créer au moins une prestation');
+
+            // Requête directe DBAL pour contourner tout filtre Doctrine
+            $conn = $em->getConnection();
+            $count = (int) $conn->fetchOne(
+                'SELECT COUNT(*) FROM prestations WHERE atelier_id = ?',
+                [(int) $targetAtelier->getId()]
+            );
+            $this->assertGreaterThan(0, $count, 'Les prestations doivent être persistées en base');
+
+            // Idempotence : un deuxième appel ne doit rien créer
+            $createdAgain = $service->ensurePrestationsForAtelier((int) $targetAtelier->getId());
+            $this->assertSame(0, $createdAgain, 'ensurePrestationsForAtelier doit être idempotent');
+        } finally {
+            foreach ($em->getRepository(Prestation::class)->findBy(['atelierId' => (int) $targetAtelier->getId()]) as $p) {
+                $em->remove($p);
+            }
+            $targetAtelierEntity = $em->getRepository(Atelier::class)->find($targetAtelier->getId());
+            if ($targetAtelierEntity !== null) {
+                $em->remove($targetAtelierEntity);
+            }
+            $em->flush();
+        }
+    }
 }
