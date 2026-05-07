@@ -402,10 +402,6 @@ class VOPurchaseController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
-        if (!$this->voPurchaseWorkflow->can($purchase, 'vendre')) {
-            return $this->json(['error' => 'Transition "vendre" non autorisée depuis le statut actuel'], 400);
-        }
-
         if ($this->remiseEnEtatService->hasBlockingActiveCampaign($purchase)) {
             return $this->json(['error' => 'La remise en etat VO active doit etre cloturee avant la vente.'], 422);
         }
@@ -416,6 +412,10 @@ class VOPurchaseController extends AbstractController
                 'error' => 'La vente est bloquée tant que le dossier légal / SIV n\'est pas régularisé.',
                 'saleBlockers' => $saleBlockers,
             ], 422);
+        }
+
+        if (!$this->voPurchaseWorkflow->can($purchase, 'vendre')) {
+            return $this->json(['error' => 'Transition "vendre" non autorisée depuis le statut actuel'], 400);
         }
 
         $body = $request->toArray();
