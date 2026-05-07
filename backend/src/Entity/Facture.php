@@ -225,6 +225,8 @@ class Facture
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+    public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
     public function getNumeroFacture(): string { return $this->numeroFacture; }

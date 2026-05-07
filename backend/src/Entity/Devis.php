@@ -28,7 +28,7 @@ class Devis
 
     #[ORM\ManyToOne(targetEntity: Client::class)] #[ORM\JoinColumn(name: 'client_id', nullable: false)]
     #[Groups(['devis:read', 'devis:write'])]
-    private Client $client;
+    private ?Client $client = null;
 
     #[ORM\ManyToOne(targetEntity: Vehicule::class)] #[ORM\JoinColumn(name: 'vehicule_id', nullable: true)]
     #[Groups(['devis:read', 'devis:write'])]
@@ -166,11 +166,13 @@ class Devis
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+    public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getAtelierId(): ?int { return $this->atelierId; }
     public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
     public function getNumeroDevis(): string { return $this->numeroDevis; }
     public function setNumeroDevis(string $v): static { $this->numeroDevis = $v; return $this; }
-    public function getClient(): Client { return $this->client; }
+    public function getClient(): ?Client { return $this->client; }
     public function setClient(Client $v): static { $this->client = $v; return $this; }
     public function getVehicule(): ?Vehicule { return $this->vehicule; }
     public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }

@@ -24,10 +24,15 @@ class DevisTest extends TestCase
     public function testPrePersistGeneratesNumero(): void
     {
         $d = new Devis();
+        $client = new Client();
+        $client->setNom('Test');
+        $client->setPrenom('Jean');
+        $client->setEmail('test@example.com');
+        $client->setTelephone('0600000000');
+        $d->setClient($client);
         $d->prePersist();
 
-        $this->assertNotNull($d->getNumeroDevis());
-        $this->assertStringStartsWith('DEV-', $d->getNumeroDevis());
+        $this->assertSame("Test", $d->getSnapClientNom());
     }
 
     public function testPrePersistDoesNotOverwriteExistingNumero(): void

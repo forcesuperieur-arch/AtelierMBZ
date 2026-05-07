@@ -50,7 +50,7 @@ final class VOPurchaseWorkflowSubscriber
         $verdict = $this->documentService->buildPurchaseSaleVerdict($purchase);
 
         if ($verdict['status'] !== 'vendable') {
-            throw new \RuntimeException(sprintf(
+            $event->setBlocked(true, sprintf(
                 'Le véhicule ne peut pas être mis en vente : %s',
                 $verdict['summary']
             ));
@@ -64,7 +64,7 @@ final class VOPurchaseWorkflowSubscriber
         $purchase = $event->getSubject();
 
         if (!$purchase->isSivRegistered()) {
-            throw new \RuntimeException('La DA SIV doit être enregistrée avant la vente.');
+            $event->setBlocked(true, 'La DA SIV doit être enregistrée avant la vente.');
         }
     }
 

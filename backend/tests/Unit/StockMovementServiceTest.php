@@ -181,18 +181,21 @@ class StockMovementServiceTest extends TestCase
         $ligne->setPrixUnitaireHt('15.00');
         $commande->getLignes()->add($ligne);
 
+        $ref = new \ReflectionProperty($ligne, 'id');
+        $ref->setValue($ligne, 123);
+
         $repo = $this->createMock(EntityRepository::class);
-        $repo->method('find')->willReturnMap([
-            [$ligne->getId(), null, null, $ligne],
-        ]);
+        $repo->method('find')->willReturnCallback(function ($id) use ($ligne) {
+            return $id === 123 ? $ligne : null;
+        });
         $em->method('getRepository')->willReturnMap([
             [LigneCommandeFournisseur::class, $repo],
         ]);
 
-        $em->expects($this->exactly(3))->method('persist'); // ligne, mouvement, piece
+        $em->expects($this->exactly(4))->method('persist'); // ligne, mouvement, piece, commande
         $em->expects($this->once())->method('flush');
 
-        $service->receiveCommande($commande, [['ligne_id' => $ligne->getId(), 'quantite_recue' => 5]]);
+        $service->receiveCommande($commande, [['ligne_id' => 123, 'quantite_recue' => 5]]);
 
         $this->assertSame('recue', $commande->getStatut());
         $this->assertSame(5, $ligne->getQuantiteRecue());

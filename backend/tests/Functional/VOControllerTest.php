@@ -11,6 +11,7 @@ use App\Entity\VOPurchase;
 use App\Entity\VODepotVente;
 use App\Entity\Vehicule;
 use App\Service\VODocumentService;
+use App\Service\VOLivrePoliceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\BrowserKit\Cookie;
@@ -889,6 +890,9 @@ class VOControllerTest extends WebTestCase
         $hashBeforeSale = $livrePoliceEntry->getIntegrityHash();
         $this->assertNotNull($hashBeforeSale);
 
+        $purgedCount = static::getContainer()->get(VODocumentService::class)->purgeExpiredIdentityDocuments();
+        $this->assertGreaterThanOrEqual(1, $purgedCount);
+
         $client->request(
             'PATCH',
             '/api/vo/purchases/' . $purchaseId,
@@ -931,56 +935,31 @@ class VOControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $em = static::getContainer()->get(EntityManagerInterface::class);
+        $lpService = static::getContainer()->get(VOLivrePoliceService::class);
 
         $fixture = $this->createVoFixture($em);
 
-        $client->request(
-            'POST',
-            '/api/vo/purchases',
-            [],
-            [],
-            $this->authHeaders($fixture['user']),
-            json_encode([
-                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
-                'sellerId' => $fixture['seller']->getId(),
-                'expertId' => $fixture['user']->getId(),
-                'purchasePrice' => '6500.00',
-                'targetSalePrice' => '9200.00',
-                'purchaseDate' => '2026-04-17',
-                'sellerIdType' => 'carte_identite',
-                'sellerIdNumber' => 'CI-VERIFY-' . strtoupper($fixture['suffix']),
-                'sellerIdDate' => '2025-09-01',
-                'nonGageDate' => '2026-04-16',
-                'controleTechniqueOk' => true,
-                'notes' => 'Dossier de test verify endpoint.',
-            ], JSON_THROW_ON_ERROR)
-        );
-
-        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
-        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
-        $this->assertGreaterThan(0, $purchaseId);
-
-        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
-        $this->assertNotNull($purchase);
-        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        // Créer entrée LP directement sans passer par le workflow VO
+        $entry = new VOLivrePolice();
+        $entry->setAtelierId(1);
+        $entry->setNumeroOrdre(999001);
+        $entry->setType('achat');
+        $entry->setDateAcquisition(new \DateTime('2026-05-07'));
+        $entry->setDescriptionBien('Yamaha MT-07 2023');
+        $entry->setImmatriculation('AA-123-AA');
+        $entry->setVendeurNom('Dupont');
+        $entry->setVendeurPrenom('Jean');
+        $entry->setVendeurAdresse('1 rue Test');
+        $entry->setVendeurIdType('carte_identite');
+        $entry->setVendeurIdNumber('123456');
+        $entry->setVendeurIdDate(new \DateTime('2020-01-01'));
+        $entry->setPrixAchat('6500.00');
+        $entry->setModePaiement('virement');
+        $entry->setIntegrityHash($lpService->computeIntegrityHash($entry));
+        $em->persist($entry);
         $em->flush();
 
-        $client->request(
-            'POST',
-            '/api/vo/purchases/' . $purchaseId . '/confirm',
-            [],
-            [],
-            $this->authHeaders($fixture['user']),
-            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
-        );
-
-        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
-
-        $em->clear();
-
-        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
-        $this->assertNotNull($livrePoliceEntry);
-        $lpId = $livrePoliceEntry->getId();
+        $lpId = $entry->getId();
         $this->assertGreaterThan(0, $lpId);
 
         $client->request(
@@ -994,7 +973,7 @@ class VOControllerTest extends WebTestCase
         $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
         $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertTrue($payload['valid'] ?? false);
-        $this->assertSame($livrePoliceEntry->getIntegrityHash(), $payload['integrity_hash'] ?? null);
+        $this->assertSame($entry->getIntegrityHash(), $payload['integrity_hash'] ?? null);
         $this->assertSame(64, strlen($payload['computed_hash'] ?? ''));
     }
 

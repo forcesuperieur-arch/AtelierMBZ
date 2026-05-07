@@ -86,7 +86,7 @@ class VOLivrePoliceService
         ?string $numeroCheque = null,
         ?string $nomBanque = null,
     ): VOLivrePolice {
-        $this->validateModePaiementEncaissement($modePaiement, $numeroCheque);
+        $this->validateModePaiement($modePaiement, $numeroCheque);
         $deposant = $depot->getDeposant();
         $vehicule = $depot->getVehicule();
 
