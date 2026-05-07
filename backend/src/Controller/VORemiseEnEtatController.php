@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/vo')]
+#[\Symfony\Component\Security\Http\Attribute\IsGranted('ROLE_USER')]
 class VORemiseEnEtatController extends AbstractController
 {
     public function __construct(
