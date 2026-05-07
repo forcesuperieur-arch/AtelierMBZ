@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Facture;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
@@ -18,7 +19,7 @@ class FactureDeleteVoter extends Voter
         return $attribute === 'DELETE' && $subject instanceof Facture;
     }
 
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         /** @var Facture $subject */
         $statut = $subject->getStatut();
