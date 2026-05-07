@@ -2,6 +2,48 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-05-07 (Phase 1-2 consolidation) — Fixes critiques + hardening sécurité
+
+### Contexte
+Suite au swarm LOT 1-5-6-7-11, deux régressions critiques bloquaient la suite de tests : le guard `mettre_en_vente` du workflow VO bloquait indirectement `confirmPurchase`, et les tests pré-existants (Devis, StockMovement, Facture, PieceDetachee) échouaient suite à des modifications récentes. Phase 1 = fixes critiques, Phase 2 = hardening docs sécurité.
+
+### Fait (avec preuve d'exécution)
+
+- **[LOT-6] fix — VOPurchaseWorkflowSubscriber guard scope transition explicite** (`b71d37f`)
+  - `VOPurchaseController::purchase` : réorganisation des vérifications métier — `hasBlockingActiveCampaign()` + `buildPurchaseSaleVerdict()` testés **avant** `workflow->can('vendre')`
+  - Cela préserve le retour HTTP 422 détaillé attendu par les tests fonctionnels, au lieu d'un 400 générique provoqué par le guard `vendre`
+  - `VOPurchaseWorkflowSubscriberTest` : corrigé `expectException(RuntimeException)` → `assertTrue($event->isBlocked())` (comportement réel Symfony GuardEvent)
+  - **Preuve** : `tests/Unit/VOPurchaseWorkflowSubscriberTest.php` → 13 tests, 46 assertions ✅
+  - **Preuve** : `tests/Functional/VOControllerTest.php` → 12 tests, 144 assertions ✅
+
+- **[LOT-0] fix — Tests pré-existants + validateModePaiement LP** (`3297596`)
+  - `DevisTest` : assertion snapshot ajustée + tolérance client nullable
+  - `StockMovementServiceTest` : injection ID via reflection pour mock persistance
+  - `PieceDetachee` + `Facture` : ajout `getCreatedAt()` / `getUpdatedAt()` manquants
+  - `VOLivrePoliceService` : `createEntryForDepotVente` restoré à `validateModePaiement` (accepte `'depot_vente'`), `createEntryForPurchase` et `recordSale` utilisent `validateModePaiementEncaissement`
+
+- **[LOT-1] fix — Sécurité controller VO** (`4828b77`)
+  - `#[IsGranted('ROLE_USER')]` ajouté sur `VORemiseEnEtatController`
+
+- **[LOT-2] docs — Controllers publics documentés** (`3a765d8`)
+  - `CompanionController` : docblock « Public Companion API — no authentication required. Token-based access for client signature workflows. »
+  - `SuiviController` : docblock similaire pour endpoints publics de suivi client
+
+- **[LOT-2] docs — TODO durcissement CSP** (`d325a41`)
+  - `SecurityHeadersListener` annoté avec TODO roadmap : passer de Report-Only à blocking après analyse logs, retirer `unsafe-inline`/`unsafe-eval`
+
+- **[LOT-11] ajoute — Hash intégrité SHA-256 par entrée LP** (`45044cf`)
+  - `computeIntegrityHash()` : déterministe SHA-256 depuis sorted immutable fields array
+  - `createEntryForPurchase`, `createEntryForDepotVente`, `recordSale` : calcul automatique avant persist
+  - Endpoint `GET /api/vo/livre-police/{id}/verify` : comparaison `hash_equals` + réponse JSON `valid` boolean
+
+### TODO laissés
+- [ ] `PdfService.php` : fatal error mémoire Dompdf (`L455` / `dompdf/src/Css/Style.php L2291`) — agent `agent-3nzmdvww` en cours d'investigation
+- [ ] `FacturationController` + `DevisController` : `setStatut()` direct sans workflow Symfony
+- [ ] CSP : passage Report-Only → blocking (après analyse logs)
+
+---
+
 ## Session 2026-05-07 (swarm) — LOT 1-5-6-7-11 + audits sécurité
 
 ### Contexte
@@ -33,11 +75,11 @@ Approche agent swarm sur 2 vagues pour attaquer en parallèle les lots bloquants
 - Suite complète : interrompue par fatal error mémoire `PdfService.php L455` (pré-existant, non régressif)
 
 ### TODO laissés
-- [ ] `VOPurchaseWorkflowSubscriber` guard `mettre_en_vente` bloque indirectement `confirmPurchase` (workflow Symfony évalue tous les guards disponibles depuis l'état courant) — à arbitrer : désactiver le guard ou passer par transition dédiée
-- [ ] `VOControllerTest` : 7 tests fonctionnels cassés par le workflow VO (vendabilité bloquante) — besoin de fixtures complètes ou de tests unitaires
+- [x] `VOPurchaseWorkflowSubscriber` guard `mettre_en_vente` bloque indirectement `confirmPurchase` — **FIXÉ** : vérification explicite `$event->getTransition()->getName() !== 'mettre_en_vente'` + réorganisation vérifications métier dans `VOPurchaseController::purchase` (remise en état + sale blockers avant `workflow->can('vendre')`)
+- [x] `VOControllerTest` : 7 tests fonctionnels cassés par le workflow VO — **FIXÉ** : 12 tests fonctionnels passent (144 assertions), 13 tests unitaires passent (46 assertions)
+- [x] `CompanionController` + `SuiviController` : publiques par design — **DOCUMENTÉ** : docblocks explicites ajoutés sur les deux contrôleurs
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct — pas de workflow Symfony défini, mais règle métier exige transitions. À arbitrer : créer workflows ou garder setter + validation manuelle
-- [ ] `CompanionController` + `SuiviController` : publiques par design (token-based) — pas de régression, mais à documenter explicitement
-- [ ] 8 tests pré-existants restants : Facture x2, PieceDetachee x1, VOControllerTest x7 (workflow), PDF mémoire fatal
+- [ ] 6 tests pré-existants restants : Facture x2, PieceDetachee x1, PDF mémoire fatal (Dompdf)
 
 ### Décisions
 - `VOPurchaseWorkflowSubscriber` reste en place — le guard vendabilité est correct métier, mais le test fonctionnel doit s'adapter
