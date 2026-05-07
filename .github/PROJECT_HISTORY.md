@@ -45,6 +45,7 @@ Suite au swarm LOT 1-5-6-7-11, deux régressions critiques bloquaient la suite d
 
 ### TODO laissés
 - [x] `VOPurchaseController::purchase` : `testPurchaseRequiresSivDeclarationBeforeSale` — **FIXÉ** : réorganisation des vérifications métier avant `workflow->can('vendre')` préserve le retour 422 détaillé
+- [x] **Audit catch silencieux front** — 15+ catch vides corrigés sur appels API/métier (`console.error` ajouté). ~50 catch restants (parsing JSON/Date safe, polling intentionnel, fallback UI légitime) — détaillé en session dédiée si besoin
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct sans workflow Symfony
 - [ ] CSP : passage Report-Only → blocking (après analyse logs)
 
