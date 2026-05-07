@@ -8,8 +8,12 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
 
-  // Structure Nuxt 4 : tout l'app est dans app/
-  srcDir: 'app',
+  // [LOT-0.7] Force le srcDir flat (Nuxt 4 par défaut = 'app/' qui n'existe pas
+  // dans ce projet ; on garde la structure historique flat).
+  srcDir: '.',
+  dir: {
+    app: '.',
+  },
 
   alias: {
     '#app-manifest': './app-manifest.stub',
@@ -31,7 +35,7 @@ export default defineNuxtConfig({
     ],
   },
 
-  css: ['~/assets/css/paddock-theme.css', '~/assets/css/design-system.css', '~/assets/css/public-pages.css'],
+  css: ['~/assets/css/main.css'],
 
   app: {
     head: {
