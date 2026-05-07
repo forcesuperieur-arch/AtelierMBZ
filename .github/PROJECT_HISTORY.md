@@ -86,7 +86,7 @@ Approche agent swarm sur 2 vagues pour attaquer en parallèle les lots bloquants
 - [x] `CompanionController` + `SuiviController` : publiques par design — **DOCUMENTÉ** : docblocks explicites ajoutés sur les deux contrôleurs
 - [x] `PdfService` fatal error mémoire Dompdf — **FIXÉ** : `ini_set('memory_limit', '512M')` + cache font disque + libération explicite `gc_collect_cycles()` (12 tests VO passent, pic ~278 MB sous limite)
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct — pas de workflow Symfony défini, mais règle métier exige transitions. À arbitrer : créer workflows ou garder setter + validation manuelle
-- [ ] 4 tests pré-existants restants : Facture x2, PieceDetachee x1
+- [x] 4 tests pré-existants restants : Facture x2 (12 tests, 18 assertions), PieceDetachee x1 (4 tests, 11 assertions) — **TOUS FIXÉS ET VERTS**
 
 ### Décisions
 - `VOPurchaseWorkflowSubscriber` reste en place — le guard vendabilité est correct métier, mais le test fonctionnel doit s'adapter
