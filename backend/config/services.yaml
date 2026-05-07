@@ -12,6 +12,12 @@ services:
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         bind:
             string $projectDir: '%kernel.project_dir%'
+            Symfony\Component\RateLimiter\RateLimiterFactory $publicBookingLimiter: '@limiter.public_booking'
+            Symfony\Component\RateLimiter\RateLimiterFactory $publicSuiviLimiter: '@limiter.public_suivi'
+            Symfony\Component\RateLimiter\RateLimiterFactory $publicCompanionLimiter: '@limiter.public_companion'
+            Symfony\Component\RateLimiter\RateLimiterFactory $publicVoCompanionLimiter: '@limiter.public_vo_companion'
+            Symfony\Component\RateLimiter\RateLimiterFactory $publicDemandeLimiter: '@limiter.public_demande'
+            Symfony\Component\RateLimiter\RateLimiterFactory $companionUploadLimiter: '@limiter.companion_upload'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
