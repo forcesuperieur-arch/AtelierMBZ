@@ -37,8 +37,14 @@ Suite au swarm LOT 1-5-6-7-11, deux régressions critiques bloquaient la suite d
   - `createEntryForPurchase`, `createEntryForDepotVente`, `recordSale` : calcul automatique avant persist
   - Endpoint `GET /api/vo/livre-police/{id}/verify` : comparaison `hash_equals` + réponse JSON `valid` boolean
 
+- **[LOT-0] fix — PdfService fuite mémoire Dompdf** (`1a0595e`)
+  - `ini_set('memory_limit', '512M')` — aligné avec `LivrePolicePdfService`
+  - `fontCache` sur disque (`var/dompdf-font-cache`) — évite le re-parsing complet des polices à chaque `new Dompdf()`
+  - Libération explicite `$dompdf = null; $html = null; gc_collect_cycles();` — nettoie références cycliques entre appels
+  - **Preuve** : `VOControllerTest.php` (12 tests, 144 assertions) passe sans fatal error mémoire, pic ~278 MB sous limite 512 M ✅
+
 ### TODO laissés
-- [ ] `PdfService.php` : fatal error mémoire Dompdf (`L455` / `dompdf/src/Css/Style.php L2291`) — agent `agent-3nzmdvww` en cours d'investigation
+- [ ] `VOPurchaseController::purchase` : `testPurchaseRequiresSivDeclarationBeforeSale` retourne 400 au lieu de 422 — à vérifier (modification préexistante sur `workflow->can('vendre')`)
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct sans workflow Symfony
 - [ ] CSP : passage Report-Only → blocking (après analyse logs)
 
