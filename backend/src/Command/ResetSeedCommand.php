@@ -172,7 +172,7 @@ class ResetSeedCommand extends Command
             $m->setPrenom($prenom);
             $m->setSpecialites($specialites);
             $m->setCouleur($couleur);
-            $m->setUserId($user->getId());
+            $m->setUser($user);
             $this->em->persist($m);
             $mecas[] = $m;
         }

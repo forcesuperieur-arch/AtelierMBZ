@@ -7,7 +7,6 @@ use App\Entity\User;
 use App\Service\CurrentAtelierResolver;
 use App\Service\UserMecanicienSyncService;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
@@ -16,11 +15,7 @@ class UserMecanicienSyncServiceTest extends TestCase
 {
     public function testCreatesLinkedMecanicienForMechanicUser(): void
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('findOneBy')->willReturn(null);
-
         $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repository);
 
         $persisted = [];
         $em->expects(self::once())->method('persist')->willReturnCallback(function ($entity) use (&$persisted): void {
@@ -54,25 +49,6 @@ class UserMecanicienSyncServiceTest extends TestCase
 
     public function testDeactivatesLinkedMecanicienWhenRoleChanges(): void
     {
-        $existing = new Mecanicien();
-        $existing->setUserId(42);
-        $existing->setAtelierId(3);
-        $existing->setNom('Durand');
-        $existing->setPrenom('Marc');
-        $existing->setIsActive(1);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('findOneBy')->willReturn($existing);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repository);
-        $em->expects(self::never())->method('persist');
-
-        $resolver = $this->createMock(CurrentAtelierResolver::class);
-        $resolver->method('resolveAtelierId')->willReturn(3);
-
-        $service = new UserMecanicienSyncService($em, $resolver);
-
         $user = new User();
         $user->setPrenom('Marc');
         $user->setNom('Durand');
@@ -83,6 +59,22 @@ class UserMecanicienSyncServiceTest extends TestCase
         $user->setIsActive(1);
         $this->forceUserId($user, 42);
 
+        $existing = new Mecanicien();
+        $existing->setUser($user);
+        $existing->setAtelierId(3);
+        $existing->setNom('Durand');
+        $existing->setPrenom('Marc');
+        $existing->setIsActive(1);
+        $user->setMecanicien($existing);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::never())->method('persist');
+
+        $resolver = $this->createMock(CurrentAtelierResolver::class);
+        $resolver->method('resolveAtelierId')->willReturn(3);
+
+        $service = new UserMecanicienSyncService($em, $resolver);
+
         $mecanicien = $service->syncForUser($user);
 
         self::assertSame($existing, $mecanicien);
@@ -91,25 +83,6 @@ class UserMecanicienSyncServiceTest extends TestCase
 
     public function testUpdatesExistingMecanicienAtelierFromLogin(): void
     {
-        $existing = new Mecanicien();
-        $existing->setUserId(42);
-        $existing->setAtelierId(1);
-        $existing->setNom('Durand');
-        $existing->setPrenom('Marc');
-        $existing->setIsActive(0);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('findOneBy')->willReturn($existing);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repository);
-        $em->expects(self::never())->method('persist');
-
-        $resolver = $this->createMock(CurrentAtelierResolver::class);
-        $resolver->method('resolveAtelierId')->willReturn(9);
-
-        $service = new UserMecanicienSyncService($em, $resolver);
-
         $user = new User();
         $user->setPrenom('Marc');
         $user->setNom('Durand');
@@ -119,6 +92,22 @@ class UserMecanicienSyncServiceTest extends TestCase
         $user->setAtelierId(9);
         $user->setIsActive(1);
         $this->forceUserId($user, 42);
+
+        $existing = new Mecanicien();
+        $existing->setUser($user);
+        $existing->setAtelierId(1);
+        $existing->setNom('Durand');
+        $existing->setPrenom('Marc');
+        $existing->setIsActive(0);
+        $user->setMecanicien($existing);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::never())->method('persist');
+
+        $resolver = $this->createMock(CurrentAtelierResolver::class);
+        $resolver->method('resolveAtelierId')->willReturn(9);
+
+        $service = new UserMecanicienSyncService($em, $resolver);
 
         $mecanicien = $service->syncForUser($user);
 

@@ -46,9 +46,10 @@ class Mecanicien
     #[Groups(['mecanicien:read', 'mecanicien:write'])]
     private int $isActive = 1;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', unique: true, nullable: true)]
     #[Groups(['mecanicien:read', 'mecanicien:write'])]
-    private ?int $userId = null;
+    private ?User $user = null;
 
     /** @var Collection<int, RendezVous> */
     #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'mecanicien')]
@@ -69,7 +70,16 @@ class Mecanicien
     public function setCouleur(string $v): static { $this->couleur = $v; return $this; }
     public function getIsActive(): int { return $this->isActive; }
     public function setIsActive(int $v): static { $this->isActive = $v; return $this; }
-    public function getUserId(): ?int { return $this->userId; }
-    public function setUserId(?int $v): static { $this->userId = $v; return $this; }
+    public function getUser(): ?User { return $this->user; }
+    public function setUser(?User $v): static { $this->user = $v; return $this; }
+
+    /** Getter virtuel pour compatibilité API */
+    public function getUserId(): ?int { return $this->user?->getId(); }
+    public function setUserId(?int $v): static
+    {
+        // Intentionnellement vide : userId ne doit plus être défini directement.
+        // Utiliser setUser(?User) à la place.
+        return $this;
+    }
     public function getRendezVous(): Collection { return $this->rendezVous; }
 }
