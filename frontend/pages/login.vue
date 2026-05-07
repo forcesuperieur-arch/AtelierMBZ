@@ -178,6 +178,12 @@ onMounted(async () => {
   const googleStatus = String(route.query.google_status || '')
   const simulatedEmail = String(route.query.email || '')
 
+  // [LOT-0] Message UX si redirection due au timeout d'inactivité (30 min)
+  if (String(route.query.expired || '') === 'inactivity') {
+    info.value = 'Vous avez été déconnecté après 30 minutes d\'inactivité. Reconnectez-vous pour continuer.'
+    window.history.replaceState({}, '', '/login')
+  }
+
   if (googleStatus === 'pending_validation') {
     info.value = simulatedEmail
       ? `Demande Google créée pour ${simulatedEmail}. Un superadmin doit maintenant valider le compte et l’atelier.`

@@ -108,6 +108,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read'])]
     private ?\DateTimeInterface $lastLoginAt = null;
 
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeInterface $lastActivityAt = null;
+
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['user:read'])]
     private \DateTimeInterface $createdAt;
@@ -179,9 +183,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getLastLoginAt(): ?\DateTimeInterface { return $this->lastLoginAt; }
     public function setLastLoginAt(?\DateTimeInterface $lastLoginAt): static { $this->lastLoginAt = $lastLoginAt; return $this; }
 
+    public function getLastActivityAt(): ?\DateTimeInterface { return $this->lastActivityAt; }
+    public function setLastActivityAt(?\DateTimeInterface $lastActivityAt): static { $this->lastActivityAt = $lastActivityAt; return $this; }
+
     public function markLoginSuccess(): static
     {
         $this->lastLoginAt = new \DateTime();
+        $this->lastActivityAt = new \DateTime();
         return $this;
     }
 

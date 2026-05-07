@@ -896,6 +896,21 @@ class AuthController extends AbstractController
             return $this->json(['error' => 'User not found or disabled'], Response::HTTP_UNAUTHORIZED);
         }
 
+        // [LOT-0] Vérifier inactivité lors du refresh aussi (tolérance null = backward compat)
+        $lastActivity = $user->getLastActivityAt();
+        $threshold = new \DateTime('-30 minutes');
+        if ($lastActivity !== null && $lastActivity < $threshold) {
+            if (isset($payload['jti'])) {
+                $revoked = new RevokedToken();
+                $revoked->setJti($payload['jti']);
+                $revoked->setExpiresAt(new \DateTime('+7 days'));
+                $revoked->setReason('inactivity');
+                $this->em->persist($revoked);
+                $this->em->flush();
+            }
+            return $this->json(['error' => 'Session expired due to inactivity'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $accessToken = $this->jwtManager->create($user);
 
         $response = $this->json(['message' => 'Token refreshed']);

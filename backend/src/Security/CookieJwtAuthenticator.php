@@ -1,6 +1,9 @@
 <?php
 namespace App\Security;
 
+use App\Entity\RevokedToken;
+use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,12 +19,17 @@ use Lexik\Bundle\JWTAuthenticationBundle\TokenExtractor\TokenExtractorInterface;
 /**
  * Custom authenticator that reads JWT from HttpOnly cookie (access_token).
  * Falls back to Authorization: Bearer header for API clients.
+ *
+ * [LOT-0] Vérifie l'inactivité de session (> 30 min) et invalide le token côté serveur (RGPD).
  */
 class CookieJwtAuthenticator extends AbstractAuthenticator
 {
+    private const INACTIVITY_MINUTES = 30;
+
     public function __construct(
         private JWTTokenManagerInterface $jwtManager,
         private TokenExtractorInterface $tokenExtractor,
+        private EntityManagerInterface $em,
     ) {}
 
     public function supports(Request $request): ?bool
@@ -53,6 +61,23 @@ class CookieJwtAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('JWT token missing username.');
         }
 
+        /** @var User|null $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['username' => $username]);
+
+        if ($user && $this->isSessionInactive($user)) {
+            $jti = $payload['jti'] ?? null;
+            if ($jti) {
+                $revoked = new RevokedToken();
+                $revoked->setJti($jti);
+                $revoked->setExpiresAt(new \DateTime('+15 minutes'));
+                $revoked->setReason('inactivity');
+                $this->em->persist($revoked);
+                $this->em->flush();
+            }
+
+            throw new AuthenticationException('Session expired due to inactivity');
+        }
+
         return new SelfValidatingPassport(
             new UserBadge($username)
         );
@@ -70,5 +95,20 @@ class CookieJwtAuthenticator extends AbstractAuthenticator
             ['error' => 'Authentication failed', 'message' => $exception->getMessage()],
             Response::HTTP_UNAUTHORIZED
         );
+    }
+
+    /**
+     * Tolérance backward-compat : lastActivityAt null = pas inactif (utilisateurs créés avant la migration).
+     */
+    private function isSessionInactive(User $user): bool
+    {
+        $lastActivity = $user->getLastActivityAt();
+
+        if (!$lastActivity) {
+            return false;
+        }
+
+        $threshold = new \DateTime(sprintf('-%d minutes', self::INACTIVITY_MINUTES));
+        return $lastActivity < $threshold;
     }
 }

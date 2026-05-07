@@ -97,7 +97,10 @@ export function useApi() {
         }
         return retry.status === 204 ? (null as T) : retry.json()
       }
-      navigateTo('/login')
+      // [LOT-0] Distingue inactivité 30min des autres causes 401 pour message UX
+      const refreshErrText = await res.text().catch(() => '')
+      const isInactivity = /inactivity|inactiv/i.test(refreshErrText)
+      navigateTo(isInactivity ? '/login?expired=inactivity' : '/login')
       throw new Error('Session expired')
     }
 
