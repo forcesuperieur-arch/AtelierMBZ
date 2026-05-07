@@ -92,7 +92,14 @@ export function useAuth() {
   function hasSection(section: string): boolean {
     const legacyRole = String(store.user?.role || "").trim().toLowerCase()
     const roles = store.user?.roles ?? []
-    if (roles.includes("ROLE_SUPER_ADMIN") || legacyRole === "super_admin") return true
+    const isSuperAdmin = roles.includes("ROLE_SUPER_ADMIN") || legacyRole === "super_admin"
+    const atelierStore = useAtelierStore()
+
+    // [LOT-0] Le super-admin garde tous les rôles mais respecte les feature flags
+    // de l'atelier courant (un module désactivé est masqué pour tout le monde,
+    // notamment pour ne pas exposer les modules en cours de réécriture).
+    if (isSuperAdmin) return atelierStore.isModuleEnabled(section)
+
     const perms = store.user?.role_permissions
     if (!perms) return false
 
@@ -100,7 +107,6 @@ export function useAuth() {
     const allowedByRole = sections.includes('*') || sections.includes(section)
     if (!allowedByRole) return false
 
-    const atelierStore = useAtelierStore()
     return atelierStore.isModuleEnabled(section)
   }
 

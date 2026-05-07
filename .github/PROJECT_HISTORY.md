@@ -59,6 +59,13 @@ Après lock des 3 décisions architecture (option B 2 fronts physiques, compte c
     6. Pas de push automatique sans validation utilisateur
   - Référence historique : `local-backup-2026-05-07` (3 commits LOT 0 critiques sauvés)
 
+- **L0.4 follow-up Bypass super-admin sur feature flags** (`f84a015`)
+  - Bug constaté visuellement après L0.4 : Stock + Facturation restaient visibles pour le super-admin malgré `feature_modules.stock = false` en base
+  - Cause : `useAuth.hasSection()` court-circuitait `isModuleEnabled()` avec `return true` dès qu'il détectait `ROLE_SUPER_ADMIN`
+  - Fix : super-admin conserve tous les rôles/permissions mais respecte désormais les feature flags atelier (un module désactivé est masqué pour tout le monde)
+  - `stores/atelier.ts` : `DEFAULT_FEATURE_MODULES` aligné (stock=false, facturation=false) sur le défaut back
+  - Vérif visuelle reportée : Nuxt tourne en preview build, nécessite rebuild front
+
 ### Décisions
 - **Stock + Facturation = OFF par défaut** : justifié par leur statut « en réécriture » (cf. copilot-instructions § Modules) + recentrage POC sur flux principal RDV → réception → mécanicien → restitution. Réactivables individuellement par atelier via admin.
 - **Tolérance null sur `lastActivityAt`** : impossible de locker out les utilisateurs créés avant la migration. Évolution : un cron pourra forcer `last_activity_at = NOW()` au prochain login pour migrer en douceur.
@@ -68,8 +75,9 @@ Après lock des 3 décisions architecture (option B 2 fronts physiques, compte c
 ### TODO laissés
 - [ ] `backend/src/Service/LivrePolicePdfService.php` : implémenter le calcul réel de `integrity_hash` par entrée LP (LOT 11)
 - [ ] `backend/src/EventSubscriber/HumanizeDatabaseExceptionSubscriber.php` : étendre le mapping (CheckConstraintViolation, autres SQLSTATE) si besoin métier remonté
+- [ ] Vérifier visuellement la sidebar après `docker compose exec nuxt npm run build` : Stock + Facturation doivent disparaître y compris pour ROLE_SUPER_ADMIN (le fix code est en place, le rebuild n'a pas encore été déclenché)
 - [ ] Tester scénario unique-violation (POST prestation avec code dupliqué + tous champs requis) — la preuve obtenue était sur NotNull, le mapping unique reste à confirmer en conditions réelles
-- [ ] Push remote `git push origin cleanup/printemps-2026` (6 commits LOT 0 ahead)
+- [ ] Push remote `git push origin cleanup/printemps-2026` (8 commits LOT 0 ahead)
 
 ### En suspens à arbitrer
 - Sidebar front : vérifier visuellement que les entrées Stock + Facturation disparaissent bien après cache reload (devrait, mais pas testé en navigation)
