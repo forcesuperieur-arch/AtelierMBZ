@@ -2,6 +2,53 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-05-07 — Bootstrap prestations + PWA + sortie git chaos
+
+### Contexte
+Trois agents locaux + Kimi distant ont travaillé sans coordination → divergence massive : 16 commits locaux non poussés (Phase 1+2/3.1/3.2/3.3 design system, [LOT-VIS-PLANNING], Phase 5/6 timeout/PDF LP, WIP BLOC-01/02/03 partiels) **vs** 62 commits distants (FrontCraft-Design ~25, module stock complet réécrit, refactor architecture extractions, sécurité #[IsGranted]+SQL injection+magic-bytes, tests unitaires Fournisseur/Facture/Devis/VOPurchase/VODepotVente/PieceDetachee, plugin Vue ErrorBoundary, composants AppKpiCard/AppStatusBadge/AppActionLink/AppAlertCard/AppInlineActions, helpers unwrapHydraOrEmpty/Paginated/devWarn).
+
+**Décision** (validée utilisateur Option A) : abandonner les 16 commits locaux non poussés (refactor redondant avec FrontCraft + suppression entités stock contraire au module rebuild distant), reset hard sur `origin/cleanup/printemps-2026`, réappliquer uniquement les 3 contributions session par cherry-pick depuis tags backup.
+
+### Fait (avec preuve d'exécution)
+- **Tag backup** `local-backup-2026-05-07` sur `e7c17a6` (commit MIGRATION local abandonné) + `local-backup-2026-05-07-gitignore` sur `4cdd6f5` — récupérables 30j via reflog
+- **Reset hard** branche `cleanup/printemps-2026` sur `origin/cleanup/printemps-2026` (HEAD = `d7a8504`)
+- **Patchs sauvegardés** dans `/tmp/fix-*.patch` + binaires PNG + script Playwright
+- **Commit `e3eeada` [FIX] sécurité — voters compat Symfony 7.x** (4 fichiers, +8/-4) :
+  - Ajout 4e param `?Vote $vote = null` à `voteOnAttribute()` sur `AtelierVoter`, `RolePermissionVoter`, `FactureDeleteVoter`, `VOFactureDeleteVoter`
+  - Sans ça : Fatal error empêche boot kernel → tous les Functional KO
+  - Preuve : `bin/phpunit tests/Unit/PricingServiceTest.php` → `OK (8 tests, 16 assertions)`
+- **Commit `53dfb48` [FEAT] DEFAULT_CATALOG bootstrap prestations** (2 fichiers, +115/-1) :
+  - `AtelierCatalogBootstrapService::DEFAULT_CATALOG` (13 prestations standard)
+  - Méthode `createFromDefaultCatalog(int)` appelée si `resolveSourceAtelierId()` null
+  - Test `testEnsurePrestationsUsesDefaultCatalogWhenNoSourceAtelier`
+  - **[Implémenté, non vérifié end-to-end]** — kernel boot KO sur ce distant à cause incompat doctrine.yaml (cf. TODO)
+- **Commit `35aa6d4` [FEAT] PWA — icônes + manifest** (5 fichiers, +140/-12) :
+  - `frontend/public/manifest.json` créé (theme `#D4A843` or, bg `#111111` noir)
+  - `frontend/public/branding/paddock-icon-{192,512}.png` générés depuis `paddock-logo-symbol.svg`
+  - `frontend/generate-pwa-icons.mjs` réutilisable
+  - `frontend/nuxt.config.ts` : `apple-touch-icon` → PNG 192x192
+  - Preuve : `curl -I http://localhost/manifest.json` → 200, `curl -I http://localhost/branding/paddock-icon-192.png` → 200, vue rendue OK (view_image)
+- **Push réussi** : `d7a8504..35aa6d4 cleanup/printemps-2026 -> cleanup/printemps-2026`
+
+### Décisions
+- Abandon commits locaux Phase 1+2/3.1/3.2/3.3, [LOT-VIS-PLANNING], Phase 5/6, WIP partiels — redondants avec FrontCraft/Kimi distant + commit `[MIGRATION]` qui supprimait entités stock obsolète vs distant qui les a rebuild en module complet (`feat(stock): module stock complet`)
+- Le module **Stock n'est plus "en réécriture"** — il est REBUILD et ACTIF côté distant : `Fournisseur`, `CommandeFournisseur`, `LigneCommandeFournisseur`, `MouvementStock`, KPIs, export CSV/FEC, anonymisation RGPD, intégration OR (consommation/réception auto)
+- Fix voters Symfony 7.x : hors scope session mais bloquant débogage → fixé séparément avec note explicite
+- Pas de fix `doctrine.yaml` malgré erreurs (`use_savepoints`, `auto_generate_proxy_classes`, `enable_lazy_ghost_objects`, `report_fields_where_declared` "Unrecognized option") car risque casse prod si vendor change
+
+### TODO laissés
+- [ ] **CRITIQUE — Distant** : config Doctrine incompatible avec vendor installé. Boot kernel KO → tous tests Functional KO sur ce distant. À investiguer : version `doctrine/dbal` + `doctrine/orm` dans `composer.lock` vs options dans `backend/config/packages/doctrine.yaml`. Sans ce fix, impossible de prouver `testEnsurePrestationsUsesDefaultCatalogWhenNoSourceAtelier`.
+- [ ] **Distant** : 8 tests Unit cassés pré-existants (Devis x4, Facture x2, PieceDetachee x1, StockMovementService x1) — non touchés
+- [ ] **Coordination agents** : règle absolue désormais → `git fetch && git pull --rebase` AVANT toute session, et tag de backup avant tout reset
+- [ ] **Audit design** demandé par utilisateur : largement déjà fait sur le distant (FrontCraft-Design ~25 commits + refactor(ui) zero inline styles). Reste à auditer : modales, slideovers, pop-ins. À refaire en session dédiée APRÈS fix doctrine config.
+- [ ] **Toast description** affiche SQL brut "SQLSTATE[23505] Unique violation" — à humaniser côté backend (catch `UniqueConstraintViolationException` → message métier)
+- [ ] Mettre à jour `copilot-instructions.md` table modules : Stock passe de 🔄 "En réécriture — NE PAS TOUCHER" à ⚠️ "Implémenté — actif" ; Facturation à confirmer
+
+### En suspens à arbitrer
+- Stratégie multi-agents : 3 locaux + Kimi distant sans coordination = chaos garanti. Mettre en place un protocole (qui touche quoi, branches dédiées par agent, fenêtre de sync quotidienne) ?
+
+---
+
 ## Session 2026-04-23 — Suite figeage : LOTs backlog safe
 
 ### Fait (avec preuve d'exécution)
