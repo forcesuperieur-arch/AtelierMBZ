@@ -48,6 +48,7 @@ Suite au swarm LOT 1-5-6-7-11, deux régressions critiques bloquaient la suite d
 - [x] **Audit catch silencieux front** — 15+ catch vides corrigés sur appels API/métier (`console.error` ajouté). ~50 catch restants (parsing JSON/Date safe, polling intentionnel, fallback UI légitime) — détaillé en session dédiée si besoin
 - [x] **Phase 3 — Mecanicien.userId → FK Doctrine** (`49d757c`) : relation `ManyToOne` vers `User` + getter virtuel `getUserId()` + relation inverse `User.mecanicien`. Migration FK exécutée en base. 3 tests unitaires + 16 tests fonctionnels verts
 - [x] **Phase 3 — Playwright E2E config** (`3504e10`) : `webServer` build+preview + script `test:e2e` dans `frontend/package.json`. Build Nuxt ✅
+- [x] **Phase 4 — Plan LOT 1 "Fronts physiques"** approuvé : approche B (extraction progressive `frontend-public/`). Estimation 6-9h, session dédiée requise
 - [ ] `FacturationController` + `DevisController` : `setStatut()` direct sans workflow Symfony
 - [ ] CSP : passage Report-Only → blocking (après analyse logs)
 
