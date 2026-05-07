@@ -2,6 +2,81 @@
 
 # Historique projet AtelierMBZ
 
+## Session 2026-05-07 (suite) — LOT 0 complet (6 sous-tâches)
+
+### Contexte
+Après lock des 3 décisions architecture (option B 2 fronts physiques, compte client immédiat, BDD motos à répliquer) et publication de la roadmap 12-lots avec LOT 4bis, exécution du LOT 0 « consolidation socle technique » en 6 sous-tâches enchaînées sur instruction utilisateur « pousse jusqu'au bout ».
+
+### Fait (avec preuve d'exécution)
+
+- **L0.1 Numérotation atomique** (`f32d32e`)
+  - `DocumentNumberingService` (séquences PG via `nextval()`) + `DevisNumeroSubscriber` (prePersist via Reflection isInitialized)
+  - Migration `Version20260507120000` : CREATE SEQUENCE `devis_numero_seq` + `ordre_reparation_numero_seq` avec `setval` aligné sur `MAX(numero_devis)`
+  - `CompanionController` + `DemandeTravauxSuppController` : remplacement de `'OR-' . $rdv->getId() . '-' . date('Ymd')` par `$numberingService->nextOrdreReparationNumber()`
+  - **Preuve** : `dbal:run-sql "SELECT sequence_name FROM information_schema.sequences"` → `devis_numero_seq` + `ordre_reparation_numero_seq` confirmés
+  - Plus de race condition `MAX+1` (cf. piège connu §copilot-instructions)
+
+- **L0.2 Timeout session 30min RGPD** (`61acd66`)
+  - `User.lastActivityAt` (?DateTime) + getter/setter, `markLoginSuccess()` initialise
+  - `SessionActivitySubscriber` (kernel.request priorité 6) : SQL direct `UPDATE users SET last_activity_at = NOW()` (sans flush)
+  - `CookieJwtAuthenticator` : constante `INACTIVITY_MINUTES = 30`, lookup User, `isSessionInactive()` avec **tolérance null** (backward compat users pré-migration), si inactif → `RevokedToken` + `AuthenticationException`
+  - `AuthController::refresh()` : même check inactivité + tolérance null
+  - Migration `Version20260507130000` : `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP DEFAULT NULL`
+  - `useApi.ts` : 401 après refresh fail → regex `inactivity` → `/login?expired=inactivity`
+  - `login.vue` onMounted : affiche message « Vous avez été déconnecté après 30 minutes d'inactivité »
+  - **Preuve end-to-end** : POST /api/auth/login → 200, GET /api/auth/me → 200, `last_activity_at = 2026-05-07 14:41:09.03385` MAJ automatique
+
+- **L0.3 Export PDF Livre de Police** (`89d5c77`)
+  - `VOLivrePolice.integrityHash` (?string 64) + getter/setter (nullable, computation différée)
+  - `LivrePolicePdfService` : Dompdf A4 portrait, sortie `var/pdf/LPE-Ymd-His.pdf`, `computeGlobalHash()` SHA-256
+  - `LivrePoliceExportController` `#[Route('/api/vo')]` `#[IsGranted('ROLE_USER')]` + check manuel rôles (SUPER_ADMIN / RESPONSABLE_MAGASIN / COMPTABLE / VO_MANAGER)
+  - Filtres `date_debut`, `date_fin`, `type` (achat|depot_vente|vente)
+  - Template `livre_police/export.html.twig` : header logo Paddock + atelier, registre tabulaire, hash, mention « Art. 321-7/321-8 CP + décret 2009-1104 »
+  - Migration `Version20260507140100` : `ALTER TABLE vo_livre_police ADD COLUMN IF NOT EXISTS integrity_hash VARCHAR(64)`
+  - Frontend `vo/livre-police.vue` : URL changée vers `/vo/livre-de-police/export-pdf`
+  - **Preuve** : route enregistrée `app_livrepoliceexport_exportpdf`, GET → 200, 264076 bytes, PDF 1.7 valide, 230 entrées en base
+
+- **L0.4 Désactivation Stock + Facturation par défaut** (`911e6e2`)
+  - `ConfigAtelier::featureModules` (inline) + `defaultFeatureModules()` static : `'stock' => false, 'facturation' => false`
+  - **UPDATE** sur 52 rows existants via `jsonb_set` : modules désactivés en base
+  - **Preuve** : `dbal:run-sql "SELECT atelier_id, feature_modules->>'stock', feature_modules->>'facturation'"` → `false / false` sur tous, HTTP 200 sur /api/health
+  - Frontend supporte déjà via `auth.global.ts` ligne 116 + `atelierStore.isModuleEnabled()` (sidebar masque automatiquement)
+
+- **L0.5 Humanisation toasts SQL** (`ab7d23c`)
+  - `HumanizeDatabaseExceptionSubscriber` (kernel.exception priorité 100, scope `/api/*`)
+  - `UniqueConstraintViolationException` → 409 « Cet enregistrement existe déjà »
+  - `ForeignKeyConstraintViolationException` → 409 « Suppression bloquée »
+  - `NotNullConstraintViolationException` → 400 « Un champ obligatoire est manquant »
+  - **Preuve** : POST /api/prestations sans champ requis → AVANT « SQLSTATE[23502]: Not null violation... », APRÈS `{"error":"missing_field","message":"Un champ obligatoire est manquant. Vérifie le formulaire."}` (HTTP 400)
+
+- **L0.6 Protocole multi-agents** (`ac65af0`)
+  - `AGENTS.md` (NEW) : 6 règles de coordination
+    1. Tag local backup avant opération destructive
+    2. Branches dédiées (`feat/LOT-XX`, `fix/`, `cleanup/`, `agent/<nom>/`)
+    3. Cherry-pick chirurgical depuis tag (jamais reset --hard)
+    4. Coordination cross-sessions via PROJECT_HISTORY
+    5. Commits atomiques avec preuve d'exécution
+    6. Pas de push automatique sans validation utilisateur
+  - Référence historique : `local-backup-2026-05-07` (3 commits LOT 0 critiques sauvés)
+
+### Décisions
+- **Stock + Facturation = OFF par défaut** : justifié par leur statut « en réécriture » (cf. copilot-instructions § Modules) + recentrage POC sur flux principal RDV → réception → mécanicien → restitution. Réactivables individuellement par atelier via admin.
+- **Tolérance null sur `lastActivityAt`** : impossible de locker out les utilisateurs créés avant la migration. Évolution : un cron pourra forcer `last_activity_at = NOW()` au prochain login pour migrer en douceur.
+- **Hash intégrité LP différé** : colonne `integrity_hash` ajoutée mais computation reportée (TODO LOT 11 « Conformité avancée »). PDF actuel utilise hash global sur dump des entrées.
+- **Exception subscriber scope `/api/*` uniquement** : pour ne pas humaniser des erreurs sur les routes admin/dev qui doivent rester explicites.
+
+### TODO laissés
+- [ ] `backend/src/Service/LivrePolicePdfService.php` : implémenter le calcul réel de `integrity_hash` par entrée LP (LOT 11)
+- [ ] `backend/src/EventSubscriber/HumanizeDatabaseExceptionSubscriber.php` : étendre le mapping (CheckConstraintViolation, autres SQLSTATE) si besoin métier remonté
+- [ ] Tester scénario unique-violation (POST prestation avec code dupliqué + tous champs requis) — la preuve obtenue était sur NotNull, le mapping unique reste à confirmer en conditions réelles
+- [ ] Push remote `git push origin cleanup/printemps-2026` (6 commits LOT 0 ahead)
+
+### En suspens à arbitrer
+- Sidebar front : vérifier visuellement que les entrées Stock + Facturation disparaissent bien après cache reload (devrait, mais pas testé en navigation)
+- Cron de purge des `RevokedToken` expirés : à programmer (sinon table grossit indéfiniment)
+
+---
+
 ## Session 2026-05-07 — Bootstrap prestations + PWA + sortie git chaos
 
 ### Contexte
