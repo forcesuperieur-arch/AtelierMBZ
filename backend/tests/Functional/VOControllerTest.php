@@ -776,6 +776,274 @@ class VOControllerTest extends WebTestCase
         }
     }
 
+    public function testLivrePoliceEntryHasIntegrityHashOnCreation(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'expertId' => $fixture['user']->getId(),
+                'purchasePrice' => '6500.00',
+                'targetSalePrice' => '9200.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-HASH-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-09-01',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'notes' => 'Dossier de test hash intégrité.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/confirm',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+        $this->assertNotNull($livrePoliceEntry);
+        $this->assertNotNull($livrePoliceEntry->getIntegrityHash());
+        $this->assertSame(64, strlen($livrePoliceEntry->getIntegrityHash()));
+    }
+
+    public function testLivrePoliceHashIsRecalculatedAfterSale(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'expertId' => $fixture['user']->getId(),
+                'purchasePrice' => '6500.00',
+                'targetSalePrice' => '9200.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-HASH-SALE-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-09-01',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'notes' => 'Dossier de test hash recalcul vente.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/confirm',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+        $this->assertNotNull($livrePoliceEntry);
+        $hashBeforeSale = $livrePoliceEntry->getIntegrityHash();
+        $this->assertNotNull($hashBeforeSale);
+
+        $client->request(
+            'PATCH',
+            '/api/vo/purchases/' . $purchaseId,
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'sivStatus' => 'enregistree',
+                'sivReference' => 'DA-' . strtoupper($fixture['suffix']),
+                'sivRecordedAt' => '2026-04-18',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/sell',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'buyerId' => $fixture['buyer']->getId(),
+                'salePrice' => '9200.00',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+        $this->assertNotNull($livrePoliceEntry);
+        $hashAfterSale = $livrePoliceEntry->getIntegrityHash();
+        $this->assertNotNull($hashAfterSale);
+        $this->assertNotSame($hashBeforeSale, $hashAfterSale, 'Le hash doit être recalculé après la vente');
+    }
+
+    public function testLivrePoliceVerifyEndpoint(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['purchaseVehicle']->getId(),
+                'sellerId' => $fixture['seller']->getId(),
+                'expertId' => $fixture['user']->getId(),
+                'purchasePrice' => '6500.00',
+                'targetSalePrice' => '9200.00',
+                'purchaseDate' => '2026-04-17',
+                'sellerIdType' => 'carte_identite',
+                'sellerIdNumber' => 'CI-VERIFY-' . strtoupper($fixture['suffix']),
+                'sellerIdDate' => '2025-09-01',
+                'nonGageDate' => '2026-04-16',
+                'controleTechniqueOk' => true,
+                'notes' => 'Dossier de test verify endpoint.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $purchaseId = (int) (json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['id'] ?? 0);
+        $this->assertGreaterThan(0, $purchaseId);
+
+        $purchase = $em->getRepository(VOPurchase::class)->find($purchaseId);
+        $this->assertNotNull($purchase);
+        $this->attachPurchaseComplianceDocuments($em, $purchase, $fixture['user']);
+        $em->flush();
+
+        $client->request(
+            'POST',
+            '/api/vo/purchases/' . $purchaseId . '/confirm',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode(['modePaiement' => 'virement'], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+
+        $em->clear();
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voPurchase' => $purchase]);
+        $this->assertNotNull($livrePoliceEntry);
+        $lpId = $livrePoliceEntry->getId();
+        $this->assertGreaterThan(0, $lpId);
+
+        $client->request(
+            'GET',
+            '/api/vo/livre-police/' . $lpId . '/verify',
+            [],
+            [],
+            $this->authHeaders($fixture['user'])
+        );
+
+        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($payload['valid'] ?? false);
+        $this->assertSame($livrePoliceEntry->getIntegrityHash(), $payload['integrity_hash'] ?? null);
+        $this->assertSame(64, strlen($payload['computed_hash'] ?? ''));
+    }
+
+    public function testDepotVenteLivrePoliceEntryHasIntegrityHash(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createVoFixture($em);
+
+        $client->request(
+            'POST',
+            '/api/vo/depots',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'vehiculeId' => $fixture['depotVehicle']->getId(),
+                'deposantId' => $fixture['deposant']->getId(),
+                'gestionnaireId' => $fixture['user']->getId(),
+                'prixVenteSouhaite' => '11500.00',
+                'commissionType' => 'pourcentage',
+                'commissionValeur' => '10.00',
+                'dateDebut' => '2026-04-17',
+                'dureeMandat' => 60,
+                'deposantIdType' => 'carte_identite',
+                'deposantIdNumber' => 'CI-DEPOT-HASH-' . strtoupper($fixture['suffix']),
+                'deposantIdDate' => '2025-01-10',
+                'conditionsRestitution' => 'Préavis 48h',
+                'notes' => 'Dossier de test hash dépôt.',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode(), (string) $client->getResponse()->getContent());
+        $creationPayload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $depotId = (int) ($creationPayload['id'] ?? 0);
+        $this->assertGreaterThan(0, $depotId);
+
+        $em->clear();
+
+        $depot = $em->getRepository(VODepotVente::class)->find($depotId);
+        $this->assertNotNull($depot);
+
+        $livrePoliceEntry = $em->getRepository(VOLivrePolice::class)->findOneBy(['voDepotVente' => $depot]);
+        $this->assertNotNull($livrePoliceEntry);
+        $this->assertNotNull($livrePoliceEntry->getIntegrityHash());
+        $this->assertSame(64, strlen($livrePoliceEntry->getIntegrityHash()));
+    }
+
     private function sampleSignatureDataUrl(): string
     {
         return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0FYAAAAASUVORK5CYII=';

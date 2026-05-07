@@ -61,6 +61,8 @@ class VOLivrePoliceService
         $entry->setNomBanque($nomBanque);
         $entry->setVoPurchase($purchase);
 
+        $entry->setIntegrityHash($this->computeIntegrityHash($entry));
+
         $this->em->persist($entry);
 
         $this->auditService->log(
@@ -84,7 +86,7 @@ class VOLivrePoliceService
         ?string $numeroCheque = null,
         ?string $nomBanque = null,
     ): VOLivrePolice {
-        $this->validateModePaiement($modePaiement, $numeroCheque);
+        $this->validateModePaiementEncaissement($modePaiement, $numeroCheque);
         $deposant = $depot->getDeposant();
         $vehicule = $depot->getVehicule();
 
@@ -111,6 +113,8 @@ class VOLivrePoliceService
         $entry->setNumeroCheque($numeroCheque);
         $entry->setNomBanque($nomBanque);
         $entry->setVoDepotVente($depot);
+
+        $entry->setIntegrityHash($this->computeIntegrityHash($entry));
 
         $this->em->persist($entry);
 
@@ -162,6 +166,8 @@ class VOLivrePoliceService
         $acquisitionEntry->setAcheteurPrenom($buyer->getPrenom() ?? '');
         $acquisitionEntry->setAcheteurAdresse($buyer->getAdresse() ?? '');
 
+        $acquisitionEntry->setIntegrityHash($this->computeIntegrityHash($acquisitionEntry));
+
         $this->auditService->log(
             'lp_record_sale',
             'VOLivrePolice',
@@ -176,6 +182,43 @@ class VOLivrePoliceService
     private function getNextNumeroOrdre(?int $atelierId): int
     {
         return $this->numberingService->nextLivrePoliceOrder($atelierId);
+    }
+
+    /**
+     * Compute a deterministic SHA-256 integrity hash from immutable LP fields.
+     */
+    public function computeIntegrityHash(VOLivrePolice $entry): string
+    {
+        $data = [
+            'atelierId' => $entry->getAtelierId(),
+            'numeroOrdre' => $entry->getNumeroOrdre(),
+            'type' => $entry->getType(),
+            'dateAcquisition' => $entry->getDateAcquisition()->format('Y-m-d'),
+            'descriptionBien' => $entry->getDescriptionBien(),
+            'immatriculation' => $entry->getImmatriculation(),
+            'vendeurNom' => $entry->getVendeurNom(),
+            'vendeurPrenom' => $entry->getVendeurPrenom(),
+            'vendeurAdresse' => $entry->getVendeurAdresse(),
+            'vendeurIdType' => $entry->getVendeurIdType(),
+            'vendeurIdNumber' => $entry->getVendeurIdNumber(),
+            'vendeurIdDate' => $entry->getVendeurIdDate()->format('Y-m-d'),
+            'prixAchat' => $entry->getPrixAchat(),
+            'modePaiement' => $entry->getModePaiement(),
+            'numeroCheque' => $entry->getNumeroCheque() ?? '',
+            'nomBanque' => $entry->getNomBanque() ?? '',
+            'dateVente' => $entry->getDateVente()?->format('Y-m-d') ?? '',
+            'prixVente' => $entry->getPrixVente() ?? '',
+            'modePaiementVente' => $entry->getModePaiementVente() ?? '',
+            'numeroChequeVente' => $entry->getNumeroChequeVente() ?? '',
+            'nomBanqueVente' => $entry->getNomBanqueVente() ?? '',
+            'acheteurNom' => $entry->getAcheteurNom() ?? '',
+            'acheteurPrenom' => $entry->getAcheteurPrenom() ?? '',
+            'acheteurAdresse' => $entry->getAcheteurAdresse() ?? '',
+        ];
+
+        ksort($data);
+
+        return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     private function buildDescription($vehicule): string

@@ -5,9 +5,11 @@ namespace App\Controller;
 use App\Entity\VOLivrePolice;
 use App\Service\CurrentAtelierResolver;
 use App\Service\LivrePolicePdfService;
+use App\Service\VOLivrePoliceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -22,6 +24,7 @@ class LivrePoliceExportController extends AbstractController
         private EntityManagerInterface $em,
         private LivrePolicePdfService $pdfService,
         private CurrentAtelierResolver $currentAtelierResolver,
+        private VOLivrePoliceService $livrePoliceService,
     ) {}
 
     /**
@@ -116,5 +119,37 @@ class LivrePoliceExportController extends AbstractController
         );
 
         return $response;
+    }
+
+    /**
+     * [LOT-11] Vérification d'intégrité d'une entrée LP : recalcule le hash et compare.
+     */
+    #[Route('/livre-police/{id}/verify', methods: ['GET'])]
+    public function verifyEntry(int $id): JsonResponse
+    {
+        if (
+            !$this->isGranted('ROLE_SUPER_ADMIN')
+            && !$this->isGranted('ROLE_RESPONSABLE_MAGASIN')
+            && !$this->isGranted('ROLE_COMPTABLE')
+            && !$this->isGranted('ROLE_VO_MANAGER')
+        ) {
+            throw $this->createAccessDeniedException("Accès refusé à la vérification du Livre de Police.");
+        }
+
+        $entry = $this->em->getRepository(VOLivrePolice::class)->find($id);
+        if (!$entry instanceof VOLivrePolice) {
+            return $this->json(['error' => 'Entrée non trouvée.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $storedHash = $entry->getIntegrityHash();
+        $computedHash = $this->livrePoliceService->computeIntegrityHash($entry);
+
+        return $this->json([
+            'id' => $entry->getId(),
+            'numeroOrdre' => $entry->getNumeroOrdre(),
+            'integrity_hash' => $storedHash,
+            'computed_hash' => $computedHash,
+            'valid' => $storedHash !== null && hash_equals($storedHash, $computedHash),
+        ]);
     }
 }
