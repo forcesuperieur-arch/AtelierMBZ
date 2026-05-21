@@ -7,6 +7,7 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -27,6 +28,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(uriTemplate: '/rendez-vous'),
         new Get(uriTemplate: '/rendez-vous/{id}'),
         new Put(uriTemplate: '/rendez-vous/{id}'),
+        new Patch(uriTemplate: '/rendez-vous/{id}'),
         new Delete(uriTemplate: '/rendez-vous/{id}'),
     ],
 )]
@@ -120,10 +122,6 @@ class RendezVous
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?Mecanicien $mecanicien = null;
 
-    #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: RapportTechnicien::class, cascade: ['persist', 'remove'])]
-    #[Groups(['rdv:read'])]
-    private ?RapportTechnicien $rapportTechnicien = null;
-
     #[ORM\OneToOne(mappedBy: 'rendezVous', targetEntity: EssaiRoutier::class, cascade: ['persist'])]
     #[Groups(['rdv:read'])]
     private ?EssaiRoutier $essaiRoutier = null;
@@ -158,7 +156,7 @@ class RendezVous
     private Collection $demandesTravauxSupp;
 
     /** @var Collection<int, OrdreReparation> */
-    #[ORM\OneToMany(targetEntity: OrdreReparation::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(targetEntity: OrdreReparation::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'], fetch: 'EAGER')]
     #[Groups(['rdv:read'])]
     private Collection $ordresReparation;
 
@@ -169,6 +167,11 @@ class RendezVous
     /** @var Collection<int, PieceUtilisee> */
     #[ORM\OneToMany(targetEntity: PieceUtilisee::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
     private Collection $piecesUtilisees;
+
+    /** @var Collection<int, RdvCommande> */
+    #[ORM\OneToMany(targetEntity: RdvCommande::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private Collection $commandes;
 
     // LOT 9 — Stockage & Gardiennage
     #[ORM\Column(length: 100, nullable: true)]
@@ -202,6 +205,7 @@ class RendezVous
         $this->ordresReparation = new ArrayCollection();
         $this->photosIntervention = new ArrayCollection();
         $this->piecesUtilisees = new ArrayCollection();
+        $this->commandes = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -255,14 +259,6 @@ class RendezVous
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
-    public function getRapportTechnicien(): ?RapportTechnicien { return $this->rapportTechnicien; }
-    public function setRapportTechnicien(?RapportTechnicien $rapportTechnicien): static {
-        $this->rapportTechnicien = $rapportTechnicien;
-        if ($rapportTechnicien !== null && $rapportTechnicien->getRendezVous() !== $this) {
-            $rapportTechnicien->setRendezVous($this);
-        }
-        return $this;
-    }
     public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }
     public function setEssaiRoutier(?EssaiRoutier $essaiRoutier): static {
         $this->essaiRoutier = $essaiRoutier;
@@ -275,6 +271,22 @@ class RendezVous
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
     public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }
+    public function getCommandes(): Collection { return $this->commandes; }
+    public function addCommande(RdvCommande $commande): static {
+        if (!$this->commandes->contains($commande)) {
+            $this->commandes->add($commande);
+            $commande->setRendezVous($this);
+        }
+        return $this;
+    }
+    public function removeCommande(RdvCommande $commande): static {
+        if ($this->commandes->removeElement($commande)) {
+            if ($commande->getRendezVous() === $this) {
+                $commande->setRendezVous(null);
+            }
+        }
+        return $this;
+    }
     public function getMotifAnnulation(): ?string { return $this->motifAnnulation; }
     public function setMotifAnnulation(?string $v): static { $this->motifAnnulation = $v; return $this; }
     public function getCommentaireAnnulation(): ?string { return $this->commentaireAnnulation; }

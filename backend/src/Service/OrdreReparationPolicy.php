@@ -11,22 +11,98 @@ class OrdreReparationPolicy
     /**
      * Can this user edit the OR content?
      * brouillon → free edit by receptionniste/responsable
-     * en_attente_signature → blocked except cancel
-     * signe/execute/termine → frozen, needs rectification
+     * reception_signee → blocked except mécanicien fields
+     * intervention_signee / signe / execute / termine → frozen
      */
     public function canEdit(OrdreReparation $or, User $user): bool
     {
-        // Mécanicien can never edit an OR
+        // Mécanicien can only edit mechanic fields on reception_signee OR
         if ($user->getRole() === 'mecanicien') {
-            return false;
+            return in_array($or->getStatut(), ['brouillon', 'reception_signee'], true);
         }
 
         return $or->getStatut() === 'brouillon';
     }
 
+    // ─── Réception signatures (PDA) ───
+
+    public function canSignReception(OrdreReparation $or): bool
+    {
+        return $or->getStatut() === 'brouillon';
+    }
+
+    public function signReception(OrdreReparation $or, string $signatureClient, string $signatureAtelier, Request $request): string
+    {
+        $or->snapshotFromRdv();
+
+        $snapshot = $this->buildSnapshot($or);
+        $hash = $this->computeHash($snapshot);
+
+        $or->setSignatureClient($signatureClient);
+        $or->setSignatureAtelierReception($signatureAtelier);
+        $or->setSignedSnapshot($snapshot);
+        $or->setSignedHash($hash);
+        $or->setSignedAt(new \DateTime());
+        $or->setSignedIp($request->getClientIp());
+        $or->setSignedUserAgent(mb_substr((string) $request->headers->get('User-Agent', ''), 0, 500));
+        $or->setSigneReceptionnisteAt(new \DateTime());
+        $or->setStatut('reception_signee');
+
+        return $hash;
+    }
+
+    // ─── Mécanicien signature ───
+
+    public function canSignMecanicien(OrdreReparation $or): bool
+    {
+        return $or->getStatut() === 'reception_signee';
+    }
+
+    public function signMecanicien(OrdreReparation $or, string $signatureData, int $mecanicienId): void
+    {
+        $or->setSignatureMecanicien($signatureData);
+        $or->setSigneMecanicienAt(new \DateTime());
+        $or->setSigneMecanicienId($mecanicienId);
+        $or->setStatut('intervention_signee');
+    }
+
+    // ─── Client restitution signature ───
+
+    public function canSignRestitution(OrdreReparation $or): bool
+    {
+        return $or->getStatut() === 'intervention_signee';
+    }
+
+    public function signRestitution(OrdreReparation $or, string $signatureData): void
+    {
+        $or->setSignatureClientRestitution($signatureData);
+        $or->setSigneClientRestitutionAt(new \DateTime());
+        $or->setStatut('signe');
+    }
+
+    // ─── Legacy / compat ───
+
     public function canSign(OrdreReparation $or): bool
     {
-        return in_array($or->getStatut(), ['brouillon', 'en_attente_signature'], true);
+        return $this->canSignReception($or);
+    }
+
+    public function sign(OrdreReparation $or, string $signatureData, Request $request): string
+    {
+        $or->snapshotFromRdv();
+
+        $snapshot = $this->buildSnapshot($or);
+        $hash = $this->computeHash($snapshot);
+
+        $or->setSignatureClient($signatureData);
+        $or->setSignedSnapshot($snapshot);
+        $or->setSignedHash($hash);
+        $or->setSignedAt(new \DateTime());
+        $or->setSignedIp($request->getClientIp());
+        $or->setSignedUserAgent(mb_substr((string) $request->headers->get('User-Agent', ''), 0, 500));
+        $or->setStatut('signe');
+
+        return $hash;
     }
 
     public function canRectify(OrdreReparation $or, User $user): bool
@@ -63,6 +139,10 @@ class OrdreReparationPolicy
             'kilometrage' => $or->getKilometrage(),
             'etat_vehicule' => $or->getEtatVehicule(),
             'travaux' => $or->getTravaux(),
+            'travaux_realises' => $or->getTravauxRealises(),
+            'alertes' => $or->getAlertes(),
+            'recommandations' => $or->getRecommandations(),
+            'garantie' => $or->getGarantie(),
             'snap_client_nom' => $or->getSnapClientNom(),
             'snap_client_prenom' => $or->getSnapClientPrenom(),
             'snap_vehicule_plaque' => $or->getSnapVehiculePlaque(),
@@ -80,27 +160,6 @@ class OrdreReparationPolicy
         ksort($snapshot);
         $json = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         return hash('sha256', $json);
-    }
-
-    /**
-     * Sign the OR: build snapshot, compute hash, freeze.
-     */
-    public function sign(OrdreReparation $or, string $signatureData, Request $request): string
-    {
-        $or->snapshotFromRdv();
-
-        $snapshot = $this->buildSnapshot($or);
-        $hash = $this->computeHash($snapshot);
-
-        $or->setSignatureClient($signatureData);
-        $or->setSignedSnapshot($snapshot);
-        $or->setSignedHash($hash);
-        $or->setSignedAt(new \DateTime());
-        $or->setSignedIp($request->getClientIp());
-        $or->setSignedUserAgent(mb_substr((string) $request->headers->get('User-Agent', ''), 0, 500));
-        $or->setStatut('signe');
-
-        return $hash;
     }
 
     /**
@@ -130,6 +189,10 @@ class OrdreReparationPolicy
         $rectified->setKilometrage($original->getKilometrage());
         $rectified->setEtatVehicule($original->getEtatVehicule());
         $rectified->setTravaux($original->getTravaux());
+        $rectified->setTravauxRealises($original->getTravauxRealises());
+        $rectified->setAlertes($original->getAlertes());
+        $rectified->setRecommandations($original->getRecommandations());
+        $rectified->setGarantie($original->getGarantie());
         $rectified->setSnapClientNom($original->getSnapClientNom());
         $rectified->setSnapClientPrenom($original->getSnapClientPrenom());
         $rectified->setSnapVehiculePlaque($original->getSnapVehiculePlaque());

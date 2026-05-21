@@ -60,6 +60,7 @@ function normalizeRdv(r: any): Rdv {
     temps_estime: r.temps_estime ?? r.tempsEstime ?? r.duree_estimee,
     duree_estimee: r.temps_estime ?? r.tempsEstime ?? r.duree_estimee,
     description_probleme: r.commentaire ?? r.description_probleme ?? r.descriptionProbleme,
+    ordres_reparation: r.ordres_reparation ?? r.ordresReparation ?? [],
   }
 }
 
@@ -88,29 +89,51 @@ function toApiRelation(value: any, resource: string): string | null | undefined 
 }
 
 function buildUpdatePayload(base: any, data: any) {
-  const heureValue = data.heure_rdv ?? data.heureRdv ?? data.heure_debut ?? base?.heure_rdv ?? base?.heureRdv ?? base?.heure_debut ?? '09:00'
-  const payload: Record<string, any> = {
-    date_rdv: data.date_rdv ?? data.dateRdv ?? base?.date_rdv ?? base?.dateRdv,
-    heure_rdv: normalizeTime(heureValue),
-    type_intervention: data.type_intervention ?? data.typeIntervention ?? base?.type_intervention ?? base?.typeIntervention ?? '',
-    commentaire: data.commentaire ?? base?.commentaire ?? null,
-    temps_estime: data.temps_estime ?? data.tempsEstime ?? base?.temps_estime ?? base?.tempsEstime ?? null,
-    prix_estime: data.prix_estime ?? data.prixEstime ?? base?.prix_estime ?? base?.prixEstime ?? null,
-    prix_final: data.prix_final ?? data.prixFinal ?? base?.prix_final ?? base?.prixFinal ?? null,
-    kilometrage: data.kilometrage ?? base?.kilometrage ?? null,
-    etat_vehicule: data.etat_vehicule ?? data.etatVehicule ?? base?.etat_vehicule ?? base?.etatVehicule ?? null,
-    photos_etat: data.photos_etat ?? data.photosEtat ?? base?.photos_etat ?? base?.photosEtat ?? null,
-    statut: data.statut ?? data.status ?? base?.statut ?? base?.status ?? 'en_attente',
-  }
+  const payload: Record<string, any> = {}
+
+  const dateValue = data.date_rdv ?? data.dateRdv ?? base?.date_rdv ?? base?.dateRdv
+  if (dateValue !== undefined) payload.date_rdv = dateValue
+
+  const heureValue = data.heure_rdv ?? data.heureRdv ?? data.heure_debut ?? base?.heure_rdv ?? base?.heureRdv ?? base?.heure_debut
+  if (heureValue !== undefined) payload.heure_rdv = normalizeTime(heureValue)
+
+  const typeValue = data.type_intervention ?? data.typeIntervention ?? base?.type_intervention ?? base?.typeIntervention
+  if (typeValue !== undefined) payload.type_intervention = typeValue
+
+  const commentaireValue = data.commentaire ?? base?.commentaire
+  if (commentaireValue !== undefined) payload.commentaire = commentaireValue
+
+  const tempsValue = data.temps_estime ?? data.tempsEstime ?? base?.temps_estime ?? base?.tempsEstime
+  if (tempsValue !== undefined) payload.temps_estime = tempsValue
+
+  const prixEstimeValue = data.prix_estime ?? data.prixEstime ?? base?.prix_estime ?? base?.prixEstime
+  if (prixEstimeValue !== undefined) payload.prix_estime = prixEstimeValue
+
+  const prixFinalValue = data.prix_final ?? data.prixFinal ?? base?.prix_final ?? base?.prixFinal
+  if (prixFinalValue !== undefined) payload.prix_final = prixFinalValue
+
+  const kmValue = data.kilometrage ?? base?.kilometrage
+  if (kmValue !== undefined) payload.kilometrage = kmValue
+
+  const etatValue = data.etat_vehicule ?? data.etatVehicule ?? base?.etat_vehicule ?? base?.etatVehicule
+  if (etatValue !== undefined) payload.etat_vehicule = etatValue
+
+  const photosValue = data.photos_etat ?? data.photosEtat ?? base?.photos_etat ?? base?.photosEtat
+  if (photosValue !== undefined) payload.photos_etat = photosValue
+
+  const statutValue = data.statut ?? data.status ?? base?.statut ?? base?.status
+  if (statutValue !== undefined) payload.statut = statutValue
 
   const client = data.client !== undefined ? toApiRelation(data.client, 'clients') : toApiRelation(base?.client, 'clients')
-  const vehicule = data.vehicule !== undefined ? toApiRelation(data.vehicule, 'vehicules') : toApiRelation(base?.vehicule, 'vehicules')
-  const pont = data.pont !== undefined ? toApiRelation(data.pont, 'ponts') : ('pont_id' in data ? toApiRelation(data.pont_id, 'ponts') : toApiRelation(base?.pont ?? base?.pont_id, 'ponts'))
-  const mecanicien = data.mecanicien !== undefined ? toApiRelation(data.mecanicien, 'mecaniciens') : ('mecanicien_id' in data ? toApiRelation(data.mecanicien_id, 'mecaniciens') : toApiRelation(base?.mecanicien ?? base?.mecanicien_id, 'mecaniciens'))
-
   if (client !== undefined) payload.client = client
+
+  const vehicule = data.vehicule !== undefined ? toApiRelation(data.vehicule, 'vehicules') : toApiRelation(base?.vehicule, 'vehicules')
   if (vehicule !== undefined) payload.vehicule = vehicule
+
+  const pont = data.pont !== undefined ? toApiRelation(data.pont, 'ponts') : ('pont_id' in data ? toApiRelation(data.pont_id, 'ponts') : toApiRelation(base?.pont ?? base?.pont_id, 'ponts'))
   if (pont !== undefined) payload.pont = pont
+
+  const mecanicien = data.mecanicien !== undefined ? toApiRelation(data.mecanicien, 'mecaniciens') : ('mecanicien_id' in data ? toApiRelation(data.mecanicien_id, 'mecaniciens') : toApiRelation(base?.mecanicien ?? base?.mecanicien_id, 'mecaniciens'))
   if (mecanicien !== undefined) payload.mecanicien = mecanicien
 
   return { ...payload, ...data }
@@ -178,7 +201,7 @@ export const useRdvStore = defineStore('rdv', {
       }
 
       const payload = buildUpdatePayload(base, data)
-      const rdv = await api.put(`/rendez-vous/${rdvId}`, payload)
+      const rdv = await api.patch(`/rendez-vous/${rdvId}`, payload)
       const normalized = normalizeRdv(rdv)
       const idx = this.rdvs.findIndex(r => r.id === rdvId)
       if (idx >= 0) this.rdvs[idx] = normalized
