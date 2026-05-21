@@ -265,13 +265,20 @@
               <textarea v-model="rapportForm.recommandations" class="form-input" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
-            <!-- Kilométrage restitution + prochaine révision -->
+            <!-- Kilométrage restitution -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
                 <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signature_mecanicien" />
               </div>
-              <!-- Prochaine révision retirée — trop variable selon marque/modèle en moto -->
+            </div>
+
+            <!-- Entretien fluides -->
+            <div style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
+              <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:6px;">🔧 Entretien des fluides recommandé</div>
+              <div style="font-size:12px;color:#D1D5DB;">Huile moteur — <strong style="color:#93C5FD;">tous les ans</strong></div>
+              <div style="font-size:12px;color:#D1D5DB;">Liquide de frein — <strong style="color:#93C5FD;">tous les 2 ans</strong></div>
+              <div style="font-size:12px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
             </div>
 
             <!-- Essai routier -->

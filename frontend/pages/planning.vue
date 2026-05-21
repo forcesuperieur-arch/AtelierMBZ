@@ -595,6 +595,14 @@
                       <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:#D1D5DB;margin-top:4px;"><span style="color:#6B7280;">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
                     </div>
 
+                    <!-- Entretien fluides -->
+                    <div style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
+                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:6px;">🔧 Entretien des fluides recommandé</div>
+                      <div style="font-size:12px;color:#D1D5DB;">Huile moteur — <strong style="color:#93C5FD;">tous les ans</strong></div>
+                      <div style="font-size:12px;color:#D1D5DB;">Liquide de frein — <strong style="color:#93C5FD;">tous les 2 ans</strong></div>
+                      <div style="font-size:12px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
+                    </div>
+
                     <!-- Signatures images -->
                     <div style="display:flex;flex-direction:column;gap:8px;">
                       <div v-if="orDetails[or.id].signature_client" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
