@@ -13,12 +13,18 @@
         .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
         .info-grid { display: table; width: 100%; margin-bottom: 20px; }
         .info-col { display: table-cell; width: 50%; vertical-align: top; }
+        .info-col-3 { display: table-cell; width: 33%; vertical-align: top; }
         .label { font-weight: bold; color: #666; }
         .section { margin-bottom: 24px; page-break-inside: avoid; }
         .section-title { font-size: 13px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #2563eb; padding-bottom: 4px; margin-bottom: 10px; }
         .alert-box { background: #fef2f2; border-left: 4px solid #ef4444; padding: 8px 12px; margin: 8px 0; }
         .recommandation-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 8px 0; }
         .garantie-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 8px 12px; margin: 8px 0; }
+        .notes-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 8px 0; }
+        .checkup-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; margin: 8px 0; }
+        .checkup-item { padding: 3px 0; border-bottom: 1px dashed #e2e8f0; }
+        .checkup-item:last-child { border-bottom: none; }
+        .recap-box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px 14px; margin: 8px 0; }
         table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
         table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; }
         table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
@@ -38,6 +44,7 @@
         .signature-label { font-size: 10px; color: #666; margin-bottom: 6px; }
         .page-break { page-break-before: always; }
         .meta-row { font-size: 10px; color: #666; margin-top: 4px; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; background: #e0e7ff; color: #3730a3; }
     </style>
 </head>
 <body>
@@ -61,7 +68,10 @@
                 <td class="header-right">
                     <h1>ORDRE DE RÉPARATION</h1>
                     <p><strong>N° {{ or.numeroOr }}</strong> — {{ or.createdAt|date('d/m/Y H:i') }}</p>
-                    <p class="meta-row">Statut : {{ or.statut|upper }}</p>
+                    <p class="meta-row">Statut : <span class="status-badge">{{ or.statut|upper }}</span></p>
+                    {% if or.typeOr != 'initial' %}
+                    <p class="meta-row">Type : {{ or.typeOr|capitalize }}</p>
+                    {% endif %}
                 </td>
             </tr>
         </table>
@@ -87,10 +97,32 @@
         </div>
     </div>
 
+    <div class="info-grid">
+        <div class="info-col-3">
+            <p class="label">Date & heure du RDV</p>
+            <p>{{ rdv.dateRdv|date('d/m/Y') }} à {{ rdv.heureRdv|date('H:i') }}</p>
+        </div>
+        <div class="info-col-3">
+            <p class="label">Pont</p>
+            <p>{{ rdv.pont ? rdv.pont.nom : 'Non assigné' }}</p>
+        </div>
+        <div class="info-col-3">
+            <p class="label">Mécanicien</p>
+            <p>{{ rdv.mecanicien ? rdv.mecanicien.prenom ~ ' ' ~ rdv.mecanicien.nom : 'Non assigné' }}</p>
+        </div>
+    </div>
+
     <div class="section">
         <p class="label">Type d'intervention</p>
         <p>{{ rdv.typeIntervention }}</p>
     </div>
+
+    {% if rdv.commentaire %}
+    <div class="section">
+        <p class="label">Commentaire réception</p>
+        <p>{{ rdv.commentaire|nl2br }}</p>
+    </div>
+    {% endif %}
 
     {% if or.travaux %}
     <div class="section">
@@ -102,13 +134,36 @@
     {% if or.etatVehicule %}
     <div class="section">
         <p class="label">État du véhicule à la réception</p>
-        <p>{{ or.etatVehicule }}</p>
+        <p>{{ or.etatVehicule|nl2br }}</p>
+    </div>
+    {% endif %}
+
+    {% if rdv.prixEstime or rdv.tempsEstime %}
+    <div class="section">
+        <div class="recap-box">
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    {% if rdv.prixEstime %}
+                    <td style="width:50%;border-right:1px solid #cbd5e1;padding-right:12px;">
+                        <span class="label">Prix estimé</span><br>
+                        <span style="font-size:16px;font-weight:bold;color:#2563eb;">{{ rdv.prixEstime }} €</span>
+                    </td>
+                    {% endif %}
+                    {% if rdv.tempsEstime %}
+                    <td style="width:50%;padding-left:12px;">
+                        <span class="label">Durée estimée</span><br>
+                        <span style="font-size:16px;font-weight:bold;color:#2563eb;">{{ (rdv.tempsEstime // 60) }}h{{ (rdv.tempsEstime % 60)|number_format(0, '', '') }}</span>
+                    </td>
+                    {% endif %}
+                </tr>
+            </table>
+        </div>
     </div>
     {% endif %}
 
     {% if reception_photos is defined and reception_photos|length > 0 %}
     <div class="section">
-        <p class="label">Photos de réception</p>
+        <div class="section-title">📸 Photos de réception</div>
         <table class="photos-table">
             <tr>
                 {% for photo in reception_photos %}
@@ -176,10 +231,47 @@
                 <td class="header-right">
                     <h1>FEUILLE D'INTERVENTION</h1>
                     <p><strong>N° {{ or.numeroOr }}</strong></p>
+                    {% if rdv.mecanicien %}
+                    <p class="meta-row">Mécanicien : {{ rdv.mecanicien.prenom }} {{ rdv.mecanicien.nom }}</p>
+                    {% endif %}
                 </td>
             </tr>
         </table>
     </div>
+
+    {% if or.mechanicNotes %}
+    <div class="section">
+        <div class="section-title">📝 Notes mécanicien</div>
+        <div class="notes-box">
+            <p>{{ or.mechanicNotes|nl2br }}</p>
+        </div>
+        {% if or.mechanicNotesUpdatedAt %}
+        <p class="meta-row">Mise à jour le {{ or.mechanicNotesUpdatedAt|date('d/m/Y H:i') }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if or.mechanicCheckup|length > 0 %}
+    <div class="section">
+        <div class="section-title">🔎 Checkup réception</div>
+        <div class="checkup-box">
+            {% for key, item in or.mechanicCheckup %}
+                <div class="checkup-item">
+                    {% if item is iterable %}
+                        <strong>{{ item.label is defined ? item.label : key }}</strong>
+                        {% if item.value is defined %} : {{ item.value }}{% endif %}
+                        {% if item.note is defined %} <em style="color:#666;">({{ item.note }})</em>{% endif %}
+                    {% else %}
+                        <strong>{{ key }}</strong> : {{ item }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        {% if or.mechanicCheckupUpdatedAt %}
+        <p class="meta-row">Mise à jour le {{ or.mechanicCheckupUpdatedAt|date('d/m/Y H:i') }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
 
     {% if or.travauxRealises %}
     <div class="section">
@@ -192,7 +284,15 @@
     <div class="section">
         <div class="section-title">⚠️ Alertes</div>
         <div class="alert-box">
+            {% if or.alertes is iterable %}
+            <ul style="margin:0;padding-left:16px;">
+                {% for alerte in or.alertes %}
+                <li>{{ alerte }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
             <p>{{ or.alertes|nl2br }}</p>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -232,6 +332,27 @@
             {% endif %}
         </div>
     </div>
+
+    {% if report_photos is defined and report_photos|length > 0 %}
+    <div class="section">
+        <div class="section-title">📸 Photos intervention</div>
+        <table class="photos-table">
+            <tr>
+                {% for photo in report_photos %}
+                    <td>
+                        <div class="photo-card">
+                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo') }}">
+                            <div class="photo-caption">
+                                {{ photo.label|default('Photo') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+    </div>
+    {% endif %}
 
     <div class="section">
         <div class="signature-grid">
@@ -273,15 +394,25 @@
         </table>
     </div>
 
-    <div class="section">
-        <p class="label">Client</p>
-        <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</p>
-        <p class="label">Véhicule</p>
-        <p>{{ vMarque }} {{ vModele }} — {{ vPlaque }}</p>
+    <div class="info-grid">
+        <div class="info-col">
+            <p class="label">Client</p>
+            <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</p>
+        </div>
+        <div class="info-col">
+            <p class="label">Véhicule</p>
+            <p>{{ vMarque }} {{ vModele }} — {{ vPlaque }}</p>
+        </div>
     </div>
 
     <div class="section">
         <p>Je soussigné(e) <strong>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</strong>, déclare avoir récupéré mon véhicule et pris connaissance des travaux effectués.</p>
+        {% if or.kilometrageRestitution %}
+        <p class="meta-row">Kilométrage constaté : {{ or.kilometrageRestitution }} km</p>
+        {% endif %}
+        {% if or.prochaineRevisionKm %}
+        <p class="meta-row">Prochaine révision préconisée : {{ or.prochaineRevisionKm }} km</p>
+        {% endif %}
     </div>
 
     <div class="section">
