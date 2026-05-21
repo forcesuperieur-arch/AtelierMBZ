@@ -323,13 +323,7 @@
             {% endif %}
         </div>
         <div class="info-col">
-            {% if or.prochaineRevisionKm %}
-            <p class="label">Prochaine révision</p>
-            <p>{{ or.prochaineRevisionKm }} km</p>
-            {% endif %}
-            {% if or.prochaineRevisionDate %}
-            <p class="meta-row">Date prévue : {{ or.prochaineRevisionDate|date('d/m/Y') }}</p>
-            {% endif %}
+            <!-- Prochaine révision retirée — trop variable selon marque/modèle en moto -->
         </div>
     </div>
 
@@ -410,9 +404,7 @@
         {% if or.kilometrageRestitution %}
         <p class="meta-row">Kilométrage constaté : {{ or.kilometrageRestitution }} km</p>
         {% endif %}
-        {% if or.prochaineRevisionKm %}
-        <p class="meta-row">Prochaine révision préconisée : {{ or.prochaineRevisionKm }} km</p>
-        {% endif %}
+        <!-- Prochaine révision retirée — trop variable selon marque/modèle en moto -->
     </div>
 
     <div class="section">

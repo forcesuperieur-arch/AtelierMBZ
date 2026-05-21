@@ -593,8 +593,6 @@
                       <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:#FBBF24;margin-bottom:6px;white-space:pre-wrap;"><span style="color:#F59E0B;">💡 Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
                       <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:#6EE7B7;white-space:pre-wrap;"><span style="color:#10B981;">🛡️ Garantie :</span> {{ orDetails[or.id].garantie }}</div>
                       <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:#D1D5DB;margin-top:4px;"><span style="color:#6B7280;">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
-                      <div v-if="orDetails[or.id].prochaine_revision_km" style="font-size:12px;color:#D1D5DB;"><span style="color:#6B7280;">Prochaine révision :</span> {{ orDetails[or.id].prochaine_revision_km }} km</div>
-                      <div v-if="orDetails[or.id].prochaine_revision_date" style="font-size:12px;color:#D1D5DB;"><span style="color:#6B7280;">Date prochaine révision :</span> {{ orDetails[or.id].prochaine_revision_date }}</div>
                     </div>
 
                     <!-- Signatures images -->
