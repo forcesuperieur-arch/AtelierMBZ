@@ -72,13 +72,86 @@ class OrdreReparation
     #[Groups(['ordre:read', 'ordre:write'])]
     private ?DemandeTravauxSupp $demandeTravauxSupp = null;
 
+    // ─── Signatures ───
+
+    /** Signature client lors de la réception (PDA) */
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['ordre:read'])]
     private ?string $signatureClient = null;
 
+    /** Signature atelier lors de la réception (PDA) */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $signatureAtelierReception = null;
+
+    /** Signature mécanicien après intervention */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $signatureMecanicien = null;
+
+    /** Signature client lors de la restitution */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $signatureClientRestitution = null;
+
+    // ─── Champs rapport d'intervention ───
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?string $travauxRealises = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?array $alertes = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?string $recommandations = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?string $garantie = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?int $kilometrageRestitution = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?int $prochaineRevisionKm = null;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    #[Groups(['ordre:read', 'ordre:write'])]
+    private ?\DateTimeInterface $prochaineRevisionDate = null;
+
+    #[ORM\OneToOne(targetEntity: EssaiRoutier::class)]
+    #[ORM\JoinColumn(name: 'essai_routier_id', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?EssaiRoutier $essaiRoutier = null;
+
+    // ─── Statut ───
+
     #[ORM\Column(length: 50, options: ['default' => 'brouillon'])]
     #[Groups(['ordre:read', 'ordre:write', 'rdv:read'])]
     private string $statut = 'brouillon';
+
+    // ─── Traçabilité signatures ───
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $signeMecanicienAt = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?int $signeMecanicienId = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $signeReceptionnisteAt = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $signeClientRestitutionAt = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $signedSnapshot = null;
@@ -154,6 +227,8 @@ class OrdreReparation
         }
     }
 
+    // ─── Getters / Setters ───
+
     public function getId(): ?int { return $this->id; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
     public function setRendezVous(RendezVous $v): static { $this->rendezVous = $v; return $this; }
@@ -185,13 +260,46 @@ class OrdreReparation
     public function setTravaux(?string $v): static { $this->travaux = $v; return $this; }
     public function getDemandeTravauxSupp(): ?DemandeTravauxSupp { return $this->demandeTravauxSupp; }
     public function setDemandeTravauxSupp(?DemandeTravauxSupp $v): static { $this->demandeTravauxSupp = $v; return $this; }
+
+    // --- Signatures ---
     public function getSignatureClient(): ?string { return $this->signatureClient; }
     public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
-    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+    public function getSignatureAtelierReception(): ?string { return $this->signatureAtelierReception; }
+    public function setSignatureAtelierReception(?string $v): static { $this->signatureAtelierReception = $v; return $this; }
+    public function getSignatureMecanicien(): ?string { return $this->signatureMecanicien; }
+    public function setSignatureMecanicien(?string $v): static { $this->signatureMecanicien = $v; return $this; }
+    public function getSignatureClientRestitution(): ?string { return $this->signatureClientRestitution; }
+    public function setSignatureClientRestitution(?string $v): static { $this->signatureClientRestitution = $v; return $this; }
+
+    // --- Rapport fields ---
+    public function getTravauxRealises(): ?string { return $this->travauxRealises; }
+    public function setTravauxRealises(?string $v): static { $this->travauxRealises = $v; return $this; }
+    public function getAlertes(): ?array { return $this->alertes; }
+    public function setAlertes(?array $v): static { $this->alertes = $v; return $this; }
+    public function getRecommandations(): ?string { return $this->recommandations; }
+    public function setRecommandations(?string $v): static { $this->recommandations = $v; return $this; }
+    public function getGarantie(): ?string { return $this->garantie; }
+    public function setGarantie(?string $v): static { $this->garantie = $v; return $this; }
+    public function getKilometrageRestitution(): ?int { return $this->kilometrageRestitution; }
+    public function setKilometrageRestitution(?int $v): static { $this->kilometrageRestitution = $v; return $this; }
+    public function getProchaineRevisionKm(): ?int { return $this->prochaineRevisionKm; }
+    public function setProchaineRevisionKm(?int $v): static { $this->prochaineRevisionKm = $v; return $this; }
+    public function getProchaineRevisionDate(): ?\DateTimeInterface { return $this->prochaineRevisionDate; }
+    public function setProchaineRevisionDate(?\DateTimeInterface $v): static { $this->prochaineRevisionDate = $v; return $this; }
+    public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }
+    public function setEssaiRoutier(?EssaiRoutier $v): static { $this->essaiRoutier = $v; return $this; }
 
     // --- Statut & Signature fields ---
     public function getStatut(): string { return $this->statut; }
     public function setStatut(string $v): static { $this->statut = $v; return $this; }
+    public function getSigneMecanicienAt(): ?\DateTimeInterface { return $this->signeMecanicienAt; }
+    public function setSigneMecanicienAt(?\DateTimeInterface $v): static { $this->signeMecanicienAt = $v; return $this; }
+    public function getSigneMecanicienId(): ?int { return $this->signeMecanicienId; }
+    public function setSigneMecanicienId(?int $v): static { $this->signeMecanicienId = $v; return $this; }
+    public function getSigneReceptionnisteAt(): ?\DateTimeInterface { return $this->signeReceptionnisteAt; }
+    public function setSigneReceptionnisteAt(?\DateTimeInterface $v): static { $this->signeReceptionnisteAt = $v; return $this; }
+    public function getSigneClientRestitutionAt(): ?\DateTimeInterface { return $this->signeClientRestitutionAt; }
+    public function setSigneClientRestitutionAt(?\DateTimeInterface $v): static { $this->signeClientRestitutionAt = $v; return $this; }
     public function getSignedSnapshot(): ?array { return $this->signedSnapshot; }
     public function setSignedSnapshot(?array $v): static { $this->signedSnapshot = $v; return $this; }
     public function getSignedHash(): ?string { return $this->signedHash; }
@@ -210,8 +318,49 @@ class OrdreReparation
     public function setRectifiedBy(?int $v): static { $this->rectifiedBy = $v; return $this; }
     public function getRectifiedAt(): ?\DateTimeInterface { return $this->rectifiedAt; }
     public function setRectifiedAt(?\DateTimeInterface $v): static { $this->rectifiedAt = $v; return $this; }
-    public function isSigned(): bool { return in_array($this->statut, ['signe', 'execute', 'termine'], true); }
-    public function isFrozen(): bool { return in_array($this->statut, ['signe', 'execute', 'termine', 'rectifie'], true); }
+
+    /**
+     * L'OR est signé si au moins le client a signé la réception
+     * et le statut est au-delà de brouillon.
+     */
+    public function isSigned(): bool
+    {
+        return in_array($this->statut, ['reception_signee', 'intervention_signee', 'signe', 'execute', 'termine'], true);
+    }
+
+    /**
+     * L'OR est figé si signé par le client restitution ou rectifié.
+     */
+    public function isFrozen(): bool
+    {
+        return in_array($this->statut, ['signe', 'execute', 'termine', 'rectifie'], true);
+    }
+
+    /**
+     * La réception est signée si client + atelier ont signé.
+     */
+    public function isReceptionSigned(): bool
+    {
+        return $this->signatureClient !== null && $this->signatureAtelierReception !== null;
+    }
+
+    /**
+     * L'intervention est signée si le mécanicien a signé.
+     */
+    public function isInterventionSigned(): bool
+    {
+        return $this->signatureMecanicien !== null;
+    }
+
+    /**
+     * La restitution est signée si le client a signé.
+     */
+    public function isRestitutionSigned(): bool
+    {
+        return $this->signatureClientRestitution !== null;
+    }
+
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
 
     // --- RGPD snapshot getters/setters ---
     public function getSnapClientNom(): ?string { return $this->snapClientNom; }

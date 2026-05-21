@@ -45,12 +45,11 @@ class HistoriqueEntretienService
                 ];
             }
 
-            // Rapport alertes
+            // OR alertes
             $alertes = [];
-            $rapports = $this->em->getRepository(\App\Entity\RapportIntervention::class)->findBy(['rendezVous' => $rdv]);
-            foreach ($rapports as $rapport) {
-                if ($rapport->getAlertes()) {
-                    $alertes = array_merge($alertes, $rapport->getAlertes());
+            foreach ($rdv->getOrdresReparation() as $or) {
+                if ($or->getAlertes()) {
+                    $alertes = array_merge($alertes, $or->getAlertes());
                 }
             }
 

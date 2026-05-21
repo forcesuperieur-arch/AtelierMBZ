@@ -221,10 +221,15 @@ class CompanionController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $signatureData = $data['signature'] ?? null;
+        $signatureClient = $data['signature_client'] ?? $data['signature'] ?? null;
+        $signatureAtelier = $data['signature_atelier'] ?? null;
+        $kilometrage = $data['kilometrage'] ?? null;
 
-        if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
-            return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        if (!$signatureClient || !str_starts_with($signatureClient, 'data:image/')) {
+            return $this->json(['error' => 'Signature client invalide'], Response::HTTP_BAD_REQUEST);
+        }
+        if (!$signatureAtelier || !str_starts_with($signatureAtelier, 'data:image/')) {
+            return $this->json(['error' => 'Signature atelier invalide'], Response::HTTP_BAD_REQUEST);
         }
 
         // Find or create OR for this RDV
@@ -242,9 +247,13 @@ class CompanionController extends AbstractController
             $this->em->persist($or);
         }
 
-        if ($rdv->getKilometrage()) {
+        if ($kilometrage !== null && $kilometrage !== '') {
+            $or->setKilometrage((int) $kilometrage);
+            $rdv->setKilometrage((int) $kilometrage);
+        } elseif ($rdv->getKilometrage()) {
             $or->setKilometrage($rdv->getKilometrage());
         }
+
         if ($rdv->getEtatVehicule()) {
             $orState = $this->decodeEtatVehicule($or->getEtatVehicule());
             $rdvState = $this->decodeEtatVehicule($rdv->getEtatVehicule());
@@ -259,20 +268,20 @@ class CompanionController extends AbstractController
             }
         }
 
-        if (!$this->ordreReparationPolicy->canSign($or)) {
+        if (!$this->ordreReparationPolicy->canSignReception($or)) {
             return $this->json([
                 'error' => 'Cette signature a déjà été finalisée',
                 'statut' => $or->getStatut(),
             ], Response::HTTP_CONFLICT);
         }
 
-        $hash = $this->ordreReparationPolicy->sign($or, $signatureData, $request);
+        $hash = $this->ordreReparationPolicy->signReception($or, $signatureClient, $signatureAtelier, $request);
 
         $this->em->flush();
 
         return $this->json([
             'success' => true,
-            'message' => 'Signature enregistrée',
+            'message' => 'Réception signée',
             'statut' => $or->getStatut(),
             'signedHash' => $hash,
         ]);

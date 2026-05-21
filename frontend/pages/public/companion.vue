@@ -83,8 +83,8 @@
             <button class="companion-action-btn" @click="activeSection = 'signature'">
               <span style="font-size:36px;">✍️</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Signature client</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Obligatoire' }}</span>
+                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Signatures réception</span>
+                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Client + Atelier' }}</span>
               </div>
             </button>
           </div>
@@ -215,45 +215,71 @@
           <!-- SIGNATURE SECTION -->
           <div v-if="activeSection === 'signature'" class="companion-section">
             <div class="companion-section-header">
-              <h2>✍️ Signature du client</h2>
+              <h2>✍️ Signatures réception</h2>
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
             <div v-if="rdv.has_signature && !resignMode" style="text-align:center;padding:20px;">
               <div style="font-size:48px;margin-bottom:12px;">✅</div>
-              <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Signature déjà finalisée</p>
+              <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Réception déjà signée</p>
               <p style="color:#9CA3AF;font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
             </div>
 
             <div v-else style="display:flex;flex-direction:column;gap:12px;">
+              <!-- Kilométrage -->
+              <div class="ocr-field">
+                <label>Kilométrage actuel</label>
+                <input
+                  v-model.number="kilometrage"
+                  type="number"
+                  class="companion-input"
+                  placeholder="Ex: 12450"
+                />
+              </div>
+
               <p style="font-size:13px;color:#9CA3AF;text-align:center;">
                 Le client accepte les travaux décrits et confirme l'état du véhicule à la réception.
               </p>
 
+              <div style="font-size:12px;font-weight:700;color:#E8E9ED;">Signature client</div>
               <div class="sig-canvas-wrapper">
                 <canvas
-                  ref="sigCanvas"
+                  ref="sigCanvasClient"
                   width="600"
-                  height="250"
-                  @pointerdown="startDraw"
-                  @pointermove="draw"
-                  @pointerup="endDraw"
-                  @pointerleave="endDraw"
-                  style="width:100%;height:200px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                  height="200"
+                  @pointerdown="startDrawClient"
+                  @pointermove="drawClient"
+                  @pointerup="endDrawClient"
+                  @pointerleave="endDrawClient"
+                  style="width:100%;height:160px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                ></canvas>
+              </div>
+
+              <div style="font-size:12px;font-weight:700;color:#E8E9ED;">Signature atelier</div>
+              <div class="sig-canvas-wrapper">
+                <canvas
+                  ref="sigCanvasAtelier"
+                  width="600"
+                  height="200"
+                  @pointerdown="startDrawAtelier"
+                  @pointermove="drawAtelier"
+                  @pointerup="endDrawAtelier"
+                  @pointerleave="endDrawAtelier"
+                  style="width:100%;height:160px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
                 ></canvas>
               </div>
 
               <div style="display:flex;gap:8px;">
-                <button class="companion-capture-btn" style="flex:1;" @click="clearSignature">
+                <button class="companion-capture-btn" style="flex:1;" @click="clearSignatures">
                   <span>↺ Effacer</span>
                 </button>
                 <button
                   class="companion-validate-btn"
                   style="flex:2;"
-                  :disabled="sigSaving || !hasDrawn"
+                  :disabled="sigSaving || !hasDrawnClient || !hasDrawnAtelier || !kilometrage"
                   @click="submitSignature"
                 >
-                  {{ sigSaving ? 'Envoi…' : '✓ Valider la signature' }}
+                  {{ sigSaving ? 'Envoi…' : '✓ Valider la réception' }}
                 </button>
               </div>
             </div>
@@ -291,9 +317,12 @@ const carteGriseScanned = ref(false)
 const statusMessage = ref('')
 const statusError = ref('')
 const sigSaving = ref(false)
-const hasDrawn = ref(false)
+const hasDrawnClient = ref(false)
+const hasDrawnAtelier = ref(false)
 const resignMode = ref(false)
-const sigCanvas = ref<HTMLCanvasElement | null>(null)
+const sigCanvasClient = ref<HTMLCanvasElement | null>(null)
+const sigCanvasAtelier = ref<HTMLCanvasElement | null>(null)
+const kilometrage = ref<number | null>(null)
 const checkupSaving = ref(false)
 const checkupNotes = ref('')
 
@@ -822,9 +851,8 @@ async function saveCheckup() {
   }
 }
 
-// --- Signature ---
-function getCanvasPos(e: PointerEvent) {
-  const canvas = sigCanvas.value!
+// --- Signature helpers ---
+function getCanvasPos(e: PointerEvent, canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect()
   return {
     x: (e.clientX - rect.left) * (canvas.width / rect.width),
@@ -832,61 +860,112 @@ function getCanvasPos(e: PointerEvent) {
   }
 }
 
-function startDraw(e: PointerEvent) {
-  drawing = true
-  hasDrawn.value = true
-  const pos = getCanvasPos(e)
-  lastX = pos.x
-  lastY = pos.y
+let drawingClient = false
+let lastXClient = 0
+let lastYClient = 0
+
+function startDrawClient(e: PointerEvent) {
+  const canvas = sigCanvasClient.value
+  if (!canvas) return
+  drawingClient = true
+  hasDrawnClient.value = true
+  const pos = getCanvasPos(e, canvas)
+  lastXClient = pos.x
+  lastYClient = pos.y
 }
 
-function draw(e: PointerEvent) {
-  if (!drawing) return
-  const canvas = sigCanvas.value!
+function drawClient(e: PointerEvent) {
+  if (!drawingClient) return
+  const canvas = sigCanvasClient.value!
   const ctx = canvas.getContext('2d')!
-  const pos = getCanvasPos(e)
+  const pos = getCanvasPos(e, canvas)
   ctx.beginPath()
-  ctx.moveTo(lastX, lastY)
+  ctx.moveTo(lastXClient, lastYClient)
   ctx.lineTo(pos.x, pos.y)
   ctx.strokeStyle = '#1a1a2e'
   ctx.lineWidth = 3
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.stroke()
-  lastX = pos.x
-  lastY = pos.y
+  lastXClient = pos.x
+  lastYClient = pos.y
 }
 
-function endDraw() {
-  drawing = false
+function endDrawClient() {
+  drawingClient = false
 }
 
-function clearSignature() {
-  const canvas = sigCanvas.value
+let drawingAtelier = false
+let lastXAtelier = 0
+let lastYAtelier = 0
+
+function startDrawAtelier(e: PointerEvent) {
+  const canvas = sigCanvasAtelier.value
   if (!canvas) return
+  drawingAtelier = true
+  hasDrawnAtelier.value = true
+  const pos = getCanvasPos(e, canvas)
+  lastXAtelier = pos.x
+  lastYAtelier = pos.y
+}
+
+function drawAtelier(e: PointerEvent) {
+  if (!drawingAtelier) return
+  const canvas = sigCanvasAtelier.value!
   const ctx = canvas.getContext('2d')!
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  hasDrawn.value = false
+  const pos = getCanvasPos(e, canvas)
+  ctx.beginPath()
+  ctx.moveTo(lastXAtelier, lastYAtelier)
+  ctx.lineTo(pos.x, pos.y)
+  ctx.strokeStyle = '#1a1a2e'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.stroke()
+  lastXAtelier = pos.x
+  lastYAtelier = pos.y
+}
+
+function endDrawAtelier() {
+  drawingAtelier = false
+}
+
+function clearSignatures() {
+  const c1 = sigCanvasClient.value
+  if (c1) {
+    c1.getContext('2d')!.clearRect(0, 0, c1.width, c1.height)
+    hasDrawnClient.value = false
+  }
+  const c2 = sigCanvasAtelier.value
+  if (c2) {
+    c2.getContext('2d')!.clearRect(0, 0, c2.width, c2.height)
+    hasDrawnAtelier.value = false
+  }
 }
 
 async function submitSignature() {
-  if (!sigCanvas.value || !hasDrawn.value) return
+  if (!sigCanvasClient.value || !sigCanvasAtelier.value || !hasDrawnClient.value || !hasDrawnAtelier.value || !kilometrage.value) return
   sigSaving.value = true
   setFeedback('')
   try {
-    const dataUrl = sigCanvas.value.toDataURL('image/png')
+    const signatureClient = sigCanvasClient.value.toDataURL('image/png')
+    const signatureAtelier = sigCanvasAtelier.value.toDataURL('image/png')
     const res = await globalThis.fetch(`${apiBase}/companion/${token.value}/signature`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signature: dataUrl }),
+      body: JSON.stringify({
+        signature_client: signatureClient,
+        signature_atelier: signatureAtelier,
+        kilometrage: kilometrage.value,
+      }),
     })
     await ensureOk(res, 'Erreur signature')
     rdv.value.has_signature = true
     resignMode.value = false
     activeSection.value = null
-    clearSignature()
+    clearSignatures()
     await fetchRdv()
-    setFeedback('Signature client finalisée.')
+    setFeedback('Réception signée (client + atelier).')
   } catch (e: any) {
     setFeedback(e?.message || 'Erreur signature', true)
   } finally {

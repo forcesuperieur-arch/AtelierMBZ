@@ -7,12 +7,12 @@ use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
-use App\Entity\RapportIntervention;
+use App\Entity\RdvCommande;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\AuditService;
+use App\Service\OrdreReparationPolicy;
 use App\Service\PhotoService;
-use App\Service\RapportInterventionService;
 use App\Service\RendezVousWorkflowService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +34,7 @@ class RendezVousController extends AbstractController
         private SerializerInterface $serializer,
         private RendezVousWorkflowService $workflowService,
         private PhotoService $photoService,
-        private RapportInterventionService $rapportService,
+        private OrdreReparationPolicy $ordreReparationPolicy,
     ) {}
 
     /**
@@ -106,6 +106,9 @@ class RendezVousController extends AbstractController
         $this->em->persist($rdv);
         $this->em->flush();
 
+        // Synchronize commandes
+        $this->syncCommandes($rdv, $data['commandes'] ?? []);
+
         $this->audit->log('create', 'rdv', $rdv->getId(), json_encode([
             'client_id' => $client->getId(),
             'type' => $rdv->getTypeIntervention(),
@@ -176,17 +179,18 @@ class RendezVousController extends AbstractController
         }
 
         if ($transitionName === 'restituer') {
-            $rapport = $this->em->getRepository(RapportIntervention::class)->findOneBy([
-                'rendezVous' => $rdv,
-            ], ['id' => 'DESC']);
+            $ordre = $this->findInitialOrdre($rdv);
 
-            if (!$rapport || !$rapport->isSignedByBoth() || !in_array($rapport->getStatut(), ['signe', 'rectifie'], true)) {
+            if (!$ordre || !$ordre->isInterventionSigned() || !$ordre->isRestitutionSigned()) {
                 return $this->json([
-                    'error' => 'Rapport d\'intervention non signé',
+                    'error' => 'Ordre de réparation non signé par le mécanicien et/ou le client restitution',
                 ], Response::HTTP_BAD_REQUEST);
             }
 
-            $rapportErrors = $this->rapportService->validateCompleteness($rapport);
+            $rapportErrors = [];
+            if (empty(trim((string) ($ordre->getTravauxRealises() ?? '')))) {
+                $rapportErrors[] = 'Travaux réalisés manquants';
+            }
             if (!empty($rapportErrors)) {
                 return $this->json([
                     'error' => 'Rapport d\'intervention incomplet',
@@ -234,12 +238,12 @@ class RendezVousController extends AbstractController
             }
         }
 
-        // Block reception without signed OR
+        // Block reception without signed OR (client + atelier)
         if ($transitionName === 'reception') {
             $ordreReception = $this->findInitialOrdre($rdv);
-            if (!$ordreReception || !$ordreReception->getSignatureClient()) {
+            if (!$ordreReception || !$ordreReception->isReceptionSigned()) {
                 return $this->json([
-                    'error' => 'Signature client obligatoire avant validation de la réception. Utilisez le compagnon PDA pour faire signer.',
+                    'error' => 'Signatures client et atelier obligatoires avant validation de la réception. Utilisez le compagnon PDA pour faire signer.',
                 ], Response::HTTP_BAD_REQUEST);
             }
         }
@@ -248,9 +252,9 @@ class RendezVousController extends AbstractController
         if ($transitionName === 'start_travail') {
             $ordreInitial = $this->findInitialOrdre($rdv);
 
-            if (!$ordreInitial || !$ordreInitial->getSignatureClient()) {
+            if (!$ordreInitial || !$ordreInitial->isReceptionSigned()) {
                 return $this->json([
-                    'error' => 'Ordre de réparation signé obligatoire avant démarrage',
+                    'error' => 'Ordre de réparation signé (client + atelier) obligatoire avant démarrage',
                 ], Response::HTTP_BAD_REQUEST);
             }
         }
@@ -311,6 +315,23 @@ class RendezVousController extends AbstractController
                 $this->rendezVousStateMachine->getEnabledTransitions($rdv)
             ),
         ]);
+    }
+
+    /**
+     * Update commandes for a RDV.
+     */
+    #[Route('/api/rendez-vous/{id}/commandes', methods: ['POST'])]
+    public function updateCommandes(int $id, Request $request): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($id);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $this->syncCommandes($rdv, $data['commandes'] ?? []);
+
+        return $this->json($this->flattenRdv($rdv));
     }
 
     /**
@@ -392,6 +413,10 @@ class RendezVousController extends AbstractController
             'essai_routier_statut' => $essai?->getStatut(),
             'essai_routier_valide' => $essai?->isValide() ?? false,
             'token_suivi' => $r->getTokenSuivi(),
+            'commandes' => array_values(array_map(
+                fn(RdvCommande $c) => $c->getNumero(),
+                $r->getCommandes()->toArray()
+            )),
         ];
     }
 
@@ -423,5 +448,41 @@ class RendezVousController extends AbstractController
 
         $decoded = json_decode($payload, true);
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Synchronize RdvCommande collection for a RDV.
+     * @param string[] $numeros
+     */
+    private function syncCommandes(RendezVous $rdv, array $numeros): void
+    {
+        // Remove existing commandes not in the new list
+        foreach ($rdv->getCommandes() as $existing) {
+            if (!in_array($existing->getNumero(), $numeros, true)) {
+                $rdv->removeCommande($existing);
+                $this->em->remove($existing);
+            }
+        }
+
+        // Add new commandes
+        $existingNumeros = array_map(
+            fn(RdvCommande $c) => $c->getNumero(),
+            $rdv->getCommandes()->toArray()
+        );
+
+        foreach ($numeros as $numero) {
+            if (!is_string($numero) || trim($numero) === '') {
+                continue;
+            }
+            if (!in_array($numero, $existingNumeros, true)) {
+                $cmd = new RdvCommande();
+                $cmd->setRendezVous($rdv);
+                $cmd->setNumero($numero);
+                $this->em->persist($cmd);
+                $rdv->addCommande($cmd);
+            }
+        }
+
+        $this->em->flush();
     }
 }

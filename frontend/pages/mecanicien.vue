@@ -51,7 +51,7 @@
               <span v-if="activeRdv.client_telephone" style="font-size:12px;">
                 <a :href="`tel:${activeRdv.client_telephone}`" style="color:#6B7280;text-decoration:none;">📞 Appeler</a>
               </span>
-              <NuxtLink v-if="activeOrId" :to="`/ordres/${activeOrId}`" style="font-size:12px;color:#FFD200;text-decoration:none;font-weight:600;">📋 Dossier atelier</NuxtLink>
+              <span v-if="activeOrId" style="font-size:12px;color:#9CA3AF;font-weight:600;">📋 OR #{{ activeOrId }}</span>
               <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
               <UButton label="💾 Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
               <UButton label="🏍 Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
@@ -104,7 +104,7 @@
           </div>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:4px;">
             <span>{{ elapsedMin }}min écoulées</span>
-            <span>{{ activeRdv.temps_estime }}min estimées</span>
+            <span>{{ formatMinutes(activeRdv.temps_estime) }} estimées</span>
           </div>
           <div v-if="progressPct > 100" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
             ⚠️ Dépassement +{{ elapsedMin - activeRdv.temps_estime }}min — intervention en retard
@@ -197,7 +197,7 @@
             <div>
               <p style="font-weight:600;color:#E8E9ED;font-size:13px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
               <p style="font-size:12px;color:#6B7280;">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
-              <p v-if="rdv.temps_estime" style="font-size:11px;color:#9CA3AF;">⏱ {{ rdv.temps_estime }}min</p>
+              <p v-if="rdv.temps_estime" style="font-size:11px;color:#9CA3AF;">⏱ {{ formatMinutes(rdv.temps_estime) }}</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <StatusBadge :status="rdv.status" />
@@ -221,7 +221,7 @@
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <UButton v-if="rdv.status === 'termine'" size="xs" label="📋 Rapport" color="warning" variant="outline" @click="openRapport(rdv.id)" />
-              <NuxtLink :to="`/rdv/${rdv.id}`" style="color:#FFD200;font-size:11px;text-decoration:none;font-weight:600;">Voir →</NuxtLink>
+              <button style="color:#FFD200;font-size:11px;background:none;border:none;cursor:pointer;font-weight:600;" @click="openRdvDetail(rdv)">Voir →</button>
             </div>
           </div>
         </div>
@@ -250,30 +250,30 @@
             <!-- Travaux réalisés -->
             <div>
               <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Travaux réalisés <span style="color:#EF4444;">*</span></label>
-              <textarea v-model="rapportForm.travauxRealises" class="form-input" rows="4" placeholder="Décrire précisément les travaux effectués…" :disabled="!!rapport.signatureMecanicien" />
+              <textarea v-model="rapportForm.travauxRealises" class="form-input" rows="4" placeholder="Décrire précisément les travaux effectués…" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <!-- Alertes -->
             <div>
               <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Alertes importantes</label>
-              <textarea v-model="rapportForm.alertes" class="form-input" rows="2" placeholder="Points à surveiller, anomalies, recommandations urgentes…" :disabled="!!rapport.signatureMecanicien" />
+              <textarea v-model="rapportForm.alertes" class="form-input" rows="2" placeholder="Points à surveiller, anomalies, recommandations urgentes…" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <!-- Recommandations -->
             <div>
               <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Recommandations prochaine visite <span style="color:#EF4444;">*</span></label>
-              <textarea v-model="rapportForm.recommandations" class="form-input" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signatureMecanicien" />
+              <textarea v-model="rapportForm.recommandations" class="form-input" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <!-- Kilométrage restitution + prochaine révision -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
                 <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Km restitution</label>
-                <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signatureMecanicien" />
+                <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signature_mecanicien" />
               </div>
               <div>
                 <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Prochaine révision (km)</label>
-                <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" placeholder="ex: 26500" :disabled="!!rapport.signatureMecanicien" />
+                <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" placeholder="ex: 26500" :disabled="!!rapport.signature_mecanicien" />
               </div>
             </div>
 
@@ -283,22 +283,22 @@
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
                 <div>
                   <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km départ</label>
-                  <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
+                  <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
                 </div>
                 <div>
                   <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km retour</label>
-                  <input v-model.number="essaiForm.kmFin" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
+                  <input v-model.number="essaiForm.kmFin" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
                 </div>
                 <div>
                   <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Durée (min)</label>
-                  <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signatureMecanicien" />
+                  <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                 <button
                   v-for="pt in essaiPoints" :key="pt.key"
                   type="button"
-                  :disabled="!!rapport.signatureMecanicien"
+                  :disabled="!!rapport.signature_mecanicien"
                   style="padding:6px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;"
                   :style="{
                     background: essaiForm.pointsControle[pt.key] === 'ok' ? 'rgba(16,185,129,0.08)' : essaiForm.pointsControle[pt.key] === 'nok' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
@@ -313,13 +313,13 @@
               </div>
               <div v-if="essaiHasNok" style="margin-top:8px;">
                 <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Actions correctives</label>
-                <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="2" placeholder="Décrire les corrections effectuées…" :disabled="!!rapport.signatureMecanicien" />
+                <textarea v-model="essaiForm.actionsCorrectives" class="form-input" rows="2" placeholder="Décrire les corrections effectuées…" :disabled="!!rapport.signature_mecanicien" />
               </div>
             </div>
 
             <!-- Save button (before signature) -->
             <button
-              v-if="!rapport.signatureMecanicien"
+              v-if="!rapport.signature_mecanicien"
               class="btn btn-primary"
               style="width:100%;padding:10px;"
               :disabled="rapportSaving"
@@ -329,7 +329,7 @@
             </button>
 
             <!-- Signature mécanicien -->
-            <div v-if="!rapport.signatureMecanicien" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
+            <div v-if="!rapport.signature_mecanicien" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
               <p style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:8px;">✍️ Signature mécanicien</p>
               <p style="font-size:12px;color:#9CA3AF;margin-bottom:10px;">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
               <canvas
@@ -367,6 +367,7 @@ const apiBase = config.public.apiBase as string
 const rdvStore = useRdvStore()
 const toast = useToast()
 const auth = useAuth()
+const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const finishing = ref(false)
 const savingNotes = ref(false)
@@ -490,7 +491,13 @@ async function openRapport(rdvId: number) {
   rapportError.value = ''
   rapport.value = null
   try {
-    rapport.value = await api.get(`/rdv/${rdvId}/rapport`)
+    const rdvData = myRdvs.value.find(r => r.id === rdvId)
+    const orId = rdvData?.or_id
+    if (!orId) {
+      rapportError.value = 'Aucun ordre de réparation trouvé pour ce RDV'
+      return
+    }
+    rapport.value = await api.get(`/mecanicien/me/rapport/${orId}`)
     fillRapportForm(rapport.value)
   } catch (e: any) {
     rapportError.value = e.message || 'Impossible de charger le rapport'
@@ -510,23 +517,14 @@ async function saveRapport() {
   if (!rapport.value) return
   rapportSaving.value = true
   try {
-    await Promise.all([
-      api.put(`/rapport/${rapport.value.id}`, {
-        travauxRealises: rapportForm.travauxRealises,
-        alertes: rapportForm.alertes,
-        recommandations: rapportForm.recommandations,
-        kilometrageRestitution: rapportForm.kilometrageRestitution,
-        prochaineRevisionKm: rapportForm.prochaineRevisionKm,
-      }),
-      api.post(`/rapport/${rapport.value.id}/essai`, {
-        kmDebut: essaiForm.kmDebut,
-        kmFin: essaiForm.kmFin,
-        dureeMinutes: essaiForm.dureeMinutes,
-        checkpoints: buildEssaiCheckpoints(),
-        actionsCorrectives: essaiForm.actionsCorrectives,
-        valider: canValidateRoadTest.value,
-      }),
-    ])
+    await api.patch(`/mecanicien/me/rapport/${rapport.value.id}`, {
+      travaux_realises: rapportForm.travauxRealises,
+      alertes: rapportForm.alertes ? rapportForm.alertes.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
+      recommandations: rapportForm.recommandations,
+      garantie: rapportForm.garantie,
+      kilometrage_restitution: rapportForm.kilometrageRestitution,
+      prochaine_revision_km: rapportForm.prochaineRevisionKm,
+    })
     await fetchMyRdvs()
     toast.add({ title: 'Rapport enregistré', color: 'success' })
   } catch (e: any) {
@@ -543,10 +541,10 @@ async function signRapport() {
   try {
     await saveRapport()
     const sig = sigRapportCanvas.value.toDataURL('image/png')
-    const updated = await api.post(`/rapport/${rapport.value.id}/sign-mecanicien`, { signature: sig })
+    const updated = await api.post(`/mecanicien/me/sign/${rapport.value.id}`, { signature: sig })
     rapport.value = updated
     await fetchMyRdvs()
-    toast.add({ title: 'Rapport signé', color: 'success' })
+    toast.add({ title: 'Intervention signée', color: 'success' })
   } catch (e: any) {
     rapportSignError.value = e.message || 'Erreur lors de la signature'
   } finally {

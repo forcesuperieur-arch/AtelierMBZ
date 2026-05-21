@@ -119,6 +119,38 @@ class MecanicienController extends AbstractController
             $ordre->setMechanicCheckup($data['mechanic_checkup']);
         }
 
+        if (array_key_exists('travaux_realises', $data)) {
+            $ordre->setTravauxRealises($data['travaux_realises']);
+        }
+
+        if (array_key_exists('alertes', $data)) {
+            $ordre->setAlertes(is_array($data['alertes']) ? $data['alertes'] : null);
+        }
+
+        if (array_key_exists('recommandations', $data)) {
+            $ordre->setRecommandations($data['recommandations']);
+        }
+
+        if (array_key_exists('garantie', $data)) {
+            $ordre->setGarantie($data['garantie']);
+        }
+
+        if (array_key_exists('kilometrage_restitution', $data) && $data['kilometrage_restitution'] !== '') {
+            $ordre->setKilometrageRestitution((int) $data['kilometrage_restitution']);
+        }
+
+        if (array_key_exists('prochaine_revision_km', $data) && $data['prochaine_revision_km'] !== '') {
+            $ordre->setProchaineRevisionKm((int) $data['prochaine_revision_km']);
+        }
+
+        if (array_key_exists('prochaine_revision_date', $data) && $data['prochaine_revision_date']) {
+            try {
+                $ordre->setProchaineRevisionDate(new \DateTime($data['prochaine_revision_date']));
+            } catch (\Throwable) {
+                // ignore invalid date
+            }
+        }
+
         $this->syncLegacyWorkshopState($ordre);
 
         $this->em->flush();
@@ -134,8 +166,74 @@ class MecanicienController extends AbstractController
             'id' => $ordre->getId(),
             'mechanic_notes' => $ordre->getMechanicNotes(),
             'mechanic_checkup' => $ordre->getMechanicCheckup(),
+            'travaux_realises' => $ordre->getTravauxRealises(),
+            'alertes' => $ordre->getAlertes(),
+            'recommandations' => $ordre->getRecommandations(),
+            'garantie' => $ordre->getGarantie(),
             'mechanic_notes_updated_at' => $ordre->getMechanicNotesUpdatedAt()?->format('Y-m-d H:i:s'),
             'mechanic_checkup_updated_at' => $ordre->getMechanicCheckupUpdatedAt()?->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    #[Route('/me/sign/{orId}', methods: ['POST'])]
+    public function signMecanicien(int $orId, Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user || !method_exists($user, 'getId')) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        if (!$mecanicien) {
+            return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
+        }
+
+        $ordre = $this->em->getRepository(OrdreReparation::class)->find($orId);
+        if (!$ordre) {
+            return $this->json(['error' => 'OR not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $rdv = $ordre->getRendezVous();
+        if ($rdv->getMecanicien()?->getId() !== $mecanicien->getId()) {
+            return $this->json(['error' => 'Non autorisé sur cet OR'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $signatureData = $data['signature'] ?? null;
+
+        if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
+            return $this->json(['error' => 'Signature invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $policy = new \App\Service\OrdreReparationPolicy();
+        if (!$policy->canSignMecanicien($ordre)) {
+            return $this->json([
+                'error' => 'Signature mécanicien impossible pour cet OR',
+                'statut' => $ordre->getStatut(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $policy->signMecanicien($ordre, $signatureData, $user->getId());
+
+        // Link essai routier to OR if exists
+        $essai = $this->findLatestEssai($rdv);
+        if ($essai) {
+            $ordre->setEssaiRoutier($essai);
+        }
+
+        $this->em->flush();
+
+        $this->auditService->log(
+            'mecanicien_sign_or',
+            'OrdreReparation',
+            $ordre->getId(),
+            sprintf('OR #%d signé par mécanicien #%d', $ordre->getId(), $mecanicien->getId()),
+        );
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Intervention signée',
+            'statut' => $ordre->getStatut(),
         ]);
     }
 
@@ -307,9 +405,17 @@ class MecanicienController extends AbstractController
             'km_reception' => $rdv->getKilometrage(),
             'pont_nom' => $pont?->getNom(),
             'or_id' => $ordre?->getId(),
-            'or_signe' => $ordre?->getSignatureClient() !== null,
+            'or_signe' => $ordre?->isSigned(),
+            'or_statut' => $ordre?->getStatut(),
             'or_mechanic_notes' => $ordre?->getMechanicNotes(),
             'or_mechanic_checkup' => $ordre?->getMechanicCheckup(),
+            'or_travaux_realises' => $ordre?->getTravauxRealises(),
+            'or_alertes' => $ordre?->getAlertes(),
+            'or_recommandations' => $ordre?->getRecommandations(),
+            'or_garantie' => $ordre?->getGarantie(),
+            'or_kilometrage_restitution' => $ordre?->getKilometrageRestitution(),
+            'or_prochaine_revision_km' => $ordre?->getProchaineRevisionKm(),
+            'or_prochaine_revision_date' => $ordre?->getProchaineRevisionDate()?->format('Y-m-d'),
             'etat_reception' => $this->buildReceptionState($ordre, $rdv),
             'essai_routier_id' => $essai?->getId(),
             'essai_routier_statut' => $essai?->getStatut(),

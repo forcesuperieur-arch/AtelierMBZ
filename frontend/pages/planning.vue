@@ -270,7 +270,7 @@
                   <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
                   <div>
                     <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
-                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ presta.temps_estime_minutes || 60 }} min</div>
+                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ formatMinutes(presta.temps_estime_minutes || 60) }}</div>
                   </div>
                 </label>
               </div>
@@ -284,10 +284,26 @@
                 <label class="form-label">Commentaire</label>
                 <textarea v-model="quickForm.commentaire" class="form-input" rows="3" placeholder="Description du besoin client…"></textarea>
               </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Numéros de commande</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                  <span v-for="(cmd, idx) in quickForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#FFD200;background:rgba(255,210,0,0.08);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,210,0,0.15);">
+                    #{{ cmd }}
+                    <button type="button" style="background:none;border:none;color:#FFD200;font-size:14px;line-height:1;cursor:pointer;" @click="quickForm.commandes.splice(idx, 1)">×</button>
+                  </span>
+                </div>
+                <input
+                  v-model="quickCommandeInput"
+                  class="form-input"
+                  placeholder="N° commande (Entrée ou virgule pour ajouter)"
+                  @keydown.enter.prevent="addQuickCommande"
+                  @keydown.",.prevent="addQuickCommande"
+                />
+              </div>
               <div style="min-width:200px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
                 <div style="font-size:11px;color:#9CA3AF;">Estimé</div>
                 <div style="font-size:18px;font-weight:800;color:#FFD200;">{{ formatCurrency(quickEstimateTotal) }}</div>
-                <div style="font-size:12px;color:#CBD5E1;">{{ quickEstimateDuration }} min</div>
+                <div style="font-size:12px;color:#CBD5E1;">{{ formatMinutes(quickEstimateDuration) }}</div>
                 <div style="font-size:12px;color:#CBD5E1;">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
               </div>
             </div>
@@ -299,6 +315,41 @@
               </button>
             </div>
           </div>
+        </UCard>
+      </template>
+    </AppModal>
+
+    <AppModal v-model:open="showMoveConfirmModal" size="sm">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span style="font-weight:700;color:#E8E9ED;">Confirmer le déplacement</span>
+              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="cancelMove">✕</button>
+            </div>
+          </template>
+
+          <div v-if="pendingMove?.rdv" style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#D1D5DB;">
+            <div>
+              <span style="color:#6B7280;">RDV :</span>
+              <strong style="color:#E8E9ED;">{{ pendingMove.rdv.client_nom || 'Client' }} · {{ pendingMove.rdv.type_intervention }}</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="color:#6B7280;">De :</span>
+              <span>{{ formatDateDisplay(pendingMove.rdv.date_rdv) }} à {{ pendingMove.rdv.heure_debut }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="color:#6B7280;">Vers :</span>
+              <span style="color:#FFD200;font-weight:700;">{{ formatDateDisplay(pendingMove.date) }} à {{ pendingMove.time }}</span>
+            </div>
+          </div>
+
+          <template #footer>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button class="btn btn-ghost" @click="cancelMove">Annuler</button>
+              <button class="btn btn-primary" @click="confirmMove">Confirmer le déplacement</button>
+            </div>
+          </template>
         </UCard>
       </template>
     </AppModal>
@@ -327,6 +378,8 @@
               <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule_info || '—' }}</span></div>
               <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
               <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
+              <div><span style="color:#6B7280;">Durée :</span> <span style="color:#D1D5DB;">{{ formatMinutes(selectedRdv.temps_estime ?? selectedRdv.duree_estimee) }}</span></div>
+              <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.type_intervention || '—' }}</span></div>
             </div>
 
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
@@ -345,8 +398,17 @@
                   <input v-model="editForm.type_intervention" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Durée estimée (min)</label>
-                  <input v-model.number="editForm.temps_estime" type="number" min="15" step="15" class="form-input" :disabled="selectedIsHistorical || !canEditRdv || prestationLocked" />
+                  <label class="form-label">Durée estimée</label>
+                  <input
+                    v-model="editForm.durationDisplay"
+                    type="text"
+                    class="form-input"
+                    placeholder="hh:mm"
+                    maxlength="5"
+                    :disabled="selectedIsHistorical || !canEditRdv || prestationLocked"
+                    @change="editForm.temps_estime = hhMmToMinutes(editForm.durationDisplay)"
+                    @blur="editForm.durationDisplay = minutesToHhMm(editForm.temps_estime)"
+                  />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Pont</label>
@@ -364,6 +426,25 @@
               <div class="form-group" style="margin-top:12px;">
                 <label class="form-label">Commentaire</label>
                 <textarea v-model="editForm.commentaire" class="form-input" rows="3" :disabled="selectedIsHistorical || !canEditRdv" placeholder="Notes réception / atelier…"></textarea>
+              </div>
+
+              <div class="form-group" style="margin-top:12px;">
+                <label class="form-label">Numéros de commande</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                  <span v-for="(cmd, idx) in editForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#FFD200;background:rgba(255,210,0,0.08);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,210,0,0.15);">
+                    #{{ cmd }}
+                    <button v-if="!selectedIsHistorical && canEditRdv" type="button" style="background:none;border:none;color:#FFD200;font-size:14px;line-height:1;cursor:pointer;" @click="editForm.commandes.splice(idx, 1)">×</button>
+                  </span>
+                </div>
+                <input
+                  v-if="!selectedIsHistorical && canEditRdv"
+                  v-model="commandeInput"
+                  class="form-input"
+                  placeholder="N° commande (Entrée ou virgule pour ajouter)"
+                  :disabled="selectedIsHistorical || !canEditRdv"
+                  @keydown.enter.prevent="addCommande"
+                  @keydown.",.prevent="addCommande"
+                />
               </div>
 
               <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
@@ -435,11 +516,35 @@
               </div>
             </div>
 
+            <!-- Document OR unique -->
+            <div v-if="selectedRdv.ordres_reparation?.length" style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">📄 Ordre de Réparation</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div v-for="or in selectedRdv.ordres_reparation" :key="or.id" style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="font-size:12px;font-weight:600;color:#D1D5DB;">{{ or.numero_or }}</div>
+                    <div style="font-size:11px;color:#6B7280;">{{ or.statut }}</div>
+                  </div>
+                  <!-- Signatures -->
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Client réception {{ or.signature_client ? '✓' : '—' }}</span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_atelier_reception ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Atelier réception {{ or.signature_atelier_reception ? '✓' : '—' }}</span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_mecanicien ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Mécanicien {{ or.signature_mecanicien ? '✓' : '—' }}</span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client_restitution ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Client restitution {{ or.signature_client_restitution ? '✓' : '—' }}</span>
+                  </div>
+                  <div v-if="or.travaux_realises" style="font-size:11px;color:#9CA3AF;">
+                    <span style="color:#6B7280;">Travaux :</span> {{ or.travaux_realises.slice(0, 80) }}{{ or.travaux_realises.length > 80 ? '…' : '' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
               <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Workflow atelier</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <!-- Bouton principal (prochaine étape) -->
                 <button
-                  v-for="transition in availableTransitions"
+                  v-for="transition in availableTransitions.filter(t => t.name !== 'annuler')"
                   :key="transition.name"
                   class="btn"
                   :style="transitionButtonStyle(transition.color)"
@@ -448,13 +553,20 @@
                 >
                   {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
                 </button>
+                <!-- Bouton annuler (discret) -->
+                <button
+                  v-for="transition in availableTransitions.filter(t => t.name === 'annuler')"
+                  :key="transition.name"
+                  style="background:none;border:none;color:#9CA3AF;font-size:11px;cursor:pointer;padding:4px 8px;"
+                  :disabled="transitioning === transition.name || selectedIsHistorical"
+                  @click="applyTransition(transition.name)"
+                >
+                  {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
+                </button>
               </div>
             </div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div v-if="selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire }}</div>
-              <NuxtLink :to="`/rdv/${selectedRdv.id}`" class="btn btn-primary" style="text-decoration:none;" @click="showRdvModal = false">Ouvrir la fiche complète →</NuxtLink>
-            </div>
+            <div v-if="selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire }}</div>
           </div>
         </UCard>
       </template>
@@ -488,6 +600,9 @@ const availableTransitions = ref<Array<{ name: string; label: string; color: str
 
 const showRdvModal = ref(false)
 const showQuickCreateModal = ref(false)
+const showMoveConfirmModal = ref(false)
+const commandeInput = ref('')
+const quickCommandeInput = ref('')
 const selectedRdv = ref<any | null>(null)
 const quickSelectedPrestas = ref<number[]>([])
 const quickClientSearch = ref('')
@@ -495,20 +610,35 @@ const quickClientResults = ref<any[]>([])
 const quickSelectedClient = ref<any | null>(null)
 const quickVehicleSearch = ref('')
 const quickVehicleFound = ref(false)
+const pendingMove = ref<{ id: number; date: string; time: string; rdv: any } | null>(null)
 
 const HISTORY_STATUSES = ['termine', 'restitue', 'facture', 'paye', 'annule']
 const PRESTATION_LOCK_STATUSES = ['reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye']
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const MOTO_TYPES = ['Roadster', 'Sportive', 'Trail', 'Custom', 'Scooter', 'Enduro', 'Adventure', 'GT']
 
+function minutesToHhMm(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes))
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+function hhMmToMinutes(value: string): number {
+  const [h, m] = value.split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return 0
+  return Math.max(0, h * 60 + m)
+}
+
 const editForm = reactive({
   date_rdv: '',
   heure_debut: '10:00',
   type_intervention: '',
   temps_estime: 60,
+  durationDisplay: '01:00',
   commentaire: '',
   mecanicien_id: null as number | null,
   pont_id: null as number | null,
+  commandes: [] as string[],
 })
 
 const receptionForm = reactive({
@@ -533,6 +663,7 @@ const quickForm = reactive({
   commentaire: '',
   mecanicien_id: null as number | null,
   pont_id: null as number | null,
+  commandes: [] as string[],
 })
 
 const {
@@ -563,6 +694,19 @@ const transitionCatalog: Record<string, { label: string; color: string }> = {
   facturer: { label: '💶 Facturer', color: 'primary' },
   payer: { label: '💳 Encaisser', color: 'success' },
   annuler: { label: '❌ Annuler', color: 'error' },
+}
+
+// Séquence de workflow : pour chaque statut, quelle est la prochaine transition attendue
+// start_travail et terminer sont volontairement exclus — ce sont les mécaniciens qui déclenchent ces statuts
+const WORKFLOW_SEQUENCE: Record<string, { next?: string; cancel?: string }> = {
+  en_attente: { next: 'reserver', cancel: 'annuler' },
+  reserve: { next: 'confirmer', cancel: 'annuler' },
+  confirme: { next: 'reception', cancel: 'annuler' },
+  reception: {},
+  en_cours: {},
+  termine: { next: 'restituer' },
+  restitue: { next: 'facturer' },
+  facture: { next: 'payer' },
 }
 
 const canCreateRdv = computed(() => hasPerm('rdv.create'))
@@ -868,18 +1012,9 @@ function toggleMeca(id: number) {
 }
 
 function fallbackTransitionsForStatus(status?: string) {
-  const byStatus: Record<string, string[]> = {
-    en_attente: ['reserver', 'confirmer', 'annuler'],
-    reserve: ['confirmer', 'reception', 'annuler'],
-    confirme: ['reception', 'annuler'],
-    reception: ['start_travail'],
-    en_cours: ['terminer'],
-    termine: ['restituer', 'facturer'],
-    restitue: ['facturer'],
-    facture: ['payer'],
-  }
-
-  return (byStatus[String(status || '')] || []).map((name) => ({
+  const seq = WORKFLOW_SEQUENCE[String(status || '')]
+  if (!seq) return []
+  return [seq.next, seq.cancel].filter((n): n is string => !!n).map((name) => ({
     name,
     label: transitionCatalog[name]?.label ?? name,
     color: transitionCatalog[name]?.color ?? 'neutral',
@@ -892,9 +1027,11 @@ function hydrateEditForms(rdv: any) {
   editForm.heure_debut = rdv.heure_debut || '09:00'
   editForm.type_intervention = rdv.type_intervention || ''
   editForm.temps_estime = toNumber(rdv.temps_estime, 60)
+  editForm.durationDisplay = minutesToHhMm(editForm.temps_estime)
   editForm.commentaire = rdv.commentaire || ''
   editForm.mecanicien_id = toNullableNumber(rdv.mecanicien?.id ?? rdv.mecanicien_id)
   editForm.pont_id = toNullableNumber(rdv.pont?.id ?? rdv.pont_id)
+  editForm.commandes = Array.isArray(rdv.commandes) ? [...rdv.commandes] : []
   receptionForm.kilometrage = rdv.kilometrage ? String(rdv.kilometrage) : ''
   receptionForm.etat_vehicule = rdv.etat_vehicule || rdv.etatVehicule || ''
 }
@@ -916,6 +1053,7 @@ function resetQuickForm(prefill?: { date?: string; time?: string; pontId?: numbe
   quickForm.commentaire = ''
   quickForm.mecanicien_id = null
   quickForm.pont_id = prefill?.pontId ?? null
+  quickForm.commandes = []
   quickSelectedPrestas.value = []
   quickClientSearch.value = ''
   quickClientResults.value = []
@@ -1047,7 +1185,7 @@ async function refreshPlanning() {
 
 async function loadPlanningData() {
   const [p, r, m, h, prestaData, configData] = await Promise.all([
-    api.get('/ponts').catch(() => []),
+    api.get('/ponts?itemsPerPage=200').catch(() => []),
     api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
     api.get('/mecaniciens').catch(() => []),
     api.get('/config/horaires').catch(() => []),
@@ -1057,7 +1195,7 @@ async function loadPlanningData() {
 
   ponts.value = unwrapList(p)
   rawRdvs.value = unwrapList(r)
-  mecaniciens.value = unwrapList(m)
+  mecaniciens.value = unwrapList(m).filter((item: any) => item.is_active !== false && item.is_active !== 0)
   horaires.value = normalizeHoraires(unwrapList(h).length ? h : (configData as any)?.horaires ?? [])
   prestations.value = unwrapList(prestaData).map(normalizePrestation).filter((item: any) => item.is_active !== false && item.is_active !== 0)
 }
@@ -1066,11 +1204,15 @@ async function loadAvailableTransitions(id: number) {
   try {
     const data = await api.get(`/rendez-vous/${id}/transitions`)
     const transitions = Array.isArray(data?.transitions) ? data.transitions : []
-    availableTransitions.value = transitions.map((name: string) => ({
-      name,
-      label: transitionCatalog[name]?.label ?? name,
-      color: transitionCatalog[name]?.color ?? 'neutral',
-    }))
+    const seq = WORKFLOW_SEQUENCE[selectedRdv.value?.status ?? '']
+    const allowed = new Set([seq?.next, seq?.cancel].filter((n): n is string => !!n))
+    availableTransitions.value = transitions
+      .filter((name: string) => allowed.has(name))
+      .map((name: string) => ({
+        name,
+        label: transitionCatalog[name]?.label ?? name,
+        color: transitionCatalog[name]?.color ?? 'neutral',
+      }))
   } catch {
     availableTransitions.value = fallbackTransitionsForStatus(selectedRdv.value?.status)
   }
@@ -1098,21 +1240,33 @@ async function onSelectRdv(rdv: any) {
   }
 }
 
-async function onMoveRdv(payload: { id: number; date: string; time: string }) {
+function onMoveRdv(payload: { id: number; date: string; time: string }) {
   if (!canEditRdv.value) return
+  const rdv = activePlanningRdvs.value.find((r: any) => r.id === payload.id)
+  pendingMove.value = { ...payload, rdv: rdv ?? null }
+  showMoveConfirmModal.value = true
+}
+
+async function confirmMove() {
+  if (!pendingMove.value) return
+  showMoveConfirmModal.value = false
   try {
-    await rdvStore.updateRdv(payload.id, {
-      date_rdv: payload.date,
-      dateRdv: payload.date,
-      heure_rdv: payload.time,
-      heure_debut: payload.time,
-      heureRdv: `${payload.time}:00`,
+    await rdvStore.updateRdv(pendingMove.value.id, {
+      dateRdv: pendingMove.value.date,
+      heureRdv: `${pendingMove.value.time}:00`,
     })
     toast.add({ title: 'RDV déplacé', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
     toast.add({ title: 'Déplacement impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    pendingMove.value = null
   }
+}
+
+function cancelMove() {
+  showMoveConfirmModal.value = false
+  pendingMove.value = null
 }
 
 function onCreateAt(payload: { date: string; time: string }) {
@@ -1158,6 +1312,7 @@ async function submitQuickCreate() {
       prix_estime: quickEstimateTotal.value || null,
       mecanicien_id: resolvedMecanicienId,
       pont_id: resolvedPontId,
+      commandes: quickForm.commandes,
     }
 
     const created = await rdvStore.createRdv(payload)
@@ -1170,6 +1325,30 @@ async function submitQuickCreate() {
   } finally {
     quickSubmitting.value = false
   }
+}
+
+function addCommande() {
+  const val = commandeInput.value.trim()
+  if (!val) return
+  const nums = val.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+  for (const num of nums) {
+    if (!editForm.commandes.includes(num)) {
+      editForm.commandes.push(num)
+    }
+  }
+  commandeInput.value = ''
+}
+
+function addQuickCommande() {
+  const val = quickCommandeInput.value.trim()
+  if (!val) return
+  const nums = val.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+  for (const num of nums) {
+    if (!quickForm.commandes.includes(num)) {
+      quickForm.commandes.push(num)
+    }
+  }
+  quickCommandeInput.value = ''
 }
 
 async function saveRdvChanges() {
@@ -1201,6 +1380,12 @@ async function saveRdvChanges() {
     }
 
     await rdvStore.updateRdv(selectedRdv.value.id, payload)
+
+    // Sync commandes
+    if (editForm.commandes.length || selectedRdv.value.commandes?.length) {
+      await api.post(`/rendez-vous/${selectedRdv.value.id}/commandes`, { commandes: editForm.commandes })
+    }
+
     toast.add({ title: 'RDV mis à jour', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {

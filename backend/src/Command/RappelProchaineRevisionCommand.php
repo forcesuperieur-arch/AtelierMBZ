@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\RapportIntervention;
+use App\Entity\OrdreReparation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -27,19 +27,19 @@ class RappelProchaineRevisionCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $targetDate = (new \DateTime())->modify('+30 days')->format('Y-m-d');
 
-        $rapports = $this->em->createQueryBuilder()
-            ->select('r')
-            ->from(RapportIntervention::class, 'r')
-            ->where('r.prochaineRevisionDate = :date')
-            ->andWhere('r.statut IN (:statuts)')
+        $ordres = $this->em->createQueryBuilder()
+            ->select('o')
+            ->from(OrdreReparation::class, 'o')
+            ->where('o.prochaineRevisionDate = :date')
+            ->andWhere('o.statut IN (:statuts)')
             ->setParameter('date', $targetDate)
-            ->setParameter('statuts', ['signe', 'rectifie'])
+            ->setParameter('statuts', ['intervention_signee', 'signe', 'execute', 'termine'])
             ->getQuery()
             ->getResult();
 
         $count = 0;
-        foreach ($rapports as $rapport) {
-            $rdv = $rapport->getRendezVous();
+        foreach ($ordres as $ordre) {
+            $rdv = $ordre->getRendezVous();
             $client = $rdv->getClient();
 
             if ($client && $client->getEmail()) {
@@ -48,7 +48,7 @@ class RappelProchaineRevisionCommand extends Command
                     'Rappel: Client %s (%s) — révision prévue le %s',
                     $client->getNom(),
                     $client->getEmail(),
-                    $rapport->getProchaineRevisionDate()->format('d/m/Y'),
+                    $ordre->getProchaineRevisionDate()->format('d/m/Y'),
                 ));
                 $count++;
             }

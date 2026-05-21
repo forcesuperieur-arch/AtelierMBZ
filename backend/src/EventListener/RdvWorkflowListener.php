@@ -2,7 +2,6 @@
 namespace App\EventListener;
 
 use App\Message\SendRappelMessage;
-use App\Service\RapportInterventionService;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Workflow\Event\CompletedEvent;
@@ -20,7 +19,6 @@ class RdvWorkflowListener
 {
     public function __construct(
         private MessageBusInterface $bus,
-        private RapportInterventionService $rapportService,
     ) {}
 
     public function __invoke(CompletedEvent $event): void
@@ -40,8 +38,5 @@ class RdvWorkflowListener
     private function onTerminer(object $rdv): void
     {
         $this->bus->dispatch(new SendRappelMessage($rdv->getId(), 'travaux_termines'));
-
-        // LOT 8 — Auto-create rapport brouillon on terminer
-        $this->rapportService->createDraft($rdv);
     }
 }
