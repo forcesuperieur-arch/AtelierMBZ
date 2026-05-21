@@ -548,6 +548,34 @@
 
                   <!-- Panneau détail OR -->
                   <div v-if="orDetailOpen[or.id] && orDetails[or.id]" style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+                    <!-- Lien PDF -->
+                    <a
+                      v-if="orPdfUrls[or.id]"
+                      :href="orPdfUrls[or.id]"
+                      target="_blank"
+                      class="btn btn-ghost"
+                      style="font-size:12px;padding:6px 12px;align-self:flex-start;text-decoration:none;"
+                    >
+                      📄 Télécharger le PDF
+                    </a>
+
+                    <!-- Photos -->
+                    <template v-for="(photoList, type) in orPhotos[or.id]" :key="type">
+                      <div v-if="photoList?.length" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">{{ photoTypeLabel(type) }}</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;">
+                          <div v-for="(photo, idx) in photoList" :key="idx" style="position:relative;">
+                            <img
+                              :src="photo.url || photo.src"
+                              style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:white;cursor:pointer;"
+                              @click="openPhotoInTab(photo.url || photo.src)"
+                            />
+                            <div v-if="photo.description" style="font-size:9px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+
                     <div v-if="orDetails[or.id].travaux" style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
                       <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:4px;">📝 Travaux demandés</div>
                       <div style="font-size:12px;color:#D1D5DB;white-space:pre-wrap;">{{ orDetails[or.id].travaux }}</div>
@@ -676,6 +704,8 @@ const pendingMove = ref<{ id: number; date: string; time: string; rdv: any } | n
 const orDetails = ref<Record<number, any>>({})
 const orDetailOpen = ref<Record<number, boolean>>({})
 const orDetailLoading = ref<number | null>(null)
+const orPhotos = ref<Record<number, any>>({})
+const orPdfUrls = ref<Record<number, string>>({})
 
 const HISTORY_STATUSES = ['termine', 'restitue', 'facture', 'paye', 'annule']
 const PRESTATION_LOCK_STATUSES = ['reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye']
@@ -1293,6 +1323,23 @@ async function reloadSelectedRdv(id: number) {
   }
 }
 
+function photoTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    reception: '📸 Photos réception',
+    avant_travaux: '📸 Photos avant travaux',
+    en_cours: '📸 Photos en cours',
+    apres_travaux: '📸 Photos après travaux',
+    restitution: '📸 Photos restitution',
+    probleme: '📸 Photos problème',
+    reception_base64: '📸 Photos PDA réception',
+  }
+  return labels[type] || type
+}
+
+function openPhotoInTab(url: string) {
+  if (url) window.open(url, '_blank')
+}
+
 async function loadOrDetail(orId: number) {
   if (orDetails.value[orId]) {
     orDetailOpen.value[orId] = !orDetailOpen.value[orId]
@@ -1304,9 +1351,14 @@ async function loadOrDetail(orId: number) {
     toast.add({ title: 'Erreur', description: 'Le chargement a pris trop de temps.', color: 'error' })
   }, 8000)
   try {
-    const data = await api.get(`/ordres-reparation/${orId}`)
+    const [data, photos] = await Promise.all([
+      api.get(`/ordres-reparation/${orId}`),
+      api.get(`/or/${orId}/photos`),
+    ])
     clearTimeout(timeout)
     orDetails.value[orId] = data
+    orPhotos.value[orId] = photos
+    orPdfUrls.value[orId] = `/api/ordres-reparation/${orId}/pdf`
     orDetailOpen.value[orId] = true
   } catch (e: any) {
     clearTimeout(timeout)
