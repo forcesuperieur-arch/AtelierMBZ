@@ -69,20 +69,12 @@
           <div style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.garantie }}</div>
         </div>
 
-        <!-- Kilométrage & prochaine révision -->
+        <!-- Kilométrage restitution -->
         <div class="restitution-section">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
             <div v-if="data.ordre?.kilometrage_restitution">
               <span style="color:#6B7280;">Km restitution :</span>
               <span style="color:#D1D5DB;font-weight:700;"> {{ data.ordre.kilometrage_restitution }} km</span>
-            </div>
-            <div v-if="data.ordre?.prochaine_revision_km">
-              <span style="color:#6B7280;">Prochaine révision :</span>
-              <span style="color:#D1D5DB;font-weight:700;"> {{ data.ordre.prochaine_revision_km }} km</span>
-            </div>
-            <div v-if="data.ordre?.prochaine_revision_date" style="grid-column:1/-1;">
-              <span style="color:#6B7280;">Date prochaine révision :</span>
-              <span style="color:#D1D5DB;font-weight:700;"> {{ formatDate(data.ordre.prochaine_revision_date) }}</span>
             </div>
           </div>
         </div>

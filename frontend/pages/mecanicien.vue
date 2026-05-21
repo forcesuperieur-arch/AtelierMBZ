@@ -271,10 +271,7 @@
                 <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signature_mecanicien" />
               </div>
-              <div>
-                <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Prochaine révision (km)</label>
-                <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" placeholder="ex: 26500" :disabled="!!rapport.signature_mecanicien" />
-              </div>
+              <!-- Prochaine révision retirée — trop variable selon marque/modèle en moto -->
             </div>
 
             <!-- Essai routier -->
@@ -397,7 +394,7 @@ const rapportForm = reactive({
   alertes: '',
   recommandations: '',
   kilometrageRestitution: null as number | null,
-  prochaineRevisionKm: null as number | null,
+  // prochaineRevisionKm retirée — trop variable selon marque/modèle en moto
 })
 
 const essaiPoints = [
@@ -474,7 +471,7 @@ function fillRapportForm(r: any) {
   rapportForm.alertes = r.alertes ?? ''
   rapportForm.recommandations = r.recommandations ?? ''
   rapportForm.kilometrageRestitution = r.kilometrageRestitution ?? null
-  rapportForm.prochaineRevisionKm = r.prochaineRevisionKm ?? null
+  // rapportForm.prochaineRevisionKm retirée — trop variable selon marque/modèle en moto
   resetEssaiForm()
   if (r.essaiRoutier) {
     essaiForm.kmDebut = r.essaiRoutier.kmDebut ?? null
@@ -523,7 +520,7 @@ async function saveRapport() {
       recommandations: rapportForm.recommandations,
       garantie: rapportForm.garantie,
       kilometrage_restitution: rapportForm.kilometrageRestitution,
-      prochaine_revision_km: rapportForm.prochaineRevisionKm,
+      // prochaine_revision_km retirée — trop variable selon marque/modèle en moto
     })
     await fetchMyRdvs()
     toast.add({ title: 'Rapport enregistré', color: 'success' })
