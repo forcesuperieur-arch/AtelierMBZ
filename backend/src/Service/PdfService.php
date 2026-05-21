@@ -46,6 +46,14 @@ class PdfService
     }
 
     /**
+     * Get the stored path for an OR PDF.
+     */
+    public function getOrPdfPath(OrdreReparation $or): string
+    {
+        return $this->projectDir . '/var/pdf/OR-' . $or->getNumeroOr() . '.pdf';
+    }
+
+    /**
      * Generate an invoice PDF.
      */
     public function generateFacturePdf(Facture $facture): string
