@@ -66,6 +66,18 @@ class OrdreReparationController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
+    #[Route('/{id}', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function show(int $id): JsonResponse
+    {
+        $or = $this->em->getRepository(OrdreReparation::class)->find($id);
+        if (!$or) {
+            return $this->json(['error' => 'OR non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($or);
+    }
+
     #[Route('/{id}/verify-integrity', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function verifyIntegrity(int $id): JsonResponse

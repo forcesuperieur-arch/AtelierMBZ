@@ -535,6 +535,68 @@
                   <div v-if="or.travaux_realises" style="font-size:11px;color:#9CA3AF;">
                     <span style="color:#6B7280;">Travaux :</span> {{ or.travaux_realises.slice(0, 80) }}{{ or.travaux_realises.length > 80 ? '…' : '' }}
                   </div>
+
+                  <!-- Toggle détail complet -->
+                  <button
+                    class="btn btn-ghost"
+                    style="font-size:11px;padding:4px 10px;min-height:auto;margin-top:4px;align-self:flex-start;"
+                    :disabled="orDetailLoading === or.id"
+                    @click="loadOrDetail(or.id)"
+                  >
+                    {{ orDetailLoading === or.id ? 'Chargement…' : (orDetailOpen[or.id] ? '▲ Masquer le document' : '▶ Voir le document complet') }}
+                  </button>
+
+                  <!-- Panneau détail OR -->
+                  <div v-if="orDetailOpen[or.id] && orDetails[or.id]" style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+                    <div v-if="orDetails[or.id].travaux" style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
+                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:4px;">📝 Travaux demandés</div>
+                      <div style="font-size:12px;color:#D1D5DB;white-space:pre-wrap;">{{ orDetails[or.id].travaux }}</div>
+                    </div>
+                    <div v-if="orDetails[or.id].etat_vehicule" style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
+                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:4px;">🔍 État véhicule</div>
+                      <div style="font-size:12px;color:#D1D5DB;white-space:pre-wrap;">{{ orDetails[or.id].etat_vehicule }}</div>
+                    </div>
+
+                    <!-- Intervention -->
+                    <div v-if="orDetails[or.id].travaux_realises || orDetails[or.id].alertes || orDetails[or.id].recommandations || orDetails[or.id].garantie" style="padding:10px;border-radius:8px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);">
+                      <div style="font-size:11px;font-weight:700;color:#6EE7B7;margin-bottom:6px;">🔧 Intervention</div>
+                      <div v-if="orDetails[or.id].travaux_realises" style="font-size:12px;color:#D1D5DB;margin-bottom:6px;white-space:pre-wrap;"><span style="color:#6B7280;">Travaux réalisés :</span> {{ orDetails[or.id].travaux_realises }}</div>
+                      <div v-if="orDetails[or.id].alertes?.length" style="font-size:12px;color:#FCA5A5;margin-bottom:6px;"><span style="color:#EF4444;">⚠️ Alertes :</span> {{ Array.isArray(orDetails[or.id].alertes) ? orDetails[or.id].alertes.join(', ') : orDetails[or.id].alertes }}</div>
+                      <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:#FBBF24;margin-bottom:6px;white-space:pre-wrap;"><span style="color:#F59E0B;">💡 Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
+                      <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:#6EE7B7;white-space:pre-wrap;"><span style="color:#10B981;">🛡️ Garantie :</span> {{ orDetails[or.id].garantie }}</div>
+                      <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:#D1D5DB;margin-top:4px;"><span style="color:#6B7280;">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
+                      <div v-if="orDetails[or.id].prochaine_revision_km" style="font-size:12px;color:#D1D5DB;"><span style="color:#6B7280;">Prochaine révision :</span> {{ orDetails[or.id].prochaine_revision_km }} km</div>
+                      <div v-if="orDetails[or.id].prochaine_revision_date" style="font-size:12px;color:#D1D5DB;"><span style="color:#6B7280;">Date prochaine révision :</span> {{ orDetails[or.id].prochaine_revision_date }}</div>
+                    </div>
+
+                    <!-- Signatures images -->
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <div v-if="orDetails[or.id].signature_client" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature client réception</div>
+                        <img :src="orDetails[or.id].signature_client" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
+                        <div v-if="orDetails[or.id].signed_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signed_at }}</div>
+                      </div>
+                      <div v-if="orDetails[or.id].signature_atelier_reception" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature atelier réception</div>
+                        <img :src="orDetails[or.id].signature_atelier_reception" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
+                        <div v-if="orDetails[or.id].signe_receptionniste_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_receptionniste_at }}</div>
+                      </div>
+                      <div v-if="orDetails[or.id].signature_mecanicien" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature mécanicien</div>
+                        <img :src="orDetails[or.id].signature_mecanicien" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
+                        <div v-if="orDetails[or.id].signe_mecanicien_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_mecanicien_at }}</div>
+                      </div>
+                      <div v-if="orDetails[or.id].signature_client_restitution" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature client restitution</div>
+                        <img :src="orDetails[or.id].signature_client_restitution" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
+                        <div v-if="orDetails[or.id].signe_client_restitution_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_client_restitution_at }}</div>
+                      </div>
+                    </div>
+
+                    <div v-if="orDetails[or.id].signed_hash" style="font-size:10px;color:#6B7280;word-break:break-all;">
+                      Empreinte : {{ orDetails[or.id].signed_hash }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1225,6 +1287,23 @@ async function reloadSelectedRdv(id: number) {
     selectedRdv.value = fresh
     hydrateEditForms(fresh)
     await loadAvailableTransitions(id)
+  }
+}
+
+async function loadOrDetail(orId: number) {
+  if (orDetails.value[orId]) {
+    orDetailOpen.value[orId] = !orDetailOpen.value[orId]
+    return
+  }
+  orDetailLoading.value = orId
+  try {
+    const data = await api.get(`/or/${orId}`)
+    orDetails.value[orId] = data
+    orDetailOpen.value[orId] = true
+  } catch {
+    toast.add({ title: 'Erreur', description: 'Impossible de charger le détail de l\'OR', color: 'error' })
+  } finally {
+    orDetailLoading.value = null
   }
 }
 
