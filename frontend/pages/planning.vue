@@ -1296,12 +1296,19 @@ async function loadOrDetail(orId: number) {
     return
   }
   orDetailLoading.value = orId
+  const timeout = setTimeout(() => {
+    orDetailLoading.value = null
+    toast.add({ title: 'Erreur', description: 'Le chargement a pris trop de temps.', color: 'error' })
+  }, 8000)
   try {
-    const data = await api.get(`/or/${orId}`)
+    const data = await api.get(`/ordres-reparation/${orId}`)
+    clearTimeout(timeout)
     orDetails.value[orId] = data
     orDetailOpen.value[orId] = true
-  } catch {
-    toast.add({ title: 'Erreur', description: 'Impossible de charger le détail de l\'OR', color: 'error' })
+  } catch (e: any) {
+    clearTimeout(timeout)
+    console.error('loadOrDetail error:', e)
+    toast.add({ title: 'Erreur', description: e?.message || 'Impossible de charger le détail de l\'OR', color: 'error' })
   } finally {
     orDetailLoading.value = null
   }

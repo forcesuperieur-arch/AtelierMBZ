@@ -1,5 +1,8 @@
 import type { UseFetchOptions } from 'nuxt/app'
 
+// Shared refresh promise to prevent parallel refreshToken() race conditions
+let refreshPromise: Promise<boolean> | null = null
+
 export function useApi() {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase as string
@@ -90,7 +93,7 @@ export function useApi() {
         }
         return retry.status === 204 ? (null as T) : retry.json()
       }
-      navigateTo('/login')
+      // Session expired — let callers handle redirect to avoid interrupting finally blocks
       throw new Error('Session expired')
     }
 
@@ -114,14 +117,25 @@ export function useApi() {
   }
 
   async function refreshToken(): Promise<boolean> {
+    // If a refresh is already in flight, wait for it instead of firing a new one
+    if (refreshPromise) return refreshPromise
+
+    refreshPromise = (async () => {
+      try {
+        const res = await globalThis.fetch(`${baseURL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+        return res.ok
+      } catch {
+        return false
+      }
+    })()
+
     try {
-      const res = await globalThis.fetch(`${baseURL}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      })
-      return res.ok
-    } catch {
-      return false
+      return await refreshPromise
+    } finally {
+      refreshPromise = null
     }
   }
 
