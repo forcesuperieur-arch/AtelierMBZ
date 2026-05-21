@@ -673,6 +673,9 @@ const quickSelectedClient = ref<any | null>(null)
 const quickVehicleSearch = ref('')
 const quickVehicleFound = ref(false)
 const pendingMove = ref<{ id: number; date: string; time: string; rdv: any } | null>(null)
+const orDetails = ref<Record<number, any>>({})
+const orDetailOpen = ref<Record<number, boolean>>({})
+const orDetailLoading = ref<number | null>(null)
 
 const HISTORY_STATUSES = ['termine', 'restitue', 'facture', 'paye', 'annule']
 const PRESTATION_LOCK_STATUSES = ['reception', 'en_cours', 'termine', 'restitue', 'facture', 'paye']
