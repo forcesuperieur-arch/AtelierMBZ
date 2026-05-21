@@ -29,7 +29,19 @@ class OrdreReparationPdfController extends AbstractController
             return $this->json(['error' => 'Ordre de réparation introuvable'], Response::HTTP_NOT_FOUND);
         }
 
-        $filePath = $this->pdfService->generateOrPdf($ordre);
+        // Only allow download for finalized ORs
+        if ($ordre->getStatut() !== 'termine' || $ordre->getSignedHash() === null) {
+            return $this->json(
+                ['error' => 'Le PDF n\'est disponible qu\'une fois l\'ordre de réparation finalisé (statut terminé).'],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+
+        $filePath = $this->pdfService->getOrPdfPath($ordre);
+        if (!is_file($filePath)) {
+            // Fallback: regenerate if file is missing (should not happen)
+            $filePath = $this->pdfService->generateOrPdf($ordre);
+        }
 
         return $this->file($filePath, 'OR-' . $ordre->getNumeroOr() . '.pdf');
     }

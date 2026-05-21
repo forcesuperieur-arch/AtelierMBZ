@@ -278,6 +278,15 @@ class RendezVousController extends AbstractController
         }
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
+
+        // Finalize the OR when the RDV reaches completion
+        if ($transitionName === 'terminer') {
+            $ordre = $this->findInitialOrdre($rdv);
+            if ($ordre && $ordre->getStatut() !== 'termine') {
+                $this->ordreReparationPolicy->finalize($ordre);
+            }
+        }
+
         $this->em->flush();
 
         $this->audit->log(

@@ -104,6 +104,10 @@ class MecanicienController extends AbstractController
             return $this->json(['error' => 'OR not found'], Response::HTTP_NOT_FOUND);
         }
 
+        if ($ordre->getStatut() === 'termine') {
+            return $this->json(['error' => 'Cet ordre de réparation est finalisé et ne peut plus être modifié.'], Response::HTTP_FORBIDDEN);
+        }
+
         $rdv = $ordre->getRendezVous();
         if ($rdv->getMecanicien()?->getId() !== $mecanicien->getId()) {
             return $this->json(['error' => 'Non autorisé sur cet OR'], Response::HTTP_FORBIDDEN);

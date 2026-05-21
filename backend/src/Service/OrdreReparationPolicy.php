@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 class OrdreReparationPolicy
 {
+    public function __construct(private PdfService $pdfService) {}
+
     /**
      * Can this user edit the OR content?
      * brouillon → free edit by receptionniste/responsable
@@ -16,6 +18,11 @@ class OrdreReparationPolicy
      */
     public function canEdit(OrdreReparation $or, User $user): bool
     {
+        // Fully frozen after finalization
+        if ($or->getStatut() === 'termine') {
+            return false;
+        }
+
         // Mécanicien can only edit mechanic fields on reception_signee OR
         if ($user->getRole() === 'mecanicien') {
             return in_array($or->getStatut(), ['brouillon', 'reception_signee'], true);
@@ -150,6 +157,64 @@ class OrdreReparationPolicy
             'snap_vehicule_modele' => $or->getSnapVehiculeModele(),
             'created_at' => $or->getCreatedAt()->format('c'),
         ];
+    }
+
+    /**
+     * Build a final snapshot when the OR is frozen at RDV completion.
+     */
+    public function buildFinalSnapshot(OrdreReparation $or): array
+    {
+        $rdv = $or->getRendezVous();
+        return [
+            'id' => $or->getId(),
+            'numero_or' => $or->getNumeroOr(),
+            'type_or' => $or->getTypeOr(),
+            'statut' => $or->getStatut(),
+            'kilometrage' => $or->getKilometrage(),
+            'kilometrage_restitution' => $or->getKilometrageRestitution(),
+            'etat_vehicule' => $or->getEtatVehicule(),
+            'travaux' => $or->getTravaux(),
+            'travaux_realises' => $or->getTravauxRealises(),
+            'alertes' => $or->getAlertes(),
+            'recommandations' => $or->getRecommandations(),
+            'garantie' => $or->getGarantie(),
+            'mechanic_notes' => $or->getMechanicNotes(),
+            'snap_client_nom' => $or->getSnapClientNom(),
+            'snap_client_prenom' => $or->getSnapClientPrenom(),
+            'snap_vehicule_plaque' => $or->getSnapVehiculePlaque(),
+            'snap_vehicule_marque' => $or->getSnapVehiculeMarque(),
+            'snap_vehicule_modele' => $or->getSnapVehiculeModele(),
+            'has_signature_client' => $or->getSignatureClient() !== null,
+            'has_signature_atelier' => $or->getSignatureAtelierReception() !== null,
+            'has_signature_mecanicien' => $or->getSignatureMecanicien() !== null,
+            'has_signature_restitution' => $or->getSignatureClientRestitution() !== null,
+            'signe_receptionniste_at' => $or->getSigneReceptionnisteAt()?->format('c'),
+            'signe_mecanicien_at' => $or->getSigneMecanicienAt()?->format('c'),
+            'signe_client_restitution_at' => $or->getSigneClientRestitutionAt()?->format('c'),
+            'rdv_date' => $rdv->getDateRdv()->format('Y-m-d'),
+            'rdv_heure' => $rdv->getHeureRdv()->format('H:i'),
+            'rdv_type_intervention' => $rdv->getTypeIntervention(),
+            'created_at' => $or->getCreatedAt()->format('c'),
+            'finalized_at' => (new \DateTime())->format('c'),
+        ];
+    }
+
+    /**
+     * Finalize the OR when the RDV is completed.
+     * Computes final snapshot + hash, generates the PDF, and freezes the OR.
+     */
+    public function finalize(OrdreReparation $or): void
+    {
+        $snapshot = $this->buildFinalSnapshot($or);
+        $hash = $this->computeHash($snapshot);
+
+        $or->setSignedSnapshot($snapshot);
+        $or->setSignedHash($hash);
+        $or->setSignedAt(new \DateTime());
+        $or->setStatut('termine');
+
+        // Generate the physical PDF — it will be stored in var/pdf/
+        $this->pdfService->generateOrPdf($or);
     }
 
     /**
