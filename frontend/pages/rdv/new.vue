@@ -183,7 +183,7 @@ x<template>
             </div>
             <div style="text-align:right;">
               <div style="font-size:14px;font-weight:700;color:#FFD200;">{{ formatPrice(p.prix_base_ttc ?? p.prix_base_ht) }}</div>
-              <div style="font-size:11px;color:#6B7280;">{{ p.temps_estime_minutes ?? 60 }} min</div>
+              <div style="font-size:11px;color:#6B7280;">{{ formatMinutes(p.temps_estime_minutes ?? 60) }}</div>
             </div>
           </div>
           <div v-if="!prestations.length" style="padding:20px;text-align:center;color:#6B7280;font-size:13px;">Aucune prestation active pour ce type de moto dans cet atelier.</div>
@@ -200,7 +200,7 @@ x<template>
             <span style="color:#E8E9ED;">Total estimé</span>
             <span style="color:#FFD200;">{{ formatPrice(totalEstime) }}</span>
           </div>
-          <div style="font-size:12px;color:#6B7280;margin-top:4px;">Durée estimée: {{ dureeEstimee }} min</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:4px;">Durée estimée: {{ formatMinutes(dureeEstimee) }}</div>
         </div>
       </div>
 
@@ -249,7 +249,7 @@ x<template>
                 :style="{ background: form.date_rdv === day.date ? 'rgba(255,255,255,0.015)' : 'transparent' }"
               >
                 <button
-                  v-if="getSlotForCell(day.date, time)?.disponible"
+                  v-if="getSlotForCell(day.date, time)?.disponible && !isSlotPast(day.date, time)"
                   type="button"
                   @click="selectPlanningSlot(day.date, getSlotForCell(day.date, time)!)"
                   style="width:100%;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:700;transition:all 0.15s;"
@@ -278,7 +278,7 @@ x<template>
           <div style="font-size:15px;font-weight:700;color:#E8E9ED;margin-top:4px;">
             {{ formatDisplayDate(form.date_rdv) }} à {{ form.heure_debut }}
           </div>
-          <div style="font-size:12px;color:#6B7280;margin-top:2px;">Durée: {{ dureeEstimee }} min<span v-if="selectedSlotMeta?.heure_fin"> · Fin estimée {{ selectedSlotMeta.heure_fin }}</span></div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px;">Durée: {{ formatMinutes(dureeEstimee) }}<span v-if="selectedSlotMeta?.heure_fin"> · Fin estimée {{ selectedSlotMeta.heure_fin }}</span></div>
           <div v-if="selectedSlotMeta?.pause_appliquee" style="font-size:12px;color:#FDE68A;margin-top:4px;">La pause atelier est déjà prise en compte dans l’horaire de fin.</div>
         </div>
       </div>
@@ -312,7 +312,7 @@ x<template>
           <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CRÉNEAU</div>
             <div style="font-size:14px;color:#E8E9ED;font-weight:600;">{{ formatDisplayDate(form.date_rdv) }}</div>
-            <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ form.heure_debut }}<span v-if="selectedSlotMeta?.heure_fin"> → {{ selectedSlotMeta.heure_fin }}</span> — Durée {{ dureeEstimee }} min</div>
+            <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ form.heure_debut }}<span v-if="selectedSlotMeta?.heure_fin"> → {{ selectedSlotMeta.heure_fin }}</span> — Durée {{ formatMinutes(dureeEstimee) }}</div>
             <div v-if="selectedSlotMeta?.pause_appliquee" style="font-size:12px;color:#FDE68A;margin-top:4px;">Pause déjeuner incluse dans l'horaire de fin.</div>
             <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Lieu : {{ atelierDisplayName }}</div>
           </div>
@@ -429,14 +429,21 @@ type SlotItem = {
 const creneauxList = ref<SlotItem[]>([])
 const creneauxByDate = ref<Record<string, SlotItem[]>>({})
 const loadingCreneaux = ref(false)
-const weekStart = ref(new Date().toISOString().slice(0, 10))
+function toLocalISODate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const weekStart = ref(toLocalISODate(new Date()))
 
 // Prestations
 const loadingPrestas = ref(false)
 const prestations = ref<any[]>([])
 const selectedPrestas = ref<number[]>([])
 
-const todayStr = new Date().toISOString().slice(0, 10)
+const todayStr = toLocalISODate(new Date())
 
 function asNumber(value: unknown): number {
   const n = Number(value ?? 0)
@@ -517,7 +524,7 @@ const planningDays = computed(() => {
   return Array.from({ length: 7 }, (_, index) => {
     const current = new Date(start)
     current.setDate(start.getDate() + index)
-    const date = current.toISOString().slice(0, 10)
+    const date = toLocalISODate(current)
     const availableCount = (creneauxByDate.value[date] || []).filter(slot => slot.disponible).length
     return {
       date,
@@ -643,7 +650,7 @@ function goStep(n: number) {
 function addDays(dateStr: string, days: number) {
   const date = new Date(`${dateStr}T00:00:00`)
   date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
+  return toLocalISODate(date)
 }
 
 function startOfWeek(dateStr: string) {
@@ -651,7 +658,15 @@ function startOfWeek(dateStr: string) {
   const day = date.getDay()
   const diff = day === 0 ? -6 : 1 - day
   date.setDate(date.getDate() + diff)
-  return date.toISOString().slice(0, 10)
+  return toLocalISODate(date)
+}
+
+function isSlotPast(dateStr: string, heure: string): boolean {
+  const now = new Date()
+  const [h, m] = heure.split(':').map(Number)
+  const slot = new Date(`${dateStr}T00:00:00`)
+  slot.setHours(h, m, 0, 0)
+  return slot < now
 }
 
 function getDefaultPlanningHours() {
@@ -931,7 +946,13 @@ async function loadCreneaux() {
     const byDate = Array.isArray(slotsData) ? { [start]: slotsData } : (slotsData || {})
 
     creneauxByDate.value = Object.fromEntries(
-      planningDays.value.map((day) => [day.date, normalizeSlots(byDate[day.date] || [])]),
+      planningDays.value.map((day) => [
+        day.date,
+        normalizeSlots(byDate[day.date] || []).map((slot) => ({
+          ...slot,
+          disponible: slot.disponible && !isSlotPast(day.date, slot.heure),
+        })),
+      ]),
     )
 
     const preferredDate = form.date_rdv && creneauxByDate.value[form.date_rdv]?.length ? form.date_rdv : ''
@@ -1040,7 +1061,7 @@ async function confirmRdv() {
     }
     const rdv = await rdvStore.createRdv(payload)
     toast.add({ title: 'RDV créé avec succès', color: 'success' })
-    navigateTo(`/rdv/${rdv.id}`)
+    navigateTo('/rdv')
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {

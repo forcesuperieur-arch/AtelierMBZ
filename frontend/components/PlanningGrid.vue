@@ -6,6 +6,11 @@
         <div style="display:flex;flex-direction:column;gap:2px;min-width:160px;">
           <strong style="color:#f8fafc;font-size:14px;line-height:1.1;">Semaine</strong>
           <span style="font-size:12px;color:#cbd5e1;">{{ formatDateRange }}</span>
+          <div v-if="pontsWithMecano.length" style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;">
+            <span v-for="p in pontsWithMecano" :key="p.id" style="font-size:11px;color:#9CA3AF;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:6px;">
+              {{ p.nom }} — <span style="color:#D1D5DB;">{{ p.mecano }}</span>
+            </span>
+          </div>
         </div>
         <button class="toolbar-btn" @click="nextWeek">▶</button>
       </div>
@@ -50,9 +55,16 @@
               ]"
               :style="cellStyle(day, slot.minutes)"
               @click="handleCellClick(day.date, slot.minutes)"
-              @dragover.prevent="handleDragOver(day.date, slot.minutes)"
-              @drop.prevent="handleDrop(day.date, slot.minutes)"
+              @dragover.prevent="(e) => handleDragOver(e, day.date, slot.minutes)"
+              @dragenter.prevent="(e) => handleDragEnter(e, day.date, slot.minutes)"
+              @drop.prevent="(e) => handleDrop(e, day.date, slot.minutes)"
             >
+              <div
+                v-if="isDropTarget(day.date, slot.minutes)"
+                style="position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none;border-radius:4px;background:rgba(255,210,0,0.12);border:1px dashed rgba(255,210,0,0.45);box-shadow:inset 0 0 0 1px rgba(255,210,0,0.2);"
+                :style="{ height: draggingRdvHeight + 'px' }"
+              ></div>
+
               <div
                 v-if="isPauseSlot(day.date, slot.minutes)"
                 style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:#6B7280;pointer-events:none;"
@@ -63,15 +75,29 @@
               <div
                 v-for="rdv in getRdvsStartingAt(day.date, slot.minutes)"
                 :key="rdv.id"
-                :class="['rdv-block', rdvStatusClass(rdv.status), { 'is-draggable': canDragRdv(rdv) }]"
+                :class="['rdv-block', rdvStatusClass(rdv.status), { 'is-draggable': canDragRdv(rdv), 'is-dragging': draggingRdvId === rdv.id }]"
                 :draggable="canDragRdv(rdv)"
                 :style="rdvStyle(rdv)"
+                :title="buildRdvTooltip(rdv)"
                 @click.stop="$emit('select-rdv', rdv)"
                 @dragstart="onDragStart($event, rdv)"
                 @dragend="onDragEnd"
               >
+                <div v-if="canDragRdv(rdv)" class="rdv-drag-handle" title="Glisser-déposer pour déplacer">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <circle cx="2" cy="2" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="5" cy="2" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="8" cy="2" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="2" cy="5" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="5" cy="5" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="8" cy="5" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="2" cy="8" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="5" cy="8" r="1" fill="currentColor" opacity="0.5"/>
+                    <circle cx="8" cy="8" r="1" fill="currentColor" opacity="0.5"/>
+                  </svg>
+                </div>
                 <div style="font-size:10px;font-weight:800;letter-spacing:.05em;opacity:.9;">
-                  {{ rdv.heure_debut?.slice(0, 5) }}
+                  {{ rdv.heure_debut?.slice(0, 5) }}<span style="opacity:.55;font-weight:400;margin-left:3px;">· {{ formatMinutes(rdv.duree_estimee || rdv.temps_estime || 60) }}</span>
                 </div>
                 <div style="font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                   {{ rdv.type_intervention }}
@@ -101,12 +127,13 @@
 
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
-  ponts?: Array<{ id: number; nom: string }>
+  ponts?: Array<{ id: number; nom: string; mecanicien?: { prenom: string; nom: string } | null }>
   rdvs?: Array<any>
   horaires?: Array<any>
   canCreate?: boolean
   canDrag?: boolean
   historicalStatuses?: string[]
+  dragLockStatuses?: string[]
 }>(), {
   ponts: () => [],
   rdvs: () => [],
@@ -114,6 +141,7 @@ const props = withDefaults(defineProps<{
   canCreate: false,
   canDrag: false,
   historicalStatuses: () => ['termine', 'restitue', 'facture', 'paye', 'annule'],
+  dragLockStatuses: () => ['termine', 'restitue', 'facture', 'paye', 'annule', 'reception', 'en_cours'],
 })
 
 const emit = defineEmits<{
@@ -124,6 +152,7 @@ const emit = defineEmits<{
 
 const currentDate = ref(new Date())
 const draggingRdvId = ref<number | null>(null)
+const draggingRdvDuration = ref(60)
 const dropTarget = ref<{ date: string; minutes: number } | null>(null)
 
 const HEADER_HEIGHT = 72
@@ -134,8 +163,16 @@ const DEFAULT_END_HOUR = 19
 const DAY_LABELS = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
 const MONTH_LABELS = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc']
 
+function toLocalISODate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 const weekStart = computed(() => {
   const d = new Date(currentDate.value)
+  d.setHours(0, 0, 0, 0)
   const day = d.getDay()
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   return new Date(d.setDate(diff))
@@ -150,8 +187,19 @@ const horaireMap = computed(() => {
   return map
 })
 
+const pontsWithMecano = computed(() => {
+  return (props.ponts || [])
+    .filter((p: any) => Number(p.isActive ?? p.is_active ?? 1) !== 0)
+    .filter((p: any) => p.mecanicien)
+    .map((p: any) => ({
+      id: p.id,
+      nom: p.nom,
+      mecano: `${p.mecanicien.prenom ?? ''} ${p.mecanicien.nom ?? ''}`.trim(),
+    }))
+})
+
 const openDayIndexes = computed(() => {
-  if (!horaireMap.value.size) return [1, 2, 3, 4, 5]
+  if (!horaireMap.value.size) return [0, 1, 2, 3, 4, 5]
   return (Array.from(horaireMap.value.entries()) as Array<[number, any]>)
     .filter(([, horaire]: [number, any]) => Number(horaire.is_ouvert ?? horaire.isOuvert ?? 1) === 1)
     .map(([idx]: [number, any]) => idx)
@@ -182,11 +230,11 @@ const displayedDayIndexes = computed(() => {
 })
 
 const weekDays = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toLocalISODate(new Date())
   return displayedDayIndexes.value.map((index: number) => {
     const d = new Date(weekStart.value)
     d.setDate(d.getDate() + index)
-    const date = d.toISOString().slice(0, 10)
+    const date = toLocalISODate(d)
     return {
       label: DAY_LABELS[index],
       date,
@@ -249,6 +297,10 @@ const formatDateRange = computed(() => {
   const end = weekDays.value[weekDays.value.length - 1]
   if (!start || !end) return ''
   return `${start.dateNum} ${start.month} — ${end.dateNum} ${end.month}`
+})
+
+const draggingRdvHeight = computed(() => {
+  return Math.max(20, (draggingRdvDuration.value / TIME_STEP_MINUTES) * ROW_HEIGHT)
 })
 
 const boardStyle = computed(() => ({
@@ -358,6 +410,31 @@ function parseTime(time: string | undefined): number {
   return timeToMinutes(time)
 }
 
+function buildRdvTooltip(rdv: any): string {
+  const lines: string[] = []
+  const client = rdv.client_nom || 'Client non précisé'
+  const vehicule = rdv.vehicule_info || ''
+  const plaque = rdv.vehicule_plaque || rdv.vehicule?.plaque || ''
+  const type = rdv.type_intervention || '—'
+  const debut = rdv.heure_debut?.slice(0, 5) || '—'
+  const dureeMin = Number(rdv.duree_estimee || rdv.temps_estime || 60)
+  const fin = minutesToTime(timeToMinutes(rdv.heure_debut) + dureeMin)
+  const duree = formatMinutes(dureeMin)
+  const meca = rdv.mecanicien_nom || 'Non assigné'
+  const pont = rdv.pont?.nom || rdv.pont_nom || ''
+  const statut = String(rdv.status || rdv.statut || '').replace(/_/g, ' ')
+
+  lines.push(`${client}${vehicule ? ' · ' + vehicule : ''}${plaque ? ' (' + plaque + ')' : ''}`)
+  lines.push(`Travaux : ${type}`)
+  lines.push(`Horaire : ${debut} → ${fin} · ${duree}`)
+  if (pont) lines.push(`Pont : ${pont} · ${meca}`)
+  else lines.push(`Mécanicien : ${meca}`)
+  lines.push(`Statut : ${statut}`)
+  if (rdv.commentaire) lines.push(`Note : ${rdv.commentaire}`)
+
+  return lines.join('\n')
+}
+
 function getDayHoraire(date: string) {
   const jsDay = new Date(`${date}T00:00:00`).getDay()
   const idx = jsDay === 0 ? 6 : jsDay - 1
@@ -435,7 +512,7 @@ function isHistoricalStatus(status: string) {
 }
 
 function canDragRdv(rdv: any) {
-  return !!props.canDrag && !isHistoricalStatus(rdv.status)
+  return !!props.canDrag && !(props.dragLockStatuses || []).includes(rdv.status)
 }
 
 function handleCellClick(date: string, minutes: number) {
@@ -449,18 +526,52 @@ function onDragStart(event: DragEvent, rdv: any) {
     return
   }
   draggingRdvId.value = Number(rdv.id)
+  draggingRdvDuration.value = Number(rdv.duree_estimee || rdv.temps_estime || 60)
+
   event.dataTransfer?.setData('text/plain', String(rdv.id))
   event.dataTransfer?.setData('application/json', JSON.stringify({ id: rdv.id }))
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    // Create custom drag image to avoid RDV "disappearing"
+    const ghost = document.createElement('div')
+    ghost.style.width = (event.target as HTMLElement)?.offsetWidth + 'px' || '120px'
+    ghost.style.height = rdvHeight(rdv) + 'px'
+    ghost.style.background = 'rgba(255,210,0,0.15)'
+    ghost.style.border = '1px dashed rgba(255,210,0,0.5)'
+    ghost.style.borderRadius = '4px'
+    ghost.style.display = 'flex'
+    ghost.style.alignItems = 'center'
+    ghost.style.justifyContent = 'center'
+    ghost.style.color = '#FFD200'
+    ghost.style.fontSize = '11px'
+    ghost.style.fontWeight = '700'
+    ghost.style.backdropFilter = 'blur(2px)'
+    ghost.textContent = rdv.type_intervention || 'RDV'
+    document.body.appendChild(ghost)
+    event.dataTransfer.setDragImage(ghost, 10, 10)
+    requestAnimationFrame(() => document.body.removeChild(ghost))
+  }
 }
 
-function handleDragOver(date: string, minutes: number) {
+function handleDragOver(event: DragEvent, date: string, minutes: number) {
   if (!draggingRdvId.value || !isSlotOpen(date, minutes)) return
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
   dropTarget.value = { date, minutes }
 }
 
-function handleDrop(date: string, minutes: number) {
+function handleDragEnter(event: DragEvent, date: string, minutes: number) {
   if (!draggingRdvId.value || !isSlotOpen(date, minutes)) return
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+  dropTarget.value = { date, minutes }
+}
+
+function handleDrop(event: DragEvent, date: string, minutes: number) {
+  event.preventDefault()
+  if (!draggingRdvId.value || !isSlotOpen(date, minutes)) {
+    draggingRdvId.value = null
+    dropTarget.value = null
+    return
+  }
   emit('move-rdv', {
     id: draggingRdvId.value,
     date,
@@ -476,6 +587,7 @@ function isDropTarget(date: string, minutes: number) {
 
 function onDragEnd() {
   draggingRdvId.value = null
+  draggingRdvDuration.value = 60
   dropTarget.value = null
 }
 </script>
@@ -518,7 +630,30 @@ function onDragEnd() {
   box-shadow: inset 0 0 0 1px rgba(255,210,0,0.45);
   background: rgba(255,210,0,0.08) !important;
 }
+.rdv-block.is-dragging {
+  opacity: 0.35 !important;
+  border-style: dashed !important;
+  filter: grayscale(0.4);
+}
 .rdv-block.is-draggable:active {
+  cursor: grabbing;
+}
+.rdv-drag-handle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 2px;
+  border-radius: 3px;
+  cursor: grab;
+  color: inherit;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+  z-index: 3;
+}
+.rdv-block:hover .rdv-drag-handle {
+  opacity: 0.9;
+}
+.rdv-block.is-draggable:active .rdv-drag-handle {
   cursor: grabbing;
 }
 </style>
