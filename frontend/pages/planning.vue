@@ -550,7 +550,7 @@
                   <div v-if="orDetailOpen[or.id] && orDetails[or.id]" style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
                     <!-- Lien PDF -->
                     <a
-                      v-if="orPdfUrls[or.id]"
+                      v-if="orDetails[or.id]?.statut === 'termine' && orPdfUrls[or.id]"
                       :href="orPdfUrls[or.id]"
                       target="_blank"
                       class="btn btn-ghost"
@@ -558,6 +558,12 @@
                     >
                       📄 Télécharger le PDF
                     </a>
+                    <div
+                      v-else-if="orDetails[or.id]"
+                      style="font-size:12px;color:#6B7280;padding:6px 12px;align-self:flex-start;"
+                    >
+                      📄 PDF disponible une fois l'OR finalisé (statut terminé)
+                    </div>
 
                     <!-- Photos -->
                     <template v-for="(photoList, type) in orPhotos[or.id]" :key="type">
