@@ -240,7 +240,8 @@ class PdfService
     {
         return [
             'reception_photos' => $this->extractReceptionPhotos($rdv),
-            'report_photos' => $this->extractReportPhotos($rdv),
+            'intervention_photos' => $this->extractInterventionPhotos($rdv),
+            'restitution_photos' => $this->extractRestitutionPhotos($rdv),
         ];
     }
 
@@ -279,7 +280,7 @@ class PdfService
     /**
      * @return array<int, array{src: string, label: string, takenAt: ?string}>
      */
-    private function extractReportPhotos(?RendezVous $rdv): array
+    private function extractInterventionPhotos(?RendezVous $rdv): array
     {
         if (!$rdv) {
             return [];
@@ -287,8 +288,28 @@ class PdfService
 
         $photos = [];
         foreach ($rdv->getPhotosIntervention() as $photo) {
-            $type = strtolower((string) ($photo->getType() ?? 'intervention'));
-            if (!in_array($type, ['reception', 'checkin', 'etat'], true)) {
+            $type = strtolower((string) ($photo->getType() ?? ''));
+            if (in_array($type, ['avant_travaux', 'en_cours', 'apres_travaux', 'probleme', 'intervention', 'before', 'after'], true)) {
+                $this->appendStoredPhoto($photos, $photo);
+            }
+        }
+
+        return array_slice($photos, 0, 6);
+    }
+
+    /**
+     * @return array<int, array{src: string, label: string, takenAt: ?string}>
+     */
+    private function extractRestitutionPhotos(?RendezVous $rdv): array
+    {
+        if (!$rdv) {
+            return [];
+        }
+
+        $photos = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            $type = strtolower((string) ($photo->getType() ?? ''));
+            if ($type === 'restitution') {
                 $this->appendStoredPhoto($photos, $photo);
             }
         }
@@ -367,6 +388,11 @@ class PdfService
     /**
      * Render HTML to PDF and return file path.
      */
+    public function generateFromHtml(string $html, string $filename): string
+    {
+        return $this->renderPdf($html, $filename);
+    }
+
     private function renderPdf(string $html, string $filename): string
     {
         $options = new Options();
