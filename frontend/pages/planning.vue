@@ -491,7 +491,9 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                   <div class="form-group">
                     <label class="form-label">Kilométrage réception</label>
-                    <input v-model="receptionForm.kilometrage" type="number" class="form-input" placeholder="km" :disabled="selectedIsHistorical" />
+                    <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">
+                      {{ selectedRdv?.kilometrage ? selectedRdv.kilometrage + ' km' : 'Saisi via le compagnon PDA' }}
+                    </div>
                   </div>
                   <div class="form-group">
                     <label class="form-label">État véhicule</label>
@@ -749,7 +751,6 @@ const editForm = reactive({
 })
 
 const receptionForm = reactive({
-  kilometrage: '',
   etat_vehicule: '',
 })
 
@@ -1017,6 +1018,7 @@ function normalizeRdv(r: any) {
     mecanicien_id: r.mecanicien?.id ?? toNullableNumber(r.mecanicien_id),
     mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : (r.mecanicien_nom ?? ''),
     token_suivi: r.token_suivi ?? r.tokenSuivi ?? null,
+    kilometrage: r.kilometrage ?? null,
   }
 }
 
@@ -1139,7 +1141,6 @@ function hydrateEditForms(rdv: any) {
   editForm.mecanicien_id = toNullableNumber(rdv.mecanicien?.id ?? rdv.mecanicien_id)
   editForm.pont_id = toNullableNumber(rdv.pont?.id ?? rdv.pont_id)
   editForm.commandes = Array.isArray(rdv.commandes) ? [...rdv.commandes] : []
-  receptionForm.kilometrage = rdv.kilometrage ? String(rdv.kilometrage) : ''
   receptionForm.etat_vehicule = rdv.etat_vehicule || rdv.etatVehicule || ''
 }
 
@@ -1563,7 +1564,6 @@ async function applyTransition(name: string) {
     }
 
     if (name === 'reception') {
-      if (receptionForm.kilometrage) payload.kilometrage = toNumber(receptionForm.kilometrage)
       if (receptionForm.etat_vehicule.trim()) payload.etat_vehicule = receptionForm.etat_vehicule.trim()
     }
 
