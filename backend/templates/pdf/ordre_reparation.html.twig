@@ -14,6 +14,11 @@
         .info-grid { display: table; width: 100%; margin-bottom: 20px; }
         .info-col { display: table-cell; width: 50%; vertical-align: top; }
         .label { font-weight: bold; color: #666; }
+        .section { margin-bottom: 24px; page-break-inside: avoid; }
+        .section-title { font-size: 13px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #2563eb; padding-bottom: 4px; margin-bottom: 10px; }
+        .alert-box { background: #fef2f2; border-left: 4px solid #ef4444; padding: 8px 12px; margin: 8px 0; }
+        .recommandation-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 8px 0; }
+        .garantie-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 8px 12px; margin: 8px 0; }
         table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
         table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; }
         table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
@@ -26,10 +31,17 @@
         .photo-card { border: 1px solid #ddd; background: #fafafa; padding: 6px; }
         .photo-card img { width: 100%; max-height: 120px; object-fit: cover; }
         .photo-caption { font-size: 9px; color: #555; margin-top: 4px; }
-        .signature { margin-top: 50px; border-top: 1px solid #999; padding-top: 10px; }
+        .signature-grid { display: table; width: 100%; margin-top: 20px; }
+        .signature-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 12px; }
+        .signature-box { border: 1px solid #ccc; padding: 10px; min-height: 80px; background: #fafafa; }
+        .signature-box img { max-width: 180px; max-height: 60px; }
+        .signature-label { font-size: 10px; color: #666; margin-bottom: 6px; }
+        .page-break { page-break-before: always; }
+        .meta-row { font-size: 10px; color: #666; margin-top: 4px; }
     </style>
 </head>
 <body>
+    <!-- ===== PAGE 1 : RÉCEPTION ===== -->
     <div class="header">
         <table class="header-table">
             <tr>
@@ -49,6 +61,7 @@
                 <td class="header-right">
                     <h1>ORDRE DE RÉPARATION</h1>
                     <p><strong>N° {{ or.numeroOr }}</strong> — {{ or.createdAt|date('d/m/Y H:i') }}</p>
+                    <p class="meta-row">Statut : {{ or.statut|upper }}</p>
                 </td>
             </tr>
         </table>
@@ -69,51 +82,232 @@
             {% if vMarque or vModele %}
             <p>{{ vMarque }} {{ vModele }}<br>
                Plaque: {{ vPlaque }}<br>
-               {% if or.kilometrage %}Km: {{ or.kilometrage }}{% endif %}</p>
+               {% if or.kilometrage %}Km réception: {{ or.kilometrage }}{% endif %}</p>
             {% endif %}
         </div>
     </div>
 
-    <p class="label">Type d'intervention</p>
-    <p>{{ rdv.typeIntervention }}</p>
+    <div class="section">
+        <p class="label">Type d'intervention</p>
+        <p>{{ rdv.typeIntervention }}</p>
+    </div>
 
     {% if or.travaux %}
-    <p class="label">Travaux à effectuer</p>
-    <p>{{ or.travaux|nl2br }}</p>
+    <div class="section">
+        <p class="label">Travaux à effectuer</p>
+        <p>{{ or.travaux|nl2br }}</p>
+    </div>
     {% endif %}
 
     {% if or.etatVehicule %}
-    <p class="label">État du véhicule à la réception</p>
-    <p>{{ or.etatVehicule }}</p>
+    <div class="section">
+        <p class="label">État du véhicule à la réception</p>
+        <p>{{ or.etatVehicule }}</p>
+    </div>
     {% endif %}
 
     {% if reception_photos is defined and reception_photos|length > 0 %}
-    <p class="label">Photos de réception</p>
-    <table class="photos-table">
-        <tr>
-            {% for photo in reception_photos %}
-                <td>
-                    <div class="photo-card">
-                        <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo réception') }}">
-                        <div class="photo-caption">
-                            {{ photo.label|default('Photo réception') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+    <div class="section">
+        <p class="label">Photos de réception</p>
+        <table class="photos-table">
+            <tr>
+                {% for photo in reception_photos %}
+                    <td>
+                        <div class="photo-card">
+                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo réception') }}">
+                            <div class="photo-caption">
+                                {{ photo.label|default('Photo réception') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+                            </div>
                         </div>
-                    </div>
-                </td>
-                {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
-            {% endfor %}
-        </tr>
-    </table>
+                    </td>
+                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+    </div>
     {% endif %}
 
-    <div class="signature">
-        <p><strong>Signature du client :</strong></p>
-        {% if or.signatureClient %}
-        <img src="{{ or.signatureClient }}" style="max-width: 200px;">
-        {% else %}
-        <p style="height: 60px;">&nbsp;</p>
-        {% endif %}
-        <p style="font-size: 9px;">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord.</p>
+    <div class="section">
+        <div class="signature-grid">
+            <div class="signature-col">
+                <p class="signature-label"><strong>Signature client réception</strong></p>
+                <div class="signature-box">
+                    {% if or.signatureClient %}
+                    <img src="{{ or.signatureClient }}">
+                    {% else %}
+                    <p style="color:#999;font-size:10px;">Non signé</p>
+                    {% endif %}
+                </div>
+                {% if or.signedAt %}
+                <p class="meta-row">Signé le {{ or.signedAt|date('d/m/Y H:i') }}</p>
+                {% endif %}
+            </div>
+            <div class="signature-col">
+                <p class="signature-label"><strong>Signature atelier réception</strong></p>
+                <div class="signature-box">
+                    {% if or.signatureAtelierReception %}
+                    <img src="{{ or.signatureAtelierReception }}">
+                    {% else %}
+                    <p style="color:#999;font-size:10px;">Non signé</p>
+                    {% endif %}
+                </div>
+                {% if or.signeReceptionnisteAt %}
+                <p class="meta-row">Signé le {{ or.signeReceptionnisteAt|date('d/m/Y H:i') }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <p style="font-size: 9px; margin-top: 8px;">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord.</p>
     </div>
+
+    <!-- ===== PAGE 2 : INTERVENTION ===== -->
+    <div class="page-break"></div>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
+                    {% endif %}
+                    <div class="atelier-meta">
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        <span style="font-size:9px;">Document unique OR — N° {{ or.numeroOr }}</span>
+                    </div>
+                </td>
+                <td class="header-right">
+                    <h1>FEUILLE D'INTERVENTION</h1>
+                    <p><strong>N° {{ or.numeroOr }}</strong></p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% if or.travauxRealises %}
+    <div class="section">
+        <div class="section-title">🔧 Travaux réalisés</div>
+        <p>{{ or.travauxRealises|nl2br }}</p>
+    </div>
+    {% endif %}
+
+    {% if or.alertes %}
+    <div class="section">
+        <div class="section-title">⚠️ Alertes</div>
+        <div class="alert-box">
+            <p>{{ or.alertes|nl2br }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if or.recommandations %}
+    <div class="section">
+        <div class="section-title">💡 Recommandations</div>
+        <div class="recommandation-box">
+            <p>{{ or.recommandations|nl2br }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if or.garantie %}
+    <div class="section">
+        <div class="section-title">🛡️ Garantie</div>
+        <div class="garantie-box">
+            <p>{{ or.garantie|nl2br }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="info-grid">
+        <div class="info-col">
+            {% if or.kilometrageRestitution %}
+            <p class="label">Kilométrage restitution</p>
+            <p>{{ or.kilometrageRestitution }} km</p>
+            {% endif %}
+        </div>
+        <div class="info-col">
+            {% if or.prochaineRevisionKm %}
+            <p class="label">Prochaine révision</p>
+            <p>{{ or.prochaineRevisionKm }} km</p>
+            {% endif %}
+            {% if or.prochaineRevisionDate %}
+            <p class="meta-row">Date prévue : {{ or.prochaineRevisionDate|date('d/m/Y') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="signature-grid">
+            <div class="signature-col">
+                <p class="signature-label"><strong>Signature mécanicien</strong></p>
+                <div class="signature-box">
+                    {% if or.signatureMecanicien %}
+                    <img src="{{ or.signatureMecanicien }}">
+                    {% else %}
+                    <p style="color:#999;font-size:10px;">Non signé</p>
+                    {% endif %}
+                </div>
+                {% if or.signeMecanicienAt %}
+                <p class="meta-row">Signé le {{ or.signeMecanicienAt|date('d/m/Y H:i') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PAGE 3 : RESTITUTION ===== -->
+    <div class="page-break"></div>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    {% if logo_data_uri %}
+                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
+                    {% endif %}
+                    <div class="atelier-meta">
+                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
+                        <span style="font-size:9px;">Document unique OR — N° {{ or.numeroOr }}</span>
+                    </div>
+                </td>
+                <td class="header-right">
+                    <h1>RESTITUTION</h1>
+                    <p><strong>N° {{ or.numeroOr }}</strong></p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <p class="label">Client</p>
+        <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</p>
+        <p class="label">Véhicule</p>
+        <p>{{ vMarque }} {{ vModele }} — {{ vPlaque }}</p>
+    </div>
+
+    <div class="section">
+        <p>Je soussigné(e) <strong>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</strong>, déclare avoir récupéré mon véhicule et pris connaissance des travaux effectués.</p>
+    </div>
+
+    <div class="section">
+        <div class="signature-grid">
+            <div class="signature-col">
+                <p class="signature-label"><strong>Signature client restitution</strong></p>
+                <div class="signature-box">
+                    {% if or.signatureClientRestitution %}
+                    <img src="{{ or.signatureClientRestitution }}">
+                    {% else %}
+                    <p style="color:#999;font-size:10px;">Non signé</p>
+                    {% endif %}
+                </div>
+                {% if or.signeClientRestitutionAt %}
+                <p class="meta-row">Signé le {{ or.signeClientRestitutionAt|date('d/m/Y H:i') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if or.signedHash %}
+    <div class="section" style="margin-top: 40px;">
+        <p style="font-size: 8px; color: #999; word-break: break-all;">
+            Empreinte d'intégrité : {{ or.signedHash }}
+        </p>
+    </div>
+    {% endif %}
 </body>
 </html>
