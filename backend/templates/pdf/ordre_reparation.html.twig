@@ -327,12 +327,12 @@
         </div>
     </div>
 
-    {% if report_photos is defined and report_photos|length > 0 %}
+    {% if intervention_photos is defined and intervention_photos|length > 0 %}
     <div class="section">
         <div class="section-title">📸 Photos intervention</div>
         <table class="photos-table">
             <tr>
-                {% for photo in report_photos %}
+                {% for photo in intervention_photos %}
                     <td>
                         <div class="photo-card">
                             <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo') }}">
@@ -432,6 +432,27 @@
             </div>
         </div>
     </div>
+
+    {% if restitution_photos is defined and restitution_photos|length > 0 %}
+    <div class="section">
+        <div class="section-title">📸 Photos restitution</div>
+        <table class="photos-table">
+            <tr>
+                {% for photo in restitution_photos %}
+                    <td>
+                        <div class="photo-card">
+                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo restitution') }}">
+                            <div class="photo-caption">
+                                {{ photo.label|default('Photo restitution') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+    </div>
+    {% endif %}
 
     {% if or.signedHash %}
     <div class="section" style="margin-top: 40px;">
