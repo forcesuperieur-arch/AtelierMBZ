@@ -79,6 +79,14 @@
           </div>
         </div>
 
+        <!-- Entretien fluides -->
+        <div class="restitution-section" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15);">
+          <h3 style="font-size:13px;font-weight:700;color:#BFDBFE;margin:0 0 8px;">🔧 Entretien des fluides recommandé</h3>
+          <div style="font-size:13px;color:#D1D5DB;">Huile moteur — <strong style="color:#93C5FD;">tous les ans</strong></div>
+          <div style="font-size:13px;color:#D1D5DB;">Liquide de frein — <strong style="color:#93C5FD;">tous les 2 ans</strong></div>
+          <div style="font-size:13px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
+        </div>
+
         <!-- Signature -->
         <div class="restitution-section">
           <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 8px;">✍️ Signature client</h3>
