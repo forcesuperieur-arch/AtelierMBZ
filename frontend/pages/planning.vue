@@ -487,6 +487,33 @@
                   </div>
                 </div>
 
+                <!-- Checkup détail -->
+                <div v-if="companionStatus.checkup?.length" style="margin-bottom:14px;">
+                  <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">🔎 Détail checkup</div>
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <div v-for="(item, idx) in companionStatus.checkup" :key="idx" style="display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,0.03);">
+                      <span style="color:#D1D5DB;">{{ item.label || idx }}</span>
+                      <span :style="item.value === 'ok' || item === 'ok' ? 'color:#6EE7B7;' : (item.value === 'nok' || item === 'nok' ? 'color:#FCA5A5;' : 'color:#9CA3AF;')">
+                        {{ item.value || item }}
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="companionStatus.checkup_notes" style="font-size:12px;color:#9CA3AF;margin-top:6px;white-space:pre-wrap;">
+                    📝 {{ companionStatus.checkup_notes }}
+                  </div>
+                </div>
+
+                <!-- Photos réception -->
+                <div v-if="receptionPhotos.length" style="margin-bottom:14px;">
+                  <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">📸 Photos réception</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;">
+                    <div v-for="(photo, idx) in receptionPhotos" :key="idx" style="position:relative;">
+                      <img :src="photo.url || photo.src" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:white;cursor:pointer;" @click="openPhotoInTab(photo.url || photo.src)" />
+                      <div v-if="photo.description" style="font-size:9px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Reception fields -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                   <div class="form-group">
@@ -1613,7 +1640,11 @@ const companionStatus = reactive({
   photos_count: 0,
   checkup_done: 0,
   has_signature: false,
+  checkup: [] as any[],
+  checkup_notes: '',
 })
+
+const receptionPhotos = ref<any[]>([])
 
 const isReceptionEligible = computed(() => {
   const s = selectedRdv.value?.status ?? selectedRdv.value?.statut
@@ -1649,15 +1680,32 @@ async function refreshCompanionStatus() {
     companionStatus.photos_count = data.photos_count || 0
     companionStatus.checkup_done = data.checkup_done || 0
     companionStatus.has_signature = !!data.has_signature
+    companionStatus.checkup = Array.isArray(data.checkup) ? data.checkup : []
+    companionStatus.checkup_notes = data.checkup_notes || ''
   } catch {}
+}
+
+async function loadReceptionPhotos(orId: number) {
+  try {
+    const photos = await api.get(`/or/${orId}/photos`)
+    const list: any[] = []
+    if (photos.reception?.length) list.push(...photos.reception)
+    if (photos.reception_base64?.length) list.push(...photos.reception_base64)
+    receptionPhotos.value = list
+  } catch {
+    receptionPhotos.value = []
+  }
 }
 
 let companionPollInterval: ReturnType<typeof setInterval>
 
 watch(showRdvModal, (open) => {
   clearInterval(companionPollInterval)
+  receptionPhotos.value = []
   if (open && isReceptionEligible.value) {
     refreshCompanionStatus()
+    const orId = selectedRdv.value?.ordres_reparation?.[0]?.id
+    if (orId) loadReceptionPhotos(orId)
     companionPollInterval = setInterval(refreshCompanionStatus, 4000)
   }
 })
