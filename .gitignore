@@ -5,3 +5,24 @@
 
 # Backups
 backups/*.sql
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+.nuxt/
+.output/
+dist/
+
+# Uploads & runtime data
+backend/public/uploads/
+backend/var/
+
+# Tests & rapports
+playwright-report/
+test-results/
+tests-screenshots/
+
+# Résidus de patch
+*.orig
+*.rej
