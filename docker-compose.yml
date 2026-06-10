@@ -33,6 +33,7 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_PASSPHRASE: ${JWT_PASSPHRASE:-}
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-http://localhost:3000}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:81}
       MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default}
       MERCURE_URL: ${MERCURE_URL:-http://mercure:3000/.well-known/mercure}
@@ -70,6 +71,7 @@ services:
       - backend_signatures:/app/public/uploads/signatures
 
   nuxt:
+    container_name: ateliermbz-frontend
     build:
       context: ./frontend
       dockerfile: ../Dockerfile.frontend
@@ -80,6 +82,28 @@ services:
       NUXT_PUBLIC_API_BASE: /api
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npx", "nuxt", "dev", "--host", "0.0.0.0"]
+
+  client-nuxt:
+    container_name: ateliermbz-client-portal
+    build:
+      context: ./client-frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - php
+    environment:
+      NUXT_PUBLIC_API_BASE: /api
+    ports:
+      - "${CLIENT_FRONTEND_PORT:-3001}:3001"
+    volumes:
+      - ./client-frontend:/app
+      - /app/node_modules
+      - /app/.nuxt
+    command: ["sh", "-c", "npm install && npx nuxt prepare && npx nuxt dev --port 3001 --host 0.0.0.0"]
 
   caddy:
     image: caddy:2-alpine
@@ -93,6 +117,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "${PUBLIC_EDGE_PORT:-81}:81"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
