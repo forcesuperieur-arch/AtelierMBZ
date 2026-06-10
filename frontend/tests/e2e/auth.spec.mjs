@@ -25,9 +25,8 @@ test.describe('Login & Public Pages', () => {
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
     await page.goto('/');
-    // Should redirect to /login if middleware is active
-    await page.waitForTimeout(2000);
-    const url = page.url();
-    expect(url).toContain('/login');
+    // Should redirect to /login if middleware is active (fetchMe 401 → navigateTo)
+    await page.waitForURL('**/login**', { timeout: 15000 });
+    expect(page.url()).toContain('/login');
   });
 });

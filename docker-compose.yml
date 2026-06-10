@@ -41,6 +41,8 @@ services:
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-ChangeMercureJWTSecretKey2026}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+      # php -S est mono-thread par défaut : indispensable pour les E2E en parallèle
+      PHP_CLI_SERVER_WORKERS: ${PHP_CLI_SERVER_WORKERS:-8}
     volumes:
       - ./backend:/app
       - backend_logos:/app/public/uploads/logos

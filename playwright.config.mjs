@@ -24,7 +24,19 @@ export default defineConfig({
   },
   projects: [
     {
+      // Régénère playwright/.auth/admin.json avant la suite (storageState de mvp-complete)
+      name: 'setup',
+      testMatch: /.*\.setup\.mjs/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium',
+        },
+      },
+    },
+    {
       name: 'chromium',
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {

@@ -2,9 +2,12 @@ import { test, expect } from '@playwright/test';
 import {
   loginAsAdmin,
   expectPageLoads,
+  expectModulePageOrDisabled,
+  isModuleDisabledRedirect,
   openFirstModal,
   closeModalByEscape,
   expectApiOk,
+  appUrl,
 } from './mvp-helpers.mjs';
 
 // Default: all tests use authenticated state (except Auth section which overrides)
@@ -42,7 +45,7 @@ test.describe('1. Auth & Security', () => {
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
-    await expect(page.locator('text=Continuer avec Google')).toBeVisible();
+    // Le bouton "Continuer avec Google" a été retiré volontairement du login staff
   });
 
   test('login with valid credentials redirects to dashboard', async ({ page }) => {
@@ -230,7 +233,7 @@ test.describe('6. Atelier / Workshop', () => {
 test.describe('7. Stock', () => {
 
   test('stock page loads', async ({ page }) => {
-    await expectPageLoads(page, '/stock', /stock|pièce|référence|quantité|catalogue/i);
+    await expectModulePageOrDisabled(page, '/stock', 'stock', /stock|pièce|référence|quantité|catalogue/i);
   });
 
   test('stock API returns data', async ({ page }) => {
@@ -246,12 +249,15 @@ test.describe('7. Stock', () => {
 test.describe('8. Facturation', () => {
 
   test('devis list page loads', async ({ page }) => {
-    await expectPageLoads(page, '/devis', /devis|estimation|client|montant/i);
+    await expectModulePageOrDisabled(page, '/devis', 'devis', /devis|estimation|client|montant/i);
   });
 
   test('devis detail loads if data exists', async ({ page }) => {
     await page.goto('/devis');
     await page.waitForLoadState('networkidle');
+    if (isModuleDisabledRedirect(page, 'devis')) {
+      test.skip(true, 'Module devis désactivé');
+    }
     const firstLink = page.locator('a[href^="/devis/"]').first();
     if (await firstLink.isVisible().catch(() => false)) {
       await firstLink.click();
@@ -263,13 +269,17 @@ test.describe('8. Facturation', () => {
   });
 
   test('facturation page loads', async ({ page }) => {
-    await expectPageLoads(page, '/facturation', /factur|paiement|statut|montant|ttc/i);
+    await expectModulePageOrDisabled(page, '/facturation', 'facturation', /factur|paiement|statut|montant|ttc/i);
   });
 
-  test('facturation API returns data', async ({ page }) => {
-    await page.goto('/facturation');
-    await page.waitForLoadState('networkidle');
-    await expectApiOk(page, '/api/factures');
+  test('facturation API returns data (ou 404 si module désactivé)', async ({ page }) => {
+    const moduleEnabled = await expectModulePageOrDisabled(page, '/facturation', 'facturation', /factur|paiement|statut|montant|ttc/i);
+    const response = await page.evaluate(async (url) => {
+      const res = await fetch(url, { credentials: 'include' });
+      return { status: res.status };
+    }, '/api/factures');
+    // Module off : la garde backend doit répondre 404, pas 200
+    expect(response.status).toBe(moduleEnabled ? 200 : 404);
   });
 });
 
@@ -391,21 +401,15 @@ test.describe('11. VO — Véhicules d\'Occasion', () => {
   });
 
   test('vo depots list loads', async ({ page }) => {
-    await page.goto('/vo/depots');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/dépôt|vente|mandat|commission|déposant|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo/depots', 'vo', /dépôt|vente|mandat|commission|déposant|module est désactivé/i);
   });
 
   test('vo rachats list loads', async ({ page }) => {
-    await page.goto('/vo/rachats');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/rachat|achat|vendeur|prix|siv|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo/rachats', 'vo', /rachat|achat|vendeur|prix|siv|module est désactivé/i);
   });
 
   test('vo remises-en-etat list loads', async ({ page }) => {
-    await page.goto('/vo/remises-en-etat');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/remise|état|réfection|campagne|chiffrage|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo/remises-en-etat', 'vo', /remise|état|réfection|campagne|chiffrage|module est désactivé/i);
   });
 
   test('vo factures page loads', async ({ page }) => {
@@ -421,9 +425,7 @@ test.describe('11. VO — Véhicules d\'Occasion', () => {
   });
 
   test('vo livre-police page loads', async ({ page }) => {
-    await page.goto('/vo/livre-police');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/livre|police|régistre|immuable|art\.? 321|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo/livre-police', 'vo', /livre|police|régistre|immuable|art\.? 321|module est désactivé/i);
   });
 });
 

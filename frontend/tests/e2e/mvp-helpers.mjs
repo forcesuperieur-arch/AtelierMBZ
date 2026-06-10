@@ -77,12 +77,59 @@ export async function closeModalByEscape(page) {
 }
 
 /**
- * Helper: verify API endpoint returns 200
+ * Helper: vrai si le middleware a redirigé vers le dashboard car le module est désactivé
+ */
+export function isModuleDisabledRedirect(page, section) {
+  return page.url().includes(`moduleDisabled=${section}`);
+}
+
+/**
+ * Helper: vrai si le module est activé pour l'atelier actif, d'après /api/config.
+ * Plus fiable que l'inspection d'URL (la query moduleDisabled peut être nettoyée
+ * par une navigation ultérieure du router).
+ */
+export async function isSectionEnabled(page, section) {
+  return page.evaluate(async (s) => {
+    try {
+      const res = await fetch('/api/config', { credentials: 'include' });
+      if (!res.ok) return true;
+      const cfg = await res.json();
+      const fm = cfg?.feature_modules || cfg?.featureModules || {};
+      return fm[s] !== false;
+    } catch {
+      return true;
+    }
+  }, section);
+}
+
+/**
+ * Helper: page d'un module désactivable — si le module est actif, vérifie le
+ * contenu attendu ; sinon vérifie la redirection middleware vers le dashboard.
+ * Retourne false si le module est désactivé, true sinon.
+ */
+export async function expectModulePageOrDisabled(page, path, section, expectedTextRegex, timeout = 10000) {
+  const response = await page.goto(path);
+  expect(response?.status()).toBe(200);
+  await page.waitForLoadState('networkidle');
+  const enabled = await isSectionEnabled(page, section);
+  if (!enabled) {
+    // Le middleware doit avoir renvoyé vers le dashboard
+    await expect(page).not.toHaveURL(new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), { timeout });
+    return false;
+  }
+  await expect(page.locator('body')).toContainText(expectedTextRegex, { timeout });
+  return true;
+}
+
+/**
+ * Helper: verify API endpoint returns 200.
+ * Fetch en chemin relatif (même origine que la page) — une URL http absolue
+ * depuis une page https serait bloquée en mixed content.
  */
 export async function expectApiOk(page, path) {
   const response = await page.evaluate(async (url) => {
     const res = await fetch(url, { credentials: 'include' });
     return { status: res.status };
-  }, appUrl(path));
+  }, path);
   expect(response.status).toBe(200);
 }

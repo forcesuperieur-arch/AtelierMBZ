@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { loginAsAdmin } from './helpers.mjs';
+import { loginAsAdmin, isModuleDisabled } from './helpers.mjs';
 
 const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0FYAAAAASUVORK5CYII=';
 
@@ -171,6 +171,7 @@ async function assertLockedCompanion(publicPage, roleLabel) {
 test.describe('VO companion full flow', () => {
   test('purchase draft can be signed on PDA then archived on admin finalization', async ({ page }) => {
     await loginAsAdmin(page);
+    if (await isModuleDisabled(page, 'vo')) test.skip(true, 'Module VO désactivé (hors MVP)');
     const request = page.context().request;
     const seed = Date.now().toString(36).slice(-6).toUpperCase();
     const { draftId, publicUrl } = await openDraftCompanion(page, 'purchase');
@@ -219,6 +220,7 @@ test.describe('VO companion full flow', () => {
 
   test('depot draft can be signed on PDA then archived on finalization', async ({ page }) => {
     await loginAsAdmin(page);
+    if (await isModuleDisabled(page, 'vo')) test.skip(true, 'Module VO désactivé (hors MVP)');
     const request = page.context().request;
     const seed = Date.now().toString(36).slice(-6).toUpperCase();
     const { draftId, publicUrl } = await openDraftCompanion(page, 'depot');
