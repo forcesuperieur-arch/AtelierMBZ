@@ -34,6 +34,14 @@
 
     <div v-else>
       <!-- Priority card -->
+      <div v-if="absenceToday" style="margin-bottom:20px;padding:14px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:14px;">⚠️</span>
+          <span style="font-size:13px;font-weight:600;color:#FCA5A5;">Absence aujourd'hui</span>
+        </div>
+        <p style="font-size:13px;color:#D1D5DB;">{{ absenceToday.motif }}</p>
+      </div>
+
       <div v-if="priorityAction" style="margin-bottom:20px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.15);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <span style="font-size:14px;">⚡</span>
@@ -53,6 +61,9 @@
               </span>
               <span v-if="activeOrId" style="font-size:12px;color:#9CA3AF;font-weight:600;">📋 OR #{{ activeOrId }}</span>
               <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', color: essaiRoutierValide ? '#6EE7B7' : '#FCD34D' }">{{ essaiStatusLabel }}</span>
+              <span v-if="activeRdv.statut === 'en_pause'" style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;background:rgba(107,114,128,0.12);color:#9CA3AF;">⏸ En pause</span>
+              <UButton v-if="activeRdv.statut === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="sm" @click="pauseWork" :loading="pausing" />
+              <UButton v-if="activeRdv.statut === 'en_pause'" label="▶ Reprendre" color="warning" variant="outline" size="sm" @click="resumeWork" :loading="resuming" />
               <UButton label="💾 Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
               <UButton label="🏍 Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
               <UButton label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
@@ -174,6 +185,38 @@
           </div>
         </div>
 
+        <!-- Travaux supplémentaires -->
+        <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:600;color:#E8E9ED;">🔧 Travaux supplémentaires</span>
+            <button class="btn btn-ghost" style="font-size:12px;" @click="showNewDemande = !showNewDemande">{{ showNewDemande ? 'Annuler' : '+ Signaler un problème' }}</button>
+          </div>
+          <div v-if="activeRdv.demandes_travaux_supp?.length" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+            <div v-for="demande in activeRdv.demandes_travaux_supp" :key="demande.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);font-size:12px;">
+              <span style="color:#D1D5DB;">{{ demande.description }}</span>
+              <span style="font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;" :style="demandeBadgeStyle(demande)">{{ demandeStatutLabel(demande.statut) }}</span>
+            </div>
+          </div>
+          <div v-else style="font-size:12px;color:#6B7280;margin-bottom:12px;">Aucune demande complémentaire signalée.</div>
+          <div v-if="showNewDemande" style="display:flex;flex-direction:column;gap:8px;">
+            <textarea v-model="newDemande.description" class="form-input" rows="2" placeholder="Description du problème…" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <input v-model.number="newDemande.prix_estime" type="number" class="form-input" placeholder="Coût estimé (€)" />
+              <input v-model.number="newDemande.temps_estime" type="number" class="form-input" placeholder="Temps estimé (min)" />
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <label style="font-size:12px;color:#9CA3AF;">Urgence :</label>
+              <select v-model="newDemande.urgence" class="form-input" style="width:auto;font-size:12px;">
+                <option value="normal">Normal</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="font-size:12px;" @click="submitDemande" :disabled="submittingDemande || !newDemande.description.trim()">
+              {{ submittingDemande ? 'Envoi…' : 'Envoyer pour validation' }}
+            </button>
+          </div>
+        </div>
+
         <!-- Intervention notes -->
         <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
           <label style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:6px;display:block;">Notes intervention</label>
@@ -240,7 +283,7 @@
         <div v-else-if="rapportError" style="padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#FCA5A5;font-size:13px;">{{ rapportError }}</div>
 
         <div v-else-if="rapport">
-          <div v-if="rapport.isSignedByBoth" style="text-align:center;padding:24px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;margin-bottom:16px;">
+          <div v-if="rapport.is_signed_by_both" style="text-align:center;padding:24px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;margin-bottom:16px;">
             <div style="font-size:32px;margin-bottom:8px;">✅</div>
             <p style="color:#6EE7B7;font-weight:700;">Rapport signé par les deux parties</p>
             <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:8px;background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.2);color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">📄 Télécharger PDF</a>
@@ -338,9 +381,8 @@
               <p style="font-size:12px;color:#9CA3AF;margin-bottom:10px;">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
               <canvas
                 ref="sigRapportCanvas"
-                width="580" height="180"
                 @pointerdown="startRapportDraw" @pointermove="drawRapport" @pointerup="endRapportDraw" @pointerleave="endRapportDraw"
-                style="width:100%;height:140px;border-radius:10px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                style="width:100%;aspect-ratio:4/1;border-radius:10px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
               ></canvas>
               <div style="display:flex;gap:8px;margin-top:8px;">
                 <button class="btn btn-ghost" style="flex:1;font-size:12px;" @click="clearRapportSig">↺ Effacer</button>
@@ -374,13 +416,26 @@ const auth = useAuth()
 const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const finishing = ref(false)
+const pausing = ref(false)
+const resuming = ref(false)
 const savingNotes = ref(false)
 const persistingCheckup = ref(false)
 const savingRoadTest = ref(false)
 const myRdvs = ref<any[]>([])
+const absenceToday = ref<any>(null)
 const interventionNotes = ref('')
 const now = ref(Date.now())
 let chronoTimer: ReturnType<typeof setInterval> | null = null
+
+// --- Travaux supplémentaires ---
+const showNewDemande = ref(false)
+const submittingDemande = ref(false)
+const newDemande = reactive({
+  description: '',
+  prix_estime: null as number | null,
+  temps_estime: null as number | null,
+  urgence: 'normal' as 'normal' | 'urgent',
+})
 
 // --- Rapport d'intervention ---
 const rapportRdvId = ref<number | null>(null)
@@ -525,7 +580,6 @@ async function saveRapport() {
       travaux_realises: rapportForm.travauxRealises,
       alertes: rapportForm.alertes ? rapportForm.alertes.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
       recommandations: rapportForm.recommandations,
-      garantie: rapportForm.garantie,
       kilometrage_restitution: rapportForm.kilometrageRestitution,
       // prochaine_revision_km retirée — trop variable selon marque/modèle en moto
     })
@@ -577,6 +631,13 @@ function drawRapport(e: PointerEvent) {
   sigLastX = x; sigLastY = y
 }
 function endRapportDraw() { sigRapportDrawing = false }
+function initCanvas() {
+  const canvas = sigRapportCanvas.value
+  if (!canvas) return
+  canvas.width = canvas.offsetWidth
+  canvas.height = canvas.offsetWidth / 4
+}
+
 function clearRapportSig() {
   const canvas = sigRapportCanvas.value
   if (canvas) canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height)
@@ -612,10 +673,13 @@ const initials = computed(() => {
 
 const todayLabel = computed(() => new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))
 
-const activeRdv = computed(() => myRdvs.value.find(r => r.status === 'en_cours'))
+const activeRdv = computed(() => myRdvs.value.find(r => r.status === 'en_cours' || r.status === 'en_pause'))
 const activeOrId = computed(() => activeRdv.value?.or_id ?? null)
 const activeVehiculeState = computed(() => parseEtatVehicule(activeRdv.value?.etat_reception))
-const essaiRoutierValide = computed(() => Boolean(activeRdv.value?.essai_routier_valide || rapport.value?.essaiRoutier?.isValide))
+const essaiRoutierValide = computed(() => {
+  const statut = activeRdv.value?.essai_routier_statut ?? rapport.value?.essaiRoutier?.statut
+  return statut === 'valide' || statut === 'anomalie_detectee'
+})
 const essaiStatusLabel = computed(() => {
   if (essaiRoutierValide.value) return 'Essai validé'
   if (essaiHasNok.value) return 'Anomalie détectée'
@@ -654,11 +718,13 @@ const priorityAction = computed(() => {
 const elapsedMin = computed(() => {
   const rdv = activeRdv.value
   if (!rdv) return 0
+  const baseMin = rdv.temps_effectif_minutes ?? 0
+  if (rdv.statut === 'en_pause') return baseMin
   const started = rdv.heure_debut_travail || rdv.heure_debut_travaux || rdv.started_at
-  if (!started) return 0
+  if (!started) return baseMin
   const startTime = new Date(started)
-  if (isNaN(startTime.getTime())) return 0
-  return Math.round((now.value - startTime.getTime()) / 60000)
+  if (isNaN(startTime.getTime())) return baseMin
+  return baseMin + Math.round((now.value - startTime.getTime()) / 60000)
 })
 
 const progressPct = computed(() => {
@@ -668,9 +734,13 @@ const progressPct = computed(() => {
 })
 
 const chronoDisplay = computed(() => {
+  const rdv = activeRdv.value
   const min = elapsedMin.value
   const h = Math.floor(min / 60)
   const m = min % 60
+  if (rdv?.statut === 'en_pause') {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+  }
   const s = Math.floor(((now.value - getStartTime()) % 60000) / 1000)
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(Math.max(0, s)).padStart(2, '0')}`
 })
@@ -780,6 +850,34 @@ async function startWork(id: number) {
   }
 }
 
+async function pauseWork() {
+  if (!activeRdv.value) return
+  pausing.value = true
+  try {
+    await rdvStore.transitionRdv(activeRdv.value.id, 'pause_travail')
+    await fetchMyRdvs()
+    toast.add({ title: 'Intervention mise en pause', color: 'warning' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } finally {
+    pausing.value = false
+  }
+}
+
+async function resumeWork() {
+  if (!activeRdv.value) return
+  resuming.value = true
+  try {
+    await rdvStore.transitionRdv(activeRdv.value.id, 'reprendre_travail')
+    await fetchMyRdvs()
+    toast.add({ title: 'Intervention reprise', color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } finally {
+    resuming.value = false
+  }
+}
+
 async function finishWork() {
   if (!activeRdv.value) return
   if (!checkupDone.value && !interventionNotes.value.trim()) {
@@ -805,6 +903,53 @@ async function finishWork() {
   }
 }
 
+function demandeStatutLabel(statut: string): string {
+  return {
+    en_attente: 'En attente',
+    en_attente_validation: 'À valider',
+    en_attente_decision_client: 'En attente client',
+    accepte: 'Accepté',
+    refuse: 'Refusé',
+  }[statut] ?? statut
+}
+
+function demandeBadgeStyle(demande: any): Record<string, string> {
+  const colors: Record<string, { bg: string; color: string }> = {
+    en_attente: { bg: 'rgba(107,114,128,0.12)', color: '#9CA3AF' },
+    en_attente_validation: { bg: 'rgba(245,158,11,0.12)', color: '#FCD34D' },
+    en_attente_decision_client: { bg: 'rgba(59,130,246,0.12)', color: '#BFDBFE' },
+    accepte: { bg: 'rgba(16,185,129,0.12)', color: '#6EE7B7' },
+    refuse: { bg: 'rgba(239,68,68,0.12)', color: '#FCA5A5' },
+  }
+  const c = colors[demande.statut] ?? colors.en_attente
+  return { background: c.bg, color: c.color }
+}
+
+async function submitDemande() {
+  if (!activeRdv.value || !newDemande.description.trim()) return
+  submittingDemande.value = true
+  try {
+    await api.post('/mecanicien/me/demande-complementaire', {
+      rdv_id: activeRdv.value.id,
+      description: newDemande.description.trim(),
+      prix_estime: newDemande.prix_estime,
+      temps_estime: newDemande.temps_estime,
+      urgence: newDemande.urgence,
+    })
+    newDemande.description = ''
+    newDemande.prix_estime = null
+    newDemande.temps_estime = null
+    newDemande.urgence = 'normal'
+    showNewDemande.value = false
+    await fetchMyRdvs()
+    toast.add({ title: 'Demande envoyée', description: 'La réception va valider et contacter le client.', color: 'success' })
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+  } finally {
+    submittingDemande.value = false
+  }
+}
+
 async function saveInterventionNotes() {
   if (!activeRdv.value) return
   savingNotes.value = true
@@ -818,9 +963,11 @@ async function saveInterventionNotes() {
 
 async function fetchMyRdvs() {
   const today = new Date().toISOString().slice(0, 10)
-  const rdvData = await api.get(`/rendez-vous/mecanicien?date=${today}`)
+  const data = await api.get(`/mecanicien/me/rdvs?date=${today}`)
 
-  const items = Array.isArray(rdvData) ? rdvData : (rdvData?.['hydra:member'] ?? rdvData?.member ?? [])
+  absenceToday.value = data?.absence_today ?? null
+
+  const items = Array.isArray(data?.rdvs) ? data.rdvs : (data?.['hydra:member'] ?? data?.member ?? [])
   myRdvs.value = items.map((r: any) => ({
     ...r,
     status: r.statut ?? r.status,
@@ -836,6 +983,14 @@ watch(activeRdv, (next, prev) => {
     resetEssaiForm()
   }
   applySavedWorkshopReport()
+})
+
+watch(rapportRdvId, (id) => {
+  if (id) {
+    nextTick(() => {
+      initCanvas()
+    })
+  }
 })
 
 onMounted(async () => {

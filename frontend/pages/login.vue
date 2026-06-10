@@ -6,14 +6,6 @@
     <h2 class="login-title">Paddock</h2>
     <p class="login-sub">Connexion à votre espace atelier</p>
 
-    <button class="google-btn" @click="handleGoogleLogin()" :disabled="loading || googleLoading">
-      {{ googleLoading ? 'Connexion Google...' : 'Continuer avec Google' }}
-    </button>
-
-    <div class="login-divider">
-      <span>ou accès local de secours</span>
-    </div>
-
     <form @submit.prevent="handleLogin" class="login-form">
       <input
         v-model="email"
@@ -35,36 +27,6 @@
       </button>
     </form>
 
-    <div v-if="showDevSso" class="dev-sso-box">
-      <p class="dev-sso-title">Tests SSO dev</p>
-      <input
-        v-model="devSsoEmail"
-        type="text"
-        inputmode="email"
-        placeholder="nouveau.google.test@atelier.local"
-      />
-      <div class="dev-sso-name-grid">
-        <input
-          v-model="devSsoPrenom"
-          type="text"
-          placeholder="Prénom"
-        />
-        <input
-          v-model="devSsoNom"
-          type="text"
-          placeholder="Nom"
-        />
-      </div>
-      <div class="dev-sso-actions">
-        <button type="button" class="dev-btn" :disabled="loading || googleLoading" @click="handleGoogleLogin('login')">
-          Simuler accès validé
-        </button>
-        <button type="button" class="dev-btn secondary" :disabled="loading || googleLoading" @click="handleGoogleLogin('request')">
-          Simuler demande de création
-        </button>
-      </div>
-    </div>
-
     <div v-if="info" class="login-info">{{ info }}</div>
     <div v-if="error" class="login-error">{{ error }}</div>
   </div>
@@ -76,14 +38,9 @@ definePageMeta({ layout: 'public' })
 const route = useRoute()
 const email = ref('')
 const password = ref('')
-const devSsoEmail = ref('nouveau.google.test@atelier.local')
-const devSsoPrenom = ref('Google')
-const devSsoNom = ref('Test')
 const loading = ref(false)
-const googleLoading = ref(false)
 const error = ref('')
 const info = ref('')
-const showDevSso = ref(false)
 
 const auth = useAuth()
 
@@ -102,10 +59,6 @@ function formatAuthError(e: any) {
   if (/invalid credentials/i.test(message)) {
     return 'Email ou mot de passe incorrect.'
   }
-  if (/google/i.test(message)) {
-    return 'La connexion Google a échoué. Vérifie la configuration ou réessaie.'
-  }
-
   return message || 'Connexion impossible.'
 }
 
@@ -123,95 +76,10 @@ async function handleLogin() {
   }
 }
 
-async function handleGoogleLogin(mode: 'login' | 'request' = 'login') {
-  googleLoading.value = true
-  error.value = ''
-  info.value = mode === 'request'
-    ? 'Simulation de première connexion Google…'
-    : 'Redirection vers Google…'
-
-  try {
-    await auth.startGoogleLogin({
-      mode,
-      email: showDevSso.value ? devSsoEmail.value : undefined,
-      prenom: showDevSso.value ? devSsoPrenom.value : undefined,
-      nom: showDevSso.value ? devSsoNom.value : undefined,
-    })
-  } catch (e: any) {
-    info.value = ''
-    error.value = formatAuthError(e)
-  } finally {
-    googleLoading.value = false
-  }
-}
-
-async function handleGoogleCallback(code: string, state: string) {
-  googleLoading.value = true
-  error.value = ''
-  info.value = 'Connexion Google en cours…'
-
-  try {
-    await auth.exchangeGoogleCode(code, state)
-    await navigateTo('/')
-  } catch (e: any) {
-    error.value = formatAuthError(e)
-  } finally {
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
-    if (error.value) {
-      info.value = ''
-    }
-    googleLoading.value = false
-  }
-}
-
-onMounted(async () => {
-  try {
-    const config = await auth.getGoogleLoginConfig({ mode: 'login', email: devSsoEmail.value })
-    showDevSso.value = Boolean(config?.simulated)
-  } catch {
-    showDevSso.value = false
-  }
-
-  const providerError = String(route.query.error || '')
-  const code = String(route.query.code || '')
-  const state = String(route.query.state || '')
-  const googleStatus = String(route.query.google_status || '')
-  const simulatedEmail = String(route.query.email || '')
-
-  if (googleStatus === 'pending_validation') {
-    info.value = simulatedEmail
-      ? `Demande Google créée pour ${simulatedEmail}. Un superadmin doit maintenant valider le compte et l’atelier.`
-      : 'Demande Google créée. Un superadmin doit maintenant valider le compte et l’atelier.'
-
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
-    return
-  }
-
-  if (googleStatus === 'email_in_use') {
-    error.value = simulatedEmail
-      ? `${simulatedEmail} existe déjà. Utilise une autre adresse pour simuler une nouvelle demande.`
-      : 'Cette adresse existe déjà. Utilise une autre adresse pour simuler une nouvelle demande.'
-
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
-    return
-  }
-
-  if (providerError) {
-    error.value = 'Connexion Google annulée ou refusée.'
-    if (process.client) {
-      window.history.replaceState({}, '', '/login')
-    }
-    return
-  }
-
-  if (code) {
-    handleGoogleCallback(code, state)
+onMounted(() => {
+  // Clean up any OAuth query params on load
+  if (process.client && (route.query.code || route.query.error || route.query.google_status)) {
+    window.history.replaceState({}, '', '/login')
   }
 })
 </script>

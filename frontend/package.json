@@ -14,10 +14,13 @@
   "dependencies": {
     "@nuxt/ui": "^3.0.0",
     "@pinia/nuxt": "^0.9.0",
+    "chart.js": "^4.5.1",
+    "focus-trap": "^7.8.0",
     "nuxt": "^3.16.0",
     "pinia": "^2.3.0",
     "qrcode": "^1.5.4",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "vue-chartjs": "^5.3.3"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.0.0",

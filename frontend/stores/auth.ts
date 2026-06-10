@@ -6,6 +6,7 @@ interface UserData {
   username: string
   nom?: string | null
   prenom?: string | null
+  phoneNumber?: string | null
   role: string
   roles?: string[]
   atelier_id?: number | null

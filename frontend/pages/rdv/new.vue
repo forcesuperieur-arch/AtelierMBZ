@@ -672,8 +672,8 @@ function isSlotPast(dateStr: string, heure: string): boolean {
 function getDefaultPlanningHours() {
   const hours: string[] = []
   for (let h = 8; h <= 18; h++) {
-    for (const m of ['00', '30']) {
-      if (h === 18 && m === '30') continue
+    for (const m of ['00', '15', '30', '45']) {
+      if (h === 18 && m !== '00') continue
       hours.push(`${String(h).padStart(2, '0')}:${m}`)
     }
   }

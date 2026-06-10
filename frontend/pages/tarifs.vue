@@ -49,7 +49,7 @@
       <UCard>
         <UTable v-if="filteredPrestations.length" :data="filteredPrestations" :columns="columns" :loading="loading">
           <template #temps_estime_minutes-cell="{ row }">
-            {{ row.original.temps_estime_minutes ?? '–' }} min
+            {{ formatMinutes(row.original.temps_estime_minutes ?? 0) }}
           </template>
           <template #prix_base_ht-cell="{ row }">
             {{ formatAmount(row.original.prix_base_ht) }}

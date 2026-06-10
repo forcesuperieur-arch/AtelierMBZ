@@ -1,6 +1,10 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-04-14',
 
+  alias: {
+    '#app-manifest': './app-manifest.stub',
+  },
+
   ssr: false,
 
   modules: [
@@ -26,6 +30,7 @@ export default defineNuxtConfig({
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
         { rel: 'icon', type: 'image/svg+xml', href: '/branding/paddock-logo-favicon.svg' },
         { rel: 'apple-touch-icon', href: '/branding/paddock-logo-favicon.svg' },
+        { rel: 'manifest', href: '/manifest.json' },
       ],
     },
   },
@@ -43,10 +48,21 @@ export default defineNuxtConfig({
     classSuffix: '',
   },
 
+  vite: {
+    optimizeDeps: {
+      include: ['chart.js'],
+    },
+  },
+
   nitro: {
     routeRules: {
-      '/api/**': { proxy: 'http://localhost:8000/api/**' },
+      '/api/**': { proxy: 'http://php:8000/api/**' },
+      '/.well-known/mercure': { proxy: 'http://mercure:3000/.well-known/mercure' },
     },
+  },
+
+  experimental: {
+    appManifest: false,
   },
 
   devtools: { enabled: true },

@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Demandes de travaux complémentaires</div>
       </div>
       <button class="btn btn-ghost" @click="load" :disabled="loading">🔄 Rafraîchir</button>
@@ -29,7 +29,7 @@
               <div style="font-size:12px;color:#9CA3AF;">
                 <span v-if="d.vehicule_info">{{ d.vehicule_info }}</span>
                 <span v-if="d.vehicule_plaque"> • {{ d.vehicule_plaque }}</span>
-                <span> • RDV <NuxtLink :to="`/rdv/${d.rendez_vous_id}`" style="color:#FFD200;">#{{ d.rendez_vous_id }}</NuxtLink></span>
+                <span> • RDV #{{ d.rendez_vous_id }}</span>
               </div>
               <div v-if="d.description" style="margin-top:6px;font-size:12px;color:#D1D5DB;font-style:italic;">« {{ d.description }} »</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
@@ -40,7 +40,7 @@
             </div>
             <div style="text-align:right;min-width:140px;">
               <div style="font-size:16px;font-weight:800;color:#FFD200;">{{ formatEuro(d.prix_estime) }}</div>
-              <div style="font-size:11px;color:#6B7280;">~{{ d.temps_estime }} min</div>
+              <div style="font-size:11px;color:#6B7280;">~{{ formatMinutes(d.temps_estime) }}</div>
               <div v-if="d.decision_client_at" style="font-size:11px;color:#9CA3AF;margin-top:4px;">
                 Décidé le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}
               </div>
@@ -48,15 +48,42 @@
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);">
-            <button
-              v-if="['en_attente', 'en_attente_validation'].includes(d.statut)"
-              class="btn btn-primary"
-              style="font-size:12px;padding:6px 14px;"
-              :disabled="sending === d.id"
-              @click="envoyer(d)"
-            >
-              {{ sending === d.id ? 'Envoi…' : '📤 Envoyer au client' }}
-            </button>
+            <template v-if="['en_attente', 'en_attente_validation'].includes(d.statut)">
+              <template v-if="showCanalFor === d.id">
+                <button
+                  class="btn btn-primary"
+                  style="font-size:12px;padding:6px 14px;"
+                  :disabled="sending === d.id"
+                  @click="envoyer(d, 'email')"
+                >
+                  {{ sending === d.id ? 'Envoi…' : '📧 Email' }}
+                </button>
+                <button
+                  class="btn btn-primary"
+                  style="font-size:12px;padding:6px 14px;"
+                  :disabled="sending === d.id"
+                  @click="envoyer(d, 'sms')"
+                >
+                  {{ sending === d.id ? 'Envoi…' : '📱 SMS' }}
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  style="font-size:12px;padding:6px 14px;"
+                  :disabled="sending === d.id"
+                  @click="showCanalFor = null"
+                >
+                  Annuler
+                </button>
+              </template>
+              <button
+                v-else
+                class="btn btn-primary"
+                style="font-size:12px;padding:6px 14px;"
+                @click="showCanalFor = d.id"
+              >
+                📤 Envoyer au client
+              </button>
+            </template>
             <button
               v-if="d.token && d.statut === 'en_attente_decision_client'"
               class="btn btn-ghost"
@@ -83,6 +110,7 @@ const api = useApi()
 const toast = useToast()
 const loading = ref(false)
 const sending = ref<number | null>(null)
+const showCanalFor = ref<number | null>(null)
 const demandes = ref<any[]>([])
 const statut = ref('')
 
@@ -108,14 +136,21 @@ async function load() {
   }
 }
 
-async function envoyer(d: any) {
+async function envoyer(d: any, canal: 'email' | 'sms') {
   sending.value = d.id
   try {
-    const res = await api.post(`/demandes-travaux-supp/${d.id}/envoyer`, {})
-    toast.add({ title: 'Envoyé au client', description: `Lien : ${res.lien_client}`, color: 'success' })
+    const res = await api.post(`/demandes-travaux-supp/${d.id}/envoyer`, { canal })
+    if (res.envoye) {
+      toast.add({ title: `Envoyé par ${canal === 'email' ? 'e-mail' : 'SMS'}`, description: `Destinataire : ${res.destinataire}`, color: 'success' })
+    } else if (res.error) {
+      toast.add({ title: 'Erreur d\'envoi', description: res.error, color: 'error' })
+    } else {
+      toast.add({ title: 'Lien prêt', description: `Lien : ${res.lien_client}`, color: 'warning' })
+    }
+    showCanalFor.value = null
     await load()
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+    toast.add({ title: 'Erreur', description: e.data?.error || e.message, color: 'error' })
   } finally {
     sending.value = null
   }

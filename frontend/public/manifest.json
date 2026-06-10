@@ -1,0 +1,34 @@
+{
+  "name": "Paddock — Atelier Moto",
+  "short_name": "Paddock",
+  "description": "Gestion d'atelier moto : RDV, ordres de réparation, VO, facturation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#D4A843",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/branding/paddock-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/branding/paddock-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/branding/paddock-logo-symbol.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "fr",
+  "dir": "ltr"
+}

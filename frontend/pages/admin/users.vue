@@ -11,8 +11,16 @@
       <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Ajouter</button>
     </div>
 
+    <div style="display:flex;gap:12px;margin-bottom:12px;">
+      <UInput
+        v-model="searchQuery"
+        placeholder="Rechercher par nom, login, email..."
+        icon="i-heroicons-magnifying-glass"
+        style="flex:1;max-width:400px;"
+      />
+    </div>
     <UCard>
-      <UTable :data="users" :columns="columns" :loading="loading">
+      <UTable :data="filteredUsers" :columns="columns" :loading="loading">
         <template #username-cell="{ row }">
           <span style="font-family:monospace;font-size:12px;color:#93C5FD;">{{ row.original.username }}</span>
         </template>
@@ -29,12 +37,6 @@
             {{ accessStatusLabel(row.original.access_status) }}
           </span>
         </template>
-        <template #role_metier-cell="{ row }">
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <span style="color:#E8E9ED;font-size:12px;font-weight:600;">{{ row.original.role_metier?.libelle || 'Auto / non défini' }}</span>
-            <span style="color:#9CA3AF;font-size:11px;">{{ row.original.role_metier?.code || 'hérité du profil d’accès' }}</span>
-          </div>
-        </template>
         <template #is_active-cell="{ row }">
           <StatusBadge :status="row.original.is_active ? 'confirme' : 'annule'" />
         </template>
@@ -47,6 +49,7 @@
               {{ row.original.is_active ? '⏸ Désactiver' : '▶ Activer' }}
             </button>
             <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
+            <button style="color:#EF4444;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="hardDeleteUser(row.original)">🗑 Supprimer</button>
           </div>
         </template>
       </UTable>
@@ -76,13 +79,8 @@
                   </option>
                 </select>
               </UFormField>
-              <UFormField label="Rôle métier">
-                <select v-model="userForm.role_metier_id" class="form-input" style="background:#171B24;color:#E8E9ED;">
-                  <option :value="null">Automatique selon le profil</option>
-                  <option v-for="roleMetier in assignableRoleMetiers" :key="roleMetier.id" :value="roleMetier.id">
-                    {{ roleMetier.libelle }}
-                  </option>
-                </select>
+              <UFormField label="Téléphone">
+                <UInput v-model="userForm.phoneNumber" placeholder="+33612345678" />
               </UFormField>
               <UFormField v-if="!editId" label="Mot de passe">
                 <UInput v-model="userForm.password" type="password" required />
@@ -111,12 +109,6 @@
                 <option v-for="atelier in ateliers" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
               </select>
             </UFormField>
-            <UFormField label="Rôle métier final">
-              <select v-model="approveForm.role_metier_id" class="form-input" style="background:#171B24;color:#E8E9ED;" required>
-                <option :value="null" disabled>Sélectionner un rôle métier</option>
-                <option v-for="role in filteredRoleMetiers" :key="role.id" :value="role.id">{{ role.libelle }}</option>
-              </select>
-            </UFormField>
             <div style="font-size:12px;color:#9CA3AF;">
               L’utilisateur sera activé après affectation de l’atelier et du rôle métier.
             </div>
@@ -142,15 +134,15 @@ const saving = ref(false)
 const approving = ref(false)
 const editId = ref<number | null>(null)
 const ateliers = ref<any[]>([])
-const roleMetiers = ref<any[]>([])
 
 const approveForm = reactive({
   user_id: null as number | null,
   atelier_id: null as number | null,
-  role_metier_id: null as number | null,
 })
 
-const userForm = reactive({ prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', role_metier_id: null as number | null, password: '' })
+const searchQuery = ref('')
+
+const userForm = reactive({ prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', phoneNumber: '', password: '' })
 
 const defaultRoleOptions = [
   { value: 'admin', label: 'Administrateur' },
@@ -168,20 +160,21 @@ const columns = [
   { key: 'email', label: 'Email' },
   { key: 'auth_provider', label: 'Auth' },
   { key: 'access_status', label: 'Statut' },
-  { key: 'role_metier', label: 'Rôle métier' },
   { key: 'role', label: 'Rôle' },
+  { key: 'phoneNumber', label: 'Téléphone' },
   { key: 'is_active', label: 'Actif' },
   { key: 'actions', label: '' },
 ]
 
 const pendingCount = computed(() => users.value.filter((u: any) => u.access_status === 'pending_validation').length)
 
-const filteredRoleMetiers = computed(() => {
-  return roleMetiers.value.filter((role: any) => role.is_active !== false && (!role.atelier_id || Number(role.atelier_id) === Number(approveForm.atelier_id)))
-})
-
-const assignableRoleMetiers = computed(() => {
-  return roleMetiers.value.filter((role: any) => role.is_active !== false)
+const filteredUsers = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return users.value
+  return users.value.filter((u: any) => {
+    const text = `${u.prenom || ''} ${u.nom || ''} ${u.username || ''} ${u.email || ''}`.toLowerCase()
+    return text.includes(q)
+  })
 })
 
 function normalizeNamePart(value: string) {
@@ -223,7 +216,6 @@ function normalizeUser(u: any) {
     is_active: u.is_active ?? u.isActive ?? 0,
     access_status: u.access_status || (Number(u.is_active ?? u.isActive ?? 0) === 1 ? 'active' : 'disabled'),
     auth_provider: u.auth_provider || 'local',
-    role_metier: u.role_metier || null,
   }
 }
 
@@ -270,29 +262,9 @@ function getUserActive(user: any) {
   return Number(user?.is_active ?? user?.isActive ?? 0) === 1
 }
 
-function mapRoleMetierCodeToLegacyRole(code?: string) {
-  switch (code) {
-    case 'responsable_atelier':
-    case 'responsable_magasin':
-      return 'admin'
-    case 'receptionniste':
-      return 'receptionnaire'
-    case 'mecanicien':
-      return 'mecanicien'
-    case 'comptable':
-      return 'comptable'
-    case 'vo_manager':
-      return 'vo_manager'
-    case 'service_client':
-      return 'service_client'
-    default:
-      return normalizeRoleValue(userForm.role)
-  }
-}
-
 function resetForm() {
   editId.value = null
-  Object.assign(userForm, { prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', role_metier_id: null, password: '' })
+  Object.assign(userForm, { prenom: '', nom: '', email: '', username: '', role: 'receptionnaire', phoneNumber: '', password: '' })
 }
 
 function editUser(u: any) {
@@ -304,7 +276,7 @@ function editUser(u: any) {
     email: user.email,
     username: user.username,
     role: normalizeRoleValue(user.role),
-    role_metier_id: user.role_metier?.id ?? null,
+    phoneNumber: user.phoneNumber || '',
     password: '',
   })
   showNew.value = true
@@ -314,13 +286,12 @@ function openApproveModal(u: any) {
   const user = normalizeUser(u)
   approveForm.user_id = user.id
   approveForm.atelier_id = user.atelier_id || null
-  approveForm.role_metier_id = user.role_metier?.id || filteredRoleMetiers.value.find((role: any) => role.code === 'service_client')?.id || null
   showApprove.value = true
 }
 
 async function approvePendingUser() {
-  if (!approveForm.user_id || !approveForm.atelier_id || !approveForm.role_metier_id) {
-    toast.add({ title: 'Erreur', description: 'Atelier et rôle métier requis', color: 'error' })
+  if (!approveForm.user_id || !approveForm.atelier_id) {
+    toast.add({ title: 'Erreur', description: 'Atelier requis', color: 'error' })
     return
   }
 
@@ -328,7 +299,6 @@ async function approvePendingUser() {
   try {
     await api.post(`/admin/users/${approveForm.user_id}/approve`, {
       atelier_id: Number(approveForm.atelier_id),
-      role_metier_id: Number(approveForm.role_metier_id),
     })
     showApprove.value = false
     toast.add({ title: 'Compte SSO validé', color: 'success' })
@@ -391,21 +361,34 @@ async function deleteUser(u: any) {
   }
 }
 
+
+async function hardDeleteUser(u: any) {
+  const user = normalizeUser(u)
+  if (!confirm(`SUPPRIMER DÉFINITIVEMENT le compte ${user.prenom} ${user.nom} (${user.email}) ?\n\nCette action est irréversible.`)) return
+
+  try {
+    await api.del(`/admin/users/${user.id}/hard`)
+    toast.add({ title: 'Compte supprimé', description: 'L\'utilisateur a été définitivement supprimé.', color: 'success' })
+    await fetchUsers()
+  } catch (e: any) {
+    toast.add({ title: 'Erreur', description: e?.message || 'Suppression impossible', color: 'error' })
+  }
+}
+
 async function saveUser() {
   saving.value = true
   try {
     const existing = editId.value ? users.value.find((u: any) => u.id === editId.value) : null
     const activeValue = existing ? (getUserActive(existing) ? 1 : 0) : 1
-    const selectedRoleMetier = assignableRoleMetiers.value.find((role: any) => Number(role.id) === Number(userForm.role_metier_id)) || null
     const payload: any = {
       prenom: userForm.prenom.trim(),
       nom: userForm.nom.trim(),
       username: ensureUniqueUsername(buildUsername(userForm)),
       email: userForm.email.trim(),
-      role: selectedRoleMetier ? mapRoleMetierCodeToLegacyRole(selectedRoleMetier.code) : normalizeRoleValue(userForm.role),
+      role: normalizeRoleValue(userForm.role),
+      phoneNumber: userForm.phoneNumber.trim() || null,
       is_active: activeValue,
       isActive: activeValue,
-      roleMetier: selectedRoleMetier ? `/api/roles-metier/${selectedRoleMetier.id}` : null,
     }
 
     if (userForm.password.trim()) {
@@ -452,16 +435,6 @@ async function fetchAteliers() {
   }
 }
 
-async function fetchRoleMetiers() {
-  try {
-    const data = await api.get('/roles-metier')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    roleMetiers.value = raw
-  } catch {
-    roleMetiers.value = []
-  }
-}
-
 async function fetchRoleOptions() {
   try {
     const data = await api.get('/roles')
@@ -494,6 +467,6 @@ watch(showNew, (open) => {
 })
 
 onMounted(async () => {
-  await Promise.all([fetchUsers(), fetchRoleOptions(), fetchAteliers(), fetchRoleMetiers()])
+  await Promise.all([fetchUsers(), fetchRoleOptions(), fetchAteliers()])
 })
 </script>

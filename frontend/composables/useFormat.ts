@@ -10,9 +10,9 @@ export function useFormat() {
     if (!val) return '—'
     // Already HH:mm format from custom controllers
     if (/^\d{2}:\d{2}$/.test(val)) return val
-    const d = new Date(val)
-    if (isNaN(d.getTime())) return val
-    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const match = String(val).match(/(\d{2}):(\d{2})/)
+    if (match) return `${match[1]}:${match[2]}`
+    return val
   }
 
   function formatCurrency(val: number | null | undefined): string {

@@ -190,7 +190,8 @@ onMounted(async () => {
       api.get('/mecaniciens'),
     ])
     const rawMecas = mecasData?.['hydra:member'] ?? mecasData?.member ?? (Array.isArray(mecasData) ? mecasData : [])
-    mecaOptions.value = rawMecas.map((m: any) => ({ value: m.id, label: `${m.prenom} ${m.nom}` }))
+    const uniqueMecas = [...new Map(rawMecas.map((m: any) => [Number(m.id), m])).values()]
+    mecaOptions.value = uniqueMecas.map((m: any) => ({ value: m.id, label: `${m.prenom} ${m.nom}` }))
   } finally {
     loading.value = false
   }

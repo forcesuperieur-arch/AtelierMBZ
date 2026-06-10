@@ -68,8 +68,8 @@
             <!-- Progress bar for en_cours -->
             <div v-if="rdv.status === 'en_cours'" style="width:120px;">
               <div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-bottom:3px;">
-                <span>{{ getElapsed(rdv) }} min</span>
-                <span>{{ rdv.duree_estimee || 60 }} min</span>
+                <span>{{ formatMinutes(getElapsed(rdv)) }}</span>
+                <span>{{ formatMinutes(rdv.duree_estimee || 60) }}</span>
               </div>
               <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
                 <div style="height:100%;border-radius:2px;transition:width 1s;" :style="{ width: getProgress(rdv) + '%', background: getProgress(rdv) > 100 ? '#EF4444' : '#14B8A6' }"></div>
@@ -80,7 +80,7 @@
             <StatusBadge :status="rdv.status" />
 
             <!-- Link -->
-            <NuxtLink :to="`/rdv/${rdv.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(rdv)">Voir →</button>
           </div>
         </div>
       </div>
@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 const api = useApi()
+const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const rdvs = ref<any[]>([])
 let refreshInterval: ReturnType<typeof setInterval> | null = null

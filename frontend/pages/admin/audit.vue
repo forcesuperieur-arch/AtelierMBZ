@@ -7,19 +7,27 @@
       </div>
     </div>
 
-    <!-- Filters -->
     <UCard style="margin-bottom:16px;">
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Filtres</span>
+          <UInput
+            v-model="filters.search"
+            placeholder="Rechercher un utilisateur, une entité, une action..."
+            icon="i-heroicons-magnifying-glass"
+            style="min-width:280px;"
+          />
+        </div>
+      </template>
+
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
-        <div class="form-group">
-          <label class="form-label">Date début</label>
+        <UFormField label="Date début">
           <input v-model="filters.dateFrom" type="date" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Date fin</label>
+        </UFormField>
+        <UFormField label="Date fin">
           <input v-model="filters.dateTo" type="date" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Type</label>
+        </UFormField>
+        <UFormField label="Type">
           <select v-model="filters.action" class="form-input">
             <option value="">Toutes</option>
             <option value="create">Création</option>
@@ -28,35 +36,48 @@
             <option value="transition">Transition</option>
             <option value="login">Connexion</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Recherche</label>
-          <input v-model="filters.search" class="form-input" placeholder="Utilisateur, entité…" />
-        </div>
-        <button class="btn btn-primary" style="font-size:13px;" @click="fetchLogs">Filtrer</button>
+        </UFormField>
+        <button class="btn btn-primary" style="font-size:13px;" @click="page = 1; fetchLogs()">Filtrer</button>
       </div>
     </UCard>
 
     <UCard>
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Entrées d'audit</span>
+          <span v-if="total > 0" style="font-size:12px;color:#9CA3AF;">{{ total }} résultat(s)</span>
+        </div>
+      </template>
+
       <div v-if="loading" style="padding:32px;text-align:center;color:#6B7280;">Chargement…</div>
-      <div v-else-if="!logs.length" style="padding:32px;text-align:center;color:#6B7280;">Aucune entrée trouvée</div>
+      <div v-else-if="!logs.length" style="padding:32px;text-align:center;color:#9CA3AF;">Aucune entrée trouvée</div>
       <div v-else style="display:flex;flex-direction:column;gap:1px;">
-        <div v-for="log in filteredLogs" :key="log.id" style="display:grid;grid-template-columns:140px 100px 1fr 150px;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;align-items:center;">
-          <span style="color:#6B7280;font-family:monospace;font-size:11px;">{{ formatDate(log.created_at || log.createdAt) }}</span>
+        <div
+          v-for="log in logs"
+          :key="log.id"
+          style="display:grid;grid-template-columns:140px 100px 1fr 150px;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;align-items:center;"
+        >
+          <span style="color:#6B7280;font-family:monospace;font-size:11px;">{{ formatDate(log.createdAt || log.created_at) }}</span>
           <span :style="actionStyle(log.action)">{{ actionLabel(log.action) }}</span>
           <span style="color:#E8E9ED;">
-            <strong>{{ log.entity_type || log.entityType || '' }}</strong>
-            <span v-if="log.entity_id || log.entityId" style="color:#6B7280;"> #{{ log.entity_id || log.entityId }}</span>
-            <span v-if="log.description" style="color:#9CA3AF;margin-left:8px;">— {{ log.description }}</span>
+            <strong>{{ log.entityType || log.entity_type || '' }}</strong>
+            <span v-if="log.entityId || log.entity_id" style="color:#6B7280;"> #{{ log.entityId || log.entity_id }}</span>
+            <span v-if="log.description || log.details" style="color:#9CA3AF;margin-left:8px;">— {{ log.description || log.details }}</span>
           </span>
-          <span style="color:#9CA3AF;">{{ log.user_email || log.userEmail || 'système' }}</span>
+          <span style="color:#9CA3AF;">{{ log.userEmail || log.user_email || log.username || 'système' }}</span>
         </div>
       </div>
     </UCard>
 
-    <!-- Pagination -->
     <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;">
-      <button v-for="p in totalPages" :key="p" class="btn" :class="page === p ? 'btn-primary' : 'btn-ghost'" style="min-width:36px;padding:6px 10px;font-size:12px;" @click="page = p; fetchLogs()">{{ p }}</button>
+      <button
+        v-for="p in totalPages"
+        :key="p"
+        class="btn"
+        :class="page === p ? 'btn-primary' : 'btn-ghost'"
+        style="min-width:36px;padding:6px 10px;font-size:12px;"
+        @click="page = p; fetchLogs()"
+      >{{ p }}</button>
     </div>
   </div>
 </template>
@@ -67,6 +88,7 @@ const loading = ref(true)
 const logs = ref<any[]>([])
 const page = ref(1)
 const totalPages = ref(1)
+const total = ref(0)
 
 const filters = reactive({
   dateFrom: '',
@@ -75,19 +97,14 @@ const filters = reactive({
   search: '',
 })
 
-const filteredLogs = computed(() => {
-  if (!filters.search) return logs.value
-  const s = filters.search.toLowerCase()
-  return logs.value.filter(l =>
-    (l.user_email || l.userEmail || '').toLowerCase().includes(s) ||
-    (l.entity_type || l.entityType || '').toLowerCase().includes(s) ||
-    (l.description || '').toLowerCase().includes(s)
-  )
+watch(() => filters.search, () => {
+  page.value = 1
+  fetchLogs()
 })
 
 function formatDate(d: string) {
   if (!d) return ''
-  try { return new Date(d).toLocaleString('fr-FR') } catch { return d }
+  try { return new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch { return d }
 }
 
 function actionLabel(a: string) {
@@ -114,17 +131,19 @@ async function fetchLogs() {
   try {
     const params = new URLSearchParams()
     params.set('page', String(page.value))
-    params.set('itemsPerPage', '50')
-    if (filters.dateFrom) params.set('createdAt[after]', filters.dateFrom)
-    if (filters.dateTo) params.set('createdAt[before]', filters.dateTo)
+    params.set('limit', '50')
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
+    if (filters.dateTo) params.set('dateTo', filters.dateTo)
     if (filters.action) params.set('action', filters.action)
-    const data = await api.get(`/audit-logs?${params}`)
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
-    logs.value = raw
-    const total = data?.['hydra:totalItems'] ?? data?.totalItems ?? raw.length
-    totalPages.value = Math.max(1, Math.ceil(total / 50))
-  } catch {
+    if (filters.search.trim()) params.set('search', filters.search.trim())
+    const data = await api.get(`/admin/audit-logs?${params}`)
+    logs.value = data.items || []
+    total.value = data.total || 0
+    totalPages.value = data.totalPages || 1
+  } catch (e: any) {
     logs.value = []
+    total.value = 0
+    totalPages.value = 1
   } finally {
     loading.value = false
   }
@@ -132,3 +151,15 @@ async function fetchLogs() {
 
 onMounted(fetchLogs)
 </script>
+
+<style scoped>
+.form-input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #E8E9ED;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+</style>

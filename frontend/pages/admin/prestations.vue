@@ -5,23 +5,32 @@
         <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Gestion des prestations</div>
       </div>
-      <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
-      <button class="topbar-new-btn" style="background:rgba(139,92,246,0.15);color:#C4B5FD;" @click="bootstrapCatalog">Initialiser le catalogue</button>
     </div>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button v-for="cat in categoryFilters" :key="cat.value" class="btn" :class="filterCat === cat.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="filterCat = cat.value">
-        {{ cat.label }}
-      </button>
-    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
+      <UCard>
+        <template #header>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Catalogue prestations</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="bootstrapCatalog">📦 Initialiser le catalogue</button>
+              <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
+            </div>
+          </div>
+        </template>
 
-    <UCard>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="font-size:13px;color:#D1D5DB;">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
-        <div style="font-size:12px;color:#9CA3AF;">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
-      </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <button v-for="cat in categoryFilters" :key="cat.value" class="btn" :class="filterCat === cat.value ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="filterCat = cat.value">
+            {{ cat.label }}
+          </button>
+        </div>
 
-      <UTable :data="filteredPrestations" :columns="columns" :loading="loading">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="font-size:13px;color:#D1D5DB;">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
+          <div style="font-size:12px;color:#9CA3AF;">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
+        </div>
+
+        <UTable :data="filteredPrestations" :columns="columns" :loading="loading" :meta="{ class: { tr: (row: any) => row.original?.is_active === false ? 'opacity-50' : '' } }">
         <template #categorie-cell="{ row }">
           <span style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(139,92,246,0.1);color:#C4B5FD;">{{ row.original.categorie_nom || '—' }}</span>
         </template>
@@ -31,7 +40,7 @@
         </template>
 
         <template #temps_estime-cell="{ row }">
-          {{ formatDuration(row.original.temps_estime) }}
+          {{ formatMinutes(row.original.temps_estime) }}
         </template>
 
         <template #type_tarif-cell="{ row }">
@@ -50,64 +59,43 @@
           </div>
         </template>
 
+        <template #statut-cell="{ row }">
+          <span v-if="row.original?.is_active === false" style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(107,114,128,0.15);color:#9CA3AF;">Inactif</span>
+          <span v-else style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(16,185,129,0.1);color:#34D399;">Actif</span>
+        </template>
+
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPrestation(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openTarifModal(row.original)">⚙ Tarifs moto</button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:#93C5FD;" @click="openTarifModal(row.original)">⚙ Configurer</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:#FCA5A5;" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
           </div>
         </template>
       </UTable>
-    </UCard>
+      </UCard>
+    </div>
 
     <AppModal v-model:open="showModal" size="xl">
       <template #content>
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
+              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
               <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
           <form @submit.prevent="savePrestation" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="form-group">
-              <label class="form-label">Nom *</label>
-              <input v-model="form.nom" class="form-input" required placeholder="Ex: Vidange" />
-            </div>
+            <UFormField label="Nom *">
+              <UInput v-model="form.nom" required placeholder="Ex: Vidange" />
+            </UFormField>
 
-            <div class="form-group">
-              <label class="form-label">Description</label>
-              <textarea v-model="form.description" class="form-input" rows="2" placeholder="Description optionnelle" />
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div class="form-group">
-                <label class="form-label">Prix HT (€) *</label>
-                <input v-model.number="form.prix_ht" type="number" step="0.01" class="form-input" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Temps estimé (min) *</label>
-                <input v-model.number="form.temps_estime" type="number" class="form-input" required />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Catégorie</label>
-              <select v-model="form.categorie" class="form-input">
-                <option value="">Aucune</option>
-                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Type tarif par défaut</label>
+            <UFormField label="Type tarif par défaut">
               <select v-model="form.type_tarif" class="form-input">
                 <option value="forfait">Forfait</option>
                 <option value="horaire">Horaire</option>
                 <option value="devis">Sur devis</option>
               </select>
-            </div>
+            </UFormField>
 
             <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
               <button type="button" class="btn btn-ghost" @click="showModal = false">Annuler</button>
@@ -124,7 +112,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
               <div>
-                <div style="font-weight:700;color:#E8E9ED;">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
+                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
                 <div style="font-size:12px;color:#9CA3AF;">Forfait, horaire ou sur devis selon chaque type de moto.</div>
               </div>
               <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
@@ -134,6 +122,20 @@
           <div v-if="!activeMotoCategories.length" style="font-size:13px;color:#FCA5A5;">Aucun type moto actif n'est disponible pour cette configuration.</div>
 
           <div v-else style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:4px;">
+              <UFormField label="Nom *">
+                <UInput v-model="tarifPrestationForm.nom" required placeholder="Ex: Vidange" />
+              </UFormField>
+              <UFormField label="Description">
+                <UTextarea v-model="tarifPrestationForm.description" rows="2" placeholder="Description optionnelle" />
+              </UFormField>
+              <UFormField label="Catégorie">
+                <select v-model="tarifPrestationForm.categorie" class="form-input">
+                  <option value="">Aucune</option>
+                  <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </UFormField>
+            </div>
             <div v-for="row in tarifRows" :key="row.categorie_id" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;background:rgba(255,255,255,0.02);">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
                 <div>
@@ -198,6 +200,12 @@ const activeTarifPrestation = ref<any | null>(null)
 const tarifRows = ref<any[]>([])
 const tvaMo = ref(20)
 
+const tarifPrestationForm = reactive({
+  nom: '',
+  description: '',
+  categorie: '',
+})
+
 const form = reactive({
   code: '',
   nom: '',
@@ -240,10 +248,9 @@ const filteredPrestations = computed(() => {
 const columns = [
   { key: 'nom', label: 'Prestation' },
   { key: 'categorie', label: 'Catégorie' },
-  { key: 'temps_estime', label: 'Durée' },
-  { key: 'prix_ht', label: 'Prix HT' },
   { key: 'type_tarif', label: 'Type' },
   { key: 'tarifs_moto', label: 'Tarifs moto' },
+  { key: 'statut', label: 'Statut' },
   { key: 'actions', label: '' },
 ]
 
@@ -254,14 +261,6 @@ function toNumber(value: any, fallback = 0) {
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(toNumber(v))
-}
-
-function formatDuration(min: number) {
-  const total = toNumber(min, 0)
-  if (!total) return '—'
-  const h = Math.floor(total / 60)
-  const m = total % 60
-  return h > 0 ? `${h}h${m > 0 ? ` ${m}min` : ''}` : `${m}min`
 }
 
 function labelTypeTarif(value: string) {
@@ -325,6 +324,7 @@ function normalizePrestations(items: any[]) {
     prix_ht: toNumber(p.prix_ht ?? p.prix_base_ht, 0),
     temps_estime: toNumber(p.temps_estime ?? p.temps_estime_minutes, 30),
     type_tarif: p.type_tarif ?? p.typeTarif ?? 'forfait',
+    is_active: p.is_active === false || p.is_active === 0 || p.isActive === false || p.isActive === 0 ? false : true,
   }))
 }
 
@@ -392,6 +392,10 @@ function openTarifModal(prestation: any) {
   }
 
   activeTarifPrestation.value = prestation
+  tarifPrestationForm.nom = prestation.nom ?? ''
+  tarifPrestationForm.description = prestation.description ?? ''
+  tarifPrestationForm.categorie = prestation.categorie_nom || prestation.categorie || ''
+
   const byCategorie = new Map(
     grilles.value
       .filter((g: any) => g.prestation_id === prestation.id)
@@ -473,6 +477,12 @@ async function saveTarifModal() {
 
   modalSaving.value = true
   try {
+    await api.patch(`/prestations/${activeTarifPrestation.value.id}`, {
+      nom: tarifPrestationForm.nom,
+      description: tarifPrestationForm.description || null,
+      categorie: tarifPrestationForm.categorie || 'entretien',
+    })
+
     await Promise.all(
       tarifRows.value.map(async (row: any) => {
         const payload = buildGrillePayload(row)
@@ -508,7 +518,7 @@ async function fetchData() {
   ])
 
   if (prestationsResult.status === 'fulfilled') {
-    prestations.value = unwrapList(prestationsResult.value)
+    prestations.value = normalizePrestations(unwrapList(prestationsResult.value))
   }
   if (categoriesResult.status === 'fulfilled') {
     motoCategories.value = unwrapList(categoriesResult.value)

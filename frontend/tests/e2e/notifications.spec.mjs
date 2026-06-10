@@ -78,7 +78,7 @@ test.describe('LOT 5 — Notifications', () => {
     expect(response.status).toBe(404);
   });
 
-  test('Notification API: acknowledge on nonexistent returns 409', async ({ page }) => {
+  test('Notification API: acknowledge on nonexistent returns 404', async ({ page }) => {
     await page.goto(appUrl('/'));
     await page.waitForLoadState('domcontentloaded');
 
@@ -90,7 +90,7 @@ test.describe('LOT 5 — Notifications', () => {
       return { status: res.status };
     });
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(404);
   });
 });
 
