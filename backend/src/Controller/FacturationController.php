@@ -41,7 +41,7 @@ class FacturationController extends AbstractController
 
     private function getConfigAtelier(): ?ConfigAtelier
     {
-        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelierId = $this->atelierResolver->resolveAtelierId();
         if (!$atelierId) {
             return null;
         }
@@ -50,7 +50,7 @@ class FacturationController extends AbstractController
 
     private function resolveAtelierBranding(): array
     {
-        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelierId = $this->atelierResolver->resolveAtelierId();
         $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
         return [
             'from' => $atelier?->getEmail() ?? 'noreply@paddock.fr',
