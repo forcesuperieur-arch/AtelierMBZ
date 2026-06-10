@@ -36,9 +36,14 @@
             <div style="font-size:12px;color:#9CA3AF;margin-top:4px;line-height:1.4;">{{ t.description }}</div>
             <div style="font-size:11px;color:#6B7280;margin-top:6px;font-family:monospace;">{{ t.template }}</div>
           </div>
-          <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap;" :disabled="previewing === t.code" @click="previewTemplate(t.code)">
-            {{ previewing === t.code ? '⏳' : '👁️' }} Prévisualiser
-          </button>
+          <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
+            <NuxtLink :to="`/admin/templates-documents/designer/${t.code}`" class="btn btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap;text-decoration:none;">
+              ✏️ Personnaliser
+            </NuxtLink>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" :disabled="previewing === t.code" @click="previewTemplate(t.code)">
+              {{ previewing === t.code ? '⏳' : '👁️' }} Prévisualiser
+            </button>
+          </div>
         </div>
       </UCard>
     </div>

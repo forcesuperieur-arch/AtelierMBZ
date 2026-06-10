@@ -65,7 +65,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                       <StatusBadge :status="rdv.status" />
-                      <NuxtLink :to="`/rdv/${rdv.id}`" style="color:#FFD200;font-size:11px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+                      <button style="color:#FFD200;font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(rdv)">Voir →</button>
                     </div>
                   </div>
                   <button v-if="vehicleRdvs(v.id).length > 5 && !showAllHistory[v.id]" class="btn btn-ghost" style="font-size:12px;align-self:center;" @click="showAllHistory[v.id] = true">
@@ -94,7 +94,7 @@
               <StatusBadge :status="row.original.status" />
             </template>
             <template #actions-cell="{ row }">
-              <NuxtLink :to="`/rdv/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+              <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(row.original)">Voir →</button>
             </template>
           </UTable>
         </UCard>
@@ -172,6 +172,7 @@
 const route = useRoute()
 const api = useApi()
 const toast = useToast()
+const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const client = ref<any>(null)
 const clientRdvs = ref<any[]>([])

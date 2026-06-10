@@ -6,8 +6,11 @@
     </div>
 
     <div v-if="!rdv" style="display:flex;flex-direction:column;gap:16px;">
-      <UFormField label="Code de suivi">
-        <UInput v-model="token" placeholder="Entrez votre code de suivi..." />
+      <UFormField label="Email">
+        <UInput v-model="email" type="email" placeholder="votre@email.com" />
+      </UFormField>
+      <UFormField label="Téléphone">
+        <UInput v-model="telephone" placeholder="06 12 34 56 78" />
       </UFormField>
       <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
         {{ loading ? 'Recherche...' : 'Rechercher' }}
@@ -21,10 +24,11 @@
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-        <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date_rdv }}</span></div>
-        <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure_rdv }}</span></div>
+        <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date }}</span></div>
+        <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure }}</span></div>
         <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
-        <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule ? `${rdv.vehicule.marque} ${rdv.vehicule.modele}` : '' }}</span></div>
+        <div v-if="rdv.pont"><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ rdv.pont }}</span></div>
+        <div v-if="rdv.mecanicien"><span style="color:#6B7280;">Mécano :</span> <span style="color:#D1D5DB;">{{ rdv.mecanicien }}</span></div>
       </div>
 
       <!-- Progress steps -->
@@ -57,7 +61,7 @@
         </div>
       </div>
 
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:rgba(255,255,255,0.06);color:#D1D5DB;margin-top:16px;" @click="rdv = null; token = ''">
+      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:rgba(255,255,255,0.06);color:#D1D5DB;margin-top:16px;" @click="rdv = null; email = ''; telephone = ''">
         Nouvelle recherche
       </button>
     </div>
@@ -69,9 +73,9 @@ definePageMeta({ layout: 'public' })
 
 const config = useRuntimeConfig()
 const baseURL = config.public.apiBase as string
-const route = useRoute()
 
-const token = ref((route.query.token as string) || '')
+const email = ref('')
+const telephone = ref('')
 const loading = ref(false)
 const error = ref('')
 const rdv = ref<any>(null)
@@ -92,21 +96,28 @@ const progressSteps = computed(() => {
 })
 
 async function lookup() {
-  if (!token.value) return
+  if (!email.value || !telephone.value) {
+    error.value = 'Veuillez renseigner votre email et votre téléphone.'
+    return
+  }
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(`${baseURL}/public/suivi/${token.value}`)
-    if (!res.ok) throw new Error()
-    rdv.value = await res.json()
-  } catch {
-    error.value = 'Aucun rendez-vous trouvé avec ce code'
+    const res = await fetch(`${baseURL}/public/suivi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email: email.value, telephone: telephone.value }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || 'Aucun rendez-vous trouvé avec ces coordonnées.')
+    }
+    const data = await res.json()
+    rdv.value = data.rdv
+  } catch (e: any) {
+    error.value = e?.message || 'Erreur lors de la recherche.'
   } finally {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  if (token.value) lookup()
-})
 </script>

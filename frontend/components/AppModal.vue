@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="open" class="app-modal-overlay" @click.self="open = false">
+    <div v-if="open" ref="modalRef" class="app-modal-overlay" @click.self="open = false">
       <div :class="modalClass" @click.stop>
         <div v-if="$slots.header" class="app-modal-header">
           <slot name="header" />
@@ -29,12 +29,38 @@
 </template>
 
 <script setup lang="ts">
+import { onKeyStroke } from '@vueuse/core'
+import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
+
 const open = defineModel<boolean>('open', { default: false })
 
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg' | 'xl'
 }>(), {
   size: 'md',
+})
+
+const modalRef = ref<HTMLElement | null>(null)
+
+const { activate, deactivate } = useFocusTrap(modalRef, {
+  immediate: false,
+  escapeDeactivates: false,
+  clickOutsideDeactivates: false,
+})
+
+watch(open, (isOpen) => {
+  if (isOpen) {
+    nextTick(() => activate())
+  } else {
+    deactivate()
+  }
+})
+
+onKeyStroke('Escape', (e) => {
+  if (open.value) {
+    e.preventDefault()
+    open.value = false
+  }
 })
 
 const modalClass = computed(() => {

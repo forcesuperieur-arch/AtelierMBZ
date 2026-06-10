@@ -82,6 +82,7 @@ export function useAuth() {
     if (!perms) return false
     const permissions = perms.permissions_json
     if (permissions.includes('*')) return true
+    if (permissions.includes('*.*')) return true
     return permissions.includes(perm)
   }
 

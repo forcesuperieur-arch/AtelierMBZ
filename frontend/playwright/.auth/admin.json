@@ -1,0 +1,49 @@
+{
+  "cookies": [
+    {
+      "name": "refresh_token",
+      "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NzkyMDEzMDUsImV4cCI6MTc3OTI4NzcwNSwianRpIjoiNGE5ZDNlZGIzNzliYmNhZDM2YzU3OTA4MDMwYTEwOWMiLCJyb2xlcyI6WyJST0xFX1VTRVIiLCJST0xFX1NVUEVSX0FETUlOIiwiUk9MRV9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluIiwidXNlcl9pZCI6MSwidHlwZSI6InJlZnJlc2giLCJhdGVsaWVyX2lkIjoxLCJyb2xlIjoic3VwZXJfYWRtaW4ifQ.dma8I21hmBQnoWNeXEP1Ao6a4-awme288m6VXdQIAFI",
+      "domain": "localhost",
+      "path": "/api/auth/refresh",
+      "expires": 1779806105.573886,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "access_token",
+      "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NzkyMDEzMDUsImV4cCI6MTc3OTI4NzcwNSwianRpIjoiZWZiZDM4NmY3ZjUxYzU0NDNiN2MxNTViYjgwY2NhMjciLCJyb2xlcyI6WyJST0xFX1VTRVIiLCJST0xFX1NVUEVSX0FETUlOIiwiUk9MRV9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluIiwidXNlcl9pZCI6MSwiYXRlbGllcl9pZCI6MSwicm9sZSI6InN1cGVyX2FkbWluIn0.kLkLX--VO7spaX665fomP69DAF24M_SJf1WA53ej9RE",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1779202205.564184,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "active_atelier_id",
+      "value": "1",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "__VUE_DEVTOOLS_NEXT_PLUGIN_SETTINGS__dev.esm.pinia__",
+          "value": "{\"logStoreChanges\":true}"
+        },
+        {
+          "name": "nuxt-color-mode",
+          "value": "dark"
+        }
+      ]
+    }
+  ]
+}

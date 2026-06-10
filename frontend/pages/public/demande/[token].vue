@@ -41,7 +41,7 @@
           <div v-for="(p, i) in demande.prestations" :key="i" style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(255,255,255,0.05);">
             <div>
               <div style="font-size:13px;color:#E8E9ED;font-weight:600;">{{ p.designation }}</div>
-              <div style="font-size:11px;color:#6B7280;">{{ p.temps_minutes }} min</div>
+              <div style="font-size:11px;color:#6B7280;">{{ formatMinutes(p.temps_minutes) }}</div>
             </div>
             <div style="font-size:13px;color:#FFD200;font-weight:700;">{{ formatEuro(p.prix_ttc) }}</div>
           </div>
@@ -49,7 +49,7 @@
             <div style="font-size:14px;color:#E8E9ED;font-weight:800;">Total TTC</div>
             <div style="font-size:16px;color:#FFD200;font-weight:800;">{{ formatEuro(demande.prix_estime) }}</div>
           </div>
-          <div style="font-size:11px;color:#6B7280;margin-top:4px;">Temps estimé : ~{{ demande.temps_estime }} min</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:4px;">Temps estimé : ~{{ formatMinutes(demande.temps_estime) }}</div>
         </div>
 
         <!-- actions -->

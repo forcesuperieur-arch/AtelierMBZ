@@ -148,10 +148,15 @@ export const useNotifications = () => {
       }
     } catch (e: any) {
       if (e.status === 409) {
-        // Already acknowledged — refresh
-        await fetchNotifications('unacknowledged', currentAtelierId)
+        // Already acknowledged — mark locally without refreshing the list
+        // (refreshing would remove the notification from the current view)
+        const notif = notifications.value.find(n => n.id === id)
+        if (notif) {
+          notif.acknowledgedAt = new Date().toISOString()
+        }
+      } else {
+        throw e
       }
-      throw e
     }
   }
 

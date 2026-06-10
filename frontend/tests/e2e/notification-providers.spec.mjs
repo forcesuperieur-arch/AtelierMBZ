@@ -42,12 +42,12 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
     await page.getByRole('button', { name: /ajouter un provider/i }).click();
     await expect(page.locator('.app-modal-overlay')).toBeVisible();
     await expect(page.locator('text=Canal')).toBeVisible();
-    await page.getByLabel('Fermer la modale').click();
+    await page.getByLabel('Fermer').click();
 
     await page.locator('.provider-row .btn', { hasText: '⚙️' }).first().click();
     await expect(page.locator('.app-modal-overlay')).toBeVisible();
     await expect(page.locator('text=Modifier le provider')).toBeVisible();
-    await page.getByLabel('Fermer la modale').click();
+    await page.getByLabel('Fermer').click();
 
     await page.locator('.provider-row .btn', { hasText: '🧪' }).first().click();
     await expect(page.locator('text=Envoyer le test')).toBeVisible();

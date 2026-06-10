@@ -121,12 +121,12 @@
                 <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
                 <p style="color:#9CA3AF;font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
                 <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
-                <NuxtLink :to="`/rdv/${pont.current_rdv.id}`" style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Ouvrir le RDV →</NuxtLink>
+                <button style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(pont.current_rdv)">Ouvrir le RDV →</button>
                 <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
                   <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
                     <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
                   </div>
-                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ pont.current_rdv.temps_estime }} min estimées</div>
+                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ formatMinutes(pont.current_rdv.temps_estime) }} estimées</div>
                 </div>
               </div>
 
@@ -147,7 +147,7 @@
                 </div>
                 <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
                   <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Charge</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.planned_minutes }} min</div>
+                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ formatMinutes(pont.planned_minutes) }}</div>
                 </div>
                 <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
                   <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">File</div>
@@ -173,6 +173,14 @@
                   @click="runPontQuickAction(pont)"
                 >
                   {{ actioningByPont[pont.id] === getPontQuickAction(pont)?.transition ? 'Traitement…' : getPontQuickAction(pont)?.label }}
+                </button>
+                <button
+                  v-else-if="getPontQuickAction(pont)?.action"
+                  class="btn btn-primary"
+                  style="flex:1;min-width:140px;"
+                  @click="getPontQuickAction(pont)!.action!()"
+                >
+                  {{ getPontQuickAction(pont)?.label }}
                 </button>
                 <NuxtLink
                   v-else-if="getPontQuickAction(pont)?.to"
@@ -272,6 +280,7 @@ const api = useApi()
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()
+const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const refreshing = ref(false)
 const errorMessage = ref('')
@@ -569,12 +578,12 @@ function buildPlanningCreateLink(pont?: any): string {
   return `/planning?${params.toString()}`
 }
 
-function getPontQuickAction(pont: any): { label: string; transition?: string; to?: string } | null {
+function getPontQuickAction(pont: any): { label: string; transition?: string; to?: string; action?: () => void } | null {
   const status = getRdvStatus(pont?.current_rdv)
   if (status === 'reserve' || status === 'confirme') return { label: 'Réceptionner', transition: 'reception' }
   if (status === 'reception') return { label: 'Démarrer', transition: 'start_travail' }
-  if (status === 'en_cours') return { label: 'Voir intervention', to: `/rdv/${pont.current_rdv.id}` }
-  if (pont?.next_rdv?.id) return { label: 'Ouvrir prochain', to: `/rdv/${pont.next_rdv.id}` }
+  if (status === 'en_cours') return { label: 'Voir intervention', action: () => openRdvDetail(pont.current_rdv) }
+  if (pont?.next_rdv?.id) return { label: 'Ouvrir prochain', action: () => openRdvDetail(pont.next_rdv) }
   return { label: '+ Nouveau RDV', to: buildPlanningCreateLink(pont) }
 }
 
@@ -632,7 +641,7 @@ async function loadWorkshop() {
   }
 
   if (m.status === 'fulfilled') {
-    mecaniciens.value = normalizeCollection(m.value)
+    mecaniciens.value = [...new Map(normalizeCollection(m.value).map((item: any) => [Number(item.id), item])).values()]
   } else {
     mecaniciens.value = []
     issues.push('mécaniciens')

@@ -74,8 +74,10 @@
         <NotificationPopIn filter-type="demande_complementaire" />
         <slot />
       </main>
+      <UToaster />
     </div>
   </div>
+  <RdvDetailModal />
 </template>
 
 <script setup lang="ts">
@@ -160,6 +162,7 @@ const sectionNames: Record<string, string> = {
   '/mecanicien': 'Espace Mécanicien',
   '/admin': 'Administration',
   '/vo': 'Véhicules d\'Occasion',
+  '/demandes-travaux-supp': 'Travaux complémentaires',
 }
 
 const currentSection = computed(() => {
@@ -175,6 +178,7 @@ const menuItems = computed(() => {
     { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
     { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
     { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
+    { to: '/demandes-travaux-supp', icon: '🛠️', label: 'Travaux complémentaires', section: 'workshop' },
     { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },
     { to: '/clients', icon: '👥', label: 'Clients', section: 'clients' },
     { to: '/ordres', icon: '📋', label: 'Dossiers atelier', section: 'or' },

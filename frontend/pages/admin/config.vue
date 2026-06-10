@@ -189,7 +189,7 @@
                     <div style="font-weight:700;color:#E8E9ED;">{{ item.nom }}</div>
                     <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ item.enabledCount }} type(s) actifs</div>
                   </div>
-                  <span style="font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,210,0,0.12);color:#FFD200;">{{ formatDuration(item.temps_estime) }}</span>
+                  <span style="font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,210,0,0.12);color:#FFD200;">{{ formatMinutes(item.temps_estime) }}</span>
                 </div>
 
                 <div style="font-size:12px;color:#D1D5DB;">
@@ -445,13 +445,6 @@ function toNumber(value: any, fallback = 0) {
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(toNumber(v))
-}
-
-function formatDuration(v: number) {
-  const total = toNumber(v, 0)
-  const hours = Math.floor(total / 60)
-  const minutes = total % 60
-  return hours > 0 ? `${hours}h${minutes ? ` ${minutes}min` : ''}` : `${minutes} min`
 }
 
 function labelTypeTarif(v: string) {
