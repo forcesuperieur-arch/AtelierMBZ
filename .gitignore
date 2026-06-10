@@ -26,3 +26,4 @@ tests-screenshots/
 # Résidus de patch
 *.orig
 *.rej
+playwright/
