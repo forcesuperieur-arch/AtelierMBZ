@@ -16,12 +16,11 @@
 <script setup lang="ts">
 const auth = useAuthStore()
 
+const { apiFetch } = useClientApi()
+
 const { data: items, pending } = useAsyncData('client-historique', async () => {
   if (!auth.isAuthenticated) return []
-  return await $fetch('/api/client/historique', {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-    baseURL: '',
-  })
+  return await apiFetch('/api/client/historique')
 })
 
 function formatDate(d: string) {

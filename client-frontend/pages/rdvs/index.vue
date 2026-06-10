@@ -15,12 +15,11 @@
 <script setup lang="ts">
 const auth = useAuthStore()
 
+const { apiFetch } = useClientApi()
+
 const { data: rdvs, pending } = useAsyncData('client-rdvs', async () => {
   if (!auth.isAuthenticated) return []
-  return await $fetch('/api/client/rdvs', {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-    baseURL: '',
-  })
+  return await apiFetch('/api/client/rdvs')
 })
 
 function formatDate(d: string) {

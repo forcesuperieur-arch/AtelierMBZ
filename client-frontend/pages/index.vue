@@ -31,14 +31,11 @@ const auth = useAuthStore()
 const prochainRdvText = ref('—')
 const rdvsCount = ref(0)
 
+const { apiFetch } = useClientApi()
+
 onMounted(async () => {
-  await auth.fetchMe()
   try {
-    const rdvs = await $fetch('/api/client/rdvs', {
-      headers: auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {},
-      credentials: 'include',
-      baseURL: '',
-    })
+    const rdvs = await apiFetch('/api/client/rdvs')
     rdvsCount.value = rdvs?.length || 0
 
     const now = new Date()

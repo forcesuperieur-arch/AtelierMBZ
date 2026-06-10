@@ -58,7 +58,7 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
 
 	# Nuxt assets, branding, favicon — required by any page rendered above.
 	@nuxt_assets {
-		path /_nuxt/* /__nuxt/* /favicon.ico /branding/* /robots.txt
+		path /_nuxt/* /__nuxt/* /favicon.ico /branding/* /robots.txt /manifest.json /sw.js
 	}
 	handle @nuxt_assets {
 		reverse_proxy nuxt:3000
