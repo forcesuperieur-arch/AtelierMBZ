@@ -20,9 +20,18 @@ class JwtEventSubscriber
         $user = $event->getUser();
         $payload = $event->getData();
 
-        $payload['user_id'] = $user->getId();
-        $payload['atelier_id'] = $user->getAtelierId();
-        $payload['role'] = $user->getRole();
+        if ($user instanceof ClientUserAdapter) {
+            $client = $user->getClient();
+            $payload['client_id'] = $client->getId();
+            $payload['atelier_id'] = $client->getAtelierId();
+            $payload['role'] = 'ROLE_CLIENT';
+            $payload['type'] = 'client';
+        } else {
+            $payload['user_id'] = $user->getId();
+            $payload['atelier_id'] = $user->getAtelierId();
+            $payload['role'] = $user->getRole();
+            $payload['type'] = 'staff';
+        }
         $payload['jti'] = bin2hex(random_bytes(16));
 
         $event->setData($payload);

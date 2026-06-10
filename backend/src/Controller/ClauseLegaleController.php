@@ -215,8 +215,6 @@ class ClauseLegaleController extends AbstractController
             if ($atelierId !== null) {
                 $qb->andWhere('c.atelierId = :atelierId OR c.atelierId IS NULL')
                     ->setParameter('atelierId', $atelierId);
-            } else {
-                $qb->andWhere('c.atelierId IS NULL');
             }
 
             return $qb->getQuery()->getResult();

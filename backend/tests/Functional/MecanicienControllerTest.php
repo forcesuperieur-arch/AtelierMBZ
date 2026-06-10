@@ -224,6 +224,44 @@ class MecanicienControllerTest extends WebTestCase
         $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
     }
 
+    public function testCreateDemandeComplementaireFromWorkspace(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $fixture = $this->createMechanicFixture($em, ['statut' => 'en_cours']);
+
+        $client->request(
+            'POST',
+            '/api/mecanicien/me/demande-complementaire',
+            [],
+            [],
+            $this->authHeaders($fixture['user']),
+            json_encode([
+                'rdv_id' => $fixture['rdv']->getId(),
+                'description' => 'Roulement de direction HS, remplacement nécessaire',
+                'prix_estime' => 180.50,
+                'temps_estime' => 90,
+                'urgence' => 'urgent',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $this->assertSame(Response::HTTP_CREATED, $client->getResponse()->getStatusCode());
+        $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('en_attente_validation', $payload['statut']);
+        $this->assertNotEmpty($payload['token']);
+
+        $em->clear();
+        $rdv = $em->getRepository(RendezVous::class)->find($fixture['rdv']->getId());
+        $this->assertCount(1, $rdv->getDemandesTravauxSupp());
+
+        $demande = $rdv->getDemandesTravauxSupp()->first();
+        $this->assertSame('Roulement de direction HS, remplacement nécessaire', $demande->getDescription());
+        $this->assertSame('180.50', $demande->getPrixEstime());
+        $this->assertSame(90, $demande->getTempsEstime());
+        $this->assertSame('urgent', $demande->getUrgence());
+    }
+
     /**
      * @return array{user: User, mecanicien: Mecanicien, rdv: RendezVous, ordre: OrdreReparation}
      */

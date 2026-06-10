@@ -44,7 +44,13 @@ framework:
                 mettre_en_pause:
                     from: en_cours
                     to: en_pause
+                pause_travail:
+                    from: en_cours
+                    to: en_pause
                 reprendre:
+                    from: en_pause
+                    to: en_cours
+                reprendre_travail:
                     from: en_pause
                     to: en_cours
                 terminer:

@@ -39,4 +39,5 @@ class AuditLog
     public function setDetails(?string $v): static { $this->details = $v; return $this; }
     public function getIpAddress(): ?string { return $this->ipAddress; }
     public function setIpAddress(?string $v): static { $this->ipAddress = $v; return $this; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
 }

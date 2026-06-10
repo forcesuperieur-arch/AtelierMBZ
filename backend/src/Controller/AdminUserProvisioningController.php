@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Atelier;
+use App\Entity\Mecanicien;
 use App\Entity\RoleMetier;
 use App\Entity\User;
 use App\Service\UserRoleMapper;
@@ -145,6 +146,45 @@ final class AdminUserProvisioningController extends AbstractController
             'success' => true,
             'message' => $reason,
             'user' => $this->serializeUser($user),
+        ]);
+    }
+
+    #[Route('/{id}/hard', methods: ['DELETE'])]
+    public function hardDelete(int $id): JsonResponse
+    {
+        /** @var User|null $currentUser */
+        $currentUser = $this->getUser();
+        if (!$currentUser || !in_array('ROLE_SUPER_ADMIN', $currentUser->getRoles(), true)) {
+            return $this->json(['error' => 'SuperAdmin only'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->em->getRepository(User::class)->find($id);
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($user === $currentUser) {
+            return $this->json(['error' => 'Cannot delete yourself'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        if ($mecanicien instanceof Mecanicien) {
+            $this->em->remove($mecanicien);
+        }
+
+        $this->auditService->log(
+            'user_hard_delete',
+            'User',
+            $user->getId(),
+            sprintf('User %s (%s) supprimé définitivement', $user->getUsername(), $user->getEmail()),
+        );
+
+        $this->em->remove($user);
+        $this->em->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => 'User deleted permanently',
         ]);
     }
 

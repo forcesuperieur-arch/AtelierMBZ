@@ -44,4 +44,33 @@ class RendezVousWorkflowServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(59, (int) $rdv->getTempsEffectifMinutes());
         $this->assertNotNull($rdv->getHeureFinTravail());
     }
+
+    public function testPauseTravailAccumulatesTimeViaHandleTransition(): void
+    {
+        $rdv = (new RendezVous())
+            ->setStatut('en_cours')
+            ->setHeureDebutTravail(new \DateTimeImmutable('-30 minutes'));
+
+        $service = new RendezVousWorkflowService();
+        $service->handleTransitionSideEffects($rdv, 'pause_travail');
+
+        $this->assertGreaterThanOrEqual(29, (int) $rdv->getTempsEffectifMinutes());
+        $this->assertNotNull($rdv->getHeureFinTravail());
+    }
+
+    public function testReprendreTravailResetsStartTime(): void
+    {
+        $rdv = (new RendezVous())
+            ->setStatut('en_pause')
+            ->setTempsEffectifMinutes(30)
+            ->setHeureDebutTravail(new \DateTimeImmutable('-60 minutes'))
+            ->setHeureFinTravail(new \DateTimeImmutable());
+
+        $service = new RendezVousWorkflowService();
+        $service->handleTransitionSideEffects($rdv, 'reprendre_travail');
+
+        $this->assertSame(30, (int) $rdv->getTempsEffectifMinutes());
+        $this->assertNotNull($rdv->getHeureDebutTravail());
+        $this->assertNull($rdv->getHeureFinTravail());
+    }
 }

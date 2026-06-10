@@ -781,13 +781,25 @@ class VOController extends AbstractController
             return $this->json(['error' => 'Document path is not allowed'], 404);
         }
 
-        $uploadsDir = realpath($projectDir . '/public/uploads/vo');
-        if ($uploadsDir === false) {
-            return $this->json(['error' => 'Document storage unavailable'], 404);
+        // Try secure storage first (/var/uploads/vo), fallback to legacy public path
+        $secureDir = realpath($projectDir . '/var/uploads/vo');
+        $legacyDir = realpath($projectDir . '/public/uploads/vo');
+
+        $resolvedPath = null;
+        if ($secureDir !== false) {
+            $securePath = realpath($projectDir . '/var' . $relativePath);
+            if ($securePath !== false && str_starts_with($securePath, $secureDir . '/') && is_file($securePath)) {
+                $resolvedPath = $securePath;
+            }
+        }
+        if ($resolvedPath === null && $legacyDir !== false) {
+            $legacyPath = realpath($projectDir . '/public' . $relativePath);
+            if ($legacyPath !== false && str_starts_with($legacyPath, $legacyDir . '/') && is_file($legacyPath)) {
+                $resolvedPath = $legacyPath;
+            }
         }
 
-        $resolvedPath = realpath($projectDir . '/public' . $relativePath);
-        if ($resolvedPath === false || !str_starts_with($resolvedPath, $uploadsDir . '/') || !is_file($resolvedPath)) {
+        if ($resolvedPath === null) {
             return $this->json(['error' => 'File not found'], 404);
         }
 

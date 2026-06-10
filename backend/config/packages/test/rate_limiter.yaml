@@ -1,0 +1,17 @@
+framework:
+    rate_limiter:
+        public_booking:
+            policy: 'sliding_window'
+            limit: 10000
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
+        public_suivi:
+            policy: 'sliding_window'
+            limit: 10000
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
+        companion_upload:
+            policy: 'sliding_window'
+            limit: 10000
+            interval: '1 minute'
+            lock_factory: 'lock.factory'

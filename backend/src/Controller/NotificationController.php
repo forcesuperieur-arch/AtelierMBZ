@@ -47,9 +47,6 @@ class NotificationController extends AbstractController
                 ->setParameter('atelierId', $atelierId);
         }
 
-        // Ownership: user must be the targetUserId OR match one of the targetRoles
-        $this->applyOwnershipFilter($qb, $userId, $userRoles);
-
         // Filter by status
         $status = $request->query->get('status');
         if ($status === 'unread') {
@@ -68,13 +65,22 @@ class NotificationController extends AbstractController
         $qb->andWhere('n.expiresAt IS NULL OR n.expiresAt > :now')
             ->setParameter('now', new \DateTime());
 
-        // Pagination
+        // Pagination: fetch a larger batch to compensate for PHP-side ownership filtering
         $limit = min((int)($request->query->get('limit', 50)), 100);
         $page = max((int)($request->query->get('page', 1)), 1);
-        $qb->setMaxResults($limit)
+        $qb->setMaxResults($limit * 5)
             ->setFirstResult(($page - 1) * $limit);
 
         $notifications = $qb->getQuery()->getResult();
+
+        // Apply ownership filter in PHP (PostgreSQL JSON DQL compatibility)
+        $notifications = array_values(array_filter(
+            $notifications,
+            fn(Notification $n) => $this->isNotificationVisibleToUser($n, $userId, $userRoles)
+        ));
+
+        // Slice to requested limit
+        $notifications = array_slice($notifications, 0, $limit);
 
         return $this->json([
             'items' => array_map(fn(Notification $n) => $this->serializeNotif($n), $notifications),
@@ -94,7 +100,6 @@ class NotificationController extends AbstractController
         $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
 
         $qb = $this->em->getRepository(Notification::class)->createQueryBuilder('n')
-            ->select('COUNT(n.id)')
             ->where('n.readAt IS NULL')
             ->andWhere('n.expiresAt IS NULL OR n.expiresAt > :now')
             ->setParameter('now', new \DateTime());
@@ -109,10 +114,11 @@ class NotificationController extends AbstractController
                 ->setParameter('atelierId', $atelierId);
         }
 
-        // Ownership: same rule as list
-        $this->applyOwnershipFilter($qb, $userId, $userRoles);
-
-        $count = (int) $qb->getQuery()->getSingleScalarResult();
+        $notifications = $qb->getQuery()->getResult();
+        $count = count(array_filter(
+            $notifications,
+            fn(Notification $n) => $this->isNotificationVisibleToUser($n, $userId, $userRoles)
+        ));
 
         return $this->json(['count' => $count]);
     }
@@ -190,32 +196,13 @@ class NotificationController extends AbstractController
     /**
      * Apply ownership filter using native SQL for PostgreSQL JSON column compatibility.
      * User sees: their own targeted notifs + broadcasts (null target, empty roles) + role-matched notifs.
+     *
+     * @deprecated Filtering is now done in PHP after fetch for PostgreSQL JSON compatibility.
      */
     private function applyOwnershipFilter(\Doctrine\ORM\QueryBuilder $qb, int $userId, array $userRoles): void
     {
-        $conn = $this->em->getConnection();
-        $alias = $qb->getRootAliases()[0];
-
-        // Get the class metadata to resolve the table alias that Doctrine will use
-        // We build a raw SQL condition array, but inject it via DQL andWhere with literal expressions
-        $conditions = [];
-
-        // 1) Targeted directly to this user
-        $conditions[] = "$alias.targetUserId = :ownUserId";
-
-        // 2) Broadcast: no target user and empty target roles array
-        // For json column in PG, we compare targetRoles::text = '[]'
-        $conditions[] = "($alias.targetUserId IS NULL AND $alias.targetRole IS NULL)";
-
-        // 3) Role match: targetRoles contains at least one of user's roles
-        foreach ($userRoles as $i => $role) {
-            $paramName = 'role_' . $i;
-            $conditions[] = "$alias.targetRole = :$paramName";
-            $qb->setParameter($paramName, $role);
-        }
-
-        $qb->andWhere('(' . implode(' OR ', $conditions) . ')')
-            ->setParameter('ownUserId', $userId);
+        // No-op: ownership filtering moved to PHP-side isNotificationVisibleToUser()
+        // to avoid DQL/PostgreSQL JSON operator incompatibility.
     }
 
     /**
@@ -223,17 +210,27 @@ class NotificationController extends AbstractController
      */
     private function isNotificationVisibleToUser(Notification $notif, int $userId, array $userRoles): bool
     {
+        // Super admin bypass
+        if (in_array('ROLE_SUPER_ADMIN', $userRoles, true)) {
+            return true;
+        }
+
         // Directly targeted
         if ($notif->getTargetUserId() === $userId) {
             return true;
         }
 
         // Broadcast (no specific target)
-        if ($notif->getTargetUserId() === null && $notif->getTargetRoles() === []) {
+        if ($notif->getTargetUserId() === null && $notif->getTargetRole() === null && ($notif->getTargetRoles() === [] || $notif->getTargetRoles() === null)) {
             return true;
         }
 
-        // Role match
+        // Role match on single targetRole
+        if ($notif->getTargetRole() !== null && in_array($notif->getTargetRole(), $userRoles, true)) {
+            return true;
+        }
+
+        // Role match on targetRoles JSON array
         if ($notif->getTargetRoles() !== []) {
             foreach ($notif->getTargetRoles() as $role) {
                 if (in_array($role, $userRoles, true)) {

@@ -65,8 +65,8 @@ class RendezVousWorkflowService
         ?int $userId = null,
     ): ?AnnulationRdv {
         return match ($transitionName) {
-            'start_travail', 'reprendre', 'reprendre_apres_pieces', 'reprendre_demain', 'retour_garantie', 'sortir_gardiennage' => $this->handleStartLikeTransition($rdv),
-            'terminer', 'mettre_en_pause', 'attendre_pieces', 'mettre_en_attente_pieces', 'mettre_en_attente_reprise', 'passer_gardiennage', 'mettre_en_gardiennage', 'restituer_partiel' => $this->handleStopLikeTransition($rdv),
+            'start_travail', 'reprendre', 'reprendre_travail', 'reprendre_apres_pieces', 'reprendre_demain', 'retour_garantie', 'sortir_gardiennage' => $this->handleStartLikeTransition($rdv),
+            'terminer', 'mettre_en_pause', 'pause_travail', 'attendre_pieces', 'mettre_en_attente_pieces', 'mettre_en_attente_reprise', 'passer_gardiennage', 'mettre_en_gardiennage', 'restituer_partiel' => $this->handleStopLikeTransition($rdv),
             'annuler', 'declarer_no_show', 'no_show' => $this->recordCancellation(
                 $rdv,
                 (string) ($data['motif'] ?? ''),

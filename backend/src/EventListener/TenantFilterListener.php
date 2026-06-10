@@ -50,6 +50,6 @@ class TenantFilterListener
         }
 
         $filter = $this->em->getFilters()->enable('tenant_filter');
-        $filter->setParameter('atelier_id', $atelierId);
+        $filter->setParameter('atelier_id', (int) $atelierId);
     }
 }

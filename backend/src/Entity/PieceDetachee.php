@@ -86,11 +86,6 @@ class PieceDetachee
     #[Groups(['piece:read', 'piece:write'])]
     private float $tvaTaux = 20.0;
 
-    #[ORM\ManyToOne(targetEntity: Fournisseur::class)]
-    #[ORM\JoinColumn(name: 'fournisseur_id', nullable: true)]
-    #[Groups(['piece:read', 'piece:write'])]
-    private ?Fournisseur $fournisseur = null;
-
     #[ORM\Column(options: ['default' => 1])]
     #[Groups(['piece:read', 'piece:write'])]
     private int $isActive = 1;
@@ -102,10 +97,7 @@ class PieceDetachee
     #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['piece:read'])]
     private \DateTimeInterface $updatedAt;
-    #[ORM\OneToMany(targetEntity: LigneCommandeFournisseur::class, mappedBy: 'piece')] private Collection $lignesCommande;
-    #[ORM\OneToMany(targetEntity: PieceUtilisee::class, mappedBy: 'piece')] private Collection $utilisations;
-
-    public function __construct() { $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); $this->lignesCommande = new ArrayCollection(); $this->utilisations = new ArrayCollection(); }
+    public function __construct() { $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); }
     #[ORM\PreUpdate] public function preUpdate(): void { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -135,8 +127,6 @@ class PieceDetachee
     public function setPrixVenteHt(string $v): static { $this->prixVenteHt = $v; return $this; }
     public function getTvaTaux(): float { return $this->tvaTaux; }
     public function setTvaTaux(float $v): static { $this->tvaTaux = $v; return $this; }
-    public function getFournisseur(): ?Fournisseur { return $this->fournisseur; }
-    public function setFournisseur(?Fournisseur $v): static { $this->fournisseur = $v; return $this; }
     public function getIsActive(): int { return $this->isActive; }
     public function setIsActive(int $v): static { $this->isActive = $v; return $this; }
     public function isStockBas(): bool { return $this->quantiteStock <= $this->quantiteMinimale; }

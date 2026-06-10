@@ -164,10 +164,6 @@ class RendezVous
     #[ORM\OneToMany(targetEntity: PhotoIntervention::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
     private Collection $photosIntervention;
 
-    /** @var Collection<int, PieceUtilisee> */
-    #[ORM\OneToMany(targetEntity: PieceUtilisee::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
-    private Collection $piecesUtilisees;
-
     /** @var Collection<int, RdvCommande> */
     #[ORM\OneToMany(targetEntity: RdvCommande::class, mappedBy: 'rendezVous', cascade: ['persist', 'remove'])]
     #[Groups(['rdv:read', 'rdv:write'])]
@@ -204,7 +200,6 @@ class RendezVous
         $this->demandesTravauxSupp = new ArrayCollection();
         $this->ordresReparation = new ArrayCollection();
         $this->photosIntervention = new ArrayCollection();
-        $this->piecesUtilisees = new ArrayCollection();
         $this->commandes = new ArrayCollection();
     }
 
@@ -270,7 +265,6 @@ class RendezVous
     public function getDemandesTravauxSupp(): Collection { return $this->demandesTravauxSupp; }
     public function getOrdresReparation(): Collection { return $this->ordresReparation; }
     public function getPhotosIntervention(): Collection { return $this->photosIntervention; }
-    public function getPiecesUtilisees(): Collection { return $this->piecesUtilisees; }
     public function getCommandes(): Collection { return $this->commandes; }
     public function addCommande(RdvCommande $commande): static {
         if (!$this->commandes->contains($commande)) {

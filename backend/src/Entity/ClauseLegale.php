@@ -12,14 +12,27 @@ class ClauseLegale
 {
     public const CODES = [
         'accessoires',
+        'annulation_rdv',
+        'assurance_travaux',
         'cgv',
+        'devis',
+        'dernier_intervenant',
+        'ecologie_recyclage',
         'essai',
         'garantie',
         'gardiennage',
+        'litiges_mediation',
         'mandat_reparation',
         'mentions_legales',
+        'pieces_occasion',
+        'diagnostic',
+        'prestation_urgente',
+        'reception_vehicule',
+        'restitution',
         'retention',
         'rgpd',
+        'sous_traitance',
+        'travaux_supplementaires',
     ];
 
     #[ORM\Id]

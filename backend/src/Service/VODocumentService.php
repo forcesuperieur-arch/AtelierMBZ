@@ -19,6 +19,8 @@ class VODocumentService
         'image/webp',
     ];
 
+    private const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
     private const PURCHASE_REQUIRED_DOCS = [
         VODocument::TYPE_CERFA_CESSION_ACHAT,
         VODocument::TYPE_CARTE_GRISE,
@@ -52,7 +54,11 @@ class VODocumentService
         ?User $user = null,
         ?\DateTimeInterface $dateExpiration = null,
     ): VODocument {
-        $uploadDir = $this->projectDir . '/public/uploads/vo';
+        if ($file->getSize() > self::MAX_SIZE) {
+            throw new \InvalidArgumentException('Fichier trop volumineux (max 10 Mo)');
+        }
+
+        $uploadDir = $this->projectDir . '/var/uploads/vo';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -87,7 +93,7 @@ class VODocumentService
     ): VODocument {
         $this->assertAllowedMimeType($mimeType);
 
-        $uploadDir = $this->projectDir . '/public/uploads/vo';
+        $uploadDir = $this->projectDir . '/var/uploads/vo';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -122,7 +128,7 @@ class VODocumentService
             throw new \RuntimeException(sprintf('Fichier PDF introuvable : %s', $generatedFilePath));
         }
 
-        $uploadDir = $this->projectDir . '/public/uploads/vo/generated';
+        $uploadDir = $this->projectDir . '/var/uploads/vo/generated';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }

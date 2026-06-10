@@ -295,6 +295,107 @@ class NotificationProviderController extends AbstractController
         ], $templates));
     }
 
+    /**
+     * POST /api/admin/notification-templates
+     */
+    #[Route('/api/admin/notification-templates', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function createTemplate(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Atelier actif requis'], 400);
+        }
+
+        $code = trim((string)($data['code'] ?? ''));
+        $channel = trim((string)($data['channel'] ?? ''));
+        if (!$code || !$channel || !in_array($channel, ['sms', 'email', 'push'], true)) {
+            return $this->json(['error' => 'Code et canal (sms|email|push) requis'], 400);
+        }
+
+        $existing = $this->em->getRepository(\App\Entity\NotificationTemplate::class)->findOneBy([
+            'atelierId' => $atelierId,
+            'code' => $code,
+            'channel' => $channel,
+        ]);
+        if ($existing) {
+            return $this->json(['error' => 'Un template avec ce code et canal existe déjà'], 409);
+        }
+
+        $template = new \App\Entity\NotificationTemplate();
+        $template->setAtelierId($atelierId);
+        $template->setCode($code);
+        $template->setChannel($channel);
+        $template->setLibelle(trim((string)($data['libelle'] ?? $code)));
+        $template->setSujet(isset($data['sujet']) ? trim((string)$data['sujet']) : null);
+        $template->setCorps(trim((string)($data['corps'] ?? '')));
+        $template->setVariables(is_array($data['variables'] ?? null) ? $data['variables'] : []);
+        $template->setIsActive($data['isActive'] ?? true);
+
+        $this->em->persist($template);
+        $this->em->flush();
+
+        return $this->json(['id' => $template->getId(), 'created' => true], 201);
+    }
+
+    /**
+     * PUT /api/admin/notification-templates/{id}
+     */
+    #[Route('/api/admin/notification-templates/{id}', methods: ['PUT'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function updateTemplate(int $id, Request $request): JsonResponse
+    {
+        $template = $this->findScopedTemplate($id);
+        if (!$template) {
+            return $this->json(['error' => 'Template introuvable'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        if (isset($data['libelle'])) $template->setLibelle(trim((string)$data['libelle']));
+        if (isset($data['sujet'])) $template->setSujet(trim((string)$data['sujet']) ?: null);
+        if (isset($data['corps'])) $template->setCorps(trim((string)$data['corps']));
+        if (isset($data['variables']) && is_array($data['variables'])) $template->setVariables($data['variables']);
+        if (isset($data['isActive'])) $template->setIsActive((bool)$data['isActive']);
+
+        $template->setUpdatedAt(new \DateTime());
+        $this->em->flush();
+
+        return $this->json(['id' => $template->getId(), 'updated' => true]);
+    }
+
+    /**
+     * DELETE /api/admin/notification-templates/{id}
+     */
+    #[Route('/api/admin/notification-templates/{id}', methods: ['DELETE'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function deleteTemplate(int $id): JsonResponse
+    {
+        $template = $this->findScopedTemplate($id);
+        if (!$template) {
+            return $this->json(['error' => 'Template introuvable'], 404);
+        }
+
+        $this->em->remove($template);
+        $this->em->flush();
+
+        return $this->json(['deleted' => true]);
+    }
+
+    private function findScopedTemplate(int $id): ?\App\Entity\NotificationTemplate
+    {
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if (!$atelierId) {
+            return null;
+        }
+
+        return $this->em->getRepository(\App\Entity\NotificationTemplate::class)->findOneBy([
+            'id' => $id,
+            'atelierId' => $atelierId,
+        ]);
+    }
+
     // ─── Webhooks (public, secured by HMAC) ───
 
     /**

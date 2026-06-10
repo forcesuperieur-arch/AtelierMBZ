@@ -9,7 +9,6 @@ class LigneDevis
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
     #[ORM\ManyToOne(targetEntity: Devis::class, inversedBy: 'lignes')] #[ORM\JoinColumn(nullable: false)] private Devis $devis;
     #[ORM\Column(length: 50)] private string $typeLigne;
-    #[ORM\ManyToOne(targetEntity: ForfaitMO::class, inversedBy: 'lignesDevis')] #[ORM\JoinColumn(name: 'forfait_mo_id', nullable: true)] private ?ForfaitMO $forfaitMo = null;
     #[ORM\ManyToOne(targetEntity: PieceDetachee::class)] #[ORM\JoinColumn(name: 'piece_id', nullable: true)] private ?PieceDetachee $piece = null;
     #[ORM\Column(length: 300)] private string $designation;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $descriptionDetail = null;
@@ -25,8 +24,6 @@ class LigneDevis
     public function setDevis(Devis $v): static { $this->devis = $v; return $this; }
     public function getTypeLigne(): string { return $this->typeLigne; }
     public function setTypeLigne(string $v): static { $this->typeLigne = $v; return $this; }
-    public function getForfaitMo(): ?ForfaitMO { return $this->forfaitMo; }
-    public function setForfaitMo(?ForfaitMO $v): static { $this->forfaitMo = $v; return $this; }
     public function getPiece(): ?PieceDetachee { return $this->piece; }
     public function setPiece(?PieceDetachee $v): static { $this->piece = $v; return $this; }
     public function getDesignation(): string { return $this->designation; }

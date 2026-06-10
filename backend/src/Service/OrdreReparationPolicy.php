@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 class OrdreReparationPolicy
 {
-    public function __construct(private PdfService $pdfService) {}
+    public function __construct(private ?PdfService $pdfService = null) {}
 
     /**
      * Can this user edit the OR content?
@@ -214,7 +214,9 @@ class OrdreReparationPolicy
         $or->setStatut('termine');
 
         // Generate the physical PDF — it will be stored in var/pdf/
-        $this->pdfService->generateOrPdf($or);
+        if ($this->pdfService) {
+            $this->pdfService->generateOrPdf($or);
+        }
     }
 
     /**

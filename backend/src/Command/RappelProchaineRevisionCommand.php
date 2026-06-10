@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\OrdreReparation;
+use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -18,6 +19,7 @@ class RappelProchaineRevisionCommand extends Command
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private NotificationDispatcher $dispatcher,
     ) {
         parent::__construct();
     }
@@ -40,21 +42,53 @@ class RappelProchaineRevisionCommand extends Command
         $count = 0;
         foreach ($ordres as $ordre) {
             $rdv = $ordre->getRendezVous();
-            $client = $rdv->getClient();
+            $client = $rdv?->getClient();
 
-            if ($client && $client->getEmail()) {
-                // TODO: integrate with NotificationDispatcher when LOT 11 providers are configured
-                $io->note(sprintf(
-                    'Rappel: Client %s (%s) — révision prévue le %s',
-                    $client->getNom(),
-                    $client->getEmail(),
-                    $ordre->getProchaineRevisionDate()->format('d/m/Y'),
-                ));
-                $count++;
+            if (!$client) {
+                continue;
             }
+
+            $atId = $ordre->getAtelierId() ?? 0;
+            $vehicule = $rdv->getVehicule();
+            $vars = [
+                'client_nom'    => $client->getNom(),
+                'client_prenom' => $client->getPrenom(),
+                'date_revision' => $ordre->getProchaineRevisionDate()->format('d/m/Y'),
+                'vehicule'      => $vehicule
+                    ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? ''))
+                    : 'votre moto',
+            ];
+
+            // Email
+            if ($client->getEmail()) {
+                $this->dispatcher->sendFromTemplate(
+                    'rappel_revision',
+                    'email',
+                    $atId,
+                    $client->getEmail(),
+                    $vars,
+                    'OrdreReparation',
+                    $ordre->getId(),
+                );
+            }
+
+            // SMS
+            if ($client->getTelephone()) {
+                $this->dispatcher->sendFromTemplate(
+                    'rappel_revision',
+                    'sms',
+                    $atId,
+                    $client->getTelephone(),
+                    $vars,
+                    'OrdreReparation',
+                    $ordre->getId(),
+                );
+            }
+
+            $count++;
         }
 
-        $io->success(sprintf('%d rappel(s) de révision identifié(s).', $count));
+        $io->success(sprintf('%d rappel(s) de révision envoyé(s).', $count));
 
         return Command::SUCCESS;
     }
