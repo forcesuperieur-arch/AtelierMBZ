@@ -40,3 +40,16 @@ export async function loginAsAdmin(page) {
 
   throw new Error('Admin login failed with all configured passwords');
 }
+
+/**
+ * Helper: vrai si le module est désactivé pour l'atelier actif
+ * (le middleware redirige alors vers /?moduleDisabled=<section>).
+ * Nécessite une session authentifiée.
+ */
+export async function isModuleDisabled(page, section, path = `/${section}`) {
+  await page.goto(appUrl(path));
+  return page
+    .waitForURL(new RegExp(`moduleDisabled=${section}`), { timeout: 4000 })
+    .then(() => true)
+    .catch(() => false);
+}

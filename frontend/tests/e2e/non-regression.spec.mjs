@@ -197,6 +197,9 @@ test.describe('Non-Regression: Core Navigation', () => {
   test('Facturation page loads', async ({ page }) => {
     await page.goto('/facturation');
     await page.waitForLoadState('networkidle');
+    if (page.url().includes('moduleDisabled=facturation')) {
+      test.skip(true, 'Module facturation désactivé');
+    }
     await expect(page.locator('body')).toContainText(/factur/i);
   });
 

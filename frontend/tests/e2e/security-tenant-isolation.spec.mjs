@@ -49,7 +49,6 @@ test.describe('Security — Access Controls', () => {
       '/api/clients',
       '/api/rendez-vous',
       '/api/vehicules',
-      '/api/factures',
     ];
 
     for (const endpoint of endpoints) {
@@ -60,6 +59,13 @@ test.describe('Security — Access Controls', () => {
 
       expect(response.status, `Expected 200 for ${endpoint}`).toBe(200);
     }
+
+    // /api/factures : 200 si le module facturation est actif, 404 (garde backend) sinon
+    const factures = await page.evaluate(async () => {
+      const res = await fetch('/api/factures', { credentials: 'include' });
+      return { status: res.status };
+    });
+    expect([200, 404], 'Expected 200 (module actif) ou 404 (module désactivé) pour /api/factures').toContain(factures.status);
   });
 
   test('Unauthenticated user gets 401/403 on protected endpoints', async ({ page }) => {

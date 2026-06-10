@@ -74,6 +74,9 @@ test.describe('US-2 — SelectMenu dropdown above modal overlay', () => {
     await page.goto('/facturation');
     await page.waitForLoadState('networkidle');
 
+    if (page.url().includes('moduleDisabled=facturation')) {
+      test.skip(true, 'Module facturation désactivé');
+    }
     // Try to open first row edit modal if present
     const editBtn = page.locator('button:has-text("Modifier"), [class*="edit"]').first();
     if (await editBtn.isVisible().catch(() => false)) {
@@ -264,7 +267,10 @@ test.describe('US-5 — Modernized pages load successfully', () => {
       const response = await page.goto(path);
       expect(response?.status()).toBe(200);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('body')).toContainText(text, { timeout: 10000 });
+      // Module désactivé : le middleware redirige vers /?moduleDisabled=<section>
+      if (!page.url().includes('moduleDisabled=')) {
+        await expect(page.locator('body')).toContainText(text, { timeout: 10000 });
+      }
     });
   }
 

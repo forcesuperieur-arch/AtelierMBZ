@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { loginAsAdmin } from './helpers.mjs';
+import { loginAsAdmin, isModuleDisabled } from './helpers.mjs';
 
 function extractCollection(data) {
   return data?.['hydra:member'] ?? data?.items ?? data?.member ?? (Array.isArray(data) ? data : []);
@@ -162,6 +162,7 @@ async function getUiOptionLabel(page, purchaseId, prestationName) {
 
 test('VO refurbishment prices differ between two tariff categories', async ({ page }) => {
   await loginAsAdmin(page);
+  if (await isModuleDisabled(page, 'vo')) test.skip(true, 'Module VO désactivé (hors MVP)');
 
   const request = page.context().request;
   const categoryResponse = await request.get('/api/motos/categories?itemsPerPage=20');
