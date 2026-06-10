@@ -709,6 +709,7 @@
 const api = useApi()
 const toast = useToast()
 const rdvStore = useRdvStore()
+const atelierStore = useAtelierStore()
 const route = useRoute()
 const router = useRouter()
 const { hasPerm } = useAuth()
@@ -833,16 +834,23 @@ const transitionCatalog: Record<string, { label: string; color: string }> = {
 
 // Séquence de workflow : pour chaque statut, quelle est la prochaine transition attendue
 // start_travail et terminer sont volontairement exclus — ce sont les mécaniciens qui déclenchent ces statuts
-const WORKFLOW_SEQUENCE: Record<string, { next?: string; cancel?: string }> = {
-  en_attente: { next: 'reserver', cancel: 'annuler' },
-  reserve: { next: 'confirmer', cancel: 'annuler' },
-  confirme: { next: 'reception', cancel: 'annuler' },
-  reception: {},
-  en_cours: {},
-  termine: { next: 'restituer' },
-  restitue: { next: 'facturer' },
-  facture: { next: 'payer' },
-}
+const WORKFLOW_SEQUENCE = computed<Record<string, { next?: string; cancel?: string }>>(() => {
+  const sequence: Record<string, { next?: string; cancel?: string }> = {
+    en_attente: { next: 'reserver', cancel: 'annuler' },
+    reserve: { next: 'confirmer', cancel: 'annuler' },
+    confirme: { next: 'reception', cancel: 'annuler' },
+    reception: {},
+    en_cours: {},
+    termine: { next: 'restituer' },
+    restitue: { next: 'facturer' },
+    facture: { next: 'payer' },
+  }
+  if (!atelierStore.isModuleEnabled('facturation')) {
+    sequence.restitue = {}
+    delete sequence.facture
+  }
+  return sequence
+})
 
 const canCreateRdv = computed(() => hasPerm('rdv.create'))
 const canEditRdv = computed(() => hasPerm('rdv.edit'))
@@ -1148,7 +1156,7 @@ function toggleMeca(id: number) {
 }
 
 function fallbackTransitionsForStatus(status?: string) {
-  const seq = WORKFLOW_SEQUENCE[String(status || '')]
+  const seq = WORKFLOW_SEQUENCE.value[String(status || '')]
   if (!seq) return []
   return [seq.next, seq.cancel].filter((n): n is string => !!n).map((name) => ({
     name,
@@ -1339,7 +1347,7 @@ async function loadAvailableTransitions(id: number) {
   try {
     const data = await api.get(`/rendez-vous/${id}/transitions`)
     const transitions = Array.isArray(data?.transitions) ? data.transitions : []
-    const seq = WORKFLOW_SEQUENCE[selectedRdv.value?.status ?? '']
+    const seq = WORKFLOW_SEQUENCE.value[selectedRdv.value?.status ?? '']
     const allowed = new Set([seq?.next, seq?.cancel].filter((n): n is string => !!n))
     availableTransitions.value = transitions
       .filter((name: string) => allowed.has(name))

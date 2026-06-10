@@ -31,7 +31,7 @@ class DevisController extends AbstractController
 
     private function resolveAtelierBranding(): array
     {
-        $atelierId = $this->atelierResolver->getAtelierId();
+        $atelierId = $this->atelierResolver->resolveAtelierId();
         $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
         return [
             'from' => $atelier?->getEmail() ?? 'noreply@paddock.fr',

@@ -90,13 +90,13 @@
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.rdvs) }">{{ metricDeltaText(comparison.rdvs) }}</div>
         <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.rdvs?.current ?? 0) / GAUGE_MAX_RDV * 100, 100) + '%', background: '#FFD200' }"></div></div>
       </div>
-      <div class="stat-card">
+      <div v-if="hasFacturation" class="stat-card">
         <div class="stat-label">CA SUR PÉRIODE</div>
         <div class="stat-value">{{ formatCurrency(comparison.ca?.current ?? 0) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.ca) }">{{ metricDeltaText(comparison.ca) }}</div>
         <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(comparison.ca?.current ?? 0) / GAUGE_MAX_CA * 100, 100) + '%', background: '#14B8A6' }"></div></div>
       </div>
-      <div class="stat-card">
+      <div v-if="hasFacturation" class="stat-card">
         <div class="stat-label">PANIER MOYEN</div>
         <div class="stat-value">{{ formatCurrency(comparison.avg_ticket?.current ?? 0) }}</div>
         <div class="stat-delta" :style="{ color: metricDeltaColor(comparison.avg_ticket) }">{{ metricDeltaText(comparison.avg_ticket) }}</div>
@@ -138,16 +138,16 @@
     </div>
 
     <!-- Trend + Revenue mix -->
-    <div v-if="visibleWidgets.trend || visibleWidgets.revenueMix" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
+    <div v-if="visibleWidgets.trend || (visibleWidgets.revenueMix && hasFacturation)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
       <UCard v-if="visibleWidgets.trend">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Évolution CA & RDVs</span>
+          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ hasFacturation ? 'Évolution CA & RDVs' : 'Évolution RDVs' }}</span>
         </template>
         <ChartsLineChart v-if="dailyTrend.length" :data="trendChartData" :options="{ scales: { y1: { position: 'right', grid: { display: false } } }, plugins: { legend: { labels: { color: '#9CA3AF' } } } }" />
         <AppEmptyState v-else icon="📉" title="Pas assez de volume" description="L'évolution se remplit automatiquement dès que les RDV sont historisés sur la période choisie." />
       </UCard>
 
-      <UCard v-if="visibleWidgets.revenueMix">
+      <UCard v-if="visibleWidgets.revenueMix && hasFacturation">
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Mix rentabilité</span>
         </template>
@@ -172,7 +172,7 @@
     </div>
 
     <!-- Performance + Rentabilité -->
-    <div v-if="visibleWidgets.performance || visibleWidgets.rentabilite" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
+    <div v-if="visibleWidgets.performance || (visibleWidgets.rentabilite && hasFacturation)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
       <UCard v-if="visibleWidgets.performance">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -184,13 +184,13 @@
         <div v-if="mecanicienStats.length" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
           <div v-for="meca in mecanicienStats.slice(0, 4)" :key="meca.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
             <span style="font-size:12px;color:#E8E9ED;font-weight:600;">{{ meca.nom }}</span>
-            <span style="font-size:12px;color:#FFD200;font-weight:700;">{{ formatEuro(meca.ca_genere ?? 0) }}</span>
+            <span v-if="hasFacturation" style="font-size:12px;color:#FFD200;font-weight:700;">{{ formatEuro(meca.ca_genere ?? 0) }}</span>
           </div>
         </div>
         <AppEmptyState v-else icon="👨‍🔧" title="Pas assez d'historique méca" description="La perf des mécaniciens se remplira au fil des interventions clôturées." />
       </UCard>
 
-      <UCard v-if="visibleWidgets.rentabilite">
+      <UCard v-if="visibleWidgets.rentabilite && hasFacturation">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Rentabilité par type</span>
@@ -260,8 +260,8 @@
     </div>
 
     <!-- Services + Status -->
-    <div v-if="visibleWidgets.services || visibleWidgets.status" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
-      <UCard v-if="visibleWidgets.services">
+    <div v-if="(visibleWidgets.services && hasFacturation) || visibleWidgets.status" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
+      <UCard v-if="visibleWidgets.services && hasFacturation">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <span style="font-size:15px;font-weight:700;color:#E8E9ED;">CA par prestation</span>
@@ -344,7 +344,7 @@
           <div style="font-size:11px;color:#9CA3AF;">Activité / jour</div>
           <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ avgDailyRdvs }}</div>
         </div>
-        <div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+        <div v-if="hasFacturation" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;color:#9CA3AF;">Factures sur période</div>
           <div style="font-size:22px;font-weight:700;color:#E8E9ED;">{{ revenueMix.nb_factures ?? 0 }}</div>
         </div>
@@ -381,7 +381,7 @@
                 <div style="font-weight:600;color:#E8E9ED;font-size:13px;">{{ seg.segment }}</div>
                 <div style="font-size:11px;color:#9CA3AF;">{{ seg.clients }} client(s)</div>
               </div>
-              <div style="font-weight:700;color:#FFD200;font-size:14px;">{{ formatEuro(seg.ca) }}</div>
+              <div v-if="hasFacturation" style="font-weight:700;color:#FFD200;font-size:14px;">{{ formatEuro(seg.ca) }}</div>
             </div>
           </div>
         </div>
@@ -442,7 +442,7 @@
     </div>
 
     <!-- FORECAST WIDGET -->
-    <div v-if="visibleWidgets.forecast" style="margin:24px 0;">
+    <div v-if="visibleWidgets.forecast && hasFacturation" style="margin:24px 0;">
       <UCard>
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -462,6 +462,7 @@
 <script setup lang="ts">
 const api = useApi()
 const atelierStore = useAtelierStore()
+const hasFacturation = computed(() => atelierStore.isModuleEnabled('facturation'))
 const loading = ref(true)
 const stats = ref<any>({})
 const todayRdvs = ref<any[]>([])
@@ -478,22 +479,27 @@ const filters = reactive({ from: '', to: '' })
 const customizing = ref(false)
 const showExportMenu = ref(false)
 const exploreDimension = ref('type_intervention')
-const exploreMetrics = ref<string[]>(['ca_ht'])
+const exploreMetrics = ref<string[]>([])
 const exploreRows = ref<any[]>([])
 const forecastData = ref<any>({ historical: [], forecast: [] })
 const forecastDays = ref(14)
 
-const exploreMetricOptions = [
-  { value: 'ca_ht', label: 'CA HT' },
-  { value: 'ca_mo_ht', label: 'CA MO HT' },
-  { value: 'ca_pieces_ht', label: 'CA Pièces HT' },
+const exploreMetricOptions = computed(() => [
+  ...(hasFacturation.value
+    ? [
+        { value: 'ca_ht', label: 'CA HT' },
+        { value: 'ca_mo_ht', label: 'CA MO HT' },
+        { value: 'ca_pieces_ht', label: 'CA Pièces HT' },
+      ]
+    : []),
   { value: 'temps_estime', label: 'Temps estimé' },
   { value: 'temps_effectif', label: 'Temps effectif' },
   { value: 'count', label: 'Nombre' },
-]
+])
+exploreMetrics.value = [hasFacturation.value ? 'ca_ht' : 'count']
 
 function exploreMetricLabel(value: string): string {
-  return exploreMetricOptions.find(o => o.value === value)?.label || value
+  return exploreMetricOptions.value.find(o => o.value === value)?.label || value
 }
 
 const visibleWidgets = reactive({
@@ -513,22 +519,31 @@ const visibleWidgets = reactive({
   forecast: true,
 })
 
-const widgetLabels: Record<string, string> = {
-  forecast: 'Prévisions',
-  realtime: 'Temps réel',
-  kpis: 'KPIs période',
-  trend: 'Évolution',
-  revenueMix: 'Mix rentabilité',
-  performance: 'Performance méca',
-  rentabilite: 'Rentabilité',
-  derives: 'Dérives & délais',
-  services: 'Prestations',
-  status: 'Statuts',
-  ponts: 'Ponts',
-  synthese: 'Synthèse',
-  clientSegments: 'Segments clientèle',
-  explore: 'Exploration',
-}
+const widgetLabels = computed<Record<string, string>>(() => {
+  const labels: Record<string, string> = {
+    forecast: 'Prévisions',
+    realtime: 'Temps réel',
+    kpis: 'KPIs période',
+    trend: 'Évolution',
+    revenueMix: 'Mix rentabilité',
+    performance: 'Performance méca',
+    rentabilite: 'Rentabilité',
+    derives: 'Dérives & délais',
+    services: 'Prestations',
+    status: 'Statuts',
+    ponts: 'Ponts',
+    synthese: 'Synthèse',
+    clientSegments: 'Segments clientèle',
+    explore: 'Exploration',
+  }
+  if (!hasFacturation.value) {
+    delete labels.revenueMix
+    delete labels.rentabilite
+    delete labels.services
+    delete labels.forecast
+  }
+  return labels
+})
 
 const periodPresets = [
   { key: 'today', label: "Aujourd'hui" },
@@ -622,15 +637,17 @@ const trendChartData = computed(() => {
         tension: 0.4,
         yAxisID: 'y',
       },
-      {
-        label: 'CA (€)',
-        data: rows.map((r: any) => Number(r.revenue ?? 0)),
-        borderColor: '#14B8A6',
-        backgroundColor: '#14B8A620',
-        fill: true,
-        tension: 0.4,
-        yAxisID: 'y1',
-      },
+      ...(hasFacturation.value
+        ? [{
+            label: 'CA (€)',
+            data: rows.map((r: any) => Number(r.revenue ?? 0)),
+            borderColor: '#14B8A6',
+            backgroundColor: '#14B8A620',
+            fill: true,
+            tension: 0.4,
+            yAxisID: 'y1',
+          }]
+        : []),
     ],
   }
 })

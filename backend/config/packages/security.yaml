@@ -19,7 +19,8 @@ security:
             pattern: ^/api$
             security: false
         api_client:
-            pattern: ^/api/client
+            # (/|$) évite d'avaler les routes staff /api/clients...
+            pattern: ^/api/client(/|$)
             stateless: true
             provider: client_user_provider
             custom_authenticators:
@@ -41,7 +42,7 @@ security:
         - { path: ^/api/webhooks/notifications, roles: PUBLIC_ACCESS }
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
         - { path: ^/api/motos/(autocomplete|marques), roles: PUBLIC_ACCESS }
-        - { path: ^/api/client, roles: ROLE_CLIENT }
+        - { path: ^/api/client(/|$), roles: ROLE_CLIENT }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
     role_hierarchy:
