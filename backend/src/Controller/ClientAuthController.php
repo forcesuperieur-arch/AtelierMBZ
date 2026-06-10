@@ -19,6 +19,9 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/client')]
 class ClientAuthController extends AbstractController
 {
+    private const REFRESH_TTL = 7 * 86400; // 7 jours
+    private const REFRESH_COOKIE_PATH = '/api/client';
+
     public function __construct(
         private EntityManagerInterface $em,
         private JWTTokenManagerInterface $jwtManager,
@@ -50,8 +53,13 @@ class ClientAuthController extends AbstractController
         $jti = bin2hex(random_bytes(16));
         $accessToken = $this->jwtManager->createFromPayload($adapter, ['type' => 'client', 'jti' => $jti]);
 
-        // Simple refresh token: another JWT with longer expiry (handled by Lexik config or manual)
-        $refreshToken = $this->jwtManager->createFromPayload($adapter, ['type' => 'client', 'refresh' => true, 'jti' => bin2hex(random_bytes(16))]);
+        // Refresh token : JWT avec expiration étendue à 7 jours (exp explicite)
+        $refreshToken = $this->jwtManager->createFromPayload($adapter, [
+            'type' => 'client',
+            'refresh' => true,
+            'jti' => bin2hex(random_bytes(16)),
+            'exp' => time() + self::REFRESH_TTL,
+        ]);
 
         $client->touchActivity();
         $this->em->flush();
@@ -70,6 +78,10 @@ class ClientAuthController extends AbstractController
         // Set HttpOnly cookie for SPA convenience
         $response->headers->setCookie(
             new Cookie('client_access_token', $accessToken, time() + 3600, '/', null, false, true, false, 'Lax')
+        );
+        // Refresh token en cookie HttpOnly, restreint aux routes /api/client
+        $response->headers->setCookie(
+            new Cookie('client_refresh_token', $refreshToken, time() + self::REFRESH_TTL, self::REFRESH_COOKIE_PATH, null, false, true, false, 'Lax')
         );
 
         return $response;
@@ -118,7 +130,7 @@ class ClientAuthController extends AbstractController
     {
         $response = $this->json(['message' => 'Déconnecté']);
         $response->headers->clearCookie('client_access_token');
-        $response->headers->clearCookie('client_refresh_token');
+        $response->headers->clearCookie('client_refresh_token', self::REFRESH_COOKIE_PATH);
         return $response;
     }
 

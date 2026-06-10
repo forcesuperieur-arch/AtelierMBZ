@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 const auth = useAuthStore()
+const { apiFetch } = useClientApi()
 
 const form = reactive({
   prenom: '',
@@ -60,11 +61,9 @@ async function save() {
   saving.value = true
   message.value = ''
   try {
-    await $fetch('/api/client/me', {
+    await apiFetch('/api/client/me', {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${auth.accessToken}` },
       body: form,
-      baseURL: '',
     })
     await auth.fetchMe()
     message.value = 'Profil mis à jour.'

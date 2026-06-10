@@ -1,11 +1,17 @@
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/clauses', '/cgv', '/mentions-legales', '/politique-confidentialite']
-
 export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuthStore()
-  if (!auth.isAuthenticated && !PUBLIC_PATHS.includes(to.path)) {
+
+  // Réhydratation unique au boot / F5 : le cookie HttpOnly porte la session,
+  // fetchMe la restaure (avec refresh silencieux si l'access token a expiré).
+  if (!auth.hydrated && !auth.isAuthenticated) {
     await auth.fetchMe()
-    if (!auth.isAuthenticated) {
-      return navigateTo('/login')
-    }
+  }
+
+  if (!auth.isAuthenticated && !CLIENT_PUBLIC_PATHS.includes(to.path)) {
+    return navigateTo('/login')
+  }
+
+  if (auth.isAuthenticated && to.path === '/login') {
+    return navigateTo('/')
   }
 })

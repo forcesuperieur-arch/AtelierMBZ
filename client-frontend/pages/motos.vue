@@ -18,13 +18,11 @@
 
 <script setup lang="ts">
 const auth = useAuthStore()
+const { apiFetch } = useClientApi()
 
 const { data: motos, pending } = useAsyncData('client-motos', async () => {
   if (!auth.isAuthenticated) return []
-  return await $fetch('/api/client/vehicules', {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-    baseURL: '',
-  })
+  return await apiFetch('/api/client/vehicules')
 })
 </script>
 

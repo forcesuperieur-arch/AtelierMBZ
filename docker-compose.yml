@@ -99,13 +99,16 @@ services:
       - php
     environment:
       NUXT_PUBLIC_API_BASE: /api
+      PORT: "3001"
+      NODE_ENV: production
     ports:
       - "${CLIENT_FRONTEND_PORT:-3001}:3001"
     volumes:
       - ./client-frontend:/app
       - /app/node_modules
       - /app/.nuxt
-    command: ["sh", "-c", "npm install && npx nuxt prepare && npx nuxt dev --port 3001 --host 0.0.0.0"]
+    # Build de production : SPA précompilée servie par Nitro (plus de nuxt dev)
+    command: ["sh", "-c", "npm install && npx nuxt build && node .output/server/index.mjs"]
 
   caddy:
     image: caddy:2-alpine

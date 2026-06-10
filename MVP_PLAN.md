@@ -64,7 +64,7 @@ La facturation est déjà un module désactivable : `facturation: true` dans `DE
 
 ---
 
-## Phase 2 — Fiabiliser l'espace client séparé (2-3 jours)
+## Phase 2 — Fiabiliser l'espace client séparé (2-3 jours) ✅ FAIT (2026-06-10)
 
 Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), mais **le token vit dans `useState` → perdu au refresh** (`client-frontend/stores/auth.ts:4`). Le backend pose pourtant déjà un cookie HttpOnly `client_access_token` (`backend/src/Controller/ClientAuthController.php:71-73`) et expose `/api/client/refresh` et `/api/client/me`.
 
@@ -83,6 +83,14 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 - [ ] Retester le routing `/client/*` via Caddy port 81 après le changement
 
 **Critère de sortie : un client se connecte, F5/fermeture navigateur ne le déconnecte plus, build prod servi derrière Caddy.**
+
+### Réalisé (notes)
+- Backend : cookie HttpOnly `client_refresh_token` (7 jours, path `/api/client`) posé au login, purgé au logout ; le refresh fonctionne cookie-only
+- Front : composable `useClientApi` (fetch same-origin + retry silencieux via `/api/client/refresh` sur 401), store réécrit (le cookie est la source de vérité, `hydrated` évite les refetchs), middleware avec réhydratation au boot, pages migrées hors Bearer mémoire
+- Build prod : Dockerfile multi-stage + commande compose `nuxt build && node .output/server/index.mjs` (fini `nuxt dev`)
+- Caddy 81 : `/manifest.json` et `/sw.js` ajoutés aux assets (fix du 404 manifest)
+- Vérifié par scénario navigateur complet : login → F5 → navigation → expiration access token → refresh silencieux → logout → session close (10/10), isolation RDV client A/B (404)
+- Le login client était déjà conforme (logo, wording, pas de SSO)
 
 ---
 

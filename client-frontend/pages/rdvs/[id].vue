@@ -30,13 +30,12 @@
 const route = useRoute()
 const auth = useAuthStore()
 
+const { apiFetch } = useClientApi()
+
 const { data: rdv, pending } = useAsyncData(`client-rdv-${route.params.id}`, async () => {
   if (!auth.isAuthenticated) return null
   try {
-    return await $fetch(`/api/client/rdvs/${route.params.id}`, {
-      headers: { Authorization: `Bearer ${auth.accessToken}` },
-      baseURL: '',
-    })
+    return await apiFetch(`/api/client/rdvs/${route.params.id}`)
   } catch {
     return null
   }
