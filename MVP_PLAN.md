@@ -38,7 +38,7 @@ Le dépôt a un gros volume de modifications non commitées (entités supprimée
 
 ---
 
-## Phase 1 — Désactiver la facturation proprement (1 jour)
+## Phase 1 — Désactiver la facturation proprement (1 jour) ✅ FAIT (2026-06-10)
 
 La facturation est déjà un module désactivable : `facturation: true` dans `DEFAULT_FEATURE_MODULES` (`frontend/stores/atelier.ts:3-21`), stocké dans `Atelier.configJson` (`backend/src/Entity/Atelier.php:74-121`), filtré par `hasSection()` (`frontend/composables/useAuth.ts:68-78`).
 
@@ -50,6 +50,17 @@ La facturation est déjà un module désactivable : `facturation: true` dans `DE
 - [ ] Vérifier le détail RDV : ne plus afficher le bloc facture (`Facture` a un `ManyToOne` vers `RendezVous`)
 
 **Critère de sortie : app interne complète sans aucune trace de facturation, dashboard fonctionnel, aucun 500.**
+
+### Réalisé (notes)
+- Modules `facturation` + `devis` désactivés : defaults front (`stores/atelier.ts`), defaults backend (`ConfigAtelier`), et les 13 ateliers en base
+- Garde backend `FeatureModuleGuardSubscriber` : 404 sur ~20 routes facturation/devis (controllers custom + API Platform) quand le module est off
+- Analytics déjà tolérantes (agrégats SQL `COALESCE`) — vérifié en live, aucun changement nécessaire
+- UI masquée : cartes CA/panier moyen, mix rentabilité, rentabilité, CA par prestation, prévisions CA, « Factures sur période » (synthèse), CA par mécano/segment, métriques CA de l'exploration, transitions `facturer`/`payer` du planning
+- Bonus corrigés : pattern firewall `^/api/client` qui avalait les routes staff `/api/clients/*` ; appels `getAtelierId()` inexistant dans Facturation/DevisController ; `PHP_CLI_SERVER_WORKERS=8` (php -S mono-thread saturé par les E2E) ; projet `setup` Playwright qui régénère l'état d'auth admin
+
+### Dette de tests connue (3 × `test.fixme`, à réécrire)
+- `business-flows` « Public booking: can submit » + `lots-124` « booking lock message » → la page booking est devenue un wizard multi-étapes avec sélecteur d'atelier (**phase 3**)
+- `notification-providers` modals/templates ×2 → la page providers a été refondue (**phase 4**)
 
 ---
 
