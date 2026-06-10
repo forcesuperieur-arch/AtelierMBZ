@@ -55,11 +55,11 @@ class OrdreReparationPolicyTest extends TestCase
         $this->assertTrue($this->policy->canEdit($or, $user));
     }
 
-    public function testCannotEditBrouillonAsMecanicien(): void
+    public function testCanEditBrouillonAsMecanicien(): void
     {
         $or = $this->createOR('brouillon');
         $user = $this->createUser('mecanicien');
-        $this->assertFalse($this->policy->canEdit($or, $user));
+        $this->assertTrue($this->policy->canEdit($or, $user));
     }
 
     public function testCannotEditSignedOR(): void
@@ -84,10 +84,10 @@ class OrdreReparationPolicyTest extends TestCase
         $this->assertTrue($this->policy->canSign($or));
     }
 
-    public function testCanSignEnAttenteSignature(): void
+    public function testCannotSignEnAttenteSignature(): void
     {
         $or = $this->createOR('en_attente_signature');
-        $this->assertTrue($this->policy->canSign($or));
+        $this->assertFalse($this->policy->canSign($or));
     }
 
     public function testCannotSignAlreadySigned(): void

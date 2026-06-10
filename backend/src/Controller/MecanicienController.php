@@ -6,6 +6,7 @@ use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\RendezVous;
+use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,17 +20,23 @@ class MecanicienController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private \App\Service\AuditService $auditService,
+        private \App\Service\MercureNotifier $mercureNotifier,
+        private NotificationDispatcher $notificationDispatcher,
     ) {}
+
+    private function getCurrentMecanicien(): ?Mecanicien
+    {
+        $user = $this->getUser();
+        if (!$user || !method_exists($user, 'getId')) {
+            return null;
+        }
+        return $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+    }
 
     #[Route('/me', methods: ['GET'])]
     public function me(): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $this->getCurrentMecanicien();
         if (!$mecanicien) {
             return $this->json([
                 'error' => 'Aucun profil mécanicien lié à ce compte.',
@@ -50,15 +57,41 @@ class MecanicienController extends AbstractController
         ]);
     }
 
-    #[Route('/me/rdvs', methods: ['GET'])]
-    public function myRdvs(Request $request): JsonResponse
+    #[Route('/me/absences', methods: ['GET'])]
+    public function myAbsences(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        $mecanicien = $this->getCurrentMecanicien();
+        if (!$mecanicien) {
+            return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_NOT_FOUND);
         }
 
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $from = new \DateTime($request->query->get('from', 'now'));
+        $to   = new \DateTime($request->query->get('to', '+30 days'));
+
+        $absences = $this->em->getRepository(\App\Entity\Absence::class)
+            ->createQueryBuilder('a')
+            ->where('a.mecanicien = :meca')
+            ->andWhere('a.dateDebut <= :to')
+            ->andWhere('a.dateFin >= :from')
+            ->setParameter('meca', $mecanicien)
+            ->setParameter('from', $from->format('Y-m-d'))
+            ->setParameter('to', $to->format('Y-m-d'))
+            ->getQuery()
+            ->getResult();
+
+        return $this->json(array_map(fn($a) => [
+            'id'         => $a->getId(),
+            'date_debut' => $a->getDateDebut()->format('Y-m-d'),
+            'date_fin'   => $a->getDateFin()->format('Y-m-d'),
+            'motif'      => $a->getMotif(),
+            'notes'      => $a->getNotes(),
+        ], $absences));
+    }
+
+    #[Route('/me/rdvs', methods: ['GET'])]
+    public function myRdVs(Request $request): JsonResponse
+    {
+        $mecanicien = $this->getCurrentMecanicien();
         if (!$mecanicien) {
             return $this->json([
                 'error' => 'Aucun profil mécanicien lié.',
@@ -83,18 +116,34 @@ class MecanicienController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        return $this->json(array_map(fn (RendezVous $rdv) => $this->flattenRdvForMecanicien($rdv), $rdvs));
+        $today = date('Y-m-d');
+        $absenceToday = $this->em->getRepository(\App\Entity\Absence::class)
+            ->createQueryBuilder('a')
+            ->where('a.mecanicien = :meca')
+            ->andWhere('a.dateDebut <= :today')
+            ->andWhere('a.dateFin >= :today')
+            ->setParameter('meca', $mecanicien)
+            ->setParameter('today', $today)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $this->json([
+            'absence_today' => $absenceToday ? [
+                'id' => $absenceToday->getId(),
+                'date_debut' => $absenceToday->getDateDebut()->format('Y-m-d'),
+                'date_fin' => $absenceToday->getDateFin()->format('Y-m-d'),
+                'motif' => $absenceToday->getMotif(),
+                'notes' => $absenceToday->getNotes(),
+            ] : null,
+            'rdvs' => array_map(fn (RendezVous $rdv) => $this->flattenRdvForMecanicien($rdv), $rdvs),
+        ]);
     }
 
     #[Route('/me/rapport/{orId}', methods: ['PATCH'])]
     public function saveRapport(int $orId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $this->getCurrentMecanicien();
         if (!$mecanicien) {
             return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
         }
@@ -182,12 +231,7 @@ class MecanicienController extends AbstractController
     #[Route('/me/sign/{orId}', methods: ['POST'])]
     public function signMecanicien(int $orId, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $this->getCurrentMecanicien();
         if (!$mecanicien) {
             return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
         }
@@ -217,7 +261,7 @@ class MecanicienController extends AbstractController
             ], Response::HTTP_CONFLICT);
         }
 
-        $policy->signMecanicien($ordre, $signatureData, $user->getId());
+        $policy->signMecanicien($ordre, $signatureData, $this->getUser()?->getId());
 
         // Link essai routier to OR if exists
         $essai = $this->findLatestEssai($rdv);
@@ -234,6 +278,27 @@ class MecanicienController extends AbstractController
             sprintf('OR #%d signé par mécanicien #%d', $ordre->getId(), $mecanicien->getId()),
         );
 
+        $client = $rdv->getClient();
+        if ($client?->getTelephone()) {
+            $vehicule = $rdv->getVehicule();
+            $motoLabel = $vehicule
+                ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? ''))
+                : 'votre moto';
+            $this->notificationDispatcher->sendFromTemplate(
+                'travaux_termines',
+                'sms',
+                $rdv->getAtelierId(),
+                $client->getTelephone(),
+                [
+                    'client_prenom' => $client->getPrenom(),
+                    'moto'          => $motoLabel ?: 'votre moto',
+                    'numero_or'     => $ordre->getNumeroOr(),
+                ],
+                'RendezVous',
+                $rdv->getId(),
+            );
+        }
+
         return $this->json([
             'success' => true,
             'message' => 'Intervention signée',
@@ -241,15 +306,97 @@ class MecanicienController extends AbstractController
         ]);
     }
 
+    #[Route('/me/demande-complementaire', methods: ['POST'])]
+    public function createDemandeComplementaire(Request $request): JsonResponse
+    {
+        $mecanicien = $this->getCurrentMecanicien();
+        if (!$mecanicien) {
+            return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $rdvId = isset($data['rdv_id']) ? (int) $data['rdv_id'] : 0;
+        if ($rdvId <= 0) {
+            return $this->json(['error' => 'rdv_id requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($rdv->getMecanicien()?->getId() !== $mecanicien->getId()) {
+            return $this->json(['error' => 'Non autorisé sur ce RDV'], Response::HTTP_FORBIDDEN);
+        }
+
+        $description = isset($data['description']) ? trim((string) $data['description']) : '';
+        if ($description === '') {
+            return $this->json(['error' => 'Description requise'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $demande = new \App\Entity\DemandeTravauxSupp();
+        $demande->setRendezVous($rdv);
+        $demande->setDescription($description);
+        $demande->setStatut(\App\Entity\DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION);
+
+        if (isset($data['prix_estime']) && is_numeric($data['prix_estime'])) {
+            $demande->setPrixEstime(number_format((float) $data['prix_estime'], 2, '.', ''));
+        }
+        if (isset($data['temps_estime']) && is_numeric($data['temps_estime'])) {
+            $demande->setTempsEstime((int) $data['temps_estime']);
+        }
+        if (isset($data['urgence']) && in_array((string) $data['urgence'], ['normal', 'urgent'], true)) {
+            $demande->setUrgence((string) $data['urgence']);
+        }
+
+        $this->em->persist($demande);
+
+        // Notification
+        $client = $rdv->getClient();
+        $clientNom = $client ? ($client->getPrenom() . ' ' . $client->getNom()) : 'Client';
+        $vehicule = $rdv->getVehicule();
+        $vehiculePlaque = $vehicule?->getPlaque() ?? '';
+
+        $notif = new \App\Entity\Notification();
+        $notif->setAtelierId($rdv->getAtelierId());
+        $notif->setType('demande_complementaire');
+        $notif->setSeverity($demande->getUrgence() === 'urgent' ? 'critical' : 'warning');
+        $notif->setTitle('Demande travaux complémentaires');
+        $notif->setMessage(sprintf(
+            'Nouvelle demande travaux supplémentaires — %s (%s) — %s€ TTC',
+            $clientNom,
+            $vehiculePlaque,
+            $demande->getPrixEstime() ?? '0.00',
+        ));
+        $notif->setRelatedEntityType('DemandeTravauxSupp');
+        $notif->setTargetRoles(['ROLE_ADMIN', 'ROLE_RECEPTIONNAIRE']);
+        $notif->setTargetRole('ROLE_RECEPTIONNAIRE');
+        $notif->setPriority($demande->getUrgence() === 'urgent' ? 'high' : 'normal');
+        $this->em->persist($notif);
+
+        $this->em->flush();
+
+        $notif->setRelatedEntityId($demande->getId());
+        $this->em->flush();
+
+        // Mercure push
+        try {
+            $this->mercureNotifier->publishToAtelier($rdv->getAtelierId(), $notif);
+        } catch (\Throwable $e) {
+            // Mercure failure is non-blocking
+        }
+
+        return $this->json([
+            'id' => $demande->getId(),
+            'statut' => $demande->getStatut(),
+            'token' => $demande->getTokenValidation(),
+        ], Response::HTTP_CREATED);
+    }
+
     #[Route('/me/essai-routier', methods: ['POST'])]
     public function createEssai(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $mecanicien = $this->em->getRepository(Mecanicien::class)->findOneBy(['userId' => $user->getId()]);
+        $mecanicien = $this->getCurrentMecanicien();
         if (!$mecanicien) {
             return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
         }
@@ -281,12 +428,12 @@ class MecanicienController extends AbstractController
             $essai->setRendezVous($rdv);
             $essai->setAtelierId($rdv->getAtelierId());
             $essai->setKmDebut($rdv->getKilometrage());
-            $essai->setMecanicienId($user->getId());
+            $essai->setMecanicienId($this->getUser()?->getId());
             $this->em->persist($essai);
         }
 
         if ($essai->getMecanicienId() === null) {
-            $essai->setMecanicienId($user->getId());
+            $essai->setMecanicienId($this->getUser()?->getId());
         }
 
         if (isset($data['km_debut'])) {
@@ -420,11 +567,24 @@ class MecanicienController extends AbstractController
             'or_kilometrage_restitution' => $ordre?->getKilometrageRestitution(),
             'or_prochaine_revision_km' => $ordre?->getProchaineRevisionKm(),
             'or_prochaine_revision_date' => $ordre?->getProchaineRevisionDate()?->format('Y-m-d'),
+            'is_signed_by_both' => (
+                $ordre?->getSignatureMecanicien() !== null &&
+                $ordre?->getSignatureClientRestitution() !== null
+            ),
             'etat_reception' => $this->buildReceptionState($ordre, $rdv),
             'essai_routier_id' => $essai?->getId(),
             'essai_routier_statut' => $essai?->getStatut(),
             'essai_routier_valide' => $essai?->isValide() ?? false,
             'token_suivi' => $rdv->getTokenSuivi(),
+            'demandes_travaux_supp' => array_map(fn(\App\Entity\DemandeTravauxSupp $d) => [
+                'id' => $d->getId(),
+                'description' => $d->getDescription(),
+                'urgence' => $d->getUrgence(),
+                'prix_estime' => $d->getPrixEstime(),
+                'temps_estime' => $d->getTempsEstime(),
+                'statut' => $d->getStatut(),
+                'created_at' => $d->getCreatedAt()->format('c'),
+            ], $rdv->getDemandesTravauxSupp()->toArray()),
         ];
     }
 

@@ -88,6 +88,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private string $accessStatus = 'active';
 
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $phoneNumber = null;
+
     #[ORM\Column(type: 'datetime', nullable: true)]
     #[Groups(['user:read'])]
     private ?\DateTimeInterface $validatedAt = null;
@@ -159,6 +163,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
+
+    public function getPhoneNumber(): ?string { return $this->phoneNumber; }
+    public function setPhoneNumber(?string $phoneNumber): static { $this->phoneNumber = $phoneNumber; return $this; }
 
     public function isPendingValidation(): bool { return $this->accessStatus === 'pending_validation'; }
 

@@ -72,6 +72,7 @@ class DemandeTravauxSupp
     }
 
     public function getId(): ?int { return $this->id; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
     public function setRendezVous(RendezVous $v): static { $this->rendezVous = $v; return $this; }
     public function getDescription(): ?string { return $this->description; }

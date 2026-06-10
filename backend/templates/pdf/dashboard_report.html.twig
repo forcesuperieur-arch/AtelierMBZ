@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Rapport Analytics</title>
+  <style>
+    body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #333; }
+    h1 { font-size: 20px; color: #111; border-bottom: 2px solid #FFD200; padding-bottom: 6px; }
+    h2 { font-size: 14px; color: #444; margin-top: 24px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    .meta { color: #666; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #f5f5f5; text-align: left; padding: 6px 8px; font-size: 11px; border-bottom: 1px solid #ccc; }
+    td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+    .right { text-align: right; }
+    .highlight { background: #fffbe6; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>📊 Rapport Analytics</h1>
+  <div class="meta">
+    Période : {{ period.from }} → {{ period.to }}
+  </div>
+
+  <h2>KPIs</h2>
+  <table>
+    <tr><td>RDVs</td><td class="right">{{ kpi.nb_rdvs|default(0) }}</td></tr>
+    <tr><td>CA HT</td><td class="right">{{ kpi.ca_ht|default(0) }} €</td></tr>
+    <tr><td>CA MO HT</td><td class="right">{{ kpi.ca_mo_ht|default(0) }} €</td></tr>
+    <tr><td>CA Pièces HT</td><td class="right">{{ kpi.ca_pieces_ht|default(0) }} €</td></tr>
+  </table>
+
+  <h2>Tendance journalière</h2>
+  <table>
+    <thead><tr><th>Date</th><th class="right">CA HT (€)</th></tr></thead>
+    <tbody>
+      {% for row in trend %}
+      <tr><td>{{ row.snapshot_date }}</td><td class="right">{{ row.ca_du_jour_ht|default(0) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Top services</h2>
+  <table>
+    <thead><tr><th>Type</th><th class="right">Count</th><th class="right">Revenue (€)</th></tr></thead>
+    <tbody>
+      {% for s in topServices %}
+      <tr><td>{{ s.type_intervention }}</td><td class="right">{{ s.count }}</td><td class="right">{{ s.revenue|default(0) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Mécaniciens</h2>
+  <table>
+    <thead><tr><th>Nom</th><th class="right">RDVs</th><th class="right">CA généré (€)</th></tr></thead>
+    <tbody>
+      {% for m in mecas %}
+      <tr><td>{{ m.mecanicien_nom }}</td><td class="right">{{ m.nb_rdvs }}</td><td class="right">{{ m.ca_genere|default(0) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

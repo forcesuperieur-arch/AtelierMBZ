@@ -29,6 +29,11 @@ services:
         tags:
             - { name: doctrine.event_listener, event: prePersist }
 
+    App\EventListener\AnalyticsEventListener:
+        tags:
+            - { name: doctrine.event_listener, event: postPersist }
+            - { name: doctrine.event_listener, event: postUpdate }
+
     App\Service\ConfigEncryptionService:
         arguments:
             $appSecret: '%kernel.secret%'

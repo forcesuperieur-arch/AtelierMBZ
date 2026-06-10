@@ -28,7 +28,11 @@ class CreateAdminCommand extends Command
         // Check if admin already exists
         $existing = $this->em->getRepository(User::class)->findOneBy(['username' => 'admin']);
         if ($existing) {
-            $io->warning('Admin user already exists.');
+            $adminPassword = $_ENV['ADMIN_PASSWORD'] ?? 'admin123';
+            $hashed = $this->hasher->hashPassword($existing, $adminPassword);
+            $existing->setHashedPassword($hashed);
+            $this->em->flush();
+            $io->success(sprintf('Admin password updated: admin / %s', $adminPassword));
             return Command::SUCCESS;
         }
 

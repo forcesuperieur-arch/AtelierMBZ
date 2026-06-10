@@ -45,6 +45,7 @@ class ConfigAtelier
         'admin' => true,
         'tarifs' => true,
         'vo' => false,
+        'public_booking' => false,
     ];
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '65.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoStandard = '65.00';
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '85.00'])] #[Groups(['config:read', 'config:write'])] private string $tauxHoraireMoComplexe = '85.00';
@@ -68,6 +69,7 @@ class ConfigAtelier
     #[ORM\Column(options: ['default' => 30])] #[Groups(['config:read', 'config:write'])] private int $garantieTravauxJours = 30;
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $joursFermetureHebdo = ['sunday'];
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $datesFermetureExceptionnelles = [];
+    #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private ?array $dashboardThresholds = null;
 
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
@@ -102,6 +104,7 @@ class ConfigAtelier
             'admin' => true,
             'tarifs' => true,
             'vo' => false,
+        'public_booking' => false,
         ];
     }
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }
@@ -144,4 +147,21 @@ class ConfigAtelier
     public function setJoursFermetureHebdo(array $v): static { $this->joursFermetureHebdo = $v; return $this; }
     public function getDatesFermetureExceptionnelles(): array { return $this->datesFermetureExceptionnelles; }
     public function setDatesFermetureExceptionnelles(array $v): static { $this->datesFermetureExceptionnelles = $v; return $this; }
+    public function getDashboardThresholds(): array { return $this->dashboardThresholds ?? self::defaultDashboardThresholds(); }
+    public function setDashboardThresholds(?array $v): static { $this->dashboardThresholds = $v; return $this; }
+    public static function defaultDashboardThresholds(): array {
+        return [
+            'overrun_warning_minutes' => 15,
+            'overrun_critical_minutes' => 45,
+            'restitution_warning_minutes' => 15,
+            'restitution_critical_minutes' => 45,
+            'occupation_target_percent' => 80,
+            'occupation_warning_percent' => 60,
+            'rendement_target_percent' => 85,
+            'rendement_warning_percent' => 70,
+            'marge_mo_target_percent' => 60,
+            'taux_conversion_devis_target' => 70,
+            'delai_attente_pont_warning_minutes' => 30,
+        ];
+    }
 }

@@ -180,14 +180,31 @@ class VORemiseEnEtatController extends AbstractController
         }
 
         $projectDir = (string) $this->getParameter('kernel.project_dir');
-        $uploadsDir = realpath($projectDir . '/public/uploads/vo');
-        $filePath = realpath($projectDir . '/public' . $document->getFilePath());
+        $relativePath = $document->getFilePath();
 
-        if (!$uploadsDir || !$filePath || !str_starts_with($filePath, $uploadsDir)) {
+        // Try secure storage first (/var/uploads/vo), fallback to legacy public path
+        $secureDir = realpath($projectDir . '/var/uploads/vo');
+        $legacyDir = realpath($projectDir . '/public/uploads/vo');
+
+        $resolvedPath = null;
+        if ($secureDir !== false) {
+            $securePath = realpath($projectDir . '/var' . $relativePath);
+            if ($securePath !== false && str_starts_with($securePath, $secureDir . '/') && is_file($securePath)) {
+                $resolvedPath = $securePath;
+            }
+        }
+        if ($resolvedPath === null && $legacyDir !== false) {
+            $legacyPath = realpath($projectDir . '/public' . $relativePath);
+            if ($legacyPath !== false && str_starts_with($legacyPath, $legacyDir . '/') && is_file($legacyPath)) {
+                $resolvedPath = $legacyPath;
+            }
+        }
+
+        if ($resolvedPath === null) {
             return $this->json(['error' => 'Document introuvable'], 404);
         }
 
-        return new BinaryFileResponse($filePath, 200, [
+        return new BinaryFileResponse($resolvedPath, 200, [
             'Content-Type' => $document->getMimeType(),
             'Content-Disposition' => 'inline; filename="' . $document->getOriginalFilename() . '"',
         ]);

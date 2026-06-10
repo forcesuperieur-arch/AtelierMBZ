@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\State\ArchiveResourceProcessor;
+use App\State\PontProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,8 +23,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Get(security: "is_granted('ROLE_USER')"),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Patch(security: "is_granted('ROLE_ADMIN')"),
+        new Post(security: "is_granted('ROLE_ADMIN')", processor: PontProcessor::class),
+        new Patch(security: "is_granted('ROLE_ADMIN')", processor: PontProcessor::class),
         new Delete(security: "is_granted('ROLE_ADMIN')", processor: ArchiveResourceProcessor::class),
     ]
 )]
@@ -36,6 +37,7 @@ class Pont
     private ?int $id = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['pont:read', 'pont:write'])]
     private ?int $atelierId = null;
 
     #[ORM\Column(length: 100)]

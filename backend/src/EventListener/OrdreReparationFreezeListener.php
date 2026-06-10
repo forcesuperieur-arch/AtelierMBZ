@@ -35,6 +35,9 @@ class OrdreReparationFreezeListener
             'mechanicCheckup',
             'mechanicCheckupUpdatedAt',
             'etatVehicule',
+            'signedSnapshot',
+            'signedHash',
+            'signedAt',
         ];
 
         if (!$wasFrozen && $args->hasChangedField('statut') && $currentStatut === 'signe') {

@@ -1,6 +1,6 @@
 lexik_jwt_authentication:
     secret_key: '%env(JWT_SECRET_KEY)%'
-    token_ttl: 900  # 15 minutes
+    token_ttl: '%env(int:JWT_TOKEN_TTL)%'  # 15 minutes default, override for tests
     user_id_claim: username
     encoder:
         signature_algorithm: HS256

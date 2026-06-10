@@ -10,6 +10,8 @@ use App\Entity\OrdreReparation;
 use App\Entity\Prestation;
 use App\Entity\RendezVous;
 use App\Service\MercureNotifier;
+use App\Service\NotificationDispatcher;
+use App\Service\NotificationMessage;
 use App\Service\OrdreReparationPolicy;
 use App\Service\PrestationCatalogService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +29,8 @@ class DemandeTravauxSuppController extends AbstractController
         private PrestationCatalogService $catalogService,
         private OrdreReparationPolicy $orPolicy,
         private MercureNotifier $mercureNotifier,
+        private NotificationDispatcher $notificationDispatcher,
+        private \App\Service\RolePhoneResolver $phoneResolver,
     ) {}
 
     /**
@@ -165,6 +169,20 @@ class DemandeTravauxSuppController extends AbstractController
     }
 
     /**
+     * Admin/réceptionniste: détail d'une demande.
+     */
+    #[Route('/api/demandes-travaux-supp/{id}', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function get(int $id): JsonResponse
+    {
+        $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
+        if (!$demande) {
+            return $this->json(['error' => 'Demande non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+        return $this->json($this->serializeDemande($demande));
+    }
+
+    /**
      * Admin/réceptionniste: liste des demandes en attente.
      */
     #[Route('/api/demandes-travaux-supp', methods: ['GET'])]
@@ -187,11 +205,73 @@ class DemandeTravauxSuppController extends AbstractController
     }
 
     /**
+     * Réceptionniste modifie une demande avant envoi.
+     * Modifiable tant que statut = en_attente ou en_attente_validation.
+     */
+    #[Route('/api/demandes-travaux-supp/{id}', methods: ['PATCH'])]
+    #[IsGranted('ROLE_USER')]
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
+        if (!$demande) {
+            return $this->json(['error' => 'Demande non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!in_array($demande->getStatut(), [DemandeTravauxSupp::STATUT_EN_ATTENTE, DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION], true)) {
+            return $this->json(['error' => 'Demande non modifiable (déjà envoyée ou décidée)'], Response::HTTP_CONFLICT);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        // Update prestations
+        $prestationsChoisies = $data['prestations'] ?? null;
+        if ($prestationsChoisies !== null) {
+            $totalPrix = '0.00';
+            $totalTemps = 0;
+            $validated = [];
+
+            foreach ($prestationsChoisies as $p) {
+                $prixTtc = isset($p['prix_ttc']) ? bcadd('0.00', (string) $p['prix_ttc'], 2) : '0.00';
+                $temps = isset($p['temps_minutes']) ? (int) $p['temps_minutes'] : 0;
+                $totalPrix = bcadd($totalPrix, $prixTtc, 2);
+                $totalTemps += $temps;
+                $validated[] = [
+                    'prestation_id' => (int) ($p['prestation_id'] ?? 0),
+                    'designation' => (string) ($p['designation'] ?? ''),
+                    'prix_ht' => isset($p['prix_ht']) ? bcadd('0.00', (string) $p['prix_ht'], 2) : '0.00',
+                    'prix_ttc' => $prixTtc,
+                    'temps_minutes' => $temps,
+                    'from_catalog' => (bool) ($p['from_catalog'] ?? true),
+                ];
+            }
+
+            $demande->setPrestationsChoisies($validated);
+            $demande->setPrixEstime($totalPrix);
+            $demande->setTempsEstime($totalTemps);
+        }
+
+        if (array_key_exists('description', $data)) {
+            $demande->setDescription($data['description'] ?: null);
+        }
+        if (array_key_exists('urgence', $data)) {
+            $demande->setUrgence((string) $data['urgence']);
+        }
+        if (array_key_exists('notes_receptionniste', $data)) {
+            $demande->setNotesReceptionniste($data['notes_receptionniste'] ?: null);
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->serializeDemande($demande));
+    }
+
+    /**
      * Réceptionniste envoie la demande au client (change statut → en_attente_decision_client).
+     * Body: { canal: 'email' | 'sms' }
      */
     #[Route('/api/demandes-travaux-supp/{id}/envoyer', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function envoyer(int $id): JsonResponse
+    public function envoyer(int $id, Request $request): JsonResponse
     {
         $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
         if (!$demande) {
@@ -202,14 +282,80 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Demande déjà envoyée ou décidée'], Response::HTTP_CONFLICT);
         }
 
+        $data = json_decode($request->getContent(), true) ?? [];
+        $canal = $data['canal'] ?? null;
+
+        if (!in_array($canal, ['email', 'sms'], true)) {
+            return $this->json(['error' => 'Canal requis : email ou sms'], Response::HTTP_BAD_REQUEST);
+        }
+
         $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT);
         $this->em->flush();
+
+        $rdv = $demande->getRendezVous();
+        $client = $rdv->getClient();
+        $vehicule = $rdv->getVehicule();
+        $atelierId = $rdv->getAtelierId() ?? 0;
+
+        $lien = '/public/demande/' . $demande->getTokenValidation();
+        $baseUrl = rtrim($_ENV['PUBLIC_URL'] ?? $request->getSchemeAndHttpHost(), '/');
+        $lienAbsolu = $baseUrl . $lien;
+
+        $clientNom = $client ? ($client->getPrenom() . ' ' . $client->getNom()) : 'Client';
+        $vehiculeInfo = $vehicule ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? '')) : '';
+
+        $recipient = match ($canal) {
+            'email' => $client?->getEmail(),
+            'sms' => $client?->getTelephone(),
+            default => null,
+        };
+
+        if (!$recipient) {
+            return $this->json([
+                'error' => 'Aucun ' . ($canal === 'email' ? 'e-mail' : 'téléphone') . ' renseigné pour ce client',
+                'id' => $demande->getId(),
+                'statut' => $demande->getStatut(),
+                'token' => $demande->getTokenValidation(),
+                'lien_client' => $lien,
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $body = sprintf(
+            "Bonjour %s,%s\n\nVotre atelier vous propose des travaux complémentaires pour votre véhicule %s.\n\n"
+            . "Pour consulter le détail et donner votre accord :\n%s\n\n"
+            . "Cordialement,\nVotre atelier",
+            $clientNom,
+            $vehiculeInfo ? "\n🏍 " . $vehiculeInfo : '',
+            $vehiculeInfo ?: '',
+            $lienAbsolu
+        );
+
+        if ($canal === 'email') {
+            $body = nl2br($body);
+        }
+
+        $msg = new NotificationMessage(
+            $canal,
+            $atelierId,
+            $recipient,
+            $body,
+            'Travaux complémentaires — ' . ($vehiculeInfo ?: 'Votre véhicule'),
+            'demande_travaux_supp_envoi',
+            'DemandeTravauxSupp',
+            $demande->getId(),
+        );
+
+        $result = $this->notificationDispatcher->send($msg);
 
         return $this->json([
             'id' => $demande->getId(),
             'statut' => $demande->getStatut(),
             'token' => $demande->getTokenValidation(),
-            'lien_client' => '/public/demande/' . $demande->getTokenValidation(),
+            'lien_client' => $lien,
+            'canal' => $canal,
+            'destinataire' => $recipient,
+            'envoye' => $result->isSuccess(),
+            'envoi_erreur' => $result->getErrorMessage(),
         ]);
     }
 
@@ -342,20 +488,19 @@ class DemandeTravauxSuppController extends AbstractController
      * 5.5 — Create escalation schedule for a demande_complementaire notification.
      * T+0: push web (ROLE_RECEPTIONNAIRE + ROLE_ADMIN)
      * T+5min: push web renforcé
-     * T+10min: SMS ROLE_RESPONSABLE_ATELIER
-     * T+30min: SMS ROLE_RESPONSABLE_MAGASIN
+     * T+10min: SMS responsables atelier
+     * T+30min: SMS responsables magasin
      */
     private function createEscalationSchedule(Notification $notif): void
     {
         $now = new \DateTimeImmutable();
-        $escalations = [
+        $atId = $notif->getAtelierId() ?? 0;
+
+        // Push escalations (no phone needed)
+        foreach ([
             ['level' => 1, 'channel' => 'push', 'delay' => 0, 'target' => 'ROLE_RECEPTIONNAIRE,ROLE_ADMIN'],
             ['level' => 2, 'channel' => 'push', 'delay' => 5, 'target' => 'ROLE_RECEPTIONNAIRE,ROLE_ADMIN (renforcé)'],
-            ['level' => 3, 'channel' => 'sms', 'delay' => 10, 'target' => 'ROLE_RESPONSABLE_ATELIER'],
-            ['level' => 4, 'channel' => 'sms', 'delay' => 30, 'target' => 'ROLE_RESPONSABLE_MAGASIN'],
-        ];
-
-        foreach ($escalations as $esc) {
+        ] as $esc) {
             $e = new NotificationEscalation();
             $e->setNotification($notif);
             $e->setLevel($esc['level']);
@@ -363,6 +508,23 @@ class DemandeTravauxSuppController extends AbstractController
             $e->setScheduledAt($now->modify("+{$esc['delay']} minutes"));
             $e->setTargetInfo($esc['target']);
             $this->em->persist($e);
+        }
+
+        // SMS escalations: resolve roles to actual phone numbers
+        foreach ([
+            ['level' => 3, 'channel' => 'sms', 'delay' => 10, 'role' => 'ROLE_ADMIN'],
+            ['level' => 4, 'channel' => 'sms', 'delay' => 30, 'role' => 'ROLE_ADMIN'],
+        ] as $esc) {
+            $phones = $this->phoneResolver->resolvePhones($esc['role'], $atId);
+            foreach ($phones as $phone) {
+                $e = new NotificationEscalation();
+                $e->setNotification($notif);
+                $e->setLevel($esc['level']);
+                $e->setChannel($esc['channel']);
+                $e->setScheduledAt($now->modify("+{$esc['delay']} minutes"));
+                $e->setTargetInfo($phone);
+                $this->em->persist($e);
+            }
         }
 
         $this->em->flush();
@@ -388,6 +550,9 @@ class DemandeTravauxSuppController extends AbstractController
             'client_nom' => $client ? ($client->getPrenom() . ' ' . $client->getNom()) : null,
             'vehicule_plaque' => $vehicule?->getPlaque(),
             'vehicule_info' => $vehicule ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? '')) : null,
+            'vehicule_type_moto' => $vehicule?->getTypeMoto(),
+            'vehicule_cylindree' => $vehicule?->getCylindree(),
+            'vehicule_categorie_id' => $vehicule?->getCategorie()?->getId(),
             'description' => $d->getDescription(),
             'urgence' => $d->getUrgence(),
             'prestations' => $d->getPrestationsChoisies(),

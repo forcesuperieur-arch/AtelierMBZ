@@ -138,7 +138,7 @@ class SlotService
         $pStart = $pauseDebut ? $this->timeToMinutes($pauseDebut) : null;
         $pEnd = $pauseFin ? $this->timeToMinutes($pauseFin) : null;
 
-        for ($t = $startMinutes; $t < $endMinutes; $t += 30) {
+        for ($t = $startMinutes; $t < $endMinutes; $t += 15) {
             if ($sameDayMinStart !== null && $t < $sameDayMinStart) {
                 continue;
             }
@@ -199,7 +199,7 @@ class SlotService
         }
 
         $minAllowed = ((int) $now->format('H') * 60) + (int) $now->format('i') + 120;
-        return (int) (ceil($minAllowed / 30) * 30);
+        return (int) (ceil($minAllowed / 15) * 15);
     }
 
     private function computeEffectiveEndMinutes(

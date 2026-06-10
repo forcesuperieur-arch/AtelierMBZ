@@ -1,7 +1,9 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\Client;
+use App\Entity\ConfigAtelier;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\SlotService;
@@ -45,6 +47,8 @@ class PublicBookingController extends AbstractController
         $dateFin = $request->query->get('date_fin', (new \DateTime('+14 days'))->format('Y-m-d'));
         $tempsMinutes = (int) $request->query->get('temps_minutes', 60);
 
+        $bookingEnabled = $this->isPublicBookingEnabled($atelierId);
+
         $slots = $this->slotService->getAvailableSlots(
             new \DateTime($dateDebut),
             new \DateTime($dateFin),
@@ -52,7 +56,55 @@ class PublicBookingController extends AbstractController
             $atelierId,
         );
 
-        return $this->json($slots);
+        return $this->json([
+            'bookingEnabled' => $bookingEnabled,
+            'slots' => $slots,
+        ]);
+    }
+
+    /**
+     * Get prestation catalog for public booking.
+     */
+    #[Route('/prestations', methods: ['GET'])]
+    public function prestations(Request $request): JsonResponse
+    {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $atelierId = $request->query->getInt('atelier_id');
+        if (!$atelierId) {
+            return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $prestations = $this->em->getRepository(\App\Entity\Prestation::class)
+            ->createQueryBuilder('p')
+            ->where('p.atelierId = :atelier')
+            ->andWhere('p.isActive = 1')
+            ->setParameter('atelier', $atelierId)
+            ->orderBy('p.categorie', 'ASC')
+            ->addOrderBy('p.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->json(array_map(function ($p) {
+            return [
+                'id' => $p->getId(),
+                'code' => $p->getCode(),
+                'nom' => $p->getNom(),
+                'description' => $p->getDescription(),
+                'categorie' => $p->getCategorie(),
+                'type_vehicule' => $p->getTypeVehicule(),
+                'cylindree_min' => $p->getCylindreeMin(),
+                'cylindree_max' => $p->getCylindreeMax(),
+                'type_tarif' => $p->getTypeTarif(),
+                'is_active' => $p->getIsActive(),
+                'prix_base_ht' => (float) $p->getPrixBaseHt(),
+                'prix_base_ttc' => (float) $p->getPrixBaseTtc(),
+                'temps_estime_minutes' => $p->getTempsEstimeMinutes(),
+            ];
+        }, $prestations));
     }
 
     /**
@@ -146,6 +198,15 @@ class PublicBookingController extends AbstractController
                 $vehicule->setPlaque(strtoupper($data['plaque']));
                 $vehicule->setMarque($data['marque'] ?? null);
                 $vehicule->setModele($data['modele'] ?? null);
+                if (!empty($data['annee'])) {
+                    $vehicule->setAnnee((int) $data['annee']);
+                }
+                if (!empty($data['cylindree'])) {
+                    $vehicule->setCylindree((string) $data['cylindree']);
+                }
+                if (!empty($data['type_moto'])) {
+                    $vehicule->setTypeMoto((string) $data['type_moto']);
+                }
                 $vehicule->setClient($client);
                 $vehicule->setAtelierId($atelierId);
                 $this->em->persist($vehicule);
@@ -186,5 +247,141 @@ class PublicBookingController extends AbstractController
             'heure_fin' => $selectedSlot['heure_fin'] ?? null,
             'pause_appliquee' => (bool) ($selectedSlot['pause_appliquee'] ?? false),
         ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * List active ateliers for public booking selection.
+     */
+    #[Route('/ateliers', methods: ['GET'])]
+    public function ateliers(Request $request): JsonResponse
+    {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp() ?? 'default');
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $ateliers = $this->em->getRepository(Atelier::class)
+            ->createQueryBuilder('a')
+            ->where('a.actif = true')
+            ->orderBy('a.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->json(array_map(static fn (Atelier $a): array => [
+            'id' => (int) $a->getId(),
+            'nom' => $a->getNom(),
+            'adresse' => $a->getAdresse(),
+            'ville' => $a->getVille(),
+        ], $ateliers));
+    }
+
+    /**
+     * Public vehicle lookup by plate/VIN (no sensitive client data).
+     */
+    #[Route('/vehicule-lookup/{query}', methods: ['GET'])]
+    public function vehiculeLookup(string $query, Request $request): JsonResponse
+    {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp() ?? 'default');
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $normalized = $this->normalizeVehicleQuery($query);
+        if ($normalized === '') {
+            return $this->json(['found' => false, 'query' => $query]);
+        }
+
+        $vehicule = $this->findByNormalizedPlate($normalized, $query);
+
+        if (!$vehicule) {
+            $term = '%' . mb_strtolower(trim($query)) . '%';
+            $vehicule = $this->em->getRepository(Vehicule::class)
+                ->createQueryBuilder('v')
+                ->where('LOWER(v.plaque) LIKE :term OR LOWER(v.marque) LIKE :term OR LOWER(v.modele) LIKE :term')
+                ->setParameter('term', $term)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+        }
+
+        if (!$vehicule) {
+            return $this->json(['found' => false, 'query' => $query]);
+        }
+
+        return $this->json([
+            'found' => true,
+            'id' => $vehicule->getId(),
+            'plaque' => $vehicule->getPlaque(),
+            'marque' => $vehicule->getMarque(),
+            'modele' => $vehicule->getModele(),
+            'annee' => $vehicule->getAnnee(),
+            'cylindree' => $vehicule->getCylindree(),
+            'type_moto' => $vehicule->getTypeMoto(),
+        ]);
+    }
+
+    private function normalizeVehicleQuery(string $query): string
+    {
+        return mb_strtoupper((string) preg_replace('/[^A-Z0-9]/i', '', $query));
+    }
+
+    private function findByNormalizedPlate(string $normalized, string $query): ?Vehicule
+    {
+        $variants = $this->buildPlateVariants($normalized, $query);
+
+        $candidates = $this->em->getRepository(Vehicule::class)
+            ->createQueryBuilder('v')
+            ->where('UPPER(v.plaque) IN (:variants)')
+            ->setParameter('variants', $variants)
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+
+        foreach ($candidates as $candidate) {
+            if (!$candidate instanceof Vehicule) {
+                continue;
+            }
+            if ($this->normalizeVehicleQuery((string) $candidate->getPlaque()) === $normalized) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildPlateVariants(string $normalized, string $query): array
+    {
+        $variants = [
+            mb_strtoupper(trim($query)),
+            $normalized,
+        ];
+
+        if (strlen($normalized) === 7) {
+            $variants[] = sprintf('%s-%s-%s', substr($normalized, 0, 2), substr($normalized, 2, 3), substr($normalized, 5, 2));
+            $variants[] = sprintf('%s %s %s', substr($normalized, 0, 2), substr($normalized, 2, 3), substr($normalized, 5, 2));
+        }
+
+        return array_values(array_unique(array_filter($variants)));
+    }
+
+    private function isPublicBookingEnabled(int $atelierId): bool
+    {
+        $config = $this->em->getRepository(ConfigAtelier::class)
+            ->createQueryBuilder('c')
+            ->where('c.atelierId = :atelier')
+            ->setParameter('atelier', $atelierId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$config) {
+            return false;
+        }
+
+        $modules = $config->getFeatureModules();
+        return !empty($modules['public_booking']);
     }
 }

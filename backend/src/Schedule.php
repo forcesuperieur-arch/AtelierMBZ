@@ -30,6 +30,8 @@ class Schedule implements ScheduleProviderInterface
             ->add(RecurringMessage::cron('* * * * *', new RunCommandMessage('app:process-notification-escalations')))
             // RGPD: daily purge of identity documents after LP transcription (4:00 AM)
             ->add(RecurringMessage::cron('0 4 * * *', new RunCommandMessage('app:purge-identity-documents')))
+            // Rappel révision J-30 (9:00 AM daily)
+            ->add(RecurringMessage::cron('0 9 * * *', new RunCommandMessage('app:rappel-prochaine-revision')))
         ;
     }
 }

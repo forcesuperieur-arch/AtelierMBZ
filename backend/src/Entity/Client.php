@@ -49,6 +49,10 @@ class Client
     #[Groups(['client:read', 'client:write'])]
     private ?string $adresse = null;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $segment = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['client:read', 'client:write'])]
     private ?string $notes = null;
@@ -73,6 +77,18 @@ class Client
     #[ORM\Column(options: ['default' => false])]
     #[Groups(['client:read'])]
     private bool $isAnonymized = false;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $password = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $resetToken = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $resetTokenExpiresAt = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $emailVerifiedAt = null;
 
     /** @var Collection<int, Vehicule> */
     #[ORM\OneToMany(targetEntity: Vehicule::class, mappedBy: 'client')]
@@ -103,6 +119,8 @@ class Client
     public function setEmail(?string $email): static { $this->email = $email; return $this; }
     public function getAdresse(): ?string { return $this->adresse; }
     public function setAdresse(?string $adresse): static { $this->adresse = $adresse; return $this; }
+    public function getSegment(): ?string { return $this->segment; }
+    public function setSegment(?string $segment): static { $this->segment = $segment; return $this; }
     public function getNotes(): ?string { return $this->notes; }
     public function setNotes(?string $notes): static { $this->notes = $notes; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
@@ -119,4 +137,13 @@ class Client
     public function getIsAnonymized(): bool { return $this->isAnonymized; }
     public function setIsAnonymized(bool $v): static { $this->isAnonymized = $v; return $this; }
     public function touchActivity(): void { $this->lastActivityAt = new \DateTime(); }
+
+    public function getPassword(): ?string { return $this->password; }
+    public function setPassword(?string $v): static { $this->password = $v; return $this; }
+    public function getResetToken(): ?string { return $this->resetToken; }
+    public function setResetToken(?string $v): static { $this->resetToken = $v; return $this; }
+    public function getResetTokenExpiresAt(): ?\DateTimeInterface { return $this->resetTokenExpiresAt; }
+    public function setResetTokenExpiresAt(?\DateTimeInterface $v): static { $this->resetTokenExpiresAt = $v; return $this; }
+    public function getEmailVerifiedAt(): ?\DateTimeInterface { return $this->emailVerifiedAt; }
+    public function setEmailVerifiedAt(?\DateTimeInterface $v): static { $this->emailVerifiedAt = $v; return $this; }
 }
