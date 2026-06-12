@@ -64,6 +64,12 @@ services:
       db:
         condition: service_healthy
     command: php bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=256M -vv
+    healthcheck:
+      # unhealthy si des messages sont en file d'échec (alerte visible dans docker compose ps)
+      test: ["CMD-SHELL", "php bin/console app:worker-health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-atelier}:${POSTGRES_PASSWORD:-atelier}@db:5432/${POSTGRES_DB:-atelier_moto}?serverVersion=15&charset=utf8
       APP_ENV: ${APP_ENV:-dev}
