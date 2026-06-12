@@ -171,7 +171,7 @@ function openRdvModal(rdv: any) {
 }
 
 const filters = reactive({
-  date: new Date().toISOString().slice(0, 10),
+  date: todayLocalISO(),
   status: '',
   search: '',
 })
@@ -247,7 +247,7 @@ async function fetchData() {
 }
 
 function resetFilters() {
-  filters.date = new Date().toISOString().slice(0, 10)
+  filters.date = todayLocalISO()
   filters.status = ''
   filters.search = ''
   fetchData()

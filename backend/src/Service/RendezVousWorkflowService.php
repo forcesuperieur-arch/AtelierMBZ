@@ -56,6 +56,10 @@ class RendezVousWorkflowService
         if ($minutes > 0) {
             $rdv->setTempsEffectifMinutes(($rdv->getTempsEffectifMinutes() ?? 0) + $minutes);
         }
+
+        // Session soldée : sans cette remise à zéro, un second arrêt (ex. pause
+        // puis terminer) recomptait tout l'intervalle depuis le début initial.
+        $rdv->setHeureDebutTravail(null);
     }
 
     public function handleTransitionSideEffects(

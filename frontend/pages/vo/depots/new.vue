@@ -464,7 +464,7 @@ const depotForm = reactive({
   prixVenteSouhaite: '',
   commissionType: 'pourcentage',
   commissionValeur: '',
-  dateDebut: new Date().toISOString().slice(0, 10),
+  dateDebut: todayLocalISO(),
   dureeMandat: 90,
   gestionnaireId: null as number | null,
   deposantIdType: 'carte_identite',
