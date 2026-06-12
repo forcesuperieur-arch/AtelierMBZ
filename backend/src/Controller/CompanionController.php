@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -20,12 +21,21 @@ class CompanionController extends AbstractController
         private EntityManagerInterface $em,
         private SluggerInterface $slugger,
         private OrdreReparationPolicy $ordreReparationPolicy,
+        private RateLimiterFactory $companionUploadLimiter,
     ) {}
 
     private function findRdvByToken(string $token): ?RendezVous
     {
         if (strlen($token) < 16) return null;
         return $this->em->getRepository(RendezVous::class)->findOneBy(['tokenSuivi' => $token]);
+    }
+
+    /** Limite les écritures token-only (signature, véhicule, photos) : 429 au-delà. */
+    private function writeLimitExceeded(Request $request): bool
+    {
+        $limiter = $this->companionUploadLimiter->create($request->getClientIp() ?? 'default');
+
+        return !$limiter->consume()->isAccepted();
     }
 
     private function decodeEtatVehicule(mixed $raw): array
@@ -168,6 +178,9 @@ class CompanionController extends AbstractController
     #[Route('/{token}/photo', methods: ['POST'])]
     public function uploadPhoto(string $token, Request $request): JsonResponse
     {
+        if ($this->writeLimitExceeded($request)) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -215,6 +228,9 @@ class CompanionController extends AbstractController
     #[Route('/{token}/signature', methods: ['POST'])]
     public function saveSignature(string $token, Request $request): JsonResponse
     {
+        if ($this->writeLimitExceeded($request)) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -290,6 +306,9 @@ class CompanionController extends AbstractController
     #[Route('/{token}/vehicule', methods: ['PUT'])]
     public function updateVehicule(string $token, Request $request): JsonResponse
     {
+        if ($this->writeLimitExceeded($request)) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
@@ -329,6 +348,9 @@ class CompanionController extends AbstractController
     #[Route('/{token}/reception-data', methods: ['PUT'])]
     public function updateReceptionData(string $token, Request $request): JsonResponse
     {
+        if ($this->writeLimitExceeded($request)) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
         $rdv = $this->findRdvByToken($token);
         if (!$rdv) {
             return $this->json(['error' => 'Lien invalide'], Response::HTTP_NOT_FOUND);
