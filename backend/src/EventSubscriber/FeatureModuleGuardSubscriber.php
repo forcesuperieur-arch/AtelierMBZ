@@ -33,6 +33,9 @@ final class FeatureModuleGuardSubscriber implements EventSubscriberInterface
     private const MODULE_PATH_PATTERNS = [
         'facturation' => [
             '#^/api/rendez-vous/\d+/(preview-facture|facturer)$#',
+            // La route générique de workflow permettait d'atteindre les statuts
+            // facture/paye même module coupé (états invisibles dans l'UI).
+            '#^/api/rendez-vous/\d+/transition/(facturer|payer)$#',
         ],
     ];
 

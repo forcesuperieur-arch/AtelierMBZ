@@ -194,7 +194,13 @@ class SlotService
     private function sameDayMinStartMinutes(\DateTimeInterface $date): ?int
     {
         $now = new \DateTimeImmutable();
-        if ($date->format('Y-m-d') !== $now->format('Y-m-d')) {
+        $day = $date->format('Y-m-d');
+        $today = $now->format('Y-m-d');
+
+        if ($day < $today) {
+            return PHP_INT_MAX; // date passée : aucun créneau réservable
+        }
+        if ($day !== $today) {
             return null;
         }
 

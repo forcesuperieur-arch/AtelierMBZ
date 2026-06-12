@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\NotificationDispatcher;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -26,6 +27,7 @@ class PublicBookingController extends AbstractController
         private EntityManagerInterface $em,
         private SlotService $slotService,
         private RateLimiterFactory $publicBookingLimiter,
+        private NotificationDispatcher $notificationDispatcher,
     ) {}
 
     /**
@@ -143,6 +145,15 @@ class PublicBookingController extends AbstractController
         if (!$atelierId) {
             return $this->json(['error' => 'atelier_id is required'], Response::HTTP_BAD_REQUEST);
         }
+
+        // Le module peut être désactivé : l'UI masque le formulaire mais l'API
+        // doit refuser aussi (sinon réservations fantômes par POST direct).
+        if (!$this->isPublicBookingEnabled($atelierId)) {
+            return $this->json([
+                'error' => 'La réservation en ligne n\'est pas disponible pour cet atelier.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
         $targetDate = new \DateTime($data['date_rdv']);
         $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);
@@ -171,7 +182,9 @@ class PublicBookingController extends AbstractController
             'atelierId' => $atelierId,
         ]);
 
+        $isNewClient = false;
         if (!$client) {
+            $isNewClient = true;
             $client = new Client();
             $client->setNom($data['nom']);
             $client->setPrenom($data['prenom']);
@@ -183,6 +196,9 @@ class PublicBookingController extends AbstractController
             $client->setConsentSource('public_booking');
             $this->em->persist($client);
         }
+        // SÉCURITÉ : ne jamais rattacher l'email soumis à une fiche client
+        // existante — quiconque connaît le téléphone pourrait détourner le
+        // compte (l'email reçoit le lien d'activation de l'espace client).
         // RGPD: Update last activity
         $client->touchActivity();
 
@@ -192,6 +208,13 @@ class PublicBookingController extends AbstractController
             $vehicule = $this->em->getRepository(Vehicule::class)->findOneBy([
                 'plaque' => strtoupper($data['plaque']),
             ]);
+
+            // La fiche n'est réutilisée que si elle appartient au même client
+            // (même téléphone) — sinon nouvelle fiche locale à cet atelier,
+            // pour ne pas polluer l'historique d'un autre propriétaire.
+            if ($vehicule && $vehicule->getClient()?->getTelephone() !== $client->getTelephone()) {
+                $vehicule = null;
+            }
 
             if (!$vehicule) {
                 $vehicule = new Vehicule();
@@ -238,6 +261,13 @@ class PublicBookingController extends AbstractController
         $this->em->persist($rdv);
         $this->em->flush();
 
+        // Accusé de réception + invitation espace client (best-effort : ne bloque jamais la réservation)
+        try {
+            $this->sendBookingAcknowledgement($rdv, $client, $isNewClient, $request);
+        } catch (\Throwable) {
+            // l'email échoue silencieusement, le RDV est créé
+        }
+
         return $this->json([
             'id' => $rdv->getId(),
             'token_suivi' => $rdv->getTokenSuivi(),
@@ -247,6 +277,59 @@ class PublicBookingController extends AbstractController
             'heure_fin' => $selectedSlot['heure_fin'] ?? null,
             'pause_appliquee' => (bool) ($selectedSlot['pause_appliquee'] ?? false),
         ], Response::HTTP_CREATED);
+    }
+
+    private function sendBookingAcknowledgement(RendezVous $rdv, Client $client, bool $isNewClient, Request $request): void
+    {
+        $to = $client->getEmail();
+        $atelierId = $rdv->getAtelierId();
+        if (!$to || !$atelierId) {
+            return;
+        }
+
+        $baseUrl = rtrim($_ENV['PUBLIC_URL'] ?? $request->getSchemeAndHttpHost(), '/');
+        $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
+        $atelierNom = $atelier?->getNom() ?? 'votre atelier';
+        $suiviUrl = $baseUrl . '/public/suivi?token=' . $rdv->getTokenSuivi();
+
+        // Invitation espace client : UNIQUEMENT pour un compte créé par ce
+        // booking. Pour un client existant, jamais de lien d'activation (risque
+        // de détournement) ni d'écrasement d'un resetToken encore valide.
+        $activationBloc = '';
+        if ($isNewClient && !$client->getPassword()) {
+            $token = bin2hex(random_bytes(32));
+            $client->setResetToken($token);
+            $client->setResetTokenExpiresAt(new \DateTime('+7 days'));
+            $this->em->flush();
+
+            $activationUrl = $baseUrl . '/client/reset-password?token=' . $token;
+            $activationBloc = sprintf(
+                '<hr><p><strong>Créez votre espace client</strong><br>' .
+                'Retrouvez vos rendez-vous, vos motos et votre historique d\'entretien en ligne. ' .
+                'Activez votre espace en définissant votre mot de passe (lien valable 7 jours) :<br>' .
+                '<a href="%s">%s</a></p>',
+                htmlspecialchars($activationUrl),
+                htmlspecialchars($activationUrl)
+            );
+        }
+
+        $this->notificationDispatcher->sendFromTemplate(
+            'booking_accuse',
+            'email',
+            $atelierId,
+            $to,
+            [
+                'client_prenom' => htmlspecialchars($client->getPrenom() ?? ''),
+                'atelier_nom' => htmlspecialchars($atelierNom),
+                'date_rdv' => $rdv->getDateRdv()->format('d/m/Y'),
+                'heure_rdv' => $rdv->getHeureRdv()->format('H\hi'),
+                'type_intervention' => htmlspecialchars($rdv->getTypeIntervention() ?? ''),
+                'suivi_url' => htmlspecialchars($suiviUrl),
+                'activation_bloc' => $activationBloc,
+            ],
+            'RendezVous',
+            $rdv->getId(),
+        );
     }
 
     /**
@@ -291,18 +374,9 @@ class PublicBookingController extends AbstractController
             return $this->json(['found' => false, 'query' => $query]);
         }
 
+        // Correspondance exacte de plaque uniquement : la recherche floue
+        // (marque/modèle) permettait d'énumérer les plaques des clients.
         $vehicule = $this->findByNormalizedPlate($normalized, $query);
-
-        if (!$vehicule) {
-            $term = '%' . mb_strtolower(trim($query)) . '%';
-            $vehicule = $this->em->getRepository(Vehicule::class)
-                ->createQueryBuilder('v')
-                ->where('LOWER(v.plaque) LIKE :term OR LOWER(v.marque) LIKE :term OR LOWER(v.modele) LIKE :term')
-                ->setParameter('term', $term)
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult();
-        }
 
         if (!$vehicule) {
             return $this->json(['found' => false, 'query' => $query]);
@@ -310,7 +384,6 @@ class PublicBookingController extends AbstractController
 
         return $this->json([
             'found' => true,
-            'id' => $vehicule->getId(),
             'plaque' => $vehicule->getPlaque(),
             'marque' => $vehicule->getMarque(),
             'modele' => $vehicule->getModele(),

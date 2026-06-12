@@ -42,34 +42,46 @@ test.describe('Core Business Flows', () => {
     await expect(page.locator('body')).toContainText(/choix du créneau|créneau sélectionné|planning/i);
   });
 
-  // FIXME(phase 3 MVP) : la page booking est devenue un wizard multi-étapes
-  // (Véhicule → Service → Créneau → Validation) — ce test pilote l'ancien
-  // formulaire à plat. À réécrire lors de l'alignement du flux booking.
-  test.fixme('Public booking: can submit and get tracking token', async ({ page }) => {
+  test('Public booking: wizard complet jusqu\'au token de suivi', async ({ page }) => {
     await page.goto('/public/booking');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Fill the form
-    await page.getByLabel('Prénom', { exact: true }).fill('Test');
-    await page.getByLabel('Nom', { exact: true }).fill('Migration');
-    await page.getByLabel('Téléphone', { exact: true }).fill(`06${Date.now().toString().slice(-8)}`);
-    await page.getByLabel('Email', { exact: true }).fill('migration@example.com');
-    await page.getByLabel(/Marque/i).fill('Yamaha');
-    await page.getByLabel(/Modèle/i).fill('MT-07');
-    await page.getByLabel('Plaque', { exact: true }).fill('BB-456-CC');
+    // Étape 1 — Véhicule (saisie manuelle)
+    await page.getByRole('button', { name: /saisie manuelle/i }).click();
+    await page.getByPlaceholder('Ex: KAWASAKI').fill('Yamaha');
+    await page.getByPlaceholder('Ex: Z900').fill('MT-07');
+    await page.getByPlaceholder('AB-123-CD', { exact: true }).fill('BB-456-CC');
+    const next1 = page.getByRole('button', { name: 'Suivant →' });
+    await expect(next1).toBeEnabled({ timeout: 10000 });
+    await next1.click();
 
-    // Wait for slot buttons from initial onMounted fetch (date defaults to today)
+    // Étape 2 — Service : sélectionner la première prestation
+    const presta = page.locator('button:has-text("€"), button:has-text("min")').first();
+    await expect(presta).toBeVisible({ timeout: 15000 });
+    await presta.click();
+    await page.getByRole('button', { name: 'Suivant →' }).click();
+
+    // Étape 3 — Créneau : premier créneau disponible du planning
     const slotButton = page.locator('button').filter({ hasText: /^\d{2}:\d{2}$/ }).first();
     await expect(slotButton).toBeVisible({ timeout: 20000 });
     await slotButton.click();
+    await page.getByRole('button', { name: 'Suivant →' }).click();
+
+    // Étape 4 — Validation : coordonnées client
+    // :text-is = correspondance exacte (sinon « Nom » matche aussi le label « Prénom »)
+    const field = (label) => page.locator(`div:has(> .form-label:text-is("${label}")) > input`).first();
+    await field('Prénom').fill('Test');
+    await field('Nom').fill('Wizard');
+    await field('Téléphone').fill(`06${Date.now().toString().slice(-8)}`);
+    await field('Email').fill('wizard@example.com');
 
     const confirmButton = page.getByRole('button', { name: /confirmer le rendez-vous/i });
     await expect(confirmButton).toBeEnabled({ timeout: 10000 });
-    const bookingResponse = page.waitForResponse(res => res.url().includes('/api/public/booking'));
+    const bookingResponse = page.waitForResponse(res => res.url().includes('/api/public/booking') && res.request().method() === 'POST');
     await confirmButton.click();
     const response = await bookingResponse;
-    expect(response.status()).toBeLessThan(500);
-    await expect(page.locator('body')).toContainText(/rendez-vous confirmé|code de suivi|erreur|créneau/i, { timeout: 15000 });
+    expect(response.status()).toBe(201);
+    await expect(page.locator('body')).toContainText(/code de suivi/i, { timeout: 15000 });
   });
 
   test('Client list: search and view', async ({ page }) => {
