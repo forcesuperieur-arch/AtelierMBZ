@@ -245,8 +245,6 @@
               <div class="sig-canvas-wrapper">
                 <canvas
                   ref="sigCanvasClient"
-                  width="600"
-                  height="200"
                   @pointerdown="startDrawClient"
                   @pointermove="drawClient"
                   @pointerup="endDrawClient"
@@ -259,8 +257,6 @@
               <div class="sig-canvas-wrapper">
                 <canvas
                   ref="sigCanvasAtelier"
-                  width="600"
-                  height="200"
                   @pointerdown="startDrawAtelier"
                   @pointermove="drawAtelier"
                   @pointerup="endDrawAtelier"
@@ -852,6 +848,27 @@ async function saveCheckup() {
 }
 
 // --- Signature helpers ---
+// Le bitmap interne suit la taille rendue : signature non déformée dans le PDF,
+// quel que soit l'écran (tablette, téléphone, desktop).
+function sizeSignatureCanvases() {
+  for (const canvas of [sigCanvasClient.value, sigCanvasAtelier.value]) {
+    if (!canvas) continue
+    const w = canvas.offsetWidth || 600
+    const h = canvas.offsetHeight || 160
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w
+      canvas.height = h
+    }
+  }
+}
+
+watch([activeSection, resignMode], async ([section]) => {
+  if (section === 'signature') {
+    await nextTick()
+    sizeSignatureCanvases()
+  }
+})
+
 function getCanvasPos(e: PointerEvent, canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect()
   return {

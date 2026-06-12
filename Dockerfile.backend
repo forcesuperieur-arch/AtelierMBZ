@@ -1,9 +1,13 @@
 FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache \
+    tzdata \
     postgresql-dev icu-dev libzip-dev freetype-dev libjpeg-turbo-dev libpng-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) bcmath pdo_pgsql intl zip gd opcache
+
+# L'app raisonne en heure atelier (créneaux, délais J-1, analytics du jour)
+RUN echo "date.timezone = Europe/Paris" > /usr/local/etc/php/conf.d/timezone.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
