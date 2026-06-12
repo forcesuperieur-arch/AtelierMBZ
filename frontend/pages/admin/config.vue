@@ -259,6 +259,27 @@
               Tous les modules principaux sont actifs. Le parcours atelier reste complet.
             </div>
 
+            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Notifications client par étape</div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+                Le client reçoit un email/SMS à chaque étape activée. Couper une étape n'affecte ni le suivi en ligne ni l'historique.
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button
+                  v-for="etape in notificationEtapeDefinitions"
+                  :key="etape.key"
+                  type="button"
+                  class="btn"
+                  :class="isNotificationEtapeEnabled(etape.key) ? 'btn-primary' : 'btn-ghost'"
+                  style="padding:8px 12px;font-size:12px;"
+                  :title="etape.hint"
+                  @click="toggleNotificationEtape(etape.key)"
+                >
+                  {{ isNotificationEtapeEnabled(etape.key) ? '🔔' : '🔕' }} {{ etape.label }}
+                </button>
+              </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
               <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
                 <div style="font-size:12px;color:#9CA3AF;">Atelier</div>
@@ -404,6 +425,7 @@ const config = ref<any>({
   jours_fermeture_hebdo: ['sunday'],
   dates_fermeture_exceptionnelles: [],
   feature_modules: { ...DEFAULT_FEATURE_MODULES },
+  notifications_etapes: {},
 })
 
 const atelier = ref<any>({
@@ -462,6 +484,36 @@ const moduleDefinitions = [
   { key: 'rdv_siege', label: 'Prise de RDV par le siège', icon: '🏢', hint: 'Autorise le service client à prendre des RDV pour cet atelier depuis le siège', impact: 'Si désactivé, le service client ne peut ni voir ni réserver pour cet atelier hors contexte local.' },
   { key: 'vo', label: 'Véhicules d’Occasion', icon: '🏷️', hint: 'Rachat, dépôt-vente, livre de police et facturation VO', impact: 'Masque le menu VO et toutes les opérations d’achat-vente d’occasion.' },
 ]
+
+// Lot A — chaque étape activée envoie un email/SMS au client (transparence max par défaut)
+const notificationEtapeDefinitions = [
+  { key: 'rdv_confirmation', label: 'RDV confirmé', hint: 'À la confirmation du rendez-vous' },
+  { key: 'rdv_reception', label: 'Moto réceptionnée', hint: 'Quand la moto est prise en charge à l\'atelier' },
+  { key: 'travaux_demarres', label: 'Travaux démarrés', hint: 'Quand la moto monte sur le pont (et à la reprise après pièces)' },
+  { key: 'attente_pieces', label: 'Attente de pièces', hint: 'Quand les travaux sont suspendus en attente de pièces' },
+  { key: 'travaux_termines', label: 'Moto prête', hint: 'Quand les travaux sont terminés' },
+  { key: 'no_show', label: 'RDV manqué', hint: 'Quand le client ne s\'est pas présenté' },
+  { key: 'demande_relance', label: 'Relance travaux supp (H+4)', hint: 'Relance automatique si le client n\'a pas répondu à une proposition de travaux' },
+]
+
+function isNotificationEtapeEnabled(key: string) {
+  const etapes = config.value.notifications_etapes || {}
+  // Absence de réglage = activé (transparence par défaut, aligné backend)
+  return etapes[key] !== false
+}
+
+function toggleNotificationEtape(key: string) {
+  const etapes = { ...(config.value.notifications_etapes || {}) }
+  etapes[key] = !isNotificationEtapeEnabled(key)
+  config.value.notifications_etapes = etapes
+
+  const def = notificationEtapeDefinitions.find((e) => e.key === key)
+  toast.add({
+    title: `${def?.label || key} : ${etapes[key] ? 'notification activée' : 'notification coupée'}`,
+    description: 'Prendra effet après sauvegarde.',
+    color: etapes[key] ? 'success' : 'warning',
+  })
+}
 
 const activeModuleCount = computed(() => {
   const modules = normalizeFeatureModules(config.value.feature_modules)
