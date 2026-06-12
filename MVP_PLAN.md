@@ -150,6 +150,8 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 - [x] Parcours client complet E2E : couvert par `client-portal.spec.mjs` (login → F5 → RDV → annulation) et `restitution.spec.mjs` (signature → document figé)
 - [x] Test d'isolation `/api/client/*` : un client ne voit jamais les RDV/PDF d'un autre (404 systématique)
 - [x] Healthcheck du worker Messenger : `app:worker-health` + healthcheck Docker
+- [x] Front staff en build de production (2026-06-12) : fini `nuxt dev` — build Nuxt au démarrage du conteneur + Nitro, même pattern que le portail client. Suite E2E revalidée derrière (179 passed / 0 failed)
+- [x] Déploiement « clé en main » préparé (2026-06-12) : `.env.prod.example` à remplir + `PUBLIC_DOMAIN` dans le `.env` suffit pour le HTTPS (Caddyfile paramétré, plus d'édition manuelle)
 - [ ] Déploiement : voir **`DEPLOIEMENT.md`** (checklist secrets, HTTPS, vérifs post-déploiement). **Bloqué sur : serveur cible + nom de domaine + SIRET/TVA/hébergeur pour les clauses légales**
 
 ---
