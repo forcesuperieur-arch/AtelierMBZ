@@ -22,7 +22,10 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
 # Exposes only customer-facing pages: booking, suivi, demande, mentions, politique.
 # Blocks back-office (admin, planning, vo, etc.) and internal companion pages
 # (companion / vo-companion are used on-premise from the workshop tablet).
-:81 {
+# Dev : port 81 local (défaut posé dans docker-compose). Prod : poser
+# PUBLIC_DOMAIN dans .env → Caddy sert le domaine en HTTPS (Let's Encrypt
+# automatique, ports 80/443 requis).
+{$PUBLIC_DOMAIN} {
 	encode zstd gzip
 
 	# Public API — whitelist stricte : booking/suivi/demande/restitution publics,

@@ -4,6 +4,9 @@ Checklist phase 6 du MVP. À dérouler dans l'ordre sur le serveur cible.
 
 ## 1. Secrets à changer AVANT toute exposition (valeurs de dev en clair)
 
+> Modèle prêt à remplir : copier **`.env.prod.example`** en `.env` sur le
+> serveur et compléter chaque `CHANGEME`.
+
 | Variable | Où | Valeur dev à remplacer |
 |---|---|---|
 | `POSTGRES_PASSWORD` | env docker-compose | `atelier` |
@@ -20,14 +23,13 @@ Les comptes de test (`admin@atelier.local`, `jean.moreau@email.fr`) ne doivent p
 
 ## 2. HTTPS sur l'edge public
 
-Dans le `Caddyfile`, remplacer `:81 {` par le domaine public :
+Le Caddyfile est paramétré : poser simplement le domaine dans `.env` :
 
 ```
-moncommerce.example.com {
-    # … bloc :81 actuel inchangé …
-}
+PUBLIC_DOMAIN=moncommerce.example.com
 ```
 
+(En dev, la variable absente retombe sur le port 81 local.)
 Caddy provisionne Let's Encrypt automatiquement (ports 80/443 ouverts requis).
 Le port 80 interne (back-office) ne doit JAMAIS être exposé sur Internet :
 pare-feu ou réseau privé uniquement.
@@ -43,8 +45,16 @@ pare-feu ou réseau privé uniquement.
 ## 4. Frontends en build de production
 
 - `client-frontend` : déjà en build prod (docker-compose)
-- `frontend` (staff) : remplacer `npx nuxt dev` par build + node .output
-  (même pattern que client-nuxt) avant la mise en production
+- `frontend` (staff) : déjà en build prod depuis le 2026-06-12 (build Nuxt au
+  démarrage du conteneur + Nitro, même pattern que client-nuxt)
+
+### Limite connue — serveur PHP
+
+Le backend est servi par `php -S` (8 workers, `PHP_CLI_SERVER_WORKERS`).
+Suffisant pour un MVP mono-atelier derrière le rate-limit, mais ce n'est pas
+un serveur de production : prévoir la bascule vers PHP-FPM (l'image est déjà
+basée `php:8.3-fpm-alpine`) ou FrankenPHP dans les semaines suivant la mise
+en ligne.
 
 ## 5. Vérifications post-déploiement
 
