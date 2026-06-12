@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\ClauseLegale;
 use App\Service\AuditService;
 use App\Service\ClauseLegaleVisibilityService;
@@ -265,13 +266,47 @@ class ClauseLegaleController extends AbstractController
         }
     }
 
+    /**
+     * Les textes légaux contiennent des jetons ([SIRET], [TVA]…) résolus au
+     * rendu depuis la fiche atelier : une seule source de vérité, modifiable
+     * dans Admin → Ateliers sans toucher aux clauses.
+     */
+    private function substituteAtelierTokens(string $texte, ?int $atelierId): string
+    {
+        if (!str_contains($texte, '[')) {
+            return $texte;
+        }
+
+        $atelier = $atelierId ? $this->em->getRepository(Atelier::class)->find($atelierId) : null;
+        $atelier ??= ($id = $this->currentAtelierResolver->resolveAtelierId())
+            ? $this->em->getRepository(Atelier::class)->find($id)
+            : null;
+        $atelier ??= $this->em->getRepository(Atelier::class)->findOneBy(['actif' => true]);
+
+        if (!$atelier) {
+            return $texte;
+        }
+
+        // Un jeton sans valeur reste visible : signale une config incomplète
+        $map = array_filter([
+            '[SIRET]' => $atelier->getSiret(),
+            '[TVA]' => $atelier->getTvaIntracom(),
+            '[ADRESSE]' => $atelier->getAdresse(),
+            '[VILLE]' => $atelier->getVille(),
+            '[EMAIL]' => $atelier->getEmail(),
+            '[NOM_ATELIER]' => $atelier->getNom(),
+        ]);
+
+        return strtr($texte, $map);
+    }
+
     private function serialize(ClauseLegale $c): array
     {
         return [
             'id' => $c->getId(),
             'code' => $c->getCode(),
             'libelle' => $c->getLibelle(),
-            'texte' => $c->getTexte(),
+            'texte' => $this->substituteAtelierTokens($c->getTexte(), $c->getAtelierId()),
             'version' => $c->getVersion(),
             'effectiveFrom' => $c->getEffectiveFrom()->format('Y-m-d'),
             'isActive' => $c->isActive(),
