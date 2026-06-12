@@ -58,8 +58,8 @@
         <span class="topbar-title">{{ currentSection }}</span>
         <div class="topbar-spacer" />
         <div v-if="canSwitchAtelierContext" class="topbar-atelier-switch">
-          <span style="font-size:11px;color:#FCD34D;font-weight:700;">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
-          <select v-model="activeAtelierChoice" @change="onSwitchAtelier" style="background:#1a1d26;color:#E8E9ED;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;font-size:12px;">
+          <span class="atelier-switch-badge" :title="isSuperAdmin ? 'Super admin — vue multi-ateliers' : 'Superviseur de comptes'">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
+          <select v-model="activeAtelierChoice" class="atelier-switch-select" @change="onSwitchAtelier">
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
         </div>
