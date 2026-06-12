@@ -136,11 +136,11 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 ---
 
-## Phase 5 — Légal & RGPD (0,5 jour)
+## Phase 5 — Légal & RGPD (0,5 jour) ✅ FAIT (2026-06-12)
 
-- [ ] Remplir les placeholders `[SIRET]`, `[TVA]`… dans `update_clauses.sql`
-- [ ] Appliquer le script en base et vérifier le rendu sur `/client/cgv`, `/client/mentions-legales`, `/client/politique-confidentialite` (les CGV doivent rester cohérentes avec un MVP sans facturation — vérifier l'article pénalités de retard)
-- [ ] Vérifier l'expiration 30 jours des tokens photos publics (RGPD)
+- [x] Placeholders `[SIRET]`/`[TVA]` : résolus dynamiquement au rendu depuis la fiche atelier (décision cmoreau — une seule source de vérité). À remplir dans **Admin → Ateliers** (valeurs factices posées en dev). Seul le bloc hébergeur reste en jetons : à compléter au déploiement (cf. `DEPLOIEMENT.md`)
+- [x] Script `update_clauses.sql` appliqué, rendu vérifié sur les 3 pages du portail. L'article 4 BIS (pénalités de retard) est conservé : il encadre les factures que l'atelier émet par ailleurs, hors logiciel — valable même module facturation désactivé
+- [x] Expiration 30 jours des tokens photos vérifiée — et étendue aux endpoints suivi/restitution (30 j après clôture du RDV)
 
 ---
 
