@@ -80,7 +80,38 @@ class PublicSuiviController extends AbstractController
             return $this->json(['error' => 'Aucun rendez-vous actif trouvé pour ce client.'], Response::HTTP_NOT_FOUND);
         }
 
-        return $this->json([
+        return $this->json($this->buildSuiviPayload($rdv, $client));
+    }
+
+    /**
+     * Suivi direct par token (lien « Suivez l'avancement » des emails).
+     */
+    #[Route('/suivi/token/{token}', methods: ['GET'])]
+    public function suiviByToken(string $token, Request $request): JsonResponse
+    {
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $rdv = strlen($token) >= 16
+            ? $this->em->getRepository(RendezVous::class)->findOneBy(['tokenSuivi' => $token])
+            : null;
+
+        if (!$rdv || !$rdv->getClient()) {
+            return $this->json(['error' => 'Lien de suivi invalide.'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($this->isTokenExpired($rdv)) {
+            return $this->json(['error' => 'Ce lien de suivi a expiré.'], Response::HTTP_GONE);
+        }
+
+        return $this->json($this->buildSuiviPayload($rdv, $rdv->getClient()));
+    }
+
+    private function buildSuiviPayload(RendezVous $rdv, Client $client): array
+    {
+        return [
             'rdv' => [
                 'id' => $rdv->getId(),
                 'date' => $rdv->getDateRdv()?->format('Y-m-d'),
@@ -99,7 +130,25 @@ class PublicSuiviController extends AbstractController
                 'telephone' => $client->getTelephone(),
                 'email' => $client->getEmail(),
             ],
-        ]);
+        ];
+    }
+
+    /**
+     * RGPD : un token reste valide tant que le RDV vit, puis 30 jours après
+     * sa clôture (terminé/annulé/restitué) — aligné sur les photos publiques.
+     */
+    private function isTokenExpired(RendezVous $rdv): bool
+    {
+        if (!in_array($rdv->getStatut(), ['termine', 'annule', 'restitue', 'livre'], true)) {
+            return false;
+        }
+
+        $dateRdv = $rdv->getDateRdv();
+        if (!$dateRdv) {
+            return false;
+        }
+
+        return new \DateTime() > (clone $dateRdv)->modify('+30 days');
     }
 
     /**
@@ -125,6 +174,10 @@ class PublicSuiviController extends AbstractController
 
         if (!$rdv) {
             return $this->json(['error' => 'Lien de restitution invalide.'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($this->isTokenExpired($rdv)) {
+            return $this->json(['error' => 'Ce lien de restitution a expiré.'], Response::HTTP_GONE);
         }
 
         $ordre = $rdv->getOrdresReparation()->first() ?: null;
@@ -197,6 +250,10 @@ class PublicSuiviController extends AbstractController
 
         if (!$rdv) {
             return $this->json(['error' => 'Lien de restitution invalide.'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($this->isTokenExpired($rdv)) {
+            return $this->json(['error' => 'Ce lien de restitution a expiré.'], Response::HTTP_GONE);
         }
 
         $ordre = $rdv->getOrdresReparation()->first() ?: null;

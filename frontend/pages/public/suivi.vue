@@ -120,4 +120,27 @@ async function lookup() {
     loading.value = false
   }
 }
+
+// Lien direct depuis l'email d'accusé de réception : /public/suivi?token=…
+const route = useRoute()
+onMounted(async () => {
+  const token = typeof route.query.token === 'string' ? route.query.token : ''
+  if (token.length < 16) return
+  loading.value = true
+  try {
+    const res = await fetch(`${baseURL}/public/suivi/token/${encodeURIComponent(token)}`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || 'Lien de suivi invalide ou expiré.')
+    }
+    const data = await res.json()
+    rdv.value = data.rdv
+  } catch (e: any) {
+    error.value = e?.message || 'Lien de suivi invalide ou expiré.'
+  } finally {
+    loading.value = false
+  }
+})
 </script>

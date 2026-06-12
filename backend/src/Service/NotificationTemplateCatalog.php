@@ -15,6 +15,19 @@ class NotificationTemplateCatalog
     {
         return [
             [
+                'code' => 'booking_accuse',
+                'channel' => 'email',
+                'libelle' => 'Accusé de réception — réservation en ligne',
+                'sujet' => 'Votre demande de rendez-vous du {{date_rdv}} — {{atelier_nom}}',
+                'corps' => '<p>Bonjour {{client_prenom}},</p>'
+                    . '<p>Votre demande de rendez-vous chez <strong>{{atelier_nom}}</strong> a bien été enregistrée :</p>'
+                    . '<ul><li>Date : <strong>{{date_rdv}} à {{heure_rdv}}</strong></li><li>Intervention : {{type_intervention}}</li></ul>'
+                    . '<p>Suivez l\'avancement de votre demande à tout moment :<br><a href="{{suivi_url}}">{{suivi_url}}</a></p>'
+                    . '{{activation_bloc}}'
+                    . '<p>Cordialement,<br>L\'équipe {{atelier_nom}}</p>',
+                'variables' => ['client_prenom', 'atelier_nom', 'date_rdv', 'heure_rdv', 'type_intervention', 'suivi_url', 'activation_bloc'],
+            ],
+            [
                 'code' => 'rdv_confirmation',
                 'channel' => 'email',
                 'libelle' => 'Confirmation de rendez-vous',

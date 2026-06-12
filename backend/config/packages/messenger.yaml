@@ -14,6 +14,9 @@ framework:
             App\Message\SendRappelMessage: async
             App\Message\GeneratePdfMessage: async
             App\Message\ProcessScheduledRappels: async
+            # Les emails (MailerInterface) partent via le worker : un SMTP lent
+            # ne bloque plus un des 8 workers HTTP pendant la requête.
+            Symfony\Component\Mailer\Messenger\SendEmailMessage: async
 
 # when@test:
 #    framework:

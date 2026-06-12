@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-atelier_moto}
       POSTGRES_USER: ${POSTGRES_USER:-atelier}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atelier}
+      # Aligné sur l'heure atelier (NOW() des requêtes analytics, bornes de jour)
+      TZ: ${TZ:-Europe/Paris}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # SECURITY: Do NOT expose DB port in production. Uncomment for local dev only.
@@ -43,6 +45,8 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
       # php -S est mono-thread par défaut : indispensable pour les E2E en parallèle
       PHP_CLI_SERVER_WORKERS: ${PHP_CLI_SERVER_WORKERS:-8}
+      # Limite large en dev : les suites E2E partagent la même IP
+      PUBLIC_BOOKING_RATE_LIMIT: ${PUBLIC_BOOKING_RATE_LIMIT:-100}
     volumes:
       - ./backend:/app
       - backend_logos:/app/public/uploads/logos

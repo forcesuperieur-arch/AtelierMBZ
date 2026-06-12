@@ -2,7 +2,9 @@ framework:
     rate_limiter:
         public_booking:
             policy: 'sliding_window'
-            limit: 5
+            # 5/min en prod ; surchargé à 100 en dev (docker-compose) pour que
+            # les suites E2E ne s'auto-bloquent pas entre specs (même IP).
+            limit: '%env(int:PUBLIC_BOOKING_RATE_LIMIT)%'
             interval: '1 minute'
             lock_factory: 'lock.factory'
         public_suivi:
