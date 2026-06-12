@@ -60,7 +60,7 @@
         <UCard>
           <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvel' }} utilisateur</span></template>
           <form @submit.prevent="saveUser" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Prénom"><UInput v-model="userForm.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="userForm.nom" required /></UFormField>
               <UFormField label="Email"><UInput v-model="userForm.email" type="email" required /></UFormField>

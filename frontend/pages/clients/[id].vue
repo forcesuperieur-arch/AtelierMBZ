@@ -22,7 +22,7 @@
               <button class="btn btn-ghost" style="font-size:12px;" @click="showEditClient = true">✏ Modifier</button>
             </div>
           </template>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
             <div><span style="color:#6B7280;">Téléphone :</span> <span style="color:#D1D5DB;">{{ client.telephone }}</span></div>
             <div><span style="color:#6B7280;">Email :</span> <span style="color:#D1D5DB;">{{ client.email || '—' }}</span></div>
             <div style="grid-column:span 2;"><span style="color:#6B7280;">Adresse :</span> <span style="color:#D1D5DB;">{{ client.adresse || '—' }}</span></div>
@@ -149,7 +149,7 @@
             </div>
           </template>
           <form @submit.prevent="saveClient" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <div class="form-group"><label class="form-label">Prénom</label><input v-model="editForm.prenom" class="form-input" /></div>
               <div class="form-group"><label class="form-label">Nom</label><input v-model="editForm.nom" class="form-input" /></div>
               <div class="form-group"><label class="form-label">Téléphone</label><input v-model="editForm.telephone" class="form-input" /></div>

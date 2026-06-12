@@ -13,7 +13,7 @@ x<template>
     <!-- Client search (internal) -->
     <div style="background:var(--dark2);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
       <div style="font-size:14px;font-weight:700;color:#E8E9ED;margin-bottom:12px;">Client existant (base interne)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
         <div>
           <div class="form-label" style="margin-bottom:6px;">LIEU DU RDV (ATELIER)</div>
           <select
@@ -97,7 +97,7 @@ x<template>
 
         <div v-if="showManualVehicle" style="margin-top:16px;">
           <div style="font-size:13px;color:#6B7280;margin-bottom:12px;">Saisie manuelle du véhicule :</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <div style="position:relative;">
               <div class="form-label" style="margin-bottom:4px;">MARQUE</div>
               <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
@@ -294,7 +294,7 @@ x<template>
       <div style="background:var(--dark2);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;">
         <div style="font-size:16px;font-weight:700;color:#E8E9ED;margin-bottom:16px;">Récapitulatif du rendez-vous</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
           <!-- Client -->
           <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CLIENT</div>
@@ -330,7 +330,7 @@ x<template>
           <div v-if="clientMissingFields.length" style="margin-bottom:10px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.24);border-radius:8px;font-size:12px;color:#FDE68A;">
             Merci de compléter : {{ clientMissingFields.join(', ') }}.
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <div>
               <div class="form-label" style="margin-bottom:4px;">PRÉNOM</div>
               <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />

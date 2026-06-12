@@ -36,7 +36,7 @@
 
         <!-- Client & Véhicule -->
         <div class="restitution-section">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;">
             <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ data.client?.prenom }} {{ data.client?.nom }}</span></div>
             <div><span style="color:#6B7280;">Tél :</span> <span style="color:#D1D5DB;">{{ data.client?.telephone || '—' }}</span></div>
             <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ data.vehicule?.marque }} {{ data.vehicule?.modele }}</span></div>
@@ -71,7 +71,7 @@
 
         <!-- Kilométrage restitution -->
         <div class="restitution-section">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
             <div v-if="data.ordre?.kilometrage_restitution">
               <span style="color:#6B7280;">Km restitution :</span>
               <span style="color:#D1D5DB;font-weight:700;"> {{ data.ordre.kilometrage_restitution }} km</span>

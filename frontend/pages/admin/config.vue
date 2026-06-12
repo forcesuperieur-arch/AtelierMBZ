@@ -48,7 +48,7 @@
       <form @submit.prevent="saveConfig" style="display:flex;flex-direction:column;gap:16px;">
         <UCard v-if="step === 1">
           <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">1. Identité de l'atelier</span></template>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <UFormField label="Nom atelier"><UInput v-model="atelier.nom" /></UFormField>
             <UFormField label="Téléphone"><UInput v-model="atelier.telephone" /></UFormField>
             <UFormField label="Email"><UInput v-model="atelier.email" type="email" /></UFormField>
@@ -59,7 +59,7 @@
             <UFormField label="Adresse" style="grid-column:1 / -1;"><UInput v-model="atelier.adresse" /></UFormField>
           </div>
 
-          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+          <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;">
             <UFormField label="TVA MO (%)"><UInput v-model="config.tva_mo_taux" type="number" step="0.1" /></UFormField>
             <UFormField label="TVA pièces (%)"><UInput v-model="config.tva_pieces_taux" type="number" step="0.1" /></UFormField>
             <UFormField label="Taux horaire standard"><UInput v-model="config.taux_horaire_mo_standard" type="number" step="0.1" /></UFormField>

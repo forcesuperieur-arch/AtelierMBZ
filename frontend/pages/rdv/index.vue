@@ -126,13 +126,13 @@
       </div>
     </template>
     <div v-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:#D1D5DB;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
         <div><span style="color:#6B7280;">Date :</span> {{ formatDisplayDate(selectedRdv.date_rdv) }}</div>
         <div><span style="color:#6B7280;">Heure :</span> {{ selectedRdv.heure_debut || '—' }}</div>
         <div><span style="color:#6B7280;">Type :</span> {{ selectedRdv.type_intervention || '—' }}</div>
         <div><span style="color:#6B7280;">Durée :</span> {{ formatMinutes(selectedRdv.duree_estimee) }}</div>
       </div>
-      <div v-if="selectedRdv.pont_nom || selectedRdv.mecanicien_nom" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div v-if="selectedRdv.pont_nom || selectedRdv.mecanicien_nom" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
         <div v-if="selectedRdv.pont_nom"><span style="color:#6B7280;">Pont :</span> {{ selectedRdv.pont_nom }}</div>
         <div v-if="selectedRdv.mecanicien_nom"><span style="color:#6B7280;">Mécano :</span> {{ selectedRdv.mecanicien_nom }}</div>
       </div>
@@ -260,7 +260,7 @@ onMounted(() => { void fetchData() })
 <style scoped>
 .rdv-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -422,11 +422,11 @@ onMounted(() => { void fetchData() })
 
 @media (max-width: 1100px) {
   .rdv-kpis {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   }
 
   .rdv-filter-bar {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   }
 
   .rdv-card {

@@ -71,7 +71,7 @@
               <label class="form-label">Nom *</label>
               <input v-model="form.nom" class="form-input" required placeholder="Ex: Pont A" />
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Type de pont</label>
                 <select v-model="form.type_pont" class="form-input">

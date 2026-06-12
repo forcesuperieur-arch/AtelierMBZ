@@ -151,7 +151,7 @@
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Mix rentabilité</span>
         </template>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:center;">
           <ChartsDoughnutChart :data="revenueChartData" />
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
@@ -279,7 +279,7 @@
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Répartition des statuts</span>
         </template>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:center;">
           <ChartsDoughnutChart :data="statusChartData" />
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div v-for="item in statusBreakdown.slice(0, 5)" :key="item.label" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.03);">
@@ -373,7 +373,7 @@
         <template #header>
           <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Segments clientèle</span>
         </template>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:center;">
           <ChartsDoughnutChart :data="segmentChartData" />
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div v-for="seg in stats.client_segments" :key="seg.segment" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">

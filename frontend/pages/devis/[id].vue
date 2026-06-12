@@ -79,7 +79,7 @@
     </UCard>
 
     <!-- Notes -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
       <UCard v-if="devis.notes_client || devis.notesClient">
         <template #header><span style="font-size:13px;font-weight:600;color:#9CA3AF;">📌 Notes client</span></template>
         <div style="font-size:14px;white-space:pre-wrap;color:#E8E9ED;">{{ devis.notes_client || devis.notesClient }}</div>

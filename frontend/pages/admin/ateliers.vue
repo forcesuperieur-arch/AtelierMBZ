@@ -97,7 +97,7 @@
           </template>
 
           <form @submit.prevent="saveAtelier" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Nom de l’atelier">
                 <UInput v-model="atelierForm.nom" required />
               </UFormField>
