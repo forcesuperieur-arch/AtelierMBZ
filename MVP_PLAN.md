@@ -169,3 +169,18 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 ### Ordre de bataille
 Phase 0 → 1 sont rapides et dérisquent tout. La **phase 2 (auth client)** est le chemin critique : tant qu'un client est déconnecté au refresh, l'espace client séparé n'est pas montrable. Les phases 3 et 4 peuvent se paralléliser (front/back).
+
+---
+
+## Chantier post-MVP — Migration du front staff vers le design system (diagnostic 2026-06-12)
+
+**Constat** : 2 200 styles inline dans les pages staff (planning 214, dashboard 175, mécanicien 174, rdv/new 155, booking 152, admin/config 127…). Cause racine des bugs d'affichage : tailles en px figées, duplications divergentes, aucune adaptabilité. Un filet de sécurité CSS global est en place (images/textes/débordements/modales), mais le remède durable est la migration.
+
+**Méthode (1 lot = 1 page, suite E2E entre chaque)** :
+1. `index.vue` (dashboard) — page pilote, pose les classes utilitaires manquantes
+2. `planning.vue` — la plus utilisée et la plus chargée
+3. `mecanicien.vue` + `workshop.vue` (PDA/tablette : le responsive y est critique)
+4. `rdv/new.vue` + `rdv/index.vue`
+5. `public/booking.vue` + `public/companion.vue` (vitrine publique)
+6. `admin/*` au fil de l'eau
+Règles : remplacer chaque `style="…"` par les classes du design system (`.panel`, `.btn*`, `.form-*`, variables CSS), extraire les blocs répétés en composants (`StatusBadge` partout, `SignaturePad` unique), zéro changement de design — uniquement de la robustesse.
