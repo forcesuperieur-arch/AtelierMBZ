@@ -17,7 +17,7 @@
   --pad-text-dim: #9CA3AF;
   --pad-text-faint: #6B7280;
   --pad-font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
-  --pad-font-body: 'Saira', system-ui, sans-serif;
+  --pad-font-body: 'Saira', system-ui, 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   --pad-radius: 12px;
   --pad-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   --pad-ease: cubic-bezier(0.22, 1, 0.36, 1);
