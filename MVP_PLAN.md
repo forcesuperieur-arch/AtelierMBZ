@@ -125,10 +125,11 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 État : architecture bonne mais déconnectée (`NOTIFICATIONS_PLAN.md`, ~70 %). `RdvWorkflowListener` part sur le legacy `SendRappelHandler` au lieu de `NotificationDispatcher`.
 
-- [ ] Brancher `RdvWorkflowListener` sur `NotificationDispatcher` (création d'entités `Notification` + email)
-- [ ] P0 : **confirmation RDV** (à la transition `confirmé`), **rappel J-1** (scheduler), **travaux terminés** (transition `pret_restitution`)
-- [ ] Implémenter `RappelProchaineRevisionCommand` (actuellement vide) — ou la sortir explicitement du MVP
-- [ ] Email uniquement pour le MVP (MailHog en dev, SMTP réel en prod). SMS = post-MVP
+- [x] Brancher `RdvWorkflowListener` sur `NotificationDispatcher` — fait, vérifié E2E le 2026-06-12
+- [x] P0 : **confirmation RDV** (transition `confirmer`, testée E2E jusqu'à MailHog via `notifications-p0.spec.mjs`), **rappel J-1** (scheduler 8h, worker consomme `scheduler_default`, commande testée), **travaux terminés** (transition `terminer` → place `termine` = moto prête ; la place `pret_restitution` du plan n'existe pas dans le workflow réel)
+- [x] `RappelProchaineRevisionCommand` : en fait déjà implémentée (95 lignes, planifiée à 9h) — le plan était obsolète ; exécution vérifiée
+- [x] Email pour le MVP (MailHog dev OK) ; SMS : provider twilio configuré mais non testé = post-MVP
+- [x] Healthcheck worker : commande `app:worker-health` + healthcheck Docker (unhealthy si file `failed` non vide) ; 2 messages périmés de mai purgés
 - [x] Corriger `reset.bat` (`app:seed-parametres` → `app:seed`) — fait le 2026-06-12, idem `seed-demo.bat`
 
 **Critère de sortie : les 3 notifications P0 partent réellement, visibles dans MailHog.**
@@ -145,11 +146,11 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 ## Phase 6 — Recette & déploiement (1-2 jours)
 
-- [ ] Adapter la suite Playwright : tests facturation/devis attendus en « module désactivé » (pattern déjà utilisé pour VO, cf. `BUGFIX_LOG.md`)
-- [ ] Ajouter un test E2E sur le parcours client complet : login → F5 → toujours connecté → consultation RDV → PDF OR
-- [ ] Test d'isolation : un client A ne voit jamais les données du client B (`security-tenant-isolation.spec.mjs` à étendre côté `/api/client/*`)
-- [ ] Healthcheck du worker Messenger (alerte si file `failed` non vide)
-- [ ] Déploiement : Caddy 80 (interne) / 81 (public), HTTPS, secrets en env
+- [x] Adapter la suite Playwright : fait en phase 1 ; suite complète verte (171 passed) le 2026-06-12
+- [x] Parcours client complet E2E : couvert par `client-portal.spec.mjs` (login → F5 → RDV → annulation) et `restitution.spec.mjs` (signature → document figé)
+- [x] Test d'isolation `/api/client/*` : un client ne voit jamais les RDV/PDF d'un autre (404 systématique)
+- [x] Healthcheck du worker Messenger : `app:worker-health` + healthcheck Docker
+- [ ] Déploiement : voir **`DEPLOIEMENT.md`** (checklist secrets, HTTPS, vérifs post-déploiement). **Bloqué sur : serveur cible + nom de domaine + SIRET/TVA/hébergeur pour les clauses légales**
 
 ---
 

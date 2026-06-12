@@ -128,6 +128,22 @@ test.describe('Espace client', () => {
     expect(again.status()).toBe(409);
   });
 
+  test('isolation : un client ne voit jamais les RDV d\'un autre client', async ({ page }) => {
+    // Le RDV 2 appartient à un autre client (seed) — toutes les routes de
+    // ressources doivent répondre 404, jamais les données d'autrui.
+    const FOREIGN_RDV_ID = 2;
+    await loginAsClient(page);
+
+    const detail = await page.request.get(`${PORTAL.replace('/client', '')}/api/client/rdvs/${FOREIGN_RDV_ID}`);
+    expect(detail.status()).toBe(404);
+
+    const annulation = await page.request.post(`${PORTAL.replace('/client', '')}/api/client/rdvs/${FOREIGN_RDV_ID}/demande-annulation`);
+    expect(annulation.status()).toBe(404);
+
+    const pdf = await page.request.get(`${PORTAL.replace('/client', '')}/api/client/rdvs/${FOREIGN_RDV_ID}/or/1/pdf`);
+    expect(pdf.status()).toBe(404);
+  });
+
   test('logout ferme la session', async ({ page }) => {
     await loginAsClient(page);
     const logoutBtn = page.locator('button:has-text("Déconnexion"), a:has-text("Déconnexion")').first();
