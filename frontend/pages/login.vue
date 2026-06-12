@@ -92,7 +92,7 @@ onMounted(() => {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 20px;
   padding: 44px 36px;
-  width: 400px;
+  width: min(400px, 100%);
   text-align: center;
   box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 80px rgba(245,158,11,0.05);
   animation: loginFadeIn 0.6s ease;
@@ -187,7 +187,7 @@ onMounted(() => {
 
 .dev-sso-name-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap: 8px;
   margin-bottom: 10px;
 }

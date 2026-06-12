@@ -157,7 +157,7 @@
           </template>
 
           <form @submit.prevent="saveProvider" style="display:flex;flex-direction:column;gap:12px;">
-            <div v-if="!providerEditId" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div v-if="!providerEditId" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Canal">
                 <select v-model="providerForm.channel" class="form-input" disabled>
                   <option value="sms">SMS</option>
@@ -262,7 +262,7 @@
           </template>
 
           <form @submit.prevent="saveTemplate" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Code *">
                 <UInput v-model="templateForm.code" required placeholder="rdv_confirme" :disabled="!!templateEditId" />
               </UFormField>

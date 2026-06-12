@@ -57,7 +57,7 @@
         <UCard>
           <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau client</span></template>
           <form @submit.prevent="createClient" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Prénom"><UInput v-model="newClient.prenom" required /></UFormField>
               <UFormField label="Nom"><UInput v-model="newClient.nom" required /></UFormField>
               <UFormField label="Téléphone"><UInput v-model="newClient.telephone" required /></UFormField>

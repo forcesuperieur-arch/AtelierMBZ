@@ -180,7 +180,7 @@
               <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et prérempli.</div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Prénom client</label>
                 <input v-model="quickForm.client_prenom" class="form-input" placeholder="Jean" />
@@ -383,7 +383,7 @@
               </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
               <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
               <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
               <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span></div>
@@ -396,7 +396,7 @@
 
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
               <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Édition rapide / affectation</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
                 <div class="form-group">
                   <label class="form-label">Date</label>
                   <input v-model="editForm.date_rdv" type="date" class="form-input" :disabled="selectedIsHistorical || !canEditRdv" />
@@ -527,7 +527,7 @@
                 </div>
 
                 <!-- Reception fields -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
                   <div class="form-group">
                     <label class="form-label">Kilométrage réception</label>
                     <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">

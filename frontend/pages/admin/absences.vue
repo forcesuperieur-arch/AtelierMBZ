@@ -35,7 +35,7 @@
             <UFormField label="Mécanicien">
               <USelect v-model="absForm.mecanicien_id" :options="mecaOptions" required />
             </UFormField>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Date début"><UInput v-model="absForm.date_debut" type="date" required /></UFormField>
               <UFormField label="Date fin"><UInput v-model="absForm.date_fin" type="date" required /></UFormField>
             </div>

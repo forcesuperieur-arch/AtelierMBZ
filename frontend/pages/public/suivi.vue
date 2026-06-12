@@ -23,7 +23,7 @@
         <StatusBadge :status="rdv.statut" />
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
         <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date }}</span></div>
         <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure }}</span></div>
         <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>

@@ -86,7 +86,7 @@
           </template>
 
           <form @submit.prevent="saveRole" style="display:flex;flex-direction:column;gap:16px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <div class="form-group">
                 <label class="form-label">Clé du rôle</label>
                 <input v-model="roleForm.role" class="form-input" :disabled="!!editKey" placeholder="Ex: chef_atelier" required />

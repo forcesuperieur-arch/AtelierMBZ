@@ -4,7 +4,7 @@
       Bonjour {{ auth.client?.prenom || '—' }}
     </h1>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
       <div class="dash-card">
         <div class="dash-label">Prochain RDV</div>
         <div class="dash-value">{{ prochainRdvText }}</div>

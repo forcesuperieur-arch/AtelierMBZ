@@ -25,7 +25,7 @@
 
           <!-- RDV Info Summary -->
           <div class="companion-card">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;">
               <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
               <div><span style="color:#6B7280;">Tél :</span> <span style="color:#D1D5DB;">{{ rdv.client?.telephone || '—' }}</span></div>
               <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
@@ -1174,7 +1174,7 @@ onUnmounted(() => {
 }
 .companion-photo-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
   gap: 8px;
 }
 .companion-photo-thumb {
