@@ -66,6 +66,13 @@ class DemandeTravauxSupp
     #[Groups(['demande:read'])]
     private ?OrdreReparation $orComplementaire = null;
 
+    // LOT A — relance automatique des demandes sans décision
+    #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])]
+    private ?\DateTimeInterface $sentAt = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])]
+    private ?\DateTimeInterface $relanceAt = null;
+
     public function __construct() {
         $this->createdAt = new \DateTime();
         $this->tokenValidation = bin2hex(random_bytes(32));
@@ -94,6 +101,10 @@ class DemandeTravauxSupp
         $this->statut = $v;
         return $this;
     }
+    public function getSentAt(): ?\DateTimeInterface { return $this->sentAt; }
+    public function setSentAt(?\DateTimeInterface $v): static { $this->sentAt = $v; return $this; }
+    public function getRelanceAt(): ?\DateTimeInterface { return $this->relanceAt; }
+    public function setRelanceAt(?\DateTimeInterface $v): static { $this->relanceAt = $v; return $this; }
     public function getNotesReceptionniste(): ?string { return $this->notesReceptionniste; }
     public function setNotesReceptionniste(?string $v): static { $this->notesReceptionniste = $v; return $this; }
     public function getDecisionClient(): ?string { return $this->decisionClient; }

@@ -3,10 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\DemandeTravauxSupp;
 use App\Entity\Notification;
 use App\Entity\OrdreReparation;
+use App\Entity\PhotoIntervention;
+use App\Entity\RdvStatutHistorique;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
+use App\Service\DemandeTravauxSuppDecisionService;
 use App\Service\MercureNotifier;
 use App\Service\PdfService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,6 +19,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -28,6 +33,7 @@ class ClientEspaceController extends AbstractController
         private EntityManagerInterface $em,
         private PdfService $pdfService,
         private MercureNotifier $mercureNotifier,
+        private DemandeTravauxSuppDecisionService $decisionService,
     ) {}
 
     #[Route('/me', methods: ['GET'])]
@@ -114,6 +120,25 @@ class ClientEspaceController extends AbstractController
             return $this->json(['error' => 'Rendez-vous introuvable'], Response::HTTP_NOT_FOUND);
         }
 
+        // Timeline : création du dossier + chaque transition de workflow tracée
+        $timeline = [[
+            'statut' => 'cree',
+            'transition' => null,
+            'date' => $rdv->getCreatedAt()->format('c'),
+        ]];
+        $historique = $this->em->getRepository(RdvStatutHistorique::class)
+            ->findBy(['rendezVous' => $rdv], ['createdAt' => 'ASC', 'id' => 'ASC']);
+        foreach ($historique as $h) {
+            $timeline[] = [
+                'statut' => $h->getStatut(),
+                'transition' => $h->getTransition(),
+                'date' => $h->getCreatedAt()->format('c'),
+            ];
+        }
+
+        $demandes = $this->em->getRepository(DemandeTravauxSupp::class)
+            ->findBy(['rendezVous' => $rdv], ['createdAt' => 'DESC']);
+
         return $this->json([
             'id' => $rdv->getId(),
             'date_heure' => (new \DateTime($rdv->getDateRdv()->format('Y-m-d') . ' ' . $rdv->getHeureRdv()->format('H:i:s')))->format('c'),
@@ -141,11 +166,106 @@ class ClientEspaceController extends AbstractController
                 'id' => $ph->getId(),
                 'filename' => $ph->getFilename(),
                 'description' => $ph->getDescription(),
+                // Servie par l'endpoint authentifié (contrôle d'appartenance),
+                // plus de dépendance au chemin public /uploads
+                'url' => '/api/client/photos/' . $ph->getId(),
             ], $rdv->getPhotosIntervention()->toArray()),
             'commandes' => array_map(fn($c) => [
                 'id' => $c->getId(),
                 'numero' => $c->getNumero(),
             ], $rdv->getCommandes()->toArray()),
+            'timeline' => $timeline,
+            'demandes_travaux' => array_map(fn(DemandeTravauxSupp $d) => [
+                'id' => $d->getId(),
+                'statut' => $d->getStatut(),
+                'description' => $d->getDescription(),
+                'prestations' => $d->getPrestationsChoisies(),
+                'prix_estime' => $d->getPrixEstime(),
+                'temps_estime' => $d->getTempsEstime(),
+                'urgence' => $d->getUrgence(),
+                'decision' => $d->getDecisionClient(),
+                'decision_at' => $d->getDecisionClientAt()?->format('c'),
+                'created_at' => $d->getCreatedAt()->format('c'),
+                // Seules les demandes envoyées attendent une décision en ligne
+                'decision_possible' => $d->getStatut() === DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT,
+            ], array_values(array_filter(
+                $demandes,
+                // Les brouillons non validés par le réceptionniste restent invisibles
+                fn(DemandeTravauxSupp $d) => !in_array($d->getStatut(), [
+                    DemandeTravauxSupp::STATUT_EN_ATTENTE,
+                    DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION,
+                ], true),
+            ))),
+        ]);
+    }
+
+    /**
+     * Photo d'intervention servie au client propriétaire du RDV uniquement.
+     * Remplace l'accès par chemin public /uploads/photos côté portail.
+     */
+    #[Route('/photos/{id}', methods: ['GET'])]
+    public function photo(int $id): Response
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $photo = $this->em->getRepository(PhotoIntervention::class)->find($id);
+        if (!$photo || $photo->getRendezVous()?->getClient()?->getId() !== $client->getId()) {
+            return $this->json(['error' => 'Photo introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $safeFilename = basename($photo->getFilename());
+        $photoDir = realpath($this->getParameter('kernel.project_dir') . '/var/photos');
+        $realPath = $photoDir ? realpath($photoDir . '/' . $safeFilename) : false;
+
+        if ($realPath === false || !str_starts_with($realPath, $photoDir . '/') || !is_file($realPath)) {
+            return $this->json(['error' => 'Photo introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($realPath);
+        $response->headers->set('Cache-Control', 'private, max-age=3600');
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $safeFilename);
+        return $response;
+    }
+
+    /**
+     * Décision du client connecté sur une demande de travaux supplémentaires.
+     * Même logique (signature, OR complémentaire, notification staff) que la
+     * page publique tokenisée — via DemandeTravauxSuppDecisionService.
+     */
+    #[Route('/demandes-travaux-supp/{id}/decision', methods: ['POST'])]
+    public function decisionDemandeTravaux(int $id, Request $request): JsonResponse
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
+        if (!$demande || $demande->getRendezVous()->getClient()?->getId() !== $client->getId()) {
+            return $this->json(['error' => 'Demande introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        $result = $this->decisionService->decide(
+            $demande,
+            $data['decision'] ?? null,
+            $data['signature'] ?? null,
+            $request,
+        );
+
+        if (isset($result['error'])) {
+            return $this->json(['error' => $result['error']], $result['status']);
+        }
+
+        return $this->json([
+            'id' => $demande->getId(),
+            'decision' => $demande->getDecisionClient(),
+            'statut' => $demande->getStatut(),
+            'or_complementaire_id' => $demande->getOrComplementaire()?->getId(),
         ]);
     }
 

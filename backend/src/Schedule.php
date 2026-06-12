@@ -32,6 +32,8 @@ class Schedule implements ScheduleProviderInterface
             ->add(RecurringMessage::cron('0 4 * * *', new RunCommandMessage('app:purge-identity-documents')))
             // Rappel révision J-30 (9:00 AM daily)
             ->add(RecurringMessage::cron('0 9 * * *', new RunCommandMessage('app:rappel-prochaine-revision')))
+            // Lot A : relance H+4 des travaux supp sans décision client (fenêtre 8h-19h gérée par la commande)
+            ->add(RecurringMessage::cron('10 * * * *', new RunCommandMessage('app:relance-demandes-travaux')))
         ;
     }
 }

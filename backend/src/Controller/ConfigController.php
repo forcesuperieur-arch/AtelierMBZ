@@ -118,6 +118,10 @@ class ConfigController extends AbstractController
         ) {
             $config->setFeatureModules($configData['feature_modules']);
         }
+        // Lot A — interrupteurs des notifications client par étape (admin atelier)
+        if (isset($configData['notifications_etapes']) && is_array($configData['notifications_etapes'])) {
+            $config->setNotificationsEtapes($configData['notifications_etapes']);
+        }
 
         $atelier = $this->resolveAtelier($config);
         if ($atelier && $atelierData) {

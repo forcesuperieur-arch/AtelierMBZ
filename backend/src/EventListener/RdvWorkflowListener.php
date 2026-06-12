@@ -2,6 +2,7 @@
 
 namespace App\EventListener;
 
+use App\Entity\ConfigAtelier;
 use App\Entity\Notification;
 use App\Entity\RendezVous;
 use App\Service\MercureNotifier;
@@ -12,8 +13,14 @@ use Symfony\Component\Workflow\Event\CompletedEvent;
 
 /**
  * Listens to RDV workflow transitions and dispatches multi-channel notifications.
+ *
+ * Lot A : chaque étape signifiante notifie le client (transparence maximale),
+ * sous réserve de l'interrupteur correspondant dans ConfigAtelier.notificationsEtapes.
  */
 #[AsEventListener(event: 'workflow.rendez_vous.completed.confirmer')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.reception')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.start_travail')]
+#[AsEventListener(event: 'workflow.rendez_vous.completed.reprendre_apres_pieces')]
 #[AsEventListener(event: 'workflow.rendez_vous.completed.terminer')]
 #[AsEventListener(event: 'workflow.rendez_vous.completed.attendre_pieces')]
 #[AsEventListener(event: 'workflow.rendez_vous.completed.mettre_en_attente_pieces')]
@@ -38,6 +45,10 @@ class RdvWorkflowListener
 
         match ($transition) {
             'confirmer' => $this->notifyClient($rdv, 'rdv_confirmation', 'Confirmation RDV'),
+            // Étapes intermédiaires : email/SMS client uniquement — pas de cloche
+            // staff, c'est le staff lui-même qui vient de faire l'action.
+            'reception' => $this->notifyClient($rdv, 'rdv_reception', 'Moto réceptionnée', staffNotif: false),
+            'start_travail', 'reprendre_apres_pieces' => $this->notifyClient($rdv, 'travaux_demarres', 'Travaux démarrés', staffNotif: false),
             'terminer'  => $this->notifyClient($rdv, 'travaux_termines', 'Moto prête'),
             'attendre_pieces', 'mettre_en_attente_pieces' => $this->notifyClient($rdv, 'attente_pieces', 'En attente de pièces'),
             'declarer_no_show', 'no_show' => $this->notifyClient($rdv, 'no_show', 'Client absent (no-show)'),
@@ -45,7 +56,7 @@ class RdvWorkflowListener
         };
     }
 
-    private function notifyClient(RendezVous $rdv, string $templateCode, string $uiTitle): void
+    private function notifyClient(RendezVous $rdv, string $templateCode, string $uiTitle, bool $staffNotif = true): void
     {
         $client = $rdv->getClient();
         if (!$client) {
@@ -56,6 +67,8 @@ class RdvWorkflowListener
         $dateRdv = $rdv->getDateRdv()->format('d/m/Y');
         $heureRdv = $rdv->getHeureRdv()->format('H:i');
 
+        $etapeEnabled = $this->isEtapeEnabled($atId, $templateCode);
+
         $vars = [
             'client_nom'    => $client->getNom(),
             'client_prenom' => $client->getPrenom(),
@@ -65,7 +78,7 @@ class RdvWorkflowListener
         ];
 
         // Email
-        if ($client->getEmail()) {
+        if ($etapeEnabled && $client->getEmail()) {
             $this->dispatcher->sendFromTemplate(
                 $templateCode,
                 'email',
@@ -78,7 +91,7 @@ class RdvWorkflowListener
         }
 
         // SMS
-        if ($client->getTelephone()) {
+        if ($etapeEnabled && $client->getTelephone()) {
             $this->dispatcher->sendFromTemplate(
                 $templateCode,
                 'sms',
@@ -90,7 +103,11 @@ class RdvWorkflowListener
             );
         }
 
-        // Notification UI interne
+        if (!$staffNotif) {
+            return;
+        }
+
+        // Notification UI interne (jamais coupée par l'interrupteur client)
         $notif = new Notification();
         $notif->setAtelierId($atId);
         $notif->setType($templateCode);
@@ -109,5 +126,13 @@ class RdvWorkflowListener
         $this->em->flush();
 
         $this->mercure->publishToAtelier($atId, $notif);
+    }
+
+    private function isEtapeEnabled(int $atelierId, string $templateCode): bool
+    {
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+
+        // Pas de config = défauts (tout activé)
+        return $config === null || $config->isNotificationEtapeEnabled($templateCode);
     }
 }

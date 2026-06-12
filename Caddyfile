@@ -38,10 +38,11 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
 		reverse_proxy php:8000
 	}
 
-	# Uploads : photos RDV (portail client) et logos atelier uniquement —
-	# jamais les documents VO ni le reste de /uploads.
+	# Uploads : logos atelier uniquement. Les photos RDV passent par les
+	# endpoints contrôlés (/api/public/photos tokenisé, /api/client/photos
+	# authentifié) — jamais par le chemin de fichier brut.
 	@public_uploads {
-		path /uploads/photos/* /uploads/logos/*
+		path /uploads/logos/*
 	}
 	handle @public_uploads {
 		reverse_proxy php:8000
