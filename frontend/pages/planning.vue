@@ -371,6 +371,18 @@
           <div v-if="modalLoading" style="padding:16px;color:#9CA3AF;">Chargement du rendez-vous…</div>
 
           <div v-else-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;">
+            <!-- Demande d'annulation venant de l'espace client -->
+            <div v-if="selectedRdv.annulation_demandee_at" style="padding:12px 14px;border-radius:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);">
+              <div style="font-size:13px;font-weight:700;color:#FCD34D;margin-bottom:4px;">⚠️ Demande d'annulation client</div>
+              <div style="font-size:12px;color:#D1D5DB;margin-bottom:10px;">
+                Le client a demandé l'annulation de ce rendez-vous le {{ formatDateDisplay(selectedRdv.annulation_demandee_at) }}.
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <UButton label="Accepter l'annulation" color="error" size="sm" :loading="annulationActionLoading === 'accepter'" :disabled="!!annulationActionLoading" @click="accepterAnnulation" />
+                <UButton label="Refuser la demande" color="neutral" variant="outline" size="sm" :loading="annulationActionLoading === 'refuser'" :disabled="!!annulationActionLoading" @click="refuserAnnulation" />
+              </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
               <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
               <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
@@ -1054,6 +1066,7 @@ function normalizeRdv(r: any) {
     mecanicien_nom: r.mecanicien ? `${r.mecanicien.prenom ?? ''} ${r.mecanicien.nom ?? ''}`.trim() : (r.mecanicien_nom ?? ''),
     token_suivi: r.token_suivi ?? r.tokenSuivi ?? null,
     kilometrage: r.kilometrage ?? null,
+    annulation_demandee_at: r.annulation_demandee_at ?? r.annulationDemandeeAt ?? null,
   }
 }
 
@@ -1581,6 +1594,41 @@ async function saveRdvChanges() {
     toast.add({ title: 'Modification impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
   } finally {
     editSaving.value = false
+  }
+}
+
+const annulationActionLoading = ref('')
+
+async function accepterAnnulation() {
+  if (!selectedRdv.value?.id) return
+  if (!globalThis.confirm?.('Annuler définitivement ce rendez-vous ? Le client sera notifié.')) return
+  annulationActionLoading.value = 'accepter'
+  try {
+    await api.post(`/rendez-vous/${selectedRdv.value.id}/demande-annulation/accepter`, {
+      motif: 'client_desiste',
+      commentaire: 'Annulation demandée par le client via l\'espace client',
+    })
+    toast.add({ title: 'Rendez-vous annulé', color: 'success' })
+    showRdvModal.value = false
+    await refreshPlanning()
+  } catch (e: any) {
+    toast.add({ title: 'Annulation impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    annulationActionLoading.value = ''
+  }
+}
+
+async function refuserAnnulation() {
+  if (!selectedRdv.value?.id) return
+  annulationActionLoading.value = 'refuser'
+  try {
+    await api.post(`/rendez-vous/${selectedRdv.value.id}/demande-annulation/refuser`, {})
+    selectedRdv.value = { ...selectedRdv.value, annulation_demandee_at: null }
+    toast.add({ title: 'Demande refusée', description: 'Pensez à prévenir le client.', color: 'warning' })
+  } catch (e: any) {
+    toast.add({ title: 'Action impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+  } finally {
+    annulationActionLoading.value = ''
   }
 }
 

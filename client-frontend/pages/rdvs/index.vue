@@ -6,7 +6,10 @@
     <div v-else style="display:flex;flex-direction:column;gap:10px;">
       <NuxtLink v-for="rdv in rdvs" :key="rdv.id" :to="`/rdvs/${rdv.id}`" class="rdv-card">
         <div class="rdv-date">{{ formatDate(rdv.date_heure) }}</div>
-        <div class="rdv-status" :class="statusClass(rdv.statut)">{{ rdv.statut }}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span v-if="rdv.annulation_demandee_at" class="annulation-tag">Annulation demandée</span>
+          <div class="rdv-status" :class="statusClass(rdv.statut)">{{ rdvStatutLabel(rdv.statut) }}</div>
+        </div>
       </NuxtLink>
     </div>
   </div>
@@ -72,5 +75,14 @@ function statusClass(s: string) {
 .status-annule {
   background: rgba(239,68,68,0.15);
   color: #FCA5A5;
+}
+.annulation-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #FCD34D;
 }
 </style>

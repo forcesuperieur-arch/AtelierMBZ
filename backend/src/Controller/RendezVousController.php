@@ -62,10 +62,15 @@ class RendezVousController extends AbstractController
             return $this->json(['error' => 'Client information required'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Find or create vehicule
+        // Find or create vehicule — la fiche n'est réutilisée (et complétée)
+        // que si elle appartient au même client : sinon on créerait un RDV sur
+        // la moto d'un autre propriétaire et on écraserait sa fiche.
         $vehicule = null;
         if (!empty($data['vehicule_plaque'])) {
             $vehicule = $this->em->getRepository(Vehicule::class)->findOneBy(['plaque' => $data['vehicule_plaque']]);
+            if ($vehicule && $vehicule->getClient()?->getTelephone() !== $client->getTelephone()) {
+                $vehicule = null;
+            }
             if (!$vehicule) {
                 $vehicule = new Vehicule();
                 $vehicule->setPlaque($data['vehicule_plaque']);
@@ -120,6 +125,54 @@ class RendezVousController extends AbstractController
     /**
      * Apply a workflow transition to a RDV.
      */
+    /**
+     * Accepte la demande d'annulation faite par le client depuis son espace :
+     * applique la transition 'annuler' (mêmes gardes/side effects que le
+     * workflow standard) puis lève le flag de demande.
+     */
+    #[Route('/api/rendez-vous/{id}/demande-annulation/accepter', methods: ['POST'])]
+    public function accepterDemandeAnnulation(int $id, Request $request): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($id);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$rdv->getAnnulationDemandeeAt()) {
+            return $this->json(['error' => 'Aucune demande d\'annulation en cours.'], Response::HTTP_CONFLICT);
+        }
+
+        $response = $this->transition($id, 'annuler', $request);
+        if ($response->getStatusCode() === Response::HTTP_OK) {
+            $rdv->setAnnulationDemandeeAt(null);
+            $this->em->flush();
+        }
+
+        return $response;
+    }
+
+    /**
+     * Refuse la demande d'annulation : le flag est levé, le RDV reste en
+     * l'état et le client peut redemander plus tard si besoin.
+     */
+    #[Route('/api/rendez-vous/{id}/demande-annulation/refuser', methods: ['POST'])]
+    public function refuserDemandeAnnulation(int $id): JsonResponse
+    {
+        $rdv = $this->em->getRepository(RendezVous::class)->find($id);
+        if (!$rdv) {
+            return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$rdv->getAnnulationDemandeeAt()) {
+            return $this->json(['error' => 'Aucune demande d\'annulation en cours.'], Response::HTTP_CONFLICT);
+        }
+
+        $rdv->setAnnulationDemandeeAt(null);
+        $this->em->flush();
+
+        $this->audit->log('annulation_demande_refusee', 'rdv', $rdv->getId(), json_encode(['statut' => $rdv->getStatut()]));
+
+        return $this->json(['success' => true, 'statut' => $rdv->getStatut()]);
+    }
+
     #[Route('/api/rendez-vous/{id}/transition/{transition}', methods: ['POST'])]
     public function transition(int $id, string $transition, Request $request): JsonResponse
     {
@@ -405,6 +458,7 @@ class RendezVousController extends AbstractController
             'gardiennage_motif' => $r->getGardiennageMotif(),
             'motif_annulation' => $r->getMotifAnnulation(),
             'commentaire_annulation' => $r->getCommentaireAnnulation(),
+            'annulation_demandee_at' => $r->getAnnulationDemandeeAt()?->format('c'),
             'client_nom' => $client ? ($client->getPrenom() . ' ' . $client->getNom()) : null,
             'client_telephone' => $client?->getTelephone(),
             'client_email' => $client?->getEmail(),

@@ -138,6 +138,10 @@ class RendezVous
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $commentaireAnnulation = null;
 
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['rdv:read'])]
+    private ?\DateTimeInterface $annulationDemandeeAt = null;
+
     #[ORM\Column(length: 64, unique: true, nullable: true)]
     #[Groups(['rdv:read'])]
     private ?string $tokenSuivi = null;
@@ -285,6 +289,8 @@ class RendezVous
     public function setMotifAnnulation(?string $v): static { $this->motifAnnulation = $v; return $this; }
     public function getCommentaireAnnulation(): ?string { return $this->commentaireAnnulation; }
     public function setCommentaireAnnulation(?string $v): static { $this->commentaireAnnulation = $v; return $this; }
+    public function getAnnulationDemandeeAt(): ?\DateTimeInterface { return $this->annulationDemandeeAt; }
+    public function setAnnulationDemandeeAt(?\DateTimeInterface $v): static { $this->annulationDemandeeAt = $v; return $this; }
 
     // LOT 9 — Stockage & Gardiennage accessors
     public function getEmplacementStockage(): ?string { return $this->emplacementStockage; }
