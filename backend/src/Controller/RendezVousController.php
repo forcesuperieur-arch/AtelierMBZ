@@ -108,6 +108,24 @@ class RendezVousController extends AbstractController
             if ($meca) $rdv->setMecanicien($meca);
         }
 
+        // Contrôle de chevauchement sur le pont (aucun garde-fou auparavant :
+        // deux RDV pouvaient se superposer silencieusement). force=true assume.
+        if ($rdv->getPont() && empty($data['force'])) {
+            $conflit = $this->findPontConflict($rdv);
+            if ($conflit) {
+                return $this->json([
+                    'error' => sprintf(
+                        'Le pont %s est déjà occupé sur ce créneau (RDV #%d à %s). Renvoyez avec force=true pour passer outre.',
+                        $rdv->getPont()->getNom(),
+                        $conflit->getId(),
+                        $conflit->getHeureRdv()?->format('H\hi') ?? '?',
+                    ),
+                    'code' => 'PONT_OCCUPE',
+                    'conflict_rdv_id' => $conflit->getId(),
+                ], Response::HTTP_CONFLICT);
+            }
+        }
+
         $this->em->persist($rdv);
         $this->em->flush();
 
@@ -125,6 +143,43 @@ class RendezVousController extends AbstractController
     /**
      * Apply a workflow transition to a RDV.
      */
+    /**
+     * Premier RDV actif chevauchant le créneau du RDV donné sur le même pont.
+     * Chevauchement sur les durées estimées (défaut 60 min), annulés exclus.
+     */
+    private function findPontConflict(RendezVous $rdv): ?RendezVous
+    {
+        if (!$rdv->getPont() || !$rdv->getDateRdv() || !$rdv->getHeureRdv()) {
+            return null;
+        }
+
+        $startMin = (int) $rdv->getHeureRdv()->format('H') * 60 + (int) $rdv->getHeureRdv()->format('i');
+        $endMin = $startMin + max(15, $rdv->getTempsEstime() ?: 60);
+
+        $candidats = $this->em->getRepository(RendezVous::class)->createQueryBuilder('r')
+            ->where('r.pont = :pont')
+            ->andWhere('r.dateRdv = :date')
+            ->andWhere('r.statut != :annule')
+            ->setParameter('pont', $rdv->getPont())
+            ->setParameter('date', $rdv->getDateRdv()->format('Y-m-d'))
+            ->setParameter('annule', 'annule')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($candidats as $candidat) {
+            if ($candidat->getId() === $rdv->getId() || !$candidat->getHeureRdv()) {
+                continue;
+            }
+            $cStart = (int) $candidat->getHeureRdv()->format('H') * 60 + (int) $candidat->getHeureRdv()->format('i');
+            $cEnd = $cStart + max(15, $candidat->getTempsEstime() ?: 60);
+            if ($startMin < $cEnd && $endMin > $cStart) {
+                return $candidat;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Accepte la demande d'annulation faite par le client depuis son espace :
      * applique la transition 'annuler' (mêmes gardes/side effects que le

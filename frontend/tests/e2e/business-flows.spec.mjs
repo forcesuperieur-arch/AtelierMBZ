@@ -84,6 +84,38 @@ test.describe('Core Business Flows', () => {
     await expect(page.locator('body')).toContainText(/code de suivi/i, { timeout: 15000 });
   });
 
+  test('Public booking: deux réservations simultanées du même créneau → une seule passe', async ({ request }) => {
+    const slotsRes = await request.get('/api/public/slots?atelier_id=1&duree=60');
+    expect(slotsRes.status()).toBe(200);
+    const data = await slotsRes.json();
+
+    // Dernier jour proposé (le plus loin : n'interfère pas avec le test wizard)
+    const dates = Object.keys(data.slots || {}).sort();
+    const date = dates[dates.length - 1];
+    const slot = (data.slots?.[date] || []).find((s) => s.disponible);
+    test.skip(!slot, 'Aucun créneau libre pour le test de concurrence');
+
+    // Tous les ponts libres à cette heure : N réservations possibles, pas une de plus
+    const pontsLibres = (data.slots?.[date] || []).filter((s) => s.disponible && s.heure === slot.heure);
+    const n = pontsLibres.length;
+
+    const payload = (suffix) => ({
+      nom: 'Course', prenom: `Test${suffix}`,
+      telephone: `0699${String(Date.now()).slice(-5)}${suffix}`,
+      email: `course${suffix}.${Date.now()}@example.com`,
+      date_rdv: date, heure_rdv: slot.heure,
+      type_intervention: 'Diagnostic', duree_estimee: 60, atelier_id: 1,
+    });
+
+    // N+1 tirs simultanés : le verrou advisory sérialise, le surnuméraire est refusé
+    const results = await Promise.all(
+      Array.from({ length: n + 1 }, (_, i) => request.post('/api/public/booking', { data: payload(i) }))
+    );
+    const statuses = results.map((r) => r.status());
+    expect(statuses.filter((s) => s === 201).length).toBe(n);
+    expect(statuses.filter((s) => s === 409).length).toBe(1);
+  });
+
   test('Client list: search and view', async ({ page }) => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');

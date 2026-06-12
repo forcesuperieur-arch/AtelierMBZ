@@ -156,6 +156,32 @@ class PublicBookingController extends AbstractController
 
         $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
         $targetDate = new \DateTime($data['date_rdv']);
+
+        // Verrou transactionnel anti-course : deux réservations simultanées sur
+        // le même atelier/jour sont sérialisées — la seconde revérifie la
+        // disponibilité APRÈS l'insert de la première (sinon double résa pont).
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+        try {
+            $connection->executeStatement(
+                'SELECT pg_advisory_xact_lock(hashtext(:lockKey))',
+                ['lockKey' => sprintf('public-booking:%d:%s', $atelierId, $targetDate->format('Y-m-d'))]
+            );
+
+            $response = $this->doCreateBooking($data, $atelierId, $tempsEstime, $targetDate, $request);
+            $connection->commit();
+
+            return $response;
+        } catch (\Throwable $e) {
+            if ($connection->isTransactionActive()) {
+                $connection->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    private function doCreateBooking(array $data, int $atelierId, int $tempsEstime, \DateTime $targetDate, Request $request): JsonResponse
+    {
         $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);
         $matchingSlots = array_values(array_filter($availableSlots, static fn(array $slot) => ($slot['heure'] ?? null) === ($data['heure_rdv'] ?? null)));
 

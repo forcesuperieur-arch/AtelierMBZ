@@ -110,7 +110,15 @@ class SlotService
             $absences,
         )));
 
+        $pauseDebut = $horaire->getPauseDebut();
+        $pauseFin = $horaire->getPauseFin();
+        $pStart = $pauseDebut ? $this->timeToMinutes($pauseDebut) : null;
+        $pEnd = $pauseFin ? $this->timeToMinutes($pauseFin) : null;
+
         // Build occupied slots: pontId => [['start' => HH:MM, 'end' => HH:MM], ...]
+        // La fin occupée applique la même extension de pause que l'offre :
+        // un RDV à cheval sur la pause occupe le pont jusqu'à sa vraie fin
+        // (sinon les créneaux d'après-pause étaient re-proposés → double résa).
         $occupied = [];
         foreach ($rdvs as $rdv) {
             $pontId = $rdv->getPont()?->getId();
@@ -118,25 +126,20 @@ class SlotService
                 continue;
             }
             $start = $rdv->getHeureRdv()->format('H:i');
-            $endMinutes = ((int) $rdv->getHeureRdv()->format('H') * 60 + (int) $rdv->getHeureRdv()->format('i'))
-                + ($rdv->getTempsEstime() ?: 60);
-            $end = sprintf('%02d:%02d', intdiv($endMinutes, 60), $endMinutes % 60);
+            $rdvStartMinutes = (int) $rdv->getHeureRdv()->format('H') * 60 + (int) $rdv->getHeureRdv()->format('i');
+            $rdvEndMinutes = $this->computeEffectiveEndMinutes($rdvStartMinutes, $rdv->getTempsEstime() ?: 60, $pStart, $pEnd);
+            $end = sprintf('%02d:%02d', intdiv($rdvEndMinutes, 60), $rdvEndMinutes % 60);
             $occupied[$pontId][] = ['start' => $start, 'end' => $end];
         }
 
         // Generate time slots
         $ouverture = $horaire->getHeureOuverture() ?: '08:00';
         $fermeture = $horaire->getHeureFermeture() ?: '18:00';
-        $pauseDebut = $horaire->getPauseDebut();
-        $pauseFin = $horaire->getPauseFin();
 
         $startMinutes = $this->timeToMinutes($ouverture);
         $endMinutes = $this->timeToMinutes($fermeture);
         $sameDayMinStart = $this->sameDayMinStartMinutes($date);
         $slots = [];
-
-        $pStart = $pauseDebut ? $this->timeToMinutes($pauseDebut) : null;
-        $pEnd = $pauseFin ? $this->timeToMinutes($pauseFin) : null;
 
         for ($t = $startMinutes; $t < $endMinutes; $t += 15) {
             if ($sameDayMinStart !== null && $t < $sameDayMinStart) {
