@@ -140,6 +140,50 @@ class MecanicienController extends AbstractController
         ]);
     }
 
+    #[Route('/me/rapport/{orId}', methods: ['GET'])]
+    public function getRapport(int $orId): JsonResponse
+    {
+        $mecanicien = $this->getCurrentMecanicien();
+        if (!$mecanicien) {
+            return $this->json(['error' => 'MECANICIEN_NOT_LINKED'], Response::HTTP_FORBIDDEN);
+        }
+
+        $ordre = $this->em->getRepository(OrdreReparation::class)->find($orId);
+        if (!$ordre) {
+            return $this->json(['error' => 'OR not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $rdv = $ordre->getRendezVous();
+        if ($rdv->getMecanicien()?->getId() !== $mecanicien->getId()) {
+            return $this->json(['error' => 'Non autorisé sur cet OR'], Response::HTTP_FORBIDDEN);
+        }
+
+        $essai = $this->findLatestEssai($rdv);
+
+        return $this->json([
+            'id' => $ordre->getId(),
+            'statut' => $ordre->getStatut(),
+            'travauxRealises' => $ordre->getTravauxRealises(),
+            'alertes' => $ordre->getAlertes(),
+            'recommandations' => $ordre->getRecommandations(),
+            'garantie' => $ordre->getGarantie(),
+            'kilometrageRestitution' => $ordre->getKilometrageRestitution(),
+            'mechanic_notes' => $ordre->getMechanicNotes(),
+            'mechanic_checkup' => $ordre->getMechanicCheckup(),
+            'signature_mecanicien' => $ordre->getSignatureMecanicien() !== null,
+            'is_signed_by_both' => $ordre->getSignatureMecanicien() !== null
+                && $ordre->getSignatureClientRestitution() !== null,
+            'essaiRoutier' => $essai ? [
+                'statut' => $essai->getStatut(),
+                'kmDebut' => $essai->getKmDebut(),
+                'kmFin' => $essai->getKmFin(),
+                'dureeMinutes' => $essai->getDureeMinutes(),
+                'pointsControle' => $essai->getPointsControle(),
+                'actionsCorrectives' => $essai->getActionsCorrectives(),
+            ] : null,
+        ]);
+    }
+
     #[Route('/me/rapport/{orId}', methods: ['PATCH'])]
     public function saveRapport(int $orId, Request $request): JsonResponse
     {

@@ -96,6 +96,12 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 ## Phase 3 — Boucle métier de bout en bout (2-3 jours)
 
+> **Décisions métier (cmoreau, 2026-06-11)** :
+> - Booking public : l'email de confirmation propose l'activation de l'espace client (booking sans compte, conversion après)
+> - RDV espace client : bouton « Demander l'annulation » → notification atelier, l'atelier valide
+> - Créneaux : réservables le jour même avec un délai minimum de 2h avant le créneau
+> - Espace mécanicien : desktop ET mobile traités au même niveau
+
 - [ ] **Booking public** : aligner le formulaire public sur la prise de RDV interne (champs manquants, sélection d'atelier — point resté ouvert en session Kimi), bloquer les créneaux passés (fix `3d8cf83` à vérifier côté public)
 - [ ] **Espace mécanicien** — reliquats de `MECANICIEN_PLAN.md` :
   - [ ] `isSignedByBoth` jamais défini → rapport signé invisible

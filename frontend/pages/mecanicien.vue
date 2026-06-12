@@ -129,7 +129,7 @@
             <span style="font-size:11px;color:#6B7280;">{{ checkupDone }}/{{ checkupItems.length }} vérifiés</span>
           </div>
           <div style="font-size:11px;color:#6B7280;margin-bottom:8px;">Le rapport est enregistré dans le dossier atelier.</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">
             <div v-for="item in checkupItems" :key="item.key" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);font-size:12px;cursor:pointer;" :style="{ background: checkup[item.key] === 'ok' ? 'rgba(16,185,129,0.06)' : checkup[item.key] === 'nok' ? 'rgba(239,68,68,0.06)' : 'transparent' }" @click="cycleCheckup(item.key)">
               <span v-if="checkup[item.key] === 'ok'" style="color:#10B981;">✅</span>
               <span v-else-if="checkup[item.key] === 'nok'" style="color:#EF4444;">❌</span>
@@ -200,7 +200,7 @@
           <div v-else style="font-size:12px;color:#6B7280;margin-bottom:12px;">Aucune demande complémentaire signalée.</div>
           <div v-if="showNewDemande" style="display:flex;flex-direction:column;gap:8px;">
             <textarea v-model="newDemande.description" class="form-input" rows="2" placeholder="Description du problème…" />
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
               <input v-model.number="newDemande.prix_estime" type="number" class="form-input" placeholder="Coût estimé (€)" />
               <input v-model.number="newDemande.temps_estime" type="number" class="form-input" placeholder="Temps estimé (min)" />
             </div>
@@ -309,7 +309,7 @@
             </div>
 
             <!-- Kilométrage restitution -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
               <div>
                 <label style="font-size:12px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px;">Km restitution</label>
                 <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input" placeholder="ex: 24500" :disabled="!!rapport.signature_mecanicien" />
@@ -327,7 +327,7 @@
             <!-- Essai routier -->
             <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
               <div style="font-size:13px;font-weight:600;color:#E8E9ED;margin-bottom:12px;">🏍 Essai routier</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px;">
                 <div>
                   <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:2px;">Km départ</label>
                   <input v-model.number="essaiForm.kmDebut" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
@@ -341,7 +341,7 @@
                   <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">
                 <button
                   v-for="pt in essaiPoints" :key="pt.key"
                   type="button"
