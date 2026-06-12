@@ -71,6 +71,11 @@ class ConfigAtelier
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $datesFermetureExceptionnelles = [];
     #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private ?array $dashboardThresholds = null;
 
+    // Lot A — interrupteurs des notifications client par étape du workflow.
+    // Transparence maximale par défaut ; l'atelier peut couper une étape
+    // sans redéploiement (clé = code de template, valeur = bool).
+    #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private ?array $notificationsEtapes = null;
+
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -107,6 +112,29 @@ class ConfigAtelier
         'public_booking' => false,
         ];
     }
+    public static function defaultNotificationsEtapes(): array {
+        return [
+            'rdv_confirmation' => true,
+            'rdv_reception' => true,
+            'travaux_demarres' => true,
+            'attente_pieces' => true,
+            'travaux_termines' => true,
+            'no_show' => true,
+            'demande_relance' => true,
+        ];
+    }
+    public function getNotificationsEtapes(): array { return array_merge(self::defaultNotificationsEtapes(), $this->notificationsEtapes ?? []); }
+    public function setNotificationsEtapes(?array $v): static {
+        $normalized = [];
+        foreach (($v ?? []) as $key => $enabled) {
+            $normalized[(string) $key] = !in_array($enabled, [false, 0, '0', 'false'], true);
+        }
+        $this->notificationsEtapes = $normalized ?: null;
+        return $this;
+    }
+    /** Code inconnu = activé (transparence par défaut) */
+    public function isNotificationEtapeEnabled(string $code): bool { return (bool) ($this->getNotificationsEtapes()[$code] ?? true); }
+
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }
     public function setTauxHoraireMoStandard(string $v): static { $this->tauxHoraireMoStandard = $v; return $this; }
     public function getTauxHoraireMoComplexe(): string { return $this->tauxHoraireMoComplexe; }

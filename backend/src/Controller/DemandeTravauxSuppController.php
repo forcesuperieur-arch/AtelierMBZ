@@ -31,6 +31,7 @@ class DemandeTravauxSuppController extends AbstractController
         private MercureNotifier $mercureNotifier,
         private NotificationDispatcher $notificationDispatcher,
         private \App\Service\RolePhoneResolver $phoneResolver,
+        private \App\Service\DemandeTravauxSuppDecisionService $decisionService,
     ) {}
 
     /**
@@ -290,6 +291,7 @@ class DemandeTravauxSuppController extends AbstractController
         }
 
         $demande->setStatut(DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT);
+        $demande->setSentAt(new \DateTime());
         $this->em->flush();
 
         $rdv = $demande->getRendezVous();
@@ -405,83 +407,27 @@ class DemandeTravauxSuppController extends AbstractController
             return $this->json(['error' => 'Lien invalide ou expiré'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($demande->getStatut() !== DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT) {
-            return $this->json(['error' => 'Décision déjà prise ou demande non envoyée'], Response::HTTP_CONFLICT);
-        }
-
         $data = json_decode($request->getContent(), true) ?? [];
-        $decision = $data['decision'] ?? null;
 
-        if (!in_array($decision, [DemandeTravauxSupp::STATUT_ACCEPTE, DemandeTravauxSupp::STATUT_REFUSE], true)) {
-            return $this->json(['error' => 'Décision invalide (accepte ou refuse)'], Response::HTTP_BAD_REQUEST);
+        // Logique partagée avec l'espace client connecté (signature, OR
+        // complémentaire, notification staff) : DemandeTravauxSuppDecisionService
+        $result = $this->decisionService->decide(
+            $demande,
+            $data['decision'] ?? null,
+            $data['signature'] ?? null,
+            $request,
+        );
+
+        if (isset($result['error'])) {
+            return $this->json(['error' => $result['error']], $result['status']);
         }
-
-        $demande->setDecisionClient($decision);
-        $demande->setDecisionClientAt(new \DateTime());
-        $demande->setDecisionIp($request->getClientIp());
-        $demande->setDecisionUserAgent(mb_substr($request->headers->get('User-Agent', ''), 0, 500));
-
-        if ($decision === DemandeTravauxSupp::STATUT_ACCEPTE) {
-            // Signature required for acceptance
-            $signatureData = $data['signature'] ?? null;
-            if (!$signatureData || !str_starts_with($signatureData, 'data:image/')) {
-                return $this->json(['error' => 'Signature requise pour accepter'], Response::HTTP_BAD_REQUEST);
-            }
-            $demande->setSignatureClient($signatureData);
-            $demande->setSignedAt(new \DateTime());
-            $demande->setStatut(DemandeTravauxSupp::STATUT_ACCEPTE);
-
-            // 4.4 — Auto-create OR complémentaire
-            $or = $this->createOrComplementaire($demande, $signatureData, $request);
-            $demande->setOrComplementaire($or);
-        } else {
-            $demande->setStatut(DemandeTravauxSupp::STATUT_REFUSE);
-        }
-
-        $this->em->flush();
 
         return $this->json([
             'id' => $demande->getId(),
-            'decision' => $decision,
+            'decision' => $demande->getDecisionClient(),
             'statut' => $demande->getStatut(),
             'or_complementaire_id' => $demande->getOrComplementaire()?->getId(),
         ]);
-    }
-
-    /**
-     * 4.4 — Create a signed OR complémentaire from the accepted demande.
-     */
-    private function createOrComplementaire(DemandeTravauxSupp $demande, string $signatureData, Request $request): OrdreReparation
-    {
-        $rdv = $demande->getRendezVous();
-
-        // Find the initial OR
-        $orInitial = $this->em->getRepository(OrdreReparation::class)->findOneBy(
-            ['rendezVous' => $rdv, 'typeOr' => 'initial'],
-            ['id' => 'DESC'],
-        );
-
-        // Build travaux description from prestations choisies
-        $travauxLines = array_map(
-            fn(array $p) => sprintf('%s — %s€ TTC (%d min)', $p['designation'], $p['prix_ttc'], $p['temps_minutes']),
-            $demande->getPrestationsChoisies(),
-        );
-
-        $or = new OrdreReparation();
-        $or->setRendezVous($rdv);
-        $or->setNumeroOr(($orInitial ? $orInitial->getNumeroOr() : 'OR-' . $rdv->getId() . '-' . date('Ymd')) . '-C' . $demande->getId());
-        $or->setTypeOr('complementaire');
-        $or->setTravaux(implode("\n", $travauxLines));
-        $or->setDemandeTravauxSupp($demande);
-        $or->setKilometrage($orInitial?->getKilometrage());
-        $or->snapshotFromRdv();
-
-        $this->em->persist($or);
-
-        // Sign the OR immediately (client just signed)
-        $this->orPolicy->sign($or, $signatureData, $request);
-
-        return $or;
     }
 
     /**
