@@ -76,12 +76,13 @@ class ClientAuthController extends AbstractController
         ]);
 
         // Set HttpOnly cookie for SPA convenience
+        $secure = $this->isCookieSecure($request);
         $response->headers->setCookie(
-            new Cookie('client_access_token', $accessToken, time() + 3600, '/', null, false, true, false, 'Lax')
+            new Cookie('client_access_token', $accessToken, time() + 3600, '/', null, $secure, true, false, 'Lax')
         );
         // Refresh token en cookie HttpOnly, restreint aux routes /api/client
         $response->headers->setCookie(
-            new Cookie('client_refresh_token', $refreshToken, time() + self::REFRESH_TTL, self::REFRESH_COOKIE_PATH, null, false, true, false, 'Lax')
+            new Cookie('client_refresh_token', $refreshToken, time() + self::REFRESH_TTL, self::REFRESH_COOKIE_PATH, null, $secure, true, false, 'Lax')
         );
 
         return $response;
@@ -119,10 +120,20 @@ class ClientAuthController extends AbstractController
 
         $response = $this->json(['access_token' => $accessToken]);
         $response->headers->setCookie(
-            new Cookie('client_access_token', $accessToken, time() + 3600, '/', null, false, true, false, 'Lax')
+            new Cookie('client_access_token', $accessToken, time() + 3600, '/', null, $this->isCookieSecure($request), true, false, 'Lax')
         );
 
         return $response;
+    }
+
+    /**
+     * Secure dès que la requête est en HTTPS ; CLIENT_COOKIE_SECURE=1 force le
+     * flag en prod derrière un proxy TLS non détecté (X-Forwarded-Proto absent).
+     */
+    private function isCookieSecure(Request $request): bool
+    {
+        return $request->isSecure()
+            || filter_var($_ENV['CLIENT_COOKIE_SECURE'] ?? '0', FILTER_VALIDATE_BOOL);
     }
 
     #[Route('/logout', methods: ['POST'])]

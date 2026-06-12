@@ -25,24 +25,31 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
 :81 {
 	encode zstd gzip
 
-	# Public API endpoints (booking, suivi token, demande token, photos publiques).
-	# All endpoints are token-protected server-side.
-	handle /api/* {
+	# Public API — whitelist stricte : booking/suivi/demande/restitution publics,
+	# portail client, clauses légales. Tout le reste (companion, photos staff,
+	# debug, APIs internes) reste inaccessible depuis Internet.
+	@public_api {
+		path /api/public/* /api/client /api/client/* /api/clauses-legales /api/clauses-legales/*
+	}
+	handle @public_api {
 		reverse_proxy php:8000
 	}
 
-	handle /uploads/* {
+	# Uploads : photos RDV (portail client) et logos atelier uniquement —
+	# jamais les documents VO ni le reste de /uploads.
+	@public_uploads {
+		path /uploads/photos/* /uploads/logos/*
+	}
+	handle @public_uploads {
 		reverse_proxy php:8000
 	}
 
-	# Mercure for live updates on /public/suivi/{token}.
-	handle /.well-known/mercure {
-		reverse_proxy mercure:3000
-	}
+	# Mercure n'est pas exposé au public : aucune page publique ne s'y abonne
+	# et le hub accepte les abonnements anonymes (fuite PII sinon).
 
 	# Whitelisted public pages.
 	@public_pages {
-		path /landing /landing/* /public/booking* /public/suivi /public/suivi/* /public/demande /public/demande/* /public/mentions-legales* /public/politique-confidentialite*
+		path /landing /landing/* /public/booking* /public/suivi /public/suivi/* /public/demande /public/demande/* /public/mentions-legales* /public/politique-confidentialite* /restitution /restitution/*
 	}
 	handle @public_pages {
 		reverse_proxy nuxt:3000

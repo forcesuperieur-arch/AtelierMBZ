@@ -53,6 +53,12 @@ class ClientJwtAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Invalid token type.');
         }
 
+        // Le refresh token (7 jours) ne doit jamais servir d'access token :
+        // seul POST /api/client/refresh est habilité à le consommer.
+        if (($payload['refresh'] ?? false) === true) {
+            throw new AuthenticationException('Refresh token cannot be used as access token.');
+        }
+
         $email = $payload['username'] ?? null;
         if (!$email) {
             throw new AuthenticationException('JWT token missing username.');
