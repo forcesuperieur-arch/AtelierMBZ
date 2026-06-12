@@ -1,3 +1,28 @@
+/* ════════════════════════════════════════════════════════════════════
+   PADDOCK — Espace client · Design system « Pit Lane »
+   Carbone profond, jaune course #FFD200, typo Saira (plaques numéro).
+   ════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@600;700;800&display=swap');
+
+:root {
+  --pad-yellow: #FFD200;
+  --pad-yellow-soft: rgba(255, 210, 0, 0.12);
+  --pad-bg: #0C0D12;
+  --pad-surface: #14161D;
+  --pad-surface-2: #1A1D26;
+  --pad-border: rgba(255, 255, 255, 0.07);
+  --pad-border-strong: rgba(255, 255, 255, 0.13);
+  --pad-text: #E8E9ED;
+  --pad-text-dim: #9CA3AF;
+  --pad-text-faint: #6B7280;
+  --pad-font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --pad-font-body: 'Saira', system-ui, sans-serif;
+  --pad-radius: 12px;
+  --pad-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --pad-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -5,9 +30,150 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: #0C0D12;
-  color: #E8E9ED;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--pad-bg);
+  color: var(--pad-text);
+  font-family: var(--pad-font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Atmosphère : lueur d'ambiance jaune en haut + trame carbone très légère */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 420px at 50% -160px, rgba(255, 210, 0, 0.07), transparent 70%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
+    var(--pad-bg);
+  pointer-events: none;
+}
+
+h1, h2, h3 {
+  font-family: var(--pad-font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Données chiffrées alignées façon tableau de bord */
+.tabular, td, .rdv-date {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--pad-yellow);
+  color: #111;
+}
+
+/* Scrollbar carbone */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--pad-bg); }
+::-webkit-scrollbar-thumb {
+  background: #2A2E3A;
+  border-radius: 5px;
+  border: 2px solid var(--pad-bg);
+}
+::-webkit-scrollbar-thumb:hover { background: #3A4050; }
+
+/* Accessibilité : focus visible jaune, jamais supprimé */
+:focus-visible {
+  outline: 2px solid var(--pad-yellow);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Cartes (classes déjà utilisées par les pages) ─────────────────── */
+.rdv-card, .moto-card, .profil-card, .card {
+  position: relative;
+  background: linear-gradient(180deg, var(--pad-surface-2), var(--pad-surface));
+  border: 1px solid var(--pad-border);
+  border-radius: var(--pad-radius);
+  transition: transform 0.18s var(--pad-ease), border-color 0.18s, box-shadow 0.18s;
+  overflow: hidden;
+}
+
+/* Bande de course : signature Paddock en tête de carte */
+.rdv-card::before, .moto-card::before, .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pad-yellow) 70%, transparent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  opacity: 0.85;
+}
+
+a.rdv-card:hover, a.moto-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 210, 0, 0.35);
+  box-shadow: var(--pad-shadow);
+}
+
+/* ── Boutons ───────────────────────────────────────────────────────── */
+button {
+  font-family: var(--pad-font-body);
+}
+
+.btn-primary, button[type='submit'] {
+  position: relative;
+  transition: transform 0.15s var(--pad-ease), box-shadow 0.15s, filter 0.15s;
+}
+.btn-primary:hover:not(:disabled), button[type='submit']:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 210, 0, 0.25);
+  filter: brightness(1.05);
+}
+.btn-primary:active:not(:disabled), button[type='submit']:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ── Formulaires ───────────────────────────────────────────────────── */
+input, textarea, select {
+  font-family: var(--pad-font-body);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(255, 210, 0, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(255, 210, 0, 0.12);
+  outline: none;
+}
+
+/* ── Badges de statut : capsule condensée à point lumineux ─────────── */
+.rdv-status {
+  font-family: var(--pad-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rdv-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ── Entrée de page : cascade douce ────────────────────────────────── */
+@keyframes pad-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.client-main > * {
+  animation: pad-rise 0.4s var(--pad-ease) both;
+}
+.client-main > *:nth-child(2) { animation-delay: 0.06s; }
+.client-main > *:nth-child(3) { animation-delay: 0.12s; }
+.client-main > *:nth-child(4) { animation-delay: 0.18s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
