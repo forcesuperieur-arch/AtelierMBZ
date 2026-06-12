@@ -95,7 +95,7 @@ const loading = ref(true)
 const rdvs = ref<any[]>([])
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
-const today = new Date().toISOString().slice(0, 10)
+const today = todayLocalISO()
 
 const normalizedRdvs = computed(() => rdvs.value.map(r => ({
   ...r,
@@ -171,6 +171,8 @@ function getElapsed(rdv: any): number {
     return Math.max(0, Math.round((Date.now() - start.getTime()) / 60000))
   }
   const start = new Date(rdv.heure_debut_travail)
+  // Safari ne parse pas 'YYYY-MM-DD HH:MM:SS' → Invalid Date → 'NaNmin'
+  if (Number.isNaN(start.getTime())) return 0
   return Math.max(0, Math.round((Date.now() - start.getTime()) / 60000))
 }
 

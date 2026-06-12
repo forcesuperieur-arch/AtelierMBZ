@@ -849,8 +849,14 @@ function syncSelectedDaySlots() {
 }
 
 function changeWeek(days: number) {
-  const candidate = addDays(weekStart.value, days)
-  if (candidate < todayStr) return
+  let candidate = addDays(weekStart.value, days)
+  // Retour vers la semaine courante : on se cale sur aujourd'hui plutôt que de
+  // refuser (dès mardi, le début de la semaine en cours est « dans le passé »
+  // et le bouton ne faisait plus rien).
+  if (candidate < todayStr) {
+    if (weekStart.value <= todayStr) return
+    candidate = todayStr
+  }
   weekStart.value = candidate
   form.date_rdv = candidate
   loadCreneaux()

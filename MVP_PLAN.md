@@ -94,24 +94,30 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 
 ---
 
-## Phase 3 — Boucle métier de bout en bout (2-3 jours)
+## Phase 3 — Boucle métier de bout en bout (2-3 jours) ✅ FAIT (2026-06-12)
 
 > **Décisions métier (cmoreau, 2026-06-11)** :
 > - Booking public : l'email de confirmation propose l'activation de l'espace client (booking sans compte, conversion après)
-> - RDV espace client : bouton « Demander l'annulation » → notification atelier, l'atelier valide
+> - RDV espace client : bouton « Demander l'annulation » → notification atelier, l'atelier valide (boutons Accepter/Refuser dans la modale RDV du planning)
 > - Créneaux : réservables le jour même avec un délai minimum de 2h avant le créneau
 > - Espace mécanicien : desktop ET mobile traités au même niveau
+>
+> **Décisions complémentaires (cmoreau, 2026-06-12)** :
+> - Fiches véhicules : partagées entre ateliers uniquement si même propriétaire (téléphone identique), sinon nouvelle fiche locale
+> - Tokens publics (suivi/restitution) : expirent 30 j après la clôture du RDV (RGPD, aligné photos)
 
-- [ ] **Booking public** : aligner le formulaire public sur la prise de RDV interne (champs manquants, sélection d'atelier — point resté ouvert en session Kimi), bloquer les créneaux passés (fix `3d8cf83` à vérifier côté public)
-- [ ] **Espace mécanicien** — reliquats de `MECANICIEN_PLAN.md` :
-  - [ ] `isSignedByBoth` jamais défini → rapport signé invisible
-  - [ ] Vérifier que `/api/rapport/{id}/pdf` (`OrdreReparationPdfController`) couvre bien le besoin
-  - [ ] Canvas signature responsive (580px fixe → déformé mobile)
-  - [ ] Corriger la logique `essaiRoutierValide`
-- [ ] **Restitution** : valider le flux complet `pret_restitution → livré → terminé` avec signature client + snapshot PDF figé
-- [ ] **Espace client** : « Mes RDV » affiche le statut temps réel + lien vers le PDF de l'OR finalisé (réutiliser le endpoint PDF avec contrôle d'appartenance client)
+- [x] **Booking public** : email d'accusé via NotificationDispatcher (template `booking_accuse` + invitation espace client pour les nouveaux comptes uniquement — anti-takeover), créneaux passés bloqués + délai 2h, garde module `public_booking` côté API, verrou anti-course (advisory lock), suivi en un clic par token
+- [x] **Espace mécanicien** : `is_signed_by_both` exposé (GET /me/rapport/{orId}), canvas signature responsive, `essaiRoutierValide` corrigé, grilles mobiles, saisies protégées contre l'écrasement au refetch
+- [x] **Restitution** : flux complet réparé (alias DQL `or` + liste blanche du freeze listener) et couvert par `restitution.spec.mjs` — il était entièrement mort
+- [x] **Espace client** : statuts lisibles temps réel, PDF de l'OR finalisé (streaming du document figé, contrôle d'appartenance), demande d'annulation bout en bout
 
-**Critère de sortie : un RDV créé depuis le booking public est traité par le mécanicien, l'OR signé est consultable par le client dans son espace.**
+### Réalisé en plus (revues de code des 2026-06-11/12)
+- Sécurité réseau port 81 : whitelist API stricte, Mercure retiré du public, rate limit companion, refresh token non utilisable en access, cookies Secure auto
+- Réservations : occupation pont corrigée (pause déjeuner), contrôle de chevauchement côté staff (`PONT_OCCUPE`, `force=true` pour outrepasser)
+- Analytics asynchrones (worker) — plus de ~25 requêtes d'agrégats par clic de workflow
+- `todayLocalISO()` partout (bug date UTC entre minuit et 2h), guard NaN Safari, retour semaine courante du wizard, photos staff cloisonnées par atelier, `statut` non modifiable par PATCH générique, reset.bat/seed-demo.bat corrigés
+
+**Critère de sortie : un RDV créé depuis le booking public est traité par le mécanicien, l'OR signé est consultable par le client dans son espace.** ✅
 
 ---
 
@@ -123,7 +129,7 @@ Constat actuel (`client-frontend/`) : pages propres (13 pages, un seul login), m
 - [ ] P0 : **confirmation RDV** (à la transition `confirmé`), **rappel J-1** (scheduler), **travaux terminés** (transition `pret_restitution`)
 - [ ] Implémenter `RappelProchaineRevisionCommand` (actuellement vide) — ou la sortir explicitement du MVP
 - [ ] Email uniquement pour le MVP (MailHog en dev, SMTP réel en prod). SMS = post-MVP
-- [ ] Corriger `reset.bat` (`app:seed-parametres` → `app:seed`)
+- [x] Corriger `reset.bat` (`app:seed-parametres` → `app:seed`) — fait le 2026-06-12, idem `seed-demo.bat`
 
 **Critère de sortie : les 3 notifications P0 partent réellement, visibles dans MailHog.**
 

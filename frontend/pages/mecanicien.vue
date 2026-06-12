@@ -962,7 +962,7 @@ async function saveInterventionNotes() {
 }
 
 async function fetchMyRdvs() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const data = await api.get(`/mecanicien/me/rdvs?date=${today}`)
 
   absenceToday.value = data?.absence_today ?? null
@@ -979,10 +979,13 @@ async function fetchMyRdvs() {
 }
 
 watch(activeRdv, (next, prev) => {
+  // Ne réhydrate depuis le serveur QUE sur changement de RDV : chaque refetch
+  // (pause, demande complémentaire…) écrasait silencieusement le checkup et
+  // les notes en cours de saisie.
   if (next?.id !== prev?.id) {
     resetEssaiForm()
+    applySavedWorkshopReport()
   }
-  applySavedWorkshopReport()
 })
 
 watch(rapportRdvId, (id) => {

@@ -125,7 +125,7 @@ function openCreate() {
     code: 'cgv',
     libelle: '',
     texte: '',
-    effectiveFrom: new Date().toISOString().slice(0, 10),
+    effectiveFrom: todayLocalISO(),
   }
   showEditModal.value = true
 }

@@ -85,6 +85,15 @@ class PhotoController extends AbstractController
     public function serve(string $filename): Response
     {
         $filename = basename($filename);
+
+        // Appartenance vérifiée en base (le filtre tenant s'applique à la
+        // requête) : sans cela, n'importe quel staff servait les photos de
+        // n'importe quel atelier directement depuis le filesystem.
+        $photo = $this->em->getRepository(PhotoIntervention::class)->findOneBy(['filename' => $filename]);
+        if (!$photo) {
+            return $this->json(['error' => 'File not found'], Response::HTTP_NOT_FOUND);
+        }
+
         $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . $filename;
 
         if (!file_exists($path)) {

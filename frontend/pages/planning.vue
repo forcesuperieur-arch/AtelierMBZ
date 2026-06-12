@@ -795,7 +795,7 @@ const receptionForm = reactive({
 })
 
 const quickForm = reactive({
-  date_rdv: new Date().toISOString().slice(0, 10),
+  date_rdv: todayLocalISO(),
   heure_debut: '10:00',
   client_id: null as number | null,
   client_prenom: '',
@@ -1102,7 +1102,7 @@ const hourRangeLabel = computed(() => {
 
 const kpis = computed(() => {
   const rdvs = activePlanningRdvs.value
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const todayRdvs = rdvs.filter((rdv: any) => rdv.date_rdv === today)
   const enCours = todayRdvs.filter((rdv: any) => rdv.status === 'en_cours').length
   const total = todayRdvs.length
@@ -1180,7 +1180,7 @@ function fallbackTransitionsForStatus(status?: string) {
 
 function hydrateEditForms(rdv: any) {
   if (!rdv) return
-  editForm.date_rdv = rdv.date_rdv || new Date().toISOString().slice(0, 10)
+  editForm.date_rdv = rdv.date_rdv || todayLocalISO()
   editForm.heure_debut = rdv.heure_debut || '09:00'
   editForm.type_intervention = rdv.type_intervention || ''
   editForm.temps_estime = toNumber(rdv.temps_estime, 60)
@@ -1193,7 +1193,7 @@ function hydrateEditForms(rdv: any) {
 }
 
 function resetQuickForm(prefill?: { date?: string; time?: string; pontId?: number | null }) {
-  quickForm.date_rdv = prefill?.date || new Date().toISOString().slice(0, 10)
+  quickForm.date_rdv = prefill?.date || todayLocalISO()
   quickForm.heure_debut = prefill?.time || '10:00'
   quickForm.client_id = null
   quickForm.client_prenom = ''
@@ -1228,7 +1228,7 @@ function consumeWorkshopQuickCreateQuery() {
   if (String(route.query.create ?? '') !== '1') return
 
   openQuickCreate({
-    date: normalizeDateValue(route.query.date) || new Date().toISOString().slice(0, 10),
+    date: normalizeDateValue(route.query.date) || todayLocalISO(),
     time: normalizeTimeValue(route.query.time) || '10:00',
     pontId: toNullableNumber(route.query.pontId),
   })

@@ -126,8 +126,10 @@ class RendezVous
     #[Groups(['rdv:read'])]
     private ?EssaiRoutier $essaiRoutier = null;
 
+    // PAS de rdv:write : un PATCH générique contournerait la machine à états
+    // (gardes de transition, notifications, Mercure). Passer par /transition/*.
     #[ORM\Column(length: 50, options: ['default' => 'en_attente'])]
-    #[Groups(['rdv:read', 'rdv:write', 'ordre:read'])]
+    #[Groups(['rdv:read', 'ordre:read'])]
     private string $statut = 'en_attente';
 
     #[ORM\Column(length: 50, nullable: true)]

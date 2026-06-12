@@ -432,7 +432,7 @@ function countConflicts(todayRdvs: any[]): number {
 }
 
 const enrichedPonts = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const todayRdvs = rdvs.value
     .filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
     .sort((a: any, b: any) => formatHourLabel(a?.heure_rdv).localeCompare(formatHourLabel(b?.heure_rdv)))
@@ -462,7 +462,7 @@ const kpis = computed(() => {
   const total = enrichedPonts.value.filter((p: any) => isActiveFlag(p.is_active ?? p.est_actif)).length
   const occupied = enrichedPonts.value.filter((p: any) => isActiveFlag(p.is_active ?? p.est_actif) && (p.current_rdv || p.day_schedule.length)).length
   const occupation = total ? Math.round(occupied / total * 100) : 0
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const todayRdvs = rdvs.value.filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
   const absentIds = new Set(absences.value.filter((a: any) => {
     const start = extractDateKey(a?.date_debut)
@@ -480,7 +480,7 @@ const kpis = computed(() => {
 })
 
 const enrichedMecas = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const todayRdvs = rdvs.value.filter((r: any) => extractDateKey(r?.date_rdv) === today && !isFinalStatus(getRdvStatus(r)))
   const absentIds = new Set(absences.value.filter((a: any) => {
     const start = extractDateKey(a?.date_debut)
@@ -568,7 +568,7 @@ function addMinutesToTime(time: string, minutesToAdd: number): string {
 }
 
 function buildPlanningCreateLink(pont?: any): string {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const suggestedTime = pont?.day_schedule?.length
     ? addMinutesToTime(formatHourLabel(pont.day_schedule[pont.day_schedule.length - 1]?.heure_rdv), Number(pont.day_schedule[pont.day_schedule.length - 1]?.temps_estime ?? 60))
     : '10:00'
