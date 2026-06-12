@@ -44,6 +44,8 @@ class OrdreReparationFreezeListener
             $allowedFields = [
                 'statut',
                 'signatureClient',
+                'signatureClientRestitution',
+                'signeClientRestitutionAt',
                 'signedSnapshot',
                 'signedHash',
                 'signedAt',

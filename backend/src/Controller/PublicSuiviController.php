@@ -111,8 +111,8 @@ class PublicSuiviController extends AbstractController
     {
         $rdv = $this->em->getRepository(RendezVous::class)
             ->createQueryBuilder('r')
-            ->leftJoin('r.ordresReparation', 'or')
-            ->addSelect('or')
+            ->leftJoin('r.ordresReparation', 'ordre')
+            ->addSelect('ordre')
             ->leftJoin('r.client', 'c')
             ->addSelect('c')
             ->leftJoin('r.vehicule', 'v')
@@ -187,8 +187,8 @@ class PublicSuiviController extends AbstractController
 
         $rdv = $this->em->getRepository(RendezVous::class)
             ->createQueryBuilder('r')
-            ->leftJoin('r.ordresReparation', 'or')
-            ->addSelect('or')
+            ->leftJoin('r.ordresReparation', 'ordre')
+            ->addSelect('ordre')
             ->where('r.tokenSuivi = :token')
             ->setParameter('token', $token)
             ->setMaxResults(1)

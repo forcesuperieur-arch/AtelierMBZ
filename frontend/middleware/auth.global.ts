@@ -1,7 +1,7 @@
 import { useAtelierStore } from '~/stores/atelier'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const publicRoutes = ['/login', '/landing', '/public/booking', '/public/suivi', '/public/companion', '/public/vo-companion']
+  const publicRoutes = ['/login', '/landing', '/public/booking', '/public/suivi', '/public/companion', '/public/vo-companion', '/public/demande', '/restitution']
   if (publicRoutes.some(r => to.path.startsWith(r))) return
 
   const auth = useAuth()
