@@ -1472,3 +1472,43 @@ table, .kpi-value, .stat-value {
   background: var(--dark3);
   color: #E8E9ED;
 }
+
+/* ── Filet de sécurité anti-bugs d'affichage ─────────────────────────
+   Corrige les causes structurelles de casse visuelle en attendant la
+   migration des styles inline vers le design system. */
+
+/* Images et SVG ne débordent jamais de leur conteneur */
+.content img, .content svg { max-width: 100%; }
+.content img { height: auto; }
+
+/* Les textes longs (emails, plaques, libellés) ne font plus exploser
+   les cartes : césure propre au lieu d'un débordement */
+.panel, .app-modal-body, .detail-modal-body, td, .kpi-card {
+  overflow-wrap: break-word;
+}
+
+/* Tableaux larges : défilement horizontal contenu au panneau */
+.panel { overflow-x: auto; }
+
+/* Les enfants de grilles/flex peuvent rétrécir (cause n°1 des débordements) */
+.app-modal-body > div, .detail-modal-body > div, .panel > div {
+  min-width: 0;
+}
+
+/* Les modales ne perdent jamais leur pied d'actions : le corps défile */
+.app-modal-card, .detail-modal-card {
+  display: flex;
+  flex-direction: column;
+}
+.app-modal-body, .detail-modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+.app-modal-header, .app-modal-footer, .detail-modal-header {
+  flex-shrink: 0;
+}
+
+/* Le fond ne défile plus derrière une modale ouverte */
+body:has(.app-modal-overlay), body:has(.detail-modal-overlay) {
+  overflow: hidden;
+}
