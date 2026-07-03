@@ -122,6 +122,10 @@ class ConfigController extends AbstractController
         if (isset($configData['notifications_etapes']) && is_array($configData['notifications_etapes'])) {
             $config->setNotificationsEtapes($configData['notifications_etapes']);
         }
+        // Lot B — check-in (état des lieux signé) obligatoire avant réception
+        if (array_key_exists('checkin_obligatoire', $configData)) {
+            $config->setCheckinObligatoire(!in_array($configData['checkin_obligatoire'], [false, 0, '0', 'false'], true));
+        }
 
         $atelier = $this->resolveAtelier($config);
         if ($atelier && $atelierData) {

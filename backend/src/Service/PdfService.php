@@ -4,6 +4,7 @@ namespace App\Service;
 use App\Entity\Atelier;
 use App\Entity\Client;
 use App\Entity\Devis;
+use App\Entity\EtatDesLieux;
 use App\Entity\Facture;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
@@ -212,6 +213,68 @@ class PdfService
         $reference = (string) ($document['reference'] ?? sprintf('REVO-%s', $campaign['label'] ?? date('Ymd-His')));
 
         return $this->renderPdf($html, $reference);
+    }
+
+    /**
+     * Generate the frozen check-in report PDF (Lot B — état des lieux d'entrée).
+     * Appelé UNE SEULE FOIS à la signature par EtatDesLieuxDocumentService,
+     * qui archive ensuite le fichier sous nom aléatoire. Jamais régénéré.
+     */
+    public function generateEtatDesLieuxPdf(EtatDesLieux $etatDesLieux): string
+    {
+        $rdv = $etatDesLieux->getRendezVous();
+        $atelier = $this->resolveAtelier($etatDesLieux->getAtelierId() ?? $rdv->getAtelierId());
+
+        $html = $this->twig->render('pdf/etat_des_lieux.html.twig', [
+            'edl' => $etatDesLieux,
+            'rdv' => $rdv,
+            'niveau_carburant_label' => EtatDesLieux::NIVEAUX_CARBURANT_LABELS[$etatDesLieux->getNiveauCarburant()] ?? 'Non renseigné',
+            'photos_entree' => $this->extractCheckinPhotos($rdv),
+            ...$this->buildBrandingContext($atelier),
+        ]);
+
+        return $this->renderPdf($html, 'EDL-' . ($etatDesLieux->getId() ?? $rdv->getId()) . '-' . bin2hex(random_bytes(4)));
+    }
+
+    /**
+     * Photos d'entrée du check-in (types checkin/reception), en data-URI,
+     * ordre déterministe. Distinct d'extractReceptionPhotos : pas de photos
+     * inline booking, pas de type vide, plafond plus haut (grille complète).
+     *
+     * @return array<int, array{src: string, label: string, takenAt: ?string}>
+     */
+    private function extractCheckinPhotos(?RendezVous $rdv): array
+    {
+        if (!$rdv) {
+            return [];
+        }
+
+        $candidates = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            $type = strtolower((string) ($photo->getType() ?? ''));
+            if (in_array($type, ['checkin', 'reception'], true)) {
+                $candidates[] = $photo;
+            }
+        }
+
+        usort($candidates, static fn (PhotoIntervention $left, PhotoIntervention $right): int =>
+            [$left->getFilename(), $left->getId() ?? 0] <=> [$right->getFilename(), $right->getId() ?? 0]);
+
+        $photos = [];
+        foreach ($candidates as $photo) {
+            $src = $this->fileToDataUri($this->projectDir . '/var/photos/' . basename($photo->getFilename()));
+            if (!$src) {
+                continue;
+            }
+
+            $photos[] = [
+                'src' => $src,
+                'label' => $photo->getDescription() ?: 'Photo d\'entrée',
+                'takenAt' => $photo->getTakenAt()?->format('d/m/Y H:i'),
+            ];
+        }
+
+        return array_slice($photos, 0, 12);
     }
 
     private function buildBrandingContext(?Atelier $atelier): array

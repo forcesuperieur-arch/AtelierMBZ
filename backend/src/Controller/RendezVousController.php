@@ -2,8 +2,10 @@
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\ConfigAtelier;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\EssaiRoutier;
+use App\Entity\EtatDesLieux;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
@@ -354,6 +356,17 @@ class RendezVousController extends AbstractController
                     'error' => 'Signatures client et atelier obligatoires avant validation de la réception. Utilisez le compagnon PDA pour faire signer.',
                 ], Response::HTTP_BAD_REQUEST);
             }
+
+            // Lot B — état des lieux d'entrée SIGNÉ obligatoire (toggle atelier)
+            if ($this->isCheckinObligatoire($rdv)) {
+                $etatDesLieux = $this->em->getRepository(EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+                if (!$etatDesLieux || $etatDesLieux->getSignedHash() === null) {
+                    return $this->json([
+                        'error' => 'État des lieux d\'entrée signé obligatoire avant validation de la réception.',
+                        'code' => 'ETAT_DES_LIEUX_REQUIS',
+                    ], Response::HTTP_BAD_REQUEST);
+                }
+            }
         }
 
         // Start/stop work time tracking + LOT 3 side effects
@@ -547,6 +560,19 @@ class RendezVousController extends AbstractController
             ['rendezVous' => $rdv],
             ['id' => 'DESC'],
         );
+    }
+
+    /**
+     * Le check-in est-il exigé avant la transition 'reception' pour cet atelier ?
+     * Sans configuration trouvée : exigé (défaut TRUE, transparence maximale).
+     */
+    private function isCheckinObligatoire(RendezVous $rdv): bool
+    {
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(
+            $rdv->getAtelierId() ? ['atelierId' => $rdv->getAtelierId()] : [],
+        );
+
+        return $config ? $config->isCheckinObligatoire() : true;
     }
 
     private function findLatestEssai(RendezVous $rdv): ?EssaiRoutier

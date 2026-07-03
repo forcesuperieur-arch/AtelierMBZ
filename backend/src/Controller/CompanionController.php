@@ -191,6 +191,16 @@ class CompanionController extends AbstractController
             return $this->json(['error' => 'Photo requise'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Lot B : le flux tablette pose désormais un type (défaut 'reception',
+        // corrige la garde 4-photos qui comptait un type jamais renseigné)
+        $type = (string) $request->request->get('type', 'reception');
+        if (!in_array($type, ['reception', 'checkin'], true)) {
+            return $this->json([
+                'error' => 'Type de photo invalide (reception ou checkin)',
+                'code' => 'TYPE_PHOTO_INVALIDE',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
         if (!in_array((string) $file->getMimeType(), $allowedMimes, true)) {
             return $this->json(['error' => 'Format non supporté (JPEG, PNG, WebP, HEIC)'], Response::HTTP_BAD_REQUEST);
@@ -212,8 +222,11 @@ class CompanionController extends AbstractController
         $photo->setRendezVous($rdv);
         $photo->setFilename($filename);
         $photo->setOriginalName($file->getClientOriginalName());
-        $photo->setDescription($request->request->get('description', 'Photo réception'));
+        $photo->setDescription($request->request->get('description', $type === 'checkin' ? 'Photo check-in' : 'Photo réception'));
         $photo->setAtelierId($rdv->getAtelierId());
+        $photo->setType($type);
+        $photo->setSha256(hash_file('sha256', $uploadDir . '/' . $filename) ?: null);
+        $photo->setTakenAt(new \DateTime());
 
         $this->em->persist($photo);
         $this->em->flush();
