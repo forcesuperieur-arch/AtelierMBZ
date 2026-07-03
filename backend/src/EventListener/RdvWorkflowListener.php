@@ -5,6 +5,7 @@ namespace App\EventListener;
 use App\Entity\ConfigAtelier;
 use App\Entity\Notification;
 use App\Entity\RendezVous;
+use App\Service\EtatDesLieuxEmailBlocBuilder;
 use App\Service\MercureNotifier;
 use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +33,7 @@ class RdvWorkflowListener
         private NotificationDispatcher $dispatcher,
         private EntityManagerInterface $em,
         private MercureNotifier $mercure,
+        private EtatDesLieuxEmailBlocBuilder $etatDesLieuxBloc,
     ) {}
 
     public function __invoke(CompletedEvent $event): void
@@ -75,6 +77,11 @@ class RdvWorkflowListener
             'date_rdv'      => $dateRdv,
             'heure_rdv'     => $heureRdv,
             'type_intervention' => $rdv->getTypeIntervention(),
+            // Lot B — TOUJOURS fournie (chaîne vide sinon) : render() est un
+            // str_replace naïf, une variable absente resterait '{{...}}' en clair.
+            'etat_des_lieux_bloc' => $templateCode === 'travaux_termines'
+                ? $this->etatDesLieuxBloc->build($rdv)
+                : '',
         ];
 
         // Email

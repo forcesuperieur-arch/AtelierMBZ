@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Client;
+use App\Entity\EtatDesLieux;
+use App\Entity\Notification;
+use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\AuditService;
+use App\Service\MercureNotifier;
 use App\Service\OrdreReparationPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +31,8 @@ class PublicSuiviController extends AbstractController
         private EntityManagerInterface $em,
         private RateLimiterFactory $publicBookingLimiter,
         private OrdreReparationPolicy $ordreReparationPolicy,
+        private AuditService $auditService,
+        private MercureNotifier $mercureNotifier,
     ) {}
 
     #[Route('/suivi', methods: ['POST'])]
@@ -130,7 +137,54 @@ class PublicSuiviController extends AbstractController
                 'telephone' => $client->getTelephone(),
                 'email' => $client->getEmail(),
             ],
+            'etat_des_lieux' => $this->buildEtatDesLieuxPayload($rdv),
         ];
+    }
+
+    /**
+     * Lot B — état des lieux d'entrée exposé au public tokenisé, visible dès
+     * signature (gate signedHash, même règle que le portail client). Photos
+     * d'entrée (checkin + reception) servies par les URLs publiques tokenisées.
+     */
+    private function buildEtatDesLieuxPayload(RendezVous $rdv): ?array
+    {
+        $etatDesLieux = $this->em->getRepository(EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+        if (!$etatDesLieux || !$etatDesLieux->isSigned()) {
+            return null;
+        }
+
+        $niveauCarburant = $etatDesLieux->getNiveauCarburant();
+
+        return [
+            'signe' => true,
+            'signed_at' => $etatDesLieux->getSignedAt()?->format('c'),
+            'kilometrage' => $etatDesLieux->getKilometrage(),
+            'niveau_carburant' => $niveauCarburant,
+            'niveau_carburant_label' => $niveauCarburant !== null
+                ? (EtatDesLieux::NIVEAUX_CARBURANT_LABELS[$niveauCarburant] ?? $niveauCarburant)
+                : null,
+            'observations' => $etatDesLieux->getObservations(),
+            'photos' => $this->collectPublicPhotoUrls($rdv, ['checkin', 'reception']),
+        ];
+    }
+
+    /** @param string[] $types */
+    private function collectPublicPhotoUrls(RendezVous $rdv, array $types): array
+    {
+        $urls = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            if (in_array($photo->getType(), $types, true)) {
+                $urls[] = $this->buildPublicPhotoUrl($rdv, $photo);
+            }
+        }
+
+        return $urls;
+    }
+
+    /** Même pattern que CompanionController::buildPublicPhotoUrl (PublicPhotoController). */
+    private function buildPublicPhotoUrl(RendezVous $rdv, PhotoIntervention $photo): string
+    {
+        return '/api/public/photos/' . $rdv->getTokenSuivi() . '/' . $photo->getFilename();
     }
 
     /**
@@ -224,6 +278,10 @@ class PublicSuiviController extends AbstractController
                 'signature_mecanicien' => $ordre->getSignatureMecanicien() !== null,
                 'signature_client_restitution' => $ordre->getSignatureClientRestitution() !== null,
             ],
+            // Lot B — comparatif avant/après à la restitution : état des lieux
+            // d'entrée (photos checkin/reception) + photos de sortie tokenisées.
+            'etat_des_lieux' => $this->buildEtatDesLieuxPayload($rdv),
+            'photos_restitution' => $this->collectPublicPhotoUrls($rdv, ['restitution']),
         ]);
     }
 
@@ -273,12 +331,80 @@ class PublicSuiviController extends AbstractController
         }
 
         $this->ordreReparationPolicy->signRestitution($ordre, $signature);
+
+        // Lot B — litige à la restitution : champs sur le RDV (pas sur l'OR gelé).
+        // Commentaire stocké brut (pas de HTML), tronqué à 2000 caractères.
+        $litigeSignale = filter_var($data['litige_signale'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $litigeNotif = null;
+        if ($litigeSignale) {
+            $litigeCommentaire = mb_substr(trim((string) ($data['litige_commentaire'] ?? '')), 0, 2000);
+            $rdv->setLitigeSignale(true);
+            $rdv->setLitigeCommentaire($litigeCommentaire !== '' ? $litigeCommentaire : null);
+
+            $litigeNotif = $this->buildLitigeNotification($rdv);
+            if ($litigeNotif) {
+                $this->em->persist($litigeNotif);
+            }
+        }
+
         $this->em->flush();
+
+        if ($litigeSignale) {
+            $this->auditService->log(
+                'litige_restitution_signale',
+                'RendezVous',
+                $rdv->getId(),
+                sprintf('Litige signalé à la restitution — RDV #%d', $rdv->getId()),
+            );
+        }
+
+        // Publication après flush : le payload Mercure embarque l'id de la
+        // notification (pattern DemandeTravauxSuppDecisionService).
+        if ($litigeNotif) {
+            try {
+                $this->mercureNotifier->publishToAtelier($litigeNotif->getAtelierId(), $litigeNotif);
+            } catch (\Throwable) {
+                // Mercure indisponible : la notification reste visible dans la cloche
+            }
+        }
 
         return $this->json([
             'success' => true,
             'message' => 'Restitution signée avec succès.',
             'statut' => $ordre->getStatut(),
         ]);
+    }
+
+    /**
+     * Le staff doit savoir SANS DÉLAI qu'un litige a été signalé à la
+     * restitution : cloche sévérité haute (pop-in immédiat côté front).
+     */
+    private function buildLitigeNotification(RendezVous $rdv): ?Notification
+    {
+        $atelierId = $rdv->getAtelierId();
+        if (!$atelierId) {
+            return null;
+        }
+
+        $client = $rdv->getClient();
+
+        $notif = new Notification();
+        $notif->setAtelierId($atelierId);
+        $notif->setType('litige_restitution');
+        $notif->setSeverity('warning');
+        $notif->setTitle('Litige signalé à la restitution');
+        $notif->setMessage(sprintf(
+            'Litige signalé à la restitution — RDV #%d, client %s %s (RDV du %s)',
+            $rdv->getId(),
+            $client?->getPrenom() ?? 'Le',
+            $client?->getNom() ?? 'client',
+            $rdv->getDateRdv()?->format('d/m/Y') ?? '?',
+        ));
+        $notif->setRelatedEntityType('RendezVous');
+        $notif->setRelatedEntityId($rdv->getId());
+        $notif->setTargetRoles(['ROLE_RECEPTIONNAIRE', 'ROLE_ADMIN', 'ROLE_MECANICIEN']);
+        $notif->setPriority('high');
+
+        return $notif;
     }
 }

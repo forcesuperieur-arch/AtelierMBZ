@@ -198,6 +198,17 @@ class RendezVous
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $gardiennageMotif = null;
 
+    // LOT B — Litige à la restitution. Colonnes sur le RDV (PAS sur l'OR gelé :
+    // le FreezeListener rejetterait l'écriture). Lecture staff seule : PAS de
+    // rdv:write, posé uniquement via POST /api/public/restitution/{token}/sign.
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['rdv:read'])]
+    private bool $litigeSignale = false;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['rdv:read'])]
+    private ?string $litigeCommentaire = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -258,6 +269,10 @@ class RendezVous
     public function setStatut(string $statut): static { $this->statut = $statut; return $this; }
     public function getTokenSuivi(): ?string { return $this->tokenSuivi; }
     public function setTokenSuivi(?string $tokenSuivi): static { $this->tokenSuivi = $tokenSuivi; return $this; }
+    public function isLitigeSignale(): bool { return $this->litigeSignale; }
+    public function setLitigeSignale(bool $litigeSignale): static { $this->litigeSignale = $litigeSignale; return $this; }
+    public function getLitigeCommentaire(): ?string { return $this->litigeCommentaire; }
+    public function setLitigeCommentaire(?string $litigeCommentaire): static { $this->litigeCommentaire = $litigeCommentaire; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }

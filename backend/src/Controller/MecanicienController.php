@@ -6,6 +6,7 @@ use App\Entity\EssaiRoutier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\RendezVous;
+use App\Service\EtatDesLieuxEmailBlocBuilder;
 use App\Service\NotificationDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ class MecanicienController extends AbstractController
         private \App\Service\AuditService $auditService,
         private \App\Service\MercureNotifier $mercureNotifier,
         private NotificationDispatcher $notificationDispatcher,
+        private EtatDesLieuxEmailBlocBuilder $etatDesLieuxBloc,
     ) {}
 
     private function getCurrentMecanicien(): ?Mecanicien
@@ -337,6 +339,10 @@ class MecanicienController extends AbstractController
                     'client_prenom' => $client->getPrenom(),
                     'moto'          => $motoLabel ?: 'votre moto',
                     'numero_or'     => $ordre->getNumeroOr(),
+                    // Lot B — TOUJOURS fournie (vide si pas d'EDL signé) : évite
+                    // un '{{etat_des_lieux_bloc}}' littéral si le template de
+                    // l'atelier a été personnalisé avec cette variable.
+                    'etat_des_lieux_bloc' => $this->etatDesLieuxBloc->build($rdv),
                 ],
                 'RendezVous',
                 $rdv->getId(),
