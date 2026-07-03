@@ -76,6 +76,10 @@ class ConfigAtelier
     // sans redéploiement (clé = code de template, valeur = bool).
     #[ORM\Column(type: 'json', nullable: true)] #[Groups(['config:read', 'config:write'])] private ?array $notificationsEtapes = null;
 
+    // Lot B — check-in obligatoire : la transition 'reception' exige un état
+    // des lieux d'entrée SIGNÉ tant que ce toggle est actif (défaut TRUE).
+    #[ORM\Column(options: ['default' => true])] #[Groups(['config:read', 'config:write'])] private bool $checkinObligatoire = true;
+
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -134,6 +138,9 @@ class ConfigAtelier
     }
     /** Code inconnu = activé (transparence par défaut) */
     public function isNotificationEtapeEnabled(string $code): bool { return (bool) ($this->getNotificationsEtapes()[$code] ?? true); }
+
+    public function isCheckinObligatoire(): bool { return $this->checkinObligatoire; }
+    public function setCheckinObligatoire(bool $v): static { $this->checkinObligatoire = $v; return $this; }
 
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }
     public function setTauxHoraireMoStandard(string $v): static { $this->tauxHoraireMoStandard = $v; return $this; }

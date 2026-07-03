@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
+use App\Entity\EtatDesLieux;
 use App\Entity\Notification;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
@@ -11,6 +12,7 @@ use App\Entity\RdvStatutHistorique;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\DemandeTravauxSuppDecisionService;
+use App\Service\EtatDesLieuxDocumentService;
 use App\Service\MercureNotifier;
 use App\Service\PdfService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +36,7 @@ class ClientEspaceController extends AbstractController
         private PdfService $pdfService,
         private MercureNotifier $mercureNotifier,
         private DemandeTravauxSuppDecisionService $decisionService,
+        private EtatDesLieuxDocumentService $etatDesLieuxDocumentService,
     ) {}
 
     #[Route('/me', methods: ['GET'])]
@@ -139,6 +142,21 @@ class ClientEspaceController extends AbstractController
         $demandes = $this->em->getRepository(DemandeTravauxSupp::class)
             ->findBy(['rendezVous' => $rdv], ['createdAt' => 'DESC']);
 
+        // État des lieux d'entrée : visible dès signature (gate signedHash,
+        // PAS le statut 'termine' — écart voulu avec le gate des OR)
+        $etatDesLieux = $this->em->getRepository(EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+        $etatDesLieuxPayload = null;
+        if ($etatDesLieux && $etatDesLieux->getSignedHash() !== null) {
+            $etatDesLieuxPayload = [
+                'signe' => true,
+                'signed_at' => $etatDesLieux->getSignedAt()?->format('c'),
+                'kilometrage' => $etatDesLieux->getKilometrage(),
+                'niveau_carburant' => $etatDesLieux->getNiveauCarburant(),
+                'observations' => $etatDesLieux->getObservations(),
+                'pdf_disponible' => true,
+            ];
+        }
+
         return $this->json([
             'id' => $rdv->getId(),
             'date_heure' => (new \DateTime($rdv->getDateRdv()->format('Y-m-d') . ' ' . $rdv->getHeureRdv()->format('H:i:s')))->format('c'),
@@ -174,6 +192,7 @@ class ClientEspaceController extends AbstractController
                 'id' => $c->getId(),
                 'numero' => $c->getNumero(),
             ], $rdv->getCommandes()->toArray()),
+            'etat_des_lieux' => $etatDesLieuxPayload,
             'timeline' => $timeline,
             'demandes_travaux' => array_map(fn(DemandeTravauxSupp $d) => [
                 'id' => $d->getId(),
@@ -308,6 +327,47 @@ class ClientEspaceController extends AbstractController
         $response = new BinaryFileResponse($pdfPath);
         $response->headers->set('Content-Type', 'application/pdf');
         $response->setContentDisposition('attachment', 'OR-' . $or->getNumeroOr() . '.pdf');
+
+        return $response;
+    }
+
+    /**
+     * PDF de l'état des lieux d'entrée pour le client propriétaire du RDV.
+     * Même pattern que downloadOrPdf : double contrôle (flag payload + re-check
+     * ici), gate = signedHash !== null (dès signature, pas d'attente 'termine'),
+     * document archivé à la signature — JAMAIS régénéré.
+     */
+    #[Route('/rdvs/{rdvId}/etat-des-lieux/pdf', methods: ['GET'])]
+    public function downloadEtatDesLieuxPdf(int $rdvId): Response
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $rdv = $this->em->getRepository(RendezVous::class)->findOneBy(['id' => $rdvId, 'client' => $client]);
+        if (!$rdv) {
+            return $this->json(['error' => 'Rendez-vous introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $etatDesLieux = $this->em->getRepository(EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+
+        // Seul le document signé et figé (hash) est communicable au client
+        if (!$etatDesLieux || $etatDesLieux->getSignedHash() === null) {
+            return $this->json(['error' => 'Document non disponible'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Containment realpath géré par le service (archive hors webroot)
+        $pdfPath = $this->etatDesLieuxDocumentService->getArchivedPdfPath($etatDesLieux);
+        if ($pdfPath === null) {
+            return $this->json([
+                'error' => 'Document momentanément indisponible. Contactez votre atelier.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($pdfPath);
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->setContentDisposition('attachment', sprintf('etat-des-lieux-rdv-%d.pdf', $rdv->getId()));
 
         return $response;
     }

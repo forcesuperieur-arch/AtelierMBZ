@@ -34,6 +34,15 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'Photo and rendez_vous_id required'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Type optionnel (null = compat historique), validé contre la taxonomie
+        $type = $request->request->get('type');
+        if ($type !== null && $type !== '' && !in_array($type, \App\Service\PhotoService::ALLOWED_TYPES, true)) {
+            return $this->json([
+                'error' => sprintf('Type de photo invalide. Types autorisés : %s', implode(', ', \App\Service\PhotoService::ALLOWED_TYPES)),
+                'code' => 'TYPE_PHOTO_INVALIDE',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
         if (!$rdv) {
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
@@ -64,6 +73,11 @@ class PhotoController extends AbstractController
         $photo->setDescription($request->request->get('description'));
         $photo->setAnnotationJson($request->request->get('annotation_json'));
         $photo->setAtelierId($rdv->getAtelierId());
+        if ($type !== null && $type !== '') {
+            $photo->setType($type);
+        }
+        $photo->setSha256(hash_file('sha256', $uploadDir . '/' . $filename) ?: null);
+        $photo->setTakenAt(new \DateTime());
 
         $this->em->persist($photo);
         $this->em->flush();

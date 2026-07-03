@@ -10,14 +10,15 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 
 class PhotoService
 {
-    private const ALLOWED_TYPES = ['reception', 'avant_travaux', 'en_cours', 'apres_travaux', 'restitution', 'probleme'];
+    public const ALLOWED_TYPES = ['reception', 'checkin', 'avant_travaux', 'en_cours', 'apres_travaux', 'restitution', 'probleme'];
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
     private const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+    /** 'types' accepte un type unique (string) ou un tableau de types cumulés. */
     private const TRANSITION_PHOTO_REQUIREMENTS = [
-        'reception' => ['type' => 'reception', 'min' => 4],
-        'terminer' => ['type' => 'apres_travaux', 'min' => 2],
-        'restituer' => ['type' => 'restitution', 'min' => 3],
+        'reception' => ['types' => ['reception', 'checkin'], 'min' => 4],
+        'terminer' => ['types' => 'apres_travaux', 'min' => 2],
+        'restituer' => ['types' => 'restitution', 'min' => 3],
     ];
 
     public function __construct(
@@ -136,6 +137,7 @@ class PhotoService
     /**
      * Check if a transition can proceed based on photo requirements.
      * Returns an array of missing requirements, empty if OK.
+     * Les types requis peuvent être cumulés (ex. reception + checkin).
      */
     public function requirePhotosForTransition(string $transition, RendezVous $rdv): array
     {
@@ -144,12 +146,12 @@ class PhotoService
         }
 
         $req = self::TRANSITION_PHOTO_REQUIREMENTS[$transition];
-        $requiredType = $req['type'];
+        $requiredTypes = is_array($req['types']) ? $req['types'] : [$req['types']];
         $minCount = $req['min'];
 
         $count = $this->em->getRepository(PhotoIntervention::class)->count([
             'rendezVous' => $rdv,
-            'type' => $requiredType,
+            'type' => $requiredTypes,
         ]);
 
         if ($count >= $minCount) {
@@ -157,7 +159,9 @@ class PhotoService
         }
 
         return [
-            'type' => $requiredType,
+            // 'type' conservé pour compat (payload d'erreur affiché côté front)
+            'type' => implode('|', $requiredTypes),
+            'types' => $requiredTypes,
             'required' => $minCount,
             'current' => $count,
             'missing' => $minCount - $count,
