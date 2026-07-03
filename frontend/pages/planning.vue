@@ -1386,6 +1386,7 @@ async function reloadSelectedRdv(id: number) {
 
 function photoTypeLabel(type: string): string {
   const labels: Record<string, string> = {
+    checkin: '📸 Check-in / état des lieux',
     reception: '📸 Photos réception',
     avant_travaux: '📸 Photos avant travaux',
     en_cours: '📸 Photos en cours',

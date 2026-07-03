@@ -280,6 +280,23 @@
               </div>
             </div>
 
+            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Check-in / état des lieux</div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+                Quand l'option est active, la moto ne peut pas passer en réception sans un état des lieux d'entrée signé par le client.
+              </div>
+              <button
+                type="button"
+                class="btn"
+                :class="isCheckinObligatoire ? 'btn-primary' : 'btn-ghost'"
+                style="padding:8px 12px;font-size:12px;"
+                data-testid="toggle-checkin-obligatoire"
+                @click="toggleCheckinObligatoire"
+              >
+                {{ isCheckinObligatoire ? '🔒' : '🔓' }} Check-in obligatoire avant réception
+              </button>
+            </div>
+
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
               <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
                 <div style="font-size:12px;color:#9CA3AF;">Atelier</div>
@@ -426,6 +443,7 @@ const config = ref<any>({
   dates_fermeture_exceptionnelles: [],
   feature_modules: { ...DEFAULT_FEATURE_MODULES },
   notifications_etapes: {},
+  checkin_obligatoire: true,
 })
 
 const atelier = ref<any>({
@@ -512,6 +530,21 @@ function toggleNotificationEtape(key: string) {
     title: `${def?.label || key} : ${etapes[key] ? 'notification activée' : 'notification coupée'}`,
     description: 'Prendra effet après sauvegarde.',
     color: etapes[key] ? 'success' : 'warning',
+  })
+}
+
+// Lot B — garde workflow : état des lieux signé exigé avant la transition réception
+const isCheckinObligatoire = computed(() => config.value.checkin_obligatoire !== false)
+
+function toggleCheckinObligatoire() {
+  config.value.checkin_obligatoire = !isCheckinObligatoire.value
+
+  toast.add({
+    title: config.value.checkin_obligatoire
+      ? 'Check-in obligatoire avant réception : activé'
+      : 'Check-in obligatoire avant réception : désactivé',
+    description: 'Prendra effet après sauvegarde.',
+    color: config.value.checkin_obligatoire ? 'success' : 'warning',
   })
 }
 
