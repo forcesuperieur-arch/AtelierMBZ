@@ -64,8 +64,11 @@ class NotificationTemplateCatalog
                 'channel' => 'email',
                 'libelle' => 'Travaux terminés',
                 'sujet' => 'Votre moto est prête',
-                'corps' => '<p>Bonjour {{client_prenom}},</p><p>Les travaux sur votre véhicule sont terminés. Vous pouvez venir le récupérer.</p>',
-                'variables' => ['client_prenom'],
+                // {{etat_des_lieux_bloc}} : bloc HTML optionnel (lien état des lieux
+                // dans l'espace client), TOUJOURS fourni par les call sites — chaîne
+                // vide si pas d'état des lieux signé (Lot B).
+                'corps' => '<p>Bonjour {{client_prenom}},</p><p>Les travaux sur votre véhicule sont terminés. Vous pouvez venir le récupérer.</p>{{etat_des_lieux_bloc}}',
+                'variables' => ['client_prenom', 'etat_des_lieux_bloc'],
             ],
             [
                 'code' => 'travaux_termines',
