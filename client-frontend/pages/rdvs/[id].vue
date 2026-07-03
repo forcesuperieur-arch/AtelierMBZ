@@ -71,6 +71,32 @@
         </div>
       </div>
 
+      <!-- État des lieux d'entrée (visible seulement une fois signé) -->
+      <div v-if="rdv.etat_des_lieux" class="detail-block" data-testid="rdv-etat-des-lieux">
+        <div class="detail-label">État des lieux d'entrée</div>
+        <div class="edl-card">
+          <div class="edl-row">
+            <span>Signé le</span>
+            <span>{{ formatDateShort(rdv.etat_des_lieux.signed_at) }}</span>
+          </div>
+          <div class="edl-row">
+            <span>Kilométrage</span>
+            <span>{{ formatKilometrage(rdv.etat_des_lieux.kilometrage) }}</span>
+          </div>
+          <div class="edl-row">
+            <span>Niveau de carburant</span>
+            <span>{{ carburantLabel(rdv.etat_des_lieux.niveau_carburant) }}</span>
+          </div>
+          <p v-if="rdv.etat_des_lieux.observations" class="edl-observations">{{ rdv.etat_des_lieux.observations }}</p>
+          <a
+            v-if="rdv.etat_des_lieux.pdf_disponible"
+            :href="`/api/client/rdvs/${rdv.id}/etat-des-lieux/pdf`"
+            target="_blank"
+            class="pdf-btn edl-pdf"
+          >📄 Télécharger le PDF</a>
+        </div>
+      </div>
+
       <div v-if="rdv.ordres_reparation?.length" class="detail-block">
         <div class="detail-label">Ordres de réparation</div>
         <ul class="or-list">
@@ -217,6 +243,26 @@ async function demanderAnnulation() {
   } finally {
     annulationLoading.value = false
   }
+}
+
+/** Libellés français des niveaux de carburant de l'état des lieux. */
+const CARBURANT_LABELS: Record<string, string> = {
+  vide: 'Vide',
+  quart: '1/4',
+  moitie: '1/2',
+  trois_quarts: '3/4',
+  plein: 'Plein',
+}
+
+function carburantLabel(niveau?: string | null): string {
+  if (!niveau) return '—'
+  return CARBURANT_LABELS[niveau] ?? niveau
+}
+
+function formatKilometrage(km?: number | null): string {
+  if (km === null || km === undefined) return '—'
+  // Séparateur de milliers français, en espace simple (ex. « 12 345 km »).
+  return `${Number(km).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} km`
 }
 
 function formatDate(d: string) {
@@ -390,6 +436,37 @@ function formatDateShort(d: string) {
   margin-top: 8px;
   font-size: 12px;
   color: #9CA3AF;
+}
+.edl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+}
+.edl-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #E8E9ED;
+}
+.edl-row span:first-child {
+  color: #9CA3AF;
+}
+.edl-observations {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 13px;
+  color: #D1D5DB;
+  white-space: pre-line;
+}
+.edl-pdf {
+  align-self: flex-start;
+  margin-top: 4px;
 }
 .or-list {
   list-style: none;
