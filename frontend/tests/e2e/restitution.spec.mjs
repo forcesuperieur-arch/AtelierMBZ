@@ -32,6 +32,12 @@ test.describe('Restitution publique', () => {
       `signature_mecanicien = COALESCE(signature_mecanicien, '${SIGNATURE_DATA_URL}'), ` +
       `signature_client_restitution = NULL, signe_client_restitution_at = NULL WHERE id = ${OR_ID}`
     );
+    // Le jeton de suivi expire 30 j après un RDV clos (PublicSuiviController::isTokenExpired) :
+    // on rajeunit la date du RDV seedé pour que le test reste valable dans le temps.
+    sql(
+      `UPDATE rendez_vous SET date_rdv = CURRENT_DATE ` +
+      `WHERE id = (SELECT rendez_vous_id FROM ordres_reparation WHERE id = ${OR_ID})`
+    );
     token = sql(`SELECT r.token_suivi FROM rendez_vous r JOIN ordres_reparation o ON o.rendez_vous_id = r.id WHERE o.id = ${OR_ID}`);
     expect(token.length).toBeGreaterThanOrEqual(16);
   });
