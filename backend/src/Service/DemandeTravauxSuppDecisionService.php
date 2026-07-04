@@ -23,9 +23,13 @@ class DemandeTravauxSuppDecisionService
     ) {}
 
     /**
+     * @param string $canal Canal de la décision (KPI pilote) : 'client_token'
+     *                      (page publique tokenisée) / 'client_portail'
+     *                      (portail connecté).
+     *
      * @return array{error: string, status: int}|array{demande: DemandeTravauxSupp}
      */
-    public function decide(DemandeTravauxSupp $demande, ?string $decision, ?string $signatureData, Request $request): array
+    public function decide(DemandeTravauxSupp $demande, ?string $decision, ?string $signatureData, Request $request, string $canal): array
     {
         if ($demande->getStatut() !== DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT) {
             return ['error' => 'Décision déjà prise ou demande non envoyée', 'status' => 409];
@@ -39,6 +43,7 @@ class DemandeTravauxSuppDecisionService
         $demande->setDecisionClientAt(new \DateTime());
         $demande->setDecisionIp($request->getClientIp());
         $demande->setDecisionUserAgent(mb_substr($request->headers->get('User-Agent', ''), 0, 500));
+        $demande->setDecisionCanal($canal);
 
         if ($decision === DemandeTravauxSupp::STATUT_ACCEPTE) {
             // Signature required for acceptance

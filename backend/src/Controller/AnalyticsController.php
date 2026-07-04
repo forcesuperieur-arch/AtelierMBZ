@@ -235,6 +235,58 @@ class AnalyticsController extends AbstractController
             ['a' => $atelierId, 's' => $from, 'e' => $to]
         );
 
+        // ── KPI PILOTE ──
+        // Répartition des RDV par origine sur la période (fact table).
+        $origineRows = $conn->fetchAllAssociative(
+            "SELECT COALESCE(origine, 'inconnu') as origine, COUNT(*) as count
+             FROM analytics_rdv_facts
+             WHERE atelier_id = :a AND date_rdv BETWEEN :s AND :e
+             GROUP BY COALESCE(origine, 'inconnu')",
+            ['a' => $atelierId, 's' => $from, 'e' => $to]
+        );
+        $rdvParOrigine = ['web' => 0, 'comptoir' => 0, 'telephone' => 0, 'devis' => 0, 'inconnu' => 0];
+        foreach ($origineRows as $row) {
+            $rdvParOrigine[(string) $row['origine']] = ((int) ($rdvParOrigine[(string) $row['origine']] ?? 0)) + (int) $row['count'];
+        }
+        $totalOrigineConnue = array_sum($rdvParOrigine) - $rdvParOrigine['inconnu'];
+        $pctRdvEnLigne = $totalOrigineConnue > 0
+            ? round($rdvParOrigine['web'] / $totalOrigineConnue * 100, 1)
+            : null;
+
+        // Litiges signalés à la restitution sur la période.
+        $litigesRestitution = (int) $conn->fetchOne(
+            "SELECT COUNT(*) FROM analytics_rdv_facts
+             WHERE atelier_id = :a AND date_rdv BETWEEN :s AND :e AND litige_signale = true",
+            ['a' => $atelierId, 's' => $from, 'e' => $to]
+        );
+
+        // Décisions travaux supp par canal (datées par la décision elle-même).
+        $decisionRows = $conn->fetchAllAssociative(
+            "SELECT COALESCE(d.decision_canal, 'inconnu') as canal, COUNT(*) as count
+             FROM demandes_travaux_supp d
+             INNER JOIN rendez_vous r ON r.id = d.rendez_vous_id
+             WHERE r.atelier_id = :a
+               AND d.decision_client_at IS NOT NULL
+               AND DATE(d.decision_client_at) BETWEEN :s AND :e
+             GROUP BY COALESCE(d.decision_canal, 'inconnu')",
+            ['a' => $atelierId, 's' => $from, 'e' => $to]
+        );
+        $decisionsParCanal = ['client_token' => 0, 'client_portail' => 0, 'inconnu' => 0];
+        foreach ($decisionRows as $row) {
+            $decisionsParCanal[(string) $row['canal']] = ((int) ($decisionsParCanal[(string) $row['canal']] ?? 0)) + (int) $row['count'];
+        }
+
+        // Délai moyen envoi → décision (minutes), sur les décisions de la période.
+        $delaiDecisionMoyen = $conn->fetchOne(
+            "SELECT AVG(EXTRACT(EPOCH FROM (d.decision_client_at - d.sent_at)) / 60)
+             FROM demandes_travaux_supp d
+             INNER JOIN rendez_vous r ON r.id = d.rendez_vous_id
+             WHERE r.atelier_id = :a
+               AND d.decision_client_at IS NOT NULL AND d.sent_at IS NOT NULL
+               AND DATE(d.decision_client_at) BETWEEN :s AND :e",
+            ['a' => $atelierId, 's' => $from, 'e' => $to]
+        );
+
         // ── Revenue mix ──
         $revenueMix = [
             'mo_ht' => round((float) ($currentStats['mo_ht'] ?? 0), 2),
@@ -282,6 +334,13 @@ class AnalyticsController extends AbstractController
             'comparison' => $comparison,
             'mecaniciens' => $mecaPerf,
             'client_segments' => $segments,
+            'pilote' => [
+                'rdv_par_origine' => $rdvParOrigine,
+                'pct_rdv_en_ligne' => $pctRdvEnLigne,
+                'litiges_restitution' => $litigesRestitution,
+                'decisions_travaux_supp_par_canal' => $decisionsParCanal,
+                'delai_decision_moyen_minutes' => $delaiDecisionMoyen !== null ? (int) round((float) $delaiDecisionMoyen) : null,
+            ],
             'kpis' => [
                 'rdvs' => (int) ($currentStats['nb_rdvs'] ?? 0),
                 'completed' => (int) ($currentStats['completed'] ?? 0),

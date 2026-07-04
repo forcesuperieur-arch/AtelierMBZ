@@ -7,8 +7,8 @@ use App\Entity\AnalyticsDailySnapshot;
 use App\Entity\AnalyticsClientFact;
 use App\Entity\RendezVous;
 use App\Entity\Facture;
-use App\Entity\OrdreReparation;
 use App\Entity\Client;
+use App\Entity\DemandeTravauxSupp;
 use App\Entity\Devis;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -101,10 +101,26 @@ class AnalyticsSyncService
             ->findOneBy(['rendezVousId' => $rdv->getId()]);
         $fact->setIsDevisAccepte($devis && in_array($devis->getStatut(), ['accepte', 'transforme']));
 
-        // Travaux complémentaires
-        $or = $this->em->getRepository(OrdreReparation::class)
-            ->findOneBy(['rendezVous' => $rdv]);
-        $fact->setHasTravauxComplementaires(false); // TODO: implement if OR has complementary works flag
+        // Travaux complémentaires : vrai dès qu'au moins une demande a été
+        // ENVOYÉE au client (sentAt posé à l'envoi ; les statuts post-envoi
+        // couvrent l'historique antérieur au champ sentAt du Lot A).
+        $hasTravauxComplementaires = false;
+        foreach ($rdv->getDemandesTravauxSupp() as $demande) {
+            $isSent = $demande->getSentAt() !== null || in_array($demande->getStatut(), [
+                DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT,
+                DemandeTravauxSupp::STATUT_ACCEPTE,
+                DemandeTravauxSupp::STATUT_REFUSE,
+            ], true);
+            if ($isSent) {
+                $hasTravauxComplementaires = true;
+                break;
+            }
+        }
+        $fact->setHasTravauxComplementaires($hasTravauxComplementaires);
+
+        // KPI pilote — recopie origine + litige restitution
+        $fact->setOrigine($rdv->getOrigine());
+        $fact->setLitigeSignale($rdv->isLitigeSignale());
 
         $fact->setSyncedAt(new \DateTime());
         $this->em->flush();

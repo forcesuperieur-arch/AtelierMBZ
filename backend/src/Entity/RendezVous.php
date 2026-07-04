@@ -209,6 +209,14 @@ class RendezVous
     #[Groups(['rdv:read'])]
     private ?string $litigeCommentaire = null;
 
+    // KPI pilote — origine du RDV : 'web' (booking public), 'comptoir' ou
+    // 'telephone' (création staff), 'devis' (conversion devis). PAS de groupe
+    // write : posée uniquement au point de création (contrôleurs). Varchar
+    // libre, pas d'enum : 'src_telephone' arrivera au Lot C.
+    #[ORM\Column(length: 30, nullable: true)]
+    #[Groups(['rdv:read'])]
+    private ?string $origine = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -273,6 +281,8 @@ class RendezVous
     public function setLitigeSignale(bool $litigeSignale): static { $this->litigeSignale = $litigeSignale; return $this; }
     public function getLitigeCommentaire(): ?string { return $this->litigeCommentaire; }
     public function setLitigeCommentaire(?string $litigeCommentaire): static { $this->litigeCommentaire = $litigeCommentaire; return $this; }
+    public function getOrigine(): ?string { return $this->origine; }
+    public function setOrigine(?string $origine): static { $this->origine = $origine; return $this; }
     public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }

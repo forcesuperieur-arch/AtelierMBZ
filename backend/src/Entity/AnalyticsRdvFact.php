@@ -104,6 +104,13 @@ class AnalyticsRdvFact
     #[ORM\Column]
     private bool $isPaye = false;
 
+    // KPI pilote — recopie dénormalisée depuis rendez_vous
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $origine = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $litigeSignale = false;
+
     #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $syncedAt = null;
 
@@ -171,6 +178,10 @@ class AnalyticsRdvFact
     public function setIsFacture(bool $v): static { $this->isFacture = $v; return $this; }
     public function isPaye(): bool { return $this->isPaye; }
     public function setIsPaye(bool $v): static { $this->isPaye = $v; return $this; }
+    public function getOrigine(): ?string { return $this->origine; }
+    public function setOrigine(?string $v): static { $this->origine = $v; return $this; }
+    public function isLitigeSignale(): bool { return $this->litigeSignale; }
+    public function setLitigeSignale(bool $v): static { $this->litigeSignale = $v; return $this; }
     public function getSyncedAt(): ?\DateTimeInterface { return $this->syncedAt; }
     public function setSyncedAt(?\DateTimeInterface $v): static { $this->syncedAt = $v; return $this; }
 }

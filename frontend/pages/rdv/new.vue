@@ -355,6 +355,33 @@ x<template>
           <div class="form-label" style="margin-bottom:6px;">REMARQUES</div>
           <textarea v-model="form.description_probleme" rows="3" placeholder="Notes ou description du problème..." style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
         </div>
+
+        <!-- Origine du RDV (KPI pilote) -->
+        <div style="margin-top:16px;">
+          <div class="form-label" style="margin-bottom:6px;">ORIGINE DU RDV</div>
+          <div style="display:flex;gap:8px;">
+            <button
+              type="button"
+              @click="form.origine = 'comptoir'"
+              :style="{
+                padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', cursor: 'pointer',
+                background: form.origine === 'comptoir' ? 'rgba(255,210,0,0.14)' : 'rgba(255,255,255,0.04)',
+                border: form.origine === 'comptoir' ? '1px solid rgba(255,210,0,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                color: form.origine === 'comptoir' ? '#FFD200' : '#9CA3AF',
+              }"
+            >🏪 Comptoir</button>
+            <button
+              type="button"
+              @click="form.origine = 'telephone'"
+              :style="{
+                padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', cursor: 'pointer',
+                background: form.origine === 'telephone' ? 'rgba(255,210,0,0.14)' : 'rgba(255,255,255,0.04)',
+                border: form.origine === 'telephone' ? '1px solid rgba(255,210,0,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                color: form.origine === 'telephone' ? '#FFD200' : '#9CA3AF',
+              }"
+            >📞 Téléphone</button>
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
@@ -485,6 +512,7 @@ const form = reactive({
   pont_id: null as number | null,
   mecanicien_id: null as number | null,
   description_probleme: '',
+  origine: 'comptoir', // KPI pilote : origine du RDV créé au staff (comptoir | telephone)
 })
 
 const vehicleMissingFields = computed(() => {

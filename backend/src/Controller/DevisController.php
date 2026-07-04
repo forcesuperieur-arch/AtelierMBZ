@@ -171,6 +171,7 @@ class DevisController extends AbstractController
         $rdv->setStatut('en_attente');
         $rdv->setPrixEstime($devis->getTotalTtc());
         $rdv->setAtelierId($devis->getAtelierId());
+        $rdv->setOrigine('devis'); // KPI pilote : RDV issu d'une conversion de devis
 
         // Estimate duration from line items (rough: 1h per 100€ MO)
         $moHt = (float) $devis->getTotalMoHt();

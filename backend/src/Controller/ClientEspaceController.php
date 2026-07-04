@@ -274,6 +274,7 @@ class ClientEspaceController extends AbstractController
             $data['decision'] ?? null,
             $data['signature'] ?? null,
             $request,
+            'client_portail', // KPI pilote : décision via le portail client connecté
         );
 
         if (isset($result['error'])) {
