@@ -416,6 +416,7 @@ class DemandeTravauxSuppController extends AbstractController
             $data['decision'] ?? null,
             $data['signature'] ?? null,
             $request,
+            'client_token', // KPI pilote : décision via la page publique tokenisée
         );
 
         if (isset($result['error'])) {

@@ -96,6 +96,11 @@ class RendezVousController extends AbstractController
         $rdv->setTempsEstime(!empty($data['duree_estimee']) ? (int) $data['duree_estimee'] : (!empty($data['temps_estime']) ? (int) $data['temps_estime'] : null));
         $rdv->setPrixEstime($data['prix_estime'] ?? null);
 
+        // KPI pilote — origine du RDV côté staff : validée contre la liste
+        // fermée, défaut 'comptoir' (toute valeur inattendue est ignorée).
+        $origine = $data['origine'] ?? null;
+        $rdv->setOrigine(in_array($origine, ['comptoir', 'telephone'], true) ? $origine : 'comptoir');
+
         if (!empty($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);
             if ($pont) {

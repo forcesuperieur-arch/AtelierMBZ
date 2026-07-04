@@ -273,6 +273,7 @@ class PublicBookingController extends AbstractController
         $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
         $rdv->setStatut('en_attente');
         $rdv->setAtelierId($atelierId);
+        $rdv->setOrigine('web'); // KPI pilote : réservation en ligne
 
         if (!empty($selectedSlot['pont_id'])) {
             $pont = $this->em->getRepository(\App\Entity\Pont::class)->find((int) $selectedSlot['pont_id']);

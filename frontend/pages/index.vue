@@ -137,6 +137,40 @@
       </div>
     </div>
 
+    <!-- KPI Pilote -->
+    <div v-if="visibleWidgets.kpis && pilote" class="grid-4" style="margin-top:14px;">
+      <div class="stat-card">
+        <div class="stat-label">% RDV EN LIGNE</div>
+        <div class="stat-value">{{ pilote.pct_rdv_en_ligne !== null ? pilote.pct_rdv_en_ligne + '%' : '—' }}</div>
+        <div class="stat-delta" style="color:#9CA3AF;">{{ pilote.rdv_par_origine?.web ?? 0 }} réservations web sur la période</div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(Number(pilote.pct_rdv_en_ligne ?? 0), 100) + '%', background: '#60A5FA' }"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LITIGES RESTITUTION</div>
+        <div class="stat-value" :style="{ color: (pilote.litiges_restitution ?? 0) > 0 ? '#EF4444' : '#34D399' }">{{ pilote.litiges_restitution ?? 0 }}</div>
+        <div class="stat-delta" :style="{ color: (pilote.litiges_restitution ?? 0) > 0 ? '#FCA5A5' : '#34D399' }">{{ (pilote.litiges_restitution ?? 0) > 0 ? 'à traiter en priorité' : 'aucun litige signalé' }}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min((pilote.litiges_restitution ?? 0) * 20, 100) + '%', background: (pilote.litiges_restitution ?? 0) > 0 ? '#EF4444' : '#10B981' }"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DÉCISIONS TRAVAUX SUPP EN LIGNE</div>
+        <div class="stat-value">{{ decisionsEnLigne }}</div>
+        <div class="stat-delta" style="color:#9CA3AF;">
+          {{ pilote.decisions_travaux_supp_par_canal?.client_token ?? 0 }} lien · {{ pilote.decisions_travaux_supp_par_canal?.client_portail ?? 0 }} portail<span v-if="pilote.delai_decision_moyen_minutes !== null"> · délai moyen {{ formatMinutes(pilote.delai_decision_moyen_minutes) }}</span>
+        </div>
+        <div class="stat-bar"><div class="stat-bar-fill" :style="{ width: Math.min(decisionsEnLigne * 10, 100) + '%', background: '#14B8A6' }"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">RÉPARTITION ORIGINE</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          <span v-for="item in origineBreakdown" :key="item.key" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:#D1D5DB;">
+            <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, display: 'inline-block' }"></span>
+            {{ item.label }} <strong style="color:#E8E9ED;">{{ item.count }}</strong>
+          </span>
+          <span v-if="!origineBreakdown.length" style="font-size:12px;color:#6B7280;">Aucun RDV sur la période</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Trend + Revenue mix -->
     <div v-if="visibleWidgets.trend || (visibleWidgets.revenueMix && hasFacturation)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:24px 0;">
       <UCard v-if="visibleWidgets.trend">
@@ -564,6 +598,33 @@ const GAUGE_MAX_PLANNED_MIN = 2400
 const GAUGE_MAX_COMPLETED = 30
 
 const revenueMix = computed(() => stats.value?.revenue_mix ?? {})
+
+// KPI Pilote (section `pilote` de /api/analytics/dashboard)
+const pilote = computed(() => stats.value?.pilote ?? null)
+const decisionsEnLigne = computed(() => {
+  const canaux = pilote.value?.decisions_travaux_supp_par_canal ?? {}
+  return Number(canaux.client_token ?? 0) + Number(canaux.client_portail ?? 0)
+})
+const ORIGINE_META: Record<string, { label: string, color: string }> = {
+  web: { label: 'Web', color: '#60A5FA' },
+  comptoir: { label: 'Comptoir', color: '#FFD200' },
+  telephone: { label: 'Téléphone', color: '#14B8A6' },
+  devis: { label: 'Devis', color: '#8B5CF6' },
+  inconnu: { label: 'Inconnu', color: '#6B7280' },
+}
+const origineBreakdown = computed(() => {
+  const source = pilote.value?.rdv_par_origine ?? {}
+  return Object.entries(source)
+    .filter(([, count]) => Number(count) > 0)
+    .map(([key, count]) => ({
+      key,
+      count: Number(count),
+      label: ORIGINE_META[key]?.label ?? key,
+      color: ORIGINE_META[key]?.color ?? '#9CA3AF',
+    }))
+    .sort((a, b) => b.count - a.count)
+})
+
 const dailyTrend = computed(() => Array.isArray(stats.value?.daily_trend) ? stats.value.daily_trend : [])
 const dailyTrendMax = computed(() => Math.max(1, ...dailyTrend.value.map((item: any) => Number(item.rdvs ?? 0))))
 const periodSummary = computed(() => {

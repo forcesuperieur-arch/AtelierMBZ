@@ -66,6 +66,12 @@ class DemandeTravauxSupp
     #[Groups(['demande:read'])]
     private ?OrdreReparation $orComplementaire = null;
 
+    // KPI pilote — canal par lequel la décision client a été prise :
+    // 'client_token' (page publique tokenisée) / 'client_portail' (portail
+    // connecté). Posé uniquement par DemandeTravauxSuppDecisionService.
+    #[ORM\Column(length: 30, nullable: true)] #[Groups(['demande:read'])]
+    private ?string $decisionCanal = null;
+
     // LOT A — relance automatique des demandes sans décision
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])]
     private ?\DateTimeInterface $sentAt = null;
@@ -127,6 +133,8 @@ class DemandeTravauxSupp
     public function setDecisionIp(?string $v): static { $this->decisionIp = $v; return $this; }
     public function getDecisionUserAgent(): ?string { return $this->decisionUserAgent; }
     public function setDecisionUserAgent(?string $v): static { $this->decisionUserAgent = $v; return $this; }
+    public function getDecisionCanal(): ?string { return $this->decisionCanal; }
+    public function setDecisionCanal(?string $v): static { $this->decisionCanal = $v; return $this; }
     public function getSignatureClient(): ?string { return $this->signatureClient; }
     public function setSignatureClient(?string $v): static { $this->signatureClient = $v; return $this; }
     public function getSignedAt(): ?\DateTimeInterface { return $this->signedAt; }
