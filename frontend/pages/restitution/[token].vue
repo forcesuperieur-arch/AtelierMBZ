@@ -18,6 +18,13 @@
       <div v-else-if="signed" style="text-align:center;padding:40px;">
         <div style="font-size:48px;margin-bottom:16px;">✅</div>
         <h2 style="color:#6EE7B7;font-size:18px;margin-bottom:8px;">Restitution signée</h2>
+        <p
+          v-if="signedWithLitige"
+          data-testid="litige-confirmation"
+          style="color:#FCD34D;font-size:13px;margin-bottom:6px;font-weight:600;"
+        >
+          Votre réserve a été transmise à l'atelier.
+        </p>
         <p style="color:#9CA3AF;font-size:13px;">Merci ! Vous pouvez récupérer votre véhicule.</p>
       </div>
 
@@ -69,13 +76,11 @@
           <div style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.garantie }}</div>
         </div>
 
-        <!-- Kilométrage restitution -->
-        <div class="restitution-section">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
-            <div v-if="data.ordre?.kilometrage_restitution">
-              <span style="color:#6B7280;">Km restitution :</span>
-              <span style="color:#D1D5DB;font-weight:700;"> {{ data.ordre.kilometrage_restitution }} km</span>
-            </div>
+        <!-- Kilométrage restitution (seul, quand pas de comparatif) -->
+        <div v-if="data.ordre?.kilometrage_restitution && !data.etat_des_lieux" class="restitution-section">
+          <div style="font-size:13px;">
+            <span style="color:#6B7280;">Km restitution :</span>
+            <span style="color:#D1D5DB;font-weight:700;"> {{ formatKm(data.ordre.kilometrage_restitution) }}</span>
           </div>
         </div>
 
@@ -87,12 +92,111 @@
           <div style="font-size:13px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
         </div>
 
+        <!-- Comparatif état d'entrée / état de sortie -->
+        <div v-if="data.etat_des_lieux" class="restitution-section" data-testid="comparatif-edl">
+          <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 12px;">📋 Comparatif état d'entrée / état de sortie</h3>
+          <div class="comparatif-grid">
+            <!-- Colonne entrée -->
+            <div class="comparatif-col" data-testid="comparatif-entree">
+              <h4 class="comparatif-col-title">À l'entrée</h4>
+              <div class="comparatif-row">
+                <span class="comparatif-label">État des lieux signé le</span>
+                <span class="comparatif-value">{{ formatDateTime(data.etat_des_lieux.signed_at) }}</span>
+              </div>
+              <div class="comparatif-row">
+                <span class="comparatif-label">Kilométrage</span>
+                <span class="comparatif-value">{{ formatKm(data.etat_des_lieux.kilometrage) }}</span>
+              </div>
+              <div class="comparatif-row">
+                <span class="comparatif-label">Carburant</span>
+                <span class="comparatif-value">{{ data.etat_des_lieux.niveau_carburant_label || '—' }}</span>
+              </div>
+              <div v-if="data.etat_des_lieux.observations" class="comparatif-obs">
+                <span class="comparatif-label">Observations</span>
+                <p>{{ data.etat_des_lieux.observations }}</p>
+              </div>
+              <div class="comparatif-photos-title">Photos à l'entrée</div>
+              <div v-if="data.etat_des_lieux.photos?.length" class="mini-gallery">
+                <template v-for="url in data.etat_des_lieux.photos" :key="url">
+                  <a
+                    v-if="!brokenPhotos.includes(url)"
+                    :href="url"
+                    target="_blank"
+                    rel="noopener"
+                    class="mini-thumb"
+                    title="Voir la photo en grand"
+                  >
+                    <img :src="url" alt="Photo à l'entrée" loading="lazy" @error="markBroken(url)" />
+                  </a>
+                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible">📷</span>
+                </template>
+              </div>
+              <div v-else class="comparatif-empty">Aucune photo</div>
+            </div>
+
+            <!-- Colonne sortie -->
+            <div class="comparatif-col" data-testid="comparatif-sortie">
+              <h4 class="comparatif-col-title comparatif-col-title-sortie">À la restitution</h4>
+              <div class="comparatif-row">
+                <span class="comparatif-label">Kilométrage</span>
+                <span class="comparatif-value">{{ formatKm(data.ordre?.kilometrage_restitution) }}</span>
+              </div>
+              <div class="comparatif-row">
+                <span class="comparatif-label">Travaux réalisés</span>
+                <span class="comparatif-value">détaillés ci-dessus</span>
+              </div>
+              <div class="comparatif-photos-title">Photos à la restitution</div>
+              <div v-if="data.photos_restitution?.length" class="mini-gallery">
+                <template v-for="url in data.photos_restitution" :key="url">
+                  <a
+                    v-if="!brokenPhotos.includes(url)"
+                    :href="url"
+                    target="_blank"
+                    rel="noopener"
+                    class="mini-thumb"
+                    title="Voir la photo en grand"
+                  >
+                    <img :src="url" alt="Photo à la restitution" loading="lazy" @error="markBroken(url)" />
+                  </a>
+                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible">📷</span>
+                </template>
+              </div>
+              <div v-else class="comparatif-empty">Aucune photo</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Signature -->
         <div class="restitution-section">
           <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 8px;">✍️ Signature client</h3>
           <p style="font-size:12px;color:#9CA3AF;margin:0 0 12px;">
             En signant, je reconnais avoir pris connaissance des travaux effectués et récupéré mon véhicule.
           </p>
+
+          <!-- Litige / réserve (à saisir AVANT de valider la signature) -->
+          <div class="litige-block">
+            <label class="litige-label">
+              <input
+                v-model="litigeChecked"
+                type="checkbox"
+                data-testid="litige-checkbox"
+              />
+              <span>Je souhaite signaler une réserve ou un litige sur l'état de ma moto</span>
+            </label>
+            <template v-if="litigeChecked">
+              <textarea
+                v-model="litigeCommentaire"
+                data-testid="litige-commentaire"
+                class="litige-textarea"
+                rows="4"
+                maxlength="2000"
+                placeholder="Décrivez la réserve ou le litige constaté : rayure, pièce manquante, travaux contestés…"
+              ></textarea>
+              <p class="litige-hint">
+                {{ litigeCommentaire.length }}/2000 caractères — votre réserve sera transmise à l'atelier avec votre signature.
+              </p>
+            </template>
+          </div>
           <div class="sig-canvas-wrapper">
             <canvas
               ref="sigCanvas"
@@ -145,10 +249,36 @@ const hasDrawn = ref(false)
 const sigSaving = ref(false)
 const sigError = ref('')
 
+// Litige / réserve — doit être saisi AVANT la signature (re-sign refusé ensuite)
+const litigeChecked = ref(false)
+const litigeCommentaire = ref('')
+const signedWithLitige = ref(false)
+
+// Photos dont le chargement a échoué → placeholder propre
+const brokenPhotos = ref<string[]>([])
+
+function markBroken(url: string) {
+  if (!brokenPhotos.value.includes(url)) {
+    brokenPhotos.value = [...brokenPhotos.value, url]
+  }
+}
+
 function formatDate(d: string | null) {
   if (!d) return '—'
   const [y, m, day] = d.split('-')
   return `${day}/${m}/${y}`
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatKm(km: number | null | undefined): string {
+  if (km === null || km === undefined) return '—'
+  return `${Number(km).toLocaleString('fr-FR')} km`
 }
 
 // Load restitution data
@@ -230,15 +360,22 @@ async function submitSignature() {
   sigSaving.value = true
   sigError.value = ''
   try {
+    const payload: Record<string, unknown> = { signature }
+    if (litigeChecked.value) {
+      payload.litige_signale = true
+      const commentaire = litigeCommentaire.value.trim().slice(0, 2000)
+      if (commentaire) payload.litige_commentaire = commentaire
+    }
     const res = await fetch(`${baseURL}/public/restitution/${token}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ signature }),
+      body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.error || 'Erreur lors de la signature.')
     }
+    signedWithLitige.value = litigeChecked.value
     signed.value = true
   } catch (e: any) {
     sigError.value = e?.message || 'Erreur lors de la signature.'
@@ -319,5 +456,156 @@ async function submitSignature() {
 }
 .restitution-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Comparatif entrée / sortie ─── */
+.comparatif-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .comparatif-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.comparatif-col {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comparatif-col-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #93C5FD;
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.comparatif-col-title-sortie {
+  color: #FFD200;
+}
+.comparatif-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.comparatif-label {
+  color: #6B7280;
+  flex-shrink: 0;
+}
+.comparatif-value {
+  color: #D1D5DB;
+  font-weight: 600;
+  text-align: right;
+}
+.comparatif-obs {
+  font-size: 12.5px;
+}
+.comparatif-obs p {
+  color: #D1D5DB;
+  white-space: pre-wrap;
+  margin: 4px 0 0;
+}
+.comparatif-photos-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.comparatif-empty {
+  font-size: 12px;
+  color: #6B7280;
+  font-style: italic;
+}
+.mini-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mini-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+.mini-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mini-thumb-missing {
+  font-size: 20px;
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Litige / réserve ─── */
+.litige-block {
+  margin: 0 0 12px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.litige-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #E8E9ED;
+  font-weight: 600;
+  cursor: pointer;
+}
+.litige-label input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: #EF4444;
+  cursor: pointer;
+}
+.litige-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
+  color: #E8E9ED;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+.litige-textarea:focus {
+  outline: none;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.litige-textarea::placeholder {
+  color: #6B7280;
+}
+.litige-hint {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin: 0;
 }
 </style>
