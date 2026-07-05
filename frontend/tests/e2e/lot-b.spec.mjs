@@ -6,6 +6,9 @@ import { randomBytes } from 'node:crypto';
 /**
  * Lot B — « zéro litige » : check-in / état des lieux d'entrée.
  *  - flux staff : brouillon → 4 photos d'entrée → signature client → PDF figé (hash)
+ *  - gel du document (revue Lot B) : signature data-URI bornée [800 o ; 2 Mo],
+ *    statuts RDV compatibles {en_attente, reserve, confirme, reception},
+ *    photos d'entrée verrouillées post-signature, payload public = snapshot figé
  *  - gardes workflow : transition 'reception' bloquée sans EDL signé (toggle atelier)
  *  - exposition client : portail (bloc + PDF, isolation), suivi public tokenisé
  *  - restitution : comparatif entrée/sortie + signalement de litige (notification staff)
@@ -24,10 +27,73 @@ const CLIENT_ID = 1; // jean.moreau
 const ATELIER_ID = 1;
 const PSQL = 'docker compose exec -T db psql -U atelier -d atelier_moto -tA -c';
 
-// Pixel transparent : dataURL de signature valide + buffer PNG pour les uploads
-const SIGNATURE_DATA_URL =
+// Pixel transparent 1×1 : décodé < 800 octets → REFUSÉ comme signature EDL
+// depuis la revue Lot B. Sert de fixture négative (SIGNATURE_INVALIDE), de
+// buffer PNG des uploads et de signature SQL des seeds d'OR (non validés).
+const PIXEL_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-const PNG_BUFFER = Buffer.from(SIGNATURE_DATA_URL.split(',')[1], 'base64');
+const PNG_BUFFER = Buffer.from(PIXEL_DATA_URL.split(',')[1], 'base64');
+
+// Signature valide pour POST /etat-des-lieux/sign : PNG grayscale 96×40
+// déterministe (bruit LCG seed 'LOTB', incompressible), 3 948 octets décodés —
+// dans la fenêtre exigée [800 octets ; 2 Mo], vérifié décodable par GD/dompdf.
+const SIGNATURE_PNG_BASE64 =
+  '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';
+const SIGNATURE_DATA_URL = `data:image/png;base64,${SIGNATURE_PNG_BASE64}`;
 
 function sql(query) {
   return execSync(`${PSQL} "${query.replace(/"/g, '\\"')}"`, { encoding: 'utf8' }).trim();
@@ -81,15 +147,19 @@ function seedPhotos(rdvId, type, count, prefix) {
 function seedOrReceptionSignee(rdvId, numero) {
   sql(
     `INSERT INTO ordres_reparation (numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception)
-     VALUES ('${numero}', 'initial', 'reception_signee', '{}', ${rdvId}, '${SIGNATURE_DATA_URL}', '${SIGNATURE_DATA_URL}')`,
+     VALUES ('${numero}', 'initial', 'reception_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}')`,
   );
 }
 
 /** OR prêt pour la restitution publique (statut intervention_signee + rapport). */
-function seedOrInterventionSignee(rdvId, numero) {
+function seedOrInterventionSignee(
+  rdvId,
+  numero,
+  { typeOr = 'initial', travaux = 'E2E-LOTB vidange moteur et plaquettes avant' } = {},
+) {
   sql(
     `INSERT INTO ordres_reparation (numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception, signature_mecanicien, signe_mecanicien_at, travaux_realises, kilometrage_restitution)
-     VALUES ('${numero}', 'initial', 'intervention_signee', '{}', ${rdvId}, '${SIGNATURE_DATA_URL}', '${SIGNATURE_DATA_URL}', '${SIGNATURE_DATA_URL}', NOW(), 'E2E-LOTB vidange moteur et plaquettes avant', 25150)`,
+     VALUES ('${numero}', '${typeOr}', 'intervention_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', NOW(), '${travaux}', 25150)`,
   );
 }
 
@@ -121,23 +191,44 @@ async function postDraft(request, rdvId, data) {
   return request.post(`/api/rendez-vous/${rdvId}/etat-des-lieux`, { headers: adminAuthHeaders(), data });
 }
 
-async function postSign(request, rdvId) {
+async function postSign(request, rdvId, signature = SIGNATURE_DATA_URL) {
   return request.post(`/api/rendez-vous/${rdvId}/etat-des-lieux/sign`, {
     headers: adminAuthHeaders(),
-    data: { signature: SIGNATURE_DATA_URL },
+    data: { signature },
   });
 }
 
-/** Brouillon + signature, tolérant au re-run (DEJA_SIGNE) : chaque test reste autonome. */
+async function uploadPhoto(request, rdvId, type, name) {
+  return request.post('/api/photos/upload', {
+    headers: adminAuthHeaders(),
+    multipart: {
+      photo: { name, mimeType: 'image/png', buffer: PNG_BUFFER },
+      rendez_vous_id: String(rdvId),
+      type,
+    },
+  });
+}
+
+/** Brouillon + signature, idempotent (GET d'abord) : chaque test reste autonome. */
 async function ensureEdlSigned(request, rdvId, data) {
+  const state = await request.get(`/api/rendez-vous/${rdvId}/etat-des-lieux`, { headers: adminAuthHeaders() });
+  if ((await state.json()).signe) return;
+
   const draft = await postDraft(request, rdvId, data);
-  if (![200, 201].includes(draft.status())) {
-    expect((await draft.json()).code).toBe('DEJA_SIGNE');
-  }
+  expect([200, 201]).toContain(draft.status());
   const sign = await postSign(request, rdvId);
-  if (sign.status() !== 200) {
-    expect((await sign.json()).code).toBe('DEJA_SIGNE');
-  }
+  expect(sign.status()).toBe(200);
+}
+
+/**
+ * Création/signature d'EDL désormais refusées hors {en_attente, reserve,
+ * confirme, reception} (STATUT_RDV_INCOMPATIBLE) : les scénarios « RDV déjà
+ * terminé/en cours » signent d'abord sur le statut compatible du seed, PUIS
+ * posent le statut final en SQL (le document signé reste gelé et exposable).
+ */
+async function ensureEdlSignedThenStatut(request, rdvId, data, statutFinal) {
+  await ensureEdlSigned(request, rdvId, data);
+  sql(`UPDATE rendez_vous SET statut = '${statutFinal}' WHERE id = ${rdvId}`);
 }
 
 async function mailhogTo(request, recipient) {
@@ -196,7 +287,9 @@ test.describe('Lot B — check-in / état des lieux', () => {
 
     rdv.isolation = seedRdv('isolation autre client', { statut: 'reception', clientId: otherClientId });
 
-    rdv.restitution = seedRdv('restitution litige', { statut: 'termine' });
+    // Seedé en 'reception' (statut EDL-compatible) : les tests signent via
+    // l'API puis figent 'termine' en SQL (ensureEdlSignedThenStatut).
+    rdv.restitution = seedRdv('restitution litige', { statut: 'reception' });
     seedOrInterventionSignee(rdv.restitution.id, 'E2E-LOTB-OR-RESTIT');
     seedPhotos(rdv.restitution.id, 'checkin', 4, 'restit-in');
     seedPhotos(rdv.restitution.id, 'restitution', 2, 'restit-out');
@@ -204,7 +297,9 @@ test.describe('Lot B — check-in / état des lieux', () => {
     rdv.restitutionSansEdl = seedRdv('restitution sans EDL', { statut: 'termine' });
     seedOrInterventionSignee(rdv.restitutionSansEdl.id, 'E2E-LOTB-OR-RESTIT2');
 
-    rdv.emailAvecEdl = seedRdv('email avec EDL', { statut: 'en_cours' });
+    // Même contrainte : signature EDL sur 'reception', puis 'en_cours' en SQL
+    // avant la transition terminer.
+    rdv.emailAvecEdl = seedRdv('email avec EDL', { statut: 'reception' });
     seedPhotos(rdv.emailAvecEdl.id, 'checkin', 4, 'mail-in');
     seedPhotos(rdv.emailAvecEdl.id, 'apres_travaux', 2, 'mail-post');
     seedEssaiValide(rdv.emailAvecEdl.id);
@@ -212,6 +307,42 @@ test.describe('Lot B — check-in / état des lieux', () => {
     rdv.emailSansEdl = seedRdv('email sans EDL', { statut: 'en_cours' });
     seedPhotos(rdv.emailSansEdl.id, 'apres_travaux', 2, 'mail2-post');
     seedEssaiValide(rdv.emailSansEdl.id);
+
+    /* ── Seeds des tests de la revue Lot B (gel du document) ── */
+
+    rdv.sigInvalide = seedRdv('signature pixel invalide');
+
+    rdv.statutIncompatible = seedRdv('statut incompatible', { statut: 'termine' });
+
+    rdv.verrou = seedRdv('verrou photos', { statut: 'reception' });
+    seedPhotos(rdv.verrou.id, 'checkin', 4, 'verrou');
+
+    // Le complémentaire est inséré AVANT l'initial (id plus petit) : un tri
+    // « id ASC » sans discriminant type_or le choisirait — le test prouve que
+    // la restitution sélectionne bien l'OR initial.
+    rdv.orComplementaire = seedRdv('OR complementaire', { statut: 'termine' });
+    seedOrInterventionSignee(rdv.orComplementaire.id, 'E2E-LOTB-OR-COMP', {
+      typeOr: 'complementaire',
+      travaux: 'E2E-LOTB travaux complementaires acceptes en ligne',
+    });
+    seedOrInterventionSignee(rdv.orComplementaire.id, 'E2E-LOTB-OR-COMP-INIT', {
+      travaux: 'E2E-LOTB travaux initiaux vidange',
+    });
+
+    // RDV du jour prêt à signer (brouillon complet + 4 photos) pour le test
+    // UI « tap seul sur le canvas ».
+    rdv.tapCanvas = seedRdv('tap canvas', { heure: '11:15' });
+    sql(
+      `INSERT INTO etat_des_lieux (rendez_vous_id, atelier_id, kilometrage, niveau_carburant, observations, created_at)
+       VALUES (${rdv.tapCanvas.id}, ${ATELIER_ID}, 18400, 'moitie', 'E2E-LOTB tap canvas brouillon', NOW())`,
+    );
+    seedPhotos(rdv.tapCanvas.id, 'checkin', 4, 'tap');
+
+    // RDV terminé avec litige restitution déjà posé (SQL) pour le test UI planning.
+    rdv.litigeUi = seedRdv('planning litige UI', { statut: 'termine', heure: '14:00' });
+    sql(
+      `UPDATE rendez_vous SET litige_signale = true, litige_commentaire = 'E2E-LOTB rayure carter constatee par le client' WHERE id = ${rdv.litigeUi.id}`,
+    );
   });
 
   test.afterAll(() => {
@@ -244,14 +375,7 @@ test.describe('Lot B — check-in / état des lieux', () => {
 
     // 4 vrais uploads type checkin (multipart)
     for (let i = 1; i <= 4; i++) {
-      const upload = await request.post('/api/photos/upload', {
-        headers: adminAuthHeaders(),
-        multipart: {
-          photo: { name: `e2e-lotb-upload-${i}.png`, mimeType: 'image/png', buffer: PNG_BUFFER },
-          rendez_vous_id: String(id),
-          type: 'checkin',
-        },
-      });
+      const upload = await uploadPhoto(request, id, 'checkin', `e2e-lotb-upload-${i}.png`);
       expect(upload.status()).toBe(201);
     }
     const withPhotos = await request.get(`/api/rendez-vous/${id}/etat-des-lieux`, { headers: adminAuthHeaders() });
@@ -315,6 +439,35 @@ test.describe('Lot B — check-in / état des lieux', () => {
     expect((await signPartiel.json()).code).toBe('DONNEES_INCOMPLETES');
   });
 
+  test('signature : le pixel 1×1 (décodé < 800 octets) est refusée → SIGNATURE_INVALIDE', async ({ request }) => {
+    const id = rdv.sigInvalide.id;
+
+    const draft = await postDraft(request, id, { kilometrage: 12000, niveau_carburant: 'plein' });
+    expect([200, 201]).toContain(draft.status());
+
+    const res = await postSign(request, id, PIXEL_DATA_URL);
+    expect(res.status()).toBe(400);
+    expect((await res.json()).code).toBe('SIGNATURE_INVALIDE');
+
+    // Rien n'a été signé : le document reste un brouillon
+    expect(sql(`SELECT COUNT(*) FROM etat_des_lieux WHERE rendez_vous_id = ${id} AND signed_at IS NOT NULL`)).toBe('0');
+  });
+
+  test('brouillon sur RDV terminé : refusé → STATUT_RDV_INCOMPATIBLE (signature idem)', async ({ request }) => {
+    const id = rdv.statutIncompatible.id;
+
+    const draft = await postDraft(request, id, { kilometrage: 500, niveau_carburant: 'plein' });
+    expect(draft.status()).toBe(400);
+    expect((await draft.json()).code).toBe('STATUT_RDV_INCOMPATIBLE');
+
+    const sign = await postSign(request, id);
+    expect(sign.status()).toBe(400);
+    expect((await sign.json()).code).toBe('STATUT_RDV_INCOMPATIBLE');
+
+    // Aucun document créé en douce
+    expect(sql(`SELECT COUNT(*) FROM etat_des_lieux WHERE rendez_vous_id = ${id}`)).toBe('0');
+  });
+
   /* ────────────── 2. Gardes workflow ────────────── */
 
   test('transition reception : bloquée sans EDL signé (ETAT_DES_LIEUX_REQUIS), passe après signature', async ({ request }) => {
@@ -354,6 +507,43 @@ test.describe('Lot B — check-in / état des lieux', () => {
     expect(sql(`SELECT checkin_obligatoire FROM config_atelier WHERE atelier_id = ${ATELIER_ID}`)).toBe('t');
   });
 
+  /* ────────────── 2bis. Document gelé après signature ────────────── */
+
+  test('upload staff type checkin refusé après signature → EDL_SIGNE_PHOTOS_VERROUILLEES', async ({ request }) => {
+    const id = rdv.verrou.id;
+    await ensureEdlSigned(request, id, { kilometrage: 30500, niveau_carburant: 'quart' });
+
+    const upload = await uploadPhoto(request, id, 'checkin', 'e2e-lotb-verrou-late.png');
+    expect(upload.status()).toBe(400);
+    expect((await upload.json()).code).toBe('EDL_SIGNE_PHOTOS_VERROUILLEES');
+
+    // Un type hors photos d'entrée reste accepté (le gel ne vise que checkin/reception)
+    const enCours = await uploadPhoto(request, id, 'en_cours', 'e2e-lotb-verrou-encours.png');
+    expect(enCours.status()).toBe(201);
+  });
+
+  test('photo checkin insérée en SQL après signature : le payload public reste le snapshot', async ({ request }) => {
+    const id = rdv.verrou.id;
+    await ensureEdlSigned(request, id, { kilometrage: 30500, niveau_carburant: 'quart' });
+
+    const before = await request.get(`/api/public/suivi/token/${rdv.verrou.token}`);
+    expect(before.status()).toBe(200);
+    expect((await before.json()).etat_des_lieux.photos).toHaveLength(4);
+
+    // Contournement du verrou d'upload : insertion SQL directe post-signature
+    seedPhotos(id, 'checkin', 1, 'verrou-sql-late');
+    expect(Number(sql(`SELECT COUNT(*) FROM photos_intervention WHERE rendez_vous_id = ${id} AND type = 'checkin'`))).toBe(5);
+
+    // Le document public sert le SNAPSHOT figé : toujours 4 photos
+    const after = await request.get(`/api/public/suivi/token/${rdv.verrou.token}`);
+    expect(after.status()).toBe(200);
+    expect((await after.json()).etat_des_lieux.photos).toHaveLength(4);
+
+    // Même invariant côté staff : le compte vient du snapshot signé
+    const staff = await request.get(`/api/rendez-vous/${id}/etat-des-lieux`, { headers: adminAuthHeaders() });
+    expect((await staff.json()).photos_entree_count).toBe(4);
+  });
+
   /* ────────────── 3. UI staff /reception ────────────── */
 
   test.describe('page staff /reception', () => {
@@ -367,6 +557,57 @@ test.describe('Lot B — check-in / état des lieux', () => {
       await expect(card).toBeVisible({ timeout: 15000 });
       await expect(card.getByTestId('edl-badge')).toHaveText(/À faire/);
       await expect(card.getByTestId('btn-checkin')).toBeVisible();
+    });
+
+    test('signature : un tap seul sur le canvas laisse « Valider et signer » désactivé', async ({ page }) => {
+      await page.goto('/reception');
+      const card = page.locator('[data-testid="reception-rdv-card"]').filter({ hasText: 'E2E-LOTB tap canvas' });
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await card.getByTestId('btn-checkin').click();
+
+      // Brouillon complet + 4 photos seedés : le bouton s'active après l'hydratation
+      const openSign = page.getByTestId('btn-faire-signer');
+      await expect(openSign).toBeEnabled({ timeout: 15000 });
+      await openSign.click();
+
+      // SignatureModal téléportée dans body, au-dessus de l'AppModal check-in
+      const canvas = page.locator('.sig-canvas');
+      await expect(canvas).toBeVisible({ timeout: 10000 });
+
+      const valider = page.locator('.sig-modal').getByRole('button', { name: /valider et signer/i });
+      await expect(valider).toBeDisabled();
+
+      // Tap seul (pointerdown + pointerup sans tracé) : toujours désactivé
+      await canvas.click({ position: { x: 60, y: 40 } });
+      await expect(valider).toBeDisabled();
+
+      // Un vrai tracé (> distance minimale) active enfin le bouton
+      const box = await canvas.boundingBox();
+      await page.mouse.move(box.x + 30, box.y + 50);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 160, box.y + 90, { steps: 10 });
+      await page.mouse.up();
+      await expect(valider).toBeEnabled();
+    });
+  });
+
+  /* ────────────── 3bis. UI staff /planning : litige restitution ────────────── */
+
+  test.describe('page staff /planning', () => {
+    test.use({ storageState: 'playwright/.auth/admin.json' });
+
+    test('détail d\'un RDV avec litige restitution : alerte, badge et commentaire visibles', async ({ page }) => {
+      await page.goto('/planning');
+
+      // RDV terminé → liste « Historique figé » sous la grille
+      const histEntry = page.locator('button').filter({ hasText: 'E2E-LOTB planning litige UI' });
+      await expect(histEntry.first()).toBeVisible({ timeout: 15000 });
+      await histEntry.first().click();
+
+      // L'alerte n'apparaît qu'après le rechargement du RDV complet (litige_signale)
+      await expect(page.getByTestId('rdv-litige-alert')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('rdv-litige-badge')).toContainText(/litige restitution/i);
+      await expect(page.getByTestId('rdv-litige-commentaire')).toContainText('E2E-LOTB rayure carter constatee par le client');
     });
   });
 
@@ -413,11 +654,12 @@ test.describe('Lot B — check-in / état des lieux', () => {
   /* ────────────── 5. Restitution publique ────────────── */
 
   test('restitution : payload complet + comparatif entrée/sortie affiché', async ({ page, request }) => {
-    await ensureEdlSigned(request, rdv.restitution.id, {
+    // Signature sur statut compatible ('reception' du seed) PUIS statut final en SQL
+    await ensureEdlSignedThenStatut(request, rdv.restitution.id, {
       kilometrage: 25100,
       niveau_carburant: 'trois_quarts',
       observations: 'E2E-LOTB retro gauche raye au depot',
-    });
+    }, 'termine');
 
     const res = await request.get(`/api/public/restitution/${rdv.restitution.token}`);
     expect(res.status()).toBe(200);
@@ -437,8 +679,14 @@ test.describe('Lot B — check-in / état des lieux', () => {
     await expect(page.getByTestId('comparatif-entree')).toContainText('E2E-LOTB retro gauche raye au depot');
   });
 
-  test('restitution : signature avec litige → persistance, notification staff, confirmation UI', async ({ page }) => {
+  test('restitution : signature avec litige → persistance, notification staff, confirmation UI', async ({ page, request }) => {
     const id = rdv.restitution.id;
+    // Autonomie du test : EDL signé + statut terminal, idempotent si déjà fait
+    await ensureEdlSignedThenStatut(request, id, {
+      kilometrage: 25100,
+      niveau_carburant: 'trois_quarts',
+      observations: 'E2E-LOTB retro gauche raye au depot',
+    }, 'termine');
 
     await page.goto(`/restitution/${rdv.restitution.token}`);
     await expect(page.getByTestId('litige-checkbox')).toBeVisible({ timeout: 15000 });
@@ -481,6 +729,19 @@ test.describe('Lot B — check-in / état des lieux', () => {
     await expect(page.getByTestId('comparatif-edl')).toHaveCount(0);
   });
 
+  test('restitution : l\'OR complémentaire n\'usurpe jamais l\'OR initial du payload', async ({ request }) => {
+    // Seed : OR complémentaire inséré AVANT l'initial (id plus petit)
+    const initialId = Number(sql(`SELECT id FROM ordres_reparation WHERE numero_or = 'E2E-LOTB-OR-COMP-INIT'`));
+    const compId = Number(sql(`SELECT id FROM ordres_reparation WHERE numero_or = 'E2E-LOTB-OR-COMP'`));
+    expect(compId).toBeLessThan(initialId);
+
+    const res = await request.get(`/api/public/restitution/${rdv.orComplementaire.token}`);
+    expect(res.status()).toBe(200);
+    const { ordre } = await res.json();
+    expect(ordre.id).toBe(initialId);
+    expect(ordre.travaux_realises).toContain('E2E-LOTB travaux initiaux');
+  });
+
   /* ────────────── 6. Suivi public tokenisé ────────────── */
 
   test('suivi public : l\'état des lieux signé est exposé avec ses photos', async ({ request }) => {
@@ -498,7 +759,9 @@ test.describe('Lot B — check-in / état des lieux', () => {
   test('email travaux terminés avec EDL signé : lien espace client, pas de placeholder', async ({ request }) => {
     test.setTimeout(150000);
     const id = rdv.emailAvecEdl.id;
-    await ensureEdlSigned(request, id, { kilometrage: 25100, niveau_carburant: 'plein' });
+    // Signature sur 'reception' (seed) puis 'en_cours' en SQL : la transition
+    // terminer part du même statut qu'avant les correctifs.
+    await ensureEdlSignedThenStatut(request, id, { kilometrage: 25100, niveau_carburant: 'plein' }, 'en_cours');
 
     const logsBefore = Number(sql(`SELECT COUNT(*) FROM notification_logs WHERE template_code = 'travaux_termines' AND channel = 'email' AND related_entity_id = ${id}`));
 
