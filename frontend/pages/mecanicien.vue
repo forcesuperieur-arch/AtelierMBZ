@@ -450,6 +450,9 @@ const sigRapportCanvas = ref<HTMLCanvasElement | null>(null)
 let sigRapportDrawing = false
 let sigLastX = 0
 let sigLastY = 0
+// Un simple tap sans tracé ne doit PAS activer « Signer le rapport »
+const MIN_SIG_DISTANCE = 30
+let sigDrawnDistance = 0
 
 const rapportForm = reactive({
   travauxRealises: '',
@@ -613,7 +616,6 @@ async function signRapport() {
 // Signature canvas helpers
 function startRapportDraw(e: PointerEvent) {
   sigRapportDrawing = true
-  rapportSigDrawn.value = true
   const canvas = sigRapportCanvas.value!
   const rect = canvas.getBoundingClientRect()
   sigLastX = (e.clientX - rect.left) * (canvas.width / rect.width)
@@ -628,7 +630,9 @@ function drawRapport(e: PointerEvent) {
   const y = (e.clientY - rect.top) * (canvas.height / rect.height)
   ctx.beginPath(); ctx.moveTo(sigLastX, sigLastY); ctx.lineTo(x, y)
   ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke()
+  sigDrawnDistance += Math.hypot(x - sigLastX, y - sigLastY)
   sigLastX = x; sigLastY = y
+  if (sigDrawnDistance >= MIN_SIG_DISTANCE) rapportSigDrawn.value = true
 }
 function endRapportDraw() { sigRapportDrawing = false }
 function initCanvas() {
@@ -642,6 +646,7 @@ function clearRapportSig() {
   const canvas = sigRapportCanvas.value
   if (canvas) canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height)
   rapportSigDrawn.value = false
+  sigDrawnDistance = 0
 }
 
 const checkupItems = [

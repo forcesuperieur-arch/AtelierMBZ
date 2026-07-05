@@ -136,6 +136,7 @@
                 class="form-input checkin-km-input"
                 placeholder="ex : 24350"
                 data-testid="checkin-km"
+                :disabled="hydrating"
               />
             </div>
 
@@ -151,6 +152,7 @@
                   role="radio"
                   :aria-checked="form.niveau_carburant === level.value"
                   :data-testid="`fuel-segment-${level.value}`"
+                  :disabled="hydrating"
                   @click="form.niveau_carburant = level.value"
                 >
                   <span class="fuel-segment-bar" />
@@ -168,6 +170,7 @@
                 rows="3"
                 placeholder="État général du véhicule à l'arrivée…"
                 data-testid="checkin-observations"
+                :disabled="hydrating"
               />
             </div>
 
@@ -187,7 +190,7 @@
                   multiple
                   style="display:none;"
                   data-testid="checkin-photo-input"
-                  :disabled="uploadingPhotos"
+                  :disabled="uploadingPhotos || hydrating"
                   @change="onPhotosSelected"
                 />
                 <span>{{ uploadingPhotos ? '⏳ Envoi en cours…' : '📷 Prendre / ajouter des photos' }}</span>
@@ -216,19 +219,19 @@
 
       <template #footer>
         <div class="checkin-footer">
-          <button class="btn btn-ghost reception-btn" type="button" @click="checkinOpen = false">Fermer</button>
+          <button class="btn btn-ghost reception-btn" type="button" :disabled="hydrating" @click="checkinOpen = false">Fermer</button>
           <template v-if="checkinRdv && !isSigned">
             <button
               class="btn btn-ghost reception-btn"
               type="button"
-              :disabled="savingDraft"
+              :disabled="savingDraft || hydrating"
               data-testid="btn-save-draft"
               @click="saveDraft(true)"
             >{{ savingDraft ? 'Sauvegarde…' : '💾 Enregistrer le brouillon' }}</button>
             <button
               class="btn btn-primary reception-btn"
               type="button"
-              :disabled="!canSign || savingDraft"
+              :disabled="!canSign || savingDraft || hydrating"
               :title="canSign ? '' : 'Kilométrage, carburant et 4 photos minimum requis'"
               data-testid="btn-faire-signer"
               @click="openSignature"
@@ -305,6 +308,8 @@ const signing = ref(false)
 const signError = ref('')
 const transitioning = ref(false)
 let draftTimer: ReturnType<typeof setTimeout> | null = null
+// Jeton de génération : toute réponse d'hydratation d'une ouverture précédente est jetée
+let openSeq = 0
 
 const todayLabel = computed(() =>
   new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -407,50 +412,66 @@ async function loadData(showSpinner = true) {
 }
 
 async function openCheckin(rdv: any) {
+  const seq = ++openSeq
   hydrating.value = true
   checkinRdv.value = rdv
   sessionPhotos.value = []
   draftError.value = ''
   draftSavedAt.value = ''
   signError.value = ''
+  // Réinitialisation AVANT le premier await : le formulaire ne montre JAMAIS
+  // les valeurs du RDV précédent pendant l'hydratation.
+  form.kilometrage = null
+  form.niveau_carburant = ''
+  form.observations = ''
   checkinOpen.value = true
 
   await refreshEdl(rdv.id)
+  // Réponse obsolète (autre fiche ouverte entre-temps) : on jette tout.
+  if (seq !== openSeq) return
   const edl = edlByRdv[rdv.id]
   form.kilometrage = typeof edl?.kilometrage === 'number' ? edl.kilometrage : null
   form.niveau_carburant = edl?.niveau_carburant || ''
   form.observations = edl?.observations || ''
 
   await nextTick()
+  if (seq !== openSeq) return
   hydrating.value = false
 }
 
 async function saveDraft(manual = false): Promise<boolean> {
-  if (!checkinRdv.value || isSigned.value) return false
+  if (!checkinRdv.value || isSigned.value || hydrating.value) return false
   if (!canSaveDraft.value) {
     if (manual) draftError.value = 'Renseignez le kilométrage et le niveau de carburant pour enregistrer le brouillon.'
     return false
   }
 
+  // rdvId + payload capturés AVANT l'await : si la fiche change pendant l'envoi,
+  // on poste quand même les bonnes valeurs sur le bon RDV et on jette la réponse
+  // côté UI (plus de Math.round(null) fantôme ni d'écriture sur le nouveau RDV).
+  const rdvId: number = checkinRdv.value.id
+  const payload = {
+    kilometrage: Math.round(form.kilometrage as number),
+    niveau_carburant: form.niveau_carburant,
+    observations: form.observations || null,
+  }
+
   savingDraft.value = true
   try {
-    await api.post(`/rendez-vous/${checkinRdv.value.id}/etat-des-lieux`, {
-      kilometrage: Math.round(form.kilometrage as number),
-      niveau_carburant: form.niveau_carburant,
-      observations: form.observations || null,
-    })
-    draftError.value = ''
-    draftSavedAt.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-    edlByRdv[checkinRdv.value.id] = {
-      ...(edlByRdv[checkinRdv.value.id] || {}),
+    await api.post(`/rendez-vous/${rdvId}/etat-des-lieux`, payload)
+    // Le cache est indexé par rdvId capturé : toujours juste, même si la fiche a changé
+    edlByRdv[rdvId] = {
+      ...(edlByRdv[rdvId] || {}),
       exists: true,
-      kilometrage: Math.round(form.kilometrage as number),
-      niveau_carburant: form.niveau_carburant,
-      observations: form.observations || null,
+      ...payload,
+    }
+    if (checkinRdv.value?.id === rdvId) {
+      draftError.value = ''
+      draftSavedAt.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     }
     return true
   } catch (e: any) {
-    draftError.value = frError(e)
+    if (checkinRdv.value?.id === rdvId) draftError.value = frError(e)
     return false
   } finally {
     savingDraft.value = false
@@ -463,36 +484,61 @@ watch(
   () => {
     if (hydrating.value || !checkinOpen.value || isSigned.value || !canSaveDraft.value) return
     if (draftTimer) clearTimeout(draftTimer)
-    draftTimer = setTimeout(() => { saveDraft(false) }, DRAFT_DEBOUNCE_MS)
+    draftTimer = setTimeout(() => {
+      draftTimer = null
+      saveDraft(false)
+    }, DRAFT_DEBOUNCE_MS)
   }
 )
+
+// Flush du débounce en attente : à la fermeture de la modale (ou au démontage),
+// une saisie valide non signée est poussée immédiatement au lieu d'être perdue.
+function flushPendingDraft() {
+  if (!draftTimer) return
+  clearTimeout(draftTimer)
+  draftTimer = null
+  if (checkinRdv.value && !isSigned.value && canSaveDraft.value) {
+    void saveDraft(false)
+  }
+}
 
 async function onPhotosSelected(event: Event) {
   const input = event.target as HTMLInputElement
   const files = Array.from(input.files || [])
   if (!files.length || !checkinRdv.value) return
 
+  // rdvId capturé UNE FOIS avant la boucle : chaque upload part sur CE RDV,
+  // même si le staff ferme la modale ou ouvre une autre fiche pendant l'envoi.
+  const rdvId: number = checkinRdv.value.id
   uploadingPhotos.value = true
   let uploaded = 0
   try {
     for (const file of files) {
+      // La fiche affichée a changé : on abandonne les fichiers restants
+      // plutôt que de les envoyer sur le mauvais RDV.
+      if (checkinRdv.value?.id !== rdvId) break
       const fd = new FormData()
       fd.append('photo', file)
-      fd.append('rendez_vous_id', String(checkinRdv.value.id))
+      fd.append('rendez_vous_id', String(rdvId))
       fd.append('type', 'checkin')
       const res = await api.upload('/photos/upload', fd)
+      uploaded++
+      // Réponse arrivée après un changement de fiche : on n'écrit pas
+      // les miniatures dans l'état du nouveau RDV.
+      if (checkinRdv.value?.id !== rdvId) break
       sessionPhotos.value = [
         ...sessionPhotos.value,
         { id: res.id, filename: res.filename, url: `${apiBase}/photos/file/${res.filename}` },
       ]
-      uploaded++
     }
   } catch (e: any) {
     toast.add({ title: 'Erreur photo', description: frError(e), color: 'error' })
   } finally {
     uploadingPhotos.value = false
     input.value = ''
-    if (uploaded && checkinRdv.value) await refreshEdl(checkinRdv.value.id)
+    // Compteur rafraîchi sur le RDV capturé (edlByRdv est indexé par id : sans effet
+    // sur la fiche affichée si elle a changé entre-temps).
+    if (uploaded) await refreshEdl(rdvId)
   }
 }
 
@@ -553,13 +599,13 @@ async function passerEnReception(rdv: any) {
 
 watch(checkinOpen, (open) => {
   if (!open) {
-    if (draftTimer) clearTimeout(draftTimer)
+    flushPendingDraft()
     showSignature.value = false
   }
 })
 
 onBeforeUnmount(() => {
-  if (draftTimer) clearTimeout(draftTimer)
+  flushPendingDraft()
 })
 
 onMounted(() => {

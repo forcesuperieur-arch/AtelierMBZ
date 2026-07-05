@@ -427,6 +427,11 @@ const signingDocument = ref(false)
 const signatureError = ref('')
 const isDrawing = ref(false)
 const hasSignatureStroke = ref(false)
+// Un simple tap sans tracé ne doit PAS compter comme signature
+const MIN_SIG_DISTANCE = 30
+let sigDrawnDistance = 0
+let sigLastX = 0
+let sigLastY = 0
 
 const campaignForm = reactive({
   titre: '',
@@ -727,6 +732,7 @@ function resizeSignatureCanvas() {
   ctx.lineWidth = 2.5
   ctx.strokeStyle = '#111827'
   hasSignatureStroke.value = false
+  sigDrawnDistance = 0
 }
 
 function getSignaturePoint(event: PointerEvent) {
@@ -748,7 +754,8 @@ function startSignature(event: PointerEvent) {
   signatureError.value = ''
   const point = getSignaturePoint(event)
   isDrawing.value = true
-  hasSignatureStroke.value = true
+  sigLastX = point.x
+  sigLastY = point.y
   ctx.beginPath()
   ctx.moveTo(point.x, point.y)
 }
@@ -763,6 +770,10 @@ function moveSignature(event: PointerEvent) {
   const point = getSignaturePoint(event)
   ctx.lineTo(point.x, point.y)
   ctx.stroke()
+  sigDrawnDistance += Math.hypot(point.x - sigLastX, point.y - sigLastY)
+  sigLastX = point.x
+  sigLastY = point.y
+  if (sigDrawnDistance >= MIN_SIG_DISTANCE) hasSignatureStroke.value = true
 }
 
 function stopSignature() {

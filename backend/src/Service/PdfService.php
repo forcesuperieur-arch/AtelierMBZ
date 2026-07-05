@@ -16,6 +16,7 @@ use App\Entity\VOPurchase;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 /**
@@ -27,6 +28,7 @@ class PdfService
         private Environment $twig,
         private EntityManagerInterface $em,
         private string $projectDir,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -264,7 +266,22 @@ class PdfService
         foreach ($candidates as $photo) {
             $src = $this->fileToDataUri($this->projectDir . '/var/photos/' . basename($photo->getFilename()));
             if (!$src) {
+                // Jamais silencieux : le PDF d'état des lieux est archivé UNE
+                // SEULE FOIS — une photo manquante ici l'ampute pour toujours
+                $this->logger->warning('PDF état des lieux : photo d\'entrée impossible à inliner (fichier absent ou illisible), elle n\'apparaîtra pas dans le document archivé.', [
+                    'photo_id' => $photo->getId(),
+                    'filename' => $photo->getFilename(),
+                    'rdv_id' => $rdv->getId(),
+                ]);
                 continue;
+            }
+
+            if (str_starts_with($src, 'data:image/heic') || str_starts_with($src, 'data:image/heif')) {
+                $this->logger->warning('PDF état des lieux : photo d\'entrée au format HEIC/HEIF, non affichable par dompdf — elle sera rendue cassée dans le document archivé.', [
+                    'photo_id' => $photo->getId(),
+                    'filename' => $photo->getFilename(),
+                    'rdv_id' => $rdv->getId(),
+                ]);
             }
 
             $photos[] = [
@@ -422,7 +439,20 @@ class PdfService
         $path = $this->projectDir . '/var/photos/' . basename($photo->getFilename());
         $src = $this->fileToDataUri($path);
         if (!$src) {
+            $this->logger->warning('PDF : photo impossible à inliner (fichier absent ou illisible), elle n\'apparaîtra pas dans le document.', [
+                'photo_id' => $photo->getId(),
+                'filename' => $photo->getFilename(),
+                'type' => $photo->getType(),
+            ]);
             return;
+        }
+
+        if (str_starts_with($src, 'data:image/heic') || str_starts_with($src, 'data:image/heif')) {
+            $this->logger->warning('PDF : photo au format HEIC/HEIF, non affichable par dompdf — elle sera rendue cassée dans le document.', [
+                'photo_id' => $photo->getId(),
+                'filename' => $photo->getFilename(),
+                'type' => $photo->getType(),
+            ]);
         }
 
         $typeLabel = match (strtolower((string) $photo->getType())) {

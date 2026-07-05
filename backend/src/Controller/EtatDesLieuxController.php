@@ -7,7 +7,9 @@ use App\Entity\RendezVous;
 use App\Entity\User;
 use App\Service\AuditService;
 use App\Service\EtatDesLieuxDocumentService;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,15 +34,28 @@ class EtatDesLieuxController extends AbstractController
         'DEJA_SIGNE' => 'L\'état des lieux est déjà signé : document figé.',
         'DONNEES_INCOMPLETES' => 'Kilométrage et niveau de carburant sont obligatoires avant signature.',
         'PHOTOS_MANQUANTES' => 'Au moins 4 photos d\'entrée (check-in ou réception) sont requises avant signature.',
-        'SIGNATURE_INVALIDE' => 'Signature invalide : une image data-URI est attendue.',
+        'SIGNATURE_INVALIDE' => 'Signature invalide : image PNG, JPEG ou WebP en data-URI attendue (entre 800 octets et 2 Mo).',
         'KILOMETRAGE_INVALIDE' => 'Le kilométrage doit être un entier positif ou nul.',
         'CARBURANT_INVALIDE' => 'Niveau de carburant invalide (vide, quart, moitie, trois_quarts, plein).',
+        'STATUT_RDV_INCOMPATIBLE' => 'Le statut du rendez-vous ne permet plus d\'établir ou de modifier l\'état des lieux d\'entrée.',
     ];
+
+    /**
+     * Statuts RDV où l'état des lieux d'entrée peut encore être créé/signé :
+     * l'EDL est un constat fait À L'ARRIVÉE du véhicule — au-delà de la
+     * réception (en_cours, terminé, restitué, annulé…), le document n'a plus
+     * de sens et pourrait servir à antidater un constat.
+     */
+    private const STATUTS_RDV_EDL = ['en_attente', 'reserve', 'confirme', 'reception'];
+
+    /** Plafond des observations libres (même règle que litige_commentaire ×1). */
+    private const OBSERVATIONS_MAX_LENGTH = 2000;
 
     public function __construct(
         private EntityManagerInterface $em,
         private EtatDesLieuxDocumentService $documentService,
         private AuditService $audit,
+        private ManagerRegistry $doctrine,
     ) {}
 
     #[Route('/api/rendez-vous/{id}/etat-des-lieux', methods: ['GET'])]
@@ -62,6 +77,10 @@ class EtatDesLieuxController extends AbstractController
         $rdv = $this->em->getRepository(RendezVous::class)->find($id);
         if (!$rdv) {
             return $this->json(['error' => 'RDV introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!in_array($rdv->getStatut(), self::STATUTS_RDV_EDL, true)) {
+            return $this->errorResponse('STATUT_RDV_INCOMPATIBLE');
         }
 
         $etatDesLieux = $this->findEtatDesLieux($rdv);
@@ -98,6 +117,52 @@ class EtatDesLieuxController extends AbstractController
             $isNew = true;
         }
 
+        $this->applyDraftData($etatDesLieux, $kilometrage, $niveauCarburant, $data);
+
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException) {
+            // Deux créations concurrentes du brouillon (uniq_etat_des_lieux_rdv) :
+            // l'INSERT perdant re-fetch l'EDL gagnant et applique sa mise à
+            // jour dessus (upsert réel) au lieu d'un 500 brut.
+            return $this->retryUpsertAfterConflict($id, $kilometrage, $niveauCarburant, $data);
+        }
+
+        return $this->json(
+            $this->documentService->normalizeState($etatDesLieux, $rdv),
+            $isNew ? Response::HTTP_CREATED : Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * Rejoue l'upsert après violation de l'index unique : le flush raté a
+     * fermé l'EntityManager, on le reset (proxy lazy partagé par tous les
+     * services) puis on applique la mise à jour sur l'EDL créé en parallèle.
+     */
+    private function retryUpsertAfterConflict(int $rdvId, ?int $kilometrage, ?string $niveauCarburant, array $data): JsonResponse
+    {
+        $this->doctrine->resetManager();
+
+        $rdv = $this->em->getRepository(RendezVous::class)->find($rdvId);
+        $etatDesLieux = $rdv ? $this->findEtatDesLieux($rdv) : null;
+        if (!$rdv || !$etatDesLieux) {
+            // Conflit sans gagnant retrouvé : état incohérent, on renonce
+            return $this->json(['error' => 'Conflit de création de l\'état des lieux, veuillez réessayer.'], Response::HTTP_CONFLICT);
+        }
+
+        if ($etatDesLieux->isSigned()) {
+            return $this->errorResponse('DEJA_SIGNE');
+        }
+
+        $this->applyDraftData($etatDesLieux, $kilometrage, $niveauCarburant, $data);
+        $this->em->flush();
+
+        return $this->json($this->documentService->normalizeState($etatDesLieux, $rdv), Response::HTTP_OK);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function applyDraftData(EtatDesLieux $etatDesLieux, ?int $kilometrage, ?string $niveauCarburant, array $data): void
+    {
         if ($kilometrage !== null) {
             $etatDesLieux->setKilometrage($kilometrage);
         }
@@ -105,17 +170,12 @@ class EtatDesLieuxController extends AbstractController
             $etatDesLieux->setNiveauCarburant($niveauCarburant);
         }
         if (array_key_exists('observations', $data)) {
-            $observations = trim((string) ($data['observations'] ?? ''));
+            // Borné comme litige_commentaire : le snapshot/hash/PDF gelés ne
+            // doivent jamais embarquer un texte non plafonné
+            $observations = mb_substr(trim((string) ($data['observations'] ?? '')), 0, self::OBSERVATIONS_MAX_LENGTH);
             $etatDesLieux->setObservations($observations !== '' ? $observations : null);
         }
         $etatDesLieux->setUpdatedAt(new \DateTime());
-
-        $this->em->flush();
-
-        return $this->json(
-            $this->documentService->normalizeState($etatDesLieux, $rdv),
-            $isNew ? Response::HTTP_CREATED : Response::HTTP_OK,
-        );
     }
 
     #[Route('/api/rendez-vous/{id}/etat-des-lieux/sign', methods: ['POST'])]
@@ -124,6 +184,10 @@ class EtatDesLieuxController extends AbstractController
         $rdv = $this->em->getRepository(RendezVous::class)->find($id);
         if (!$rdv) {
             return $this->json(['error' => 'RDV introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!in_array($rdv->getStatut(), self::STATUTS_RDV_EDL, true)) {
+            return $this->errorResponse('STATUT_RDV_INCOMPATIBLE');
         }
 
         $etatDesLieux = $this->findEtatDesLieux($rdv);

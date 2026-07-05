@@ -7,11 +7,13 @@ namespace App\Controller;
 use App\Entity\Client;
 use App\Entity\EtatDesLieux;
 use App\Entity\Notification;
+use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
 use App\Service\AuditService;
 use App\Service\MercureNotifier;
 use App\Service\OrdreReparationPolicy;
+use App\Service\PublicTokenPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,6 +35,7 @@ class PublicSuiviController extends AbstractController
         private OrdreReparationPolicy $ordreReparationPolicy,
         private AuditService $auditService,
         private MercureNotifier $mercureNotifier,
+        private PublicTokenPolicy $publicTokenPolicy,
     ) {}
 
     #[Route('/suivi', methods: ['POST'])]
@@ -143,8 +146,10 @@ class PublicSuiviController extends AbstractController
 
     /**
      * Lot B — état des lieux d'entrée exposé au public tokenisé, visible dès
-     * signature (gate signedHash, même règle que le portail client). Photos
-     * d'entrée (checkin + reception) servies par les URLs publiques tokenisées.
+     * signature (gate signedHash, même règle que le portail client). Les
+     * photos viennent EXCLUSIVEMENT du snapshot figé à la signature : une
+     * photo checkin/reception ajoutée ou retypée après signature n'apparaît
+     * jamais dans le document public (invariant « document gelé »).
      */
     private function buildEtatDesLieuxPayload(RendezVous $rdv): ?array
     {
@@ -164,8 +169,37 @@ class PublicSuiviController extends AbstractController
                 ? (EtatDesLieux::NIVEAUX_CARBURANT_LABELS[$niveauCarburant] ?? $niveauCarburant)
                 : null,
             'observations' => $etatDesLieux->getObservations(),
-            'photos' => $this->collectPublicPhotoUrls($rdv, ['checkin', 'reception']),
+            'photos' => $this->collectSignedSnapshotPhotoUrls($rdv, $etatDesLieux),
         ];
+    }
+
+    /**
+     * URLs publiques des photos de l'EDL signé : intersection entre les
+     * filenames figés dans signedSnapshot['photos'] et les photos du RDV
+     * (pour ne servir que des fichiers existants et appartenant au RDV).
+     * Ordre = celui du snapshot (déterministe, figé à la signature).
+     */
+    private function collectSignedSnapshotPhotoUrls(RendezVous $rdv, EtatDesLieux $etatDesLieux): array
+    {
+        $snapshotPhotos = $etatDesLieux->getSignedSnapshot()['photos'] ?? [];
+        if (!is_array($snapshotPhotos) || $snapshotPhotos === []) {
+            return [];
+        }
+
+        $photosByFilename = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            $photosByFilename[$photo->getFilename()] = $photo;
+        }
+
+        $urls = [];
+        foreach ($snapshotPhotos as $snapshotPhoto) {
+            $filename = is_array($snapshotPhoto) ? ($snapshotPhoto['filename'] ?? null) : null;
+            if (is_string($filename) && isset($photosByFilename[$filename])) {
+                $urls[] = $this->buildPublicPhotoUrl($rdv, $photosByFilename[$filename]);
+            }
+        }
+
+        return $urls;
     }
 
     /** @param string[] $types */
@@ -188,21 +222,29 @@ class PublicSuiviController extends AbstractController
     }
 
     /**
-     * RGPD : un token reste valide tant que le RDV vit, puis 30 jours après
-     * sa clôture (terminé/annulé/restitué) — aligné sur les photos publiques.
+     * Règle d'expiration mutualisée (PublicTokenPolicy) : token valide tant
+     * que le RDV vit, puis dateRdv + 30 jours après clôture. Même règle que
+     * PublicPhotoController::serve — ne jamais les faire diverger.
      */
     private function isTokenExpired(RendezVous $rdv): bool
     {
-        if (!in_array($rdv->getStatut(), ['termine', 'annule', 'restitue', 'livre'], true)) {
-            return false;
-        }
+        return $this->publicTokenPolicy->isTokenExpired($rdv);
+    }
 
-        $dateRdv = $rdv->getDateRdv();
-        if (!$dateRdv) {
-            return false;
-        }
+    /**
+     * OR principal du RDV, sélectionné de façon DÉTERMINISTE : discriminant
+     * typeOr='initial' (les OR complémentaires créés à l'acceptation d'une
+     * demande de travaux supp sont typés 'complementaire' —
+     * DemandeTravauxSuppDecisionService::createOrComplementaire), tri id ASC.
+     * Fallback plus ancien OR du RDV pour les données historiques sans typeOr.
+     * Remplace le ->first() arbitraire sur une collection sans OrderBy.
+     */
+    private function findOrdrePrincipal(RendezVous $rdv): ?OrdreReparation
+    {
+        $repo = $this->em->getRepository(OrdreReparation::class);
 
-        return new \DateTime() > (clone $dateRdv)->modify('+30 days');
+        return $repo->findOneBy(['rendezVous' => $rdv, 'typeOr' => 'initial'], ['id' => 'ASC'])
+            ?? $repo->findOneBy(['rendezVous' => $rdv], ['id' => 'ASC']);
     }
 
     /**
@@ -210,21 +252,16 @@ class PublicSuiviController extends AbstractController
      * Returns RDV + OR info so the client can review and sign before pickup.
      */
     #[Route('/restitution/{token}', methods: ['GET'])]
-    public function restitutionData(string $token): JsonResponse
+    public function restitutionData(string $token, Request $request): JsonResponse
     {
-        $rdv = $this->em->getRepository(RendezVous::class)
-            ->createQueryBuilder('r')
-            ->leftJoin('r.ordresReparation', 'ordre')
-            ->addSelect('ordre')
-            ->leftJoin('r.client', 'c')
-            ->addSelect('c')
-            ->leftJoin('r.vehicule', 'v')
-            ->addSelect('v')
-            ->where('r.tokenSuivi = :token')
-            ->setParameter('token', $token)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $limiter = $this->publicBookingLimiter->create($request->getClientIp());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $rdv = strlen($token) >= 16
+            ? $this->em->getRepository(RendezVous::class)->findOneBy(['tokenSuivi' => $token])
+            : null;
 
         if (!$rdv) {
             return $this->json(['error' => 'Lien de restitution invalide.'], Response::HTTP_NOT_FOUND);
@@ -234,7 +271,7 @@ class PublicSuiviController extends AbstractController
             return $this->json(['error' => 'Ce lien de restitution a expiré.'], Response::HTTP_GONE);
         }
 
-        $ordre = $rdv->getOrdresReparation()->first() ?: null;
+        $ordre = $this->findOrdrePrincipal($rdv);
 
         // Only allow restitution when work is done (mechanic signed)
         if (!$ordre || !$this->ordreReparationPolicy->canSignRestitution($ordre)) {
@@ -296,15 +333,9 @@ class PublicSuiviController extends AbstractController
             return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
-        $rdv = $this->em->getRepository(RendezVous::class)
-            ->createQueryBuilder('r')
-            ->leftJoin('r.ordresReparation', 'ordre')
-            ->addSelect('ordre')
-            ->where('r.tokenSuivi = :token')
-            ->setParameter('token', $token)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $rdv = strlen($token) >= 16
+            ? $this->em->getRepository(RendezVous::class)->findOneBy(['tokenSuivi' => $token])
+            : null;
 
         if (!$rdv) {
             return $this->json(['error' => 'Lien de restitution invalide.'], Response::HTTP_NOT_FOUND);
@@ -314,7 +345,7 @@ class PublicSuiviController extends AbstractController
             return $this->json(['error' => 'Ce lien de restitution a expiré.'], Response::HTTP_GONE);
         }
 
-        $ordre = $rdv->getOrdresReparation()->first() ?: null;
+        $ordre = $this->findOrdrePrincipal($rdv);
 
         if (!$ordre || !$this->ordreReparationPolicy->canSignRestitution($ordre)) {
             return $this->json([

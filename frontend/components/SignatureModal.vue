@@ -1,6 +1,9 @@
 <template>
-  <div class="sig-overlay" role="dialog" aria-modal="true" aria-label="Signature" @click.self="$emit('close')">
-    <div class="sig-modal">
+  <!-- Teleport : sinon la modale reste sous l'AppModal (overlay z-index 240) qui l'appelle -->
+  <Teleport to="body">
+    <!-- Pendant l'envoi, le clic overlay ne ferme pas : l'échec du POST resterait invisible -->
+    <div class="sig-overlay" role="dialog" aria-modal="true" aria-label="Signature" @click.self="!saving && $emit('close')">
+      <div class="sig-modal">
       <h2 class="sig-title">{{ title }}</h2>
       <p class="sig-hint">Signez dans le cadre ci-dessous avec le doigt ou la souris.</p>
 
@@ -24,8 +27,9 @@
           {{ saving ? 'Envoi…' : confirmLabel }}
         </button>
       </div>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -50,6 +54,13 @@ const sigCanvas = ref<HTMLCanvasElement | null>(null)
 const isDrawing = ref(false)
 const hasDrawn = ref(false)
 
+// Un simple tap sans tracé ne doit PAS compter comme signature :
+// on exige un cumul de trait minimal avant d'activer « Valider et signer ».
+const MIN_DRAW_DISTANCE = 30
+let drawnDistance = 0
+let lastX = 0
+let lastY = 0
+
 onMounted(() => {
   // Fond blanc : la signature est encre sombre sur blanc dans le PDF figé
   const ctx = sigCanvas.value?.getContext('2d')
@@ -70,12 +81,13 @@ function getPos(e: PointerEvent) {
 
 function startDraw(e: PointerEvent) {
   isDrawing.value = true
-  hasDrawn.value = true
   const ctx = sigCanvas.value?.getContext('2d')
   if (!ctx) return
   ctx.beginPath()
   const pos = getPos(e)
   ctx.moveTo(pos.x, pos.y)
+  lastX = pos.x
+  lastY = pos.y
 }
 
 function draw(e: PointerEvent) {
@@ -89,6 +101,10 @@ function draw(e: PointerEvent) {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.stroke()
+  drawnDistance += Math.hypot(pos.x - lastX, pos.y - lastY)
+  lastX = pos.x
+  lastY = pos.y
+  if (drawnDistance >= MIN_DRAW_DISTANCE) hasDrawn.value = true
 }
 
 function endDraw() {
@@ -104,6 +120,7 @@ function clearSignature() {
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, c.width, c.height)
   hasDrawn.value = false
+  drawnDistance = 0
 }
 
 function confirm() {
@@ -117,7 +134,8 @@ function confirm() {
 .sig-overlay {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* Au-dessus de .app-modal-overlay (240) : la signature s'ouvre par-dessus le check-in */
+  z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;

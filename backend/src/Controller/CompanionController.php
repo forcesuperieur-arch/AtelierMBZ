@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\EtatDesLieux;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
@@ -201,9 +202,32 @@ class CompanionController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        // Lot B : l'état des lieux signé est un document GELÉ — plus aucune
+        // photo d'entrée (checkin/reception) ne peut être ajoutée après coup.
+        $etatDesLieux = $this->em->getRepository(EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+        if ($etatDesLieux && $etatDesLieux->isSigned()) {
+            return $this->json([
+                'code' => 'EDL_SIGNE_PHOTOS_VERROUILLEES',
+                'error' => 'L\'état des lieux est signé : les photos d\'entrée sont verrouillées.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $mimeType = (string) $file->getMimeType();
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-        if (!in_array((string) $file->getMimeType(), $allowedMimes, true)) {
+        if (!in_array($mimeType, $allowedMimes, true)) {
             return $this->json(['error' => 'Format non supporté (JPEG, PNG, WebP, HEIC)'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // HEIC/HEIF : non affichable par dompdf — refusé UNIQUEMENT pour les
+        // photos d'entrée (le PDF d'état des lieux, archivé une seule fois,
+        // serait gelé avec des images cassées). Les autres photos companion
+        // gardent le comportement historique.
+        if (in_array($type, ['reception', 'checkin'], true)
+            && in_array($mimeType, ['image/heic', 'image/heif'], true)) {
+            return $this->json([
+                'code' => 'FORMAT_NON_SUPPORTE_EDL',
+                'error' => 'Format HEIC/HEIF non supporté pour l\'état des lieux : utilisez une photo JPEG, PNG ou WebP.',
+            ], Response::HTTP_BAD_REQUEST);
         }
         if ($file->getSize() > 10 * 1024 * 1024) {
             return $this->json(['error' => 'Fichier trop volumineux (max 10 Mo)'], Response::HTTP_BAD_REQUEST);

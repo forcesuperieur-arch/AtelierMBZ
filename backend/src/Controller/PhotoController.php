@@ -48,6 +48,21 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'RDV not found'], Response::HTTP_NOT_FOUND);
         }
 
+        // Lot B : l'état des lieux signé est un document GELÉ — plus aucune
+        // photo d'entrée (checkin/reception) ne peut être ajoutée après coup,
+        // même côté staff (le suivi public sert le snapshot figé, pas la
+        // collection vivante ; cette garde ferme le canal de mutation).
+        if ($type !== null && $type !== ''
+            && in_array($type, \App\Service\EtatDesLieuxDocumentService::TYPES_PHOTOS_ENTREE, true)) {
+            $etatDesLieux = $this->em->getRepository(\App\Entity\EtatDesLieux::class)->findOneBy(['rendezVous' => $rdv]);
+            if ($etatDesLieux && $etatDesLieux->isSigned()) {
+                return $this->json([
+                    'code' => 'EDL_SIGNE_PHOTOS_VERROUILLEES',
+                    'error' => 'L\'état des lieux est signé : les photos d\'entrée sont verrouillées.',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
         // Validate file type
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!in_array($file->getMimeType(), $allowedMimes, true)) {

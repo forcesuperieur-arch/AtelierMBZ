@@ -326,6 +326,9 @@ const signatureCanvas = ref<HTMLCanvasElement | null>(null)
 const isDrawing = ref(false)
 const hasSignatureStroke = ref(false)
 const lastPoint = reactive({ x: 0, y: 0 })
+// Un simple tap sans tracé ne doit PAS compter comme signature
+const MIN_SIG_DISTANCE = 30
+let sigDrawnDistance = 0
 
 const token = computed(() => String(route.query.token || '').trim())
 
@@ -657,6 +660,7 @@ function resizeSignatureCanvas() {
   ctx.lineWidth = 2.5
   ctx.strokeStyle = '#111827'
   hasSignatureStroke.value = false
+  sigDrawnDistance = 0
 }
 
 function getSignaturePoint(event: PointerEvent) {
@@ -681,7 +685,6 @@ function startSignature(event: PointerEvent) {
   lastPoint.x = point.x
   lastPoint.y = point.y
   isDrawing.value = true
-  hasSignatureStroke.value = true
   ctx.beginPath()
   ctx.moveTo(point.x, point.y)
 }
@@ -696,8 +699,10 @@ function moveSignature(event: PointerEvent) {
   const point = getSignaturePoint(event)
   ctx.lineTo(point.x, point.y)
   ctx.stroke()
+  sigDrawnDistance += Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y)
   lastPoint.x = point.x
   lastPoint.y = point.y
+  if (sigDrawnDistance >= MIN_SIG_DISTANCE) hasSignatureStroke.value = true
 }
 
 function stopSignature() {

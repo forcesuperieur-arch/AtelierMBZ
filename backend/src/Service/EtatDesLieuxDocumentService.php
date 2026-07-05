@@ -6,6 +6,7 @@ use App\Entity\EtatDesLieux;
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
 use App\Entity\User;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -29,6 +30,19 @@ class EtatDesLieuxDocumentService
 
     private const ARCHIVE_SUBDIR = '/var/pdf/etat-des-lieux';
 
+    /** Préfixes data-URI acceptés pour la signature (JAMAIS de SVG : surface php-svg-lib/dompdf). */
+    private const SIGNATURE_ALLOWED_PREFIXES = [
+        'data:image/png;base64,',
+        'data:image/jpeg;base64,',
+        'data:image/webp;base64,',
+    ];
+
+    /** Une vraie signature tracée pèse toujours plus qu'un pixel : plancher anti-canvas-vide. */
+    private const SIGNATURE_MIN_BYTES = 800;
+
+    /** Plafond : la signature est stockée en TEXT puis rendue par dompdf. */
+    private const SIGNATURE_MAX_BYTES = 2 * 1024 * 1024;
+
     public function __construct(
         private EntityManagerInterface $em,
         private PdfService $pdfService,
@@ -42,7 +56,11 @@ class EtatDesLieuxDocumentService
      */
     public function normalizeState(?EtatDesLieux $etatDesLieux, RendezVous $rdv): array
     {
-        $photosEntreeCount = $this->countPhotosEntree($rdv);
+        // Après signature, le compte vient du snapshot FIGÉ : une photo
+        // d'entrée insérée après coup ne fait jamais bouger le document signé
+        $photosEntreeCount = $etatDesLieux?->isSigned()
+            ? count($etatDesLieux->getSignedSnapshot()['photos'] ?? [])
+            : $this->countPhotosEntree($rdv);
 
         if (!$etatDesLieux) {
             return [
@@ -161,59 +179,116 @@ class EtatDesLieuxDocumentService
      */
     public function sign(EtatDesLieux $etatDesLieux, ?string $signature, ?User $user, Request $request): string
     {
+        // Fast-path hors transaction (état déjà chargé)
         if ($etatDesLieux->isSigned()) {
             throw new \DomainException('DEJA_SIGNE');
         }
 
-        if ($etatDesLieux->getKilometrage() === null
-            || !in_array($etatDesLieux->getNiveauCarburant(), EtatDesLieux::NIVEAUX_CARBURANT, true)) {
-            throw new \DomainException('DONNEES_INCOMPLETES');
-        }
+        $this->assertSignatureValide($signature);
 
-        $rdv = $etatDesLieux->getRendezVous();
-        if ($this->countPhotosEntree($rdv) < self::MIN_PHOTOS_ENTREE) {
-            throw new \DomainException('PHOTOS_MANQUANTES');
-        }
+        // Transaction + verrou pessimiste : deux signatures concurrentes se
+        // sérialisent sur la ligne EDL — la seconde attend le commit de la
+        // première, re-lit l'entité verrouillée, voit le document signé et
+        // échoue en DEJA_SIGNE. Un seul PDF archivé, jamais écrasé.
+        // DomainException => rollback automatique (wrapInTransaction).
+        return $this->em->wrapInTransaction(function () use ($etatDesLieux, $signature, $user, $request): string {
+            $this->em->lock($etatDesLieux, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($etatDesLieux);
 
-        if (!is_string($signature) || !str_starts_with($signature, 'data:image/')) {
+            // Re-check APRÈS verrou : l'état en mémoire pouvait être périmé
+            if ($etatDesLieux->isSigned()) {
+                throw new \DomainException('DEJA_SIGNE');
+            }
+
+            if ($etatDesLieux->getKilometrage() === null
+                || !in_array($etatDesLieux->getNiveauCarburant(), EtatDesLieux::NIVEAUX_CARBURANT, true)) {
+                throw new \DomainException('DONNEES_INCOMPLETES');
+            }
+
+            $rdv = $etatDesLieux->getRendezVous();
+            if ($this->countPhotosEntree($rdv) < self::MIN_PHOTOS_ENTREE) {
+                throw new \DomainException('PHOTOS_MANQUANTES');
+            }
+
+            // Copie figée de l'état véhicule libre du RDV au moment T
+            $rdvEtatVehicule = $rdv->getEtatVehicule();
+            if (is_string($rdvEtatVehicule) && trim($rdvEtatVehicule) !== '') {
+                $decoded = json_decode($rdvEtatVehicule, true);
+                if (is_array($decoded)) {
+                    $etatDesLieux->setEtatVehicule($decoded);
+                }
+            }
+
+            $etatDesLieux->snapshotFromRdv();
+
+            $snapshot = $this->buildSnapshot($etatDesLieux);
+            $hash = $this->computeHash($snapshot);
+            $now = new \DateTime();
+
+            $etatDesLieux
+                ->setSignatureClient($signature)
+                ->setSignedSnapshot($snapshot)
+                ->setSignedHash($hash)
+                ->setSignedAt($now)
+                ->setSignedIp($request->getClientIp())
+                ->setSignedUserAgent(mb_substr((string) $request->headers->get('User-Agent', ''), 0, 500))
+                ->setUpdatedAt($now);
+
+            if ($user instanceof User) {
+                $etatDesLieux->setSignedByUserId($user->getId());
+                $etatDesLieux->setSignedByNom(trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')) ?: $user->getUsername());
+            }
+
+            // Génération + archivage du PDF, UNE SEULE FOIS (jamais régénéré)
+            $archivedFilename = $this->archivePdf($etatDesLieux);
+            $etatDesLieux->setPdfFilename($archivedFilename);
+
+            try {
+                $this->em->flush();
+            } catch (\Throwable $e) {
+                // Flush raté APRÈS archivage : ne jamais laisser un PDF
+                // orphelin se faire passer pour un document signé
+                @unlink($this->projectDir . self::ARCHIVE_SUBDIR . '/' . $archivedFilename);
+                throw $e;
+            }
+
+            return $hash;
+        });
+    }
+
+    /**
+     * Garde-fous de la signature (Lot B revue contradictoire) : préfixe PNG /
+     * JPEG / WebP uniquement (jamais SVG — parseur php-svg-lib de dompdf),
+     * payload base64 valide, taille décodée entre 800 octets (rejette le
+     * canvas vide / pixel 1×1) et 2 Mo (stockage TEXT + rendu dompdf).
+     */
+    private function assertSignatureValide(?string $signature): void
+    {
+        if (!is_string($signature)) {
             throw new \DomainException('SIGNATURE_INVALIDE');
         }
 
-        // Copie figée de l'état véhicule libre du RDV au moment T
-        $rdvEtatVehicule = $rdv->getEtatVehicule();
-        if (is_string($rdvEtatVehicule) && trim($rdvEtatVehicule) !== '') {
-            $decoded = json_decode($rdvEtatVehicule, true);
-            if (is_array($decoded)) {
-                $etatDesLieux->setEtatVehicule($decoded);
+        $payload = null;
+        foreach (self::SIGNATURE_ALLOWED_PREFIXES as $prefix) {
+            if (str_starts_with($signature, $prefix)) {
+                $payload = substr($signature, strlen($prefix));
+                break;
             }
         }
 
-        $etatDesLieux->snapshotFromRdv();
-
-        $snapshot = $this->buildSnapshot($etatDesLieux);
-        $hash = $this->computeHash($snapshot);
-        $now = new \DateTime();
-
-        $etatDesLieux
-            ->setSignatureClient($signature)
-            ->setSignedSnapshot($snapshot)
-            ->setSignedHash($hash)
-            ->setSignedAt($now)
-            ->setSignedIp($request->getClientIp())
-            ->setSignedUserAgent(mb_substr((string) $request->headers->get('User-Agent', ''), 0, 500))
-            ->setUpdatedAt($now);
-
-        if ($user instanceof User) {
-            $etatDesLieux->setSignedByUserId($user->getId());
-            $etatDesLieux->setSignedByNom(trim(($user->getPrenom() ?? '') . ' ' . ($user->getNom() ?? '')) ?: $user->getUsername());
+        if ($payload === null) {
+            throw new \DomainException('SIGNATURE_INVALIDE');
         }
 
-        // Génération + archivage du PDF, UNE SEULE FOIS (jamais régénéré)
-        $etatDesLieux->setPdfFilename($this->archivePdf($etatDesLieux));
+        $decoded = base64_decode($payload, true);
+        if ($decoded === false) {
+            throw new \DomainException('SIGNATURE_INVALIDE');
+        }
 
-        $this->em->flush();
-
-        return $hash;
+        $size = strlen($decoded);
+        if ($size < self::SIGNATURE_MIN_BYTES || $size > self::SIGNATURE_MAX_BYTES) {
+            throw new \DomainException('SIGNATURE_INVALIDE');
+        }
     }
 
     /**
