@@ -249,6 +249,13 @@ const hasDrawn = ref(false)
 const sigSaving = ref(false)
 const sigError = ref('')
 
+// Un simple tap sans tracé ne doit PAS compter comme signature :
+// on exige un cumul de trait minimal avant d'activer la validation.
+const MIN_DRAW_DISTANCE = 30
+let drawnDistance = 0
+let lastX = 0
+let lastY = 0
+
 // Litige / réserve — doit être saisi AVANT la signature (re-sign refusé ensuite)
 const litigeChecked = ref(false)
 const litigeCommentaire = ref('')
@@ -317,12 +324,13 @@ function getPos(e: PointerEvent) {
 
 function startDraw(e: PointerEvent) {
   isDrawing.value = true
-  hasDrawn.value = true
   const ctx = getCtx()
   if (!ctx) return
   ctx.beginPath()
   const pos = getPos(e)
   ctx.moveTo(pos.x, pos.y)
+  lastX = pos.x
+  lastY = pos.y
 }
 
 function draw(e: PointerEvent) {
@@ -336,6 +344,10 @@ function draw(e: PointerEvent) {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.stroke()
+  drawnDistance += Math.hypot(pos.x - lastX, pos.y - lastY)
+  lastX = pos.x
+  lastY = pos.y
+  if (drawnDistance >= MIN_DRAW_DISTANCE) hasDrawn.value = true
 }
 
 function endDraw() {
@@ -351,11 +363,12 @@ function clearSignature() {
   if (!ctx) return
   ctx.clearRect(0, 0, c.width, c.height)
   hasDrawn.value = false
+  drawnDistance = 0
 }
 
 async function submitSignature() {
   const c = sigCanvas.value
-  if (!c) return
+  if (!c || !hasDrawn.value) return
   const signature = c.toDataURL('image/png')
   sigSaving.value = true
   sigError.value = ''

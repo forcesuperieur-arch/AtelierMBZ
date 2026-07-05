@@ -46,6 +46,9 @@ const { activate, deactivate } = useFocusTrap(modalRef, {
   immediate: false,
   escapeDeactivates: false,
   clickOutsideDeactivates: false,
+  // Sans ça, focus-trap avale (stopImmediatePropagation) les clics sur les couches
+  // téléportées AU-DESSUS de la modale (SignatureModal, toasts) : boutons morts.
+  allowOutsideClick: true,
 })
 
 watch(open, (isOpen) => {

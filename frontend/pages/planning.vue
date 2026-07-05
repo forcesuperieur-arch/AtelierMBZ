@@ -383,6 +383,24 @@
               </div>
             </div>
 
+            <!-- Litige signalé par le client à la restitution (Lot B) -->
+            <div
+              v-if="selectedRdv.litige_signale"
+              data-testid="rdv-litige-alert"
+              style="padding:12px 14px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);"
+            >
+              <span
+                data-testid="rdv-litige-badge"
+                style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);font-size:12px;font-weight:700;color:#FCA5A5;"
+              >⚠️ Litige restitution</span>
+              <div
+                v-if="selectedRdv.litige_commentaire"
+                data-testid="rdv-litige-commentaire"
+                style="margin-top:8px;font-size:12px;color:#D1D5DB;white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;"
+              >{{ selectedRdv.litige_commentaire }}</div>
+              <div v-else style="margin-top:8px;font-size:12px;color:#9CA3AF;">Réserve signalée sans commentaire.</div>
+            </div>
+
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
               <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
               <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>

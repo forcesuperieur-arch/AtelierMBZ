@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\PhotoIntervention;
 use App\Entity\RendezVous;
+use App\Service\PublicTokenPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -15,7 +16,10 @@ class PublicPhotoController extends AbstractController
 {
     private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
 
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private PublicTokenPolicy $publicTokenPolicy,
+    ) {}
 
     #[Route('/{token}/{filename}', methods: ['GET'])]
     public function serve(string $token, string $filename): Response
@@ -29,9 +33,11 @@ class PublicPhotoController extends AbstractController
             return $this->json(['error' => 'Not found'], Response::HTTP_NOT_FOUND);
         }
 
-        // Token expires 30 days after RDV creation (RGPD)
-        $expiry = (clone $rdv->getCreatedAt())->modify('+30 days');
-        if (new \DateTime() > $expiry) {
+        // Même règle d'expiration que le lien de suivi/restitution
+        // (PublicTokenPolicy) : valide tant que le RDV vit, puis dateRdv+30j
+        // après clôture — les photos ne meurent jamais avant le lien qui les
+        // référence (galerie EDL / comparatif de restitution).
+        if ($this->publicTokenPolicy->isTokenExpired($rdv)) {
             return $this->json(['error' => 'Token expired'], Response::HTTP_GONE);
         }
 

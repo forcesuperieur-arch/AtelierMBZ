@@ -877,6 +877,12 @@ function getCanvasPos(e: PointerEvent, canvas: HTMLCanvasElement) {
   }
 }
 
+// Un simple tap sans tracé ne doit PAS compter comme signature :
+// on exige un cumul de trait minimal avant d'activer la validation.
+const MIN_SIG_DISTANCE = 30
+let drawnDistanceClient = 0
+let drawnDistanceAtelier = 0
+
 let drawingClient = false
 let lastXClient = 0
 let lastYClient = 0
@@ -885,7 +891,6 @@ function startDrawClient(e: PointerEvent) {
   const canvas = sigCanvasClient.value
   if (!canvas) return
   drawingClient = true
-  hasDrawnClient.value = true
   const pos = getCanvasPos(e, canvas)
   lastXClient = pos.x
   lastYClient = pos.y
@@ -904,8 +909,10 @@ function drawClient(e: PointerEvent) {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.stroke()
+  drawnDistanceClient += Math.hypot(pos.x - lastXClient, pos.y - lastYClient)
   lastXClient = pos.x
   lastYClient = pos.y
+  if (drawnDistanceClient >= MIN_SIG_DISTANCE) hasDrawnClient.value = true
 }
 
 function endDrawClient() {
@@ -920,7 +927,6 @@ function startDrawAtelier(e: PointerEvent) {
   const canvas = sigCanvasAtelier.value
   if (!canvas) return
   drawingAtelier = true
-  hasDrawnAtelier.value = true
   const pos = getCanvasPos(e, canvas)
   lastXAtelier = pos.x
   lastYAtelier = pos.y
@@ -939,8 +945,10 @@ function drawAtelier(e: PointerEvent) {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.stroke()
+  drawnDistanceAtelier += Math.hypot(pos.x - lastXAtelier, pos.y - lastYAtelier)
   lastXAtelier = pos.x
   lastYAtelier = pos.y
+  if (drawnDistanceAtelier >= MIN_SIG_DISTANCE) hasDrawnAtelier.value = true
 }
 
 function endDrawAtelier() {
@@ -952,11 +960,13 @@ function clearSignatures() {
   if (c1) {
     c1.getContext('2d')!.clearRect(0, 0, c1.width, c1.height)
     hasDrawnClient.value = false
+    drawnDistanceClient = 0
   }
   const c2 = sigCanvasAtelier.value
   if (c2) {
     c2.getContext('2d')!.clearRect(0, 0, c2.width, c2.height)
     hasDrawnAtelier.value = false
+    drawnDistanceAtelier = 0
   }
 }
 
