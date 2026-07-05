@@ -67,24 +67,27 @@ demanderait au téléphone.** On muscle l'existant, pas de nouveau module.
 
 ---
 
-## Lot B — Zéro litige : check-in / état des lieux au dépôt (~4-5 jours)
+## Lot B — Zéro litige : check-in / état des lieux au dépôt ✅ FAIT (2026-07-05)
 
 **Principe : réutiliser la mécanique éprouvée du document unique OR**
 (snapshot PDF gelé + hash + signature) pour l'état des lieux d'entrée.
 
-### B1. Le flux de check-in (mode tablette, comme le PDA mécano)
-- [ ] Vue « Réception du matin » : liste des RDV du jour, bouton Check-in par moto
-- [ ] Formulaire : km compteur, niveau carburant, observations, photos périphériques (réutilise `PhotoIntervention` avec un type `checkin`)
-- [ ] Signature client sur tablette (composant `SignaturePad` existant)
-- [ ] Génération du PDF état des lieux gelé + hash (pattern `OrdreReparationFreezeListener` / templates-documents existants)
+### B1. Le flux de check-in (mode tablette, comme le PDA mécano) ✅ FAIT
+- [x] Vue « Réception du matin » (`/reception`) : RDV du jour, badges d'état, bouton Check-in par moto
+- [x] Formulaire : km compteur, jauge carburant 5 segments, observations, photos périphériques (`PhotoIntervention` type `checkin`, min 4 — au passage : les uploads posent enfin le `type`, la garde « 4 photos réception » historiquement morte est réparée)
+- [x] Signature client sur tablette (`SignatureModal` partagé, porté du portail — fin des copies inline ; tap sans tracé refusé sur les 8 canvases de l'app)
+- [x] Entité `EtatDesLieux` gelée : snapshot + hash sha256 (canon VO) + PDF archivé à nom aléatoire, jamais régénéré ; signature atomique (verrou) ; photos servies depuis le snapshot signé et verrouillées après signature
+- [x] Garde workflow : transition `reception` exige l'état des lieux signé (`ConfigAtelier.checkinObligatoire`, toggle admin, défaut actif)
 
-### B2. Boucle du litige fermée
-- [ ] État des lieux consultable dans l'espace client dès la signature
-- [ ] À la restitution : rappel de l'état d'entrée côte à côte (avant/après) sur la page de signature de restitution
-- [ ] Mention dans l'email « travaux terminés » : lien vers l'état des lieux
+### B2. Boucle du litige fermée ✅ FAIT
+- [x] État des lieux consultable dans l'espace client dès la signature (bloc + PDF) et dans le suivi public
+- [x] À la restitution : comparatif avant/après (km, carburant, observations, photos entrée/sortie) sur la page de signature
+- [x] Signalement de litige/réserve à la signature de restitution (commentaire 2000 c) → champs sur le RDV, cloche staff temps réel, badge + commentaire dans le planning, compteur KPI
+- [x] Mention dans l'email « travaux terminés » : lien vers l'état des lieux ({{etat_des_lieux_bloc}}, migration des templates non personnalisés)
 
-### B3. Recette
-- [ ] E2E : check-in complet → PDF gelé → visible client → restitution avec comparatif
+### B3. Recette ✅ FAIT
+- [x] `lot-b.spec.mjs` : 22 tests — flux complet, validations, gardes, snapshot vs live, OR principal, isolation client, comparatif + litige, emails MailHog, KPI. Suite complète : 209 verts.
+- [x] Revue croisée 4 dimensions + vérification contradictoire : 19 défauts confirmés et corrigés (dont CRITICAL upload inter-RDV, falsification de galerie post-signature, expirations incohérentes, SignatureModal sous la modale check-in)
 
 **Critère de sortie : plus aucune moto ne rentre à l'atelier sans état des lieux signé et horodaté, opposable et consultable par les deux parties.**
 
@@ -119,11 +122,11 @@ est par atelier (`TenantFilterListener`) — le SRC doit voir À TRAVERS.
 
 ---
 
-## Instrumentation des KPI (transversal, léger)
+## Instrumentation des KPI (transversal, léger) ✅ FAIT (2026-07-05)
 
-- [ ] Origine du RDV (web / téléphone / comptoir / SRC) sur `RendezVous` → % RDV en ligne
-- [ ] Compteur décisions travaux supp en ligne vs téléphone
-- [ ] Litiges restitution : champ de signalement à la restitution (compteur simple, le « zéro » se constate)
+- [x] Origine du RDV (`rendez_vous.origine` : web / comptoir / telephone / devis, sélecteur au formulaire staff) → tuile « % RDV en ligne » au dashboard (section `pilote` de /api/analytics/dashboard, fact tables synchronisées + rebuild)
+- [x] Canal de décision travaux supp (`decision_canal` : client_token / client_portail) + délai moyen de décision. ⚠️ RESTE OUVERT (décision métier cmoreau) : l'enregistrement d'une décision prise PAR TÉLÉPHONE par le staff — implications de signature sur l'OR complémentaire (accord verbal vs signature différée à la réception). Tant que ce canal n'existe pas, le compteur « en ligne » est mécaniquement à 100 %.
+- [x] Litiges restitution : signalement à la signature de restitution → compteur au dashboard (0 en vert)
 
 ---
 
