@@ -61,8 +61,19 @@ test.describe('Core Business Flows', () => {
     await presta.click();
     await page.getByRole('button', { name: 'Suivant →' }).click();
 
-    // Étape 3 — Créneau : premier créneau disponible du planning
+    // Étape 3 — Créneau : premier créneau disponible du planning. La vue
+    // s'ouvre sur la semaine COURANTE, qui peut être entièrement passée ou
+    // fermée (ex. exécution un dimanche) : on avance de semaine tant qu'aucun
+    // créneau n'est proposé (borné à 4 semaines).
     const slotButton = page.locator('button').filter({ hasText: /^\d{2}:\d{2}$/ }).first();
+    for (let week = 0; week < 4; week++) {
+      const visible = await slotButton
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+      if (visible) break;
+      await page.getByRole('button', { name: /semaine suivante/i }).click();
+    }
     await expect(slotButton).toBeVisible({ timeout: 20000 });
     await slotButton.click();
     await page.getByRole('button', { name: 'Suivant →' }).click();
