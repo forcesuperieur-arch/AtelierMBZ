@@ -6,6 +6,7 @@ use App\Entity\DemandeTravauxSupp;
 use App\Entity\Notification;
 use App\Entity\OrdreReparation;
 use App\Entity\User;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -77,7 +78,14 @@ class DemandeTravauxSuppDecisionService
             $this->em->persist($notif);
         }
 
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException) {
+            // Double-soumission (double-clic / retry réseau) : un OR complémentaire
+            // existe déjà pour cette demande (index unique partiel) — la première
+            // requête l'emporte, celle-ci est rejetée sans créer de doublon.
+            return ['error' => 'Une décision est déjà en cours d\'enregistrement pour cette demande', 'status' => 409];
+        }
 
         // Publication après flush : le payload Mercure embarque l'id de la notification
         if ($notif) {
@@ -146,7 +154,14 @@ class DemandeTravauxSuppDecisionService
             $this->em->persist($notif);
         }
 
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException) {
+            // Double-soumission (double-clic / retry réseau) : un OR complémentaire
+            // existe déjà pour cette demande (index unique partiel) — on rejette
+            // sans créer de doublon ni renvoyer un second lien de signature.
+            return ['error' => 'Une décision est déjà en cours d\'enregistrement pour cette demande', 'status' => 409];
+        }
 
         if ($notif) {
             try {
