@@ -207,6 +207,13 @@ class ClientEspaceController extends AbstractController
                 'created_at' => $d->getCreatedAt()->format('c'),
                 // Seules les demandes envoyées attendent une décision en ligne
                 'decision_possible' => $d->getStatut() === DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT,
+                // Accord donné par téléphone : le bloc bascule en mode
+                // « confirmer et signer » (pas de refus possible)
+                'confirmation_telephone' => $d->isEnAttenteConfirmationTelephone(),
+                'accord_telephone_at' => $d->getDecisionCanal() === DemandeTravauxSupp::CANAL_STAFF_TELEPHONE
+                    ? $d->getDecisionClientAt()?->format('c')
+                    : null,
+                'signed_at' => $d->getSignedAt()?->format('c'),
             ], array_values(array_filter(
                 $demandes,
                 // Les brouillons non validés par le réceptionniste restent invisibles

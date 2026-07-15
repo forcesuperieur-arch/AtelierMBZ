@@ -122,6 +122,11 @@
           :style="statutStyle(demande.statut)"
           style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;"
         >{{ labelStatut(demande.statut) }}</span>
+        <span
+          v-if="isSignatureEnAttente"
+          data-testid="badge-signature-attente"
+          style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(251,191,36,0.14);color:#FCD34D;font-weight:700;"
+        >✍️ Signature en attente</span>
         <span v-if="demande.decision_client" style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(59,130,246,0.14);color:#93C5FD;font-weight:700;">
           Décision client : {{ demande.decision_client === 'accepte' ? '✅ Accepté' : '❌ Refusé' }}
         </span>
@@ -129,11 +134,33 @@
           OR complémentaire #{{ demande.or_complementaire_id }}
         </span>
       </div>
+
+      <!-- Accord téléphonique en attente de signature -->
+      <div
+        v-if="isSignatureEnAttente && demande.decision_enregistree_par"
+        style="font-size:12px;color:#9CA3AF;"
+      >
+        Accord tél. enregistré{{ staffLabel(demande.decision_enregistree_par) }}<span v-if="demande.decision_client_at"> le {{ new Date(demande.decision_client_at).toLocaleString('fr-FR') }}</span>
+      </div>
     </div>
 
     <template #footer>
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
         <button class="btn btn-ghost" @click="close">Fermer</button>
+
+        <button
+          v-if="canDecideParTelephone && !isEditing"
+          class="btn btn-ghost"
+          data-testid="btn-decision-telephone"
+          @click="ouvrirDecisionTelephone"
+        >📞 Décision téléphonique</button>
+
+        <button
+          v-if="isSignatureEnAttente && demande?.token"
+          class="btn btn-primary"
+          data-testid="btn-faire-signer-comptoir"
+          @click="faireSignerComptoir"
+        >✍️ Faire signer au comptoir</button>
 
         <button
           v-if="canEdit && !isEditing"
@@ -169,8 +196,24 @@
 
 <script setup lang="ts">
 const { isOpen, demandeData: demande, close, updateData } = useDemandeTravauxSuppDetailModal()
+const telephoneModal = useDemandeTravauxSuppTelephoneModal()
 const api = useApi()
 const toast = useToast()
+
+function ouvrirDecisionTelephone() {
+  if (!demande.value) return
+  telephoneModal.open(demande.value as DemandeTravauxSuppDetailData, (updated) => updateData(updated))
+}
+
+function faireSignerComptoir() {
+  if (!demande.value?.token) return
+  window.open(`${location.origin}/public/demande/${demande.value.token}`, '_blank')
+}
+
+function staffLabel(p: any): string {
+  const nom = [p?.prenom, p?.nom].filter(Boolean).join(' ').trim()
+  return nom ? ` par ${nom}` : ''
+}
 
 const isEditing = ref(false)
 const saving = ref(false)
@@ -184,6 +227,16 @@ const editedPrestations = ref<any[]>([])
 
 const canEdit = computed(() => {
   return demande.value && ['en_attente', 'en_attente_validation'].includes(demande.value.statut)
+})
+
+const canDecideParTelephone = computed(() => {
+  return demande.value && !['accepte', 'refuse'].includes(demande.value.statut || '')
+})
+
+const isSignatureEnAttente = computed(() => {
+  return demande.value?.statut === 'accepte'
+    && demande.value?.decision_canal === 'staff_telephone'
+    && !demande.value?.signed_at
 })
 
 const editedPrixTotal = computed(() => {

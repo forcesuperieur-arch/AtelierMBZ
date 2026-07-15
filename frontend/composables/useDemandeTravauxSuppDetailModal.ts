@@ -19,6 +19,9 @@ export interface DemandeTravauxSuppDetailData {
   statut?: string
   decision_client?: string
   decision_client_at?: string
+  decision_canal?: string | null
+  signed_at?: string | null
+  decision_enregistree_par?: { id: number, prenom?: string, nom?: string } | null
   or_complementaire_id?: number
   token?: string
   created_at?: string

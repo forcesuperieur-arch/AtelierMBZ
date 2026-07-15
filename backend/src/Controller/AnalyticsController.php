@@ -271,20 +271,35 @@ class AnalyticsController extends AbstractController
              GROUP BY COALESCE(d.decision_canal, 'inconnu')",
             ['a' => $atelierId, 's' => $from, 'e' => $to]
         );
-        $decisionsParCanal = ['client_token' => 0, 'client_portail' => 0, 'inconnu' => 0];
+        $decisionsParCanal = ['client_token' => 0, 'client_portail' => 0, 'staff_telephone' => 0, 'inconnu' => 0];
         foreach ($decisionRows as $row) {
             $decisionsParCanal[(string) $row['canal']] = ((int) ($decisionsParCanal[(string) $row['canal']] ?? 0)) + (int) $row['count'];
         }
 
         // Délai moyen envoi → décision (minutes), sur les décisions de la période.
+        // Canaux en ligne uniquement : un accord téléphonique sans envoi préalable
+        // donnerait un délai négatif ou absurde.
         $delaiDecisionMoyen = $conn->fetchOne(
             "SELECT AVG(EXTRACT(EPOCH FROM (d.decision_client_at - d.sent_at)) / 60)
              FROM demandes_travaux_supp d
              INNER JOIN rendez_vous r ON r.id = d.rendez_vous_id
              WHERE r.atelier_id = :a
                AND d.decision_client_at IS NOT NULL AND d.sent_at IS NOT NULL
+               AND d.decision_canal IN ('client_token', 'client_portail')
                AND DATE(d.decision_client_at) BETWEEN :s AND :e",
             ['a' => $atelierId, 's' => $from, 'e' => $to]
+        );
+
+        // Accords téléphoniques en attente de signature en ligne (stock courant,
+        // non borné à la période : ce sont des signatures à récupérer au comptoir).
+        $accordsTelEnAttente = (int) $conn->fetchOne(
+            "SELECT COUNT(*) FROM demandes_travaux_supp d
+             INNER JOIN rendez_vous r ON r.id = d.rendez_vous_id
+             WHERE r.atelier_id = :a
+               AND d.statut = 'accepte'
+               AND d.decision_canal = 'staff_telephone'
+               AND d.signature_client IS NULL",
+            ['a' => $atelierId]
         );
 
         // ── Revenue mix ──
@@ -340,6 +355,7 @@ class AnalyticsController extends AbstractController
                 'litiges_restitution' => $litigesRestitution,
                 'decisions_travaux_supp_par_canal' => $decisionsParCanal,
                 'delai_decision_moyen_minutes' => $delaiDecisionMoyen !== null ? (int) round((float) $delaiDecisionMoyen) : null,
+                'accords_telephone_en_attente_signature' => $accordsTelEnAttente,
             ],
             'kpis' => [
                 'rdvs' => (int) ($currentStats['nb_rdvs'] ?? 0),

@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, appUrl } from './helpers.mjs';
 
-const today = new Date();
-const todayStr = today.toISOString().slice(0, 10);
+// Dates en heure LOCALE (pas toISOString/UTC) : le filtre « aujourd'hui » de
+// la page /rdv suit la date locale du navigateur — entre minuit et 2h (CEST),
+// la date UTC est encore celle de la veille et les cartes deviennent introuvables.
+const localDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayStr = localDateStr(new Date());
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
-const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+const tomorrowStr = localDateStr(tomorrow);
 
 /* ── API helpers (run inside the browser so cookies/JWT are sent) ── */
 

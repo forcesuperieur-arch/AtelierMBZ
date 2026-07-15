@@ -43,6 +43,7 @@
     </div>
 
     <DemandeTravauxSuppDetailModal />
+    <DemandeTravauxSuppTelephoneModal />
 
     <!-- Notification detail modal -->
     <div v-if="detailOpen" class="notif-detail-overlay" @click.self="closeDetail">
