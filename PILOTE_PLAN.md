@@ -24,7 +24,7 @@
 ## Piste parallèle — Déploiement pilote (dès que l'hébergement est choisi)
 
 Tout est prêt (`DEPLOIEMENT.md`, `.env.prod.example`, `PUBLIC_DOMAIN`). Bloqué sur :
-- [ ] Choix hébergement (comparatif VPS à fournir quand cmoreau est prêt)
+- [ ] Choix hébergement — **décision cmoreau 2026-07-12 : repoussé, on avance sur le reste en attendant** (comparatif VPS OVH/Hetzner/Infomaniak à re-proposer quand prêt)
 - [ ] Nom de domaine à communiquer (cmoreau en possède un)
 - [ ] SIRET/TVA réels dans Admin → Ateliers + bloc hébergeur des mentions légales
 
@@ -125,8 +125,44 @@ est par atelier (`TenantFilterListener`) — le SRC doit voir À TRAVERS.
 ## Instrumentation des KPI (transversal, léger) ✅ FAIT (2026-07-05)
 
 - [x] Origine du RDV (`rendez_vous.origine` : web / comptoir / telephone / devis, sélecteur au formulaire staff) → tuile « % RDV en ligne » au dashboard (section `pilote` de /api/analytics/dashboard, fact tables synchronisées + rebuild)
-- [x] Canal de décision travaux supp (`decision_canal` : client_token / client_portail) + délai moyen de décision. ⚠️ RESTE OUVERT (décision métier cmoreau) : l'enregistrement d'une décision prise PAR TÉLÉPHONE par le staff — implications de signature sur l'OR complémentaire (accord verbal vs signature différée à la réception). Tant que ce canal n'existe pas, le compteur « en ligne » est mécaniquement à 100 %.
+- [x] Canal de décision travaux supp (`decision_canal` : client_token / client_portail) + délai moyen de décision. ✅ TRANCHÉ (cmoreau, 2026-07-12) : décision par TÉLÉPHONE = **« lien de confirmation »** — le staff enregistre l'accord téléphonique (canal `staff_telephone`, qui/quand), les travaux démarrent aussitôt, et un email part immédiatement avec un lien pour signer l'OR complémentaire en ligne. Si toujours non signé à la restitution, signature au comptoir avec le reste. → chantier « Canal téléphone » ci-dessous.
 - [x] Litiges restitution : signalement à la signature de restitution → compteur au dashboard (0 en vert)
+
+---
+
+## Chantier — Canal téléphone (décision travaux supp par téléphone) 🔨 EN COURS (2026-07-12)
+
+**Décision métier (cmoreau, 2026-07-12) : « lien de confirmation ».** Le staff enregistre
+l'accord téléphonique, les travaux démarrent aussitôt, un email/SMS part immédiatement avec
+un lien pour signer l'OR complémentaire en ligne. Repli : signature au comptoir à la
+restitution (le staff rouvre le lien public sur la tablette).
+
+### T1. Backend ✅ FAIT (2026-07-12)
+- [x] Champ `decision_enregistree_par` (qui a pris l'appel) + migration
+- [x] `decideParTelephone()` dans le service de décision : canal `staff_telephone`, statut→accepte/refuse, OR complémentaire créé **figé mais non signé** (statut `en_attente_signature`, signé à la confirmation), envoi immédiat du lien (template `demande_confirmation_telephone` email+SMS, sans interrupteur d'étape), notif staff « signature en attente »
+- [x] Confirmation de signature côté client (page publique tokenisée + portail) : signe l'OR complémentaire a posteriori ; refus impossible après accord tél (409, contacter l'atelier)
+- [x] Endpoint staff `POST /demandes-travaux-supp/{id}/decision-telephone` (décision enregistrée même si le client n'a pas d'email/téléphone — l'erreur d'envoi est remontée au staff)
+- [x] KPI : `staff_telephone` dans le par-canal, délai moyen restreint aux canaux en ligne, compteur « accords tél en attente de signature »
+
+### T2. Front staff ✅ FAIT (2026-07-12)
+- [x] Modale « Décision téléphonique » (accepté/refusé, commentaire, canal d'envoi du lien — liste ET modal détail)
+- [x] Badge « Signature en attente » + « Faire signer au comptoir » (ouvre le lien public sur tablette) + trace « enregistré par X le … »
+
+### T3. Front client ✅ FAIT (2026-07-12)
+- [x] Page publique : mode « Confirmez votre accord » (signature seule, pas de refus), état « Accord confirmé le … » après signature
+- [x] Portail client : même bascule sur le bloc travaux supp du détail RDV (SignatureModal réutilisé, badge « signature à confirmer »)
+
+### T4. Recette ✅ FAIT (2026-07-13)
+- [x] `canal-telephone.spec.mjs` : accord tél → email + OR non signé, confirmation signature, refus tél, gardes 409, portail client, KPI (revalidation suite complète en cours après le fix sécurité T5)
+
+### T5. Sécurité — isolation atelier (revue croisée + revue adversariale) ✅ FAIT (2026-07-15)
+- [x] **CRITICAL corrigé** : `DemandeTravauxSupp` n'avait pas de colonne `atelier_id` → échappait au `TenantFilter` global (un staff pouvait lire/agir sur les demandes d'un autre atelier via les routes staff). Fix idiomatique : colonne `atelier_id` (migration `Version20260715100000` + backfill depuis le RDV), renseignée à la création, la demande rejoint le filtre global comme les autres entités tenant. Vérifié : cross-atelier → 404 + absente des listes ; mono-atelier intact ; `resolvePreferredAtelierId` empêche un user de repointer le filtre sur un atelier non autorisé.
+- [x] **2e chemin de création durci** : `MecanicienController::createDemandeComplementaire` (`POST /api/me/demande-complementaire`) pose désormais explicitement `atelierId` depuis le RDV (avant : protégé seulement par le `TenantSetterListener` prePersist implicite — fragile). Revue adversariale : verdict PASS, aucun CRITICAL/HIGH résiduel.
+- [ ] **Durcissement (MEDIUM, backlog non bloquant pilote)** : pas de verrou anti-double-soumission sur `decideParTelephone`/`confirmerSignatureTelephone` (double-clic/retour réseau pourrait créer 2 OR + 2 envois) — même limite que le `decide()` existant. À traiter avec un lock pessimiste ou une contrainte d'unicité si le pilote le révèle.
+- [ ] **Test de non-régression isolation atelier (LOW, à faire avec fixtures)** : ajouter un test fonctionnel backend (staff atelier B → 404 sur une demande de l'atelier A) sur `GET/PATCH/POST /api/demandes-travaux-supp/{id}`. Non trivial en E2E car le compte admin E2E est SUPER_ADMIN (filtre globalement off, Bearer sans cookie d'atelier) — nécessite un user staff non-super-admin rattaché à un 2e atelier. Isolation déjà vérifiée manuellement (session filtrée + flip SQL → 404).
+
+> Extension possible (non retenue en v1) : relance automatique de la signature de
+> confirmation — le repli comptoir suffit pour le pilote.
 
 ---
 

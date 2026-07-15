@@ -23,7 +23,7 @@
       <!-- Travaux supplémentaires à valider -->
       <div v-if="rdv.demandes_travaux?.length" class="detail-block" data-testid="demandes-travaux">
         <div class="detail-label">Travaux supplémentaires</div>
-        <div v-for="d in rdv.demandes_travaux" :key="d.id" class="demande-card" :class="{ actionable: d.decision_possible }">
+        <div v-for="d in rdv.demandes_travaux" :key="d.id" class="demande-card" :class="{ actionable: d.decision_possible || d.confirmation_telephone }">
           <div class="demande-head">
             <span class="demande-badge" :class="demandeBadgeClass(d)">{{ demandeStatutLabel(d) }}</span>
             <span v-if="d.urgence === 'urgent'" class="demande-badge urgent">Urgent</span>
@@ -47,6 +47,19 @@
             <button class="btn-accept" :disabled="decisionLoading" @click="ouvrirSignature(d)" data-testid="btn-accepter-travaux">
               Accepter et signer
             </button>
+          </div>
+          <!-- Accord donné par téléphone : il ne reste qu'à le confirmer en signant -->
+          <div v-else-if="d.confirmation_telephone" class="demande-confirm-tel" data-testid="bloc-confirmation-telephone">
+            <p class="demande-confirm-tel-text">
+              📞 Vous avez donné votre accord par téléphone le {{ formatDateShort(d.accord_telephone_at) }}.
+              Confirmez-le en signant l'ordre de réparation complémentaire.
+            </p>
+            <button class="btn-accept" :disabled="decisionLoading" @click="ouvrirSignature(d)" data-testid="btn-confirmer-travaux-tel">
+              Confirmer et signer
+            </button>
+          </div>
+          <div v-else-if="d.accord_telephone_at && d.signed_at" class="demande-decision-info" data-testid="etat-accord-confirme">
+            Accord confirmé le {{ formatDateShort(d.signed_at) }}
           </div>
           <div v-else-if="d.decision" class="demande-decision-info">
             {{ d.decision === 'accepte' ? 'Acceptés et signés' : 'Refusés' }}
@@ -139,8 +152,8 @@
 
     <SignatureModal
       v-if="signatureDemande"
-      title="Accepter les travaux supplémentaires"
-      confirm-label="Accepter et signer"
+      :title="isConfirmationTel ? 'Confirmez votre accord donné par téléphone' : 'Accepter les travaux supplémentaires'"
+      :confirm-label="isConfirmationTel ? 'Confirmer et signer' : 'Accepter et signer'"
       :saving="decisionLoading"
       :error="decisionError"
       @close="signatureDemande = null"
@@ -187,6 +200,10 @@ onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
 
+// La modale de signature sert aux deux cas : acceptation classique et
+// confirmation d'un accord déjà donné par téléphone (mêmes payload/endpoint).
+const isConfirmationTel = computed(() => Boolean(signatureDemande.value?.confirmation_telephone))
+
 function ouvrirSignature(demande: any) {
   decisionError.value = ''
   signatureDemande.value = demande
@@ -220,12 +237,14 @@ async function envoyerDecision(demande: any, decision: 'accepte' | 'refuse', sig
 }
 
 function demandeStatutLabel(d: any) {
+  if (d.confirmation_telephone) return 'Accord par téléphone — signature à confirmer'
   if (d.statut === 'accepte') return 'Acceptés'
   if (d.statut === 'refuse') return 'Refusés'
   return 'En attente de votre décision'
 }
 
 function demandeBadgeClass(d: any) {
+  if (d.confirmation_telephone) return 'waiting'
   if (d.statut === 'accepte') return 'ok'
   if (d.statut === 'refuse') return 'ko'
   return 'waiting'
@@ -436,6 +455,22 @@ function formatDateShort(d: string) {
   margin-top: 8px;
   font-size: 12px;
   color: #9CA3AF;
+}
+.demande-confirm-tel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 210, 0, 0.06);
+  border: 1px solid rgba(255, 210, 0, 0.3);
+}
+.demande-confirm-tel-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #E8E9ED;
+  line-height: 1.5;
+}
+.demande-confirm-tel .btn-accept {
+  width: 100%;
 }
 .edl-card {
   display: flex;

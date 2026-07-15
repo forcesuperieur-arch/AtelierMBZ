@@ -127,6 +127,24 @@ class NotificationTemplateCatalog
                 'variables' => ['lien'],
             ],
             [
+                // Canal téléphone : confirmation de signature d'un accord déjà
+                // donné. Transactionnel/légal — envoyé SANS interrupteur d'étape.
+                'code' => 'demande_confirmation_telephone',
+                'channel' => 'email',
+                'libelle' => 'Confirmation de votre accord téléphonique — travaux complémentaires',
+                'sujet' => 'Confirmez votre accord — travaux complémentaires',
+                'corps' => '<p>Bonjour {{client_prenom}},</p><p>Vous avez donné votre accord par téléphone pour des travaux complémentaires sur votre véhicule {{vehicule}} ({{prix_ttc}}€ TTC). Les travaux démarrent sans attendre.</p><p>Confirmez votre accord en signant en ligne :<br><a href="{{lien}}">{{lien}}</a></p><p>Sans signature en ligne, elle vous sera demandée au comptoir lors de la restitution.</p>',
+                'variables' => ['client_prenom', 'vehicule', 'lien', 'prix_ttc'],
+            ],
+            [
+                'code' => 'demande_confirmation_telephone',
+                'channel' => 'sms',
+                'libelle' => 'Confirmation accord téléphonique SMS',
+                'sujet' => null,
+                'corps' => 'Atelier : vous avez donné votre accord par téléphone pour des travaux complémentaires ({{prix_ttc}}€ TTC). Confirmez-le en signant en ligne : {{lien}}',
+                'variables' => ['prix_ttc', 'lien'],
+            ],
+            [
                 'code' => 'demande_complementaire',
                 'channel' => 'email',
                 'libelle' => 'Travaux complémentaires',

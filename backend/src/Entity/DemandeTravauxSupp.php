@@ -25,8 +25,15 @@ class DemandeTravauxSupp
         self::STATUT_REFUSE,
     ];
 
+    /** Décision enregistrée par le staff suite à un accord client par téléphone */
+    public const CANAL_STAFF_TELEPHONE = 'staff_telephone';
+
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['demande:read', 'rdv:read'])] private ?int $id = null;
     #[ORM\ManyToOne(targetEntity: RendezVous::class, inversedBy: 'demandesTravauxSupp')] #[ORM\JoinColumn(name: 'rendez_vous_id', nullable: false)] #[Groups(['demande:read', 'demande:write'])] private RendezVous $rendezVous;
+    // Discriminant multi-atelier : renseigné depuis le RDV à la création. Permet à
+    // DemandeTravauxSupp de participer au TenantFilter global comme les autres
+    // entités de l'atelier (RendezVous, OrdreReparation, Devis…).
+    #[ORM\Column(nullable: true)] private ?int $atelierId = null;
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $description = null;
     #[ORM\Column(type: 'text', nullable: true)] #[Groups(['demande:read', 'demande:write'])] private ?string $prestationsDemandees = null;
     #[ORM\Column(length: 50, options: ['default' => 'normal'])] #[Groups(['demande:read', 'demande:write'])] private string $urgence = 'normal';
@@ -68,9 +75,15 @@ class DemandeTravauxSupp
 
     // KPI pilote — canal par lequel la décision client a été prise :
     // 'client_token' (page publique tokenisée) / 'client_portail' (portail
-    // connecté). Posé uniquement par DemandeTravauxSuppDecisionService.
+    // connecté) / 'staff_telephone' (accord téléphonique enregistré par le
+    // staff). Posé uniquement par DemandeTravauxSuppDecisionService.
     #[ORM\Column(length: 30, nullable: true)] #[Groups(['demande:read'])]
     private ?string $decisionCanal = null;
+
+    // Canal téléphone — membre du staff ayant pris l'appel et enregistré la décision
+    #[ORM\ManyToOne(targetEntity: User::class)] #[ORM\JoinColumn(name: 'decision_enregistree_par_id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['demande:read'])]
+    private ?User $decisionEnregistreePar = null;
 
     // LOT A — relance automatique des demandes sans décision
     #[ORM\Column(type: 'datetime', nullable: true)] #[Groups(['demande:read'])]
@@ -141,4 +154,19 @@ class DemandeTravauxSupp
     public function setSignedAt(?\DateTimeInterface $v): static { $this->signedAt = $v; return $this; }
     public function getOrComplementaire(): ?OrdreReparation { return $this->orComplementaire; }
     public function setOrComplementaire(?OrdreReparation $v): static { $this->orComplementaire = $v; return $this; }
+    public function getDecisionEnregistreePar(): ?User { return $this->decisionEnregistreePar; }
+    public function setDecisionEnregistreePar(?User $v): static { $this->decisionEnregistreePar = $v; return $this; }
+    public function getAtelierId(): ?int { return $this->atelierId; }
+    public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
+
+    /**
+     * Accord donné par téléphone dont la signature en ligne n'a pas encore
+     * été confirmée par le client (état dérivé — pas de statut dédié).
+     */
+    public function isEnAttenteConfirmationTelephone(): bool
+    {
+        return $this->statut === self::STATUT_ACCEPTE
+            && $this->decisionCanal === self::CANAL_STAFF_TELEPHONE
+            && $this->signatureClient === null;
+    }
 }

@@ -109,6 +109,7 @@ class DemandeTravauxSuppController extends AbstractController
 
         $demande = new DemandeTravauxSupp();
         $demande->setRendezVous($rdv);
+        $demande->setAtelierId($rdv->getAtelierId());
         $demande->setDescription($commentaire);
         $demande->setPrestationsChoisies($prestationsChoisies);
         $demande->setPrixEstime($totalPrix);
@@ -362,6 +363,50 @@ class DemandeTravauxSuppController extends AbstractController
     }
 
     /**
+     * Canal téléphone : le staff enregistre la décision donnée par le client
+     * au téléphone. Si accepte : OR complémentaire figé non signé + envoi
+     * immédiat du lien de signature (email par défaut, ou SMS).
+     * Body: { decision: 'accepte'|'refuse', commentaire?: string, canal_envoi?: 'email'|'sms' }
+     */
+    #[Route('/api/demandes-travaux-supp/{id}/decision-telephone', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function decisionTelephone(int $id, Request $request): JsonResponse
+    {
+        $demande = $this->em->getRepository(DemandeTravauxSupp::class)->find($id);
+        if (!$demande) {
+            return $this->json(['error' => 'Demande non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $canalEnvoi = $data['canal_envoi'] ?? 'email';
+
+        if (!in_array($canalEnvoi, ['email', 'sms'], true)) {
+            return $this->json(['error' => 'Canal d\'envoi invalide : email ou sms'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $result = $this->decisionService->decideParTelephone(
+            $demande,
+            $data['decision'] ?? null,
+            $data['commentaire'] ?? null,
+            $canalEnvoi,
+            $this->getUser(),
+            $request,
+        );
+
+        if (isset($result['error'])) {
+            return $this->json(['error' => $result['error']], $result['status']);
+        }
+
+        return $this->json(array_merge($this->serializeDemande($demande), [
+            'lien_client' => '/public/demande/' . $demande->getTokenValidation(),
+            'canal_envoi' => $canalEnvoi,
+            'destinataire' => $result['destinataire'],
+            'envoye' => $result['envoye'],
+            'envoi_erreur' => $result['envoi_erreur'],
+        ]));
+    }
+
+    /**
      * Endpoint public: client consulte la demande via token.
      */
     #[Route('/api/public/demandes-travaux-supp/{token}', methods: ['GET'])]
@@ -392,6 +437,13 @@ class DemandeTravauxSuppController extends AbstractController
             ] : null,
             'client_prenom' => $client?->getPrenom(),
             'created_at' => $demande->getCreatedAt()->format('c'),
+            // Canal téléphone : la page publique bascule en mode « confirmez
+            // votre accord » (signature seule, pas de bouton refuser)
+            'confirmation_telephone' => $demande->isEnAttenteConfirmationTelephone(),
+            'accord_telephone_at' => $demande->getDecisionCanal() === DemandeTravauxSupp::CANAL_STAFF_TELEPHONE
+                ? $demande->getDecisionClientAt()?->format('c')
+                : null,
+            'signed_at' => $demande->getSignedAt()?->format('c'),
         ]);
     }
 
@@ -508,6 +560,13 @@ class DemandeTravauxSuppController extends AbstractController
             'statut' => $d->getStatut(),
             'decision_client' => $d->getDecisionClient(),
             'decision_client_at' => $d->getDecisionClientAt()?->format('c'),
+            'decision_canal' => $d->getDecisionCanal(),
+            'signed_at' => $d->getSignedAt()?->format('c'),
+            'decision_enregistree_par' => $d->getDecisionEnregistreePar() ? [
+                'id' => $d->getDecisionEnregistreePar()->getId(),
+                'prenom' => $d->getDecisionEnregistreePar()->getPrenom(),
+                'nom' => $d->getDecisionEnregistreePar()->getNom(),
+            ] : null,
             'or_complementaire_id' => $d->getOrComplementaire()?->getId(),
             'token' => $d->getTokenValidation(),
             'created_at' => $d->getCreatedAt()->format('c'),

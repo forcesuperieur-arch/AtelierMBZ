@@ -386,6 +386,7 @@ class MecanicienController extends AbstractController
 
         $demande = new \App\Entity\DemandeTravauxSupp();
         $demande->setRendezVous($rdv);
+        $demande->setAtelierId($rdv->getAtelierId());
         $demande->setDescription($description);
         $demande->setStatut(\App\Entity\DemandeTravauxSupp::STATUT_EN_ATTENTE_VALIDATION);
 

@@ -24,6 +24,11 @@
               <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;">
                 <span style="font-weight:800;color:#E8E9ED;font-size:14px;">#{{ d.id }} — {{ d.client_nom || '—' }}</span>
                 <span :style="statutStyle(d.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">{{ labelStatut(d.statut) }}</span>
+                <span
+                  v-if="isSignatureEnAttente(d)"
+                  data-testid="badge-signature-attente"
+                  style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(251,191,36,0.14);color:#FCD34D;font-weight:700;"
+                >✍️ Signature en attente</span>
                 <span v-if="d.urgence === 'urgent'" style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.14);color:#FCA5A5;font-weight:700;">URGENT</span>
               </div>
               <div style="font-size:12px;color:#9CA3AF;">
@@ -43,6 +48,12 @@
               <div style="font-size:11px;color:#6B7280;">~{{ formatMinutes(d.temps_estime) }}</div>
               <div v-if="d.decision_client_at" style="font-size:11px;color:#9CA3AF;margin-top:4px;">
                 Décidé le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}
+              </div>
+              <div
+                v-if="isSignatureEnAttente(d) && d.decision_enregistree_par"
+                style="font-size:11px;color:#9CA3AF;margin-top:2px;"
+              >
+                Accord tél. enregistré{{ staffLabel(d.decision_enregistree_par) }}<span v-if="d.decision_client_at"> le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}</span>
               </div>
             </div>
           </div>
@@ -85,6 +96,20 @@
               </button>
             </template>
             <button
+              v-if="!['accepte', 'refuse'].includes(d.statut)"
+              class="btn btn-ghost"
+              style="font-size:12px;padding:6px 14px;"
+              data-testid="btn-decision-telephone"
+              @click="ouvrirDecisionTelephone(d)"
+            >📞 Décision téléphonique</button>
+            <button
+              v-if="isSignatureEnAttente(d) && d.token"
+              class="btn btn-primary"
+              style="font-size:12px;padding:6px 14px;"
+              data-testid="btn-faire-signer-comptoir"
+              @click="faireSignerComptoir(d)"
+            >✍️ Faire signer au comptoir</button>
+            <button
               v-if="d.token && d.statut === 'en_attente_decision_client'"
               class="btn btn-ghost"
               style="font-size:12px;padding:6px 14px;"
@@ -108,6 +133,7 @@ definePageMeta({ title: 'Demandes complémentaires' })
 
 const api = useApi()
 const toast = useToast()
+const telephoneModal = useDemandeTravauxSuppTelephoneModal()
 const loading = ref(false)
 const sending = ref<number | null>(null)
 const showCanalFor = ref<number | null>(null)
@@ -154,6 +180,23 @@ async function envoyer(d: any, canal: 'email' | 'sms') {
   } finally {
     sending.value = null
   }
+}
+
+function isSignatureEnAttente(d: any): boolean {
+  return d.statut === 'accepte' && d.decision_canal === 'staff_telephone' && !d.signed_at
+}
+
+function staffLabel(p: any): string {
+  const nom = [p?.prenom, p?.nom].filter(Boolean).join(' ').trim()
+  return nom ? ` par ${nom}` : ''
+}
+
+function ouvrirDecisionTelephone(d: any) {
+  telephoneModal.open(d, () => load())
+}
+
+function faireSignerComptoir(d: any) {
+  window.open(`${location.origin}/public/demande/${d.token}`, '_blank')
 }
 
 async function copyLink(token: string) {
