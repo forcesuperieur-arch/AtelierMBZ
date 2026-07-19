@@ -242,4 +242,25 @@ class OrdreReparationPolicyTest extends TestCase
         $or = $this->createOR('brouillon');
         $this->assertFalse($this->policy->verifyIntegrity($or));
     }
+
+    public function testVerifyIntegrityValidatesFinalSeal(): void
+    {
+        $or = $this->createOR('signe');
+
+        // Scellé de réception cohérent
+        $receptionSnap = $this->policy->buildSnapshot($or);
+        $or->setSignedSnapshot($receptionSnap);
+        $or->setSignedHash($this->policy->computeHash($receptionSnap));
+
+        // Scellé final cohérent (restitution)
+        $finalSnap = ['travaux_realises' => 'Vidange + plaquettes', 'kilometrage_restitution' => 12050];
+        $or->setFinalSnapshot($finalSnap);
+        $or->setFinalHash($this->policy->computeHash($finalSnap));
+
+        $this->assertTrue($this->policy->verifyIntegrity($or));
+
+        // Falsification du seul scellé final → doit être détectée
+        $or->setFinalSnapshot(['travaux_realises' => 'FALSIFIÉ', 'kilometrage_restitution' => 12050]);
+        $this->assertFalse($this->policy->verifyIntegrity($or));
+    }
 }

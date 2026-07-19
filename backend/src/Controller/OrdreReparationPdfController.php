@@ -29,18 +29,23 @@ class OrdreReparationPdfController extends AbstractController
             return $this->json(['error' => 'Ordre de réparation introuvable'], Response::HTTP_NOT_FOUND);
         }
 
-        // Only allow download for finalized ORs
-        if ($ordre->getStatut() !== 'termine' || $ordre->getSignedHash() === null) {
+        // Disponible une fois l'OR scellé à la restitution (empreinte finale).
+        if ($ordre->getFinalHash() === null) {
             return $this->json(
-                ['error' => 'Le PDF n\'est disponible qu\'une fois l\'ordre de réparation finalisé (statut terminé).'],
+                ['error' => 'Le PDF n\'est disponible qu\'une fois l\'ordre de réparation signé à la restitution.'],
                 Response::HTTP_FORBIDDEN
             );
         }
 
-        $filePath = $this->pdfService->getOrPdfPath($ordre);
-        if (!is_file($filePath)) {
-            // Fallback: regenerate if file is missing (should not happen)
-            $filePath = $this->pdfService->generateOrPdf($ordre);
+        // On ne sert QUE l'archive immuable — jamais un re-rendu depuis l'entité
+        // vivante (les notes mécano restent modifiables après signature et
+        // différeraient du document scellé).
+        $filePath = $this->pdfService->getArchivedOrPdfPath($ordre);
+        if ($filePath === null) {
+            return $this->json(
+                ['error' => 'Document archivé momentanément indisponible. Contactez le support.'],
+                Response::HTTP_NOT_FOUND
+            );
         }
 
         return $this->file($filePath, 'OR-' . $ordre->getNumeroOr() . '.pdf');

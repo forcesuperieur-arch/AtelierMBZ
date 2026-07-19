@@ -164,6 +164,24 @@ class OrdreReparation
     #[Groups(['ordre:read'])]
     private ?\DateTimeInterface $signedAt = null;
 
+    // Scellé FINAL (restitution) : empreinte complète couvrant le travail réalisé
+    // et toutes les signatures. Distinct du scellé de réception (signedSnapshot/
+    // signedHash), qui reste préservé. Posé une fois, jamais modifié (FreezeListener).
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $finalSnapshot = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $finalHash = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?\DateTimeInterface $finalizedAt = null;
+
+    // Nom du PDF archivé immuable (aléatoire, hors webroot), jamais régénéré.
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $pdfArchiveName = null;
+
     #[ORM\Column(length: 45, nullable: true)]
     private ?string $signedIp = null;
 
@@ -306,6 +324,14 @@ class OrdreReparation
     public function setSignedHash(?string $v): static { $this->signedHash = $v; return $this; }
     public function getSignedAt(): ?\DateTimeInterface { return $this->signedAt; }
     public function setSignedAt(?\DateTimeInterface $v): static { $this->signedAt = $v; return $this; }
+    public function getFinalSnapshot(): ?array { return $this->finalSnapshot; }
+    public function setFinalSnapshot(?array $v): static { $this->finalSnapshot = $v; return $this; }
+    public function getFinalHash(): ?string { return $this->finalHash; }
+    public function setFinalHash(?string $v): static { $this->finalHash = $v; return $this; }
+    public function getFinalizedAt(): ?\DateTimeInterface { return $this->finalizedAt; }
+    public function setFinalizedAt(?\DateTimeInterface $v): static { $this->finalizedAt = $v; return $this; }
+    public function getPdfArchiveName(): ?string { return $this->pdfArchiveName; }
+    public function setPdfArchiveName(?string $v): static { $this->pdfArchiveName = $v; return $this; }
     public function getSignedIp(): ?string { return $this->signedIp; }
     public function setSignedIp(?string $v): static { $this->signedIp = $v; return $this; }
     public function getSignedUserAgent(): ?string { return $this->signedUserAgent; }

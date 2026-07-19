@@ -56,6 +56,59 @@ class PdfService
         return $this->projectDir . '/var/pdf/OR-' . $or->getNumeroOr() . '.pdf';
     }
 
+    private const OR_ARCHIVE_SUBDIR = '/var/pdf/ordre-reparation';
+
+    /**
+     * Rend le PDF de l'OR et l'archive sous un nom aléatoire (hors webroot).
+     * Le document archivé est la référence : jamais régénéré. Pattern
+     * EtatDesLieuxDocumentService::archivePdf.
+     */
+    public function archiveOrPdf(OrdreReparation $or): string
+    {
+        $generatedFilePath = $this->generateOrPdf($or);
+        if (!is_file($generatedFilePath)) {
+            throw new \RuntimeException(sprintf('Fichier PDF introuvable : %s', $generatedFilePath));
+        }
+
+        $archiveDir = $this->projectDir . self::OR_ARCHIVE_SUBDIR;
+        if (!is_dir($archiveDir)) {
+            mkdir($archiveDir, 0755, true);
+        }
+
+        $safeFilename = bin2hex(random_bytes(16)) . '.pdf';
+        if (!copy($generatedFilePath, $archiveDir . '/' . $safeFilename)) {
+            throw new \RuntimeException('Impossible d\'archiver le PDF de l\'ordre de réparation.');
+        }
+
+        // Pas de copie « vivante » résiduelle : le document de référence est l'archive.
+        @unlink($generatedFilePath);
+
+        return $safeFilename;
+    }
+
+    /**
+     * Chemin réel du PDF archivé d'un OR (avec garde anti-traversée). Null si absent.
+     */
+    public function getArchivedOrPdfPath(OrdreReparation $or): ?string
+    {
+        $filename = $or->getPdfArchiveName();
+        if ($filename === null || $filename === '') {
+            return null;
+        }
+
+        $archiveDir = realpath($this->projectDir . self::OR_ARCHIVE_SUBDIR);
+        if ($archiveDir === false) {
+            return null;
+        }
+
+        $realPath = realpath($archiveDir . '/' . basename($filename));
+        if ($realPath === false || !str_starts_with($realPath, $archiveDir . '/') || !is_file($realPath)) {
+            return null;
+        }
+
+        return $realPath;
+    }
+
     /**
      * Generate an invoice PDF.
      */

@@ -53,6 +53,11 @@ class OrdreReparationFreezeListener
                 'signedUserAgent',
                 'kilometrage',
                 'etatVehicule',
+                // Scellé final posé au moment de la signature de restitution.
+                'finalSnapshot',
+                'finalHash',
+                'finalizedAt',
+                'pdfArchiveName',
             ];
         }
 
