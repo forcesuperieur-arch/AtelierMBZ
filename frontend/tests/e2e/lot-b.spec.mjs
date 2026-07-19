@@ -146,8 +146,8 @@ function seedPhotos(rdvId, type, count, prefix) {
 /** OR initial avec signatures de réception posées (garde ② de la transition reception). */
 function seedOrReceptionSignee(rdvId, numero) {
   sql(
-    `INSERT INTO ordres_reparation (numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception)
-     VALUES ('${numero}', 'initial', 'reception_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}')`,
+    `INSERT INTO ordres_reparation (atelier_id, numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception)
+     VALUES (${ATELIER_ID}, '${numero}', 'initial', 'reception_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}')`,
   );
 }
 
@@ -158,8 +158,8 @@ function seedOrInterventionSignee(
   { typeOr = 'initial', travaux = 'E2E-LOTB vidange moteur et plaquettes avant' } = {},
 ) {
   sql(
-    `INSERT INTO ordres_reparation (numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception, signature_mecanicien, signe_mecanicien_at, travaux_realises, kilometrage_restitution)
-     VALUES ('${numero}', '${typeOr}', 'intervention_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', NOW(), '${travaux}', 25150)`,
+    `INSERT INTO ordres_reparation (atelier_id, numero_or, type_or, statut, mechanic_checkup, rendez_vous_id, signature_client, signature_atelier_reception, signature_mecanicien, signe_mecanicien_at, travaux_realises, kilometrage_restitution)
+     VALUES (${ATELIER_ID}, '${numero}', '${typeOr}', 'intervention_signee', '{}', ${rdvId}, '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', '${PIXEL_DATA_URL}', NOW(), '${travaux}', 25150)`,
   );
 }
 
@@ -351,6 +351,25 @@ test.describe('Lot B — check-in / état des lieux', () => {
   });
 
   /* ────────────── 1. API staff : flux check-in complet ────────────── */
+
+  test('isolation atelier : un OR d\'un autre atelier est invisible pour le staff (document légal)', async ({ request }) => {
+    const r = seedRdv('iso-or', { statut: 'reception' });
+    seedOrReceptionSignee(r.id, 'E2E-LOTB-OR-ISO');
+    const oid = Number(sql(`SELECT id FROM ordres_reparation WHERE numero_or = 'E2E-LOTB-OR-ISO'`));
+    const H = { headers: adminAuthHeaders() };
+
+    // Visible dans son propre atelier (1)
+    expect((await request.get(`/api/or/${oid}`, H)).status()).toBe(200);
+
+    // Rattaché à un autre atelier → hors du périmètre du staff courant
+    sql(`UPDATE ordres_reparation SET atelier_id = 999999 WHERE id = ${oid}`);
+    expect((await request.get(`/api/or/${oid}`, H)).status()).toBe(404);
+    expect((await request.get(`/api/ordres-reparation/${oid}/pdf`, H)).status()).toBe(404);
+
+    // Restauré dans son atelier → de nouveau visible
+    sql(`UPDATE ordres_reparation SET atelier_id = 1 WHERE id = ${oid}`);
+    expect((await request.get(`/api/or/${oid}`, H)).status()).toBe(200);
+  });
 
   test('flux check-in API : brouillon → photos → signature → PDF figé → intégrité', async ({ request }) => {
     const id = rdv.fluxApi.id;

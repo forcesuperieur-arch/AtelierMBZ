@@ -294,6 +294,7 @@ class CompanionController extends AbstractController
         if (!$or) {
             $or = new OrdreReparation();
             $or->setRendezVous($rdv);
+            $or->setAtelierId($rdv->getAtelierId());
             $or->setNumeroOr('OR-' . $rdv->getId() . '-' . date('Ymd'));
             $or->setTypeOr('initial');
             $or->snapshotFromRdv();
@@ -421,6 +422,7 @@ class CompanionController extends AbstractController
             if (!$or) {
                 $or = new OrdreReparation();
                 $or->setRendezVous($rdv);
+                $or->setAtelierId($rdv->getAtelierId());
                 $or->setNumeroOr('OR-' . $rdv->getId() . '-' . date('Ymd'));
                 $or->setTypeOr('initial');
                 $or->snapshotFromRdv();

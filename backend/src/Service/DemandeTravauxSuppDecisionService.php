@@ -280,6 +280,7 @@ class DemandeTravauxSuppDecisionService
 
         $or = new OrdreReparation();
         $or->setRendezVous($rdv);
+        $or->setAtelierId($rdv->getAtelierId());
         $or->setNumeroOr(($orInitial ? $orInitial->getNumeroOr() : 'OR-' . $rdv->getId() . '-' . date('Ymd')) . '-C' . $demande->getId());
         $or->setTypeOr('complementaire');
         $or->setTravaux(implode("\n", $travauxLines));

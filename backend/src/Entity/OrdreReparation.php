@@ -32,6 +32,11 @@ class OrdreReparation
     #[Groups(['ordre:read', 'ordre:write'])]
     private RendezVous $rendezVous;
 
+    // Discriminant multi-atelier : renseigné depuis le RDV à la création. Fait
+    // participer l'OR au TenantFilter global (isolation), comme les autres entités.
+    #[ORM\Column(nullable: true)]
+    private ?int $atelierId = null;
+
     #[ORM\Column(length: 50)]
     #[Groups(['ordre:read', 'ordre:write', 'rdv:read'])]
     private string $numeroOr;
@@ -250,6 +255,8 @@ class OrdreReparation
     public function getId(): ?int { return $this->id; }
     public function getRendezVous(): RendezVous { return $this->rendezVous; }
     public function setRendezVous(RendezVous $v): static { $this->rendezVous = $v; return $this; }
+    public function getAtelierId(): ?int { return $this->atelierId; }
+    public function setAtelierId(?int $v): static { $this->atelierId = $v; return $this; }
     public function getNumeroOr(): string { return $this->numeroOr; }
     public function setNumeroOr(string $v): static { $this->numeroOr = $v; return $this; }
     public function getTypeOr(): string { return $this->typeOr; }
