@@ -550,6 +550,30 @@ test.describe('Canal téléphone — accord/refus staff + confirmation de signat
     expect(sql(`SELECT signed_at IS NULL FROM demandes_travaux_supp WHERE id = ${id}`)).toBe('t');
   });
 
+  test('isolation atelier : une demande d\'un autre atelier est invisible et intouchable pour le staff (TenantFilter)', async ({ request }) => {
+    const r = seedRdv('iso-atelier');
+    const d = seedDemande(r.id, 'E2E-TEL isolation-atelier');
+    const H = { headers: adminAuthHeaders() };
+
+    // Visible dans son propre atelier (1)
+    expect((await request.get(`/api/demandes-travaux-supp/${d.id}`, H)).status()).toBe(200);
+
+    // Rattachée à un autre atelier → hors du périmètre du staff courant
+    sql(`UPDATE demandes_travaux_supp SET atelier_id = 999999 WHERE id = ${d.id}`);
+    expect((await request.get(`/api/demandes-travaux-supp/${d.id}`, H)).status()).toBe(404);
+    const dec = await request.post(`/api/demandes-travaux-supp/${d.id}/decision-telephone`, {
+      headers: adminAuthHeaders(),
+      data: { decision: 'accepte' },
+    });
+    expect(dec.status()).toBe(404);
+    const list = await (await request.get('/api/demandes-travaux-supp', H)).json();
+    expect(list.some((x) => x.id === d.id)).toBe(false);
+
+    // Restaurée dans son atelier → de nouveau visible
+    sql(`UPDATE demandes_travaux_supp SET atelier_id = 1 WHERE id = ${d.id}`);
+    expect((await request.get(`/api/demandes-travaux-supp/${d.id}`, H)).status()).toBe(200);
+  });
+
   /* ────────────── 6. KPI pilote ────────────── */
 
   test('KPI : staff_telephone dans le par-canal + compteur accords en attente de signature', async ({ request }) => {
