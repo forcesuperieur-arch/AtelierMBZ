@@ -85,6 +85,26 @@ class OrdreReparationPolicy
         $or->setSignatureClientRestitution($signatureData);
         $or->setSigneClientRestitutionAt(new \DateTime());
         $or->setStatut('signe');
+
+        // Scellé FINAL : empreinte complète couvrant le travail réalisé et toutes
+        // les signatures. Le scellé de réception (signedSnapshot/signedHash) reste
+        // intact — on conserve les deux moments signés.
+        $finalSnapshot = $this->buildFinalSnapshot($or);
+        $or->setFinalSnapshot($finalSnapshot);
+        $or->setFinalHash($this->computeHash($finalSnapshot));
+        $or->setFinalizedAt(new \DateTime());
+
+        // PDF archivé immuable. L'archivage ne doit JAMAIS bloquer la signature :
+        // la valeur juridique est le scellé cryptographique ci-dessus. En cas
+        // d'échec de rendu, on log et le PDF reste régénérable à l'identique
+        // (contenu gelé) à la première demande.
+        if ($this->pdfService) {
+            try {
+                $or->setPdfArchiveName($this->pdfService->archiveOrPdf($or));
+            } catch (\Throwable $e) {
+                error_log('Archivage PDF OR échoué (id=' . $or->getId() . ') : ' . $e->getMessage());
+            }
+        }
     }
 
     // ─── Legacy / compat ───
@@ -240,8 +260,23 @@ class OrdreReparationPolicy
         if ($snapshot === null || $storedHash === null) {
             return false;
         }
+        if ($this->computeHash($snapshot) !== $storedHash) {
+            return false;
+        }
 
-        return $this->computeHash($snapshot) === $storedHash;
+        // Si le scellé final (restitution) existe, il doit être intègre lui aussi.
+        $finalSnapshot = $or->getFinalSnapshot();
+        $finalHash = $or->getFinalHash();
+        if ($finalSnapshot !== null || $finalHash !== null) {
+            if ($finalSnapshot === null || $finalHash === null) {
+                return false;
+            }
+            if ($this->computeHash($finalSnapshot) !== $finalHash) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

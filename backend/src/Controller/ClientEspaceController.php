@@ -317,16 +317,16 @@ class ClientEspaceController extends AbstractController
             }
         }
 
-        // Seul le document finalisé et figé (hash) est communicable au client
-        if (!$or || $or->getStatut() !== 'termine' || $or->getSignedHash() === null) {
+        // Seul le document scellé à la restitution (empreinte finale) est communicable.
+        if (!$or || $or->getFinalHash() === null) {
             return $this->json(['error' => 'Document non disponible'], Response::HTTP_NOT_FOUND);
         }
 
-        // Le PDF est généré et figé à la finalisation (OrdreReparationPolicy).
+        // Le PDF est archivé immuable à la restitution (OrdreReparationPolicy).
         // Pas de régénération ici : un re-rendu depuis l'entité vivante pourrait
         // différer du document signé (notes mécano modifiables après coup).
-        $pdfPath = $this->pdfService->getOrPdfPath($or);
-        if (!is_file($pdfPath) || !is_readable($pdfPath)) {
+        $pdfPath = $this->pdfService->getArchivedOrPdfPath($or);
+        if ($pdfPath === null) {
             return $this->json([
                 'error' => 'Document momentanément indisponible. Contactez votre atelier.',
             ], Response::HTTP_NOT_FOUND);
