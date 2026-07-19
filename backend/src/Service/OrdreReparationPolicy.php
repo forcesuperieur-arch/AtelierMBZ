@@ -286,6 +286,7 @@ class OrdreReparationPolicy
     {
         $rectified = new OrdreReparation();
         $rectified->setRendezVous($original->getRendezVous());
+        $rectified->setAtelierId($original->getAtelierId());
         $rectified->setNumeroOr($original->getNumeroOr() . '-R');
         $rectified->setTypeOr($original->getTypeOr());
         $rectified->setKilometrage($original->getKilometrage());

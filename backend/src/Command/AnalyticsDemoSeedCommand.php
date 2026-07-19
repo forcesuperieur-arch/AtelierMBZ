@@ -93,6 +93,7 @@ class AnalyticsDemoSeedCommand extends Command
             if (!$hasOr && in_array($status, ['en_cours', 'termine', 'restitue', 'facture', 'paye'], true)) {
                 $or = new OrdreReparation();
                 $or->setRendezVous($rdv);
+                $or->setAtelierId($rdv->getAtelierId());
                 $or->setStatut(match ($status) {
                     'en_cours' => 'en_cours',
                     'termine', 'restitue' => 'termine',
