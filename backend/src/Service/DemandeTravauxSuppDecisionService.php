@@ -7,6 +7,7 @@ use App\Entity\Notification;
 use App\Entity\OrdreReparation;
 use App\Entity\User;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -198,20 +199,40 @@ class DemandeTravauxSuppDecisionService
             return ['error' => 'Signature requise pour confirmer votre accord', 'status' => 400];
         }
 
-        $demande->setSignatureClient($signatureData);
-        $demande->setSignedAt(new \DateTime());
+        // Verrou pessimiste : deux confirmations simultanées de la même demande
+        // (double-tap client) sont sérialisées. La 2e requête attend, relit l'état
+        // committé sous le verrou, et voit la signature déjà posée → 409, sans
+        // re-signer l'OR (sign() n'est pas idempotent).
+        $notif = null;
+        $result = $this->em->wrapInTransaction(function () use ($demande, $signatureData, $request, &$notif) {
+            $this->em->lock($demande, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($demande);
 
-        $or = $demande->getOrComplementaire();
-        if ($or) {
-            $this->orPolicy->sign($or, $signatureData, $request);
+            if ($demande->getSignatureClient() !== null) {
+                return ['error' => 'Accord déjà confirmé', 'status' => 409];
+            }
+
+            $demande->setSignatureClient($signatureData);
+            $demande->setSignedAt(new \DateTime());
+
+            $or = $demande->getOrComplementaire();
+            if ($or) {
+                $this->orPolicy->sign($or, $signatureData, $request);
+            }
+
+            $notif = $this->buildNotificationSignatureConfirmee($demande);
+            if ($notif) {
+                $this->em->persist($notif);
+            }
+
+            $this->em->flush();
+
+            return ['demande' => $demande];
+        });
+
+        if (isset($result['error'])) {
+            return $result;
         }
-
-        $notif = $this->buildNotificationSignatureConfirmee($demande);
-        if ($notif) {
-            $this->em->persist($notif);
-        }
-
-        $this->em->flush();
 
         if ($notif) {
             try {
