@@ -263,4 +263,53 @@ class OrdreReparationPolicyTest extends TestCase
         $or->setFinalSnapshot(['travaux_realises' => 'FALSIFIÉ', 'kilometrage_restitution' => 12050]);
         $this->assertFalse($this->policy->verifyIntegrity($or));
     }
+
+    // ─── Régression : le scellé de RÉCEPTION est immuable (finalize supprimé) ───
+
+    public function testReceptionSealSurvivesRestitution(): void
+    {
+        $or = $this->createOR('brouillon');
+        $rdv = $or->getRendezVous();
+        $rdv->setDateRdv(new \DateTime('2026-07-20'));
+        $rdv->setHeureRdv(new \DateTime('2026-07-20 09:00'));
+        $rdv->setTypeIntervention('revision');
+        $or->setEtatVehicule(json_encode(['rayures' => false]));
+
+        $request = Request::create('/test', 'POST');
+
+        // 1. Réception signée (client + atelier) → scellé de réception
+        $this->policy->signReception($or, 'data:image/png;base64,client', 'data:image/png;base64,atelier', $request);
+        $receptionHash = $or->getSignedHash();
+        $receptionSnap = $or->getSignedSnapshot();
+        $this->assertSame('reception_signee', $or->getStatut());
+        $this->assertNotEmpty($receptionHash);
+
+        // 2. Mécanicien signe → intervention_signee
+        $this->policy->signMecanicien($or, 'data:image/png;base64,meca', 42);
+        $this->assertSame('intervention_signee', $or->getStatut());
+
+        // 3. Client signe la restitution → scellé FINAL posé, réception INTACTE
+        $this->policy->signRestitution($or, 'data:image/png;base64,restit');
+
+        $this->assertSame('signe', $or->getStatut());
+        $this->assertNotNull($or->getFinalHash(), 'Le scellé final doit être posé à la restitution');
+        // INVARIANT CRITIQUE : le scellé de réception n'est JAMAIS réécrit (le bug
+        // finalize() le reconstruisait depuis l'état vivant à la transition « terminer »).
+        $this->assertSame($receptionHash, $or->getSignedHash(), 'Le scellé de réception doit rester intact après la restitution');
+        $this->assertSame($receptionSnap, $or->getSignedSnapshot());
+        // Les deux scellés sont distincts et tous deux intègres.
+        $this->assertNotSame($or->getSignedHash(), $or->getFinalHash());
+        $this->assertTrue($this->policy->verifyIntegrity($or));
+    }
+
+    public function testFinalizeMethodIsRemoved(): void
+    {
+        // finalize() réécrivait signedSnapshot/signedHash depuis l'état vivant et
+        // forçait statut='termine' à la transition RDV « terminer » : régression
+        // CRITICAL du double scellé. Supprimé — ne pas le réintroduire.
+        $this->assertFalse(
+            method_exists($this->policy, 'finalize'),
+            'finalize() a été supprimé (clobber du scellé de réception) — ne pas le réintroduire.'
+        );
+    }
 }

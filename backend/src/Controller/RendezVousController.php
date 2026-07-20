@@ -405,13 +405,12 @@ class RendezVousController extends AbstractController
 
         $this->rendezVousStateMachine->apply($rdv, $transitionName);
 
-        // Finalize the OR when the RDV reaches completion
-        if ($transitionName === 'terminer') {
-            $ordre = $this->findInitialOrdre($rdv);
-            if ($ordre && $ordre->getStatut() !== 'termine') {
-                $this->ordreReparationPolicy->finalize($ordre);
-            }
-        }
+        // NB : le cycle de scellé de l'OR (scellé de réception + scellé final +
+        // PDF archivé immuable) est piloté UNIQUEMENT par les signatures de l'OR
+        // (signReception / signRestitution). La transition RDV « terminer » ne doit
+        // JAMAIS toucher l'OR : l'ancien appel finalize() réécrivait le scellé de
+        // réception depuis l'état vivant et forçait statut='termine' (régression du
+        // double scellé — supprimée).
 
         $this->em->flush();
 

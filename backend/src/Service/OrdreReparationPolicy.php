@@ -219,25 +219,11 @@ class OrdreReparationPolicy
         ];
     }
 
-    /**
-     * Finalize the OR when the RDV is completed.
-     * Computes final snapshot + hash, generates the PDF, and freezes the OR.
-     */
-    public function finalize(OrdreReparation $or): void
-    {
-        $snapshot = $this->buildFinalSnapshot($or);
-        $hash = $this->computeHash($snapshot);
-
-        $or->setSignedSnapshot($snapshot);
-        $or->setSignedHash($hash);
-        $or->setSignedAt(new \DateTime());
-        $or->setStatut('termine');
-
-        // Generate the physical PDF — it will be stored in var/pdf/
-        if ($this->pdfService) {
-            $this->pdfService->generateOrPdf($or);
-        }
-    }
+    // NOTE : finalize() a été SUPPRIMÉ (régression CRITICAL). Il était appelé sur la
+    // transition RDV « terminer » et réécrivait signedSnapshot/signedHash/signedAt
+    // (le scellé de RÉCEPTION) depuis l'état vivant, tout en forçant statut='termine'.
+    // Le scellé final + le PDF archivé immuable sont désormais produits UNIQUEMENT par
+    // signRestitution(), et le scellé de réception reste intangible.
 
     /**
      * Compute SHA-256 hash of canonical JSON.
