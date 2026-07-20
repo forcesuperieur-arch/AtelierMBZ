@@ -36,11 +36,13 @@ const { apiFetch } = useClientApi()
 onMounted(async () => {
   try {
     const rdvs = await apiFetch('/api/client/rdvs')
-    rdvsCount.value = rdvs?.length || 0
 
     const now = new Date()
-    const futurs = (rdvs || [])
-      .map((r: any) => ({ ...r, d: new Date(r.date_heure) }))
+    const avecDate = (rdvs || []).map((r: any) => ({ ...r, d: new Date(r.date_heure) }))
+    // « RDV passés » = ceux dont la date est révolue (avant : comptait TOUS les RDV).
+    rdvsCount.value = avecDate.filter((r: any) => r.d <= now).length
+
+    const futurs = avecDate
       .filter((r: any) => r.d > now)
       .sort((a: any, b: any) => a.d.getTime() - b.d.getTime())
 

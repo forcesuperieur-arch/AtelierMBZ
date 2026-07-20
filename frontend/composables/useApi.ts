@@ -93,7 +93,12 @@ export function useApi() {
         }
         return retry.status === 204 ? (null as T) : retry.json()
       }
-      // Session expired — let callers handle redirect to avoid interrupting finally blocks
+      // Session expirée (refresh échoué) : rediriger vers la connexion. Sans
+      // cela l'utilisateur restait bloqué sur une page figée (les appelants ne
+      // traitaient jamais ce cas). Garde anti-boucle si déjà sur /login.
+      if (process.client && !window.location.pathname.startsWith('/login')) {
+        navigateTo('/login')
+      }
       throw new Error('Session expired')
     }
 

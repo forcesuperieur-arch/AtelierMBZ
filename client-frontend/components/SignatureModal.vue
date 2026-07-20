@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   title?: string
   confirmLabel?: string
   saving?: boolean
@@ -122,7 +122,9 @@ function clearSignature() {
 
 function confirm() {
   const c = sigCanvas.value
-  if (!c || !hasDrawn.value) return
+  // Garde anti double-soumission : le `:disabled` ne s'applique qu'au prochain
+  // tick, un double-tap mobile rapide pouvait émettre `signed` deux fois.
+  if (!c || !hasDrawn.value || props.saving) return
   emit('signed', c.toDataURL('image/png'))
 }
 </script>

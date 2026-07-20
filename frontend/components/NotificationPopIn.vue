@@ -1,6 +1,10 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div class="bg-gray-900 border border-orange-500 rounded-xl shadow-2xl max-w-lg w-full mx-4 p-6 animate-pulse-border">
+  <!-- Notification NON bloquante : carte en coin bas-droit. Ne recouvre jamais
+       l'écran et n'intercepte pas les clics ailleurs (décision produit : une
+       demande de travaux complémentaires ne doit pas figer toute l'interface,
+       même urgente — le staff est alerté mais reste libre d'agir). -->
+  <div v-if="visible" class="fixed bottom-4 right-4 z-50 max-w-sm w-[calc(100%-2rem)] sm:w-full pointer-events-none">
+    <div class="bg-gray-900 border border-orange-500 rounded-xl shadow-2xl w-full p-6 animate-pulse-border pointer-events-auto">
       <!-- Header -->
       <div class="flex items-center gap-3 mb-4">
         <div class="w-10 h-10 rounded-full flex items-center justify-center"

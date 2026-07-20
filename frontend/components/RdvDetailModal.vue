@@ -1,5 +1,5 @@
 <template>
-  <AppModal v-model:open="isOpen" size="lg">
+  <AppModal :open="isOpen" @update:open="onOpenChange" size="lg">
     <template #header>
       <div style="display:flex;align-items:center;gap:12px;">
         <span style="font-size:16px;font-weight:700;color:#E8E9ED;">RDV #{{ rdv?.id }}</span>
@@ -46,6 +46,13 @@
 
 <script setup lang="ts">
 const { isOpen, rdvData: rdv, close } = useRdvDetailModal()
+
+// `isOpen` est une ref readonly du composable : on ne peut PAS y écrire via
+// v-model (no-op silencieux en prod). On relaie donc la fermeture (Échap / clic
+// sur le fond / croix) vers close(), seule source de vérité de l'état.
+function onOpenChange(value: boolean) {
+  if (!value) close()
+}
 
 const clientName = computed(() => {
   if (!rdv.value) return 'Client'
