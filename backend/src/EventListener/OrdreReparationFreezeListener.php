@@ -35,9 +35,9 @@ class OrdreReparationFreezeListener
             'mechanicCheckup',
             'mechanicCheckupUpdatedAt',
             'etatVehicule',
-            'signedSnapshot',
-            'signedHash',
-            'signedAt',
+            // Le scellé de RÉCEPTION (signedSnapshot/signedHash/signedAt) est IMMUABLE
+            // une fois l'OR gelé : il n'apparaît volontairement PAS dans cette liste,
+            // pour que toute tentative de réécriture lève une DomainException.
         ];
 
         if (!$wasFrozen && $args->hasChangedField('statut') && $currentStatut === 'signe') {

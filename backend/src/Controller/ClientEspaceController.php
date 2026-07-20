@@ -177,8 +177,10 @@ class ClientEspaceController extends AbstractController
                 'type_or' => $o->getTypeOr(),
                 'travaux' => $o->getTravaux(),
                 'statut' => $o->getStatut(),
-                // Le PDF n'est exposé au client qu'une fois l'OR finalisé et figé
-                'pdf_disponible' => $o->getStatut() === 'termine' && $o->getSignedHash() !== null,
+                // Le PDF (archive immuable) est exposé au client dès que l'OR est
+                // scellé à la restitution (final_hash présent) — même gate que
+                // OrdreReparationPdfController.
+                'pdf_disponible' => $o->getFinalHash() !== null,
             ], $rdv->getOrdresReparation()->toArray()),
             'photos' => array_map(fn($ph) => [
                 'id' => $ph->getId(),
