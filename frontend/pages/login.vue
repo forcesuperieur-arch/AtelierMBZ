@@ -247,14 +247,14 @@ onMounted(() => {
 }
 
 .login-form button {
-  background: linear-gradient(135deg, #FFD200, #D97706);
+  background: linear-gradient(135deg, #FFD200, #FFB800);
   color: #111;
   margin-top: 4px;
 }
 .login-form button:hover {
-  background: linear-gradient(135deg, #FBBF24, #FFD200);
+  background: linear-gradient(135deg, #FFDE33, #FFD200);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(245,158,11,0.25);
+  box-shadow: 0 4px 16px rgba(255,210,0,0.25);
 }
 .login-form button:active { transform: translateY(0); }
 .google-btn:disabled,

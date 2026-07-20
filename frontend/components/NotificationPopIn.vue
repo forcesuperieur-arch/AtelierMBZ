@@ -28,7 +28,7 @@
         <button
           @click="navigateToAction"
           v-if="currentNotif?.actionUrl"
-          class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+          class="flex-1 font-semibold py-2 px-4 rounded-lg transition-colors notif-cta-primary">
           Voir la demande
         </button>
         <button
@@ -130,5 +130,14 @@ watch(pendingNotifs, (val) => {
 }
 .animate-pulse-border {
   animation: pulse-border 2s ease-in-out infinite;
+}
+/* CTA primaire au jaune de marque (les autres boutons primaires le sont aussi) ;
+   la bordure d'alerte pulsante reste, elle, orange/rouge pour signaler l'urgence. */
+.notif-cta-primary {
+  background: #FFD200;
+  color: #111;
+}
+.notif-cta-primary:hover {
+  background: #FFDE33;
 }
 </style>

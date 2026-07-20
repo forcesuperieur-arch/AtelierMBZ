@@ -1,10 +1,13 @@
 <?php
 namespace App\Entity;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity] #[ORM\Table(name: 'grille_tarifaire')] #[ApiResource]
+#[ApiFilter(OrderFilter::class, properties: ['id'])]
 class GrilleTarifaire
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] #[Groups(['prestation:read'])] private ?int $id = null;

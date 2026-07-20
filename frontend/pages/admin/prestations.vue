@@ -512,9 +512,9 @@ async function fetchData() {
   await syncAtelierContext()
 
   const [prestationsResult, categoriesResult, grillesResult] = await Promise.allSettled([
-    api.get(withAtelierContext('/prestations?itemsPerPage=200')),
-    api.get(withAtelierContext('/motos/categories?itemsPerPage=200')),
-    api.get(withAtelierContext('/grille_tarifaires?itemsPerPage=400')),
+    api.getAll(withAtelierContext('/prestations?order[id]=asc')),
+    api.getAll(withAtelierContext('/motos/categories?order[id]=asc')),
+    api.getAll(withAtelierContext('/grille_tarifaires?order[id]=asc')),
   ])
 
   if (prestationsResult.status === 'fulfilled') {

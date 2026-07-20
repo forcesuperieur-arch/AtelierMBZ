@@ -6,8 +6,8 @@
         <div class="page-sub">Mise à jour en temps réel par mécanicien</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div class="live-dot"></div>
-        <span style="font-size:13px;font-weight:600;color:#10B981;">Live</span>
+        <div class="live-dot" :style="syncStale ? 'background:#F59E0B;box-shadow:none;animation:none;' : ''"></div>
+        <span style="font-size:13px;font-weight:600;" :style="syncStale ? 'color:#FBBF24;' : 'color:#10B981;'">{{ syncStale ? 'Synchro interrompue' : 'Live' }}</span>
       </div>
     </div>
 
@@ -92,6 +92,7 @@
 const api = useApi()
 const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
+const syncStale = ref(false)
 const rdvs = ref<any[]>([])
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
@@ -184,10 +185,16 @@ function getProgress(rdv: any): number {
 
 async function fetchData() {
   try {
-    const data = await api.get(`/rendez-vous?date_rdv=${today}&itemsPerPage=200`)
-    const items = Array.isArray(data) ? data : (data?.['hydra:member'] ?? data?.member ?? [])
-    rdvs.value = items
-  } catch {}
+    // `date_rdv` n'est pas un filtre configuré (API Platform l'ignorait → 200
+    // premiers RDV tous jours confondus) : on utilise le vrai filtre de date
+    // API Platform + getAll pour ne rien tronquer.
+    rdvs.value = await api.getAll(`/rendez-vous?dateRdv[after]=${today}&dateRdv[before]=${today}&order[id]=asc`)
+    syncStale.value = false
+  } catch {
+    // Écran affiché en atelier : on signale une synchro en échec au lieu de
+    // laisser des données périmées passer pour du temps réel.
+    syncStale.value = true
+  }
 }
 
 onMounted(async () => {
