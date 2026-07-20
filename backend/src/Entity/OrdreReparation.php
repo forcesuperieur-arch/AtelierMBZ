@@ -3,9 +3,6 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
-use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -14,12 +11,16 @@ use Symfony\Component\Serializer\Annotation\Groups;
     shortName: 'ordres-reparation',
     normalizationContext: ['groups' => ['ordre:read']],
     denormalizationContext: ['groups' => ['ordre:write']],
+    // L'OR est un document légal scellé : sa création/mutation/suppression passe
+    // EXCLUSIVEMENT par les flux métier contrôlés (Companion réception, décision
+    // travaux supp, rectification). On n'expose donc que la LECTURE via API Platform.
+    // Les opérations Post/Put/Delete génériques ont été retirées : non utilisées par
+    // le front, sans garde d'état ni de rôle, elles permettaient d'éditer le contenu
+    // d'un OR après scellé de réception (travaux, numéro, réaffectation de RDV) et
+    // de SUPPRIMER un OR signé (aucun garde-fou preRemove). Voir OrdreReparationPolicy.
     operations: [
         new GetCollection(uriTemplate: '/ordres-reparation'),
         new Get(uriTemplate: '/ordres-reparation/{id}'),
-        new Post(uriTemplate: '/ordres-reparation'),
-        new Put(uriTemplate: '/ordres-reparation/{id}'),
-        new Delete(uriTemplate: '/ordres-reparation/{id}'),
     ],
 )]
 class OrdreReparation

@@ -18,8 +18,16 @@ use App\Entity\RendezVous;
  */
 class PublicTokenPolicy
 {
-    /** Statuts terminaux du RDV au sens des liens publics. */
-    public const STATUTS_TERMINAUX = ['termine', 'annule', 'restitue', 'livre'];
+    /**
+     * Statuts terminaux du RDV au sens des liens publics. DOIT rester en miroir
+     * des places « de fin de vie » de config/packages/workflow.yaml : un dossier
+     * facturé/payé/restitué (total ou partiel) est clôturé — sinon isTokenExpired()
+     * renvoie false pour toujours et le lien public (PII, photos, EDL) ne périme
+     * JAMAIS. `livre` est conservé par compat (place absente du workflow actuel).
+     */
+    public const STATUTS_TERMINAUX = [
+        'termine', 'annule', 'restitue', 'restitue_partiel', 'facture', 'paye', 'livre',
+    ];
 
     /** Délai de grâce après clôture, décompté depuis la date du RDV. */
     private const GRACE_PERIOD = '+30 days';

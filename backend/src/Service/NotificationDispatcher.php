@@ -91,7 +91,8 @@ class NotificationDispatcher
             return NotificationResult::fail('template', "Template {$templateCode}/{$channel} not found");
         }
 
-        $body = $template->render($variables);
+        // Échappement HTML des valeurs pour le canal email (corps rendu en ->html()).
+        $body = $template->render($variables, $channel === 'email');
         $subject = $template->renderSubject($variables);
 
         $msg = new NotificationMessage(

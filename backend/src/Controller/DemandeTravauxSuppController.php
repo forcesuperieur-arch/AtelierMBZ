@@ -14,6 +14,7 @@ use App\Service\NotificationDispatcher;
 use App\Service\NotificationMessage;
 use App\Service\OrdreReparationPolicy;
 use App\Service\PrestationCatalogService;
+use App\Service\PublicTokenPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,6 +33,7 @@ class DemandeTravauxSuppController extends AbstractController
         private NotificationDispatcher $notificationDispatcher,
         private \App\Service\RolePhoneResolver $phoneResolver,
         private \App\Service\DemandeTravauxSuppDecisionService $decisionService,
+        private PublicTokenPolicy $publicTokenPolicy,
     ) {}
 
     /**
@@ -534,7 +536,20 @@ class DemandeTravauxSuppController extends AbstractController
         if (strlen($token) < 32) {
             return null;
         }
-        return $this->em->getRepository(DemandeTravauxSupp::class)->findOneBy(['tokenValidation' => $token]);
+        $demande = $this->em->getRepository(DemandeTravauxSupp::class)->findOneBy(['tokenValidation' => $token]);
+        if (!$demande) {
+            return null;
+        }
+
+        // RGPD : le lien public de la demande suit l'expiration du RDV lié
+        // (règle mutualisée PublicTokenPolicy) — plus de lien accessible à vie
+        // une fois le dossier clôturé. On traite l'expiration comme un lien invalide.
+        $rdv = $demande->getRendezVous();
+        if ($rdv && $this->publicTokenPolicy->isTokenExpired($rdv)) {
+            return null;
+        }
+
+        return $demande;
     }
 
     private function serializeDemande(DemandeTravauxSupp $d): array
