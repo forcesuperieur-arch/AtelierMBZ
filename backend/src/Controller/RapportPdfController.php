@@ -37,9 +37,21 @@ class RapportPdfController extends AbstractController
             throw $this->createNotFoundException('Accès refusé');
         }
 
-        $pdfPath = $this->pdfService->getOrPdfPath($or);
+        // Une fois l'OR scellé à la restitution (final_hash), SEUL le PDF archivé
+        // immuable fait foi — jamais un re-rendu depuis l'entité vivante (dont
+        // etat_vehicule / notes mécano restent modifiables et différeraient du
+        // document scellé). Aligné sur OrdreReparationPdfController.
+        if ($or->getFinalHash() !== null) {
+            $archived = $this->pdfService->getArchivedOrPdfPath($or);
+            if ($archived === null) {
+                throw $this->createNotFoundException('Document archivé momentanément indisponible');
+            }
+            return $this->file($archived, 'OR-' . $or->getNumeroOr() . '.pdf');
+        }
 
-        // Auto-generate if missing (fallback for legacy ORs)
+        // OR non encore scellé : brouillon de travail (page mécanicien) — rendu à
+        // la volée autorisé (document non opposable à ce stade).
+        $pdfPath = $this->pdfService->getOrPdfPath($or);
         if (!is_file($pdfPath) || !is_readable($pdfPath)) {
             $pdfPath = $this->pdfService->generateOrPdf($or);
         }
