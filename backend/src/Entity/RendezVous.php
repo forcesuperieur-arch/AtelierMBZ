@@ -34,7 +34,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 #[ApiFilter(SearchFilter::class, properties: ['statut' => 'exact', 'client.id' => 'exact', 'mecanicien.id' => 'exact', 'pont.id' => 'exact'])]
 #[ApiFilter(DateFilter::class, properties: ['dateRdv'])]
-#[ApiFilter(OrderFilter::class, properties: ['dateRdv', 'heureRdv', 'createdAt'])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'dateRdv', 'heureRdv', 'createdAt'])]
 class RendezVous
 {
     #[ORM\Id]

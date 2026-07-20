@@ -1360,7 +1360,9 @@ async function refreshPlanning() {
 async function loadPlanningData() {
   const [p, r, m, h, prestaData, configData] = await Promise.all([
     api.get('/ponts?itemsPerPage=200').catch(() => []),
-    api.get('/rendez-vous?itemsPerPage=200').catch(() => []),
+    // Pagination complète : au-delà de 200 RDV dans l'atelier, l'ancien
+    // itemsPerPage=200 tronquait silencieusement la grille et l'historique.
+    api.getAll('/rendez-vous?order[id]=asc').catch(() => []),
     api.get('/mecaniciens').catch(() => []),
     api.get('/config/horaires').catch(() => []),
     api.get('/prestations?itemsPerPage=200').catch(() => []),

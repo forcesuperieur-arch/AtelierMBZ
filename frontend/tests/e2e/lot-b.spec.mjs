@@ -261,6 +261,13 @@ test.describe('Lot B — check-in / état des lieux', () => {
   test.beforeAll(() => {
     cleanE2EData();
     sql(`UPDATE config_atelier SET checkin_obligatoire = true WHERE atelier_id = ${ATELIER_ID}`);
+    // Le pop-in staff « demande de travaux complémentaires » (coin bas-droite,
+    // non bloquant mais cliquable) recouvre les boutons d'action des cartes
+    // /reception dès qu'une demande complémentaire critique reste en attente.
+    // On acquitte les demandes pré-existantes pour que les tests UI cliquent
+    // sans gêne — précondition déterministe, contrairement à un dismiss UI
+    // tributaire du polling asynchrone des notifications.
+    sql(`UPDATE notifications SET acknowledged_at = NOW() WHERE type = 'demande_complementaire' AND acknowledged_at IS NULL AND (atelier_id = ${ATELIER_ID} OR atelier_id IS NULL)`);
 
     sql(`INSERT INTO vehicules (atelier_id, plaque, marque, modele, client_id) VALUES (${ATELIER_ID}, 'E2E-LOTB-V1', 'Yamaha', 'MT-07', ${CLIENT_ID})`);
     vehiculeId = Number(sql(`SELECT id FROM vehicules WHERE plaque = 'E2E-LOTB-V1'`));
