@@ -7,7 +7,7 @@
     <div v-else-if="!rdv" style="color:#FCA5A5">Rendez-vous introuvable.</div>
     <div v-else class="rdv-detail">
       <div class="detail-row"><span>Date</span><span>{{ formatDate(rdv.date_heure) }}</span></div>
-      <div class="detail-row"><span>Statut</span><span class="statut-current">{{ rdvStatutLabel(rdv.statut) }}</span></div>
+      <div class="detail-row"><span>Statut</span><span class="rdv-status-badge" :class="statusClass(rdv.statut)">{{ rdvStatutLabel(rdv.statut) }}</span></div>
       <div v-if="rdv.type_intervention" class="detail-row"><span>Intervention</span><span>{{ rdv.type_intervention }}</span></div>
       <div v-if="rdv.vehicule?.marque || rdv.vehicule?.modele" class="detail-row"><span>Moto</span><span>{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
       <div v-if="rdv.vehicule?.plaque" class="detail-row"><span>Immatriculation</span><span>{{ rdv.vehicule?.plaque }}</span></div>
@@ -247,6 +247,15 @@ async function envoyerDecision(demande: any, decision: 'accepte' | 'refuse', sig
   }
 }
 
+// Même sémantique de couleur que la liste des RDV (rdvs/index.vue) : le statut
+// n'est plus affiché en jaune uni mais en badge bleu (prévu) / vert (terminé) /
+// rouge (annulé), pour une lecture cohérente entre liste et détail.
+function statusClass(s: string) {
+  if (['termine', 'restitue', 'restitue_partiel', 'facture', 'paye', 'livre'].includes(s)) return 'status-termine'
+  if (['annule', 'no_show'].includes(s)) return 'status-annule'
+  return 'status-prevu'
+}
+
 function demandeStatutLabel(d: any) {
   if (d.confirmation_telephone) return 'Accord par téléphone — signature à confirmer'
   if (d.statut === 'accepte') return 'Acceptés'
@@ -325,9 +334,24 @@ function formatDateShort(d: string) {
 .detail-row span:first-child {
   color: #9CA3AF;
 }
-.statut-current {
-  color: #FFD200;
+.rdv-status-badge {
+  font-size: 12px;
   font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.rdv-status-badge.status-prevu {
+  background: rgba(59,130,246,0.15);
+  color: #60A5FA;
+}
+.rdv-status-badge.status-termine {
+  background: rgba(34,197,94,0.15);
+  color: #4ADE80;
+}
+.rdv-status-badge.status-annule {
+  background: rgba(239,68,68,0.15);
+  color: #FCA5A5;
 }
 .detail-block {
   margin-top: 6px;
