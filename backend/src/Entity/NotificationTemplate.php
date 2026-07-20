@@ -72,12 +72,21 @@ class NotificationTemplate
     /**
      * Render the template body with given variables (simple string interpolation for SMS, Twig-like for email)
      */
-    public function render(array $data): string
+    public function render(array $data, bool $escapeHtml = false): string
     {
         $body = $this->corps;
         foreach ($data as $key => $value) {
-            $body = str_replace('{{ ' . $key . ' }}', (string) $value, $body);
-            $body = str_replace('{{' . $key . '}}', (string) $value, $body);
+            // En contexte email (HTML), on échappe la VALEUR interpolée — jamais le
+            // corps du template (HTML de confiance saisi par l'admin). Sinon un champ
+            // libre client (nom, type d'intervention…), issu du booking public non
+            // authentifié, permettrait d'injecter du HTML/lien de phishing dans un
+            // email envoyé sous l'identité de l'atelier. En SMS on n'échappe pas
+            // (éviter les « &amp; » dans un message texte).
+            $safe = $escapeHtml
+                ? htmlspecialchars((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8')
+                : (string) $value;
+            $body = str_replace('{{ ' . $key . ' }}', $safe, $body);
+            $body = str_replace('{{' . $key . '}}', $safe, $body);
         }
         return $body;
     }

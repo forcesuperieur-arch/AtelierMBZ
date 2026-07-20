@@ -5,6 +5,7 @@ use App\Entity\AuditLog;
 use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
+use App\Entity\NotificationLog;
 use App\Entity\RappelEmail;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -37,7 +38,7 @@ class RgpdPurgeCommand extends Command
         }
 
         $now = new \DateTime();
-        $stats = ['clients_anonymized' => 0, 'audit_ips_cleared' => 0, 'rappels_deleted' => 0, 'devis_deleted' => 0];
+        $stats = ['clients_anonymized' => 0, 'notif_logs_anonymized' => 0, 'audit_ips_cleared' => 0, 'rappels_deleted' => 0, 'devis_deleted' => 0];
 
         // 1. Anonymize clients inactive > 3 years with no invoice < 10 years
         $threeYearsAgo = (clone $now)->modify('-3 years');
@@ -66,6 +67,31 @@ class RgpdPurgeCommand extends Command
 
             $io->text(sprintf('  🗑 Client #%d (%s %s) — à anonymiser', $client->getId(), $client->getPrenom(), $client->getNom()));
             $stats['clients_anonymized']++;
+
+            // Droit à l'oubli : les notification_logs conservent le destinataire
+            // (email/tél) en clair. On les anonymise en matchant sur les coordonnées
+            // AVANT de les effacer sur le client. Le sujet peut porter un nom → purgé.
+            $recipients = array_values(array_filter([$client->getEmail(), $client->getTelephone()]));
+            if ($recipients !== []) {
+                $notifCount = (int) $this->em->getRepository(NotificationLog::class)->createQueryBuilder('n')
+                    ->select('COUNT(n.id)')
+                    ->where('n.toRecipient IN (:recipients)')
+                    ->setParameter('recipients', $recipients)
+                    ->getQuery()->getSingleScalarResult();
+                $stats['notif_logs_anonymized'] += $notifCount;
+
+                if (!$dryRun && $notifCount > 0) {
+                    $this->em->createQueryBuilder()
+                        ->update(NotificationLog::class, 'n')
+                        ->set('n.toRecipient', ':anon')
+                        ->set('n.subject', ':null')
+                        ->where('n.toRecipient IN (:recipients)')
+                        ->setParameter('anon', 'ANONYMISÉ')
+                        ->setParameter('null', null)
+                        ->setParameter('recipients', $recipients)
+                        ->getQuery()->execute();
+                }
+            }
 
             if (!$dryRun) {
                 $client->setNom('ANONYME');
@@ -165,9 +191,10 @@ class RgpdPurgeCommand extends Command
         }
 
         $io->success(sprintf(
-            '%s — Clients: %d | IPs audit: %d | Rappels: %d | Devis: %d',
+            '%s — Clients: %d | Notif logs: %d | IPs audit: %d | Rappels: %d | Devis: %d',
             $dryRun ? 'DRY-RUN' : 'EXÉCUTÉ',
             $stats['clients_anonymized'],
+            $stats['notif_logs_anonymized'],
             $stats['audit_ips_cleared'],
             $stats['rappels_deleted'],
             $stats['devis_deleted'],

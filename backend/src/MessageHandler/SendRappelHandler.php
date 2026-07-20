@@ -40,9 +40,13 @@ class SendRappelHandler
             'type_intervention' => $rdv->getTypeIntervention(),
         ];
 
+        $attempted = false;
+        $anySuccess = false;
+
         // Email
         if ($client->getEmail()) {
-            $this->dispatcher->sendFromTemplate(
+            $attempted = true;
+            $anySuccess = $this->dispatcher->sendFromTemplate(
                 $message->typeRappel,
                 'email',
                 $atId,
@@ -50,12 +54,13 @@ class SendRappelHandler
                 $vars,
                 'RendezVous',
                 $rdv->getId(),
-            );
+            )->isSuccess() || $anySuccess;
         }
 
         // SMS
         if ($client->getTelephone()) {
-            $this->dispatcher->sendFromTemplate(
+            $attempted = true;
+            $anySuccess = $this->dispatcher->sendFromTemplate(
                 $message->typeRappel,
                 'sms',
                 $atId,
@@ -63,7 +68,20 @@ class SendRappelHandler
                 $vars,
                 'RendezVous',
                 $rdv->getId(),
-            );
+            )->isSuccess() || $anySuccess;
+        }
+
+        // Si on avait un destinataire mais qu'AUCUN canal n'a abouti (ex. panne
+        // SMTP + SMS pendant le batch J-1), on lève : Messenger réessaiera puis
+        // routera vers le transport `failed` (messenger.yaml) au lieu d'acquitter
+        // le message et de perdre le rappel en silence. On ne lève JAMAIS sur un
+        // succès partiel → pas de doublon d'envoi au rejeu.
+        if ($attempted && !$anySuccess) {
+            throw new \RuntimeException(sprintf(
+                'Rappel %s non délivré pour le RDV #%d : tous les canaux ont échoué.',
+                $message->typeRappel,
+                $rdv->getId(),
+            ));
         }
     }
 }

@@ -63,6 +63,9 @@ class CompanionControllerTest extends WebTestCase
         $em->persist($draftOr);
         $em->flush();
 
+        // La signature de réception exige les DEUX signatures (client + atelier) :
+        // elle scelle l'OR en `reception_signee` (snapshot + hash de réception posés).
+        $signature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=';
         $client->request(
             'POST',
             '/api/companion/' . $rdv->getTokenSuivi() . '/signature',
@@ -70,7 +73,8 @@ class CompanionControllerTest extends WebTestCase
             [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'signature' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=',
+                'signature_client' => $signature,
+                'signature_atelier' => $signature,
             ], JSON_THROW_ON_ERROR)
         );
 
@@ -81,7 +85,7 @@ class CompanionControllerTest extends WebTestCase
         $or = $em->getRepository(OrdreReparation::class)->findOneBy(['rendezVous' => $savedRdv], ['id' => 'DESC']);
 
         $this->assertNotNull($or);
-        $this->assertSame('signe', $or->getStatut());
+        $this->assertSame('reception_signee', $or->getStatut());
         $this->assertNotNull($or->getSignedAt());
         $this->assertNotEmpty($or->getSignedHash());
         $this->assertNotEmpty($or->getSignedSnapshot());

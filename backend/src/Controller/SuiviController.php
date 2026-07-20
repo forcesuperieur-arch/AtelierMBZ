@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\OrdreReparation;
 use App\Entity\RendezVous;
+use App\Service\PublicTokenPolicy;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,6 +22,7 @@ class SuiviController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private RateLimiterFactory $publicSuiviLimiter,
+        private PublicTokenPolicy $publicTokenPolicy,
     ) {}
 
     #[Route('/{token}', methods: ['GET'])]
@@ -37,9 +39,10 @@ class SuiviController extends AbstractController
             return $this->json(['error' => 'Invalid tracking token'], Response::HTTP_NOT_FOUND);
         }
 
-        // RGPD: Token expires 30 days after RDV creation
-        $expiry = (clone $rdv->getCreatedAt())->modify('+30 days');
-        if (new \DateTime() > $expiry) {
+        // RGPD : règle d'expiration MUTUALISÉE (PublicTokenPolicy) — ne pas
+        // réintroduire de règle locale « createdAt + 30 j » divergente (bug
+        // historique : le lien restait ouvert sur un dossier clôturé).
+        if ($this->publicTokenPolicy->isTokenExpired($rdv)) {
             return $this->json(['error' => 'Tracking token expired'], Response::HTTP_GONE);
         }
 

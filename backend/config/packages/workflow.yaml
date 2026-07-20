@@ -96,8 +96,12 @@ framework:
                 passer_gardiennage:
                     from: [termine, en_attente_pieces, restitue_partiel]
                     to: en_gardiennage
+                # `confirme` volontairement EXCLU : pas de gardiennage avant la
+                # réception (signatures client/atelier + état des lieux d'entrée).
+                # Sinon confirme → gardiennage → en_cours démarrait les travaux sans
+                # constat d'entrée opposable. Une moto déposée tôt attend en `confirme`.
                 mettre_en_gardiennage:
-                    from: [confirme, reception, en_attente_pieces]
+                    from: [reception, en_attente_pieces]
                     to: en_gardiennage
                 sortir_gardiennage:
                     from: en_gardiennage
