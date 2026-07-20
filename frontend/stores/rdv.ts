@@ -160,10 +160,13 @@ export const useRdvStore = defineStore('rdv', {
         if (f.status) params.set('statut', f.status)
         if (f.mecanicien_id) params.set('mecanicien.id', String(f.mecanicien_id))
         if (f.pont_id) params.set('pont.id', String(f.pont_id))
+        // Ordre stable indispensable à la pagination complète (getAll) : sans lui,
+        // un même RDV pourrait être sauté ou dupliqué entre deux pages.
+        params.set('order[id]', 'asc')
         const qs = params.toString()
-        const raw = await api.get(`/rendez-vous${qs ? '?' + qs : ''}`)
-        // API Platform may return hydra collection or plain array
-        const items = Array.isArray(raw) ? raw : (raw['hydra:member'] ?? raw['member'] ?? [])
+        // getAll parcourt toutes les pages : une journée à plus de 30 RDV n'est
+        // plus tronquée à la première page (bug /reception).
+        const items = await api.getAll(`/rendez-vous?${qs}`)
         this.rdvs = items.map(normalizeRdv)
       } finally {
         this.loading = false

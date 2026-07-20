@@ -180,6 +180,25 @@ export function useApi() {
 
   const get = <T = any>(path: string) => $fetch<T>(path)
 
+  // Parcourt TOUTES les pages d'une collection API Platform et renvoie le tableau
+  // complet. Évite la troncature silencieuse d'un `itemsPerPage` figé (ex. une
+  // journée à plus de 30 RDV, ou un historique dépassant la limite de la page).
+  // La pagination doit être ordonnée de façon stable côté appelant (ex. order[id])
+  // pour qu'aucun élément ne soit sauté ni dupliqué entre deux pages.
+  const getAll = async <T = any>(path: string, pageSize = 100): Promise<T[]> => {
+    const items: T[] = []
+    // Garde-fou dur : ne jamais boucler indéfiniment même si l'API se comporte mal.
+    const MAX_PAGES = 200
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const sep = path.includes('?') ? '&' : '?'
+      const raw = await $fetch<any>(`${path}${sep}itemsPerPage=${pageSize}&page=${page}`)
+      const batch: T[] = Array.isArray(raw) ? raw : (raw?.['hydra:member'] ?? raw?.member ?? [])
+      items.push(...batch)
+      if (batch.length < pageSize) break
+    }
+    return items
+  }
+
   const post = <T = any>(path: string, body?: any) =>
     $fetch<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined })
 
@@ -198,5 +217,5 @@ export function useApi() {
       body: formData as any,
     })
 
-  return { apiFetch, get, post, put, patch, del, upload }
+  return { apiFetch, get, getAll, post, put, patch, del, upload }
 }
