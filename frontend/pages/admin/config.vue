@@ -749,7 +749,7 @@ async function fetchPrestations() {
 }
 
 async function fetchGrilles() {
-  grilles.value = normalizeGrilles(unwrapList(await api.get('/grille_tarifaires?itemsPerPage=400')))
+  grilles.value = normalizeGrilles(unwrapList(await api.getAll('/grille_tarifaires?order[id]=asc')))
 }
 
 function goPrevStep() {

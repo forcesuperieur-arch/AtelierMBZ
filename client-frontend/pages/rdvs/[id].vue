@@ -176,14 +176,22 @@ const signatureDemande = ref<any>(null)
 const decisionLoading = ref(false)
 const decisionError = ref('')
 
-const { data: rdv, pending, refresh } = useAsyncData(`client-rdv-${route.params.id}`, async () => {
-  if (!auth.isAuthenticated) return null
-  try {
-    return await apiFetch(`/api/client/rdvs/${route.params.id}`)
-  } catch {
-    return null
-  }
-})
+const { data: rdv, pending, refresh } = useAsyncData(
+  `client-rdv-${route.params.id}`,
+  async () => {
+    if (!auth.isAuthenticated) return null
+    try {
+      return await apiFetch(`/api/client/rdvs/${route.params.id}`)
+    } catch {
+      return null
+    }
+  },
+  // La clé de useAsyncData doit être une string (≠ useFetch). Pour recharger la
+  // bonne fiche quand on navigue d'un RDV à un autre sans changer de route nommée
+  // (instance de composant réutilisée), on s'appuie sur l'option watch : le
+  // handler relit route.params.id à chaque déclenchement.
+  { watch: [() => route.params.id] },
+)
 
 // Suivi quasi temps réel : Mercure n'est volontairement pas exposé au public
 // (décision sécurité), le portail rafraîchit donc par polling.
@@ -220,6 +228,9 @@ async function refuser(demande: any) {
 }
 
 async function envoyerDecision(demande: any, decision: 'accepte' | 'refuse', signature?: string) {
+  // Anti-double-soumission : le :disabled du template n'agit qu'au prochain tick,
+  // un double-tap mobile rapide pouvait poster deux fois (même garde que SignatureModal).
+  if (decisionLoading.value) return
   decisionLoading.value = true
   decisionError.value = ''
   try {
@@ -251,6 +262,7 @@ function demandeBadgeClass(d: any) {
 }
 
 async function demanderAnnulation() {
+  if (annulationLoading.value) return
   annulationLoading.value = true
   annulationError.value = ''
   try {

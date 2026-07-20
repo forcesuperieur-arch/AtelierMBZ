@@ -17,7 +17,7 @@
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  background: radial-gradient(ellipse at 50% 40%, #1a1530 0%, #0C0D12 60%, #080810 100%);
+  background: radial-gradient(ellipse at 50% 40%, #16150e 0%, #0C0D12 60%, #080810 100%);
   position: relative;
   overflow: hidden;
 }
@@ -26,8 +26,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(600px circle at 50% 30%, rgba(245,158,11,0.06), transparent 60%),
-    radial-gradient(400px circle at 30% 70%, rgba(139,92,246,0.04), transparent 60%);
+    radial-gradient(600px circle at 50% 30%, rgba(255,210,0,0.06), transparent 60%),
+    radial-gradient(400px circle at 30% 70%, rgba(255,210,0,0.035), transparent 60%);
   pointer-events: none;
 }
 .public-content {

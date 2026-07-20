@@ -65,6 +65,7 @@
           <!-- Dynamic detail for DemandeTravauxSupp -->
           <div v-if="selectedNotif?.relatedEntityType === 'DemandeTravauxSupp'" class="notif-detail-section">
             <div v-if="detailLoading" class="notif-detail-loading">Chargement des détails…</div>
+            <div v-else-if="detailError" class="notif-detail-loading" style="color:#FCA5A5;">{{ detailError }}</div>
             <template v-else-if="detailData">
               <div v-if="detailData.description" class="notif-detail-block">
                 <span class="notif-detail-label">Commentaire mécanicien :</span>
@@ -166,6 +167,7 @@ const detailOpen = ref(false)
 const selectedNotif = ref<any>(null)
 const detailLoading = ref(false)
 const detailData = ref<any>(null)
+const detailError = ref('')
 const detailCanalOpen = ref(false)
 const detailActionLoading = ref(false)
 const router = useRouter()
@@ -224,6 +226,7 @@ async function openNotification(notif: any) {
   selectedNotif.value = notif
   detailOpen.value = true
   detailData.value = null
+  detailError.value = ''
 
   // Load dynamic detail for related entities
   if (notif.relatedEntityType === 'DemandeTravauxSupp' && notif.relatedEntityId) {
@@ -231,8 +234,9 @@ async function openNotification(notif: any) {
     try {
       const data = await api.get(`/demandes-travaux-supp/${notif.relatedEntityId}`)
       detailData.value = data
-    } catch (e) {
-      console.warn('[Notification] Failed to load detail', e)
+    } catch (e: any) {
+      // Sans ce message, le panneau restait vide sans indiquer l'échec du chargement.
+      detailError.value = e?.data?.error || 'Impossible de charger le détail de la demande.'
     } finally {
       detailLoading.value = false
     }
@@ -243,6 +247,7 @@ function closeDetail() {
   detailOpen.value = false
   selectedNotif.value = null
   detailData.value = null
+  detailError.value = ''
 }
 
 function navigateFromDetail() {

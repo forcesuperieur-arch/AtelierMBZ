@@ -288,7 +288,7 @@ onMounted(async () => {
   try {
     const [c, rdvData] = await Promise.all([
       api.get(`/clients/${route.params.id}`),
-      api.get(`/rendez-vous?client.id=${route.params.id}&order[dateRdv]=desc&itemsPerPage=200`),
+      api.getAll(`/rendez-vous?client.id=${route.params.id}&order[dateRdv]=desc`),
     ])
     client.value = c
     Object.assign(editForm, { prenom: c.prenom, nom: c.nom, telephone: c.telephone, email: c.email || '', adresse: c.adresse || '', notes: c.notes || '' })

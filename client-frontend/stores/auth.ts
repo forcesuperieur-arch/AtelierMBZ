@@ -22,8 +22,9 @@ export const useAuthStore = defineStore('auth', () => {
       client.value = res.client
       hydrated.value = true
       return true
-    } catch (e: any) {
-      console.error('[Auth] Login failed', e)
+    } catch {
+      // Échec géré par l'appelant (login.vue affiche le message) : pas de log
+      // d'erreur brut en console de production.
       return false
     }
   }
@@ -31,7 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       await $fetch('/api/client/logout', { method: 'POST', credentials: 'include', baseURL: '' })
-    } catch {}
+    } catch (e) {
+      // On nettoie la session locale quoi qu'il arrive, mais on ne masque pas
+      // totalement un échec réseau/CSRF côté serveur.
+      if (import.meta.dev) console.warn('[Auth] logout serveur échoué', e)
+    }
     clearSession()
     navigateTo('/login')
   }

@@ -1,5 +1,7 @@
 <?php
 namespace App\Entity;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -11,6 +13,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['devis:read']],
     denormalizationContext: ['groups' => ['devis:write']],
 )]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'dateCreation'])]
 class Devis
 {
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]

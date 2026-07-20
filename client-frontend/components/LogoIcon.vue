@@ -1,7 +1,6 @@
 <template>
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="5.5" cy="17.5" r="3.5"/>
-    <circle cx="18.5" cy="17.5" r="3.5"/>
-    <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 2h2"/>
-  </svg>
+  <!-- Logo de marque Paddock (atelier MOTO). Remplace l'ancienne icône « vélo »
+       Lucide, contresens pour un atelier moto et incohérente avec le vrai logo
+       affiché sur la page de connexion. -->
+  <img src="/branding/paddock-logo-stacked.svg" alt="Paddock" width="28" height="28" style="display:block;object-fit:contain;" />
 </template>

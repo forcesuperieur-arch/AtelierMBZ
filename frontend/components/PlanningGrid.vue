@@ -363,14 +363,28 @@ const dayLayouts = computed(() => {
       return { ...rdv, column }
     })
 
-    layouts[day.date] = placed.map((rdv: any) => {
-      const overlaps = placed.filter((other: any) => rdv.start < other.end && other.start < rdv.end)
-      const overlapCount = Math.max(1, ...overlaps.map((item: any) => item.column + 1))
-      return {
-        ...rdv,
-        overlapCount,
-      }
-    })
+    // Largeur calculée par « grappe » d'événements qui se chevauchent EN CHAÎNE
+    // (composante connexe), pas par chevauchement direct. Sinon un bloc pouvait
+    // recevoir une colonne supérieure à son overlapCount → left > 100 % → il
+    // débordait de sa colonne et se superposait aux voisins (« pile illisible »).
+    // Tous les blocs d'une même grappe partagent la même largeur : ils se rangent
+    // proprement côte à côte, façon Google Agenda.
+    const withColumnCount: any[] = []
+    let cluster: any[] = []
+    let clusterEnd = -Infinity
+    const flushCluster = () => {
+      if (!cluster.length) return
+      const columnCount = Math.max(1, ...cluster.map((e: any) => e.column + 1))
+      cluster.forEach((e: any) => withColumnCount.push({ ...e, columnCount }))
+      cluster = []
+    }
+    for (const rdv of placed) {
+      if (rdv.start >= clusterEnd) flushCluster()
+      cluster.push(rdv)
+      clusterEnd = Math.max(clusterEnd, rdv.end)
+    }
+    flushCluster()
+    layouts[day.date] = withColumnCount
   }
 
   return layouts
@@ -487,8 +501,8 @@ function rdvHeight(rdv: any): number {
 }
 
 function rdvStyle(rdv: any) {
-  const overlapCount = Math.max(1, Number(rdv.overlapCount || 1))
-  const width = 100 / overlapCount
+  const columnCount = Math.max(1, Number(rdv.columnCount || 1))
+  const width = 100 / columnCount
   return {
     position: 'absolute',
     top: '0px',

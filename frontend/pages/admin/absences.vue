@@ -174,7 +174,7 @@ async function deleteAbsence(id: number) {
 }
 
 async function fetchAbsences() {
-  const absData = await api.get('/absences')
+  const absData = await api.getAll('/absences?order[id]=asc')
   const rawAbs = absData?.['hydra:member'] ?? absData?.member ?? (Array.isArray(absData) ? absData : [])
   absences.value = rawAbs.map((a: any) => normalizeAbsence(a))
 }

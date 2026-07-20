@@ -624,8 +624,8 @@ async function loadWorkshop() {
   const [p, m, a, r] = await Promise.allSettled([
     fetchPontsWithFallback(),
     api.get('/mecaniciens'),
-    api.get('/absences'),
-    api.get('/rendez-vous?itemsPerPage=200'),
+    api.getAll('/absences?order[id]=asc'),
+    api.getAll('/rendez-vous?order[id]=asc'),
   ])
 
   const issues: string[] = []

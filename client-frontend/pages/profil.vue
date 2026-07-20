@@ -69,7 +69,10 @@ async function save() {
     message.value = 'Profil mis à jour.'
     messageType.value = 'success'
   } catch (e: any) {
-    message.value = e?.message || 'Erreur lors de la mise à jour.'
+    // Le message métier du backend est dans e.data.error ; e.message ne contient
+    // qu'un libellé technique générique ([PATCH] "…": 400). Cohérent avec le
+    // reste du portail (rdvs/[id].vue, forgot/reset-password).
+    message.value = e?.data?.error || 'Erreur lors de la mise à jour.'
     messageType.value = 'error'
   } finally {
     saving.value = false

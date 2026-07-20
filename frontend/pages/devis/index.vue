@@ -14,6 +14,11 @@
       <input v-model="searchText" class="form-input" placeholder="Rechercher n° devis, client…" style="width:250px;" />
     </div>
 
+    <div v-if="loadError" style="margin-bottom:16px;padding:12px 14px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#FCA5A5;font-size:13px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <span>{{ loadError }}</span>
+      <button class="btn btn-ghost" type="button" style="font-size:12px;padding:4px 12px;" @click="loadDevis()">Réessayer</button>
+    </div>
+
     <UCard>
       <UTable :data="filteredDevis" :columns="columns" :loading="loading">
         <template #statut-cell="{ row }">
@@ -118,6 +123,7 @@
 const api = useApi()
 const toast = useToast()
 const loading = ref(true)
+const loadError = ref('')
 const devisList = ref<any[]>([])
 const showNew = ref(false)
 const submitting = ref(false)
@@ -232,8 +238,7 @@ async function submitDevis() {
 
 async function loadDevis() {
   try {
-    const data = await api.get('/devis')
-    const raw = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+    const raw = await api.getAll('/devis?order[dateCreation]=desc')
     devisList.value = raw.map((d: any) => {
       const c = d.client
       return {
@@ -241,7 +246,12 @@ async function loadDevis() {
         client_nom: c ? `${c.prenom} ${c.nom}` : d.client_nom ?? '',
       }
     })
-  } catch { /* silent */ }
+    loadError.value = ''
+  } catch (e: any) {
+    // Ne jamais avaler l'échec en silence : sinon la page affiche « aucun devis »
+    // alors que la liste n'a simplement pas pu être chargée (réseau, 500, session).
+    loadError.value = e?.data?.error || e?.message || 'Chargement des devis impossible.'
+  }
 }
 
 onMounted(async () => {
