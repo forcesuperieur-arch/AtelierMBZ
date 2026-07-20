@@ -2,6 +2,7 @@
   <div>
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Mes rendez-vous</h1>
     <div v-if="pending" style="color:#9CA3AF">Chargement…</div>
+    <div v-else-if="error" style="color:#FCA5A5">Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.</div>
     <div v-else-if="rdvs.length === 0" style="color:#9CA3AF">Aucun rendez-vous.</div>
     <div v-else style="display:flex;flex-direction:column;gap:10px;">
       <NuxtLink v-for="rdv in rdvs" :key="rdv.id" :to="`/rdvs/${rdv.id}`" class="rdv-card">
@@ -20,19 +21,24 @@ const auth = useAuthStore()
 
 const { apiFetch } = useClientApi()
 
-const { data: rdvs, pending } = useAsyncData('client-rdvs', async () => {
+// `default: () => []` : sans lui, une erreur API (ex. 500) laisse `data` à null
+// et le template plante sur `rdvs.length` (écran blanc). On expose aussi `error`
+// pour afficher un message plutôt qu'un écran cassé.
+const { data: rdvs, pending, error } = useAsyncData('client-rdvs', async () => {
   if (!auth.isAuthenticated) return []
   return await apiFetch('/api/client/rdvs')
-})
+}, { default: () => [] })
 
 function formatDate(d: string) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
 }
 
+// `statut` porte le CODE (termine, annule, restitue…), pas le libellé FR : la
+// comparaison précédente (s === 'Terminé') ne matchait jamais → tout en bleu.
 function statusClass(s: string) {
-  if (s === 'Terminé') return 'status-termine'
-  if (s === 'Annulé') return 'status-annule'
+  if (['termine', 'restitue', 'restitue_partiel', 'facture', 'paye', 'livre'].includes(s)) return 'status-termine'
+  if (['annule', 'no_show'].includes(s)) return 'status-annule'
   return 'status-prevu'
 }
 </script>

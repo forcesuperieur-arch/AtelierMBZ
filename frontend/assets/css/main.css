@@ -152,7 +152,7 @@ textarea.form-control {
 .content select:focus,
 .content textarea:focus {
   border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(245,158,11,0.10);
+  box-shadow: 0 0 0 3px rgba(255,210,0,0.10);
 }
 
 .content select,
@@ -218,7 +218,7 @@ textarea.form-input {
 
 .form-input:focus {
   border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(245,158,11,0.10);
+  box-shadow: 0 0 0 3px rgba(255,210,0,0.10);
 }
 
 select.form-input {
@@ -271,15 +271,15 @@ select.form-input option {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--orange), #D97706);
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
   color: var(--orange-ink);
-  border-color: rgba(245,158,11,0.24);
-  box-shadow: 0 1px 3px rgba(245,158,11,0.2);
+  border-color: rgba(255,210,0,0.24);
+  box-shadow: 0 1px 3px rgba(255,210,0,0.2);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #FBBF24, var(--orange));
-  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+  background: linear-gradient(135deg, #FFDE33, var(--orange));
+  box-shadow: 0 2px 8px rgba(255,210,0,0.3);
 }
 
 .btn-ghost {
@@ -309,7 +309,7 @@ select.form-input option {
 }
 
 .btn-link:hover {
-  color: #FBBF24;
+  color: #FFDE33;
   text-decoration: underline;
 }
 
@@ -359,8 +359,8 @@ select.form-input option {
 }
 
 .step-dot.done {
-  background: linear-gradient(135deg, var(--orange), #D97706);
-  border-color: rgba(245,158,11,0.28);
+  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  border-color: rgba(255,210,0,0.28);
   color: var(--orange-ink);
 }
 
@@ -385,7 +385,7 @@ select.form-input option {
 }
 
 .step-connector.done {
-  background: linear-gradient(90deg, var(--orange), #D97706);
+  background: linear-gradient(90deg, var(--orange), var(--orange2));
 }
 
 .content table:not([data-slot="table"]) {
@@ -498,7 +498,7 @@ select.form-input option {
 [data-slot="input-wrapper"]:focus-within,
 [data-slot="select-wrapper"]:focus-within {
   border-color: var(--orange) !important;
-  box-shadow: 0 0 0 3px rgba(245,158,11,0.1) !important;
+  box-shadow: 0 0 0 3px rgba(255,210,0,0.1) !important;
 }
 
 /* Placeholder color */
@@ -541,18 +541,18 @@ input::placeholder, textarea::placeholder { color: #4B5563 !important; }
 .ui-button[data-color="primary"],
 button[class*="bg-primary"],
 [data-slot="button"][data-color="primary"] {
-  background: linear-gradient(135deg, var(--orange), #D97706) !important;
+  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
   color: var(--orange-ink) !important;
   border: none !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 3px rgba(245,158,11,0.2) !important;
+  box-shadow: 0 1px 3px rgba(255,210,0,0.2) !important;
   transition: all var(--transition) !important;
 }
 .ui-button[data-color="primary"]:hover,
 button[class*="bg-primary"]:hover,
 [data-slot="button"][data-color="primary"]:hover {
-  background: linear-gradient(135deg, #FBBF24, var(--orange)) !important;
-  box-shadow: 0 2px 8px rgba(245,158,11,0.3) !important;
+  background: linear-gradient(135deg, #FFDE33, var(--orange)) !important;
+  box-shadow: 0 2px 8px rgba(255,210,0,0.3) !important;
   transform: translateY(-1px);
 }
 .ui-button[data-color="primary"]:active,
@@ -616,13 +616,13 @@ button[class*="bg-primary"]:hover,
 }
 
 .content :where(button, a)[class*="bg-primary"] {
-  background: linear-gradient(135deg, var(--orange), #D97706) !important;
-  border-color: rgba(245,158,11,0.28) !important;
+  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
+  border-color: rgba(255,210,0,0.28) !important;
   color: var(--orange-ink) !important;
 }
 
 .content :where(button, a)[class*="bg-primary"]:hover {
-  background: linear-gradient(135deg, #FBBF24, var(--orange)) !important;
+  background: linear-gradient(135deg, #FFDE33, var(--orange)) !important;
 }
 
 .content :where(textarea, input, select)[class*="bg-default"],
@@ -1216,7 +1216,7 @@ main {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 6px;
-  background: linear-gradient(135deg, #FFD200, #D97706);
+  background: linear-gradient(135deg, #FFD200, var(--orange2));
   color: #111;
   font-size: 13px;
   font-weight: 600;
@@ -1227,7 +1227,7 @@ main {
 }
 .topbar-new-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+  box-shadow: 0 2px 8px rgba(255,210,0,0.3);
 }
 
 /* ========================================
@@ -1255,8 +1255,8 @@ main {
   color: #FCA5A5;
 }
 .alert-chip.warning {
-  background: rgba(245,158,11,0.08);
-  border-color: rgba(245,158,11,0.25);
+  background: rgba(255,210,0,0.08);
+  border-color: rgba(255,210,0,0.25);
   color: #FCD34D;
 }
 .alert-chip.success {
@@ -1360,7 +1360,7 @@ main {
    MISC UTILITIES
    ======================================== */
 .text-gradient {
-  background: linear-gradient(135deg, var(--orange), #FBBF24);
+  background: linear-gradient(135deg, var(--orange), #FFDE33);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -27,7 +27,7 @@ export default defineNuxtConfig({
         { name: 'twitter:image', content: '/branding/paddock-logo-social.svg' },
       ],
       link: [
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
+        // Police Inter retirée : jamais consommée (le corps utilise Saira/Saira Condensed).
         { rel: 'icon', type: 'image/svg+xml', href: '/branding/paddock-logo-favicon.svg' },
         { rel: 'apple-touch-icon', href: '/branding/paddock-logo-favicon.svg' },
         { rel: 'manifest', href: '/manifest.json' },

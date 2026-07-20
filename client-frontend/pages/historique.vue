@@ -2,6 +2,7 @@
   <div>
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Historique</h1>
     <div v-if="pending" style="color:#9CA3AF">Chargement…</div>
+    <div v-else-if="error" style="color:#FCA5A5">Impossible de charger votre historique pour le moment. Réessayez plus tard.</div>
     <div v-else-if="items.length === 0" style="color:#9CA3AF">Aucun historique.</div>
     <div v-else style="display:flex;flex-direction:column;gap:10px;">
       <div v-for="item in items" :key="item.id" class="hist-card">
@@ -18,10 +19,11 @@ const auth = useAuthStore()
 
 const { apiFetch } = useClientApi()
 
-const { data: items, pending } = useAsyncData('client-historique', async () => {
+// default: () => [] + error → pas d'écran blanc si l'API échoue.
+const { data: items, pending, error } = useAsyncData('client-historique', async () => {
   if (!auth.isAuthenticated) return []
   return await apiFetch('/api/client/historique')
-})
+}, { default: () => [] })
 
 function formatDate(d: string) {
   if (!d) return '—'
