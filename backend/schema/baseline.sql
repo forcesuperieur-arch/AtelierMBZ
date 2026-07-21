@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bU3wmUxeTedOoQhgukuJwDJTvl2nsdUByB4oJLyTeH9T7LTlcThVOULBbJvbTws
+\restrict aelCtJKZovosQbcw8Ch4IIJTQfidJahezwJVZFjjbKAZBiMjE1xx0LrtGPNYBRL
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -3511,6 +3511,13 @@ CREATE UNIQUE INDEX uniq_provider_atelier_channel ON public.notification_provide
 
 
 --
+-- Name: uniq_rdv_pont_creneau; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uniq_rdv_pont_creneau ON public.rendez_vous USING btree (atelier_id, pont_id, date_rdv, heure_rdv) WHERE ((pont_id IS NOT NULL) AND ((statut)::text <> 'annule'::text));
+
+
+--
 -- Name: uniq_template_atelier_code_channel; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4093,7 +4100,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bU3wmUxeTedOoQhgukuJwDJTvl2nsdUByB4oJLyTeH9T7LTlcThVOULBbJvbTws
+\unrestrict aelCtJKZovosQbcw8Ch4IIJTQfidJahezwJVZFjjbKAZBiMjE1xx0LrtGPNYBRL
 
 
 -- ============ Données : clauses légales (contenu public opposable) ============
@@ -4101,7 +4108,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump
 --
 
-\restrict ccSJN3u3ULXKSZgkfP1Qlqk1zz7cAOCIgWqPJgpoN2b2V92yFrtzHEDD05EFvrH
+\restrict RtR4L0Wz2ZorHk1jVb3hstVnIYv88h2FB9Gcn0w0AWR10en3HSbfreGumyqvloD
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -4159,5 +4166,5 @@ SELECT pg_catalog.setval('public.clause_legale_id_seq', 23, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ccSJN3u3ULXKSZgkfP1Qlqk1zz7cAOCIgWqPJgpoN2b2V92yFrtzHEDD05EFvrH
+\unrestrict RtR4L0Wz2ZorHk1jVb3hstVnIYv88h2FB9Gcn0w0AWR10en3HSbfreGumyqvloD
 
