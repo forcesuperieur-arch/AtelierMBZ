@@ -1,14 +1,11 @@
 -- Baseline d'installation Paddock — schéma de référence + contenu légal.
--- Généré depuis la base de référence (structure complète : tables, contraintes,
--- index partiels, séquences) + lignes clause_legale (avec placeholders à remplir).
--- Usage : voir scripts/init-fresh-db.sh et DEPLOIEMENT.md §3.
--- NE PAS éditer à la main ; régénérer via scripts/init-fresh-db.sh --dump.
+-- Régénéré via scripts/init-fresh-db.sh --dump. NE PAS éditer à la main.
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict DJkS2twyCwbFJQ8QVQznAPTknmk1npnOQmadgkkHSm2dsAvOfLtzWWTJ4P6ioeR
+\restrict bU3wmUxeTedOoQhgukuJwDJTvl2nsdUByB4oJLyTeH9T7LTlcThVOULBbJvbTws
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -40,7 +37,9 @@ CREATE TABLE public.absences (
     motif character varying(50) NOT NULL,
     notes text,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    mecanicien_id integer NOT NULL
+    mecanicien_id integer NOT NULL,
+    heure_debut time(0) without time zone DEFAULT NULL::time without time zone,
+    heure_fin time(0) without time zone DEFAULT NULL::time without time zone
 );
 
 
@@ -4094,7 +4093,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DJkS2twyCwbFJQ8QVQznAPTknmk1npnOQmadgkkHSm2dsAvOfLtzWWTJ4P6ioeR
+\unrestrict bU3wmUxeTedOoQhgukuJwDJTvl2nsdUByB4oJLyTeH9T7LTlcThVOULBbJvbTws
 
 
 -- ============ Données : clauses légales (contenu public opposable) ============
@@ -4102,7 +4101,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump
 --
 
-\restrict 8V2NK0tRXdLO8S8cmjmQjCeNVJ9xAT4rQFAJcXz9X6ZsZTaNbb2Ig8jio79rcP0
+\restrict ccSJN3u3ULXKSZgkfP1Qlqk1zz7cAOCIgWqPJgpoN2b2V92yFrtzHEDD05EFvrH
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -4160,5 +4159,5 @@ SELECT pg_catalog.setval('public.clause_legale_id_seq', 23, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 8V2NK0tRXdLO8S8cmjmQjCeNVJ9xAT4rQFAJcXz9X6ZsZTaNbb2Ig8jio79rcP0
+\unrestrict ccSJN3u3ULXKSZgkfP1Qlqk1zz7cAOCIgWqPJgpoN2b2V92yFrtzHEDD05EFvrH
 

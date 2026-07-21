@@ -105,10 +105,25 @@ class SlotService
         }
         $absences = $absQb->getQuery()->getResult();
 
-        $absentMecanicienIds = array_values(array_filter(array_map(
-            fn(Absence $a) => $a->getMecanicien()?->getId(),
-            $absences,
-        )));
+        // Intervalles d'absence par mécanicien (en minutes depuis minuit) pour ce jour.
+        // Absence sans heures = journée entière ; avec heures = seule cette plage bloque.
+        $absentIntervals = [];
+        foreach ($absences as $a) {
+            $mid = $a->getMecanicien()?->getId();
+            if (!$mid) {
+                continue;
+            }
+            $hd = $a->getHeureDebut();
+            $hf = $a->getHeureFin();
+            if ($hd && $hf) {
+                $absentIntervals[$mid][] = [
+                    $this->timeToMinutes($hd->format('H:i')),
+                    $this->timeToMinutes($hf->format('H:i')),
+                ];
+            } else {
+                $absentIntervals[$mid][] = [0, 24 * 60];
+            }
+        }
 
         $pauseDebut = $horaire->getPauseDebut();
         $pauseFin = $horaire->getPauseFin();
@@ -163,9 +178,19 @@ class SlotService
                 $pontId = $pont->getId();
                 $mecId = $pont->getMecanicien()?->getId();
 
-                // Skip if assigned mechanic is absent
-                if ($mecId && in_array($mecId, $absentMecanicienIds, true)) {
-                    continue;
+                // Skip if assigned mechanic is absent during this slot
+                // (plage horaire précise, ou journée entière si pas d'heures).
+                if ($mecId && !empty($absentIntervals[$mecId])) {
+                    $mecAbsent = false;
+                    foreach ($absentIntervals[$mecId] as [$aStart, $aEnd]) {
+                        if ($t < $aEnd && $effectiveEnd > $aStart) {
+                            $mecAbsent = true;
+                            break;
+                        }
+                    }
+                    if ($mecAbsent) {
+                        continue;
+                    }
                 }
 
                 // Check if pont is free
