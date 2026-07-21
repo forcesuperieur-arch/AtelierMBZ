@@ -51,6 +51,16 @@ class Absence
     #[Groups(['absence:read', 'absence:write'])]
     private \DateTimeInterface $dateFin;
 
+    // Absence partielle : si les deux heures sont renseignées, seule cette plage
+    // bloque le mécanicien ce(s) jour(s). Vides = absence sur la journée entière.
+    #[ORM\Column(type: 'time', nullable: true)]
+    #[Groups(['absence:read', 'absence:write'])]
+    private ?\DateTimeInterface $heureDebut = null;
+
+    #[ORM\Column(type: 'time', nullable: true)]
+    #[Groups(['absence:read', 'absence:write'])]
+    private ?\DateTimeInterface $heureFin = null;
+
     #[ORM\Column(length: 50)]
     #[Groups(['absence:read', 'absence:write'])]
     private string $motif;
@@ -74,6 +84,10 @@ class Absence
     public function setDateDebut(\DateTimeInterface $v): static { $this->dateDebut = $v; return $this; }
     public function getDateFin(): \DateTimeInterface { return $this->dateFin; }
     public function setDateFin(\DateTimeInterface $v): static { $this->dateFin = $v; return $this; }
+    public function getHeureDebut(): ?\DateTimeInterface { return $this->heureDebut; }
+    public function setHeureDebut(?\DateTimeInterface $v): static { $this->heureDebut = $v; return $this; }
+    public function getHeureFin(): ?\DateTimeInterface { return $this->heureFin; }
+    public function setHeureFin(?\DateTimeInterface $v): static { $this->heureFin = $v; return $this; }
     public function getMotif(): string { return $this->motif; }
     public function setMotif(string $v): static { $this->motif = $v; return $this; }
     public function getNotes(): ?string { return $this->notes; }
