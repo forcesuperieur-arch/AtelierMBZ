@@ -51,7 +51,9 @@ const props = defineProps<{
   filterType?: string
 }>()
 
-const { notifications, acknowledge } = useNotifications()
+const notifStore = useNotificationsStore()
+const { notifications } = storeToRefs(notifStore)
+const { acknowledge } = notifStore
 const router = useRouter()
 const visible = ref(false)
 const currentNotif = ref<any>(null)

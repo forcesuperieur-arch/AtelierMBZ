@@ -1,3 +1,5 @@
+import { defineStore } from 'pinia'
+
 interface NotificationItem {
   id: number
   type: string
@@ -16,15 +18,19 @@ interface NotificationItem {
   expiresAt?: string
 }
 
-const notifications = ref<NotificationItem[]>([])
-const unreadCount = ref(0)
-let eventSource: EventSource | null = null
-let pollInterval: ReturnType<typeof setInterval> | null = null
-let currentAtelierId: number | null = null
-
-export const useNotifications = () => {
+// Migré depuis l'ancien composable module-level `useNotifications` vers un store
+// Pinia, par cohérence avec les autres stores du projet (useRdvStore, etc.).
+// Le comportement est identique : singleton, SSE Mercure + repli polling 15 s.
+export const useNotificationsStore = defineStore('notifications', () => {
   const { get, post } = useApi()
   const config = useRuntimeConfig()
+
+  const notifications = ref<NotificationItem[]>([])
+  const unreadCount = ref(0)
+  // État interne non réactif (connexion), local au singleton du store.
+  let eventSource: EventSource | null = null
+  let pollInterval: ReturnType<typeof setInterval> | null = null
+  let currentAtelierId: number | null = null
 
   const buildQuerySuffix = (atelierId?: number | null) => {
     const params = new URLSearchParams()
@@ -61,6 +67,22 @@ export const useNotifications = () => {
     }
   }
 
+  const playNotificationSound = () => {
+    try {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = 800
+      gain.gain.value = 0.1
+      osc.start()
+      osc.stop(ctx.currentTime + 0.15)
+    } catch {
+      // Audio not available
+    }
+  }
+
   const handleIncoming = (notif: NotificationItem) => {
     // Prepend to list, avoid duplicates
     const idx = notifications.value.findIndex(n => n.id === notif.id)
@@ -73,6 +95,25 @@ export const useNotifications = () => {
     if (notif.severity === 'critical' || notif.severity === 'warning') {
       playNotificationSound()
     }
+  }
+
+  const disconnect = () => {
+    if (eventSource) {
+      eventSource.close()
+      eventSource = null
+    }
+    if (pollInterval) {
+      clearInterval(pollInterval)
+      pollInterval = null
+    }
+  }
+
+  const startPolling = () => {
+    if (pollInterval) return
+    pollInterval = setInterval(() => {
+      fetchUnreadCount(currentAtelierId)
+      fetchNotifications('unacknowledged', currentAtelierId)
+    }, 15000) // Poll every 15s as fallback
   }
 
   const connect = async (atelierId: number) => {
@@ -120,25 +161,6 @@ export const useNotifications = () => {
     }
   }
 
-  const disconnect = () => {
-    if (eventSource) {
-      eventSource.close()
-      eventSource = null
-    }
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      pollInterval = null
-    }
-  }
-
-  const startPolling = () => {
-    if (pollInterval) return
-    pollInterval = setInterval(() => {
-      fetchUnreadCount(currentAtelierId)
-      fetchNotifications('unacknowledged', currentAtelierId)
-    }, 15000) // Poll every 15s as fallback
-  }
-
   const acknowledge = async (id: number) => {
     try {
       await post(`/notifications/${id}/acknowledge`)
@@ -179,25 +201,9 @@ export const useNotifications = () => {
     await Promise.allSettled(unread.map(n => markRead(n.id)))
   }
 
-  const playNotificationSound = () => {
-    try {
-      const ctx = new AudioContext()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 800
-      gain.gain.value = 0.1
-      osc.start()
-      osc.stop(ctx.currentTime + 0.15)
-    } catch {
-      // Audio not available
-    }
-  }
-
   return {
-    notifications: readonly(notifications),
-    unreadCount: readonly(unreadCount),
+    notifications,
+    unreadCount,
     fetchNotifications,
     fetchUnreadCount,
     connect,
@@ -206,4 +212,4 @@ export const useNotifications = () => {
     markRead,
     markAllRead,
   }
-}
+})
