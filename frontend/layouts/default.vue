@@ -85,7 +85,9 @@ const auth = useAuth()
 const appStore = useAppStore()
 const atelierStore = useAtelierStore()
 const route = useRoute()
-const { unreadCount: notifUnreadCount, fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect: disconnectNotifs } = useNotifications()
+const notifStore = useNotificationsStore()
+const { unreadCount: notifUnreadCount } = storeToRefs(notifStore)
+const { fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect: disconnectNotifs } = notifStore
 
 const atelierName = computed(() => atelierStore.branding?.nom || 'Paddock')
 const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '/branding/paddock-logo-symbol.svg')

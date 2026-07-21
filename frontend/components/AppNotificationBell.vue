@@ -173,7 +173,9 @@ const detailActionLoading = ref(false)
 const router = useRouter()
 const toast = useToast()
 const api = useApi()
-const { notifications, unreadCount, fetchNotifications, markRead, markAllRead, acknowledge } = useNotifications()
+const notifStore = useNotificationsStore()
+const { notifications, unreadCount } = storeToRefs(notifStore)
+const { fetchNotifications, markRead, markAllRead, acknowledge } = notifStore
 const { open: openDemandeModal } = useDemandeTravauxSuppDetailModal()
 
 const displayedNotifications = computed(() => notifications.value.slice(0, 12))
