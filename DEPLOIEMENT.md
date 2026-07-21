@@ -31,16 +31,39 @@ PUBLIC_DOMAIN=moncommerce.example.com
 
 (En dev, la variable absente retombe sur le port 81 local.)
 Caddy provisionne Let's Encrypt automatiquement (ports 80/443 ouverts requis).
-Le port 80 interne (back-office) ne doit JAMAIS être exposé sur Internet :
-pare-feu ou réseau privé uniquement.
+
+**Caddy est le SEUL point d'entrée public.** Les ports internes des conteneurs
+(API `8000`, front staff `3000`, portail client `3001`, edge dev `81`) sont bindés
+sur `127.0.0.1` dans `docker-compose.yml` — ils ne sont donc pas joignables depuis
+Internet, même sans pare-feu. Caddy les atteint par le réseau Docker interne. Ne
+JAMAIS repasser ces ports sur `0.0.0.0`, sinon l'API staff contournerait la liste
+blanche du Caddyfile.
 
 ## 3. Base de données
 
-- `php bin/console doctrine:migrations:migrate --no-interaction`
-- `php bin/console app:seed` (paramètres de base uniquement, pas la démo)
+> ⚠️ **Serveur neuf (base vide)** : NE PAS lancer `doctrine:migrations:migrate` en
+> premier — les migrations sont incrémentales (la 1re fait `ALTER TABLE`, pas
+> `CREATE TABLE`) et échouent sur une base vide. Utiliser le script d'amorçage, qui
+> applique la baseline (schéma de référence + clauses légales), marque les migrations
+> comme appliquées, puis sème les paramètres de base et l'admin :
+>
+> ```
+> ./scripts/init-fresh-db.sh
+> ```
+>
+> `deploy-server.sh` fait ce choix automatiquement (base vide → init ; sinon migrations).
+
+- Déploiements suivants (base déjà en place) : `php bin/console doctrine:migrations:migrate --no-interaction`
+- `app:seed` (paramètres de base uniquement, **sans** `--demo`) et `app:create-admin`
+  sont déjà lancés par `init-fresh-db.sh` au premier déploiement.
 - Appliquer `update_clauses.sql` APRÈS avoir remplacé les placeholders
   `[SIRET]`, `[TVA]`, `[Hébergeur]`, `[capital]`, `[ville]`, `[adresse]`
-- Sauvegardes : pg_dump quotidien + rétention 30 j minimum (RGPD)
+- Sauvegardes : `scripts/backup-db.sh` (pg_dump compressé + rétention 30 j). À
+  planifier en cron HÔTE — exemple quotidien à 2h (ligne prête dans l'en-tête du
+  script) :
+  ```
+  0 2 * * * cd /opt/ateliermbz && ./scripts/backup-db.sh /var/backups/paddock >> /var/log/paddock-backup.log 2>&1
+  ```
 
 ## 4. Frontends en build de production
 
@@ -57,6 +80,20 @@ basée `php:8.3-fpm-alpine`) ou FrankenPHP dans les semaines suivant la mise
 en ligne.
 
 ## 5. Vérifications post-déploiement
+
+**Le plus simple — une seule commande** qui déroule toute la checklist ci-dessous
+(env sans `CHANGEME`, `APP_ENV=prod`, services démarrés, migrations à jour, comptes
+de démo absents, clauses légales remplies, surface publique verrouillée, sauvegarde) :
+
+```bash
+./scripts/preflight-prod.sh              # lecture seule
+./scripts/preflight-prod.sh --with-backup  # + test d'une vraie sauvegarde
+```
+
+Le script sort en erreur (code 1) s'il reste un blocage `[FAIL]` : ne pas ouvrir au
+public tant que tout n'est pas `[ OK ]`.
+
+Détail des contrôles manuels équivalents (si besoin de vérifier à la main) :
 
 ```bash
 # Surface publique : tout doit répondre 404 sauf les routes client/public
