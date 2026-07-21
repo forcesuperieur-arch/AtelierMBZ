@@ -33,6 +33,15 @@ class NotificationDispatcher
         $providers = $this->getActiveProviders($msg->getChannel(), $msg->getAtelierId());
 
         if (empty($providers)) {
+            // E-mail sans fournisseur configuré : repli sur le Mailer Symfony (MAILER_DSN).
+            // Évite le silence total — l'e-mail fonctionne dès que MAILER_DSN est posé,
+            // sans exiger de créer une fiche fournisseur par atelier. La tentative est tracée.
+            if ($msg->getChannel() === 'email') {
+                $result = $this->sendEmail($msg, 'smtp_default', []);
+                $this->logAttempt($msg, 'smtp_default', $result);
+                return $result;
+            }
+
             $this->logger->warning('No active providers for channel {channel} atelier {atelier}', [
                 'channel' => $msg->getChannel(),
                 'atelier' => $msg->getAtelierId(),
@@ -43,14 +52,14 @@ class NotificationDispatcher
         foreach ($providers as $providerConfig) {
             try {
                 $result = $this->sendViaProvider($msg, $providerConfig);
-                $this->logAttempt($msg, $providerConfig, $result);
+                $this->logAttempt($msg, $providerConfig->getProvider(), $result);
 
                 if ($result->isSuccess()) {
                     return $result;
                 }
             } catch (\Throwable $e) {
                 $result = NotificationResult::fail($providerConfig->getProvider(), $e->getMessage());
-                $this->logAttempt($msg, $providerConfig, $result);
+                $this->logAttempt($msg, $providerConfig->getProvider(), $result);
                 $this->logger->error('Provider {provider} failed: {error}', [
                     'provider' => $providerConfig->getProvider(),
                     'error' => $e->getMessage(),
@@ -272,7 +281,9 @@ class NotificationDispatcher
     private function sendEmail(NotificationMessage $msg, string $provider, array $credentials): NotificationResult
     {
         try {
-            $from = $credentials['from'] ?? $credentials['sender'] ?? 'noreply@paddock.fr';
+            // Priorité : fiche fournisseur > variable d'env MAILER_FROM > repli. En prod,
+            // MAILER_FROM doit correspondre au domaine autorisé par le SMTP (sinon rejet).
+            $from = $credentials['from'] ?? $credentials['sender'] ?? ($_ENV['MAILER_FROM'] ?? 'noreply@paddock.fr');
 
             $email = (new Email())
                 ->from($from)
@@ -293,12 +304,12 @@ class NotificationDispatcher
     /**
      * Log every notification attempt to NotificationLog.
      */
-    private function logAttempt(NotificationMessage $msg, NotificationProviderConfig $config, NotificationResult $result): void
+    private function logAttempt(NotificationMessage $msg, string $providerName, NotificationResult $result): void
     {
         $log = new NotificationLog();
         $log->setAtelierId($msg->getAtelierId());
         $log->setChannel($msg->getChannel());
-        $log->setProvider($config->getProvider());
+        $log->setProvider($providerName);
         $log->setTemplateCode($msg->getTemplateCode());
         $log->setToRecipient($msg->getRecipient());
         $log->setSubject($msg->getSubject());
