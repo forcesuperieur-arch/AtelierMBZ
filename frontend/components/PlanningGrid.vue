@@ -67,7 +67,7 @@
 
               <div
                 v-if="isPauseSlot(day.date, slot.minutes)"
-                style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:#6B7280;pointer-events:none;"
+                style="position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:#9CA3AF;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(99,102,241,0.14) 0 6px,rgba(15,16,20,0.66) 6px 12px);"
               >
                 pause
               </div>
@@ -252,7 +252,7 @@ const visibleWeekRdvRanges = computed(() => {
     .map((rdv: any) => {
       const start = timeToMinutes(rdv?.heure_debut)
       const duration = Number(rdv?.duree_estimee || rdv?.temps_estime || 60)
-      return { start, end: start + Math.max(15, duration) }
+      return { start, end: effectiveEnd(start, duration, String(rdv?.date_rdv || '')) }
     })
     .filter((range: any) => Number.isFinite(range.start) && Number.isFinite(range.end))
 })
@@ -344,7 +344,10 @@ const dayLayouts = computed(() => {
         return {
           ...rdv,
           start,
-          end: start + duration,
+          // Fin effective « saute la pause » : le pont reste occupé jusqu'à la
+          // vraie fin (durée + pause traversée). Sert au packing colonnes ET à
+          // la hauteur du bloc, en cohérence avec le backend/SlotService.
+          end: effectiveEnd(start, duration, day.date),
         }
       })
       .sort((a: any, b: any) => a.start - b.start || a.end - b.end)
@@ -432,7 +435,10 @@ function buildRdvTooltip(rdv: any): string {
   const type = rdv.type_intervention || '—'
   const debut = rdv.heure_debut?.slice(0, 5) || '—'
   const dureeMin = Number(rdv.duree_estimee || rdv.temps_estime || 60)
-  const fin = minutesToTime(timeToMinutes(rdv.heure_debut) + dureeMin)
+  const debutMin = timeToMinutes(rdv.heure_debut)
+  const effEnd = effectiveEnd(debutMin, dureeMin, String(rdv.date_rdv || ''))
+  const pauseIncluse = effEnd > debutMin + Math.max(15, dureeMin)
+  const fin = minutesToTime(effEnd)
   const duree = formatMinutes(dureeMin)
   const meca = rdv.mecanicien_nom || 'Non assigné'
   const pont = rdv.pont?.nom || rdv.pont_nom || ''
@@ -440,7 +446,7 @@ function buildRdvTooltip(rdv: any): string {
 
   lines.push(`${client}${vehicule ? ' · ' + vehicule : ''}${plaque ? ' (' + plaque + ')' : ''}`)
   lines.push(`Travaux : ${type}`)
-  lines.push(`Horaire : ${debut} → ${fin} · ${duree}`)
+  lines.push(`Horaire : ${debut} → ${fin} · ${duree}${pauseIncluse ? ' (pause incluse)' : ''}`)
   if (pont) lines.push(`Pont : ${pont} · ${meca}`)
   else lines.push(`Mécanicien : ${meca}`)
   lines.push(`Statut : ${statut}`)
@@ -496,8 +502,34 @@ function getRdvsStartingAt(date: string, slotMinutes: number) {
 }
 
 function rdvHeight(rdv: any): number {
-  const duration = Number(rdv.duree_estimee || rdv.temps_estime || 60)
-  return Math.max(20, (duration / TIME_STEP_MINUTES) * ROW_HEIGHT)
+  // Étirer le bloc jusqu'à sa fin effective (pause incluse) quand elle est
+  // connue (objet issu de dayLayouts) ; sinon repli sur la durée brute.
+  const span = Number.isFinite(rdv?.end) && Number.isFinite(rdv?.start)
+    ? rdv.end - rdv.start
+    : Math.max(15, Number(rdv.duree_estimee || rdv.temps_estime || 60))
+  return Math.max(20, (span / TIME_STEP_MINUTES) * ROW_HEIGHT)
+}
+
+/** Plage de pause déjeuner du jour [début, fin] en minutes, ou null. */
+function getPauseWindow(date: string): [number, number] | null {
+  const horaire = getDayHoraire(date)
+  if (!horaire) return null
+  const ps = horaire.pause_debut ?? horaire.pauseDebut
+  const pe = horaire.pause_fin ?? horaire.pauseFin
+  if (!ps || !pe) return null
+  return [timeToMinutes(ps), timeToMinutes(pe)]
+}
+
+/**
+ * Fin effective d'un créneau : durée réelle + durée de pause si le créneau
+ * démarre avant la pause et la traverse (le RDV « saute » la pause).
+ * Miroir de SlotService::computeEffectiveEndMinutes (source de vérité serveur).
+ */
+function effectiveEnd(startMin: number, duration: number, date: string): number {
+  let end = startMin + Math.max(15, duration)
+  const pw = getPauseWindow(date)
+  if (pw && startMin < pw[0] && end > pw[0]) end += (pw[1] - pw[0])
+  return end
 }
 
 function rdvStyle(rdv: any) {
