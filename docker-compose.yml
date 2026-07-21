@@ -53,7 +53,10 @@ services:
       - backend_photos:/app/public/uploads/photos
       - backend_signatures:/app/public/uploads/signatures
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      # Bind local uniquement : Caddy joint le backend par le réseau Docker (php:8000).
+      # Publier sur 0.0.0.0 exposerait l'API staff complète en contournant la liste
+      # blanche du Caddyfile (http://IP_SERVEUR:8000/api/companion/... sinon joignable).
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
 
   worker:
     build:
@@ -95,7 +98,8 @@ services:
       PORT: "3000"
       NODE_ENV: production
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      # Bind local uniquement (cf. service php) : Caddy sert le front via nuxt:3000.
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -116,7 +120,8 @@ services:
       PORT: "3001"
       NODE_ENV: production
     ports:
-      - "${CLIENT_FRONTEND_PORT:-3001}:3001"
+      # Bind local uniquement (cf. service php) : Caddy sert le portail via client-nuxt:3001.
+      - "127.0.0.1:${CLIENT_FRONTEND_PORT:-3001}:3001"
     volumes:
       - ./client-frontend:/app
       - /app/node_modules
@@ -136,9 +141,12 @@ services:
       # Edge public : ":81" en dev, domaine réel en prod (HTTPS auto)
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-:81}
     ports:
+      # Seul point d'entrée public : HTTP (redir/ACME) + HTTPS Let's Encrypt.
       - "80:80"
       - "443:443"
-      - "${PUBLIC_EDGE_PORT:-81}:81"
+      # Edge public de DEV (port 81). En prod PUBLIC_DOMAIN pointe le vrai domaine
+      # sur 443 et rien n'écoute sur 81 → bind local uniquement (pas d'exposition).
+      - "127.0.0.1:${PUBLIC_EDGE_PORT:-81}:81"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
