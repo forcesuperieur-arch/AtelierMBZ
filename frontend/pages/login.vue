@@ -3,7 +3,6 @@
     <div class="login-brand">
       <img src="/branding/paddock-logo-horizontal.svg" alt="Paddock" class="login-logo" />
     </div>
-    <h2 class="login-title">Paddock</h2>
     <p class="login-sub">Connexion à votre espace atelier</p>
 
     <form @submit.prevent="handleLogin" class="login-form">
