@@ -159,7 +159,22 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-section "6. Sauvegarde"
+section "6. Edge STAFF durci (via APP_DOMAIN)"
+APP_DOMAIN_V="$(envval APP_DOMAIN)"
+if [ -n "$APP_DOMAIN_V" ] && [ "$APP_DOMAIN_V" != "localhost" ]; then
+  sbase="https://$APP_DOMAIN_V"
+  c="$(httpcode "$sbase/.well-known/mercure")"
+  [ "$c" = "404" ] && ok "Mercure masqué → 404" || bad "Mercure sur l'edge staff → $c (attendu 404 — fuite PII si exposé)"
+  c="$(httpcode "$sbase/uploads/photos/none.jpg")"
+  [ "$c" = "404" ] && ok "photos/signatures brutes masquées → 404" || warn "/uploads brut → $c (attendu 404)"
+  c="$(httpcode "$sbase/login")"
+  case "$c" in 200|302|308) ok "appli staff servie → $c" ;; *) bad "appli staff → $c (injoignable ?)" ;; esac
+else
+  warn "APP_DOMAIN non défini (ou localhost) — contrôles edge staff sautés (normal en local)."
+fi
+
+# ---------------------------------------------------------------------------
+section "7. Sauvegarde"
 if [ -x scripts/backup-db.sh ]; then
   ok "scripts/backup-db.sh présent"
   if [ "$WITH_BACKUP" = "1" ]; then

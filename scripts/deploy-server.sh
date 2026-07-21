@@ -49,10 +49,12 @@ else
   echo "Front OK en HTTP"
 fi
 
-if curl -kfsS https://localhost/api/docs >/dev/null 2>&1; then
+# /api/docs est masqué en prod (durcissement) : on teste la vie de l'API via un
+# endpoint public légitime (clauses légales, servi 200 sans authentification).
+if curl -kfsS https://localhost/api/clauses-legales >/dev/null 2>&1; then
   echo "API OK en HTTPS"
 else
-  curl -fsS http://localhost/api/docs >/dev/null
+  curl -fsS http://localhost/api/clauses-legales >/dev/null
   echo "API OK en HTTP"
 fi
 

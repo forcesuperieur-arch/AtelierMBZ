@@ -1,18 +1,36 @@
-http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost} {
+# Edge STAFF (back-office) — appli atelier, derrière login applicatif.
+# EXPOSÉ SUR INTERNET (APP_DOMAIN = ex. atelier.motoblouz.com) : durci pour ne rien
+# fuiter. `localhost` conservé pour les contrôles locaux exécutés sur le serveur.
+http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost}, http://localhost, https://localhost {
 	encode zstd gzip
 
+	# Mercure : le hub accepte des abonnements ANONYMES → fuite PII s'il est public.
+	# Non exposé ici. À distance, le front staff bascule sur le polling.
+	# (Correctif propre à prévoir : abonnements Mercure authentifiés par JWT.)
 	handle /.well-known/mercure {
-		reverse_proxy mercure:3000
+		respond "Not found" 404
 	}
 
+	# Doc API (API Platform) : divulgation d'infos → masquée en public.
+	handle /api/docs* {
+		respond "Not found" 404
+	}
+
+	# API staff (authentification applicative requise).
 	handle /api/* {
 		reverse_proxy php:8000
 	}
 
-	handle /uploads/* {
+	# Uploads : logos atelier uniquement (non sensibles). Les photos et signatures
+	# brutes (PII) ne sont JAMAIS servies en statique — endpoints contrôlés only.
+	handle /uploads/logos/* {
 		reverse_proxy php:8000
 	}
+	handle /uploads/* {
+		respond "Not found" 404
+	}
 
+	# Appli staff (Nuxt) — login requis.
 	handle {
 		reverse_proxy nuxt:3000
 	}

@@ -21,16 +21,26 @@ Checklist phase 6 du MVP. À dérouler dans l'ordre sur le serveur cible.
 
 Les comptes de test (`admin@atelier.local`, `jean.moreau@email.fr`) ne doivent pas exister en prod — ne pas lancer les seeds de démo.
 
-## 2. HTTPS sur l'edge public
+## 2. HTTPS et domaines
 
-Le Caddyfile est paramétré : poser simplement le domaine dans `.env` :
+Deux domaines distincts (deux edges Caddy, deux niveaux de sécurité) :
 
 ```
-PUBLIC_DOMAIN=moncommerce.example.com
+APP_DOMAIN=atelier.motoblouz.com   # STAFF : appli atelier (back-office, login requis)
+PUBLIC_DOMAIN=rdv.motoblouz.com    # CLIENT : prise de RDV + espace client (whitelist stricte)
+PUBLIC_URL=https://rdv.motoblouz.com   # liens des emails clients → domaine CLIENT
 ```
 
-(En dev, la variable absente retombe sur le port 81 local.)
-Caddy provisionne Let's Encrypt automatiquement (ports 80/443 ouverts requis).
+DNS : un enregistrement A par domaine → IP du serveur. Caddy provisionne Let's
+Encrypt automatiquement pour les deux (ports 80/443 ouverts requis).
+(En dev, `PUBLIC_DOMAIN`/`APP_DOMAIN` absents retombent sur localhost / port 81.)
+
+**Edge STAFF exposé sur Internet = durci** (le back-office donnait accès à tout).
+Bloqués côté public sur `APP_DOMAIN` : Mercure (abonnements anonymes = fuite PII →
+le front bascule sur le polling à distance), photos/signatures brutes `/uploads/*`
+(seuls les logos passent), `/api/docs`. L'appli staff reste derrière son login.
+> À prévoir ensuite (hors pilote) : abonnements Mercure authentifiés par JWT pour
+> restaurer le temps réel à distance, et audit de l'auth des pages « companion ».
 
 **Caddy est le SEUL point d'entrée public.** Les ports internes des conteneurs
 (API `8000`, front staff `3000`, portail client `3001`, edge dev `81`) sont bindés
