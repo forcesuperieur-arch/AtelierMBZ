@@ -6,6 +6,7 @@ use App\Entity\ConfigAtelier;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\EssaiRoutier;
 use App\Entity\EtatDesLieux;
+use App\Entity\HoraireAtelier;
 use App\Entity\Mecanicien;
 use App\Entity\OrdreReparation;
 use App\Entity\Pont;
@@ -163,6 +164,11 @@ class RendezVousController extends AbstractController
     /**
      * Premier RDV actif chevauchant le créneau du RDV donné sur le même pont.
      * Chevauchement sur les durées estimées (défaut 60 min), annulés exclus.
+     *
+     * La fin occupée « saute la pause » : un RDV démarré avant la pause déjeuner
+     * occupe le pont jusqu'à sa vraie fin (durée + durée de pause traversée), en
+     * cohérence avec SlotService (sinon un 2e RDV rebookable après la pause sur
+     * le même pont passait entre les mailles).
      */
     private function findPontConflict(RendezVous $rdv): ?RendezVous
     {
@@ -170,8 +176,10 @@ class RendezVousController extends AbstractController
             return null;
         }
 
+        [$pStart, $pEnd] = $this->pauseWindowMinutes($rdv);
+
         $startMin = (int) $rdv->getHeureRdv()->format('H') * 60 + (int) $rdv->getHeureRdv()->format('i');
-        $endMin = $startMin + max(15, $rdv->getTempsEstime() ?: 60);
+        $endMin = $this->effectiveEndMinutes($startMin, $rdv->getTempsEstime() ?: 60, $pStart, $pEnd);
 
         $candidats = $this->em->getRepository(RendezVous::class)->createQueryBuilder('r')
             ->where('r.pont = :pont')
@@ -188,13 +196,65 @@ class RendezVousController extends AbstractController
                 continue;
             }
             $cStart = (int) $candidat->getHeureRdv()->format('H') * 60 + (int) $candidat->getHeureRdv()->format('i');
-            $cEnd = $cStart + max(15, $candidat->getTempsEstime() ?: 60);
+            $cEnd = $this->effectiveEndMinutes($cStart, $candidat->getTempsEstime() ?: 60, $pStart, $pEnd);
             if ($startMin < $cEnd && $endMin > $cStart) {
                 return $candidat;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Plage de pause déjeuner (minutes depuis minuit) pour le jour et l'atelier
+     * du RDV, ou [null, null] si aucune pause configurée. Miroir de SlotService.
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function pauseWindowMinutes(RendezVous $rdv): array
+    {
+        $jourSemaine = (int) $rdv->getDateRdv()->format('N') - 1; // 0 = lundi
+
+        $qb = $this->em->getRepository(HoraireAtelier::class)->createQueryBuilder('h')
+            ->where('h.jourSemaine = :jour')
+            ->setParameter('jour', $jourSemaine);
+        if ($rdv->getAtelierId()) {
+            $qb->andWhere('h.atelierId = :atelier')->setParameter('atelier', $rdv->getAtelierId());
+        }
+
+        /** @var HoraireAtelier|null $horaire */
+        $horaire = $qb->setMaxResults(1)->getQuery()->getOneOrNullResult();
+        if (!$horaire) {
+            return [null, null];
+        }
+
+        $pauseDebut = $horaire->getPauseDebut();
+        $pauseFin = $horaire->getPauseFin();
+
+        return [
+            $pauseDebut ? $this->timeToMinutes($pauseDebut) : null,
+            $pauseFin ? $this->timeToMinutes($pauseFin) : null,
+        ];
+    }
+
+    /**
+     * Fin effective d'un créneau : durée réelle + durée de pause si le créneau
+     * démarre avant la pause et la traverse (le RDV « saute » la pause).
+     * Identique à SlotService::computeEffectiveEndMinutes (source de vérité).
+     */
+    private function effectiveEndMinutes(int $startMinutes, int $tempsMinutes, ?int $pauseStart, ?int $pauseEnd): int
+    {
+        $effectiveEnd = $startMinutes + max(15, $tempsMinutes);
+        if ($pauseStart !== null && $pauseEnd !== null && $startMinutes < $pauseStart && $effectiveEnd > $pauseStart) {
+            $effectiveEnd += ($pauseEnd - $pauseStart);
+        }
+        return $effectiveEnd;
+    }
+
+    private function timeToMinutes(string $time): int
+    {
+        [$h, $m] = explode(':', $time);
+        return (int) $h * 60 + (int) $m;
     }
 
     /**
