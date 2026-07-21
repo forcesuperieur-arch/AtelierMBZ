@@ -134,7 +134,17 @@ class RendezVousController extends AbstractController
         }
 
         $this->em->persist($rdv);
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+            // Garde-fou base (index unique partiel uniq_rdv_pont_creneau) : une course
+            // concurrente a réservé ce pont/créneau entre le contrôle et l'insertion.
+            // Réponse propre plutôt qu'une 500 opaque.
+            return $this->json([
+                'error' => 'Ce pont vient d\'être réservé sur ce créneau. Merci de choisir un autre créneau.',
+                'code' => 'PONT_OCCUPE',
+            ], Response::HTTP_CONFLICT);
+        }
 
         // Synchronize commandes
         $this->syncCommandes($rdv, $data['commandes'] ?? []);
