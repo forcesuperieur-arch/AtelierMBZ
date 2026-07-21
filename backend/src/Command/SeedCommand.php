@@ -72,6 +72,7 @@ class SeedCommand extends Command
             ['receptionnaire', 'Réceptionnaire', 'Gestion RDV, clients, facturation', '["dashboard","rdv","planning","clients","workshop","or","devis","facturation","suivi"]', '["rdv.create","rdv.edit","client.create","client.edit","facturation.create","facturation.edit"]', 1],
             ['mecanicien', 'Mécanicien', 'Espace technicien, rapports', '["mecanicien","suivi"]', '["rdv.edit","or.edit"]', 1],
             ['comptable', 'Comptable', 'Facturation et statistiques', '["dashboard","facturation","stock"]', '["facturation.create","facturation.edit","stock.edit"]', 1],
+            ['service_client', 'Service Client', 'Suivi cross-atelier (lecture seule)', '["dashboard","rdv","planning","clients","suivi"]', '[]', 1],
         ];
 
         foreach ($roles as [$role, $label, $desc, $sections, $perms, $system]) {
