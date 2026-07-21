@@ -39,6 +39,11 @@
               <UFormField label="Date début"><UInput v-model="absForm.date_debut" type="date" required /></UFormField>
               <UFormField label="Date fin"><UInput v-model="absForm.date_fin" type="date" required /></UFormField>
             </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+              <UFormField label="Heure début (optionnel)"><UInput v-model="absForm.heure_debut" type="time" /></UFormField>
+              <UFormField label="Heure fin (optionnel)"><UInput v-model="absForm.heure_fin" type="time" /></UFormField>
+            </div>
+            <p style="font-size:12px;color:#9CA3AF;margin:-4px 0 0;">Heures vides = absence sur la journée entière. Renseigner les deux = seule cette plage bloque le mécanicien (ex. rendez-vous médical le matin).</p>
             <UFormField label="Type de motif">
               <select v-model="absForm.type_motif" class="form-input">
                 <option value="conge">🏖️ Congé</option>
@@ -69,7 +74,7 @@ const mecaOptions = ref<any[]>([])
 const showNew = ref(false)
 const editId = ref<number | null>(null)
 
-const absForm = reactive({ mecanicien_id: null as number | null, date_debut: '', date_fin: '', type_motif: 'conge', motif: '' })
+const absForm = reactive({ mecanicien_id: null as number | null, date_debut: '', date_fin: '', heure_debut: '', heure_fin: '', type_motif: 'conge', motif: '' })
 
 const typeMotifLabels: Record<string, { label: string; color: string; bg: string }> = {
   conge: { label: '🏖️ Congé', color: '#60A5FA', bg: 'rgba(96,165,250,0.15)' },
@@ -88,7 +93,7 @@ const columns = [
 
 function resetForm() {
   editId.value = null
-  Object.assign(absForm, { mecanicien_id: null, date_debut: '', date_fin: '', type_motif: 'conge', motif: '' })
+  Object.assign(absForm, { mecanicien_id: null, date_debut: '', date_fin: '', heure_debut: '', heure_fin: '', type_motif: 'conge', motif: '' })
 }
 
 function normalizeAbsence(a: any) {
@@ -106,13 +111,27 @@ function normalizeAbsence(a: any) {
     mecanicien_nom: a.mecanicien ? `${a.mecanicien.prenom} ${a.mecanicien.nom}` : (a.mecanicien_nom ?? ''),
     date_debut: (a.date_debut ?? a.dateDebut ?? '').slice(0, 10),
     date_fin: (a.date_fin ?? a.dateFin ?? '').slice(0, 10),
+    heure_debut: toHM(a.heure_debut ?? a.heureDebut),
+    heure_fin: toHM(a.heure_fin ?? a.heureFin),
   }
+}
+
+// Extrait HH:MM depuis n'importe quel format d'heure renvoyé par l'API.
+function toHM(v: any): string {
+  const m = String(v ?? '').match(/(\d{2}:\d{2})/)
+  return m ? m[1] : ''
 }
 
 function buildAbsencePayload() {
   if (!absForm.mecanicien_id) throw new Error('Le mécanicien est requis')
 
   const motifStr = [absForm.type_motif, absForm.motif].filter(Boolean).join(' — ')
+
+  // Absence partielle : les deux heures ensemble, ou aucune (= journée entière).
+  const hd = absForm.heure_debut || null
+  const hf = absForm.heure_fin || null
+  if ((hd && !hf) || (!hd && hf)) throw new Error('Renseignez les deux heures (début et fin), ou laissez-les vides pour une absence sur la journée entière.')
+  if (hd && hf && hf <= hd) throw new Error("L'heure de fin doit être après l'heure de début.")
 
   return {
     mecanicien: `/api/mecaniciens/${absForm.mecanicien_id}`,
@@ -121,6 +140,8 @@ function buildAbsencePayload() {
     date_fin: absForm.date_fin,
     dateDebut: absForm.date_debut,
     dateFin: absForm.date_fin,
+    heureDebut: hd,
+    heureFin: hf,
     motif: motifStr,
   }
 }
@@ -132,6 +153,8 @@ function editAbsence(absence: any) {
     mecanicien_id: a.mecanicien_id,
     date_debut: a.date_debut,
     date_fin: a.date_fin,
+    heure_debut: a.heure_debut ?? '',
+    heure_fin: a.heure_fin ?? '',
     type_motif: a.type_motif,
     motif: a.motif,
   })
