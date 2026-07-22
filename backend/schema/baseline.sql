@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aelCtJKZovosQbcw8Ch4IIJTQfidJahezwJVZFjjbKAZBiMjE1xx0LrtGPNYBRL
+\restrict hfyhLAAdeZRm4mToDEizZcTgw3E9NklKa0cYr6EaoOUzWXnCPCmffdUHWu0POTG
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -1341,7 +1341,8 @@ CREATE TABLE public.ordres_reparation (
     final_hash character varying(64) DEFAULT NULL::character varying,
     finalized_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
     pdf_archive_name character varying(64) DEFAULT NULL::character varying,
-    atelier_id integer
+    atelier_id integer,
+    montant_estime numeric(10,2) DEFAULT NULL::numeric
 );
 
 
@@ -1672,7 +1673,8 @@ CREATE TABLE public.rendez_vous (
     annulation_demandee_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
     litige_signale boolean DEFAULT false NOT NULL,
     litige_commentaire text,
-    origine character varying(30) DEFAULT NULL::character varying
+    origine character varying(30) DEFAULT NULL::character varying,
+    prestations_snapshot json
 );
 
 
@@ -4100,7 +4102,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aelCtJKZovosQbcw8Ch4IIJTQfidJahezwJVZFjjbKAZBiMjE1xx0LrtGPNYBRL
+\unrestrict hfyhLAAdeZRm4mToDEizZcTgw3E9NklKa0cYr6EaoOUzWXnCPCmffdUHWu0POTG
 
 
 -- ============ Données : clauses légales (contenu public opposable) ============
@@ -4108,7 +4110,7 @@ ALTER TABLE ONLY public.rappels_email
 -- PostgreSQL database dump
 --
 
-\restrict RtR4L0Wz2ZorHk1jVb3hstVnIYv88h2FB9Gcn0w0AWR10en3HSbfreGumyqvloD
+\restrict rqN0RkMGFuAV2ysDlgvFRlvomEaanOBnhe4ucRYgdGWUS4PM8CtOO0EwKegefsr
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -4166,5 +4168,5 @@ SELECT pg_catalog.setval('public.clause_legale_id_seq', 23, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict RtR4L0Wz2ZorHk1jVb3hstVnIYv88h2FB9Gcn0w0AWR10en3HSbfreGumyqvloD
+\unrestrict rqN0RkMGFuAV2ysDlgvFRlvomEaanOBnhe4ucRYgdGWUS4PM8CtOO0EwKegefsr
 

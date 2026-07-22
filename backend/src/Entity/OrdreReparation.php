@@ -74,6 +74,14 @@ class OrdreReparation
     #[Groups(['ordre:read', 'ordre:write'])]
     private ?string $travaux = null;
 
+    /**
+     * Montant total ESTIMÉ (indicatif) reporté du RDV à la création de l'OR.
+     * Figé au scellé de réception (inclus dans le snapshot/hash). Pas une facture.
+     */
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    #[Groups(['ordre:read'])]
+    private ?string $montantEstime = null;
+
     #[ORM\ManyToOne(targetEntity: DemandeTravauxSupp::class)] #[ORM\JoinColumn(name: 'demande_travaux_supp_id', nullable: true)]
     #[Groups(['ordre:read', 'ordre:write'])]
     private ?DemandeTravauxSupp $demandeTravauxSupp = null;
@@ -249,6 +257,31 @@ class OrdreReparation
             $this->snapVehiculeMarque = $rdv->getVehicule()->getMarque();
             $this->snapVehiculeModele = $rdv->getVehicule()->getModele();
         }
+        // Reporter les prestations réservées dans les travaux prévus + le total
+        // estimé (indicatif), tant que le mécano n'a pas déjà saisi de travaux.
+        if ($this->travaux === null || $this->travaux === '') {
+            $lignes = [];
+            foreach ($rdv->getPrestationsSnapshot() ?? [] as $p) {
+                if (!is_array($p)) {
+                    continue;
+                }
+                $ttc = (float) ($p['prix_ttc'] ?? 0);
+                $ht = (float) ($p['prix_ht'] ?? 0);
+                $eff = $ttc > 0 ? $ttc : $ht;
+                $designation = (string) ($p['designation'] ?? 'Prestation');
+                $lignes[] = $eff > 0
+                    ? sprintf('%s — %s € (estim.)', $designation, number_format($eff, 2, ',', ' '))
+                    : $designation;
+            }
+            if ($lignes) {
+                $this->travaux = implode("\n", $lignes);
+            } elseif ($rdv->getTypeIntervention()) {
+                $this->travaux = $rdv->getTypeIntervention();
+            }
+        }
+        if ($this->montantEstime === null && $rdv->getPrixEstime() !== null) {
+            $this->montantEstime = $rdv->getPrixEstime();
+        }
     }
 
     // ─── Getters / Setters ───
@@ -284,6 +317,8 @@ class OrdreReparation
     public function getMechanicCheckupUpdatedAt(): ?\DateTimeInterface { return $this->mechanicCheckupUpdatedAt; }
     public function getTravaux(): ?string { return $this->travaux; }
     public function setTravaux(?string $v): static { $this->travaux = $v; return $this; }
+    public function getMontantEstime(): ?string { return $this->montantEstime; }
+    public function setMontantEstime(?string $v): static { $this->montantEstime = $v; return $this; }
     public function getDemandeTravauxSupp(): ?DemandeTravauxSupp { return $this->demandeTravauxSupp; }
     public function setDemandeTravauxSupp(?DemandeTravauxSupp $v): static { $this->demandeTravauxSupp = $v; return $this; }
 

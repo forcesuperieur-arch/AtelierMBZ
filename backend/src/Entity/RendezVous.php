@@ -80,6 +80,15 @@ class RendezVous
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?string $prixFinal = null;
 
+    /**
+     * Snapshot des prestations réservées : liste de
+     * {designation, prix_ht, prix_ttc, duree}. Fige ce que le client a commandé
+     * (indicatif) pour le reporter dans l'OR. NULL = ancien RDV / aucune prestation.
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['rdv:read', 'rdv:write'])]
+    private ?array $prestationsSnapshot = null;
+
     #[ORM\Column(nullable: true)]
     #[Groups(['rdv:read', 'rdv:write'])]
     private ?int $tempsEstime = null;
@@ -251,6 +260,38 @@ class RendezVous
     public function setCommentaire(?string $commentaire): static { $this->commentaire = $commentaire; return $this; }
     public function getPrixEstime(): ?string { return $this->prixEstime; }
     public function setPrixEstime(?string $prixEstime): static { $this->prixEstime = $prixEstime; return $this; }
+    public function getPrestationsSnapshot(): ?array { return $this->prestationsSnapshot; }
+    public function setPrestationsSnapshot(?array $v): static { $this->prestationsSnapshot = $v; return $this; }
+
+    /**
+     * Normalise les prestations soumises (front) en snapshot + total indicatif.
+     * Prix effectif d'une ligne = TTC si > 0, sinon HT — corrige les prestations
+     * tarifées en HT seul (le TTC par défaut à 0.00 affichait 0 €).
+     *
+     * @param array<mixed> $input
+     * @return array{snapshot: list<array{designation:string,prix_ht:float,prix_ttc:float,duree:int}>, total: float}
+     */
+    public static function normalizePrestationsInput(array $input): array
+    {
+        $snapshot = [];
+        $total = 0.0;
+        foreach ($input as $p) {
+            if (!is_array($p)) {
+                continue;
+            }
+            $ht = (float) ($p['prix_ht'] ?? $p['prix_base_ht'] ?? 0);
+            $ttc = (float) ($p['prix_ttc'] ?? $p['prix_base_ttc'] ?? 0);
+            $eff = $ttc > 0 ? $ttc : $ht;
+            $total += $eff;
+            $snapshot[] = [
+                'designation' => (string) ($p['designation'] ?? $p['nom'] ?? 'Prestation'),
+                'prix_ht' => $ht,
+                'prix_ttc' => $ttc,
+                'duree' => (int) ($p['duree'] ?? $p['temps_estime_minutes'] ?? 0),
+            ];
+        }
+        return ['snapshot' => $snapshot, 'total' => $total];
+    }
     public function getPrixFinal(): ?string { return $this->prixFinal; }
     public function setPrixFinal(?string $prixFinal): static { $this->prixFinal = $prixFinal; return $this; }
     public function getTempsEstime(): ?int { return $this->tempsEstime; }

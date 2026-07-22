@@ -12,6 +12,22 @@
       <div v-if="rdv.vehicule?.marque || rdv.vehicule?.modele" class="detail-row"><span>Moto</span><span>{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
       <div v-if="rdv.vehicule?.plaque" class="detail-row"><span>Immatriculation</span><span>{{ rdv.vehicule?.plaque }}</span></div>
 
+      <!-- Prestations prévues (réservées) -->
+      <div v-if="rdv.prestations_snapshot?.length" class="detail-block" data-testid="rdv-prestations">
+        <div class="detail-label">Prestations prévues</div>
+        <ul class="prestation-list">
+          <li v-for="(p, i) in rdv.prestations_snapshot" :key="i">
+            <span>{{ p.designation }}</span>
+            <span class="prestation-prix">{{ formatEstimation(prestaPrice(p)) }}</span>
+          </li>
+        </ul>
+        <div v-if="rdv.prix_estime" class="demande-total">
+          <span>Total estimé</span>
+          <strong>{{ formatEstimation(rdv.prix_estime) }}</strong>
+        </div>
+        <p style="font-size:11px;color:#6B7280;margin-top:6px;">Montant indicatif (estimation), hors éventuels travaux supplémentaires.</p>
+      </div>
+
       <!-- Suivi en temps réel -->
       <div v-if="rdv.timeline?.length" class="detail-block" data-testid="rdv-timeline">
         <div class="detail-label">Suivi de votre moto</div>
@@ -292,6 +308,17 @@ const CARBURANT_LABELS: Record<string, string> = {
   moitie: '1/2',
   trois_quarts: '3/4',
   plein: 'Plein',
+}
+
+// Prix effectif d'une prestation réservée : TTC si > 0, sinon HT.
+function prestaPrice(p: any): number {
+  const ttc = Number(p?.prix_ttc ?? 0)
+  return ttc > 0 ? ttc : Number(p?.prix_ht ?? 0)
+}
+function formatEstimation(v: any): string {
+  const n = Number(v)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
 }
 
 function carburantLabel(niveau?: string | null): string {
