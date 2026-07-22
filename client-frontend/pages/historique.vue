@@ -7,8 +7,8 @@
     <div v-else style="display:flex;flex-direction:column;gap:10px;">
       <div v-for="item in items" :key="item.id" class="hist-card">
         <div class="hist-date">{{ formatDate(item.signed_at) }}</div>
-        <div class="hist-moto">{{ item.vehicule_info }}</div>
-        <div class="hist-total">{{ item.numero_or }}</div>
+        <div class="hist-moto">{{ item.vehicule_info || 'Véhicule non précisé' }}</div>
+        <div class="hist-total" v-if="item.numero_or">N° {{ item.numero_or }}</div>
       </div>
     </div>
   </div>

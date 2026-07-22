@@ -22,6 +22,10 @@
         <NuxtLink to="/historique" class="dash-link">Voir</NuxtLink>
       </div>
     </div>
+
+    <div v-if="loadError" style="margin-top:14px;font-size:13px;color:#FCA5A5;">
+      Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.
+    </div>
   </div>
 </template>
 
@@ -30,6 +34,7 @@ const auth = useAuthStore()
 
 const prochainRdvText = ref('—')
 const rdvsCount = ref(0)
+const loadError = ref(false)
 
 const { apiFetch } = useClientApi()
 
@@ -54,8 +59,10 @@ onMounted(async () => {
       prochainRdvText.value = 'Aucun'
     }
   } catch {
-    prochainRdvText.value = 'Aucun'
+    // Ne pas faire croire à « 0 RDV » quand l'API échoue : afficher une erreur.
+    prochainRdvText.value = '—'
     rdvsCount.value = 0
+    loadError.value = true
   }
 })
 </script>

@@ -3,24 +3,24 @@
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Mon profil</h1>
     <form @submit.prevent="save" class="profil-form">
       <div class="field">
-        <label>Prénom</label>
-        <input v-model="form.prenom" type="text" />
+        <label for="p-prenom">Prénom</label>
+        <input id="p-prenom" v-model="form.prenom" type="text" autocomplete="given-name" />
       </div>
       <div class="field">
-        <label>Nom</label>
-        <input v-model="form.nom" type="text" />
+        <label for="p-nom">Nom</label>
+        <input id="p-nom" v-model="form.nom" type="text" autocomplete="family-name" />
       </div>
       <div class="field">
-        <label>Email</label>
-        <input v-model="form.email" type="email" />
+        <label for="p-email">Email</label>
+        <input id="p-email" v-model="form.email" type="email" autocomplete="email" />
       </div>
       <div class="field">
-        <label>Téléphone</label>
-        <input v-model="form.telephone" type="tel" />
+        <label for="p-tel">Téléphone</label>
+        <input id="p-tel" v-model="form.telephone" type="tel" autocomplete="tel" />
       </div>
       <div class="field">
-        <label>Adresse</label>
-        <textarea v-model="form.adresse" rows="3"></textarea>
+        <label for="p-adresse">Adresse</label>
+        <textarea id="p-adresse" v-model="form.adresse" rows="3"></textarea>
       </div>
       <button type="submit" class="save-btn" :disabled="saving">
         {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
@@ -58,6 +58,7 @@ onMounted(async () => {
 })
 
 async function save() {
+  if (saving.value) return // garde anti-double-soumission (le :disabled n'agit qu'au tick suivant)
   saving.value = true
   message.value = ''
   try {

@@ -83,7 +83,7 @@ const auth = useAuthStore()
   position: relative;
   color: #9CA3AF;
   text-decoration: none;
-  padding: 4px 0;
+  padding: 10px 4px;
   font-weight: 500;
   transition: color 0.18s;
 }
@@ -126,5 +126,24 @@ const auth = useAuthStore()
   max-width: 960px;
   margin: 0 auto;
   padding: 28px 24px 56px;
+}
+
+/* Mobile : un client consulte surtout son RDV sur téléphone. */
+@media (max-width: 640px) {
+  .client-nav {
+    padding: 12px 16px;
+    align-items: flex-start;
+  }
+  .nav-links {
+    margin-left: 0;
+    width: 100%;
+    gap: 4px 16px;
+  }
+  .brand-text {
+    font-size: 17px;
+  }
+  .client-main {
+    padding: 20px 16px 48px;
+  }
 }
 </style>
