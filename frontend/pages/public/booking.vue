@@ -171,7 +171,7 @@
               <div style="font-size:12px;color:#6B7280;">{{ p.description || p.categorie || '' }}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:14px;font-weight:700;color:#FFD200;">{{ formatPrice(p.prix_base_ttc ?? p.prix_base_ht) }}</div>
+              <div style="font-size:14px;font-weight:700;color:#FFD200;">{{ formatPrice(prestaPrice(p)) }}</div>
               <div style="font-size:11px;color:#6B7280;">{{ formatMinutes(p.temps_estime_minutes ?? 60) }}</div>
             </div>
           </button>
@@ -183,7 +183,7 @@
           <div style="font-size:13px;font-weight:700;color:#9CA3AF;margin-bottom:8px;">RÉCAPITULATIF</div>
           <div v-for="p in selectedPrestaItems" :key="p.id" style="display:flex;justify-content:space-between;font-size:13px;color:#D1D5DB;padding:4px 0;">
             <span>{{ p.nom }}</span>
-            <span style="font-weight:600;">{{ formatPrice(p.prix_base_ttc ?? p.prix_base_ht) }}</span>
+            <span style="font-weight:600;">{{ formatPrice(prestaPrice(p)) }}</span>
           </div>
           <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:14px;font-weight:700;">
             <span style="color:#E8E9ED;">Total estimé</span>
@@ -463,7 +463,7 @@ const canStep2 = computed(() => vehicleMissingFields.value.length === 0)
 const canConfirm = computed(() => canStep2.value && selectedPrestas.value.length > 0 && !!form.date_rdv && !!form.heure_debut && clientMissingFields.value.length === 0)
 
 const selectedPrestaItems = computed(() => prestations.value.filter(p => selectedPrestas.value.includes(p.id)))
-const totalEstime = computed(() => selectedPrestaItems.value.reduce((s, p) => s + asNumber(p.prix_base_ttc ?? p.prix_base_ht), 0))
+const totalEstime = computed(() => selectedPrestaItems.value.reduce((s, p) => s + prestaPrice(p), 0))
 const dureeEstimee = computed(() => selectedPrestaItems.value.reduce((s, p) => s + asNumber(p.temps_estime_minutes ?? 60), 0) || form.duree_estimee)
 const selectedSlotMeta = computed(() => (creneauxByDate.value[form.date_rdv] || []).find(c => c.heure === form.heure_debut) || null)
 
@@ -769,6 +769,15 @@ function normalizePrestation(p: any) {
   }
 }
 
+/**
+ * Prix effectif d'une prestation : TTC si renseigné (> 0), sinon HT.
+ * Corrige le cas d'une prestation tarifée en HT seul (TTC laissé à 0 → affichait 0 €).
+ */
+function prestaPrice(p: any): number {
+  const ttc = asNumber(p?.prix_base_ttc ?? p?.prixBaseTtc)
+  return ttc > 0 ? ttc : asNumber(p?.prix_base_ht ?? p?.prixBaseHt)
+}
+
 async function loadPrestations() {
   loadingPrestas.value = true
   try {
@@ -950,6 +959,12 @@ async function confirmBooking() {
         duree_estimee: dureeEstimee.value,
         pont_id: form.pont_id,
         mecanicien_id: form.mecanicien_id,
+        prestations: selectedPrestaItems.value.map(p => ({
+          designation: p.nom,
+          prix_ht: p.prix_base_ht,
+          prix_ttc: p.prix_base_ttc,
+          duree: p.temps_estime_minutes,
+        })),
       }),
     })
     const data = await res.json().catch(() => ({}))

@@ -270,7 +270,16 @@ class PublicBookingController extends AbstractController
         $rdv->setTypeIntervention($data['type_intervention']);
         $rdv->setCommentaire($data['commentaire'] ?? null);
         $rdv->setTempsEstime($tempsEstime);
-        $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
+        // Prestations réservées : figer le snapshot + RECALCULER le total serveur
+        // (le prix_estime du client n'est plus la source de vérité — anti-falsification).
+        $prestationsInput = $data['prestations'] ?? null;
+        if (is_array($prestationsInput) && $prestationsInput !== []) {
+            $norm = RendezVous::normalizePrestationsInput($prestationsInput);
+            $rdv->setPrestationsSnapshot($norm['snapshot']);
+            $rdv->setPrixEstime(number_format($norm['total'], 2, '.', ''));
+        } else {
+            $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
+        }
         $rdv->setStatut('en_attente');
         $rdv->setAtelierId($atelierId);
         $rdv->setOrigine('web'); // KPI pilote : réservation en ligne

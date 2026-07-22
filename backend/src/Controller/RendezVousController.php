@@ -95,7 +95,18 @@ class RendezVousController extends AbstractController
         $rdv->setTypeIntervention($data['type_intervention'] ?? 'entretien');
         $rdv->setCommentaire($data['description_probleme'] ?? $data['commentaire'] ?? null);
         $rdv->setTempsEstime(!empty($data['duree_estimee']) ? (int) $data['duree_estimee'] : (!empty($data['temps_estime']) ? (int) $data['temps_estime'] : null));
-        $rdv->setPrixEstime($data['prix_estime'] ?? null);
+        // Prestations : si le front transmet la liste détaillée, on la fige
+        // (snapshot) et on RECALCULE le total côté serveur (source de vérité,
+        // corrige un total falsifiable / le bug d'affichage HT-seul). Sinon on
+        // retombe sur le prix_estime fourni (rétrocompat).
+        $prestationsInput = $data['prestations'] ?? null;
+        if (is_array($prestationsInput) && $prestationsInput !== []) {
+            $norm = RendezVous::normalizePrestationsInput($prestationsInput);
+            $rdv->setPrestationsSnapshot($norm['snapshot']);
+            $rdv->setPrixEstime(number_format($norm['total'], 2, '.', ''));
+        } else {
+            $rdv->setPrixEstime(isset($data['prix_estime']) ? (string) $data['prix_estime'] : null);
+        }
 
         // KPI pilote — origine du RDV côté staff : validée contre la liste
         // fermée, défaut 'comptoir' (toute valeur inattendue est ignorée).
@@ -588,6 +599,8 @@ class RendezVousController extends AbstractController
             'type_intervention' => $r->getTypeIntervention(),
             'statut' => $r->getStatut(),
             'status' => $r->getStatut(),
+            'prix_estime' => $r->getPrixEstime(),
+            'prestations_snapshot' => $r->getPrestationsSnapshot(),
             'commentaire' => $r->getCommentaire(),
             'commentaire_client' => $r->getCommentaire(),
             'description_probleme' => $r->getCommentaire(),

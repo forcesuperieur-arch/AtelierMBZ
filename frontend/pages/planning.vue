@@ -345,7 +345,7 @@
                   <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
                   <div>
                     <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
-                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(presta.prix_base_ttc ?? presta.prix_base_ht) }} · {{ formatMinutes(presta.temps_estime_minutes || 60) }}</div>
+                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(prestaPrice(presta)) }} · {{ formatMinutes(presta.temps_estime_minutes || 60) }}</div>
                   </div>
                 </label>
               </div>
@@ -485,6 +485,8 @@
               <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
               <div><span style="color:#6B7280;">Durée :</span> <span style="color:#D1D5DB;">{{ formatMinutes(selectedRdv.temps_estime ?? selectedRdv.duree_estimee) }}</span></div>
               <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.type_intervention || '—' }}</span></div>
+              <div v-if="selectedRdv.prix_estime"><span style="color:#6B7280;">Total estimé :</span> <span style="color:#FFD200;font-weight:700;">{{ formatCurrency(selectedRdv.prix_estime) }}</span> <span style="color:#6B7280;font-size:11px;">(indicatif)</span></div>
+              <div v-if="selectedRdv.prestations_snapshot?.length" style="grid-column:1 / -1;"><span style="color:#6B7280;">Prestations :</span> <span style="color:#D1D5DB;">{{ selectedRdv.prestations_snapshot.map((p) => p.designation).join(', ') }}</span></div>
             </div>
 
             <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
@@ -1078,7 +1080,13 @@ const filteredQuickPrestations = computed(() => {
 })
 
 const quickSelectedPrestations = computed(() => filteredQuickPrestations.value.filter((presta: any) => quickSelectedPrestas.value.includes(Number(presta.id))))
-const quickEstimateTotal = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.prix_base_ttc ?? presta.prix_base_ht), 0))
+// Prix effectif d'une prestation : TTC si renseigné (> 0), sinon HT.
+// Corrige les prestations tarifées en HT seul (TTC à 0 → affichait 0 €).
+function prestaPrice(p: any): number {
+  const ttc = toNumber(p?.prix_base_ttc)
+  return ttc > 0 ? ttc : toNumber(p?.prix_base_ht)
+}
+const quickEstimateTotal = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + prestaPrice(presta), 0))
 const quickEstimateDuration = computed(() => quickSelectedPrestations.value.reduce((sum: number, presta: any) => sum + toNumber(presta.temps_estime_minutes, 60), 0) || 60)
 const quickEstimatedEnd = computed(() => addMinutesToTime(quickForm.heure_debut, quickEstimateDuration.value || 60))
 const quickAssignedMecanicienLabel = computed(() => quickForm.pont_id ? getPontMecanicienLabel(quickForm.pont_id) : 'Affectation via le pont')
@@ -1735,6 +1743,12 @@ async function submitQuickCreate() {
       duree_estimee: quickEstimateDuration.value,
       temps_estime: quickEstimateDuration.value,
       prix_estime: quickEstimateTotal.value || null,
+      prestations: quickSelectedPrestations.value.map((p: any) => ({
+        designation: p.nom,
+        prix_ht: p.prix_base_ht,
+        prix_ttc: p.prix_base_ttc,
+        duree: p.temps_estime_minutes,
+      })),
       mecanicien_id: resolvedMecanicienId,
       pont_id: resolvedPontId,
       commandes: quickForm.commandes,

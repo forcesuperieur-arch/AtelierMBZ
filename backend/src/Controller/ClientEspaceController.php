@@ -162,6 +162,8 @@ class ClientEspaceController extends AbstractController
             'date_heure' => (new \DateTime($rdv->getDateRdv()->format('Y-m-d') . ' ' . $rdv->getHeureRdv()->format('H:i:s')))->format('c'),
             'statut' => $rdv->getStatut(),
             'type_intervention' => $rdv->getTypeIntervention(),
+            'prestations_snapshot' => $rdv->getPrestationsSnapshot(),
+            'prix_estime' => $rdv->getPrixEstime(),
             'commentaire' => $rdv->getCommentaire(),
             'vehicule' => $rdv->getVehicule() ? [
                 'id' => $rdv->getVehicule()->getId(),
@@ -176,6 +178,7 @@ class ClientEspaceController extends AbstractController
                 'numero_or' => $o->getNumeroOr(),
                 'type_or' => $o->getTypeOr(),
                 'travaux' => $o->getTravaux(),
+                'montant_estime' => $o->getMontantEstime(),
                 'statut' => $o->getStatut(),
                 // Le PDF (archive immuable) est exposé au client dès que l'OR est
                 // scellé à la restitution (final_hash présent) — même gate que
