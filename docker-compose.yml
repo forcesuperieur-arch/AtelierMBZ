@@ -39,6 +39,15 @@ services:
       MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
       # Adresse d'expéditeur des emails (doit correspondre au domaine autorisé par le SMTP)
       MAILER_FROM: ${MAILER_FROM:-noreply@paddock.fr}
+      SMS_PROVIDER: ${SMS_PROVIDER:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+      OVH_SMS_APP_KEY: ${OVH_SMS_APP_KEY:-}
+      OVH_SMS_APP_SECRET: ${OVH_SMS_APP_SECRET:-}
+      OVH_SMS_CONSUMER_KEY: ${OVH_SMS_CONSUMER_KEY:-}
+      OVH_SMS_SERVICE_NAME: ${OVH_SMS_SERVICE_NAME:-}
+      OVH_SMS_SENDER: ${OVH_SMS_SENDER:-}
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default}
       MERCURE_URL: ${MERCURE_URL:-http://mercure:3000/.well-known/mercure}
       MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:-/.well-known/mercure}
@@ -81,6 +90,15 @@ services:
       APP_SECRET: ${APP_SECRET:?APP_SECRET must be set in .env or environment}
       MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
       MAILER_FROM: ${MAILER_FROM:-noreply@paddock.fr}
+      SMS_PROVIDER: ${SMS_PROVIDER:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+      OVH_SMS_APP_KEY: ${OVH_SMS_APP_KEY:-}
+      OVH_SMS_APP_SECRET: ${OVH_SMS_APP_SECRET:-}
+      OVH_SMS_CONSUMER_KEY: ${OVH_SMS_CONSUMER_KEY:-}
+      OVH_SMS_SERVICE_NAME: ${OVH_SMS_SERVICE_NAME:-}
+      OVH_SMS_SENDER: ${OVH_SMS_SENDER:-}
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default}
     volumes:
       - ./backend:/app

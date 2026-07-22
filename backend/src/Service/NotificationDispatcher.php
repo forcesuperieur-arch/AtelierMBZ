@@ -42,6 +42,21 @@ class NotificationDispatcher
                 return $result;
             }
 
+            // SMS sans fournisseur en base : repli sur la configuration d'env
+            // (SMS_PROVIDER + identifiants), symétrique de l'e-mail. La tentative
+            // est TRACÉE dans notification_logs (plus de silence trompeur).
+            if ($msg->getChannel() === 'sms') {
+                $result = $this->sendSmsViaEnv($msg);
+                $this->logAttempt($msg, 'sms_env', $result);
+                if (!$result->isSuccess()) {
+                    $this->logger->warning('SMS non envoyé (aucun fournisseur en base ni SMS_PROVIDER en env) pour atelier {atelier}', [
+                        'atelier' => $msg->getAtelierId(),
+                        'error' => $result->getErrorMessage(),
+                    ]);
+                }
+                return $result;
+            }
+
             $this->logger->warning('No active providers for channel {channel} atelier {atelier}', [
                 'channel' => $msg->getChannel(),
                 'atelier' => $msg->getAtelierId(),
@@ -178,6 +193,59 @@ class NotificationDispatcher
         return NotificationResult::ok('log_sms', $messageId);
     }
 
+    /**
+     * Repli SMS depuis les variables d'environnement (aucune fiche fournisseur
+     * en base). SMS_PROVIDER = twilio | ovh | log_sms ; identifiants dédiés.
+     */
+    private function sendSmsViaEnv(NotificationMessage $msg): NotificationResult
+    {
+        $provider = trim((string) ($_ENV['SMS_PROVIDER'] ?? ''));
+        if ($provider === '') {
+            return NotificationResult::fail('sms', 'Aucun fournisseur SMS configuré (SMS_PROVIDER absent)');
+        }
+
+        $credentials = match ($provider) {
+            'twilio' => [
+                'account_sid' => (string) ($_ENV['TWILIO_ACCOUNT_SID'] ?? ''),
+                'auth_token' => (string) ($_ENV['TWILIO_AUTH_TOKEN'] ?? ''),
+                'from' => (string) ($_ENV['TWILIO_FROM'] ?? ''),
+            ],
+            'ovh' => [
+                'app_key' => (string) ($_ENV['OVH_SMS_APP_KEY'] ?? ''),
+                'app_secret' => (string) ($_ENV['OVH_SMS_APP_SECRET'] ?? ''),
+                'consumer_key' => (string) ($_ENV['OVH_SMS_CONSUMER_KEY'] ?? ''),
+                'service_name' => (string) ($_ENV['OVH_SMS_SERVICE_NAME'] ?? ''),
+                'sender' => (string) ($_ENV['OVH_SMS_SENDER'] ?? ''),
+            ],
+            default => [],
+        };
+
+        return $this->sendSms($msg, $provider, $credentials);
+    }
+
+    /**
+     * Normalise un numéro (français par défaut) en E.164 pour les passerelles SMS.
+     * 06/07… → +33… ; 0033… → +33… ; un numéro déjà en +… est conservé.
+     * Sans ça, Twilio/OVH rejettent les 06/07 français stockés bruts.
+     */
+    private function normalizePhone(string $phone): string
+    {
+        $p = preg_replace('/[\s.\-()]/', '', $phone) ?? '';
+        if ($p === '') {
+            return $phone;
+        }
+        if (str_starts_with($p, '+')) {
+            return $p;
+        }
+        if (str_starts_with($p, '00')) {
+            return '+' . substr($p, 2);
+        }
+        if (str_starts_with($p, '0') && strlen($p) === 10) {
+            return '+33' . substr($p, 1);
+        }
+        return $p;
+    }
+
     private function sendSmsTwilio(NotificationMessage $msg, array $credentials): NotificationResult
     {
         $accountSid = $credentials['account_sid'] ?? '';
@@ -202,7 +270,7 @@ class NotificationDispatcher
                 CURLOPT_USERPWD => "{$accountSid}:{$authToken}",
                 CURLOPT_POSTFIELDS => http_build_query([
                     'From' => $from,
-                    'To' => $msg->getRecipient(),
+                    'To' => $this->normalizePhone($msg->getRecipient()),
                     'Body' => $msg->getBody(),
                 ]),
                 CURLOPT_TIMEOUT => 15,
@@ -239,7 +307,7 @@ class NotificationDispatcher
             $url = "https://eu.api.ovh.com/1.0/sms/{$serviceName}/jobs";
             $body = json_encode([
                 'message' => $msg->getBody(),
-                'receivers' => [$msg->getRecipient()],
+                'receivers' => [$this->normalizePhone($msg->getRecipient())],
                 'sender' => $sender ?: $serviceName,
                 'noStopClause' => false,
             ]);
