@@ -8,9 +8,9 @@
       <div v-for="moto in motos" :key="moto.id" class="moto-card">
         <div class="moto-name">{{ moto.marque }} {{ moto.modele }}</div>
         <div class="moto-meta">
-          <span>{{ moto.plaque }}</span>
-          <span>{{ moto.annee }}</span>
-          <span>{{ moto.kilometrage }} km</span>
+          <span v-if="moto.plaque">{{ moto.plaque }}</span>
+          <span v-if="moto.annee">{{ moto.annee }}</span>
+          <span v-if="moto.kilometrage != null">{{ moto.kilometrage }} km</span>
         </div>
       </div>
     </div>

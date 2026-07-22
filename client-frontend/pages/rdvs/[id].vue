@@ -4,7 +4,8 @@
     <h1 style="font-size:20px;font-weight:800;margin:12px 0 16px;">Détail du rendez-vous</h1>
 
     <div v-if="pending" style="color:#9CA3AF">Chargement…</div>
-    <div v-else-if="!rdv" style="color:#FCA5A5">Rendez-vous introuvable.</div>
+    <div v-else-if="!rdv && rdvNotFound" style="color:#FCA5A5">Rendez-vous introuvable.</div>
+    <div v-else-if="!rdv" style="color:#FCA5A5">Impossible de charger le rendez-vous pour le moment. Réessayez plus tard.</div>
     <div v-else class="rdv-detail">
       <div class="detail-row"><span>Date</span><span>{{ formatDate(rdv.date_heure) }}</span></div>
       <div class="detail-row"><span>Statut</span><span class="rdv-status-badge" :class="statusClass(rdv.statut)">{{ rdvStatutLabel(rdv.statut) }}</span></div>
@@ -25,7 +26,7 @@
           <span>Total estimé</span>
           <strong>{{ formatEstimation(rdv.prix_estime) }}</strong>
         </div>
-        <p style="font-size:11px;color:#6B7280;margin-top:6px;">Montant indicatif (estimation), hors éventuels travaux supplémentaires.</p>
+        <p style="font-size:11px;color:#9CA3AF;margin-top:6px;">Montant indicatif (estimation), hors éventuels travaux supplémentaires.</p>
       </div>
 
       <!-- Suivi en temps réel -->
@@ -192,15 +193,14 @@ const signatureDemande = ref<any>(null)
 const decisionLoading = ref(false)
 const decisionError = ref('')
 
-const { data: rdv, pending, refresh } = useAsyncData(
+const { data: rdv, pending, refresh, error } = useAsyncData(
   `client-rdv-${route.params.id}`,
   async () => {
     if (!auth.isAuthenticated) return null
-    try {
-      return await apiFetch(`/api/client/rdvs/${route.params.id}`)
-    } catch {
-      return null
-    }
+    // On laisse l'erreur REMONTER : useAsyncData conserve alors la dernière
+    // valeur de `rdv` au lieu de l'écraser à null. Avant, un simple hoquet
+    // réseau pendant le polling (30 s) faisait passer la fiche à « introuvable ».
+    return await apiFetch(`/api/client/rdvs/${route.params.id}`)
   },
   // La clé de useAsyncData doit être une string (≠ useFetch). Pour recharger la
   // bonne fiche quand on navigue d'un RDV à un autre sans changer de route nommée
@@ -208,6 +208,13 @@ const { data: rdv, pending, refresh } = useAsyncData(
   // handler relit route.params.id à chaque déclenchement.
   { watch: [() => route.params.id] },
 )
+
+// Vrai « introuvable » (404) vs erreur temporaire (réseau/500) : ne pas afficher
+// « introuvable » sur un simple incident réseau.
+const rdvNotFound = computed(() => {
+  const s = (error.value as any)?.statusCode ?? (error.value as any)?.response?.status
+  return s === 404
+})
 
 // Suivi quasi temps réel : Mercure n'est volontairement pas exposé au public
 // (décision sécurité), le portail rafraîchit donc par polling.

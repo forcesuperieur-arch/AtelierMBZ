@@ -35,6 +35,11 @@ async function refreshSession(): Promise<boolean> {
 }
 
 export function useClientApi() {
+  // Capturé dans le contexte de setup (le composable est appelé en setup) :
+  // appeler useRoute() dans un callback async lève un avertissement Nuxt
+  // et peut viser la mauvaise instance de route.
+  const route = useRoute()
+
   async function apiFetch<T = any>(path: string, options: Record<string, any> = {}): Promise<T> {
     const doFetch = () => $fetch<T>(path, {
       credentials: 'include',
@@ -52,8 +57,7 @@ export function useClientApi() {
       if (!refreshed) {
         const auth = useAuthStore()
         auth.clearSession()
-        const path = useRoute().path
-        if (!CLIENT_PUBLIC_PATHS.includes(path)) {
+        if (!CLIENT_PUBLIC_PATHS.includes(route.path)) {
           await navigateTo('/login')
         }
         throw error
