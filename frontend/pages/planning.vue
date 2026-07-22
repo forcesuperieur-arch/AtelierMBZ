@@ -51,29 +51,104 @@
         </div>
       </div>
 
-      <div v-if="mecaniciens.length" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:#6B7280;">Mécaniciens :</span>
-        <button
-          v-for="m in mecaniciens"
-          :key="m.id"
-          style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
-          :style="{
-            background: activeMecas.includes(m.id) ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.03)',
-            border: activeMecas.includes(m.id) ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
-            color: activeMecas.includes(m.id) ? '#C4B5FD' : '#6B7280',
-          }"
-          @click="toggleMeca(m.id)"
-        >
-          <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: m.couleur || '#8B5CF6' }"></span>
-          {{ m.prenom }} {{ m.nom?.charAt(0) }}.
-        </button>
-        <button
-          v-if="activeMecas.length"
-          style="padding:5px 10px;border-radius:20px;font-size:11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:#6B7280;cursor:pointer;"
-          @click="activeMecas = []"
-        >
-          ✕ Tous
-        </button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+        <!-- Recherche + résumé + réinitialisation -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:220px;max-width:420px;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6B7280;font-size:13px;pointer-events:none;">🔍</span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="form-input"
+              placeholder="Rechercher : client, plaque, type, mécanicien…"
+              style="padding-left:30px;font-size:12px;"
+            />
+            <button
+              v-if="searchQuery"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#9CA3AF;font-size:14px;cursor:pointer;"
+              title="Effacer la recherche"
+              @click="searchQuery = ''"
+            >✕</button>
+          </div>
+          <span style="font-size:12px;color:#9CA3AF;">
+            <strong style="color:#E8E9ED;">{{ filterSummary.shown }}</strong> affichés<template v-if="filterSummary.hidden"> · <span style="color:#FBBF24;">{{ filterSummary.hidden }} masqués</span></template>
+          </span>
+          <button
+            v-if="hasActiveFilters"
+            style="margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,210,0,0.10);border:1px solid rgba(255,210,0,0.3);color:#FFD200;cursor:pointer;"
+            @click="resetFilters"
+          >
+            ✕ Réinitialiser les filtres
+          </button>
+        </div>
+
+        <!-- Filtre par statut -->
+        <div v-if="availableStatuts.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Statut :</span>
+          <button
+            v-for="s in availableStatuts"
+            :key="`statut-${s.code}`"
+            style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+            :style="{
+              background: activeStatuts.includes(s.code) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
+              border: activeStatuts.includes(s.code) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
+              color: activeStatuts.includes(s.code) ? '#FFD200' : '#6B7280',
+            }"
+            @click="toggleStatut(s.code)"
+          >
+            {{ s.label }} <span style="opacity:.6;">{{ s.count }}</span>
+          </button>
+        </div>
+
+        <!-- Filtre par mécanicien + non-affectés -->
+        <div v-if="mecaniciens.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Mécaniciens :</span>
+          <button
+            v-for="m in mecaniciens"
+            :key="m.id"
+            style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+            :style="{
+              background: activeMecas.includes(m.id) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
+              border: activeMecas.includes(m.id) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
+              color: activeMecas.includes(m.id) ? '#FFD200' : '#6B7280',
+            }"
+            @click="toggleMeca(m.id)"
+          >
+            <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: m.couleur || '#8B5CF6' }"></span>
+            {{ m.prenom }} {{ m.nom?.charAt(0) }}.
+          </button>
+          <button
+            v-if="unassignedCount"
+            style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+            :style="{
+              background: showUnassigned ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
+              border: showUnassigned ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
+              color: showUnassigned ? '#FFD200' : '#6B7280',
+            }"
+            :title="showUnassigned ? 'Masquer les RDV non affectés' : 'Afficher les RDV non affectés'"
+            @click="showUnassigned = !showUnassigned"
+          >
+            {{ showUnassigned ? '☑' : '☐' }} Non affectés <span style="opacity:.6;">{{ unassignedCount }}</span>
+          </button>
+        </div>
+
+        <!-- Filtre par pont -->
+        <div v-if="ponts.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Ponts :</span>
+          <button
+            v-for="p in ponts"
+            :key="`pont-${p.id}`"
+            style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+            :style="{
+              background: activePonts.includes(p.id) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
+              border: activePonts.includes(p.id) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
+              color: activePonts.includes(p.id) ? '#FFD200' : '#6B7280',
+            }"
+            @click="togglePont(p.id)"
+          >
+            {{ p.nom }}
+          </button>
+        </div>
       </div>
 
       <PlanningGrid
@@ -758,6 +833,22 @@ const mecaniciens = ref<any[]>([])
 const horaires = ref<any[]>([])
 const prestations = ref<any[]>([])
 const activeMecas = ref<number[]>([])
+// Filtres planning (persistés en localStorage, cf. loadFilters/watch plus bas)
+const activeStatuts = ref<string[]>([])
+const activePonts = ref<number[]>([])
+const showUnassigned = ref(true)
+const searchQuery = ref('')
+const FILTERS_STORAGE_KEY = 'paddock:planning-filters'
+// Libellés + ordre d'affichage des statuts actifs (les statuts historiques
+// vivent dans « Historique figé », pas dans les filtres).
+const STATUT_FILTER_LABELS: Record<string, string> = {
+  en_attente: 'En attente',
+  reserve: 'Réservé',
+  confirme: 'Confirmé',
+  reception: 'Réception',
+  en_cours: 'En cours',
+  gardiennage: 'Gardiennage',
+}
 const availableTransitions = ref<Array<{ name: string; label: string; color: string }>>([])
 
 const showRdvModal = ref(false)
@@ -1094,11 +1185,122 @@ function isHistoricalStatus(status?: string) {
 
 const normalizedRdvs = computed(() => rawRdvs.value.map(normalizeRdv).filter(Boolean))
 
+// Tous les RDV actifs (non historisés), avant application des filtres.
+const activeRdvsUnfiltered = computed(() =>
+  normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status)),
+)
+
+function matchesSearch(rdv: any, q: string): boolean {
+  const haystack = [
+    rdv.client_nom,
+    rdv.vehicule_info,
+    rdv.vehicule_plaque ?? rdv.vehicule?.plaque,
+    rdv.type_intervention,
+    rdv.mecanicien_nom,
+  ].filter(Boolean).join(' ').toLowerCase()
+  return haystack.includes(q)
+}
+
 const activePlanningRdvs = computed(() => {
-  const active = normalizedRdvs.value.filter((rdv: any) => !isHistoricalStatus(rdv.status))
-  if (!activeMecas.value.length) return active
-  return active.filter((rdv: any) => !rdv.mecanicien_id || activeMecas.value.includes(rdv.mecanicien_id))
+  const q = searchQuery.value.trim().toLowerCase()
+  return activeRdvsUnfiltered.value.filter((rdv: any) => {
+    // Recherche texte (client / véhicule / plaque / type / mécano)
+    if (q && !matchesSearch(rdv, q)) return false
+    // Filtre par statut
+    if (activeStatuts.value.length && !activeStatuts.value.includes(rdv.status)) return false
+    // Filtre par pont (exclut les RDV sans pont quand un pont est sélectionné)
+    if (activePonts.value.length && (!rdv.pont_id || !activePonts.value.includes(rdv.pont_id))) return false
+    // Affectation : un RDV sans mécanicien n'apparaît que si « non-affectés » est actif ;
+    // un RDV affecté est restreint aux mécaniciens sélectionnés (le cas échéant).
+    if (!rdv.mecanicien_id) return showUnassigned.value
+    if (activeMecas.value.length && !activeMecas.value.includes(rdv.mecanicien_id)) return false
+    return true
+  })
 })
+
+// Chips de statut disponibles = statuts réellement présents parmi les RDV actifs,
+// dans l'ordre de STATUT_FILTER_LABELS, avec leur décompte.
+const availableStatuts = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const rdv of activeRdvsUnfiltered.value) {
+    const s = String(rdv.status || '')
+    counts[s] = (counts[s] || 0) + 1
+  }
+  const known = Object.keys(STATUT_FILTER_LABELS).filter((code) => counts[code])
+  const unknown = Object.keys(counts).filter((code) => code && !(code in STATUT_FILTER_LABELS))
+  return [...known, ...unknown].map((code) => ({
+    code,
+    label: STATUT_FILTER_LABELS[code] || code,
+    count: counts[code],
+  }))
+})
+
+// Nombre de RDV actifs sans mécanicien affecté (pour le bouton « non-affectés »).
+const unassignedCount = computed(() =>
+  activeRdvsUnfiltered.value.filter((rdv: any) => !rdv.mecanicien_id).length,
+)
+
+const hasActiveFilters = computed(() =>
+  !!searchQuery.value.trim() ||
+  activeStatuts.value.length > 0 ||
+  activePonts.value.length > 0 ||
+  activeMecas.value.length > 0 ||
+  !showUnassigned.value,
+)
+
+// Compteur « X affichés / Y masqués » sous la barre de filtres.
+const filterSummary = computed(() => {
+  const total = activeRdvsUnfiltered.value.length
+  const shown = activePlanningRdvs.value.length
+  return { total, shown, hidden: Math.max(0, total - shown) }
+})
+
+function toggleStatut(code: string) {
+  const idx = activeStatuts.value.indexOf(code)
+  if (idx >= 0) activeStatuts.value.splice(idx, 1)
+  else activeStatuts.value.push(code)
+}
+
+function togglePont(id: number) {
+  const idx = activePonts.value.indexOf(id)
+  if (idx >= 0) activePonts.value.splice(idx, 1)
+  else activePonts.value.push(id)
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  activeStatuts.value = []
+  activePonts.value = []
+  activeMecas.value = []
+  showUnassigned.value = true
+}
+
+// --- Persistance des filtres (localStorage) ---
+function loadFilters() {
+  if (typeof window === 'undefined') return
+  try {
+    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+    if (Array.isArray(saved.statuts)) activeStatuts.value = saved.statuts
+    if (Array.isArray(saved.ponts)) activePonts.value = saved.ponts.map(Number)
+    if (Array.isArray(saved.mecas)) activeMecas.value = saved.mecas.map(Number)
+    if (typeof saved.showUnassigned === 'boolean') showUnassigned.value = saved.showUnassigned
+    // La recherche texte n'est volontairement PAS restaurée (état éphémère).
+  } catch { /* stockage illisible : on garde les filtres par défaut */ }
+}
+
+watch([activeStatuts, activePonts, activeMecas, showUnassigned], () => {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
+      statuts: activeStatuts.value,
+      ponts: activePonts.value,
+      mecas: activeMecas.value,
+      showUnassigned: showUnassigned.value,
+    }))
+  } catch { /* quota/refus : filtres non persistés, sans impact fonctionnel */ }
+}, { deep: true })
 
 const historicalRdvs = computed(() => {
   const all = normalizedRdvs.value.filter((rdv: any) => isHistoricalStatus(rdv.status))
@@ -1797,6 +1999,7 @@ watch(isReceptionEligible, (eligible) => {
 
 onMounted(async () => {
   try {
+    loadFilters()
     await loadPlanningData()
     consumeWorkshopQuickCreateQuery()
   } finally {
