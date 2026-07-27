@@ -1,0 +1,160 @@
+{#
+  Socle commun à tous les PDF de l'atelier.
+
+  Contraintes dompdf respectées ici, à ne pas casser dans les templates enfants :
+    - pas de flexbox ni de grid : dompdf les ignore silencieusement,
+      la mise en page part alors en colonne. On utilise <table> / display:table.
+    - pas de `float` porteur de mise en page : le rendu déborde selon la hauteur
+      du contenu précédent. Les colonnes passent par des tableaux.
+    - une bordure posée sur <tr> n'est jamais peinte : toujours cibler <td>.
+    - pas d'object-fit : dompdf déforme l'image. On contraint via max-height.
+    - pas d'emoji : la police DejaVu Sans n'a pas ces glyphes et affiche des
+      carrés vides (« tofu ») sur le document remis au client.
+    - @page porte les marges : `body { margin }` n'est appliqué qu'à la
+      première page, les suivantes collent au bord de la feuille.
+#}
+{% set accent = accent|default('#2563eb') %}
+{% set accent_soft = accent_soft|default('#eff6ff') %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ doc_title|default('Document') }}</title>
+    <style>
+        @page { margin: 14mm 13mm 18mm 13mm; }
+
+        body {
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        p { margin: 0 0 6px; }
+        strong { font-weight: bold; }
+
+        /* ---------- En-tête ---------- */
+        .doc-header { border-bottom: 2px solid {{ accent }}; padding-bottom: 6px; margin-bottom: 10px; }
+        .doc-header-custom { margin-bottom: 10px; }
+        .doc-header-table { width: 100%; border-collapse: collapse; }
+        .doc-header-table td { vertical-align: top; padding: 0; }
+        .doc-header-left { width: 55%; }
+        .doc-header-right { width: 45%; text-align: right; }
+        .doc-title { color: {{ accent }}; margin: 0 0 2px; font-size: 17px; font-weight: bold; letter-spacing: 0.2px; }
+        .doc-ref { font-size: 11px; margin: 0 0 2px; }
+        .logo { max-width: 118px; max-height: 54px; margin-bottom: 6px; }
+        .atelier-meta { font-size: 9px; color: #4b5563; line-height: 1.45; }
+        .atelier-name { font-size: 11px; color: #111827; }
+
+        /* ---------- Blocs de section ---------- */
+        /* Rythme vertical volontairement serré : un volet d'OR complet
+           (infos + prestations + photos + signatures) doit tenir sur une page,
+           sinon le bloc signatures bascule seul sur une feuille vide. */
+        .section { margin-bottom: 9px; }
+        .section-tight { margin-bottom: 6px; }
+        .no-break { page-break-inside: avoid; }
+        .break-before { page-break-before: always; }
+        .section-title {
+            font-size: 11.5px; font-weight: bold; color: {{ accent }};
+            border-bottom: 1px solid {{ accent }};
+            padding-bottom: 3px; margin: 0 0 5px;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+
+        /* ---------- Colonnes (table, jamais flex) ---------- */
+        .cols { width: 100%; border-collapse: collapse; margin-bottom: 7px; }
+        .cols > tbody > tr > td { vertical-align: top; padding: 0 10px 0 0; }
+        .cols > tbody > tr > td:last-child { padding-right: 0; }
+
+        .field-label {
+            font-weight: bold; color: #6b7280; font-size: 8.5px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin: 0 0 2px; display: block;
+        }
+        .field-value { margin: 0 0 5px; }
+        .muted { color: #9ca3af; }
+        .small { font-size: 9px; }
+        .tiny { font-size: 8px; color: #9ca3af; }
+
+        /* ---------- Encadrés ---------- */
+        .box { border: 1px solid #e5e7eb; background: #fafafa; padding: 6px 10px; margin: 0 0 6px; }
+        .box-accent { border: 1px solid {{ accent }}; background: {{ accent_soft }}; padding: 6px 10px; margin: 0 0 6px; }
+        .box-alert { border: 1px solid #fecaca; border-left: 3px solid #ef4444; background: #fef2f2; padding: 6px 10px; margin: 0 0 6px; }
+        .box-warn { border: 1px solid #fde68a; border-left: 3px solid #f59e0b; background: #fffbeb; padding: 6px 10px; margin: 0 0 6px; }
+        .box-ok { border: 1px solid #bbf7d0; border-left: 3px solid #10b981; background: #f0fdf4; padding: 6px 10px; margin: 0 0 6px; }
+
+        /* ---------- Tableaux de lignes ---------- */
+        table.lines { width: 100%; border-collapse: collapse; margin: 0 0 6px; }
+        table.lines th {
+            background: {{ accent }}; color: #ffffff; padding: 4px 6px;
+            text-align: left; font-size: 8.5px; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        table.lines td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        table.lines tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
+        table.lines .sub { font-size: 8.5px; color: #6b7280; }
+
+        /* Alignements : utilitaires globaux — historiquement ils n'existaient
+           que sous `table.lines`, si bien que les montants des blocs de totaux
+           restaient collés à gauche. */
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .nowrap { white-space: nowrap; }
+
+        /* ---------- Totaux (table 2 colonnes, pas de float) ---------- */
+        .totals-wrap { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .totals-wrap > tbody > tr > td { vertical-align: top; padding: 0; }
+        .totals-spacer { width: 55%; }
+        .totals { width: 45%; }
+        .totals table { width: 100%; border-collapse: collapse; }
+        .totals td { padding: 2px 7px; }
+        .totals td.right { text-align: right; white-space: nowrap; }
+        .totals tr.rule td { border-top: 1px solid #d1d5db; }
+        /* Bordure portée par les <td> : sur <tr> dompdf ne peint rien. */
+        .totals tr.grand td {
+            border-top: 2px solid #374151; font-weight: bold;
+            font-size: 12.5px; padding-top: 5px;
+        }
+
+        /* ---------- Badges ---------- */
+        .badge {
+            display: inline-block; padding: 1px 7px; font-size: 8.5px;
+            font-weight: bold; background: #e0e7ff; color: #3730a3;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .badge-ok { background: #d1fae5; color: #065f46; }
+        .badge-warn { background: #fef3c7; color: #92400e; }
+        .badge-off { background: #f3f4f6; color: #4b5563; }
+
+        /* ---------- Photos ---------- */
+        .photos { width: 100%; border-collapse: collapse; }
+        .photos td { width: 33.33%; padding: 0 5px 5px 0; vertical-align: top; }
+        .photo-card { border: 1px solid #e5e7eb; background: #fafafa; padding: 4px; text-align: center; }
+        .photo-card .photo-caption { text-align: left; }
+        /* Pas d'object-fit sous dompdf : on borne la hauteur et on laisse
+           l'image garder son ratio plutôt que de l'étirer. */
+        .photo-card img { max-width: 100%; max-height: 82px; }
+        .photo-caption { font-size: 8px; color: #6b7280; margin-top: 3px; line-height: 1.3; }
+
+        /* ---------- Signatures ---------- */
+        .signatures { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .signatures td { vertical-align: top; padding: 0 10px 0 0; }
+        .signatures td:last-child { padding-right: 0; }
+        .signature-box { border: 1px solid #d1d5db; background: #fafafa; height: 56px; padding: 5px 7px; }
+        .signature-box img { max-width: 165px; max-height: 54px; }
+        .signature-caption { font-size: 8px; color: #6b7280; margin-top: 3px; }
+
+        /* ---------- Lignes à remplir à la main ---------- */
+        .ruled { border-bottom: 1px dotted #9ca3af; height: 15px; }
+        .checkbox { display: inline-block; width: 9px; height: 9px; border: 1px solid #6b7280; margin-right: 4px; }
+
+        .legal { margin-top: 8px; font-size: 8px; color: #6b7280; line-height: 1.45; border-top: 1px solid #e5e7eb; padding-top: 5px; }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

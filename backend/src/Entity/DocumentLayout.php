@@ -4,26 +4,19 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * En-tête personnalisé d'un document PDF, composé dans le designer admin.
+ *
+ * La liste des codes valides n'est plus dupliquée ici : elle vient de
+ * App\Service\PdfTemplateRegistry, seule source de vérité de l'inventaire des
+ * documents. La copie locale avait divergé du disque (elle annonçait un
+ * « rapport_intervention » sans template).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'document_layouts')]
 #[ORM\UniqueConstraint(name: 'uq_doc_layout', columns: ['atelier_id', 'code'])]
 class DocumentLayout
 {
-    public const CODES = [
-        'ordre_reparation',
-        'facture',
-        'devis',
-        'rapport_intervention',
-        'historique_entretien',
-        'vo_pv_rachat',
-        'vo_facture',
-        'vo_contrat_depot_vente',
-        'vo_livre_police',
-        'vo_da_siv',
-        'vo_mandat_immatriculation',
-        'vo_remise_en_etat',
-    ];
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
