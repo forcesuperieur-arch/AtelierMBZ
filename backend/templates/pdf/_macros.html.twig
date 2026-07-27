@@ -27,27 +27,47 @@
   fourni il remplace le bloc atelier par défaut.
 #}
 {% macro header(title, reference, atelier, logo_data_uri, meta, custom_header_html) %}
-    {% import _self as ui %}
-    {# Un bandeau personnalisé trace ses propres filets : le liseré par défaut
+    {# Un bandeau personnalisé trace ses propres filets : l'aplat par défaut
        ferait doublon juste en dessous. #}
-    <div class="{{ custom_header_html ? 'doc-header-custom' : 'doc-header' }}">
-        {% if custom_header_html %}
-            {{ custom_header_html|raw }}
-        {% else %}
-            <table class="doc-header-table">
+    {% if custom_header_html %}
+        <div class="doc-header-custom">{{ custom_header_html|raw }}</div>
+    {% else %}
+        <div class="doc-band">
+            <table class="band-table">
                 <tr>
-                    <td class="doc-header-left">{{ ui.atelier_block(atelier, logo_data_uri) }}</td>
-                    <td class="doc-header-right">
-                        <div class="doc-title">{{ title }}</div>
-                        {% if reference %}<div class="doc-ref">{{ reference|raw }}</div>{% endif %}
+                    <td class="band-left">
+                        {% if logo_data_uri %}
+                            {# Pastille blanche : le logo de l'atelier reste
+                               lisible même sombre sur un aplat foncé. #}
+                            <div class="logo-chip"><img src="{{ logo_data_uri }}" alt=""></div>
+                        {% endif %}
+                        <div class="band-name">{{ atelier.nom|default('Atelier Moto') }}</div>
+                        <div class="band-meta">
+                            {% if atelier.adresse|default(false) %}{{ atelier.adresse }}{% endif %}
+                            {%- if atelier.cp|default(false) or atelier.ville|default(false) %}
+                                {{- atelier.adresse|default(false) ? ' — ' : '' }}{{ atelier.cp }} {{ atelier.ville }}
+                            {%- endif %}
+                            {% if atelier.telephone|default(false) or atelier.email|default(false) %}<br>
+                                {{- atelier.telephone|default('') }}
+                                {{- atelier.telephone|default(false) and atelier.email|default(false) ? ' — ' : '' }}
+                                {{- atelier.email|default('') }}
+                            {% endif %}
+                            {% if atelier.siret|default(false) %}<br>SIRET {{ atelier.siret }}
+                                {%- if atelier.tvaIntracom|default(false) %} — TVA {{ atelier.tvaIntracom }}{% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="band-right">
+                        <div class="band-title">{{ title }}</div>
+                        {% if reference %}<div class="band-ref">{{ reference|raw }}</div>{% endif %}
                         {% for line in meta|default([]) %}
-                            {% if line %}<div class="small muted">{{ line|raw }}</div>{% endif %}
+                            {% if line %}<div class="band-line">{{ line|raw }}</div>{% endif %}
                         {% endfor %}
                     </td>
                 </tr>
             </table>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 {% endmacro %}
 
 {# En-tête allégé pour les pages 2+ d'un même document. #}
@@ -170,22 +190,61 @@
   place de travers dès que le contenu qui précède est haut.
 #}
 {% macro totals(rows) %}
-    {% set rows = rows|default([])|filter(r => r is not null) %}
+    {% import _self as ui %}
+    {# `filter` conserve les cles d'origine : on reindexe via merge pour que
+       slice() et l'acces par index restent fiables. #}
+    {% set clean = [] %}
+    {% for row in rows|default([]) %}
+        {% if row is not null %}{% set clean = clean|merge([row]) %}{% endif %}
+    {% endfor %}
+    {% set rows = clean %}
     {% if rows|length %}
+        {# Le total est sorti du tableau — sur une facture c'est la seule valeur
+           que le client cherche du regard — mais l'ordre voulu par l'appelant
+           est conservé : un acompte se lit après le total, pas avant. #}
+        {% set grandIndex = null %}
+        {% for row in rows %}
+            {% if grandIndex is null and row.variant|default('') == 'grand' %}
+                {% set grandIndex = loop.index0 %}
+            {% endif %}
+        {% endfor %}
+
+        {% set before = grandIndex is null ? rows : rows|slice(0, grandIndex) %}
+        {% set after = grandIndex is null ? [] : rows|slice(grandIndex + 1) %}
+
         <table class="totals-wrap no-break">
             <tr>
                 <td class="totals-spacer"></td>
                 <td class="totals">
-                    <table>
-                        {% for row in rows %}
-                            <tr class="{{ row.variant|default('') }}">
-                                <td>{{ row.label|default('') }}</td>
-                                <td class="right">{{ row.value|default('—')|raw }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
+                    {{ ui.totals_rows(before) }}
+                    {% if grandIndex is not null %}
+                        {% set grand = rows[grandIndex] %}
+                        <div class="total-box">
+                            <table>
+                                <tr>
+                                    <td class="tb-label">{{ grand.label|default('Total') }}</td>
+                                    <td class="tb-value">{{ grand.value|default('—')|raw }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    {% endif %}
+                    {{ ui.totals_rows(after) }}
                 </td>
             </tr>
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{# Sous-lignes d'un bloc de totaux (hors total détaché). #}
+{% macro totals_rows(rows) %}
+    {% if rows|default([])|length %}
+        <table>
+            {% for row in rows %}
+                <tr class="{{ row.variant|default('') }}">
+                    <td>{{ row.label|default('') }}</td>
+                    <td class="right">{{ row.value|default('—')|raw }}</td>
+                </tr>
+            {% endfor %}
         </table>
     {% endif %}
 {% endmacro %}
