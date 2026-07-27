@@ -1,32 +1,38 @@
 {#
   Socle commun à tous les PDF de l'atelier.
 
+  Direction visuelle « sobre premium » : bandeau d'en-tête en aplat de couleur
+  avec le logo en réserve, filets fins, tableaux zébrés discrets, total détaché.
+  Tout doit rester lisible imprimé en noir et blanc.
+
   Contraintes dompdf respectées ici, à ne pas casser dans les templates enfants :
     - pas de flexbox ni de grid : dompdf les ignore silencieusement,
       la mise en page part alors en colonne. On utilise <table> / display:table.
     - pas de `float` porteur de mise en page : le rendu déborde selon la hauteur
       du contenu précédent. Les colonnes passent par des tableaux.
-    - une bordure posée sur <tr> n'est jamais peinte : toujours cibler <td>.
+    - un fond ou une bordure posés sur <tr> ne sont jamais peints : toujours
+      cibler <td> (le zébrage ci-dessous passe donc par `tr:nth-child td`,
+      sélecteur that dompdf sait bien résoudre).
     - pas d'object-fit : dompdf déforme l'image. On contraint via max-height.
     - pas d'emoji : la police DejaVu Sans n'a pas ces glyphes et affiche des
       carrés vides (« tofu ») sur le document remis au client.
     - @page porte les marges : `body { margin }` n'est appliqué qu'à la
       première page, les suivantes collent au bord de la feuille.
 #}
-{% set accent = accent|default('#2563eb') %}
-{% set accent_soft = accent_soft|default('#eff6ff') %}
+{% set accent = accent|default('#1d4ed8') %}
+{% set accent_soft = accent_soft|default('#eff4ff') %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>{{ doc_title|default('Document') }}</title>
     <style>
-        @page { margin: 14mm 13mm 18mm 13mm; }
+        @page { margin: 12mm 12mm 18mm 12mm; }
 
         body {
             font-family: "DejaVu Sans", sans-serif;
             font-size: 10.5px;
-            line-height: 1.45;
+            line-height: 1.5;
             color: #1f2937;
             margin: 0;
         }
@@ -34,65 +40,86 @@
         p { margin: 0 0 6px; }
         strong { font-weight: bold; }
 
-        /* ---------- En-tête ---------- */
-        .doc-header { border-bottom: 2px solid {{ accent }}; padding-bottom: 6px; margin-bottom: 10px; }
-        .doc-header-custom { margin-bottom: 10px; }
+        /* ---------- Bandeau d'en-tête ---------- */
+        .doc-band { background: {{ accent }}; color: #ffffff; padding: 9px 11px; margin-bottom: 14px; }
+        .band-table { width: 100%; border-collapse: collapse; }
+        .band-table td { vertical-align: top; padding: 0; color: #ffffff; }
+        .band-left { width: 56%; }
+        .band-right { width: 44%; text-align: right; }
+        /* Le logo est fourni par l'atelier : sur un aplat foncé, une pastille
+           blanche garantit qu'il reste lisible quelles que soient ses couleurs. */
+        .logo-chip { display: inline-block; background: #ffffff; padding: 3px 5px; margin-bottom: 5px; }
+        .logo-chip img { max-width: 104px; max-height: 40px; }
+        .band-name { font-size: 12px; font-weight: bold; color: #ffffff; }
+        .band-meta { font-size: 9px; line-height: 1.55; color: #ffffff; font-weight: normal; }
+        .band-title { font-size: 19px; font-weight: bold; color: #ffffff; letter-spacing: 0.6px; margin: 0 0 3px; }
+        .band-ref { font-size: 10.5px; color: #ffffff; margin: 0 0 2px; }
+        .band-line { font-size: 9px; color: #ffffff; }
+
+        /* En-tête allégé des pages suivantes : un simple filet, pas d'aplat. */
+        .doc-header { border-bottom: 1.5px solid {{ accent }}; padding-bottom: 5px; margin-bottom: 11px; }
+        .doc-header-custom { margin-bottom: 12px; }
         .doc-header-table { width: 100%; border-collapse: collapse; }
-        .doc-header-table td { vertical-align: top; padding: 0; }
+        .doc-header-table td { vertical-align: bottom; padding: 0; }
         .doc-header-left { width: 55%; }
         .doc-header-right { width: 45%; text-align: right; }
-        .doc-title { color: {{ accent }}; margin: 0 0 2px; font-size: 17px; font-weight: bold; letter-spacing: 0.2px; }
-        .doc-ref { font-size: 11px; margin: 0 0 2px; }
-        .logo { max-width: 118px; max-height: 54px; margin-bottom: 6px; }
+        .doc-title { color: {{ accent }}; margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
+        .doc-ref { font-size: 10px; margin: 0; color: #4b5563; }
+        .logo { max-width: 96px; max-height: 34px; }
         .atelier-meta { font-size: 9px; color: #4b5563; line-height: 1.45; }
-        .atelier-name { font-size: 11px; color: #111827; }
+        .atelier-name { font-size: 10.5px; color: #111827; }
 
-        /* ---------- Blocs de section ---------- */
-        /* Rythme vertical volontairement serré : un volet d'OR complet
-           (infos + prestations + photos + signatures) doit tenir sur une page,
-           sinon le bloc signatures bascule seul sur une feuille vide. */
-        .section { margin-bottom: 9px; }
-        .section-tight { margin-bottom: 6px; }
+        /* ---------- Sections ---------- */
+        .section { margin-bottom: 11px; }
+        .section-tight { margin-bottom: 7px; }
         .no-break { page-break-inside: avoid; }
         .break-before { page-break-before: always; }
+        /* Filet fin sous un intitulé en petites capitales espacées : la
+           hiérarchie vient de la graisse et de l'interlettrage, pas d'un aplat. */
         .section-title {
-            font-size: 11.5px; font-weight: bold; color: {{ accent }};
-            border-bottom: 1px solid {{ accent }};
-            padding-bottom: 3px; margin: 0 0 5px;
-            text-transform: uppercase; letter-spacing: 0.4px;
+            font-size: 9px; font-weight: bold; color: {{ accent }};
+            border-bottom: 1px solid #dfe3e8;
+            padding-bottom: 3px; margin: 0 0 7px;
+            text-transform: uppercase; letter-spacing: 1px;
         }
 
         /* ---------- Colonnes (table, jamais flex) ---------- */
-        .cols { width: 100%; border-collapse: collapse; margin-bottom: 7px; }
-        .cols > tbody > tr > td { vertical-align: top; padding: 0 10px 0 0; }
+        .cols { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .cols > tbody > tr > td { vertical-align: top; padding: 0 11px 0 0; }
         .cols > tbody > tr > td:last-child { padding-right: 0; }
 
         .field-label {
-            font-weight: bold; color: #6b7280; font-size: 8.5px;
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-weight: bold; color: #9099a5; font-size: 8px;
+            text-transform: uppercase; letter-spacing: 0.9px;
             margin: 0 0 2px; display: block;
         }
-        .field-value { margin: 0 0 5px; }
+        .field-value { margin: 0 0 6px; }
         .muted { color: #9ca3af; }
         .small { font-size: 9px; }
         .tiny { font-size: 8px; color: #9ca3af; }
 
         /* ---------- Encadrés ---------- */
-        .box { border: 1px solid #e5e7eb; background: #fafafa; padding: 6px 10px; margin: 0 0 6px; }
-        .box-accent { border: 1px solid {{ accent }}; background: {{ accent_soft }}; padding: 6px 10px; margin: 0 0 6px; }
-        .box-alert { border: 1px solid #fecaca; border-left: 3px solid #ef4444; background: #fef2f2; padding: 6px 10px; margin: 0 0 6px; }
-        .box-warn { border: 1px solid #fde68a; border-left: 3px solid #f59e0b; background: #fffbeb; padding: 6px 10px; margin: 0 0 6px; }
-        .box-ok { border: 1px solid #bbf7d0; border-left: 3px solid #10b981; background: #f0fdf4; padding: 6px 10px; margin: 0 0 6px; }
+        .box { border: 1px solid #e7eaee; background: #fbfcfd; padding: 7px 10px; margin: 0 0 7px; }
+        .box-accent { border: 1px solid #cfdcf7; background: {{ accent_soft }}; padding: 7px 10px; margin: 0 0 7px; }
+        .box-alert { border: 1px solid #f3d4d4; border-left: 2.5px solid #dc2626; background: #fdf5f5; padding: 7px 10px; margin: 0 0 7px; }
+        .box-warn { border: 1px solid #f2e3bd; border-left: 2.5px solid #d97706; background: #fdfaf1; padding: 7px 10px; margin: 0 0 7px; }
+        .box-ok { border: 1px solid #cfe8da; border-left: 2.5px solid #059669; background: #f4fbf7; padding: 7px 10px; margin: 0 0 7px; }
 
         /* ---------- Tableaux de lignes ---------- */
-        table.lines { width: 100%; border-collapse: collapse; margin: 0 0 6px; }
+        table.lines { width: 100%; border-collapse: collapse; margin: 0 0 7px; }
+        /* Intitulés de colonne posés sur un filet, sans bandeau plein :
+           le document reste léger même avec plusieurs tableaux. */
         table.lines th {
-            background: {{ accent }}; color: #ffffff; padding: 4px 6px;
-            text-align: left; font-size: 8.5px; font-weight: bold;
-            text-transform: uppercase; letter-spacing: 0.4px;
+            background: transparent; color: {{ accent }};
+            padding: 0 6px 4px; text-align: left;
+            font-size: 8px; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 0.9px;
+            border-bottom: 1.5px solid {{ accent }};
         }
-        table.lines td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-        table.lines tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
+        table.lines td { padding: 5px 6px; border-bottom: 1px solid #eef1f4; vertical-align: top; }
+        /* Zébrage : fond porté par les cellules, un <tr> ne se peint pas. */
+        table.lines tbody tr:nth-child(even) td { background: #f1f5fa; }
+        table.lines tbody tr:last-child td { border-bottom: 1px solid #dfe3e8; }
         table.lines .sub { font-size: 8.5px; color: #6b7280; }
 
         /* Alignements : utilitaires globaux — historiquement ils n'existaient
@@ -103,53 +130,55 @@
         .nowrap { white-space: nowrap; }
 
         /* ---------- Totaux (table 2 colonnes, pas de float) ---------- */
-        .totals-wrap { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .totals-wrap { width: 100%; border-collapse: collapse; margin-top: 5px; }
         .totals-wrap > tbody > tr > td { vertical-align: top; padding: 0; }
-        .totals-spacer { width: 55%; }
-        .totals { width: 45%; }
+        .totals-spacer { width: 54%; }
+        .totals { width: 46%; }
         .totals table { width: 100%; border-collapse: collapse; }
-        .totals td { padding: 2px 7px; }
+        .totals td { padding: 2px 9px; font-size: 10px; }
         .totals td.right { text-align: right; white-space: nowrap; }
-        .totals tr.rule td { border-top: 1px solid #d1d5db; }
-        /* Bordure portée par les <td> : sur <tr> dompdf ne peint rien. */
-        .totals tr.grand td {
-            border-top: 2px solid #374151; font-weight: bold;
-            font-size: 12.5px; padding-top: 5px;
-        }
+        .totals tr.rule td { border-top: 1px solid #dfe3e8; padding-top: 4px; }
+        /* Total détaché : encadré plein plutôt qu'une simple ligne en gras. */
+        .total-box { border: 1.5px solid {{ accent }}; background: {{ accent_soft }}; margin-top: 5px; }
+        .total-box table { width: 100%; border-collapse: collapse; }
+        .total-box td { padding: 6px 9px; color: {{ accent }}; }
+        .total-box .tb-label { font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.9px; }
+        .total-box .tb-value { font-size: 15px; font-weight: bold; text-align: right; white-space: nowrap; }
 
         /* ---------- Badges ---------- */
         .badge {
-            display: inline-block; padding: 1px 7px; font-size: 8.5px;
-            font-weight: bold; background: #e0e7ff; color: #3730a3;
-            text-transform: uppercase; letter-spacing: 0.3px;
+            display: inline-block; padding: 1px 7px; font-size: 8px;
+            font-weight: bold; background: #ffffff; color: {{ accent }};
+            text-transform: uppercase; letter-spacing: 0.6px;
         }
-        .badge-ok { background: #d1fae5; color: #065f46; }
-        .badge-warn { background: #fef3c7; color: #92400e; }
-        .badge-off { background: #f3f4f6; color: #4b5563; }
+        .doc-band .badge { background: transparent; border: 1px solid #ffffff; color: #ffffff; }
+        .badge-ok { background: #d6f2e3; color: #05603a; }
+        .badge-warn { background: #fbeecb; color: #8a5300; }
+        .badge-off { background: #eef0f3; color: #4b5563; }
 
         /* ---------- Photos ---------- */
         .photos { width: 100%; border-collapse: collapse; }
         .photos td { width: 33.33%; padding: 0 5px 5px 0; vertical-align: top; }
-        .photo-card { border: 1px solid #e5e7eb; background: #fafafa; padding: 4px; text-align: center; }
+        .photo-card { border: 1px solid #e7eaee; background: #fbfcfd; padding: 4px; text-align: center; }
         .photo-card .photo-caption { text-align: left; }
         /* Pas d'object-fit sous dompdf : on borne la hauteur et on laisse
            l'image garder son ratio plutôt que de l'étirer. */
-        .photo-card img { max-width: 100%; max-height: 82px; }
+        .photo-card img { max-width: 100%; max-height: 80px; }
         .photo-caption { font-size: 8px; color: #6b7280; margin-top: 3px; line-height: 1.3; }
 
         /* ---------- Signatures ---------- */
         .signatures { width: 100%; border-collapse: collapse; margin-top: 6px; }
-        .signatures td { vertical-align: top; padding: 0 10px 0 0; }
+        .signatures td { vertical-align: top; padding: 0 11px 0 0; }
         .signatures td:last-child { padding-right: 0; }
-        .signature-box { border: 1px solid #d1d5db; background: #fafafa; height: 56px; padding: 5px 7px; }
-        .signature-box img { max-width: 165px; max-height: 54px; }
+        .signature-box { border: 1px solid #dfe3e8; background: #fbfcfd; height: 54px; padding: 5px 7px; }
+        .signature-box img { max-width: 160px; max-height: 52px; }
         .signature-caption { font-size: 8px; color: #6b7280; margin-top: 3px; }
 
         /* ---------- Lignes à remplir à la main ---------- */
-        .ruled { border-bottom: 1px dotted #9ca3af; height: 15px; }
+        .ruled { border-bottom: 1px dotted #b5bcc6; height: 15px; }
         .checkbox { display: inline-block; width: 9px; height: 9px; border: 1px solid #6b7280; margin-right: 4px; }
 
-        .legal { margin-top: 8px; font-size: 8px; color: #6b7280; line-height: 1.45; border-top: 1px solid #e5e7eb; padding-top: 5px; }
+        .legal { margin-top: 9px; font-size: 8px; color: #7b828d; line-height: 1.5; border-top: 1px solid #eef1f4; padding-top: 6px; }
 
         {% block extra_css %}{% endblock %}
     </style>
