@@ -1,100 +1,100 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; margin: 22px; }
-        .header { border-bottom: 2px solid #d97706; padding-bottom: 10px; margin-bottom: 18px; }
-        .header-table { width: 100%; border-collapse: collapse; }
-        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
-        h1 { margin: 0; color: #b45309; font-size: 18px; }
-        .sub { color: #666; font-size: 10px; }
-        .box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
-        .warn { background: #fff7ed; border-color: #fdba74; }
-        .ok { background: #f0fdf4; border-color: #86efac; }
-        .grid { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        .grid td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-        .grid td:first-child { width: 35%; color: #666; font-weight: bold; }
-        .section-title { font-size: 13px; font-weight: 700; margin: 0 0 6px; color: #111; }
-        .muted { color: #6b7280; }
-        .footer { margin-top: 24px; font-size: 9px; color: #777; border-top: 1px solid #ddd; padding-top: 8px; }
-        ul { margin: 6px 0 0 16px; padding: 0; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td>
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo" class="logo">
-                    {% endif %}
-                    <div>
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
-                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
-                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
-                    </div>
-                </td>
-                <td style="text-align:right">
-                    <h1>Préparation déclaration d'achat SIV</h1>
-                    <div class="sub">Document de préparation interne prérempli — dossier VO n° {{ purchase.id }}</div>
-                    <div class="sub">Édité le {{ 'now'|date('d/m/Y H:i') }}</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+{% extends 'pdf/_layout.html.twig' %}
+{% import 'pdf/_macros.html.twig' as ui %}
 
-    <div class="box {{ blockers is empty ? 'ok' : 'warn' }}">
-        <div class="section-title">État du dossier</div>
-        {% if blockers is empty %}
-            <div>Le dossier contient les informations essentielles pour préparer la saisie SIV.</div>
-        {% else %}
-            <div>Des points restent à régulariser avant finalisation légale :</div>
-            <ul>
-                {% for blocker in blockers %}
-                    <li>{{ blocker }}</li>
-                {% endfor %}
+{% set accent = '#b45309' %}
+{% set accent_soft = '#fffbeb' %}
+{% set doc_title = "Préparation de déclaration d'achat SIV" %}
+
+{% set seller = purchase.seller|default(null) %}
+{% set vehicule = purchase.vehicule|default(null) %}
+{% set blockers = blockers|default([]) %}
+
+{% block body %}
+
+{{ ui.header(
+    doc_title|upper,
+    'Dossier VO n° <strong>' ~ purchase.id|default('—') ~ '</strong>',
+    atelier,
+    logo_data_uri,
+    ['Support interne prérempli', 'Édité le ' ~ 'now'|date('d/m/Y à H:i')],
+    custom_header_html|default(null)
+) }}
+
+<div class="section no-break">
+    <div class="section-title">État du dossier</div>
+    {% if blockers|length %}
+        <div class="box-warn">
+            <p><strong>Points à régulariser avant finalisation légale :</strong></p>
+            <ul style="margin:0;padding-left:14px;">
+                {% for blocker in blockers %}<li>{{ blocker }}</li>{% endfor %}
             </ul>
-        {% endif %}
-    </div>
+        </div>
+    {% else %}
+        <div class="box-ok">
+            <p>Le dossier contient les informations essentielles pour préparer la saisie SIV.</p>
+        </div>
+    {% endif %}
+</div>
 
-    <div class="box">
-        <div class="section-title">Vendeur</div>
-        <table class="grid">
-            <tr><td>Nom / prénom</td><td>{{ purchase.seller.prenom ?? '' }} {{ purchase.seller.nom ?? '' }}</td></tr>
-            <tr><td>Adresse</td><td>{{ purchase.seller.adresse ?? 'À compléter' }}</td></tr>
-            <tr><td>Téléphone</td><td>{{ purchase.seller.telephone ?? 'À compléter' }}</td></tr>
-            <tr><td>Email</td><td>{{ purchase.seller.email ?? 'À compléter' }}</td></tr>
-            <tr><td>Pièce d'identité</td><td>{{ purchase.sellerIdType ?? 'À compléter' }} {{ purchase.sellerIdNumber ? '— n° ' ~ purchase.sellerIdNumber : '' }} {% if purchase.sellerIdDate %}(délivrée le {{ purchase.sellerIdDate|date('d/m/Y') }}){% endif %}</td></tr>
-        </table>
-    </div>
+<div class="section no-break">
+    <div class="section-title">Vendeur</div>
+    <table class="lines">
+        <tbody>
+            <tr><td style="width:34%;"><strong>Nom et prénom</strong></td>
+                <td>{{ ((seller.prenom|default('')) ~ ' ' ~ (seller.nom|default('')))|trim|default('À compléter') }}</td></tr>
+            <tr><td><strong>Adresse</strong></td><td>{{ seller.adresse|default('À compléter') }}</td></tr>
+            <tr><td><strong>Téléphone</strong></td><td>{{ seller.telephone|default('À compléter') }}</td></tr>
+            <tr><td><strong>Courriel</strong></td><td>{{ seller.email|default('À compléter') }}</td></tr>
+            <tr><td><strong>Pièce d'identité</strong></td>
+                <td>
+                    {{ purchase.sellerIdType|default('À compléter') }}
+                    {%- if purchase.sellerIdNumber|default(false) %} — n° {{ purchase.sellerIdNumber }}{% endif -%}
+                    {%- if purchase.sellerIdDate|default(false) %} (délivrée le {{ purchase.sellerIdDate|date('d/m/Y') }}){% endif -%}
+                </td></tr>
+        </tbody>
+    </table>
+</div>
 
-    <div class="box">
-        <div class="section-title">Véhicule</div>
-        <table class="grid">
-            <tr><td>Immatriculation</td><td>{{ purchase.vehicule.plaque ?? 'À compléter' }}</td></tr>
-            <tr><td>VIN</td><td>{{ purchase.vehicule.vin ?? 'À compléter' }}</td></tr>
-            <tr><td>Marque / modèle</td><td>{{ purchase.vehicule.marque ?? '—' }} {{ purchase.vehicule.modele ?? '' }}</td></tr>
-            <tr><td>Première MEC</td><td>{% if purchase.vehicule.datePremiereMiseEnCirculation %}{{ purchase.vehicule.datePremiereMiseEnCirculation|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>
-            <tr><td>Kilométrage</td><td>{{ purchase.vehicule.mileage ?? 'À compléter' }} km</td></tr>
-            <tr><td>Cylindrée</td><td>{{ purchase.vehicule.cylindree ?? 'À compléter' }}</td></tr>
-        </table>
-    </div>
+<div class="section no-break">
+    <div class="section-title">Véhicule</div>
+    <table class="lines">
+        <tbody>
+            <tr><td style="width:34%;"><strong>Immatriculation</strong></td><td>{{ vehicule.plaque|default('À compléter') }}</td></tr>
+            <tr><td><strong>Numéro VIN</strong></td><td>{{ vehicule.vin|default('À compléter') }}</td></tr>
+            <tr><td><strong>Marque et modèle</strong></td>
+                <td>{{ ((vehicule.marque|default('')) ~ ' ' ~ (vehicule.modele|default('')))|trim|default('À compléter') }}</td></tr>
+            <tr><td><strong>Première mise en circulation</strong></td>
+                <td>{{ vehicule.datePremiereMiseEnCirculation|default(false) ? vehicule.datePremiereMiseEnCirculation|date('d/m/Y') : 'À compléter' }}</td></tr>
+            {# Le « km » était collé à la valeur : un champ vide affichait
+               « À compléter km ». L'unité fait partie du filtre. #}
+            <tr><td><strong>Kilométrage</strong></td>
+                <td>{{ vehicule.mileage|default(false) ? vehicule.mileage|km : 'À compléter' }}</td></tr>
+            <tr><td><strong>Cylindrée</strong></td>
+                <td>{{ vehicule.cylindree|default(false) ? vehicule.cylindree ~ ' cm³' : 'À compléter' }}</td></tr>
+        </tbody>
+    </table>
+</div>
 
-    <div class="box">
-        <div class="section-title">Transaction et contrôle</div>
-        <table class="grid">
-            <tr><td>Date d'achat</td><td>{% if purchase.purchaseDate %}{{ purchase.purchaseDate|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>
-            <tr><td>Prix d'achat</td><td>{{ purchase.purchasePrice|number_format(2, ',', ' ') }} €</td></tr>
-            <tr><td>Non-gage</td><td>{% if purchase.nonGageDate %}Vérifié le {{ purchase.nonGageDate|date('d/m/Y') }}{% else %}À compléter{% endif %}</td></tr>
-            <tr><td>Contrôle technique</td><td>{{ purchase.controleTechniqueOk ? 'Validé dans le dossier' : 'À vérifier selon le véhicule' }}</td></tr>
-            <tr><td>Référence DA</td><td>{{ purchase.sivReference ?? 'À renseigner après saisie SIV' }}</td></tr>
-        </table>
-    </div>
+<div class="section no-break">
+    <div class="section-title">Transaction et contrôles</div>
+    <table class="lines">
+        <tbody>
+            <tr><td style="width:34%;"><strong>Date d'achat</strong></td>
+                <td>{{ purchase.purchaseDate|default(false) ? purchase.purchaseDate|date('d/m/Y') : 'À compléter' }}</td></tr>
+            <tr><td><strong>Prix d'achat</strong></td><td>{{ purchase.purchasePrice|eur('À compléter') }}</td></tr>
+            <tr><td><strong>Certificat de non-gage</strong></td>
+                <td>{{ purchase.nonGageDate|default(false) ? 'Vérifié le ' ~ purchase.nonGageDate|date('d/m/Y') : 'À compléter' }}</td></tr>
+            <tr><td><strong>Contrôle technique</strong></td>
+                <td>{{ purchase.controleTechniqueOk|default(false) ? 'Validé dans le dossier' : 'À vérifier selon le véhicule' }}</td></tr>
+            <tr><td><strong>Référence de déclaration</strong></td>
+                <td>{{ purchase.sivReference|default('À renseigner après saisie SIV') }}</td></tr>
+        </tbody>
+    </table>
+</div>
 
-    <div class="footer">
-        Ce document est un support interne de préparation AtelierMBZ. Il aide à éviter la ressaisie, mais ne remplace pas la saisie officielle dans le portail SIV Pro ou chez un prestataire habilité.
-    </div>
-</body>
-</html>
+<div class="legal">
+    Support interne de préparation. Il évite la ressaisie mais ne remplace pas la déclaration officielle
+    dans le portail SIV Pro ou auprès d'un prestataire habilité.
+</div>
+
+{% endblock %}

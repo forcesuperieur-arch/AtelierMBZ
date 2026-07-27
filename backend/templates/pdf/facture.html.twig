@@ -1,123 +1,105 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
-        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-table { width: 100%; border-collapse: collapse; }
-        .header-left, .header-right { vertical-align: top; }
-        .header-right { text-align: right; }
-        .header h1 { color: #2563eb; margin: 0; font-size: 18px; }
-        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
-        .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
-        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-        .info-col { display: table-cell; width: 50%; vertical-align: top; }
-        .label { font-weight: bold; color: #666; }
-        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
-        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
-        table.lines td.right { text-align: right; }
-        .totals { float: right; width: 280px; margin-top: 20px; }
-        .totals table { width: 100%; }
-        .totals td { padding: 4px 6px; }
-        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
-        .footer { margin-top: 40px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-left">
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
-                    {% endif %}
-                    <div class="atelier-meta">
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
-                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
-                        {% if atelier and atelier.telephone %}Tél : {{ atelier.telephone }}<br>{% endif %}
-                        {% if atelier and atelier.email %}{{ atelier.email }}<br>{% endif %}
-                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
-                    </div>
-                </td>
-                <td class="header-right">
-                    <h1>FACTURE</h1>
-                    <p><strong>N° {{ facture.numeroFacture }}</strong> — {{ facture.dateCreation|date('d/m/Y') }}</p>
-                </td>
-            </tr>
-        </table>
+{% extends 'pdf/_layout.html.twig' %}
+{% import 'pdf/_macros.html.twig' as ui %}
+
+{% set doc_title = 'Facture' %}
+{% set reference = 'N° <strong>' ~ facture.numeroFacture ~ '</strong>' %}
+
+{% set clientNom = ((facture.snapClientPrenom ?? (facture.client ? facture.client.prenom : null)) ~ ' '
+                 ~ (facture.snapClientNom ?? (facture.client ? facture.client.nom : null)))|trim %}
+{% set clientTel = facture.snapClientTelephone ?? (facture.client ? facture.client.telephone : null) %}
+{% set clientEmail = facture.snapClientEmail ?? (facture.client ? facture.client.email : null) %}
+{% set clientAdresse = facture.snapClientAdresse ?? (facture.client ? facture.client.adresse : null) %}
+
+{% set vMarque = facture.snapVehiculeMarque ?? (facture.vehicule ? facture.vehicule.marque : null) %}
+{% set vModele = facture.snapVehiculeModele ?? (facture.vehicule ? facture.vehicule.modele : null) %}
+{% set vPlaque = facture.snapVehiculePlaque ?? (facture.vehicule ? facture.vehicule.plaque : null) %}
+{% set vehiculeLibelle = (vMarque ~ ' ' ~ vModele)|trim %}
+
+{# Une remise nulle ne doit pas produire une ligne « Remise −0,00 € ».
+   L'ancien test comparait la chaîne à '0.00', donc un 0 entier ou un null
+   affichait quand même la ligne. #}
+{% set remise = facture.remiseMontant|default(0) %}
+{% set aRemise = remise is not empty and (remise + 0) > 0 %}
+
+{% block body %}
+
+{% set headerMeta = [] %}
+{% if facture.dateCreation|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Émise le ' ~ facture.dateCreation|date('d/m/Y')]) %}
+{% endif %}
+{% if facture.dateEcheance|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Échéance le ' ~ facture.dateEcheance|date('d/m/Y')]) %}
+{% endif %}
+{% if facture.statut|default(false) %}
+    {% set statutClass = facture.statut in ['payee', 'payée', 'soldee'] ? 'badge badge-ok' : 'badge' %}
+    {% set headerMeta = headerMeta|merge(['<span class="' ~ statutClass ~ '">' ~ facture.statut|replace({'_': ' '})|upper ~ '</span>']) %}
+{% endif %}
+
+{{ ui.header(doc_title|upper, reference, atelier, logo_data_uri, headerMeta, custom_header_html|default(null)) }}
+
+{{ ui.columns([
+    ui.field('Facturé à',
+        (clientNom ? '<strong>' ~ clientNom ~ '</strong>' : '')
+        ~ (clientAdresse ? '<br>' ~ clientAdresse : '')
+        ~ (clientTel ? '<br>' ~ clientTel : '')
+        ~ (clientEmail ? '<br>' ~ clientEmail : '')),
+    ui.field('Véhicule', vehiculeLibelle ? (
+        '<strong>' ~ vehiculeLibelle ~ '</strong>'
+        ~ (vPlaque ? '<br>Plaque ' ~ vPlaque : '')
+    ) : null),
+]) }}
+
+<table class="lines">
+    <thead>
+        <tr>
+            <th>Désignation</th>
+            <th>Référence</th>
+            <th class="right nowrap">Qté</th>
+            <th class="right nowrap">P.U. HT</th>
+            <th class="right nowrap">TVA</th>
+            <th class="right nowrap">Total HT</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for ligne in facture.lignes|default([]) %}
+        <tr>
+            <td>{{ ligne.designation }}</td>
+            <td>{{ ligne.reference|default('—') }}</td>
+            <td class="right nowrap">{{ ligne.quantite|qty }}</td>
+            <td class="right nowrap">{{ ligne.prixUnitaireHt|eur }}</td>
+            <td class="right nowrap">{{ ligne.tauxTva|pct }}</td>
+            <td class="right nowrap">{{ ligne.totalLigneHt|eur }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="6" class="muted">Aucune ligne de facturation.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{{ ui.totals([
+    facture.totalMoHt|default(null) is not empty ? { label: "Total main d'œuvre HT", value: facture.totalMoHt|eur } : null,
+    facture.totalPiecesHt|default(null) is not empty ? { label: 'Total pièces HT', value: facture.totalPiecesHt|eur } : null,
+    { label: 'Total HT', value: '<strong>' ~ facture.totalHt|eur ~ '</strong>', variant: 'rule' },
+    aRemise ? { label: 'Remise', value: '−' ~ remise|eur } : null,
+    facture.tvaMo|default(null) is not empty ? { label: 'TVA MO (' ~ facture.tvaMoTaux|pct ~ ')', value: facture.tvaMo|eur } : null,
+    facture.tvaPieces|default(null) is not empty ? { label: 'TVA pièces (' ~ facture.tvaPiecesTaux|pct ~ ')', value: facture.tvaPieces|eur } : null,
+    facture.totalTva|default(null) is not empty ? { label: 'Total TVA', value: facture.totalTva|eur } : null,
+    { label: 'Total TTC', value: facture.totalTtc|eur, variant: 'grand' },
+]) }}
+
+{% if facture.notes|default(false) %}
+    <div class="section">
+        <div class="section-title">Notes</div>
+        <p>{{ facture.notes|nl2br }}</p>
     </div>
+{% endif %}
 
-    <div class="info-grid">
-        <div class="info-col">
-            <p class="label">Client</p>
-            <p>{{ facture.snapClientPrenom ?? facture.client.prenom }} {{ facture.snapClientNom ?? facture.client.nom }}<br>
-               {{ facture.snapClientTelephone ?? facture.client.telephone }}<br>
-               {% if facture.snapClientEmail ?? facture.client.email %}{{ facture.snapClientEmail ?? facture.client.email }}{% endif %}<br>
-               {% if facture.snapClientAdresse ?? facture.client.adresse %}{{ facture.snapClientAdresse ?? facture.client.adresse }}{% endif %}</p>
-        </div>
-        <div class="info-col">
-            <p class="label">Véhicule</p>
-            {% set vMarque = facture.snapVehiculeMarque ?? (facture.vehicule ? facture.vehicule.marque : '') %}
-            {% set vModele = facture.snapVehiculeModele ?? (facture.vehicule ? facture.vehicule.modele : '') %}
-            {% set vPlaque = facture.snapVehiculePlaque ?? (facture.vehicule ? facture.vehicule.plaque : '') %}
-            {% if vMarque or vModele %}
-            <p>{{ vMarque }} {{ vModele }}<br>
-               Plaque: {{ vPlaque }}</p>
-            {% endif %}
-        </div>
-    </div>
+<div class="legal">
+    Conditions de règlement : paiement à réception de facture{% if facture.dateEcheance|default(false) %}, au plus tard le {{ facture.dateEcheance|date('d/m/Y') }}{% endif %}.
+    En cas de retard de paiement, une pénalité égale à trois fois le taux d'intérêt légal est exigible de plein droit,
+    ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 et D441-5 du code de commerce).
+    Aucun escompte n'est accordé pour paiement anticipé.
+    {% if atelier.siret|default(false) %}<br>{{ atelier.nom|default('Atelier') }} — SIRET {{ atelier.siret }}{% if atelier.tvaIntracom|default(false) %} — TVA intracommunautaire {{ atelier.tvaIntracom }}{% endif %}.{% endif %}
+</div>
 
-    <table class="lines">
-        <thead>
-            <tr>
-                <th>Désignation</th>
-                <th>Réf.</th>
-                <th>Qté</th>
-                <th>P.U. HT</th>
-                <th>TVA</th>
-                <th>Total HT</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for ligne in facture.lignes %}
-            <tr>
-                <td>{{ ligne.designation }}</td>
-                <td>{{ ligne.reference }}</td>
-                <td class="right">{{ ligne.quantite }}</td>
-                <td class="right">{{ ligne.prixUnitaireHt }} €</td>
-                <td class="right">{{ ligne.tauxTva }}%</td>
-                <td class="right">{{ ligne.totalLigneHt }} €</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="totals">
-        <table>
-            <tr><td>Total MO HT</td><td class="right">{{ facture.totalMoHt }} €</td></tr>
-            <tr><td>Total Pièces HT</td><td class="right">{{ facture.totalPiecesHt }} €</td></tr>
-            <tr><td><strong>Total HT</strong></td><td class="right"><strong>{{ facture.totalHt }} €</strong></td></tr>
-            {% if facture.remiseMontant != '0.00' %}
-            <tr><td>Remise</td><td class="right">-{{ facture.remiseMontant }} €</td></tr>
-            {% endif %}
-            <tr><td>TVA MO ({{ facture.tvaMoTaux }}%)</td><td class="right">{{ facture.tvaMo }} €</td></tr>
-            <tr><td>TVA Pièces ({{ facture.tvaPiecesTaux }}%)</td><td class="right">{{ facture.tvaPieces }} €</td></tr>
-            <tr class="total-ttc"><td><strong>TOTAL TTC</strong></td><td class="right"><strong>{{ facture.totalTtc }} €</strong></td></tr>
-        </table>
-    </div>
-
-    <div style="clear:both;"></div>
-
-    {% if facture.notes %}
-    <p class="label" style="margin-top: 30px;">Notes</p>
-    <p>{{ facture.notes|nl2br }}</p>
-    {% endif %}
-
-    <div class="footer">
-        <p>Conditions de paiement : à réception. En cas de retard de paiement, des pénalités de 3× le taux d'intérêt légal seront appliquées.</p>
-    </div>
-</body>
-</html>
+{% endblock %}

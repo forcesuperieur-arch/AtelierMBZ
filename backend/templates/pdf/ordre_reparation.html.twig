@@ -1,466 +1,311 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
-        .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-table { width: 100%; border-collapse: collapse; }
-        .header-left, .header-right { vertical-align: top; }
-        .header-right { text-align: right; }
-        .header h1 { color: #2563eb; margin: 0; font-size: 18px; }
-        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
-        .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
-        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-        .info-col { display: table-cell; width: 50%; vertical-align: top; }
-        .info-col-3 { display: table-cell; width: 33%; vertical-align: top; }
-        .label { font-weight: bold; color: #666; }
-        .section { margin-bottom: 24px; page-break-inside: avoid; }
-        .section-title { font-size: 13px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #2563eb; padding-bottom: 4px; margin-bottom: 10px; }
-        .alert-box { background: #fef2f2; border-left: 4px solid #ef4444; padding: 8px 12px; margin: 8px 0; }
-        .recommandation-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 8px 0; }
-        .garantie-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 8px 12px; margin: 8px 0; }
-        .notes-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 8px 0; }
-        .checkup-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; margin: 8px 0; }
-        .checkup-item { padding: 3px 0; border-bottom: 1px dashed #e2e8f0; }
-        .checkup-item:last-child { border-bottom: none; }
-        .recap-box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px 14px; margin: 8px 0; }
-        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table.lines th { background: #2563eb; color: white; padding: 6px 8px; text-align: left; }
-        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
-        .totals { float: right; width: 250px; margin-top: 20px; }
-        .totals table { width: 100%; }
-        .totals td { padding: 3px 5px; }
-        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
-        .photos-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .photos-table td { width: 33%; padding: 6px; vertical-align: top; }
-        .photo-card { border: 1px solid #ddd; background: #fafafa; padding: 6px; }
-        .photo-card img { width: 100%; max-height: 120px; object-fit: cover; }
-        .photo-caption { font-size: 9px; color: #555; margin-top: 4px; }
-        .signature-grid { display: table; width: 100%; margin-top: 20px; }
-        .signature-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 12px; }
-        .signature-box { border: 1px solid #ccc; padding: 10px; min-height: 80px; background: #fafafa; }
-        .signature-box img { max-width: 180px; max-height: 60px; }
-        .signature-label { font-size: 10px; color: #666; margin-bottom: 6px; }
-        .page-break { page-break-before: always; }
-        .meta-row { font-size: 10px; color: #666; margin-top: 4px; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; background: #e0e7ff; color: #3730a3; }
-    </style>
-</head>
-<body>
-    <!-- ===== PAGE 1 : RÉCEPTION ===== -->
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-left">
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
-                    {% endif %}
-                    <div class="atelier-meta">
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
-                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
-                        {% if atelier and atelier.telephone %}Tél : {{ atelier.telephone }}<br>{% endif %}
-                        {% if atelier and atelier.email %}{{ atelier.email }}<br>{% endif %}
-                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
-                    </div>
-                </td>
-                <td class="header-right">
-                    <h1>ORDRE DE RÉPARATION</h1>
-                    <p><strong>N° {{ or.numeroOr }}</strong> — {{ or.createdAt|date('d/m/Y H:i') }}</p>
-                    <p class="meta-row">Statut : <span class="status-badge">{{ or.statut|upper }}</span></p>
-                    {% if or.typeOr != 'initial' %}
-                    <p class="meta-row">Type : {{ or.typeOr|capitalize }}</p>
-                    {% endif %}
-                </td>
-            </tr>
-        </table>
-    </div>
+{% extends 'pdf/_layout.html.twig' %}
+{% import 'pdf/_macros.html.twig' as ui %}
 
-    <div class="info-grid">
-        <div class="info-col">
-            <p class="label">Client</p>
-            <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}<br>
-               {{ rdv.client.telephone }}<br>
-               {% if rdv.client.email %}{{ rdv.client.email }}{% endif %}</p>
-        </div>
-        <div class="info-col">
-            <p class="label">Véhicule</p>
-            {% set vMarque = or.snapVehiculeMarque ?? (rdv.vehicule ? rdv.vehicule.marque : '') %}
-            {% set vModele = or.snapVehiculeModele ?? (rdv.vehicule ? rdv.vehicule.modele : '') %}
-            {% set vPlaque = or.snapVehiculePlaque ?? (rdv.vehicule ? rdv.vehicule.plaque : '') %}
-            {% if vMarque or vModele %}
-            <p>{{ vMarque }} {{ vModele }}<br>
-               Plaque: {{ vPlaque }}<br>
-               {% if or.kilometrage %}Km réception: {{ or.kilometrage }}{% endif %}</p>
-            {% endif %}
-        </div>
-    </div>
+{#
+  Ordre de réparation : document unique en trois volets (réception,
+  intervention, restitution) imprimé dès la prise en charge. Les volets 2 et 3
+  sont donc vides au moment de l'impression : ils sont mis en page comme des
+  feuilles de travail à compléter à la main plutôt que laissés blancs.
+#}
 
-    <div class="info-grid">
-        <div class="info-col-3">
-            <p class="label">Date & heure du RDV</p>
-            <p>{{ rdv.dateRdv|date('d/m/Y') }} à {{ rdv.heureRdv|date('H:i') }}</p>
-        </div>
-        <div class="info-col-3">
-            <p class="label">Pont</p>
-            <p>{{ rdv.pont ? rdv.pont.nom : 'Non assigné' }}</p>
-        </div>
-        <div class="info-col-3">
-            <p class="label">Mécanicien</p>
-            <p>{{ rdv.mecanicien ? rdv.mecanicien.prenom ~ ' ' ~ rdv.mecanicien.nom : 'Non assigné' }}</p>
-        </div>
-    </div>
+{% set doc_title = 'Ordre de réparation' %}
+{% set reference = 'N° <strong>' ~ or.numeroOr ~ '</strong>' %}
 
+{% set vMarque = or.snapVehiculeMarque ?? (rdv.vehicule ? rdv.vehicule.marque : null) %}
+{% set vModele = or.snapVehiculeModele ?? (rdv.vehicule ? rdv.vehicule.modele : null) %}
+{% set vPlaque = or.snapVehiculePlaque ?? (rdv.vehicule ? rdv.vehicule.plaque : null) %}
+{% set clientPrenom = or.snapClientPrenom ?? (rdv.client ? rdv.client.prenom : null) %}
+{% set clientNom = or.snapClientNom ?? (rdv.client ? rdv.client.nom : null) %}
+{% set clientNomComplet = (clientPrenom ~ ' ' ~ clientNom)|trim %}
+{% set vehiculeLibelle = (vMarque ~ ' ' ~ vModele)|trim %}
+
+{% set prestations = rdv.prestationsSnapshot|default([]) %}
+{% set montantEstime = or.montantEstime ?? rdv.prixEstime|default(null) %}
+
+{% block body %}
+
+{# ================= VOLET 1 — RÉCEPTION ================= #}
+{% set headerMeta = [] %}
+{% if or.statut|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Statut : <span class="badge">' ~ or.statut|replace({'_': ' '})|upper ~ '</span>']) %}
+{% endif %}
+{% if or.typeOr|default(false) and or.typeOr != 'initial' %}
+    {% set headerMeta = headerMeta|merge(['Type : ' ~ or.typeOr|replace({'_': ' '})|capitalize]) %}
+{% endif %}
+{% if or.createdAt|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Établi le ' ~ or.createdAt|date('d/m/Y à H:i')]) %}
+{% endif %}
+
+{{ ui.header(doc_title|upper, reference, atelier, logo_data_uri, headerMeta, custom_header_html|default(null)) }}
+
+{{ ui.columns([
+    ui.field('Client', clientNomComplet ? (
+        '<strong>' ~ clientNomComplet ~ '</strong>'
+        ~ (rdv.client and rdv.client.telephone ? '<br>' ~ rdv.client.telephone : '')
+        ~ (rdv.client and rdv.client.email ? '<br>' ~ rdv.client.email : '')
+    ) : null),
+    ui.field('Véhicule', vehiculeLibelle ? (
+        '<strong>' ~ vehiculeLibelle ~ '</strong>'
+        ~ (vPlaque ? '<br>Plaque ' ~ vPlaque : '')
+        ~ (or.kilometrage ? '<br>Km à la réception : ' ~ or.kilometrage|km : '')
+    ) : null),
+]) }}
+
+{{ ui.columns([
+    ui.field('Rendez-vous', rdv.dateRdv|default(false)
+        ? rdv.dateRdv|date('d/m/Y') ~ (rdv.heureRdv|default(false) ? ' à ' ~ rdv.heureRdv|date('H:i') : '')
+        : null),
+    ui.field('Pont', rdv.pont|default(false) ? rdv.pont.nom : null, 'Non assigné'),
+    ui.field('Mécanicien', rdv.mecanicien|default(false)
+        ? (rdv.mecanicien.prenom ~ ' ' ~ rdv.mecanicien.nom)|trim
+        : null, 'Non assigné'),
+    ui.field('Intervention', rdv.typeIntervention|default(null)),
+]) }}
+
+{% if rdv.commentaire|default(false) or or.travaux|default(false) or or.etatVehicule|default(false) %}
     <div class="section">
-        <p class="label">Type d'intervention</p>
-        <p>{{ rdv.typeIntervention }}</p>
+        {% if or.travaux|default(false) %}
+            <div class="section-title">Travaux à effectuer</div>
+            <p>{{ or.travaux|nl2br }}</p>
+        {% endif %}
+        {{ ui.columns([
+            rdv.commentaire|default(false) ? ui.field('Commentaire à la réception', rdv.commentaire|nl2br) : null,
+            or.etatVehicule|default(false) ? ui.field('État constaté du véhicule', or.etatVehicule|nl2br) : null,
+        ]) }}
     </div>
+{% endif %}
 
-    {% if rdv.commentaire %}
-    <div class="section">
-        <p class="label">Commentaire réception</p>
-        <p>{{ rdv.commentaire|nl2br }}</p>
-    </div>
-    {% endif %}
-
-    {% if or.travaux %}
-    <div class="section">
-        <p class="label">Travaux à effectuer</p>
-        <p>{{ or.travaux|nl2br }}</p>
-    </div>
-    {% endif %}
-
-    {% if or.etatVehicule %}
-    <div class="section">
-        <p class="label">État du véhicule à la réception</p>
-        <p>{{ or.etatVehicule|nl2br }}</p>
-    </div>
-    {% endif %}
-
-    {% set montantEstime = or.montantEstime ?? rdv.prixEstime %}
-    {% if montantEstime or rdv.tempsEstime %}
-    <div class="section">
-        <div class="recap-box">
-            <table style="width:100%;border-collapse:collapse;">
+{#
+  Prestations réservées : le client signe un montant estimé, il doit pouvoir en
+  lire le détail. Le snapshot est posé sur le RDV à la réservation.
+#}
+{% if prestations|length %}
+    <div class="section no-break">
+        <div class="section-title">Prestations réservées</div>
+        <table class="lines">
+            <thead>
                 <tr>
-                    {% if montantEstime %}
-                    <td style="width:50%;border-right:1px solid #cbd5e1;padding-right:12px;">
-                        <span class="label">Total estimé (indicatif)</span><br>
-                        <span style="font-size:16px;font-weight:bold;color:#2563eb;">{{ montantEstime }} €</span>
-                    </td>
-                    {% endif %}
-                    {% if rdv.tempsEstime %}
-                    <td style="width:50%;padding-left:12px;">
-                        <span class="label">Durée estimée</span><br>
-                        <span style="font-size:16px;font-weight:bold;color:#2563eb;">{{ (rdv.tempsEstime // 60) }}h{{ (rdv.tempsEstime % 60)|number_format(0, '', '') }}</span>
-                    </td>
-                    {% endif %}
+                    <th>Désignation</th>
+                    <th class="right nowrap">Durée</th>
+                    <th class="right nowrap">Prix indicatif</th>
                 </tr>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if reception_photos is defined and reception_photos|length > 0 %}
-    <div class="section">
-        <div class="section-title">📸 Photos de réception</div>
-        <table class="photos-table">
-            <tr>
-                {% for photo in reception_photos %}
-                    <td>
-                        <div class="photo-card">
-                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo réception') }}">
-                            <div class="photo-caption">
-                                {{ photo.label|default('Photo réception') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
-                            </div>
-                        </div>
-                    </td>
-                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
+            </thead>
+            <tbody>
+                {% for prestation in prestations %}
+                    {% set prixLigne = prestation.prix_ttc|default(0) > 0 ? prestation.prix_ttc : prestation.prix_ht|default(null) %}
+                    <tr>
+                        <td>{{ prestation.designation|default('Prestation') }}</td>
+                        <td class="right nowrap">{{ prestation.duree|default(0) > 0 ? prestation.duree|duree : '—' }}</td>
+                        <td class="right nowrap">{{ prixLigne ? prixLigne|eur : '—' }}</td>
+                    </tr>
                 {% endfor %}
-            </tr>
+            </tbody>
         </table>
     </div>
-    {% endif %}
+{% endif %}
 
-    <div class="section">
-        <div class="signature-grid">
-            <div class="signature-col">
-                <p class="signature-label"><strong>Signature client réception</strong></p>
-                <div class="signature-box">
-                    {% if or.signatureClient %}
-                    <img src="{{ or.signatureClient }}">
-                    {% else %}
-                    <p style="color:#999;font-size:10px;">Non signé</p>
-                    {% endif %}
-                </div>
-                {% if or.signedAt %}
-                <p class="meta-row">Signé le {{ or.signedAt|date('d/m/Y H:i') }}</p>
-                {% endif %}
-            </div>
-            <div class="signature-col">
-                <p class="signature-label"><strong>Signature atelier réception</strong></p>
-                <div class="signature-box">
-                    {% if or.signatureAtelierReception %}
-                    <img src="{{ or.signatureAtelierReception }}">
-                    {% else %}
-                    <p style="color:#999;font-size:10px;">Non signé</p>
-                    {% endif %}
-                </div>
-                {% if or.signeReceptionnisteAt %}
-                <p class="meta-row">Signé le {{ or.signeReceptionnisteAt|date('d/m/Y H:i') }}</p>
-                {% endif %}
-            </div>
-        </div>
-        <p style="font-size: 9px; margin-top: 8px;">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord.</p>
+{% if montantEstime or rdv.tempsEstime|default(false) %}
+    {{ ui.totals([
+        rdv.tempsEstime|default(false) ? { label: 'Durée estimée', value: rdv.tempsEstime|duree } : null,
+        montantEstime ? { label: 'Total estimé (indicatif)', value: montantEstime|eur, variant: 'grand' } : null,
+    ]) }}
+    <p class="tiny">Montant indicatif établi à la réception. Tout travail supplémentaire fera l'objet d'un accord préalable du client.</p>
+{% endif %}
+
+{% if reception_photos|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Photos de réception</div>
+        {{ ui.photos(reception_photos, 'Photo réception') }}
     </div>
+{% endif %}
 
-    <!-- ===== PAGE 2 : INTERVENTION ===== -->
-    <div class="page-break"></div>
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-left">
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
-                    {% endif %}
-                    <div class="atelier-meta">
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        <span style="font-size:9px;">Document unique OR — N° {{ or.numeroOr }}</span>
-                    </div>
-                </td>
-                <td class="header-right">
-                    <h1>FEUILLE D'INTERVENTION</h1>
-                    <p><strong>N° {{ or.numeroOr }}</strong></p>
-                    {% if rdv.mecanicien %}
-                    <p class="meta-row">Mécanicien : {{ rdv.mecanicien.prenom }} {{ rdv.mecanicien.nom }}</p>
-                    {% endif %}
-                </td>
-            </tr>
+<div class="section no-break">
+    {{ ui.signatures([
+        {
+            label: 'Signature du client — réception',
+            image: or.signatureClient|default(null),
+            caption: or.signedAt|default(false) ? 'Signé le ' ~ or.signedAt|date('d/m/Y à H:i') : null,
+        },
+        {
+            label: "Signature de l'atelier — réception",
+            image: or.signatureAtelierReception|default(null),
+            caption: or.signeReceptionnisteAt|default(false) ? 'Signé le ' ~ or.signeReceptionnisteAt|date('d/m/Y à H:i') : null,
+        },
+    ]) }}
+    <p class="tiny">Le client reconnaît avoir pris connaissance des travaux à effectuer et donne son accord pour leur exécution.</p>
+</div>
+
+{# ================= VOLET 2 — INTERVENTION ================= #}
+<div class="break-before"></div>
+{{ ui.header_continued("FEUILLE D'INTERVENTION", reference, atelier, logo_data_uri) }}
+
+{{ ui.columns([
+    ui.field('Client', clientNomComplet),
+    ui.field('Véhicule', vehiculeLibelle ~ (vPlaque ? ' — ' ~ vPlaque : '')),
+    ui.field('Mécanicien', rdv.mecanicien|default(false)
+        ? (rdv.mecanicien.prenom ~ ' ' ~ rdv.mecanicien.nom)|trim
+        : null, 'À compléter'),
+]) }}
+
+{% if or.mechanicNotes|default(false) %}
+    <div class="section">
+        <div class="section-title">Notes du mécanicien</div>
+        <div class="box-accent"><p>{{ or.mechanicNotes|nl2br }}</p></div>
+        {% if or.mechanicNotesUpdatedAt|default(false) %}
+            <p class="tiny">Mise à jour le {{ or.mechanicNotesUpdatedAt|date('d/m/Y à H:i') }}</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if or.mechanicCheckup|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Checkup de réception</div>
+        <table class="lines">
+            <tbody>
+                {% for key, item in or.mechanicCheckup %}
+                    <tr>
+                        <td style="width:45%;"><strong>{{ item.label|default(key)|replace({'_': ' '})|capitalize }}</strong></td>
+                        <td>
+                            {%- if item is iterable -%}
+                                {{ item.value|default('—') }}
+                                {%- if item.note|default(false) %} <span class="sub">({{ item.note }})</span>{% endif -%}
+                            {%- else -%}
+                                {{ item }}
+                            {%- endif -%}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
         </table>
-    </div>
-
-    {% if or.mechanicNotes %}
-    <div class="section">
-        <div class="section-title">📝 Notes mécanicien</div>
-        <div class="notes-box">
-            <p>{{ or.mechanicNotes|nl2br }}</p>
-        </div>
-        {% if or.mechanicNotesUpdatedAt %}
-        <p class="meta-row">Mise à jour le {{ or.mechanicNotesUpdatedAt|date('d/m/Y H:i') }}</p>
+        {% if or.mechanicCheckupUpdatedAt|default(false) %}
+            <p class="tiny">Mise à jour le {{ or.mechanicCheckupUpdatedAt|date('d/m/Y à H:i') }}</p>
         {% endif %}
     </div>
-    {% endif %}
+{% endif %}
 
-    {% if or.mechanicCheckup|length > 0 %}
-    <div class="section">
-        <div class="section-title">🔎 Checkup réception</div>
-        <div class="checkup-box">
-            {% for key, item in or.mechanicCheckup %}
-                <div class="checkup-item">
-                    {% if item is iterable %}
-                        <strong>{{ item.label is defined ? item.label : key }}</strong>
-                        {% if item.value is defined %} : {{ item.value }}{% endif %}
-                        {% if item.note is defined %} <em style="color:#666;">({{ item.note }})</em>{% endif %}
-                    {% else %}
-                        <strong>{{ key }}</strong> : {{ item }}
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-        {% if or.mechanicCheckupUpdatedAt %}
-        <p class="meta-row">Mise à jour le {{ or.mechanicCheckupUpdatedAt|date('d/m/Y H:i') }}</p>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {% if or.travauxRealises %}
-    <div class="section">
-        <div class="section-title">🔧 Travaux réalisés</div>
+<div class="section">
+    <div class="section-title">Travaux réalisés</div>
+    {% if or.travauxRealises|default(false) %}
         <p>{{ or.travauxRealises|nl2br }}</p>
-    </div>
+    {% else %}
+        {# Volet imprimé avant l'intervention : on fournit de quoi écrire. #}
+        {{ ui.ruled_lines(6) }}
     {% endif %}
+</div>
 
-    {% if or.alertes %}
-    <div class="section">
-        <div class="section-title">⚠️ Alertes</div>
-        <div class="alert-box">
+{% if or.alertes|default(false) %}
+    <div class="section no-break">
+        <div class="section-title">Points de vigilance</div>
+        <div class="box-alert">
             {% if or.alertes is iterable %}
-            <ul style="margin:0;padding-left:16px;">
-                {% for alerte in or.alertes %}
-                <li>{{ alerte }}</li>
-                {% endfor %}
-            </ul>
+                <ul style="margin:0;padding-left:14px;">
+                    {% for alerte in or.alertes %}<li>{{ alerte }}</li>{% endfor %}
+                </ul>
             {% else %}
-            <p>{{ or.alertes|nl2br }}</p>
+                <p>{{ or.alertes|nl2br }}</p>
             {% endif %}
         </div>
     </div>
-    {% endif %}
+{% endif %}
 
-    {% if or.recommandations %}
-    <div class="section">
-        <div class="section-title">💡 Recommandations</div>
-        <div class="recommandation-box">
-            <p>{{ or.recommandations|nl2br }}</p>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if or.garantie %}
-    <div class="section">
-        <div class="section-title">🛡️ Garantie</div>
-        <div class="garantie-box">
-            <p>{{ or.garantie|nl2br }}</p>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="info-grid">
-        <div class="info-col">
-            {% if or.kilometrageRestitution %}
-            <p class="label">Kilométrage restitution</p>
-            <p>{{ or.kilometrageRestitution }} km</p>
+{# Recommandations et garantie sont courtes : côte à côte, elles laissent la
+   place au bloc signatures sur la même page. #}
+{% if or.recommandations|default(false) or or.garantie|default(false) %}
+    <table class="cols no-break">
+        <tr>
+            {% if or.recommandations|default(false) %}
+                <td>
+                    <div class="section-title">Recommandations</div>
+                    <div class="box-warn"><p>{{ or.recommandations|nl2br }}</p></div>
+                </td>
             {% endif %}
-        </div>
-        <div class="info-col">
-            <!-- Prochaine révision retirée — trop variable selon marque/modèle en moto -->
-        </div>
-    </div>
-
-    {% if intervention_photos is defined and intervention_photos|length > 0 %}
-    <div class="section">
-        <div class="section-title">📸 Photos intervention</div>
-        <table class="photos-table">
-            <tr>
-                {% for photo in intervention_photos %}
-                    <td>
-                        <div class="photo-card">
-                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo') }}">
-                            <div class="photo-caption">
-                                {{ photo.label|default('Photo') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
-                            </div>
-                        </div>
-                    </td>
-                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
-                {% endfor %}
-            </tr>
-        </table>
-    </div>
-    {% endif %}
-
-    <div class="section">
-        <div class="signature-grid">
-            <div class="signature-col">
-                <p class="signature-label"><strong>Signature mécanicien</strong></p>
-                <div class="signature-box">
-                    {% if or.signatureMecanicien %}
-                    <img src="{{ or.signatureMecanicien }}">
-                    {% else %}
-                    <p style="color:#999;font-size:10px;">Non signé</p>
-                    {% endif %}
-                </div>
-                {% if or.signeMecanicienAt %}
-                <p class="meta-row">Signé le {{ or.signeMecanicienAt|date('d/m/Y H:i') }}</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== PAGE 3 : RESTITUTION ===== -->
-    <div class="page-break"></div>
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-left">
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
-                    {% endif %}
-                    <div class="atelier-meta">
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        <span style="font-size:9px;">Document unique OR — N° {{ or.numeroOr }}</span>
-                    </div>
+            {% if or.garantie|default(false) %}
+                <td>
+                    <div class="section-title">Garantie</div>
+                    <div class="box-ok"><p>{{ or.garantie|nl2br }}</p></div>
                 </td>
-                <td class="header-right">
-                    <h1>RESTITUTION</h1>
-                    <p><strong>N° {{ or.numeroOr }}</strong></p>
-                </td>
-            </tr>
-        </table>
-    </div>
+            {% endif %}
+        </tr>
+    </table>
+{% endif %}
 
-    <div class="info-grid">
-        <div class="info-col">
-            <p class="label">Client</p>
-            <p>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</p>
-        </div>
-        <div class="info-col">
-            <p class="label">Véhicule</p>
-            <p>{{ vMarque }} {{ vModele }} — {{ vPlaque }}</p>
-        </div>
+{% if intervention_photos|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Photos d'intervention</div>
+        {{ ui.photos(intervention_photos, 'Photo intervention') }}
     </div>
+{% endif %}
 
-    <div class="section">
-        <p>Je soussigné(e) <strong>{{ or.snapClientPrenom ?? rdv.client.prenom }} {{ or.snapClientNom ?? rdv.client.nom }}</strong>, déclare avoir récupéré mon véhicule et pris connaissance des travaux effectués.</p>
-        {% if or.kilometrageRestitution %}
-        <p class="meta-row">Kilométrage constaté : {{ or.kilometrageRestitution }} km</p>
-        {% endif %}
-    </div>
+<div class="section no-break">
+    {{ ui.signatures([
+        {
+            label: 'Signature du mécanicien',
+            image: or.signatureMecanicien|default(null),
+            caption: or.signeMecanicienAt|default(false) ? 'Signé le ' ~ or.signeMecanicienAt|date('d/m/Y à H:i') : null,
+        },
+        {
+            label: "Kilométrage en fin d'intervention",
+            image: null,
+            fallback: or.kilometrageRestitution|default(false) ? or.kilometrageRestitution|km : '____________ km',
+        },
+    ]) }}
+</div>
 
-    <div class="section">
-        <div class="section-title">🔧 Entretien des fluides recommandé</div>
-        <div class="checkup-box">
-            <div class="checkup-item">Huile moteur — <strong>tous les ans</strong></div>
-            <div class="checkup-item">Liquide de frein — <strong>tous les 2 ans</strong></div>
-            <div class="checkup-item">Liquide de refroidissement — <strong>tous les 3 ans</strong></div>
-        </div>
-    </div>
+{# ================= VOLET 3 — RESTITUTION ================= #}
+<div class="break-before"></div>
+{{ ui.header_continued('RESTITUTION DU VÉHICULE', reference, atelier, logo_data_uri) }}
 
-    <div class="section">
-        <div class="signature-grid">
-            <div class="signature-col">
-                <p class="signature-label"><strong>Signature client restitution</strong></p>
-                <div class="signature-box">
-                    {% if or.signatureClientRestitution %}
-                    <img src="{{ or.signatureClientRestitution }}">
-                    {% else %}
-                    <p style="color:#999;font-size:10px;">Non signé</p>
-                    {% endif %}
-                </div>
-                {% if or.signeClientRestitutionAt %}
-                <p class="meta-row">Signé le {{ or.signeClientRestitutionAt|date('d/m/Y H:i') }}</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+{{ ui.columns([
+    ui.field('Client', clientNomComplet),
+    ui.field('Véhicule', vehiculeLibelle ~ (vPlaque ? ' — ' ~ vPlaque : '')),
+    ui.field('Kilométrage constaté', or.kilometrageRestitution|default(false) ? or.kilometrageRestitution|km : null, 'À compléter'),
+]) }}
 
-    {% if restitution_photos is defined and restitution_photos|length > 0 %}
-    <div class="section">
-        <div class="section-title">📸 Photos restitution</div>
-        <table class="photos-table">
-            <tr>
-                {% for photo in restitution_photos %}
-                    <td>
-                        <div class="photo-card">
-                            <img src="{{ photo.src }}" alt="{{ photo.label|default('Photo restitution') }}">
-                            <div class="photo-caption">
-                                {{ photo.label|default('Photo restitution') }}{% if photo.takenAt %}<br>{{ photo.takenAt }}{% endif %}
-                            </div>
-                        </div>
-                    </td>
-                    {% if loop.index is divisible by(3) and not loop.last %}</tr><tr>{% endif %}
-                {% endfor %}
-            </tr>
-        </table>
-    </div>
-    {% endif %}
+<div class="section">
+    <p>Je soussigné(e) <strong>{{ clientNomComplet|default('……………………………………') }}</strong> déclare avoir récupéré mon véhicule
+       {% if vehiculeLibelle %}<strong>{{ vehiculeLibelle }}{% if vPlaque %} ({{ vPlaque }}){% endif %}</strong>{% endif %},
+       avoir pris connaissance des travaux effectués et des recommandations formulées par l'atelier.</p>
+</div>
 
-    {% if or.signedHash %}
-    <div class="section" style="margin-top: 40px;">
-        <p style="font-size: 8px; color: #999; word-break: break-all;">
-            Empreinte d'intégrité : {{ or.signedHash }}
-        </p>
+<div class="section no-break">
+    <div class="section-title">Périodicité d'entretien des fluides</div>
+    <table class="lines">
+        <tbody>
+            <tr><td>Huile moteur</td><td class="right"><strong>tous les ans</strong></td></tr>
+            <tr><td>Liquide de frein</td><td class="right"><strong>tous les 2 ans</strong></td></tr>
+            <tr><td>Liquide de refroidissement</td><td class="right"><strong>tous les 3 ans</strong></td></tr>
+        </tbody>
+    </table>
+    <p class="tiny">Périodicités indicatives — se référer au carnet d'entretien du constructeur.</p>
+</div>
+
+{% if restitution_photos|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Photos de restitution</div>
+        {{ ui.photos(restitution_photos, 'Photo restitution') }}
     </div>
-    {% endif %}
-</body>
-</html>
+{% endif %}
+
+<div class="section no-break">
+    {{ ui.signatures([
+        {
+            label: 'Signature du client — restitution',
+            image: or.signatureClientRestitution|default(null),
+            caption: or.signeClientRestitutionAt|default(false) ? 'Signé le ' ~ or.signeClientRestitutionAt|date('d/m/Y à H:i') : null,
+        },
+        {
+            label: 'Date de restitution',
+            image: null,
+            fallback: or.signeClientRestitutionAt|default(false) ? or.signeClientRestitutionAt|date('d/m/Y') : '……… / ……… / …………',
+        },
+    ]) }}
+</div>
+
+{% if or.signedHash|default(false) %}
+    <div class="legal">
+        Empreinte d'intégrité : {{ or.signedHash }}
+        {%- if or.signedAt|default(false) %} — horodatage {{ or.signedAt|date('d/m/Y H:i:s') }}{% endif %}
+    </div>
+{% endif %}
+
+{% endblock %}

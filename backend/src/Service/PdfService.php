@@ -14,8 +14,6 @@ use App\Entity\VOFacture;
 use App\Entity\VOLivrePolice;
 use App\Entity\VOPurchase;
 use Doctrine\ORM\EntityManagerInterface;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
@@ -29,7 +27,54 @@ class PdfService
         private EntityManagerInterface $em,
         private string $projectDir,
         private LoggerInterface $logger,
+        private PdfRenderer $pdfRenderer,
+        private PdfTemplateRegistry $registry,
+        private DocumentHeaderRenderer $headerRenderer,
     ) {}
+
+    /**
+     * Rend un document du registre et l'écrit dans var/pdf.
+     *
+     * Passe par le registre pour connaître le template et l'orientation, et par
+     * DocumentHeaderRenderer pour appliquer l'en-tête composé en administration.
+     *
+     * @param array<string, mixed> $context Variables propres au document.
+     */
+    private function renderDocument(
+        string $code,
+        string $filename,
+        array $context,
+        ?Atelier $atelier,
+        ?string $footerReference = null,
+    ): string {
+        $meta = $this->registry->get($code);
+        $branding = $this->buildBrandingContext($atelier);
+
+        $customHeader = $this->headerRenderer->renderFor(
+            $code,
+            $atelier?->getId(),
+            $atelier,
+            $branding['logo_data_uri'],
+            ['doc_title' => $meta['label'], 'doc_reference' => $footerReference ?? ''],
+        );
+
+        $html = $this->twig->render($meta['template'], [
+            ...$branding,
+            'custom_header_html' => $customHeader,
+            ...$context,
+        ]);
+
+        $footer = trim(sprintf(
+            '%s%s',
+            $atelier?->getNom() ?? 'Atelier',
+            $footerReference !== null ? ' — ' . $footerReference : ' — ' . $meta['label'],
+        ));
+
+        return $this->writePdf(
+            $this->pdfRenderer->render($html, $footer, true, $meta['orientation']),
+            $filename,
+        );
+    }
 
     /**
      * Generate an OR PDF.
@@ -38,14 +83,17 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($or->getRendezVous()?->getAtelierId());
 
-        $html = $this->twig->render('pdf/ordre_reparation.html.twig', [
-            'or' => $or,
-            'rdv' => $or->getRendezVous(),
-            ...$this->buildRdvPhotoContext($or->getRendezVous()),
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'OR-' . $or->getNumeroOr());
+        return $this->renderDocument(
+            'ordre_reparation',
+            'OR-' . $or->getNumeroOr(),
+            [
+                'or' => $or,
+                'rdv' => $or->getRendezVous(),
+                ...$this->buildRdvPhotoContext($or->getRendezVous()),
+            ],
+            $atelier,
+            'OR ' . $or->getNumeroOr(),
+        );
     }
 
     /**
@@ -110,18 +158,93 @@ class PdfService
     }
 
     /**
+     * Rapport d'intervention remis au client en fin de prestation.
+     *
+     * Il n'existe pas d'entité dédiée : les données proviennent de l'ordre de
+     * réparation et de l'essai routier qui lui est rattaché. Le contexte est
+     * construit en tableaux plutôt qu'en entités, pour que le template ne
+     * dépende que de clés explicitement fournies ici.
+     */
+    public function generateRapportInterventionPdf(OrdreReparation $or): string
+    {
+        $rdv = $or->getRendezVous();
+        $atelier = $this->resolveAtelier($rdv?->getAtelierId());
+        $essai = $or->getEssaiRoutier();
+        $mecanicien = $rdv?->getMecanicien();
+        $client = $rdv?->getClient();
+        $vehicule = $rdv?->getVehicule();
+
+        return $this->renderDocument(
+            'rapport_intervention',
+            'RI-' . $or->getNumeroOr(),
+            [
+                'rdv' => [
+                    'id' => $or->getNumeroOr(),
+                    'dateDebut' => $rdv?->getHeureDebutTravail() ?? $rdv?->getDateRdv(),
+                    'typeIntervention' => $rdv?->getTypeIntervention(),
+                    'commentaire' => $rdv?->getCommentaire(),
+                ],
+                'rapport' => [
+                    'statut' => $or->getStatut(),
+                    'dureeMinutes' => $rdv?->getTempsFinal() ?? $rdv?->getTempsEstime(),
+                    'travauxRealises' => $or->getTravauxRealises(),
+                    'alertes' => $or->getAlertes() ?? [],
+                    'recommandations' => $or->getRecommandations(),
+                    'garantie' => $or->getGarantie(),
+                    'prochaineRevisionKm' => $or->getProchaineRevisionKm(),
+                    'prochaineRevisionDate' => $or->getProchaineRevisionDate(),
+                    'kilometrageRestitution' => $or->getKilometrageRestitution(),
+                    'signatureMecanicien' => $or->getSignatureMecanicien(),
+                    'signeMecanicienAt' => $or->getSigneMecanicienAt(),
+                    'signatureClient' => $or->getSignatureClientRestitution(),
+                    'signeClientAt' => $or->getSigneClientRestitutionAt(),
+                    'signedHash' => $or->getFinalHash() ?? $or->getSignedHash(),
+                ],
+                'essai' => $essai === null ? null : [
+                    'kmDebut' => $essai->getKmDebut(),
+                    'kmFin' => $essai->getKmFin(),
+                    'distance' => $essai->getDistance(),
+                    'dureeMinutes' => $essai->getDureeMinutes(),
+                    'pointsControle' => $essai->getCheckpoints(),
+                    'anomalies' => $essai->getAnomalies(),
+                    'actionsCorrectives' => $essai->getActionsCorrectives(),
+                ],
+                'client' => $client === null ? null : [
+                    'nom' => $or->getSnapClientNom() ?? $client->getNom(),
+                    'prenom' => $or->getSnapClientPrenom() ?? $client->getPrenom(),
+                    'telephone' => $client->getTelephone(),
+                    'email' => $client->getEmail(),
+                ],
+                'vehicule' => [
+                    'marque' => $or->getSnapVehiculeMarque() ?? $vehicule?->getMarque(),
+                    'modele' => $or->getSnapVehiculeModele() ?? $vehicule?->getModele(),
+                    'plaque' => $or->getSnapVehiculePlaque() ?? $vehicule?->getPlaque(),
+                ],
+                'mecanicien' => $mecanicien === null ? null : [
+                    'nom' => $mecanicien->getNom(),
+                    'prenom' => $mecanicien->getPrenom(),
+                ],
+                'report_photos' => $this->buildRdvPhotoContext($rdv)['intervention_photos'],
+            ],
+            $atelier,
+            "Rapport d'intervention — OR " . $or->getNumeroOr(),
+        );
+    }
+
+    /**
      * Generate an invoice PDF.
      */
     public function generateFacturePdf(Facture $facture): string
     {
         $atelier = $this->resolveAtelier($facture->getAtelierId());
 
-        $html = $this->twig->render('pdf/facture.html.twig', [
-            'facture' => $facture,
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'FAC-' . $facture->getNumeroFacture());
+        return $this->renderDocument(
+            'facture',
+            'FAC-' . $facture->getNumeroFacture(),
+            ['facture' => $facture],
+            $atelier,
+            'Facture ' . $facture->getNumeroFacture(),
+        );
     }
 
     /**
@@ -131,12 +254,13 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($devis->getAtelierId());
 
-        $html = $this->twig->render('pdf/devis.html.twig', [
-            'devis' => $devis,
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'DEV-' . $devis->getNumeroDevis());
+        return $this->renderDocument(
+            'devis',
+            'DEV-' . $devis->getNumeroDevis(),
+            ['devis' => $devis],
+            $atelier,
+            'Devis ' . $devis->getNumeroDevis(),
+        );
     }
 
     /**
@@ -146,12 +270,13 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($facture->getAtelierId());
 
-        $html = $this->twig->render('pdf/vo_facture.html.twig', [
-            'facture' => $facture,
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'VOF-' . $facture->getNumeroFacture());
+        return $this->renderDocument(
+            'vo_facture',
+            'VOF-' . $facture->getNumeroFacture(),
+            ['facture' => $facture],
+            $atelier,
+            'Facture VO ' . $facture->getNumeroFacture(),
+        );
     }
 
     /**
@@ -162,12 +287,13 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($atelierId);
 
-        $html = $this->twig->render('pdf/vo_livre_police.html.twig', [
-            'entries' => $entries,
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'LP-' . date('Ymd-His'));
+        return $this->renderDocument(
+            'vo_livre_police',
+            'LP-' . date('Ymd-His'),
+            ['entries' => $entries],
+            $atelier,
+            'Livre de police',
+        );
     }
 
     /**
@@ -177,13 +303,16 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($depot->getAtelierId());
 
-        $html = $this->twig->render('pdf/vo_contrat_depot_vente.html.twig', [
-            'depot' => $depot,
-            'companion_signature' => $depot->getCompanionSignatureData(),
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'CDV-' . $depot->getId());
+        return $this->renderDocument(
+            'vo_contrat_depot_vente',
+            'CDV-' . $depot->getId(),
+            [
+                'depot' => $depot,
+                'companion_signature' => $depot->getCompanionSignatureData(),
+            ],
+            $atelier,
+            'Contrat de dépôt-vente CDV-' . $depot->getId(),
+        );
     }
 
     /**
@@ -193,13 +322,16 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($purchase->getAtelierId());
 
-        $html = $this->twig->render('pdf/vo_pv_rachat.html.twig', [
-            'purchase' => $purchase,
-            'companion_signature' => $purchase->getCompanionSignatureData(),
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'PVR-' . $purchase->getId());
+        return $this->renderDocument(
+            'vo_pv_rachat',
+            'PVR-' . $purchase->getId(),
+            [
+                'purchase' => $purchase,
+                'companion_signature' => $purchase->getCompanionSignatureData(),
+            ],
+            $atelier,
+            'PV de rachat PVR-' . $purchase->getId(),
+        );
     }
 
     /**
@@ -209,13 +341,16 @@ class PdfService
     {
         $atelier = $this->resolveAtelier($purchase->getAtelierId());
 
-        $html = $this->twig->render('pdf/vo_da_siv.html.twig', [
-            'purchase' => $purchase,
-            'blockers' => $blockers,
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'DA-SIV-' . $purchase->getId());
+        return $this->renderDocument(
+            'vo_da_siv',
+            'DA-SIV-' . $purchase->getId(),
+            [
+                'purchase' => $purchase,
+                'blockers' => $blockers,
+            ],
+            $atelier,
+            "Préparation DA SIV — dossier " . $purchase->getId(),
+        );
     }
 
     /**
@@ -228,17 +363,22 @@ class PdfService
         $vehicle = $record->getVehicule();
         $seller = $record instanceof VOPurchase ? $record->getSeller() : $record->getDeposant();
 
-        $html = $this->twig->render('pdf/vo_mandat_immatriculation.html.twig', [
-            'record' => $record,
-            'vehicle' => $vehicle,
-            'seller' => $seller,
-            'buyer' => $buyer,
-            ...$this->buildBrandingContext($atelier),
-        ]);
+        $reference = $record instanceof VOPurchase
+            ? 'MANDAT-IMMAT-ACHAT-' . $record->getId()
+            : 'MANDAT-IMMAT-DEPOT-' . $record->getId();
 
-        $reference = $record instanceof VOPurchase ? 'MANDAT-IMMAT-ACHAT-' . $record->getId() : 'MANDAT-IMMAT-DEPOT-' . $record->getId();
-
-        return $this->renderPdf($html, $reference);
+        return $this->renderDocument(
+            'vo_mandat_immatriculation',
+            $reference,
+            [
+                'record' => $record,
+                'vehicle' => $vehicle,
+                'seller' => $seller,
+                'buyer' => $buyer,
+            ],
+            $atelier,
+            "Mandat d'immatriculation",
+        );
     }
 
     /**
@@ -252,22 +392,25 @@ class PdfService
         $snapshot = $document['snapshot'] ?? [];
         $campaign = is_array($snapshot['campaign'] ?? null) ? $snapshot['campaign'] : [];
 
-        $html = $this->twig->render('pdf/vo_remise_en_etat.html.twig', [
-            'document' => $document,
-            'snapshot' => $snapshot,
-            'campaign' => $campaign,
-            'record' => is_array($snapshot['record'] ?? null) ? $snapshot['record'] : [],
-            'vehicle' => is_array($snapshot['vehicle'] ?? null) ? $snapshot['vehicle'] : [],
-            'notes' => is_array($snapshot['notes'] ?? null) ? $snapshot['notes'] : [],
-            'summary' => is_array($snapshot['summary'] ?? null) ? $snapshot['summary'] : [],
-            'lines' => is_array($snapshot['lines'] ?? null) ? $snapshot['lines'] : [],
-            'pieces' => is_array($snapshot['pieces'] ?? null) ? $snapshot['pieces'] : [],
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
         $reference = (string) ($document['reference'] ?? sprintf('REVO-%s', $campaign['label'] ?? date('Ymd-His')));
 
-        return $this->renderPdf($html, $reference);
+        return $this->renderDocument(
+            'vo_remise_en_etat',
+            $reference,
+            [
+                'document' => $document,
+                'snapshot' => $snapshot,
+                'campaign' => $campaign,
+                'record' => is_array($snapshot['record'] ?? null) ? $snapshot['record'] : [],
+                'vehicle' => is_array($snapshot['vehicle'] ?? null) ? $snapshot['vehicle'] : [],
+                'notes' => is_array($snapshot['notes'] ?? null) ? $snapshot['notes'] : [],
+                'summary' => is_array($snapshot['summary'] ?? null) ? $snapshot['summary'] : [],
+                'lines' => is_array($snapshot['lines'] ?? null) ? $snapshot['lines'] : [],
+                'pieces' => is_array($snapshot['pieces'] ?? null) ? $snapshot['pieces'] : [],
+            ],
+            $atelier,
+            'Remise en état ' . $reference,
+        );
     }
 
     /**
@@ -280,15 +423,18 @@ class PdfService
         $rdv = $etatDesLieux->getRendezVous();
         $atelier = $this->resolveAtelier($etatDesLieux->getAtelierId() ?? $rdv->getAtelierId());
 
-        $html = $this->twig->render('pdf/etat_des_lieux.html.twig', [
-            'edl' => $etatDesLieux,
-            'rdv' => $rdv,
-            'niveau_carburant_label' => EtatDesLieux::NIVEAUX_CARBURANT_LABELS[$etatDesLieux->getNiveauCarburant()] ?? 'Non renseigné',
-            'photos_entree' => $this->extractCheckinPhotos($rdv),
-            ...$this->buildBrandingContext($atelier),
-        ]);
-
-        return $this->renderPdf($html, 'EDL-' . ($etatDesLieux->getId() ?? $rdv->getId()) . '-' . bin2hex(random_bytes(4)));
+        return $this->renderDocument(
+            'etat_des_lieux',
+            'EDL-' . ($etatDesLieux->getId() ?? $rdv->getId()) . '-' . bin2hex(random_bytes(4)),
+            [
+                'edl' => $etatDesLieux,
+                'rdv' => $rdv,
+                'niveau_carburant_label' => EtatDesLieux::NIVEAUX_CARBURANT_LABELS[$etatDesLieux->getNiveauCarburant()] ?? 'Non renseigné',
+                'photos_entree' => $this->extractCheckinPhotos($rdv),
+            ],
+            $atelier,
+            "État des lieux d'entrée — RDV " . $rdv->getId(),
+        );
     }
 
     /**
@@ -544,27 +690,21 @@ class PdfService
      */
     public function generateFromHtml(string $html, string $filename): string
     {
-        return $this->renderPdf($html, $filename);
+        return $this->writePdf($this->pdfRenderer->render($html), $filename);
     }
 
-    private function renderPdf(string $html, string $filename): string
+    /**
+     * Écrit les octets d'un PDF dans var/pdf et renvoie le chemin du fichier.
+     */
+    private function writePdf(string $pdf, string $filename): string
     {
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
         $outputDir = $this->projectDir . '/var/pdf';
         if (!is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
         $filePath = $outputDir . '/' . $filename . '.pdf';
-        file_put_contents($filePath, $dompdf->output());
+        file_put_contents($filePath, $pdf);
 
         return $filePath;
     }

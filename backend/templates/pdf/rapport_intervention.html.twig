@@ -1,0 +1,192 @@
+{% extends 'pdf/_layout.html.twig' %}
+{% import 'pdf/_macros.html.twig' as ui %}
+
+{#
+  Rapport d'intervention remis au client en fin de prestation.
+
+  Il n'existe pas d'entité « RapportIntervention » : les données proviennent de
+  l'ordre de réparation (travaux, alertes, garantie, signatures) et de
+  l'essai routier associé, jusqu'ici absent de tout PDF.
+#}
+
+{% set accent = '#047857' %}
+{% set accent_soft = '#ecfdf5' %}
+{% set doc_title = "Rapport d'intervention" %}
+
+{% set vehiculeLibelle = ((vehicule.marque|default('')) ~ ' ' ~ (vehicule.modele|default('')))|trim %}
+{% set clientNom = ((client.prenom|default('')) ~ ' ' ~ (client.nom|default('')))|trim %}
+{% set mecanicienNom = ((mecanicien.prenom|default('')) ~ ' ' ~ (mecanicien.nom|default('')))|trim %}
+
+{% block body %}
+
+{% set headerMeta = [] %}
+{% if rapport.statut|default(false) %}
+    {% set badgeClass = rapport.statut in ['signe', 'signé', 'valide'] ? 'badge badge-ok' : 'badge' %}
+    {% set headerMeta = headerMeta|merge(['<span class="' ~ badgeClass ~ '">' ~ rapport.statut|replace({'_': ' '})|upper ~ '</span>']) %}
+{% endif %}
+{% if rdv.dateDebut|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Intervention du ' ~ rdv.dateDebut|date('d/m/Y')]) %}
+{% endif %}
+{% if rapport.dureeMinutes|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Durée : ' ~ rapport.dureeMinutes|duree]) %}
+{% endif %}
+
+{{ ui.header(
+    doc_title|upper,
+    rdv.id|default(false) ? 'Dossier n° <strong>' ~ rdv.id ~ '</strong>' : null,
+    atelier,
+    logo_data_uri,
+    headerMeta,
+    custom_header_html|default(null)
+) }}
+
+{{ ui.columns([
+    ui.field('Client', clientNom ? (
+        '<strong>' ~ clientNom ~ '</strong>'
+        ~ (client.telephone|default(false) ? '<br>' ~ client.telephone : '')
+        ~ (client.email|default(false) ? '<br>' ~ client.email : '')
+    ) : null),
+    ui.field('Véhicule', vehiculeLibelle ? (
+        '<strong>' ~ vehiculeLibelle ~ '</strong>'
+        ~ (vehicule.plaque|default(false) ? '<br>Plaque ' ~ vehicule.plaque : '')
+        ~ (rapport.kilometrageRestitution|default(false) ? '<br>' ~ rapport.kilometrageRestitution|km : '')
+    ) : null),
+    ui.field('Intervention',
+        (rdv.typeIntervention|default('—'))
+        ~ (mecanicienNom ? '<br>Mécanicien : ' ~ mecanicienNom : '')),
+]) }}
+
+{% if rdv.commentaire|default(false) %}
+    <div class="section no-break">
+        <div class="section-title">Demande initiale du client</div>
+        <div class="box"><p>{{ rdv.commentaire|nl2br }}</p></div>
+    </div>
+{% endif %}
+
+<div class="section no-break">
+    <div class="section-title">Travaux réalisés</div>
+    {% if rapport.travauxRealises|default(false) %}
+        <p>{{ rapport.travauxRealises|nl2br }}</p>
+    {% else %}
+        <p class="muted">Aucun détail saisi.</p>
+    {% endif %}
+</div>
+
+{# ---- Essai routier : saisi par le mécanicien, jamais imprimé jusqu'ici ---- #}
+{% if essai|default(false) %}
+    <div class="section no-break">
+        <div class="section-title">Essai routier</div>
+        {{ ui.columns([
+            ui.field('Kilométrage', (essai.kmDebut|default(false) ? essai.kmDebut|km : '—') ~ ' → ' ~ (essai.kmFin|default(false) ? essai.kmFin|km : '—')),
+            ui.field('Distance parcourue', essai.distance|default(false) ? essai.distance|km : null),
+            ui.field('Durée', essai.dureeMinutes|default(false) ? essai.dureeMinutes|duree : null),
+        ]) }}
+
+        {% if essai.pointsControle|default([])|length %}
+            <table class="lines">
+                <thead>
+                    <tr>
+                        <th>Point de contrôle</th>
+                        <th class="center nowrap">Résultat</th>
+                        <th>Commentaire</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for point in essai.pointsControle %}
+                    <tr>
+                        <td>{{ point.label|default('—') }}</td>
+                        <td class="center nowrap">
+                            {% if point.ok|default(false) %}
+                                <span class="badge badge-ok">Conforme</span>
+                            {% else %}
+                                <span class="badge badge-warn">À surveiller</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ point.commentaire|default('—') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if essai.anomalies|default(false) %}
+            <div class="box-alert"><p><strong>Anomalies constatées :</strong> {{ essai.anomalies|nl2br }}</p></div>
+        {% endif %}
+        {% if essai.actionsCorrectives|default(false) %}
+            <p class="small"><strong>Actions correctives :</strong> {{ essai.actionsCorrectives|nl2br }}</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if rapport.alertes|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Points de vigilance</div>
+        <div class="box-alert">
+            <ul style="margin:0;padding-left:14px;">
+                {% for alerte in rapport.alertes %}<li>{{ alerte }}</li>{% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endif %}
+
+{% if rapport.recommandations|default(false) or rapport.garantie|default(false) %}
+    <table class="cols no-break">
+        <tr>
+            {% if rapport.recommandations|default(false) %}
+                <td>
+                    <div class="section-title">Recommandations</div>
+                    <div class="box-warn"><p>{{ rapport.recommandations|nl2br }}</p></div>
+                </td>
+            {% endif %}
+            {% if rapport.garantie|default(false) %}
+                <td>
+                    <div class="section-title">Garantie</div>
+                    <div class="box-ok"><p>{{ rapport.garantie|nl2br }}</p></div>
+                </td>
+            {% endif %}
+        </tr>
+    </table>
+{% endif %}
+
+{% if rapport.prochaineRevisionKm|default(false) or rapport.prochaineRevisionDate|default(false) %}
+    <div class="section no-break">
+        <div class="section-title">Prochaine échéance d'entretien</div>
+        {{ ui.columns([
+            ui.field('Au kilométrage', rapport.prochaineRevisionKm|default(false) ? rapport.prochaineRevisionKm|km : null),
+            ui.field('Ou avant le', rapport.prochaineRevisionDate|default(false) ? rapport.prochaineRevisionDate|date('d/m/Y') : null),
+        ]) }}
+        <p class="tiny">Échéance indicative — la première des deux limites atteintes fait foi.</p>
+    </div>
+{% endif %}
+
+{% if report_photos|default([])|length %}
+    <div class="section no-break">
+        <div class="section-title">Photos de l'intervention</div>
+        {{ ui.photos(report_photos, 'Photo intervention') }}
+    </div>
+{% endif %}
+
+<div class="section no-break">
+    {{ ui.signatures([
+        {
+            label: 'Le mécanicien' ~ (mecanicienNom ? ' — ' ~ mecanicienNom : ''),
+            image: rapport.signatureMecanicien is same as(true) ? null : rapport.signatureMecanicien|default(null),
+            caption: rapport.signeMecanicienAt|default(false) ? 'Signé le ' ~ rapport.signeMecanicienAt|date('d/m/Y à H:i') : null,
+            fallback: rapport.signatureMecanicien|default(false) ? 'Signature enregistrée' : 'Non signé',
+        },
+        {
+            label: 'Le client — bon pour réception des travaux',
+            image: rapport.signatureClient is same as(true) ? null : rapport.signatureClient|default(null),
+            caption: rapport.signeClientAt|default(false) ? 'Signé le ' ~ rapport.signeClientAt|date('d/m/Y à H:i') : null,
+            fallback: rapport.signatureClient|default(false) ? 'Signature enregistrée' : 'Non signé',
+        },
+    ]) }}
+</div>
+
+<div class="legal">
+    Rapport établi par {{ atelier.nom|default('Atelier Moto') }}
+    {%- if atelier.siret|default(false) %} — SIRET {{ atelier.siret }}{% endif %}.
+    {% if rapport.signedHash|default(false) %}<br>Empreinte d'intégrité : {{ rapport.signedHash }}{% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,200 @@
+{#
+  Briques réutilisables par tous les PDF.
+  Toute mise en colonnes passe par <table> : dompdf n'implémente ni flex ni grid.
+#}
+
+{# Bloc identité atelier (logo + coordonnées légales). #}
+{% macro atelier_block(atelier, logo_data_uri) %}
+    {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="" class="logo"><br>
+    {% endif %}
+    <div class="atelier-meta">
+        <strong class="atelier-name">{{ atelier.nom|default('Atelier Moto') }}</strong><br>
+        {% if atelier.adresse|default(false) %}{{ atelier.adresse }}<br>{% endif %}
+        {% if atelier.cp|default(false) or atelier.ville|default(false) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
+        {% if atelier.telephone|default(false) %}Tél. {{ atelier.telephone }}{% if atelier.email|default(false) %} — {% endif %}{% endif %}
+        {% if atelier.email|default(false) %}{{ atelier.email }}{% endif %}
+        {% if atelier.telephone|default(false) or atelier.email|default(false) %}<br>{% endif %}
+        {% if atelier.siret|default(false) %}SIRET {{ atelier.siret }}{% endif %}
+        {% if atelier.tvaIntracom|default(false) %} — TVA {{ atelier.tvaIntracom }}{% endif %}
+    </div>
+{% endmacro %}
+
+{#
+  En-tête de document.
+  `meta` : liste de lignes libres (HTML autorisé) affichées sous la référence.
+  `custom_header_html` : bandeau composé dans le designer admin ; quand il est
+  fourni il remplace le bloc atelier par défaut.
+#}
+{% macro header(title, reference, atelier, logo_data_uri, meta, custom_header_html) %}
+    {% import _self as ui %}
+    {# Un bandeau personnalisé trace ses propres filets : le liseré par défaut
+       ferait doublon juste en dessous. #}
+    <div class="{{ custom_header_html ? 'doc-header-custom' : 'doc-header' }}">
+        {% if custom_header_html %}
+            {{ custom_header_html|raw }}
+        {% else %}
+            <table class="doc-header-table">
+                <tr>
+                    <td class="doc-header-left">{{ ui.atelier_block(atelier, logo_data_uri) }}</td>
+                    <td class="doc-header-right">
+                        <div class="doc-title">{{ title }}</div>
+                        {% if reference %}<div class="doc-ref">{{ reference|raw }}</div>{% endif %}
+                        {% for line in meta|default([]) %}
+                            {% if line %}<div class="small muted">{{ line|raw }}</div>{% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+            </table>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# En-tête allégé pour les pages 2+ d'un même document. #}
+{% macro header_continued(title, reference, atelier, logo_data_uri) %}
+    {% import _self as ui %}
+    <div class="doc-header">
+        <table class="doc-header-table">
+            <tr>
+                <td class="doc-header-left">
+                    {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="" class="logo"><br>{% endif %}
+                    <div class="atelier-meta"><strong class="atelier-name">{{ atelier.nom|default('Atelier Moto') }}</strong></div>
+                </td>
+                <td class="doc-header-right">
+                    <div class="doc-title">{{ title }}</div>
+                    {% if reference %}<div class="doc-ref">{{ reference|raw }}</div>{% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+{% endmacro %}
+
+{# Un couple libellé / valeur. `value` vide → tiret discret plutôt qu'un blanc. #}
+{% macro field(label, value, placeholder) %}
+    <span class="field-label">{{ label }}</span>
+    <div class="field-value">
+        {%- if value is not empty -%}{{ value|raw }}
+        {%- else -%}<span class="muted">{{ placeholder|default('Non renseigné') }}</span>
+        {%- endif -%}
+    </div>
+{% endmacro %}
+
+{#
+  Rangée de colonnes égales.
+  `cells` : liste de fragments HTML déjà rendus.
+#}
+{% macro columns(cells) %}
+    {% set kept = cells|filter(c => c is not null) %}
+    {% if kept|length %}
+        <table class="cols">
+            <tr>
+                {% for cell in kept %}
+                    <td style="width:{{ (100 / kept|length)|round(2) }}%;">{{ cell|raw }}</td>
+                {% endfor %}
+            </tr>
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{#
+  Grille de photos, 3 par rangée.
+  Les cellules manquantes de la dernière rangée sont comblées pour que dompdf
+  ne réparte pas la largeur sur les seules cellules présentes (photos étirées).
+#}
+{% macro photos(list, fallback_label) %}
+    {% set list = list|default([]) %}
+    {% if list|length %}
+        {% set columns = 3 %}
+        <table class="photos">
+            {% for row in list|batch(columns) %}
+                <tr>
+                    {% for photo in row %}
+                        <td>
+                            <div class="photo-card">
+                                <img src="{{ photo.src }}" alt="">
+                                <div class="photo-caption">
+                                    {{ photo.label|default(fallback_label|default('Photo')) }}
+                                    {%- if photo.takenAt|default(false) %}<br>{{ photo.takenAt }}{% endif -%}
+                                </div>
+                            </div>
+                        </td>
+                    {% endfor %}
+                    {% if row|length < columns %}
+                        {% for _ in 1..(columns - row|length) %}<td></td>{% endfor %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{#
+  Bloc signatures.
+  `items` : [{ label, image, caption, fallback }]
+  Une signature seule est rendue sur une demi-largeur : une case qui traverse
+  toute la page se lit comme un champ de saisie, pas comme une signature.
+#}
+{% macro signatures(items) %}
+    {% set items = items|default([]) %}
+    {% if items|length %}
+        {% set columns = items|length < 2 ? 2 : items|length %}
+        <table class="signatures no-break">
+            <tr>
+                {% for item in items %}
+                    <td style="width:{{ (100 / columns)|round(2) }}%;">
+                        <span class="field-label">{{ item.label }}</span>
+                        <div class="signature-box">
+                            {% if item.image|default(false) %}
+                                <img src="{{ item.image }}" alt="">
+                            {% else %}
+                                <span class="muted small">{{ item.fallback|default('Non signé') }}</span>
+                            {% endif %}
+                        </div>
+                        {% if item.caption|default(false) %}<div class="signature-caption">{{ item.caption }}</div>{% endif %}
+                    </td>
+                {% endfor %}
+                {% if items|length < columns %}
+                    {% for _ in 1..(columns - items|length) %}
+                        <td style="width:{{ (100 / columns)|round(2) }}%;"></td>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{#
+  Bloc de totaux aligné à droite.
+  `rows` : [{ label, value, variant: 'rule'|'grand'|null }]
+  Rendu via un tableau à deux colonnes plutôt qu'un `float: right`, que dompdf
+  place de travers dès que le contenu qui précède est haut.
+#}
+{% macro totals(rows) %}
+    {% set rows = rows|default([])|filter(r => r is not null) %}
+    {% if rows|length %}
+        <table class="totals-wrap no-break">
+            <tr>
+                <td class="totals-spacer"></td>
+                <td class="totals">
+                    <table>
+                        {% for row in rows %}
+                            <tr class="{{ row.variant|default('') }}">
+                                <td>{{ row.label|default('') }}</td>
+                                <td class="right">{{ row.value|default('—')|raw }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{# Lignes pointillées à compléter à la main sur les exemplaires imprimés. #}
+{% macro ruled_lines(count) %}
+    <table style="width:100%;border-collapse:collapse;">
+        {% for _ in 1..(count|default(3)) %}
+            <tr><td class="ruled"></td></tr>
+        {% endfor %}
+    </table>
+{% endmacro %}

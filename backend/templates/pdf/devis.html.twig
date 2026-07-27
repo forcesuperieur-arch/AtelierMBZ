@@ -1,129 +1,126 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; margin: 20px; }
-        .header { border-bottom: 2px solid #f59e0b; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-table { width: 100%; border-collapse: collapse; }
-        .header-left, .header-right { vertical-align: top; }
-        .header-right { text-align: right; }
-        .header h1 { color: #f59e0b; margin: 0; font-size: 18px; }
-        .logo { max-width: 120px; max-height: 60px; margin-bottom: 8px; }
-        .atelier-meta { font-size: 10px; color: #555; line-height: 1.4; }
-        .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-        .info-col { display: table-cell; width: 50%; vertical-align: top; }
-        .label { font-weight: bold; color: #666; }
-        table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table.lines th { background: #f59e0b; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
-        table.lines td { padding: 5px 8px; border-bottom: 1px solid #ddd; }
-        table.lines td.right { text-align: right; }
-        .totals { float: right; width: 280px; margin-top: 20px; }
-        .totals table { width: 100%; }
-        .totals td { padding: 4px 6px; }
-        .totals .total-ttc { font-weight: bold; font-size: 14px; border-top: 2px solid #333; }
-        .validity { margin-top: 30px; background: #fffbeb; padding: 10px; border: 1px solid #f59e0b; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-left">
-                    {% if logo_data_uri %}
-                    <img src="{{ logo_data_uri }}" alt="Logo atelier" class="logo">
-                    {% endif %}
-                    <div class="atelier-meta">
-                        <strong>{{ atelier and atelier.nom ? atelier.nom : 'Atelier Moto' }}</strong><br>
-                        {% if atelier and atelier.adresse %}{{ atelier.adresse }}<br>{% endif %}
-                        {% if atelier and (atelier.cp or atelier.ville) %}{{ atelier.cp }} {{ atelier.ville }}<br>{% endif %}
-                        {% if atelier and atelier.telephone %}Tél : {{ atelier.telephone }}<br>{% endif %}
-                        {% if atelier and atelier.email %}{{ atelier.email }}<br>{% endif %}
-                        {% if atelier and atelier.siret %}SIRET : {{ atelier.siret }}{% endif %}
-                    </div>
-                </td>
-                <td class="header-right">
-                    <h1>DEVIS</h1>
-                    <p><strong>N° {{ devis.numeroDevis }}</strong> — {{ devis.dateCreation|date('d/m/Y') }}</p>
-                </td>
-            </tr>
-        </table>
+{% extends 'pdf/_layout.html.twig' %}
+{% import 'pdf/_macros.html.twig' as ui %}
+
+{# Le devis garde son ambre distinctif : à l'atelier, la couleur suffit à
+   distinguer un devis d'une facture dans une pile de documents. #}
+{% set accent = '#b45309' %}
+{% set accent_soft = '#fffbeb' %}
+
+{% set doc_title = 'Devis' %}
+{% set reference = 'N° <strong>' ~ devis.numeroDevis ~ '</strong>' %}
+
+{% set clientNom = ((devis.snapClientPrenom ?? (devis.client ? devis.client.prenom : null)) ~ ' '
+                 ~ (devis.snapClientNom ?? (devis.client ? devis.client.nom : null)))|trim %}
+{% set clientTel = devis.snapClientTelephone ?? (devis.client ? devis.client.telephone : null) %}
+{% set clientEmail = devis.snapClientEmail ?? (devis.client ? devis.client.email : null) %}
+
+{% set vMarque = devis.snapVehiculeMarque ?? (devis.vehicule ? devis.vehicule.marque : null) %}
+{% set vModele = devis.snapVehiculeModele ?? (devis.vehicule ? devis.vehicule.modele : null) %}
+{% set vPlaque = devis.snapVehiculePlaque ?? (devis.vehicule ? devis.vehicule.plaque : null) %}
+{% set vehiculeLibelle = (vMarque ~ ' ' ~ vModele)|trim %}
+
+{% set remise = devis.remiseMontant|default(0) %}
+{% set aRemise = remise is not empty and (remise + 0) > 0 %}
+{% set acompte = devis.acompteDemande|default(0) %}
+{% set aAcompte = acompte is not empty and (acompte + 0) > 0 %}
+
+{% block body %}
+
+{% set headerMeta = [] %}
+{% if devis.dateCreation|default(false) %}
+    {% set headerMeta = headerMeta|merge(['Établi le ' ~ devis.dateCreation|date('d/m/Y')]) %}
+{% endif %}
+{% if devis.statut|default(false) %}
+    {% set headerMeta = headerMeta|merge(['<span class="badge badge-warn">' ~ devis.statut|replace({'_': ' '})|upper ~ '</span>']) %}
+{% endif %}
+
+{{ ui.header(doc_title|upper, reference, atelier, logo_data_uri, headerMeta, custom_header_html|default(null)) }}
+
+{{ ui.columns([
+    ui.field('Client',
+        (clientNom ? '<strong>' ~ clientNom ~ '</strong>' : '')
+        ~ (clientTel ? '<br>' ~ clientTel : '')
+        ~ (clientEmail ? '<br>' ~ clientEmail : '')),
+    ui.field('Véhicule', vehiculeLibelle ? (
+        '<strong>' ~ vehiculeLibelle ~ '</strong>'
+        ~ (vPlaque ? '<br>Plaque ' ~ vPlaque : '')
+        ~ (devis.kilometrage|default(false) ? '<br>' ~ devis.kilometrage|km : '')
+    ) : null),
+]) }}
+
+<table class="lines">
+    <thead>
+        <tr>
+            <th>Désignation</th>
+            <th>Type</th>
+            <th class="right nowrap">Qté</th>
+            <th class="right nowrap">P.U. HT</th>
+            <th class="right nowrap">TVA</th>
+            <th class="right nowrap">Total TTC</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for ligne in devis.lignes|default([]) %}
+        <tr>
+            <td>
+                {{ ligne.designation }}
+                {%- if ligne.descriptionDetail|default(false) %}<br><span class="sub">{{ ligne.descriptionDetail }}</span>{% endif -%}
+            </td>
+            <td>{{ ligne.typeLigne|default('—') }}</td>
+            <td class="right nowrap">{{ ligne.quantite|qty }}</td>
+            <td class="right nowrap">{{ ligne.prixUnitaireHt|eur }}</td>
+            <td class="right nowrap">{{ ligne.tauxTva|pct }}</td>
+            <td class="right nowrap">{{ ligne.totalLigneTtc|eur }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="6" class="muted">Aucune ligne au devis.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{{ ui.totals([
+    devis.totalMoHt|default(null) is not empty ? { label: "Total main d'œuvre HT", value: devis.totalMoHt|eur } : null,
+    devis.totalPiecesHt|default(null) is not empty ? { label: 'Total pièces HT', value: devis.totalPiecesHt|eur } : null,
+    { label: 'Total HT', value: '<strong>' ~ devis.totalHt|eur ~ '</strong>', variant: 'rule' },
+    aRemise ? { label: 'Remise' ~ (devis.remisePourcentage|default(0) + 0 > 0 ? ' (' ~ devis.remisePourcentage|pct ~ ')' : ''), value: '−' ~ remise|eur } : null,
+    devis.totalTva|default(null) is not empty ? { label: 'TVA', value: devis.totalTva|eur } : null,
+    { label: 'Total TTC', value: devis.totalTtc|eur, variant: 'grand' },
+    aAcompte ? { label: 'Acompte demandé', value: acompte|eur, variant: 'rule' } : null,
+]) }}
+
+<div class="section no-break">
+    <div class="box-accent">
+        <strong>Validité du devis :</strong>
+        {%- if devis.dateValidite|default(false) %} jusqu'au {{ devis.dateValidite|date('d/m/Y') }}
+        {%- elseif devis.validiteJours|default(false) %} {{ devis.validiteJours }} jours à compter de la date d'établissement
+        {%- else %} nous consulter
+        {%- endif -%}.
+        Passé ce délai, les prix et disponibilités des pièces sont susceptibles d'être révisés.
     </div>
+</div>
 
-    <div class="info-grid">
-        <div class="info-col">
-            <p class="label">Client</p>
-            <p>{{ devis.snapClientPrenom ?? devis.client.prenom }} {{ devis.snapClientNom ?? devis.client.nom }}<br>
-               {{ devis.snapClientTelephone ?? devis.client.telephone }}<br>
-               {% if devis.snapClientEmail ?? devis.client.email %}{{ devis.snapClientEmail ?? devis.client.email }}{% endif %}</p>
-        </div>
-        <div class="info-col">
-            <p class="label">Véhicule</p>
-            {% set vMarque = devis.snapVehiculeMarque ?? (devis.vehicule ? devis.vehicule.marque : '') %}
-            {% set vModele = devis.snapVehiculeModele ?? (devis.vehicule ? devis.vehicule.modele : '') %}
-            {% set vPlaque = devis.snapVehiculePlaque ?? (devis.vehicule ? devis.vehicule.plaque : '') %}
-            {% if vMarque or vModele %}
-            <p>{{ vMarque }} {{ vModele }}<br>
-               Plaque: {{ vPlaque }}<br>
-               {% if devis.kilometrage %}Km: {{ devis.kilometrage }}{% endif %}</p>
-            {% endif %}
-        </div>
+{% if devis.notesClient|default(false) %}
+    <div class="section">
+        <div class="section-title">Notes</div>
+        <p>{{ devis.notesClient|nl2br }}</p>
     </div>
+{% endif %}
 
-    <table class="lines">
-        <thead>
-            <tr>
-                <th>Désignation</th>
-                <th>Type</th>
-                <th>Qté</th>
-                <th>P.U. HT</th>
-                <th>TVA</th>
-                <th>Total TTC</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for ligne in devis.lignes %}
-            <tr>
-                <td>{{ ligne.designation }}{% if ligne.descriptionDetail %}<br><small>{{ ligne.descriptionDetail }}</small>{% endif %}</td>
-                <td>{{ ligne.typeLigne }}</td>
-                <td class="right">{{ ligne.quantite }}</td>
-                <td class="right">{{ ligne.prixUnitaireHt }} €</td>
-                <td class="right">{{ ligne.tauxTva }}%</td>
-                <td class="right">{{ ligne.totalLigneTtc }} €</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="section no-break">
+    <div class="section-title">Acceptation du devis</div>
+    {# Libellés tenus sur une seule ligne : dès que l'un passe à deux lignes,
+       sa case descend et les deux encadrés ne sont plus alignés. #}
+    {{ ui.columns([
+        '<span class="field-label">Date</span><div class="signature-box"></div>',
+        '<span class="field-label">Signature — mention « Bon pour accord »</span><div class="signature-box"></div>',
+    ]) }}
+</div>
 
-    <div class="totals">
-        <table>
-            <tr><td>Total MO HT</td><td class="right">{{ devis.totalMoHt }} €</td></tr>
-            <tr><td>Total Pièces HT</td><td class="right">{{ devis.totalPiecesHt }} €</td></tr>
-            <tr><td><strong>Total HT</strong></td><td class="right"><strong>{{ devis.totalHt }} €</strong></td></tr>
-            {% if devis.remiseMontant != '0.00' %}
-            <tr><td>Remise ({{ devis.remisePourcentage }}%)</td><td class="right">-{{ devis.remiseMontant }} €</td></tr>
-            {% endif %}
-            <tr class="total-ttc"><td><strong>TOTAL TTC</strong></td><td class="right"><strong>{{ devis.totalTtc }} €</strong></td></tr>
-            {% if devis.acompteDemande != '0.00' %}
-            <tr><td>Acompte demandé</td><td class="right">{{ devis.acompteDemande }} €</td></tr>
-            {% endif %}
-        </table>
-    </div>
+<div class="legal">
+    Devis gratuit et sans engagement. Les travaux ne seront engagés qu'après retour du présent devis signé
+    {%- if aAcompte %} et versement de l'acompte de {{ acompte|eur }}{% endif %}.
+    Toute prestation supplémentaire découverte en cours d'intervention fera l'objet d'un accord préalable du client.
+    {% if atelier.siret|default(false) %}<br>{{ atelier.nom|default('Atelier') }} — SIRET {{ atelier.siret }}{% if atelier.tvaIntracom|default(false) %} — TVA intracommunautaire {{ atelier.tvaIntracom }}{% endif %}.{% endif %}
+</div>
 
-    <div style="clear:both;"></div>
-
-    <div class="validity">
-        <p><strong>Validité du devis :</strong> jusqu'au {{ devis.dateValidite|date('d/m/Y') }}</p>
-    </div>
-
-    {% if devis.notesClient %}
-    <p class="label" style="margin-top: 20px;">Notes</p>
-    <p>{{ devis.notesClient|nl2br }}</p>
-    {% endif %}
-
-    <div style="margin-top: 40px;">
-        <p><strong>Bon pour accord — Signature du client :</strong></p>
-        <p style="height: 60px;">&nbsp;</p>
-    </div>
-</body>
-</html>
+{% endblock %}
