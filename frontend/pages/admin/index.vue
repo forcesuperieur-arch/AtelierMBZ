@@ -1,74 +1,15 @@
 <template>
-  <div>
-    <div class="page-header">
-      <div class="page-title">Administration</div>
-    </div>
-
-    <div class="admin-grid">
-      <div class="admin-card" @click="navigateTo('/admin/users')">
-        <div class="admin-card-icon">👥</div>
-        <div class="admin-card-label">Utilisateurs</div>
-        <div class="admin-card-desc">Gérer les comptes et rôles</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/config')">
-        <div class="admin-card-icon">⚙️</div>
-        <div class="admin-card-label">Configuration</div>
-        <div class="admin-card-desc">Paramètres de l'atelier</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/absences')">
-        <div class="admin-card-icon">📅</div>
-        <div class="admin-card-label">Absences</div>
-        <div class="admin-card-desc">Gérer les congés mécaniciens</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/ponts')">
-        <div class="admin-card-icon">🔧</div>
-        <div class="admin-card-label">Ponts & mécanos</div>
-        <div class="admin-card-desc">Affectations atelier et postes de travail</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/prestations')">
-        <div class="admin-card-icon">📋</div>
-        <div class="admin-card-label">Prestations</div>
-        <div class="admin-card-desc">Tarifs et grilles</div>
-      </div>
-      <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/ateliers')">
-        <div class="admin-card-icon">🏢</div>
-        <div class="admin-card-label">Ateliers</div>
-        <div class="admin-card-desc">Créer et piloter les sites multiatelier</div>
-      </div>
-      <div v-if="isSuperAdmin" class="admin-card" @click="navigateTo('/admin/roles')">
-        <div class="admin-card-icon">🛡️</div>
-        <div class="admin-card-label">Profils d'accès</div>
-        <div class="admin-card-desc">Rôles système simples pour les comptes</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/audit')">
-        <div class="admin-card-icon">🔍</div>
-        <div class="admin-card-label">Audit</div>
-        <div class="admin-card-desc">Journal des actions</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/notifications/providers')">
-        <div class="admin-card-icon">📡</div>
-        <div class="admin-card-label">Notifications</div>
-        <div class="admin-card-desc">Providers SMS/Email & templates</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/clauses-legales')">
-        <div class="admin-card-icon">⚖️</div>
-        <div class="admin-card-label">Clauses légales</div>
-        <div class="admin-card-desc">CGV, mandat, RGPD, gardiennage…</div>
-      </div>
-      <div class="admin-card" @click="navigateTo('/admin/templates-documents')">
-        <div class="admin-card-icon">📄</div>
-        <div class="admin-card-label">Templates documents</div>
-        <div class="admin-card-desc">Prévisualiser les PDF (OR, factures, VO…)</div>
-      </div>
-    </div>
-  </div>
+  <div style="padding:24px;color:#9CA3AF;font-size:13px;">Ouverture de l'administration…</div>
 </template>
 
 <script setup lang="ts">
-const { user } = useAuth()
-
-const isSuperAdmin = computed(() => {
-  const roles = user.value?.roles ?? []
-  return user.value?.role === 'super_admin' || roles.includes('ROLE_SUPER_ADMIN')
+/**
+ * `/admin` n'est plus un menu de cartes : la navigation se fait par les onglets
+ * du cadre `pages/admin.vue`. On ouvre donc directement le premier onglet
+ * (Configuration), comme un navigateur rouvre son premier onglet.
+ */
+onMounted(() => {
+  // Le contrôle du rôle admin est déjà assuré par le middleware global.
+  navigateTo('/admin/config', { replace: true })
 })
 </script>

@@ -2,7 +2,6 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Clauses légales</div>
       </div>
       <button class="topbar-new-btn" @click="openCreate">+ Nouvelle clause</button>

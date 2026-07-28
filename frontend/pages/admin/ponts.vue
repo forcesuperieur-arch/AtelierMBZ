@@ -2,7 +2,6 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div>
           <div class="page-title">Ponts & mécaniciens</div>
           <div class="page-sub">Configuration des postes de travail et affectations</div>
