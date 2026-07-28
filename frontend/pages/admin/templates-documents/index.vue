@@ -6,7 +6,7 @@
       </div>
     </div>
 
-    <p style="color:#9CA3AF;font-size:13px;margin-bottom:12px;">
+    <p style="color:var(--content-3);font-size:13px;margin-bottom:12px;">
       Prévisualisation des documents PDF produits par l'application, avec les données de <strong>votre atelier</strong>
       (logo, nom, SIRET…) et un jeu de données fictives complet. « Personnaliser » recompose l'en-tête du document ;
       le corps reste mis en page par l'application.
@@ -22,8 +22,8 @@
       </button>
     </div>
 
-    <div v-if="loading" style="text-align:center;padding:24px;color:#9CA3AF;">Chargement…</div>
-    <div v-else-if="!filteredTemplates.length" style="text-align:center;padding:24px;color:#6B7280;">Aucun template.</div>
+    <div v-if="loading" style="text-align:center;padding:24px;color:var(--content-3);">Chargement…</div>
+    <div v-else-if="!filteredTemplates.length" style="text-align:center;padding:24px;color:var(--content-3);">Aucun template.</div>
     <div v-else style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;">
       <UCard v-for="t in filteredTemplates" :key="t.code" style="cursor:default;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
@@ -32,13 +32,13 @@
               <span :style="categoryStyle(t.category)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
                 {{ categoryLabel(t.category) }}
               </span>
-              <span v-if="t.orientation === 'landscape'" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;background:rgba(148,163,184,0.16);color:#CBD5E1;">
+              <span v-if="t.orientation === 'landscape'" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;background:var(--surface-3);color:var(--content-2);">
                 Paysage
               </span>
             </div>
-            <div style="font-size:14px;font-weight:700;color:#E8E9ED;">{{ t.label }}</div>
-            <div style="font-size:12px;color:#9CA3AF;margin-top:4px;line-height:1.4;">{{ t.description }}</div>
-            <div style="font-size:11px;color:#6B7280;margin-top:6px;font-family:monospace;">{{ t.template }}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--content-1);">{{ t.label }}</div>
+            <div style="font-size:12px;color:var(--content-3);margin-top:4px;line-height:1.4;">{{ t.description }}</div>
+            <div style="font-size:11px;color:var(--content-3);margin-top:6px;font-family:monospace;">{{ t.template }}</div>
           </div>
           <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
             <NuxtLink
@@ -86,9 +86,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 const CATEGORY_STYLES: Record<string, string> = {
-  atelier: 'background:rgba(96,165,250,0.14);color:#93C5FD;',
-  vo: 'background:rgba(251,191,36,0.14);color:#FCD34D;',
-  pilotage: 'background:rgba(52,211,153,0.14);color:#6EE7B7;',
+  atelier: 'background:var(--info-soft);color:var(--info-content);',
+  vo: 'background:var(--warning-soft);color:var(--warning-content);',
+  pilotage: 'background:var(--success-soft);color:var(--success-content);',
 }
 
 function categoryLabel(category: string) {
@@ -96,7 +96,7 @@ function categoryLabel(category: string) {
 }
 
 function categoryStyle(category: string) {
-  return CATEGORY_STYLES[category] ?? 'background:rgba(148,163,184,0.16);color:#CBD5E1;'
+  return CATEGORY_STYLES[category] ?? 'background:var(--surface-3);color:var(--content-2);'
 }
 
 // Les filtres sont dérivés des données : une nouvelle catégorie côté serveur

@@ -146,29 +146,29 @@ async function copyLink() {
   gap: 8px;
   padding: 12px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, var(--overlay-hover), var(--overlay-soft));
+  border: 1px solid var(--border-2);
 }
 
 .vo-companion-linkbox,
 .vo-generated-box {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .vo-companion-linkbox label,
 .vo-generated-title {
   display: block;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--content-3);
   margin-bottom: 8px;
 }
 
 .vo-companion-link {
   display: block;
-  color: #f8fafc;
+  color: var(--content-1);
   word-break: break-all;
   font-size: 13px;
   text-decoration: none;
@@ -176,7 +176,7 @@ async function copyLink() {
 
 .vo-generated-subtitle {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--content-3);
   margin-bottom: 10px;
 }
 
@@ -191,9 +191,9 @@ async function copyLink() {
   gap: 4px;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #f8fafc;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-1);
   text-decoration: none;
 }
 
@@ -202,7 +202,7 @@ async function copyLink() {
 .vo-qr-caption,
 .vo-qr-meta {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--content-3);
 }
 
 .vo-step-grid {
@@ -214,18 +214,18 @@ async function copyLink() {
 .vo-step-card {
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .vo-step-card.is-done {
-  border-color: rgba(34,197,94,0.4);
-  background: rgba(34,197,94,0.08);
+  border-color: var(--success);
+  background: var(--success-soft);
 }
 
 .vo-step-card.is-pending {
-  border-color: rgba(245,158,11,0.25);
-  background: rgba(245,158,11,0.06);
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .vo-step-top {
@@ -234,7 +234,7 @@ async function copyLink() {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
-  color: #f8fafc;
+  color: var(--content-1);
 }
 
 .vo-chip {
@@ -245,13 +245,13 @@ async function copyLink() {
 }
 
 .vo-chip.is-done {
-  color: #14532d;
-  background: rgba(134,239,172,0.9);
+  color: var(--success-content);
+  background: var(--success);
 }
 
 .vo-chip.is-pending {
-  color: #713f12;
-  background: rgba(253,224,71,0.9);
+  color: var(--warning-content);
+  background: var(--warning);
 }
 
 .vo-companion-qr {

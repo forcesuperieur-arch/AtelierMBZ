@@ -27,7 +27,8 @@ export default defineNuxtConfig({
         { name: 'twitter:image', content: '/branding/paddock-logo-social.svg' },
       ],
       link: [
-        // Police Inter retirée : jamais consommée (le corps utilise Saira/Saira Condensed).
+        // Les polices du design system (Montserrat + Inter) sont importées
+        // depuis assets/css/main.css, avec les seules graisses utilisées.
         { rel: 'icon', type: 'image/svg+xml', href: '/branding/paddock-logo-favicon.svg' },
         { rel: 'apple-touch-icon', href: '/branding/paddock-logo-favicon.svg' },
         { rel: 'manifest', href: '/manifest.json' },
@@ -42,10 +43,18 @@ export default defineNuxtConfig({
     },
   },
 
+  // `dataValue: 'theme'` fait poser `data-theme="dark|light"` sur <html>, ce
+  // qui est le sélecteur des tokens (assets/css/tokens.css). La classe `dark`
+  // reste posée en parallèle : c'est elle que lisent les composants Nuxt UI.
+  // Les deux mécanismes doivent rester alignés, sinon les UCard/UInput
+  // resteraient sombres sur une interface passée en clair.
+  // Le module injecte lui-même un script avant peinture : pas de flash.
   colorMode: {
-    preference: 'dark',
+    preference: 'system',
     fallback: 'dark',
     classSuffix: '',
+    dataValue: 'theme',
+    storageKey: 'paddock-theme',
   },
 
   vite: {

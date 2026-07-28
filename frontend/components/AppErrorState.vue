@@ -27,8 +27,8 @@ defineProps({
   min-height: 220px;
   padding: 28px;
   border-radius: 16px;
-  background: rgba(239,68,68,0.05);
-  border: 1px solid rgba(239,68,68,0.18);
+  background: var(--error-soft);
+  border: 1px solid var(--error);
   text-align: center;
 }
 
@@ -39,13 +39,13 @@ defineProps({
 .app-state-title {
   font-size: 15px;
   font-weight: 700;
-  color: #FECACA;
+  color: var(--error-content);
 }
 
 .app-state-description {
   max-width: 460px;
   font-size: 13px;
   line-height: 1.45;
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 </style>

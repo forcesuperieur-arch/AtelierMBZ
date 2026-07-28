@@ -156,8 +156,8 @@ const hintFile = computed(() => {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
 }
-.pont--occupe { border-color: rgba(245, 158, 11, 0.25); }
-.pont--libre { border-color: rgba(16, 185, 129, 0.2); }
+.pont--occupe { border-color: var(--warning); }
+.pont--libre { border-color: var(--success); }
 .pont-head {
   display: flex;
   align-items: center;
@@ -174,8 +174,8 @@ const hintFile = computed(() => {
   padding: 2px 8px;
   border-radius: 999px;
 }
-.pont--occupe .pont-etat { background: var(--status-warn-soft); color: var(--status-warn); }
-.pont--libre .pont-etat { background: var(--status-good-soft); color: var(--status-good); }
+.pont--occupe .pont-etat { background: var(--status-warn-soft); color: var(--warning-content); }
+.pont--libre .pont-etat { background: var(--status-good-soft); color: var(--success-content); }
 .pont-corps { margin: 0 0 8px; font-size: 13px; color: var(--ink-body); }
 .pont-corps--vide { color: var(--ink-muted); }
 .pont-pied { font-size: 11px; color: var(--ink-muted); }

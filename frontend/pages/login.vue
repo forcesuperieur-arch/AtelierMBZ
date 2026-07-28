@@ -1,7 +1,7 @@
 <template>
   <div class="login-box">
     <div class="login-brand">
-      <img src="/branding/paddock-logo-horizontal.svg" alt="Paddock" class="login-logo" />
+      <img :src="brandLogo.horizontal.value" alt="Paddock" class="login-logo" />
     </div>
     <p class="login-sub">Connexion à votre espace atelier</p>
 
@@ -32,6 +32,9 @@
 </template>
 
 <script setup lang="ts">
+// Le mot-symbole est en blanc cassé : il faut la variante encrée en thème clair.
+const brandLogo = useBrandLogo()
+
 definePageMeta({ layout: 'public' })
 
 const route = useRoute()
@@ -85,15 +88,13 @@ onMounted(() => {
 
 <style scoped>
 .login-box {
-  background: rgba(19,20,27,0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
   border-radius: 20px;
   padding: 44px 36px;
   width: min(400px, 100%);
   text-align: center;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 80px rgba(245,158,11,0.05);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 80px rgba(217,101,0,0.05);
   animation: loginFadeIn 0.6s ease;
   position: relative;
   z-index: 1;
@@ -115,16 +116,15 @@ onMounted(() => {
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 6px;
-  background: linear-gradient(135deg, #FFD200, #FBBF24);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
+  /* Titre en encre franche : le dégradé clippé sur le texte n'existe pas au
+     design system, et il rendait le titre illisible en thème clair. */
+  color: var(--content-1);
+  letter-spacing: -0.015em;
 }
 
 .login-sub {
   font-size: 14px;
-  color: #6B7280;
+  color: var(--content-3);
   margin-bottom: 28px;
 }
 
@@ -136,11 +136,11 @@ onMounted(() => {
 
 .login-form input {
   width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--overlay-hover);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
   padding: 14px 16px;
-  color: #eee;
+  color: var(--content-1);
   font-family: inherit;
   font-size: 15px;
   margin-bottom: 12px;
@@ -148,22 +148,22 @@ onMounted(() => {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .login-form input:focus {
-  border-color: #FFD200;
-  box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 0 3px rgba(217,101,0,0.15);
 }
-.login-form input::placeholder { color: #555; }
+.login-form input::placeholder { color: var(--content-3); }
 
 .dev-sso-box {
   margin: 0 0 14px;
   padding: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
+  background: var(--overlay-soft);
   text-align: left;
 }
 
 .dev-sso-title {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 10px;
@@ -173,11 +173,11 @@ onMounted(() => {
 
 .dev-sso-box input {
   width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--overlay-hover);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
   padding: 10px 12px;
-  color: #eee;
+  color: var(--content-1);
   font-family: inherit;
   font-size: 14px;
   margin-bottom: 10px;
@@ -212,20 +212,20 @@ onMounted(() => {
 }
 
 .google-btn {
-  background: #fff;
-  color: #111;
+  background: var(--surface-1);
+  color: var(--accent-ink);
   margin-bottom: 14px;
 }
 
 .dev-btn {
   flex: 1;
-  background: rgba(255,255,255,0.08);
-  color: #E5E7EB;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .dev-btn.secondary {
-  background: rgba(255,210,0,0.12);
-  color: #FFD200;
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 .google-btn:hover {
   transform: translateY(-1px);
@@ -236,7 +236,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6B7280;
+  color: var(--content-3);
   font-size: 12px;
   margin: 4px 0 14px;
 }
@@ -245,28 +245,29 @@ onMounted(() => {
   padding: 0 10px;
 }
 
+/* Bouton primaire : aplat de marque, encre noire, états par la teinte. */
 .login-form button {
-  background: linear-gradient(135deg, #FFD200, #FFB800);
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
   margin-top: 4px;
 }
 .login-form button:hover {
-  background: linear-gradient(135deg, #FFDE33, #FFD200);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(255,210,0,0.25);
+  background: var(--accent-hover);
 }
-.login-form button:active { transform: translateY(0); }
+.login-form button:active {
+  background: var(--accent-active);
+}
 .google-btn:disabled,
 .login-form button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .login-info {
-  color: #93C5FD;
+  color: var(--info-content);
   font-size: 13px;
   margin-top: 12px;
 }
 
 .login-error {
-  color: #EF4444;
+  color: var(--error-content);
   font-size: 13px;
   margin-top: 12px;
   min-height: 18px;

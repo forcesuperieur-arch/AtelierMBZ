@@ -6,27 +6,27 @@
         <div class="page-sub">Mise à jour en temps réel par mécanicien</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div class="live-dot" :style="syncStale ? 'background:#F59E0B;box-shadow:none;animation:none;' : ''"></div>
-        <span style="font-size:13px;font-weight:600;" :style="syncStale ? 'color:#FBBF24;' : 'color:#10B981;'">{{ syncStale ? 'Synchro interrompue' : 'Live' }}</span>
+        <div class="live-dot" :style="syncStale ? 'background:var(--warning);box-shadow:none;animation:none;' : ''"></div>
+        <span style="font-size:13px;font-weight:600;" :style="syncStale ? 'color:var(--warning-content);' : 'color:var(--success-content);'">{{ syncStale ? 'Synchro interrompue' : 'Live' }}</span>
       </div>
     </div>
 
     <!-- Alert strip -->
     <div class="alert-strip" style="margin-bottom:20px;">
-      <div class="alert-chip" :class="enCoursCount > 0 ? 'success' : ''" style="border-color:rgba(20,184,166,0.25);background:rgba(20,184,166,0.06);color:#5EEAD4;">
+      <div class="alert-chip" :class="enCoursCount > 0 ? 'success' : ''" style="border-color:var(--success);background:var(--success-soft);color:var(--success-content);">
         🛠️ En cours: {{ enCoursCount }}
       </div>
-      <div class="alert-chip" :class="imminentsCount > 0 ? 'warning' : ''" :style="imminentsCount > 0 ? '' : 'border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#6B7280;'">
+      <div class="alert-chip" :class="imminentsCount > 0 ? 'warning' : ''" :style="imminentsCount > 0 ? '' : 'border-color:var(--border-2);background:var(--overlay-soft);color:var(--content-3);'">
         ⏰ Démarrages imminents: {{ imminentsCount }}
       </div>
-      <div class="alert-chip" :class="retardsCount > 0 ? 'danger' : ''" :style="retardsCount > 0 ? '' : 'border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#6B7280;'">
+      <div class="alert-chip" :class="retardsCount > 0 ? 'danger' : ''" :style="retardsCount > 0 ? '' : 'border-color:var(--border-2);background:var(--overlay-soft);color:var(--content-3);'">
         ⚠️ Retards: {{ retardsCount }}
       </div>
     </div>
 
     <div v-if="loading" class="loading-shimmer" style="height:300px;border-radius:14px;"></div>
 
-    <div v-else-if="!mecaGroups.length" style="padding:40px;text-align:center;color:#6B7280;font-size:14px;">
+    <div v-else-if="!mecaGroups.length" style="padding:40px;text-align:center;color:var(--content-3);font-size:14px;">
       Aucune intervention en cours
     </div>
 
@@ -34,12 +34,12 @@
       <div v-for="group in mecaGroups" :key="group.mecanicien_id || 'unassigned'" style="background:var(--dark2);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
         <!-- Mechanic header -->
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#C4B5FD;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--info-soft);border:1px solid var(--info);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--info-content);">
             {{ group.initials }}
           </div>
           <div>
-            <div style="font-weight:700;color:#E8E9ED;font-size:15px;">{{ group.mecanicien_nom || 'Non assigné' }}</div>
-            <div style="font-size:12px;color:#6B7280;">{{ group.rdvs.length }} intervention(s) aujourd'hui</div>
+            <div style="font-weight:700;color:var(--content-1);font-size:15px;">{{ group.mecanicien_nom || 'Non assigné' }}</div>
+            <div style="font-size:12px;color:var(--content-3);">{{ group.rdvs.length }} intervention(s) aujourd'hui</div>
           </div>
         </div>
 
@@ -50,29 +50,29 @@
             :key="rdv.id"
             style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:10px;transition:all 0.15s;"
             :style="{
-              background: rdv.status === 'en_cours' ? 'rgba(20,184,166,0.06)' : 'rgba(255,255,255,0.02)',
-              border: rdv.status === 'en_cours' ? '1px solid rgba(20,184,166,0.2)' : '1px solid rgba(255,255,255,0.06)',
+              background: rdv.status === 'en_cours' ? 'var(--success-soft)' : 'var(--overlay-soft)',
+              border: rdv.status === 'en_cours' ? '1px solid var(--success)' : '1px solid var(--border-2)',
             }"
           >
             <!-- Time -->
             <div style="min-width:50px;text-align:center;">
-              <div style="font-size:14px;font-weight:700;color:#E8E9ED;">{{ rdv.heure_debut?.slice(0, 5) }}</div>
+              <div style="font-size:14px;font-weight:700;color:var(--content-1);">{{ rdv.heure_debut?.slice(0, 5) }}</div>
             </div>
 
             <!-- Info -->
             <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;color:#E8E9ED;">{{ rdv.client_nom }}</div>
-              <div style="font-size:12px;color:#6B7280;">{{ rdv.type_intervention }} — {{ rdv.vehicule_info }}</div>
+              <div style="font-size:14px;font-weight:600;color:var(--content-1);">{{ rdv.client_nom }}</div>
+              <div style="font-size:12px;color:var(--content-3);">{{ rdv.type_intervention }} — {{ rdv.vehicule_info }}</div>
             </div>
 
             <!-- Progress bar for en_cours -->
             <div v-if="rdv.status === 'en_cours'" style="width:120px;">
-              <div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--content-3);margin-bottom:3px;">
                 <span>{{ formatMinutes(getElapsed(rdv)) }}</span>
                 <span>{{ formatMinutes(rdv.duree_estimee || 60) }}</span>
               </div>
-              <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-                <div style="height:100%;border-radius:2px;transition:width 1s;" :style="{ width: getProgress(rdv) + '%', background: getProgress(rdv) > 100 ? '#EF4444' : '#14B8A6' }"></div>
+              <div style="height:4px;background:var(--overlay-hover);border-radius:2px;overflow:hidden;">
+                <div style="height:100%;border-radius:2px;transition:width 1s;" :style="{ width: getProgress(rdv) + '%', background: getProgress(rdv) > 100 ? 'var(--error)' : 'var(--success)' }"></div>
               </div>
             </div>
 
@@ -80,7 +80,7 @@
             <StatusBadge :status="rdv.status" />
 
             <!-- Link -->
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(rdv)">Voir →</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(rdv)">Voir →</button>
           </div>
         </div>
       </div>

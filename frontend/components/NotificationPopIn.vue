@@ -136,10 +136,10 @@ watch(pendingNotifs, (val) => {
 /* CTA primaire au jaune de marque (les autres boutons primaires le sont aussi) ;
    la bordure d'alerte pulsante reste, elle, orange/rouge pour signaler l'urgence. */
 .notif-cta-primary {
-  background: #FFD200;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 .notif-cta-primary:hover {
-  background: #FFDE33;
+  background: var(--accent-hover);
 }
 </style>

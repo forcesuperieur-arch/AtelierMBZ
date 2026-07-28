@@ -15,12 +15,12 @@
       <div class="stat-card">
         <div class="stat-label">📅 Avec RDV</div>
         <div class="stat-value">{{ stats.avec_rdv }}</div>
-        <div class="stat-delta" style="color:#10B981;">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
+        <div class="stat-delta" style="color:var(--success-content);">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">🏍️ Total Véhicules</div>
         <div class="stat-value">{{ stats.vehicules }}</div>
-        <div class="stat-delta" style="color:#9CA3AF;">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
+        <div class="stat-delta" style="color:var(--content-3);">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">💰 CA Total</div>
@@ -39,23 +39,23 @@
           <span class="text-sm">{{ row.original.vehicules_count ?? 0 }} véhicule(s)</span>
         </template>
         <template #actions-cell="{ row }">
-          <NuxtLink :to="`/clients/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+          <NuxtLink :to="`/clients/${row.original.id}`" style="color:var(--accent-content);font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
         </template>
       </UTable>
       <!-- Pagination -->
-      <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+      <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-2);">
         <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; fetchClients()" style="font-size:12px;padding:6px 12px;">← Préc</button>
         <button v-for="p in visiblePages" :key="p" class="btn" :class="p === page ? 'btn-primary' : 'btn-ghost'" @click="page = p; fetchClients()" style="font-size:12px;padding:6px 12px;min-width:36px;">{{ p }}</button>
         <button class="btn btn-ghost" :disabled="page >= totalPages" @click="page++; fetchClients()" style="font-size:12px;padding:6px 12px;">Suiv →</button>
       </div>
-      <div style="text-align:center;font-size:11px;color:#6B7280;margin-top:6px;">{{ totalItems }} client(s) au total</div>
+      <div style="text-align:center;font-size:11px;color:var(--content-3);margin-top:6px;">{{ totalItems }} client(s) au total</div>
     </UCard>
 
     <!-- New client modal -->
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Nouveau client</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Nouveau client</span></template>
           <form @submit.prevent="createClient" style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Prénom"><UInput v-model="newClient.prenom" required /></UFormField>
@@ -65,8 +65,8 @@
             </div>
             <UFormField label="Adresse"><UInput v-model="newClient.adresse" /></UFormField>
             <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
-              <input type="checkbox" v-model="consentRGPD" style="margin-top:3px;accent-color:#FFD200;" />
-              <span style="font-size:12px;color:#9CA3AF;">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" style="color:#FFD200;">politique de confidentialité</NuxtLink>.</span>
+              <input type="checkbox" v-model="consentRGPD" style="margin-top:3px;accent-color:var(--accent);" />
+              <span style="font-size:12px;color:var(--content-3);">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" style="color:var(--accent-content);">politique de confidentialité</NuxtLink>.</span>
             </label>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
               <UButton label="Annuler" variant="outline" @click="showNew = false" />

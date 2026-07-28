@@ -1,11 +1,11 @@
 <template>
   <div>
-    <NuxtLink to="/rdvs" style="color:#9CA3AF;font-size:13px;text-decoration:none;">← Retour aux RDV</NuxtLink>
+    <NuxtLink to="/rdvs" style="color:var(--content-3);font-size:13px;text-decoration:none;">← Retour aux RDV</NuxtLink>
     <h1 style="font-size:20px;font-weight:800;margin:12px 0 16px;">Détail du rendez-vous</h1>
 
-    <div v-if="pending" style="color:#9CA3AF">Chargement…</div>
-    <div v-else-if="!rdv && rdvNotFound" style="color:#FCA5A5">Rendez-vous introuvable.</div>
-    <div v-else-if="!rdv" style="color:#FCA5A5">Impossible de charger le rendez-vous pour le moment. Réessayez plus tard.</div>
+    <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
+    <div v-else-if="!rdv && rdvNotFound" style="color:var(--error-content)">Rendez-vous introuvable.</div>
+    <div v-else-if="!rdv" style="color:var(--error-content)">Impossible de charger le rendez-vous pour le moment. Réessayez plus tard.</div>
     <div v-else class="rdv-detail">
       <div class="detail-row"><span>Date</span><span>{{ formatDate(rdv.date_heure) }}</span></div>
       <div class="detail-row"><span>Statut</span><span class="rdv-status-badge" :class="statusClass(rdv.statut)">{{ rdvStatutLabel(rdv.statut) }}</span></div>
@@ -26,7 +26,7 @@
           <span>Total estimé</span>
           <strong>{{ formatEstimation(rdv.prix_estime) }}</strong>
         </div>
-        <p style="font-size:11px;color:#9CA3AF;margin-top:6px;">Montant indicatif (estimation), hors éventuels travaux supplémentaires.</p>
+        <p style="font-size:11px;color:var(--content-3);margin-top:6px;">Montant indicatif (estimation), hors éventuels travaux supplémentaires.</p>
       </div>
 
       <!-- Suivi en temps réel -->
@@ -83,7 +83,7 @@
             le {{ formatDateShort(d.decision_at) }}
           </div>
         </div>
-        <div v-if="decisionError" style="margin-top:8px;font-size:13px;color:#FCA5A5;">{{ decisionError }}</div>
+        <div v-if="decisionError" style="margin-top:8px;font-size:13px;color:var(--error-content);">{{ decisionError }}</div>
       </div>
 
       <!-- Photos de l'intervention, au fil de l'eau -->
@@ -151,7 +151,7 @@
           Demander l'annulation de ce rendez-vous
         </button>
         <div v-else class="annulation-confirm">
-          <p style="font-size:13px;color:#E8E9ED;margin-bottom:10px;">
+          <p style="font-size:13px;color:var(--content-1);margin-bottom:10px;">
             Confirmer la demande d'annulation ? L'atelier sera prévenu et vous recontactera.
           </p>
           <div style="display:flex;gap:8px;">
@@ -163,7 +163,7 @@
             </button>
           </div>
         </div>
-        <div v-if="annulationError" style="margin-top:8px;font-size:13px;color:#FCA5A5;">{{ annulationError }}</div>
+        <div v-if="annulationError" style="margin-top:8px;font-size:13px;color:var(--error-content);">{{ annulationError }}</div>
       </div>
     </div>
 
@@ -360,13 +360,13 @@ function formatDateShort(d: string) {
   display: flex;
   justify-content: space-between;
   padding: 10px 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 8px;
   font-size: 14px;
 }
 .detail-row span:first-child {
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 .rdv-status-badge {
   font-size: 12px;
@@ -376,16 +376,16 @@ function formatDateShort(d: string) {
   text-transform: uppercase;
 }
 .rdv-status-badge.status-prevu {
-  background: rgba(59,130,246,0.15);
-  color: #60A5FA;
+  background: var(--info-soft);
+  color: var(--info-content);
 }
 .rdv-status-badge.status-termine {
-  background: rgba(34,197,94,0.15);
-  color: #4ADE80;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 .rdv-status-badge.status-annule {
-  background: rgba(239,68,68,0.15);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 .detail-block {
   margin-top: 6px;
@@ -393,26 +393,26 @@ function formatDateShort(d: string) {
 .detail-label {
   font-size: 12px;
   font-weight: 700;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 8px;
   text-transform: uppercase;
 }
 .timeline-card {
   padding: 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 8px;
 }
 .demande-card {
   padding: 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 8px;
   margin-bottom: 8px;
 }
 .demande-card.actionable {
-  border-color: rgba(255, 210, 0, 0.4);
-  background: rgba(255, 210, 0, 0.04);
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
 }
 .demande-head {
   display: flex;
@@ -428,28 +428,28 @@ function formatDateShort(d: string) {
   border-radius: 999px;
 }
 .demande-badge.waiting {
-  background: rgba(255, 210, 0, 0.12);
-  color: #FFD200;
-  border: 1px solid rgba(255, 210, 0, 0.35);
+  background: var(--accent-soft);
+  color: var(--accent-content);
+  border: 1px solid var(--accent);
 }
 .demande-badge.ok {
-  background: rgba(34, 197, 94, 0.1);
-  color: #86EFAC;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: var(--success-soft);
+  color: var(--success-content);
+  border: 1px solid var(--success);
 }
 .demande-badge.ko {
-  background: rgba(239, 68, 68, 0.1);
-  color: #FCA5A5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--error-soft);
+  color: var(--error-content);
+  border: 1px solid var(--error);
 }
 .demande-badge.urgent {
-  background: rgba(239, 68, 68, 0.16);
-  color: #FCA5A5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: var(--error-soft);
+  color: var(--error-content);
+  border: 1px solid var(--error);
 }
 .demande-desc {
   font-size: 13px;
-  color: #D1D5DB;
+  color: var(--content-2);
   margin: 0 0 8px;
   white-space: pre-line;
 }
@@ -466,21 +466,21 @@ function formatDateShort(d: string) {
   justify-content: space-between;
   gap: 12px;
   font-size: 13px;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 .prestation-prix {
-  color: #9CA3AF;
+  color: var(--content-3);
   white-space: nowrap;
 }
 .demande-total {
   display: flex;
   justify-content: space-between;
   padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid var(--border-2);
   font-size: 14px;
 }
 .demande-total strong {
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .demande-actions {
   display: flex;
@@ -494,8 +494,8 @@ function formatDateShort(d: string) {
   padding: 10px 16px;
   border-radius: 8px;
   border: none;
-  background: #FFD200;
-  color: #0C0D12;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
@@ -506,15 +506,15 @@ function formatDateShort(d: string) {
 .btn-refuse {
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(239,68,68,0.35);
-  background: rgba(239,68,68,0.08);
-  color: #FCA5A5;
+  border: 1px solid var(--error);
+  background: var(--error-soft);
+  color: var(--error-content);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 .btn-refuse:hover:not(:disabled) {
-  background: rgba(239,68,68,0.16);
+  background: var(--error-soft);
 }
 .btn-accept:disabled,
 .btn-refuse:disabled {
@@ -524,19 +524,19 @@ function formatDateShort(d: string) {
 .demande-decision-info {
   margin-top: 8px;
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 .demande-confirm-tel {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 8px;
-  background: rgba(255, 210, 0, 0.06);
-  border: 1px solid rgba(255, 210, 0, 0.3);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
 }
 .demande-confirm-tel-text {
   margin: 0 0 10px;
   font-size: 13px;
-  color: #E8E9ED;
+  color: var(--content-1);
   line-height: 1.5;
 }
 .demande-confirm-tel .btn-accept {
@@ -547,8 +547,8 @@ function formatDateShort(d: string) {
   flex-direction: column;
   gap: 8px;
   padding: 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 8px;
 }
 .edl-row {
@@ -556,17 +556,17 @@ function formatDateShort(d: string) {
   justify-content: space-between;
   gap: 12px;
   font-size: 13px;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 .edl-row span:first-child {
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 .edl-observations {
   margin: 0;
   padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid var(--border-2);
   font-size: 13px;
-  color: #D1D5DB;
+  color: var(--content-2);
   white-space: pre-line;
 }
 .edl-pdf {
@@ -588,53 +588,53 @@ function formatDateShort(d: string) {
   gap: 12px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 8px;
   font-size: 14px;
 }
 .pdf-btn {
   font-size: 13px;
   font-weight: 600;
-  color: #93C5FD;
+  color: var(--info-content);
   text-decoration: none;
   padding: 6px 12px;
-  border: 1px solid rgba(59,130,246,0.3);
+  border: 1px solid var(--info);
   border-radius: 8px;
-  background: rgba(59,130,246,0.08);
+  background: var(--info-soft);
 }
 .pdf-btn:hover {
-  background: rgba(59,130,246,0.18);
+  background: var(--info-soft);
 }
 .annulation-banner.pending {
   padding: 12px 14px;
   border-radius: 8px;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.3);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  color: var(--warning-content);
   font-size: 13px;
 }
 .annulation-btn {
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(239,68,68,0.35);
-  background: rgba(239,68,68,0.08);
-  color: #FCA5A5;
+  border: 1px solid var(--error);
+  background: var(--error-soft);
+  color: var(--error-content);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 .annulation-btn:hover:not(:disabled) {
-  background: rgba(239,68,68,0.16);
+  background: var(--error-soft);
 }
 .annulation-btn.confirm {
-  background: rgba(239,68,68,0.2);
-  color: #FECACA;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 .annulation-btn.cancel {
-  border-color: rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: #D1D5DB;
+  border-color: var(--border-1);
+  background: var(--overlay-soft);
+  color: var(--content-2);
 }
 .annulation-btn:disabled {
   opacity: 0.6;
@@ -643,7 +643,7 @@ function formatDateShort(d: string) {
 .annulation-confirm {
   padding: 14px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(239,68,68,0.2);
+  background: var(--overlay-soft);
+  border: 1px solid var(--error);
 }
 </style>

@@ -93,7 +93,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 

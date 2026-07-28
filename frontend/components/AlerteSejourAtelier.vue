@@ -143,17 +143,17 @@ onUnmounted(() => {
   margin-bottom: 16px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
 }
 
 .sejour-alert--error {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #9CA3AF;
+  background: var(--overlay-soft);
+  border-color: var(--border-1);
+  color: var(--content-3);
   font-size: 12px;
 }
 
@@ -171,7 +171,7 @@ onUnmounted(() => {
 .sejour-title {
   font-size: 13px;
   font-weight: 700;
-  color: #FBBF24;
+  color: var(--warning-content);
 }
 
 .sejour-link {
@@ -179,7 +179,7 @@ onUnmounted(() => {
   padding: 0;
   background: transparent;
   border: none;
-  color: #FFD200;
+  color: var(--accent-content);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -214,7 +214,7 @@ onUnmounted(() => {
 
 .sejour-item-main {
   font-size: 12px;
-  color: #E5E7EB;
+  color: var(--content-1);
 }
 
 .sejour-item-meta {
@@ -223,29 +223,29 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 10px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .sejour-sep {
   margin: 0 6px;
-  color: #6B7280;
+  color: var(--content-3);
 }
 
 .sejour-duree {
   font-weight: 700;
-  color: #FBBF24;
+  color: var(--warning-content);
 }
 
 .sejour-reste {
   padding: 4px 10px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .sejour-statut {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #D1D5DB;
+  background: var(--overlay-hover);
+  color: var(--content-2);
 }
 </style>

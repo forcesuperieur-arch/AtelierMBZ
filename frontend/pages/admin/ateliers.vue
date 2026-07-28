@@ -39,8 +39,8 @@
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
             <div>
-              <div style="font-size:15px;font-weight:700;color:#E8E9ED;">Parc multiatelier</div>
-              <div style="font-size:12px;color:#9CA3AF;">Un atelier créé ici devient immédiatement sélectionnable dans le switch super-admin.</div>
+              <div style="font-size:15px;font-weight:700;color:var(--content-1);">Parc multiatelier</div>
+              <div style="font-size:12px;color:var(--content-3);">Un atelier créé ici devient immédiatement sélectionnable dans le switch super-admin.</div>
             </div>
             <button class="btn-secondary" @click="loadAteliers">↻ Actualiser</button>
           </div>
@@ -92,7 +92,7 @@
       <template #default>
         <UCard>
           <template #header>
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier l’atelier' : 'Créer un atelier' }}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ editId ? 'Modifier l’atelier' : 'Créer un atelier' }}</span>
           </template>
 
           <form @submit.prevent="saveAtelier" style="display:flex;flex-direction:column;gap:12px;">
@@ -125,7 +125,7 @@
                 <UInput v-model="atelierForm.plan" placeholder="starter" />
               </UFormField>
               <div style="display:flex;align-items:flex-end;padding-bottom:6px;">
-                <label style="display:flex;align-items:center;gap:8px;color:#E8E9ED;font-size:13px;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:8px;color:var(--content-1);font-size:13px;cursor:pointer;">
                   <input v-model="atelierForm.actif" type="checkbox" />
                   Atelier actif
                 </label>
@@ -136,7 +136,7 @@
               <UTextarea v-model="atelierForm.adresse" :rows="3" placeholder="Adresse complète de l’atelier" />
             </UFormField>
 
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div style="font-size:12px;color:var(--content-3);">
               La configuration atelier est initialisée automatiquement pour éviter les collisions multi-site.
             </div>
 
@@ -369,7 +369,7 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 
 <style scoped>
 .page-subtitle {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 12px;
   margin-top: 2px;
 }
@@ -381,20 +381,20 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 }
 
 .kpi-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 14px;
   padding: 14px 16px;
 }
 
 .kpi-label {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 12px;
   margin-bottom: 6px;
 }
 
 .kpi-value {
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 24px;
   font-weight: 800;
 }
@@ -412,8 +412,8 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
   align-items: center;
   padding: 14px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .atelier-head {
@@ -425,13 +425,13 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 }
 
 .atelier-name {
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 15px;
   font-weight: 800;
 }
 
 .atelier-meta {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -453,35 +453,35 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 }
 
 .is-active {
-  background: rgba(16,185,129,0.14);
-  color: #86EFAC;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 
 .is-inactive {
-  background: rgba(239,68,68,0.14);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 
 .is-current {
-  background: rgba(59,130,246,0.14);
-  color: #93C5FD;
+  background: var(--info-soft);
+  color: var(--info-content);
 }
 
 .is-ready {
-  background: rgba(94,234,212,0.14);
-  color: #99F6E4;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 
 .is-warning {
-  background: rgba(251,191,36,0.14);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 .btn-sm,
 .btn-secondary,
 .btn-outline {
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   padding: 7px 10px;
   font-size: 12px;
   font-weight: 700;
@@ -490,13 +490,13 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
 
 .btn-sm,
 .btn-secondary {
-  background: rgba(255,255,255,0.06);
-  color: #E8E9ED;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .btn-outline {
   background: transparent;
-  color: #C4B5FD;
+  color: var(--info-content);
 }
 
 @media (max-width: 900px) {

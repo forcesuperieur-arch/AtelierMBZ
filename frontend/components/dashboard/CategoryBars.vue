@@ -61,7 +61,7 @@ function largeur(value: number): number {
 .cat-track {
   height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
   overflow: hidden;
 }
 .cat-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }

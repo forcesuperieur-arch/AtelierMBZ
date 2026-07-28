@@ -4,28 +4,28 @@
       <!-- Loading -->
       <div v-if="loading" style="text-align:center;padding:40px;">
         <div style="font-size:32px;margin-bottom:12px;">⏳</div>
-        <p style="color:#9CA3AF;">Chargement…</p>
+        <p style="color:var(--content-3);">Chargement…</p>
       </div>
 
       <!-- Error -->
       <div v-else-if="error" style="text-align:center;padding:40px;">
         <div style="font-size:48px;margin-bottom:16px;">🚫</div>
-        <h2 style="color:#FCA5A5;font-size:18px;margin-bottom:8px;">Lien invalide</h2>
-        <p style="color:#9CA3AF;font-size:13px;">{{ error }}</p>
+        <h2 style="color:var(--error-content);font-size:18px;margin-bottom:8px;">Lien invalide</h2>
+        <p style="color:var(--content-3);font-size:13px;">{{ error }}</p>
       </div>
 
       <!-- Signed -->
       <div v-else-if="signed" style="text-align:center;padding:40px;">
         <div style="font-size:48px;margin-bottom:16px;">✅</div>
-        <h2 style="color:#6EE7B7;font-size:18px;margin-bottom:8px;">Restitution signée</h2>
+        <h2 style="color:var(--success-content);font-size:18px;margin-bottom:8px;">Restitution signée</h2>
         <p
           v-if="signedWithLitige"
           data-testid="litige-confirmation"
-          style="color:#FCD34D;font-size:13px;margin-bottom:6px;font-weight:600;"
+          style="color:var(--warning-content);font-size:13px;margin-bottom:6px;font-weight:600;"
         >
           Votre réserve a été transmise à l'atelier.
         </p>
-        <p style="color:#9CA3AF;font-size:13px;">Merci ! Vous pouvez récupérer votre véhicule.</p>
+        <p style="color:var(--content-3);font-size:13px;">Merci ! Vous pouvez récupérer votre véhicule.</p>
       </div>
 
       <!-- Restitution form -->
@@ -34,8 +34,8 @@
         <div class="restitution-header">
           <div style="font-size:28px;">🔑</div>
           <div>
-            <h1 style="font-size:18px;font-weight:800;color:#E8E9ED;margin:0;">Restitution du véhicule</h1>
-            <p style="font-size:12px;color:#9CA3AF;margin:2px 0 0;">
+            <h1 style="font-size:18px;font-weight:800;color:var(--content-1);margin:0;">Restitution du véhicule</h1>
+            <p style="font-size:12px;color:var(--content-3);margin:2px 0 0;">
               RDV #{{ data.rdv.id }} · {{ data.rdv.date }} à {{ data.rdv.heure }}
             </p>
           </div>
@@ -44,57 +44,57 @@
         <!-- Client & Véhicule -->
         <div class="restitution-section">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;">
-            <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ data.client?.prenom }} {{ data.client?.nom }}</span></div>
-            <div><span style="color:#6B7280;">Tél :</span> <span style="color:#D1D5DB;">{{ data.client?.telephone || '—' }}</span></div>
-            <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ data.vehicule?.marque }} {{ data.vehicule?.modele }}</span></div>
-            <div><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ data.vehicule?.plaque || '—' }}</span></div>
+            <div><span style="color:var(--content-3);">Client :</span> <span style="color:var(--content-2);">{{ data.client?.prenom }} {{ data.client?.nom }}</span></div>
+            <div><span style="color:var(--content-3);">Tél :</span> <span style="color:var(--content-2);">{{ data.client?.telephone || '—' }}</span></div>
+            <div><span style="color:var(--content-3);">Véhicule :</span> <span style="color:var(--content-2);">{{ data.vehicule?.marque }} {{ data.vehicule?.modele }}</span></div>
+            <div><span style="color:var(--content-3);">Plaque :</span> <span style="color:var(--content-2);">{{ data.vehicule?.plaque || '—' }}</span></div>
           </div>
         </div>
 
         <!-- Travaux réalisés -->
         <div class="restitution-section">
-          <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 8px;">🔧 Travaux réalisés</h3>
-          <div v-if="data.ordre?.travaux_realises" style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.travaux_realises }}</div>
-          <div v-else style="font-size:13px;color:#6B7280;font-style:italic;">Aucun détail renseigné</div>
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;">🔧 Travaux réalisés</h3>
+          <div v-if="data.ordre?.travaux_realises" style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.travaux_realises }}</div>
+          <div v-else style="font-size:13px;color:var(--content-3);font-style:italic;">Aucun détail renseigné</div>
         </div>
 
         <!-- Alertes -->
-        <div v-if="data.ordre?.alertes" class="restitution-section" style="border-left:3px solid #EF4444;">
-          <h3 style="font-size:13px;font-weight:700;color:#EF4444;margin:0 0 8px;">⚠️ Alertes</h3>
-          <div style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.alertes }}</div>
+        <div v-if="data.ordre?.alertes" class="restitution-section" style="border-left:3px solid var(--error);">
+          <h3 style="font-size:13px;font-weight:700;color:var(--error-content);margin:0 0 8px;">⚠️ Alertes</h3>
+          <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.alertes }}</div>
         </div>
 
         <!-- Recommandations -->
-        <div v-if="data.ordre?.recommandations" class="restitution-section" style="border-left:3px solid #F59E0B;">
-          <h3 style="font-size:13px;font-weight:700;color:#F59E0B;margin:0 0 8px;">💡 Recommandations</h3>
-          <div style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.recommandations }}</div>
+        <div v-if="data.ordre?.recommandations" class="restitution-section" style="border-left:3px solid var(--warning);">
+          <h3 style="font-size:13px;font-weight:700;color:var(--warning-content);margin:0 0 8px;">💡 Recommandations</h3>
+          <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.recommandations }}</div>
         </div>
 
         <!-- Garantie -->
-        <div v-if="data.ordre?.garantie" class="restitution-section" style="border-left:3px solid #10B981;">
-          <h3 style="font-size:13px;font-weight:700;color:#10B981;margin:0 0 8px;">🛡️ Garantie</h3>
-          <div style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ data.ordre.garantie }}</div>
+        <div v-if="data.ordre?.garantie" class="restitution-section" style="border-left:3px solid var(--success);">
+          <h3 style="font-size:13px;font-weight:700;color:var(--success-content);margin:0 0 8px;">🛡️ Garantie</h3>
+          <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.garantie }}</div>
         </div>
 
         <!-- Kilométrage restitution (seul, quand pas de comparatif) -->
         <div v-if="data.ordre?.kilometrage_restitution && !data.etat_des_lieux" class="restitution-section">
           <div style="font-size:13px;">
-            <span style="color:#6B7280;">Km restitution :</span>
-            <span style="color:#D1D5DB;font-weight:700;"> {{ formatKm(data.ordre.kilometrage_restitution) }}</span>
+            <span style="color:var(--content-3);">Km restitution :</span>
+            <span style="color:var(--content-2);font-weight:700;"> {{ formatKm(data.ordre.kilometrage_restitution) }}</span>
           </div>
         </div>
 
         <!-- Entretien fluides -->
-        <div class="restitution-section" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15);">
-          <h3 style="font-size:13px;font-weight:700;color:#BFDBFE;margin:0 0 8px;">🔧 Entretien des fluides recommandé</h3>
-          <div style="font-size:13px;color:#D1D5DB;">Huile moteur — <strong style="color:#93C5FD;">tous les ans</strong></div>
-          <div style="font-size:13px;color:#D1D5DB;">Liquide de frein — <strong style="color:#93C5FD;">tous les 2 ans</strong></div>
-          <div style="font-size:13px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
+        <div class="restitution-section" style="background:var(--info-soft);border-color:var(--info);">
+          <h3 style="font-size:13px;font-weight:700;color:var(--info-content);margin:0 0 8px;">🔧 Entretien des fluides recommandé</h3>
+          <div style="font-size:13px;color:var(--content-2);">Huile moteur — <strong style="color:var(--info-content);">tous les ans</strong></div>
+          <div style="font-size:13px;color:var(--content-2);">Liquide de frein — <strong style="color:var(--info-content);">tous les 2 ans</strong></div>
+          <div style="font-size:13px;color:var(--content-2);">Liquide de refroidissement — <strong style="color:var(--info-content);">tous les 3 ans</strong></div>
         </div>
 
         <!-- Comparatif état d'entrée / état de sortie -->
         <div v-if="data.etat_des_lieux" class="restitution-section" data-testid="comparatif-edl">
-          <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 12px;">📋 Comparatif état d'entrée / état de sortie</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 12px;">📋 Comparatif état d'entrée / état de sortie</h3>
           <div class="comparatif-grid">
             <!-- Colonne entrée -->
             <div class="comparatif-col" data-testid="comparatif-entree">
@@ -168,8 +168,8 @@
 
         <!-- Signature -->
         <div class="restitution-section">
-          <h3 style="font-size:13px;font-weight:700;color:#E8E9ED;margin:0 0 8px;">✍️ Signature client</h3>
-          <p style="font-size:12px;color:#9CA3AF;margin:0 0 12px;">
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;">✍️ Signature client</h3>
+          <p style="font-size:12px;color:var(--content-3);margin:0 0 12px;">
             En signant, je reconnais avoir pris connaissance des travaux effectués et récupéré mon véhicule.
           </p>
 
@@ -206,7 +206,7 @@
               @pointermove="draw"
               @pointerup="endDraw"
               @pointerleave="endDraw"
-              style="width:100%;height:160px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+              style="width:100%;height:160px;border-radius:12px;background:var(--surface-2);touch-action:none;cursor:crosshair;"
             ></canvas>
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;">
@@ -222,7 +222,7 @@
               {{ sigSaving ? 'Enregistrement…' : '✓ Valider la restitution' }}
             </button>
           </div>
-          <p v-if="sigError" style="font-size:12px;color:#FCA5A5;text-align:center;margin-top:8px;">{{ sigError }}</p>
+          <p v-if="sigError" style="font-size:12px;color:var(--error-content);text-align:center;margin-top:8px;">{{ sigError }}</p>
         </div>
       </div>
     </div>
@@ -339,7 +339,7 @@ function draw(e: PointerEvent) {
   if (!ctx) return
   const pos = getPos(e)
   ctx.lineTo(pos.x, pos.y)
-  ctx.strokeStyle = '#111'
+  ctx.strokeStyle = 'var(--accent-ink)'
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -414,18 +414,18 @@ async function submitSignature() {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 16px;
 }
 .restitution-section {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 16px;
 }
 .sig-canvas-wrapper {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border: 2px dashed var(--border-1);
   border-radius: 14px;
   overflow: hidden;
 }
@@ -437,8 +437,8 @@ async function submitSignature() {
   padding: 12px 16px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #FFD200, #D97706);
-  color: #111;
+  background: linear-gradient(135deg, var(--accent), var(--warning));
+  color: var(--accent-ink);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -459,16 +459,16 @@ async function submitSignature() {
   gap: 8px;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: #D1D5DB;
+  border: 1px solid var(--border-1);
+  background: var(--overlay-hover);
+  color: var(--content-2);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
 }
 .restitution-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
 }
 
 /* ─── Comparatif entrée / sortie ─── */
@@ -484,8 +484,8 @@ async function submitSignature() {
 }
 .comparatif-col {
   padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -496,13 +496,13 @@ async function submitSignature() {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #93C5FD;
+  color: var(--info-content);
   margin: 0;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-2);
 }
 .comparatif-col-title-sortie {
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .comparatif-row {
   display: flex;
@@ -512,11 +512,11 @@ async function submitSignature() {
   font-size: 12.5px;
 }
 .comparatif-label {
-  color: #6B7280;
+  color: var(--content-3);
   flex-shrink: 0;
 }
 .comparatif-value {
-  color: #D1D5DB;
+  color: var(--content-2);
   font-weight: 600;
   text-align: right;
 }
@@ -524,21 +524,21 @@ async function submitSignature() {
   font-size: 12.5px;
 }
 .comparatif-obs p {
-  color: #D1D5DB;
+  color: var(--content-2);
   white-space: pre-wrap;
   margin: 4px 0 0;
 }
 .comparatif-photos-title {
   font-size: 11px;
   font-weight: 700;
-  color: #9CA3AF;
+  color: var(--content-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 4px;
 }
 .comparatif-empty {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--content-3);
   font-style: italic;
 }
 .mini-gallery {
@@ -554,8 +554,8 @@ async function submitSignature() {
   height: 64px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-1);
+  background: var(--overlay-hover);
 }
 .mini-thumb img {
   width: 100%;
@@ -573,8 +573,8 @@ async function submitSignature() {
 .litige-block {
   margin: 0 0 12px;
   padding: 12px;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--error-soft);
+  border: 1px solid var(--error);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -585,7 +585,7 @@ async function submitSignature() {
   align-items: flex-start;
   gap: 10px;
   font-size: 13px;
-  color: #E8E9ED;
+  color: var(--content-1);
   font-weight: 600;
   cursor: pointer;
 }
@@ -594,16 +594,16 @@ async function submitSignature() {
   height: 18px;
   flex-shrink: 0;
   margin-top: 1px;
-  accent-color: #EF4444;
+  accent-color: var(--error);
   cursor: pointer;
 }
 .litige-textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-1);
   background: rgba(0, 0, 0, 0.25);
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 13px;
   font-family: inherit;
   resize: vertical;
@@ -611,14 +611,14 @@ async function submitSignature() {
 }
 .litige-textarea:focus {
   outline: none;
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: var(--error);
 }
 .litige-textarea::placeholder {
-  color: #6B7280;
+  color: var(--content-3);
 }
 .litige-hint {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin: 0;
 }
 </style>

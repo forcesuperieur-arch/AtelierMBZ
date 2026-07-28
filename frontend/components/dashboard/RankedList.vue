@@ -76,8 +76,8 @@ const visibles = computed(() => tout.value ? props.rows : props.rows.slice(0, pr
 .rank-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
 .rank-metric { text-align: right; }
 .rank-value { font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-.rank-value--warn { color: var(--status-warn); }
-.rank-value--good { color: var(--status-good); }
+.rank-value--warn { color: var(--warning-content); }
+.rank-value--good { color: var(--success-content); }
 .rank-value-sub { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
 .rank-more {
   margin-top: 10px;

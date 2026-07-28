@@ -2,7 +2,7 @@
   <AppModal :open="open" size="lg" @update:open="onOpenChange">
     <template #header>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:16px;font-weight:700;color:#E8E9ED;">
+        <span style="font-size:16px;font-weight:700;color:var(--content-1);">
           {{ moto?.plaque || 'Moto' }} — {{ moto?.vehicule || 'Moto' }}
         </span>
         <StatusBadge v-if="moto" :status="moto.statut" />
@@ -374,14 +374,14 @@ function fermer() {
   flex-direction: column;
   gap: 12px;
   font-size: 13px;
-  color: #D1D5DB;
+  color: var(--content-2);
 }
 
 .bloc {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .bloc-grid {
@@ -392,12 +392,12 @@ function fermer() {
 
 .bloc-titre {
   font-weight: 600;
-  color: #E8E9ED;
+  color: var(--content-1);
   margin-bottom: 8px;
 }
 
 .etiquette {
-  color: #6B7280;
+  color: var(--content-3);
 }
 
 .ligne-actions {
@@ -415,21 +415,21 @@ function fermer() {
 
 .note {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .anciennete {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
   font-size: 11px;
   font-weight: 700;
-  color: #D1D5DB;
+  color: var(--content-2);
 }
 
 .anciennete--alerte {
-  background: rgba(245, 158, 11, 0.14);
-  color: #FBBF24;
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 textarea.form-input {

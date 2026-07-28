@@ -46,9 +46,9 @@ function isActive(path: string) {
   padding: 8px 14px;
   border-radius: 999px;
   text-decoration: none;
-  color: #9ca3af;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--content-3);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -56,8 +56,8 @@ function isActive(path: string) {
 
 .vo-nav-link:hover,
 .vo-nav-link.is-active {
-  color: #090b10;
-  background: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.5);
+  color: var(--accent-ink);
+  background: var(--warning);
+  border-color: var(--warning);
 }
 </style>

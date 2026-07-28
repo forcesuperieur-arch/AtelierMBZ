@@ -28,8 +28,8 @@ defineProps({
   min-height: 220px;
   padding: 28px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px dashed rgba(255,255,255,0.08);
+  background: var(--overlay-soft);
+  border: 1px dashed var(--border-2);
   text-align: center;
 }
 
@@ -40,13 +40,13 @@ defineProps({
 .app-state-title {
   font-size: 15px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .app-state-description {
   max-width: 460px;
   font-size: 13px;
   line-height: 1.45;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 </style>

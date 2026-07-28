@@ -7,7 +7,7 @@
     </div>
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">
-      <span style="color:#6B7280;">Chargement...</span>
+      <span style="color:var(--content-3);">Chargement...</span>
     </div>
 
     <div v-else style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
@@ -20,7 +20,7 @@
 
       <form @submit.prevent="saveConfig" style="display:flex;flex-direction:column;gap:16px;">
         <UCard id="sec-atelier">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Identité de l'atelier</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Identité de l'atelier</span></template>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <UFormField label="Nom atelier"><UInput v-model="atelier.nom" /></UFormField>
             <UFormField label="Téléphone"><UInput v-model="atelier.telephone" /></UFormField>
@@ -43,71 +43,71 @@
         </UCard>
 
         <UCard id="sec-logo">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Logo et image atelier</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Logo et image atelier</span></template>
           <div style="display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start;">
-            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;min-height:180px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);">
+            <div style="border:1px solid var(--border-2);border-radius:12px;padding:12px;min-height:180px;display:flex;align-items:center;justify-content:center;background:var(--overlay-soft);">
               <img v-if="atelier.logo_url" :src="atelier.logo_url" alt="Logo atelier" style="max-width:100%;max-height:150px;object-fit:contain;" />
-              <span v-else style="color:#6B7280;font-size:13px;">Aucun logo</span>
+              <span v-else style="color:var(--content-3);font-size:13px;">Aucun logo</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <div style="font-size:13px;color:#D1D5DB;">Ajoute ici le logo affiché sur les documents et les écrans de l'atelier.</div>
+              <div style="font-size:13px;color:var(--content-2);">Ajoute ici le logo affiché sur les documents et les écrans de l'atelier.</div>
               <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="form-input" @change="onLogoChange" />
-              <div style="font-size:12px;color:#9CA3AF;">Formats acceptés : PNG, JPG, WebP ou SVG.</div>
-              <div v-if="uploadingLogo" style="font-size:12px;color:#FFD200;">Téléversement en cours…</div>
+              <div style="font-size:12px;color:var(--content-3);">Formats acceptés : PNG, JPG, WebP ou SVG.</div>
+              <div v-if="uploadingLogo" style="font-size:12px;color:var(--accent-content);">Téléversement en cours…</div>
             </div>
           </div>
         </UCard>
 
         <UCard id="sec-horaires">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Horaires, fermetures et alertes</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Horaires, fermetures et alertes</span></template>
           <div style="display:flex;flex-direction:column;gap:12px;">
             <div v-for="h in horaires" :key="h.jour_semaine" style="display:grid;grid-template-columns:90px 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;font-size:13px;">
-              <span style="font-weight:600;color:#E8E9ED;">{{ jourLabel(h.jour_semaine) }}</span>
+              <span style="font-weight:600;color:var(--content-1);">{{ jourLabel(h.jour_semaine) }}</span>
               <UInput v-model="h.heure_ouverture" type="time" :disabled="!h.is_ouvert" size="sm" />
               <UInput v-model="h.heure_fermeture" type="time" :disabled="!h.is_ouvert" size="sm" />
               <UInput v-model="h.pause_debut" type="time" :disabled="!h.is_ouvert" size="sm" placeholder="Pause début" />
               <UInput v-model="h.pause_fin" type="time" :disabled="!h.is_ouvert" size="sm" placeholder="Pause fin" />
-              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#9CA3AF;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--content-3);">
                 <input v-model="h.is_ouvert" type="checkbox" />
                 Ouvert
               </label>
             </div>
 
-            <div style="margin-top:12px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Jours fermés hebdomadaires</div>
+            <div style="margin-top:12px;border:1px solid var(--border-2);border-radius:12px;padding:14px;background:var(--overlay-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">Jours fermés hebdomadaires</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <label v-for="option in closureDayOptions" :key="option.value" style="display:flex;align-items:center;gap:6px;font-size:12px;color:#D1D5DB;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.04);">
+                <label v-for="option in closureDayOptions" :key="option.value" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--content-2);padding:6px 10px;border-radius:999px;background:var(--overlay-soft);">
                   <input v-model="config.jours_fermeture_hebdo" type="checkbox" :value="option.value" />
                   {{ option.label }}
                 </label>
               </div>
             </div>
 
-            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Fermetures exceptionnelles</div>
+            <div style="border:1px solid var(--border-2);border-radius:12px;padding:14px;background:var(--overlay-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">Fermetures exceptionnelles</div>
               <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">
                 <UInput v-model="newClosureDate" type="date" style="max-width:220px;" />
                 <button type="button" class="btn btn-ghost" @click="addExceptionalClosureDate">Ajouter la date</button>
               </div>
               <div v-if="config.dates_fermeture_exceptionnelles?.length" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <span v-for="date in config.dates_fermeture_exceptionnelles" :key="date" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(245,158,11,0.12);color:#FDE68A;">
+                <span v-for="date in config.dates_fermeture_exceptionnelles" :key="date" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);">
                   {{ date }}
                   <button type="button" style="background:none;border:none;color:inherit;cursor:pointer;" @click="removeExceptionalClosureDate(date)">✕</button>
                 </span>
               </div>
-              <div v-else style="font-size:12px;color:#9CA3AF;margin-top:10px;">Aucune fermeture exceptionnelle enregistrée.</div>
+              <div v-else style="font-size:12px;color:var(--content-3);margin-top:10px;">Aucune fermeture exceptionnelle enregistrée.</div>
             </div>
 
-            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Motos en atelier — alerte de séjour prolongé</div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+            <div style="border:1px solid var(--border-2);border-radius:12px;padding:14px;background:var(--overlay-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">Motos en atelier — alerte de séjour prolongé</div>
+              <div style="font-size:11px;color:var(--content-3);margin-top:2px;margin-bottom:10px;">
                 Au-delà de ce seuil, la moto est signalée dans l'onglet « En atelier », sur le planning et
                 le tableau de bord. Le décompte est en heures <strong>ouvrées</strong> : les jours de
                 fermeture (week-end, fériés, fermetures exceptionnelles) ne comptent pas.
               </div>
               <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
                 <label style="display:block;">
-                  <span style="display:block;font-size:11px;color:#9CA3AF;margin-bottom:4px;">Seuil d'alerte (heures ouvrées)</span>
+                  <span style="display:block;font-size:11px;color:var(--content-3);margin-bottom:4px;">Seuil d'alerte (heures ouvrées)</span>
                   <input
                     v-model.number="config.seuil_sejour_atelier_heures"
                     type="number"
@@ -119,7 +119,7 @@
                     data-testid="seuil-sejour-atelier"
                   />
                 </label>
-                <div style="font-size:11px;color:#9CA3AF;padding-bottom:10px;">
+                <div style="font-size:11px;color:var(--content-3);padding-bottom:10px;">
                   ≈ {{ seuilSejourEnJours }} — {{ seuilSejourExemple }}
                 </div>
               </div>
@@ -145,7 +145,7 @@
               >
                 {{ isAlerteSejourActive ? '🔔' : '🔕' }} Alerte automatique (notification + e-mail quotidien)
               </button>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">
+              <div style="font-size:11px;color:var(--content-3);margin-top:6px;">
                 Alerte coupée : l'onglet « En atelier » reste consultable, mais plus aucune notification
                 ni e-mail n'est envoyé.
               </div>
@@ -156,8 +156,8 @@
         <UCard id="sec-regles">
           <template #header>
             <div>
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Règles métier</span>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">Règles métier</span>
+              <div style="font-size:11px;color:var(--content-3);margin-top:2px;">
                 Ces règles étaient auparavant figées dans le code : elles se pilotent maintenant ici.
               </div>
             </div>
@@ -301,19 +301,19 @@
         </UCard>
 
         <UCard id="sec-types-moto">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Types de moto activés</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Types de moto activés</span></template>
           <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="font-size:13px;color:#D1D5DB;">Les types déjà en base se pilotent ici en simple toggle.</div>
+            <div style="font-size:13px;color:var(--content-2);">Les types déjà en base se pilotent ici en simple toggle.</div>
 
             <div v-if="categories.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">
               <div
                 v-for="cat in categories"
                 :key="cat.id"
                 :style="{
-                  border: `1px solid ${isCategoryActive(cat) ? 'rgba(255,210,0,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                  border: `1px solid ${isCategoryActive(cat) ? 'var(--accent)' : 'var(--border-2)'}`,
                   borderRadius: '10px',
                   padding: '12px',
-                  background: isCategoryActive(cat) ? 'rgba(255,210,0,0.05)' : 'rgba(255,255,255,0.02)',
+                  background: isCategoryActive(cat) ? 'var(--accent-soft)' : 'var(--overlay-soft)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   gap: '10px',
@@ -321,9 +321,9 @@
                 }"
               >
                 <div>
-                  <div style="font-weight:700;color:#E8E9ED;">{{ cat.nom }}</div>
-                  <div v-if="cat.description" style="font-size:12px;color:#9CA3AF;margin-top:4px;">{{ cat.description }}</div>
-                  <div style="font-size:11px;color:#D1D5DB;margin-top:8px;">
+                  <div style="font-weight:700;color:var(--content-1);">{{ cat.nom }}</div>
+                  <div v-if="cat.description" style="font-size:12px;color:var(--content-3);margin-top:4px;">{{ cat.description }}</div>
+                  <div style="font-size:11px;color:var(--content-2);margin-top:8px;">
                     {{ isCategoryActive(cat) ? 'Disponible dans les tarifs' : 'Masqué dans les tarifs' }}
                   </div>
                 </div>
@@ -339,14 +339,14 @@
                 </button>
               </div>
             </div>
-            <div v-else style="font-size:13px;color:#6B7280;">Aucun type moto trouvé.</div>
+            <div v-else style="font-size:13px;color:var(--content-3);">Aucun type moto trouvé.</div>
           </div>
         </UCard>
 
         <UCard id="sec-tarifs">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Tarifs</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Tarifs</span></template>
           <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="font-size:13px;color:#D1D5DB;">
+            <div style="font-size:13px;color:var(--content-2);">
               Les prix, temps et modes de tarification par type de moto se gèrent dans l'onglet
               <strong>Prestations</strong>, qui présente la liste complète et le même écran de configuration.
             </div>
@@ -363,7 +363,7 @@
               >
                 {{ seedLoading ? 'Pré-remplissage…' : 'Pré-remplir les premiers tarifs' }}
               </button>
-              <span v-if="!activeCategories.length" style="font-size:11px;color:#FCA5A5;">
+              <span v-if="!activeCategories.length" style="font-size:11px;color:var(--error-content);">
                 Active d'abord au moins un type de moto ci-dessus.
               </span>
             </div>
@@ -371,11 +371,11 @@
         </UCard>
 
         <UCard v-if="isSuperAdmin" id="sec-modules">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Modules de l'application</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Modules de l'application</span></template>
           <div style="display:flex;flex-direction:column;gap:16px;">
-            <div style="border:1px solid rgba(255,210,0,0.16);border-radius:12px;padding:14px;background:rgba(255,210,0,0.05);">
-              <div style="font-size:13px;font-weight:700;color:#FDE68A;">Pilote ici le périmètre de l'atelier</div>
-              <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">Quand un module est coupé, le menu, les pages et les actions associées disparaissent du workflow.</div>
+            <div style="border:1px solid var(--accent);border-radius:12px;padding:14px;background:var(--accent-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--warning-content);">Pilote ici le périmètre de l'atelier</div>
+              <div style="font-size:12px;color:var(--content-1);margin-top:4px;">Quand un module est coupé, le menu, les pages et les actions associées disparaissent du workflow.</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
                 <button type="button" class="btn btn-ghost" style="padding:7px 12px;font-size:12px;" @click="setFeaturePreset('all')">Tout activer</button>
                 <button type="button" class="btn btn-ghost" style="padding:7px 12px;font-size:12px;" @click="setFeaturePreset('light')">Mode atelier léger</button>
@@ -400,26 +400,26 @@
                   </span>
                 </span>
                 <span style="font-size:11px;line-height:1.45;opacity:0.88;">{{ item.impact }}</span>
-                <span style="margin-top:auto;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.08);">
+                <span style="margin-top:auto;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;background:var(--overlay-hover);">
                   {{ isFeatureModuleEnabled(item.key) ? 'Activé' : 'Désactivé' }}
                 </span>
               </button>
             </div>
 
-            <div v-if="disabledModuleLabels.length" style="border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:12px;background:rgba(245,158,11,0.06);">
-              <div style="font-size:12px;font-weight:700;color:#FBBF24;">Modules actuellement masqués du workflow</div>
+            <div v-if="disabledModuleLabels.length" style="border:1px solid var(--warning);border-radius:12px;padding:12px;background:var(--warning-soft);">
+              <div style="font-size:12px;font-weight:700;color:var(--warning-content);">Modules actuellement masqués du workflow</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <span v-for="label in disabledModuleLabels" :key="label" style="font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.08);color:#FDE68A;">{{ label }}</span>
+                <span v-for="label in disabledModuleLabels" :key="label" style="font-size:11px;padding:4px 8px;border-radius:999px;background:var(--overlay-hover);color:var(--warning-content);">{{ label }}</span>
               </div>
             </div>
 
-            <div v-else style="border:1px solid rgba(16,185,129,0.16);border-radius:12px;padding:12px;background:rgba(16,185,129,0.06);font-size:12px;color:#BBF7D0;">
+            <div v-else style="border:1px solid var(--success);border-radius:12px;padding:12px;background:var(--success-soft);font-size:12px;color:var(--success-content);">
               Tous les modules principaux sont actifs. Le parcours atelier reste complet.
             </div>
 
-            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Notifications client par étape</div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+            <div style="border:1px solid var(--border-2);border-radius:12px;padding:14px;background:var(--overlay-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">Notifications client par étape</div>
+              <div style="font-size:11px;color:var(--content-3);margin-top:2px;margin-bottom:10px;">
                 Le client reçoit un email/SMS à chaque étape activée. Couper une étape n'affecte ni le suivi en ligne ni l'historique.
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -438,9 +438,9 @@
               </div>
             </div>
 
-            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Check-in / état des lieux</div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+            <div style="border:1px solid var(--border-2);border-radius:12px;padding:14px;background:var(--overlay-soft);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">Check-in / état des lieux</div>
+              <div style="font-size:11px;color:var(--content-3);margin-top:2px;margin-bottom:10px;">
                 Quand l'option est active, la moto ne peut pas passer en réception sans un état des lieux d'entrée signé par le client.
               </div>
               <button
@@ -456,33 +456,33 @@
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-              <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;color:#9CA3AF;">Atelier</div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ atelier.nom || 'Non renseigné' }}</div>
-                <div style="font-size:12px;color:#D1D5DB;margin-top:4px;">{{ atelier.telephone || 'Téléphone manquant' }}</div>
+              <div style="border:1px solid var(--border-2);border-radius:10px;padding:12px;">
+                <div style="font-size:12px;color:var(--content-3);">Atelier</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ atelier.nom || 'Non renseigné' }}</div>
+                <div style="font-size:12px;color:var(--content-2);margin-top:4px;">{{ atelier.telephone || 'Téléphone manquant' }}</div>
               </div>
-              <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;color:#9CA3AF;">Modules</div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ activeModuleCount }} / {{ moduleDefinitions.length }} actifs</div>
+              <div style="border:1px solid var(--border-2);border-radius:10px;padding:12px;">
+                <div style="font-size:12px;color:var(--content-3);">Modules</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ activeModuleCount }} / {{ moduleDefinitions.length }} actifs</div>
               </div>
-              <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;color:#9CA3AF;">Horaires</div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ horaires.filter((h) => h.is_ouvert).length }} jours ouverts</div>
+              <div style="border:1px solid var(--border-2);border-radius:10px;padding:12px;">
+                <div style="font-size:12px;color:var(--content-3);">Horaires</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ horaires.filter((h) => h.is_ouvert).length }} jours ouverts</div>
               </div>
-              <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;color:#9CA3AF;">Types moto</div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ activeCategories.length }} actifs</div>
+              <div style="border:1px solid var(--border-2);border-radius:10px;padding:12px;">
+                <div style="font-size:12px;color:var(--content-3);">Types moto</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ activeCategories.length }} actifs</div>
               </div>
-              <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;color:#9CA3AF;">Tarifs par type</div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ grilles.filter((g) => Number(g.is_active ?? 1) === 1).length }} lignes actives</div>
+              <div style="border:1px solid var(--border-2);border-radius:10px;padding:12px;">
+                <div style="font-size:12px;color:var(--content-3);">Tarifs par type</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ grilles.filter((g) => Number(g.is_active ?? 1) === 1).length }} lignes actives</div>
               </div>
             </div>
           </div>
         </UCard>
 
         <div class="barre-enregistrer">
-          <span style="font-size:11px;color:#9CA3AF;">Les modifications ne sont appliquées qu'après enregistrement.</span>
+          <span style="font-size:11px;color:var(--content-3);">Les modifications ne sont appliquées qu'après enregistrement.</span>
           <UButton type="submit" label="Enregistrer la configuration" :loading="saving" />
         </div>
       </form>
@@ -1058,23 +1058,23 @@ onMounted(async () => {
   flex-wrap: wrap;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .sommaire-lien {
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #D1D5DB;
+  background: var(--overlay-soft);
+  color: var(--content-2);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
 }
 
 .sommaire-lien:hover {
-  background: rgba(255, 210, 0, 0.14);
-  color: #FFD200;
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 
 /* Le bouton d'enregistrement reste atteignable quelle que soit la section lue. */
@@ -1088,32 +1088,32 @@ onMounted(async () => {
   flex-wrap: wrap;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(13, 15, 20, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
 }
 
 .regle {
   padding: 12px 14px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .regle--info {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--overlay-soft);
   border-style: dashed;
 }
 
 .regle-titre {
   font-size: 13px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .regle-aide {
   margin: 2px 0 10px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
   max-width: 70ch;
 }
 
@@ -1126,18 +1126,18 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .regle-unite {
   margin-left: 8px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .regle-alerte {
   margin-top: 8px;
   font-size: 11px;
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 </style>

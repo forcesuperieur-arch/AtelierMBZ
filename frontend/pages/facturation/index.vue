@@ -24,15 +24,15 @@
           {{ formatCurrency(row.original.total_ttc) }}
         </template>
         <template #reste-cell="{ row }">
-          <span :style="{ color: row.original.reste_a_payer > 0 ? '#FCA5A5' : '#6EE7B7', fontWeight: '600' }">
+          <span :style="{ color: row.original.reste_a_payer > 0 ? 'var(--error-content)' : 'var(--success-content)', fontWeight: '600' }">
             {{ formatCurrency(row.original.reste_a_payer ?? row.original.total_ttc) }}
           </span>
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)">📄 PDF</button>
-            <button v-if="row.original.statut !== 'payee' && row.original.statut !== 'annulee'" style="color:#6EE7B7;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)">📄 PDF</button>
+            <button v-if="row.original.statut !== 'payee' && row.original.statut !== 'annulee'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
+            <button style="color:var(--info-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
           </div>
         </template>
       </UTable>
@@ -45,24 +45,24 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:600;">💶 Encaissement — {{ selectedFacture?.numero_facture }}</span>
-              <button @click="showEncaissement = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showEncaissement = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
           <div v-if="selectedFacture" style="display:flex;flex-direction:column;gap:16px;">
             <!-- Résumé facture -->
-            <div style="display:flex;justify-content:space-between;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
               <div>
-                <div style="font-size:12px;color:#6B7280;">Total TTC</div>
-                <div style="font-size:18px;font-weight:700;color:#FFD200;">{{ formatCurrency(selectedFacture.total_ttc) }}</div>
+                <div style="font-size:12px;color:var(--content-3);">Total TTC</div>
+                <div style="font-size:18px;font-weight:700;color:var(--accent-content);">{{ formatCurrency(selectedFacture.total_ttc) }}</div>
               </div>
               <div v-if="selectedFacture.montant_paye > 0">
-                <div style="font-size:12px;color:#6B7280;">Déjà payé</div>
-                <div style="font-size:18px;font-weight:700;color:#6EE7B7;">{{ formatCurrency(selectedFacture.montant_paye) }}</div>
+                <div style="font-size:12px;color:var(--content-3);">Déjà payé</div>
+                <div style="font-size:18px;font-weight:700;color:var(--success-content);">{{ formatCurrency(selectedFacture.montant_paye) }}</div>
               </div>
               <div>
-                <div style="font-size:12px;color:#6B7280;">Reste à payer</div>
-                <div style="font-size:18px;font-weight:700;color:#FCA5A5;">{{ formatCurrency(resteAPayer) }}</div>
+                <div style="font-size:12px;color:var(--content-3);">Reste à payer</div>
+                <div style="font-size:18px;font-weight:700;color:var(--error-content);">{{ formatCurrency(resteAPayer) }}</div>
               </div>
             </div>
 
@@ -100,7 +100,7 @@
           <template #footer>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
               <button class="btn btn-ghost" @click="showEncaissement = false">Annuler</button>
-              <button class="btn btn-primary" style="background:#10B981 !important;border-color:#10B981 !important;" @click="submitPaiement" :disabled="paying">
+              <button class="btn btn-primary" style="background:var(--success) !important;border-color:var(--success) !important;" @click="submitPaiement" :disabled="paying">
                 {{ paying ? 'Enregistrement…' : 'Enregistrer le paiement' }}
               </button>
             </div>
@@ -116,54 +116,54 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:600;">📋 Aperçu facture</span>
-              <button @click="showPreview = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showPreview = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
           <div v-if="previewData" style="display:flex;flex-direction:column;gap:16px;">
             <!-- Client info -->
-            <div style="display:flex;justify-content:space-between;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
-              <div><div style="font-size:12px;color:#6B7280;">Client</div><div style="font-size:14px;font-weight:600;color:#E8E9ED;">{{ previewData.client_nom }}</div></div>
-              <div><div style="font-size:12px;color:#6B7280;">Véhicule</div><div style="font-size:14px;font-weight:600;color:#E8E9ED;">{{ previewData.vehicule_info }}</div></div>
+            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--overlay-soft);border-radius:10px;border:1px solid var(--border-2);">
+              <div><div style="font-size:12px;color:var(--content-3);">Client</div><div style="font-size:14px;font-weight:600;color:var(--content-1);">{{ previewData.client_nom }}</div></div>
+              <div><div style="font-size:12px;color:var(--content-3);">Véhicule</div><div style="font-size:14px;font-weight:600;color:var(--content-1);">{{ previewData.vehicule_info }}</div></div>
             </div>
 
             <!-- MO section -->
             <div v-if="previewData.lignes_mo?.length">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#F59E0B;margin-bottom:6px;">Main d'œuvre</div>
-              <div v-for="(l, i) in previewData.lignes_mo" :key="'mo'+i" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;">
-                <span style="color:#D1D5DB;">{{ l.label }}</span>
-                <span style="color:#FFD200;font-weight:600;">{{ formatCurrency(l.montant_ht) }} HT</span>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--warning-content);margin-bottom:6px;">Main d'œuvre</div>
+              <div v-for="(l, i) in previewData.lignes_mo" :key="'mo'+i" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-2);font-size:13px;">
+                <span style="color:var(--content-2);">{{ l.label }}</span>
+                <span style="color:var(--accent-content);font-weight:600;">{{ formatCurrency(l.montant_ht) }} HT</span>
               </div>
             </div>
 
             <!-- Pièces section -->
             <div v-if="previewData.lignes_pieces?.length">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#14B8A6;margin-bottom:6px;">Pièces</div>
-              <div v-for="(l, i) in previewData.lignes_pieces" :key="'p'+i" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;">
-                <span style="color:#D1D5DB;">{{ l.label }} {{ l.ref ? `(${l.ref})` : '' }} x{{ l.qty }}</span>
-                <span style="color:#FFD200;font-weight:600;">{{ formatCurrency(l.montant_ht) }} HT</span>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--success-content);margin-bottom:6px;">Pièces</div>
+              <div v-for="(l, i) in previewData.lignes_pieces" :key="'p'+i" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-2);font-size:13px;">
+                <span style="color:var(--content-2);">{{ l.label }} {{ l.ref ? `(${l.ref})` : '' }} x{{ l.qty }}</span>
+                <span style="color:var(--accent-content);font-weight:600;">{{ formatCurrency(l.montant_ht) }} HT</span>
               </div>
             </div>
 
             <!-- Remise slider -->
-            <div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="padding:12px;background:var(--overlay-soft);border-radius:10px;border:1px solid var(--border-2);">
               <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                <label style="font-size:12px;color:#9CA3AF;">Remise (%)</label>
-                <span style="font-size:14px;font-weight:700;color:#10B981;">{{ previewRemise }}%</span>
+                <label style="font-size:12px;color:var(--content-3);">Remise (%)</label>
+                <span style="font-size:14px;font-weight:700;color:var(--success-content);">{{ previewRemise }}%</span>
               </div>
-              <input type="range" v-model.number="previewRemise" min="0" max="100" style="width:100%;accent-color:#FFD200;" />
+              <input type="range" v-model.number="previewRemise" min="0" max="100" style="width:100%;accent-color:var(--accent);" />
             </div>
 
             <!-- Totals -->
-            <div style="padding:14px;background:var(--dark3,#171B24);border-radius:12px;display:grid;gap:8px;font-size:13px;">
-              <div style="display:flex;justify-content:space-between;"><span style="color:#9CA3AF;">Total HT</span><span style="color:#E8E9ED;font-weight:600;">{{ formatCurrency(previewTotalHT) }}</span></div>
-              <div v-if="previewRemise > 0" style="display:flex;justify-content:space-between;"><span style="color:#10B981;">Remise {{ previewRemise }}%</span><span style="color:#10B981;font-weight:600;">-{{ formatCurrency(previewTotalHT * previewRemise / 100) }}</span></div>
-              <div v-if="previewRemise > 0" style="display:flex;justify-content:space-between;"><span style="color:#9CA3AF;">Total HT après remise</span><span style="color:#E8E9ED;font-weight:600;">{{ formatCurrency(previewHTAfterRemise) }}</span></div>
-              <div style="display:flex;justify-content:space-between;"><span style="color:#9CA3AF;">TVA MO ({{ previewData.tva_mo_taux || 20 }}%)</span><span style="color:#E8E9ED;">{{ formatCurrency(previewTvaMO) }}</span></div>
-              <div v-if="previewTvaPieces > 0" style="display:flex;justify-content:space-between;"><span style="color:#9CA3AF;">TVA Pièces ({{ previewData.tva_pieces_taux || 20 }}%)</span><span style="color:#E8E9ED;">{{ formatCurrency(previewTvaPieces) }}</span></div>
-              <div style="border-top:2px solid rgba(255,255,255,0.08);padding-top:8px;display:flex;justify-content:space-between;">
-                <span style="font-weight:700;color:#E8E9ED;font-size:15px;">TOTAL TTC</span>
-                <span style="font-weight:900;color:#FFD200;font-size:18px;">{{ formatCurrency(previewTotalTTC) }}</span>
+            <div style="padding:14px;background:var(--dark3,var(--surface-2));border-radius:12px;display:grid;gap:8px;font-size:13px;">
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--content-3);">Total HT</span><span style="color:var(--content-1);font-weight:600;">{{ formatCurrency(previewTotalHT) }}</span></div>
+              <div v-if="previewRemise > 0" style="display:flex;justify-content:space-between;"><span style="color:var(--success-content);">Remise {{ previewRemise }}%</span><span style="color:var(--success-content);font-weight:600;">-{{ formatCurrency(previewTotalHT * previewRemise / 100) }}</span></div>
+              <div v-if="previewRemise > 0" style="display:flex;justify-content:space-between;"><span style="color:var(--content-3);">Total HT après remise</span><span style="color:var(--content-1);font-weight:600;">{{ formatCurrency(previewHTAfterRemise) }}</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--content-3);">TVA MO ({{ previewData.tva_mo_taux || 20 }}%)</span><span style="color:var(--content-1);">{{ formatCurrency(previewTvaMO) }}</span></div>
+              <div v-if="previewTvaPieces > 0" style="display:flex;justify-content:space-between;"><span style="color:var(--content-3);">TVA Pièces ({{ previewData.tva_pieces_taux || 20 }}%)</span><span style="color:var(--content-1);">{{ formatCurrency(previewTvaPieces) }}</span></div>
+              <div style="border-top:2px solid var(--border-2);padding-top:8px;display:flex;justify-content:space-between;">
+                <span style="font-weight:700;color:var(--content-1);font-size:15px;">TOTAL TTC</span>
+                <span style="font-weight:900;color:var(--accent-content);font-size:18px;">{{ formatCurrency(previewTotalTTC) }}</span>
               </div>
             </div>
 

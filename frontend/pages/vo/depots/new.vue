@@ -811,7 +811,7 @@ onBeforeUnmount(() => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -821,13 +821,13 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(251, 191, 36, 0.32);
-  background: rgba(245, 158, 11, 0.08);
-  color: #f3f4f6;
+  border: 1px solid var(--warning);
+  background: var(--warning-soft);
+  color: var(--content-1);
 }
 
 .vo-companion-banner span {
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 13px;
 }
 
@@ -840,13 +840,13 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--info);
+  background: var(--surface-1);
 }
 
 .vo-hero-qr p {
   margin: 6px 0 0;
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 13px;
 }
 
@@ -863,7 +863,7 @@ onBeforeUnmount(() => {
   height: 180px;
   padding: 8px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .vo-hero-qr-placeholder {
@@ -875,13 +875,13 @@ onBeforeUnmount(() => {
   text-align: center;
   padding: 12px;
   border-radius: 14px;
-  border: 1px dashed rgba(148, 163, 184, 0.35);
-  color: #cbd5e1;
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px dashed var(--border-1);
+  color: var(--content-2);
+  background: var(--surface-1);
 }
 
 .vo-qr-fallback {
-  color: #fbbf24 !important;
+  color: var(--warning-content) !important;
 }
 
 .vo-companion-mini-qr {
@@ -890,11 +890,11 @@ onBeforeUnmount(() => {
   max-width: 100%;
   padding: 8px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .vo-secondary-btn {
-  background: #1f2937;
+  background: var(--surface-2);
 }
 
 .vo-stepper {
@@ -909,9 +909,9 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #9ca3af;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-3);
   text-align: left;
 }
 
@@ -922,20 +922,20 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
   font-size: 12px;
   font-weight: 700;
 }
 
 .vo-step.is-active,
 .vo-step.is-done {
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: var(--warning);
 }
 
 .vo-step.is-active span,
 .vo-step.is-done span {
-  background: #f59e0b;
-  color: #090b10;
+  background: var(--warning);
+  color: var(--accent-ink);
 }
 
 .vo-wizard-grid {
@@ -950,7 +950,7 @@ onBeforeUnmount(() => {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
@@ -967,15 +967,15 @@ onBeforeUnmount(() => {
   text-align: left;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: #e8e9ed;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-1);
 }
 
 .vo-search-item span,
 .vo-summary-label,
 .vo-field span {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
   font-weight: 700;
 }
@@ -984,7 +984,7 @@ onBeforeUnmount(() => {
   margin: 14px 0;
   text-transform: uppercase;
   font-size: 11px;
-  color: #6b7280;
+  color: var(--content-3);
   letter-spacing: 0.08em;
 }
 
@@ -1009,9 +1009,9 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-inline-search {
@@ -1031,8 +1031,8 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   margin-bottom: 14px;
 }
 
@@ -1055,7 +1055,7 @@ onBeforeUnmount(() => {
 .vo-link-btn {
   background: none;
   border: none;
-  color: #f59e0b;
+  color: var(--warning-content);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -1065,9 +1065,9 @@ onBeforeUnmount(() => {
 .vo-secondary-cta {
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1px solid #374151;
-  background: #111827;
-  color: #e8e9ed;
+  border: 1px solid var(--border-1);
+  background: var(--surface-0);
+  color: var(--content-1);
 }
 
 @media (max-width: 1100px) {

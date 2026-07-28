@@ -73,11 +73,11 @@ const deltaTone = computed(() => {
 }
 .tile--link:hover {
   border-color: var(--border-hover);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-hover);
 }
-.tile--good { border-color: rgba(16, 185, 129, 0.28); background: var(--status-good-soft); }
-.tile--warn { border-color: rgba(245, 158, 11, 0.28); background: var(--status-warn-soft); }
-.tile--crit { border-color: rgba(239, 68, 68, 0.3); background: var(--status-crit-soft); }
+.tile--good { border-color: var(--success); background: var(--status-good-soft); }
+.tile--warn { border-color: var(--warning); background: var(--status-warn-soft); }
+.tile--crit { border-color: var(--error); background: var(--status-crit-soft); }
 
 .tile-label {
   font-size: 11px;
@@ -95,7 +95,7 @@ const deltaTone = computed(() => {
   color: var(--ink);
   margin: 8px 0 4px;
 }
-.tile--crit .tile-value { color: #FCA5A5; }
+.tile--crit .tile-value { color: var(--error-content); }
 .tile-unit {
   font-size: 15px;
   font-weight: 700;
@@ -107,8 +107,8 @@ const deltaTone = computed(() => {
   font-weight: 600;
   color: var(--ink-muted);
 }
-.tile-delta--good { color: var(--status-good); }
-.tile-delta--warn { color: var(--status-warn); }
+.tile-delta--good { color: var(--success-content); }
+.tile-delta--warn { color: var(--warning-content); }
 .tile-delta-ref { font-weight: 500; color: var(--ink-muted); }
 .tile-hint { font-weight: 500; }
 .tile-delta + .tile-hint { margin-top: 3px; }

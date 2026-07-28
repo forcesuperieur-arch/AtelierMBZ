@@ -92,7 +92,7 @@ async function save() {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 6px;
 }
 .field input,
@@ -100,21 +100,21 @@ async function save() {
   width: 100%;
   padding: 10px 12px;
   background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-1);
   border-radius: 8px;
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 14px;
   outline: none;
   resize: vertical;
 }
 .field input:focus,
 .field textarea:focus {
-  border-color: #FFD200;
+  border-color: var(--accent-graphic);
 }
 .save-btn {
   padding: 12px;
-  background: #FFD200;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   border-radius: 8px;
   font-weight: 800;
@@ -131,11 +131,11 @@ async function save() {
   border-radius: 6px;
 }
 .msg.success {
-  background: rgba(34,197,94,0.15);
-  color: #4ADE80;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 .msg.error {
-  background: rgba(239,68,68,0.15);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 </style>

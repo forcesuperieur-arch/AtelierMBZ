@@ -250,7 +250,7 @@ onUnmounted(() => store.stopAutoRefresh())
   font-size: 12px;
   cursor: pointer;
 }
-.export-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.export-item:hover { background: var(--overlay-hover); color: var(--ink); }
 
 .tabs {
   display: flex;
@@ -275,7 +275,7 @@ onUnmounted(() => store.stopAutoRefresh())
   transition: color var(--transition), border-color var(--transition);
 }
 .tab-btn:hover { color: var(--ink-body); }
-.tab-btn--on { color: var(--orange); border-bottom-color: var(--orange); }
+.tab-btn--on { color: var(--accent-content); border-bottom-color: var(--accent-graphic); }
 .tab-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
 .tab-badge {
   font-size: 10px;
@@ -283,7 +283,7 @@ onUnmounted(() => store.stopAutoRefresh())
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--status-warn-soft);
-  color: var(--status-warn);
+  color: var(--warning-content);
 }
 
 .periode-card { margin-bottom: 16px; }
@@ -301,7 +301,7 @@ onUnmounted(() => store.stopAutoRefresh())
   padding: 7px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--overlay-soft);
   color: var(--ink-body);
   font-family: inherit;
   font-size: 13px;
@@ -310,9 +310,9 @@ onUnmounted(() => store.stopAutoRefresh())
 }
 .preset:hover { border-color: var(--border-hover); }
 .preset--on {
-  border-color: rgba(255, 210, 0, 0.35);
-  background: rgba(255, 210, 0, 0.12);
-  color: var(--orange);
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 .periode-dates { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .periode-input {
@@ -323,7 +323,7 @@ onUnmounted(() => store.stopAutoRefresh())
   padding: 7px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--overlay-soft);
   color: var(--ink-body);
   font-family: inherit;
   font-size: 13px;

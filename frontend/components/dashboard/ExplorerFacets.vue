@@ -79,7 +79,7 @@ const groupes = computed(() => ORDRE
 .facette-reset {
   border: 0;
   background: transparent;
-  color: var(--orange);
+  color: var(--accent-content);
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
@@ -112,15 +112,15 @@ const groupes = computed(() => ORDRE
   text-align: left;
   cursor: pointer;
 }
-.facette-valeur:hover { background: rgba(255, 255, 255, 0.05); }
+.facette-valeur:hover { background: var(--overlay-hover); }
 .facette-valeur:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
 .facette-valeur--on {
-  border-color: rgba(255, 210, 0, 0.4);
-  background: rgba(255, 210, 0, 0.1);
-  color: var(--orange);
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 .facette-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .facette-nb { font-variant-numeric: tabular-nums; color: var(--ink-muted); font-size: 11px; flex: 0 0 auto; }
-.facette-valeur--on .facette-nb { color: var(--orange); }
+.facette-valeur--on .facette-nb { color: var(--accent-content); }
 .facette-aucune { font-size: 11px; color: var(--ink-muted); padding: 4px 8px; }
 </style>

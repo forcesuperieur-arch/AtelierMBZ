@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <div v-if="loadError" style="margin-top:14px;font-size:13px;color:#FCA5A5;">
+    <div v-if="loadError" style="margin-top:14px;font-size:13px;color:var(--error-content);">
       Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.
     </div>
   </div>
@@ -70,24 +70,24 @@ onMounted(async () => {
 <style scoped>
 .dash-card {
   padding: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
 }
 .dash-label {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
   font-weight: 600;
   margin-bottom: 6px;
 }
 .dash-value {
   font-size: 18px;
   font-weight: 800;
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .dash-link {
   font-size: 14px;
-  color: #FFD200;
+  color: var(--accent-content);
   text-decoration: none;
   font-weight: 700;
 }

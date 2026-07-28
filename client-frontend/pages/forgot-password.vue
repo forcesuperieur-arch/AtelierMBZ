@@ -1,9 +1,12 @@
 <template>
   <div class="login-page">
+    <!-- Ces pages sont en `layout: false` : la bascule de thème de la mise en
+         page ne s'y monte pas, il faut la poser ici. -->
+    <ThemeToggle floating />
     <div class="login-card">
-      <LogoIcon style="margin-bottom:8px;color:#FFD200;" />
+      <LogoIcon style="margin-bottom:8px;color:var(--accent-content);" />
       <h1 style="font-size:22px;font-weight:800;margin-bottom:4px;">Mon Atelier</h1>
-      <p style="font-size:13px;color:#9CA3AF;margin-bottom:20px;">Espace client</p>
+      <p style="font-size:13px;color:var(--content-3);margin-bottom:20px;">Espace client</p>
 
       <form @submit.prevent="handleSubmit">
         <div class="login-field">
@@ -16,7 +19,7 @@
         <div v-if="message" :class="['msg', messageType]">{{ message }}</div>
       </form>
 
-      <NuxtLink to="/login" style="font-size:13px;color:#9CA3AF;margin-top:16px;display:inline-block;">
+      <NuxtLink to="/login" style="font-size:13px;color:var(--content-3);margin-top:16px;display:inline-block;">
         ← Retour à la connexion
       </NuxtLink>
     </div>
@@ -57,15 +60,15 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0C0D12;
-  color: #E8E9ED;
+  background: var(--surface-0);
+  color: var(--content-1);
 }
 .login-card {
   width: 100%;
   max-width: 360px;
   padding: 32px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 16px;
   text-align: center;
 }
@@ -77,27 +80,27 @@ async function handleSubmit() {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 6px;
 }
 .login-field input {
   width: 100%;
   padding: 10px 12px;
   background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-1);
   border-radius: 8px;
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 14px;
   outline: none;
 }
 .login-field input:focus {
-  border-color: #FFD200;
+  border-color: var(--accent-graphic);
 }
 .login-btn {
   width: 100%;
   padding: 12px;
-  background: #FFD200;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   border-radius: 8px;
   font-weight: 800;
@@ -116,11 +119,11 @@ async function handleSubmit() {
   border-radius: 6px;
 }
 .msg.success {
-  background: rgba(34,197,94,0.15);
-  color: #4ADE80;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 .msg.error {
-  background: rgba(239,68,68,0.15);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 </style>

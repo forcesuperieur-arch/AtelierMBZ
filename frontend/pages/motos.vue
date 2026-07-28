@@ -15,7 +15,7 @@
         <UFormField label="Recherche">
           <UInput v-model="search" placeholder="Marque, modèle..." />
         </UFormField>
-        <div style="margin-left:auto;font-size:12px;color:#9CA3AF;">
+        <div style="margin-left:auto;font-size:12px;color:var(--content-3);">
           {{ filtered.length }} modèle(s) affiché(s)
         </div>
       </div>
@@ -37,7 +37,7 @@
     <UCard v-else>
       <UTable v-if="filtered.length" :data="filtered" :columns="columns" :loading="loading">
         <template #actions-cell="{ row }">
-          <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openDetails(row.original)">Détails</button>
+          <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openDetails(row.original)">Détails</button>
         </template>
       </UTable>
       <AppEmptyState
@@ -55,8 +55,8 @@
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
               <div>
-                <div style="font-size:16px;font-weight:800;color:#E8E9ED;">{{ selectedModel.marque }} {{ selectedModel.modele }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">{{ selectedModel.categorie_nom || 'Catégorie non renseignée' }}</div>
+                <div style="font-size:16px;font-weight:800;color:var(--content-1);">{{ selectedModel.marque }} {{ selectedModel.modele }}</div>
+                <div style="font-size:12px;color:var(--content-3);">{{ selectedModel.categorie_nom || 'Catégorie non renseignée' }}</div>
               </div>
               <button class="btn btn-ghost" @click="selectedModel = null">Fermer</button>
             </div>
@@ -163,19 +163,19 @@ onMounted(loadCatalog)
   gap: 4px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .detail-card span {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .detail-card strong {
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 14px;
 }
 </style>

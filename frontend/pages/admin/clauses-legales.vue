@@ -7,7 +7,7 @@
       <button class="topbar-new-btn" @click="openCreate">+ Nouvelle clause</button>
     </div>
 
-    <p style="color:#9CA3AF;font-size:13px;margin-bottom:16px;">
+    <p style="color:var(--content-3);font-size:13px;margin-bottom:16px;">
       Toute modification du texte crée une <strong>nouvelle version</strong> et désactive l'ancienne (traçabilité légale).
     </p>
 
@@ -18,27 +18,27 @@
         </button>
       </div>
 
-      <div v-if="loading" style="text-align:center;padding:24px;color:#9CA3AF;">Chargement…</div>
-      <div v-else-if="!clauses.length" style="text-align:center;padding:24px;color:#6B7280;">Aucune clause.</div>
+      <div v-if="loading" style="text-align:center;padding:24px;color:var(--content-3);">Chargement…</div>
+      <div v-else-if="!clauses.length" style="text-align:center;padding:24px;color:var(--content-3);">Aucune clause.</div>
       <div v-else style="display:flex;flex-direction:column;gap:10px;">
-        <div v-for="c in clauses" :key="c.id" style="padding:12px 14px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);">
+        <div v-for="c in clauses" :key="c.id" style="padding:12px 14px;border:1px solid var(--border-2);border-radius:10px;background:var(--overlay-soft);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:240px;">
               <div style="display:flex;gap:10px;align-items:center;">
-                <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(147,197,253,0.14);color:#93C5FD;font-weight:700;">{{ c.code }}</span>
-                <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(139,92,246,0.14);color:#C4B5FD;font-weight:700;">v{{ c.version }}</span>
-                <span :style="c.isActive ? 'background:rgba(16,185,129,0.14);color:#6EE7B7;' : 'background:rgba(156,163,175,0.14);color:#9CA3AF;'" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
+                <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--info-soft);color:var(--info-content);font-weight:700;">{{ c.code }}</span>
+                <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--info-soft);color:var(--info-content);font-weight:700;">v{{ c.version }}</span>
+                <span :style="c.isActive ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--surface-3);color:var(--content-3);'" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">
                   {{ c.isActive ? 'Active' : 'Archivée' }}
                 </span>
               </div>
-              <div style="font-size:14px;font-weight:700;color:#E8E9ED;margin-top:6px;">{{ c.libelle }}</div>
-              <div style="font-size:11px;color:#6B7280;margin-top:2px;">En vigueur depuis le {{ c.effectiveFrom }}</div>
-              <div style="font-size:12px;color:#D1D5DB;margin-top:6px;white-space:pre-wrap;max-height:100px;overflow:hidden;position:relative;">{{ c.texte.slice(0, 300) }}{{ c.texte.length > 300 ? '…' : '' }}</div>
+              <div style="font-size:14px;font-weight:700;color:var(--content-1);margin-top:6px;">{{ c.libelle }}</div>
+              <div style="font-size:11px;color:var(--content-3);margin-top:2px;">En vigueur depuis le {{ c.effectiveFrom }}</div>
+              <div style="font-size:12px;color:var(--content-2);margin-top:6px;white-space:pre-wrap;max-height:100px;overflow:hidden;position:relative;">{{ c.texte.slice(0, 300) }}{{ c.texte.length > 300 ? '…' : '' }}</div>
             </div>
             <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
               <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" @click="openEdit(c)">{{ c.isActive ? '✏️ Modifier' : '👁️ Voir' }}</button>
-              <button v-if="!c.isActive" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:#6EE7B7;" @click="toggleActive(c, true)">Réactiver</button>
-              <button v-else class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:#FCA5A5;" @click="toggleActive(c, false)">Archiver</button>
+              <button v-if="!c.isActive" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:var(--success-content);" @click="toggleActive(c, true)">Réactiver</button>
+              <button v-else class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:var(--error-content);" @click="toggleActive(c, false)">Archiver</button>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
 
     <AppModal :open="showEditModal" @update:open="showEditModal = $event">
       <template #header>
-        <div style="font-weight:700;color:#E8E9ED;">{{ editing?.id ? `Modifier la clause ${editing.code} v${editing.version}` : 'Nouvelle clause légale' }}</div>
+        <div style="font-weight:700;color:var(--content-1);">{{ editing?.id ? `Modifier la clause ${editing.code} v${editing.version}` : 'Nouvelle clause légale' }}</div>
       </template>
       <div v-if="editing" style="display:flex;flex-direction:column;gap:12px;">
         <UFormField label="Code" required>
@@ -63,7 +63,7 @@
         <UFormField label="Texte complet" required>
           <UTextarea v-model="editing.texte" :rows="10" placeholder="Texte juridique intégral…" />
         </UFormField>
-        <p v-if="editing.id" style="font-size:11px;color:#FCD34D;">
+        <p v-if="editing.id" style="font-size:11px;color:var(--warning-content);">
           ⚠️ Toute modification du texte créera une nouvelle version et archivera cette version {{ editing.version }}.
         </p>
       </div>

@@ -125,16 +125,16 @@ function declencher(group: ActionGroup, row: ActionRow) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.queue-sev--critical { background: var(--status-crit-soft); color: #FCA5A5; }
-.queue-sev--warning { background: var(--status-warn-soft); color: var(--status-warn); }
-.queue-sev--info { background: rgba(255, 255, 255, 0.06); color: var(--ink-muted); }
+.queue-sev--critical { background: var(--status-crit-soft); color: var(--error-content); }
+.queue-sev--warning { background: var(--status-warn-soft); color: var(--warning-content); }
+.queue-sev--info { background: var(--overlay-hover); color: var(--ink-muted); }
 
 .queue-group-title { font-size: 13px; font-weight: 700; color: var(--ink); }
 .queue-group-count {
   font-size: 11px;
   font-weight: 700;
   color: var(--ink-body);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--overlay-hover);
   padding: 1px 7px;
   border-radius: 999px;
 }
@@ -171,9 +171,9 @@ function declencher(group: ActionGroup, row: ActionRow) {
   min-height: 32px;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 210, 0, 0.28);
-  background: rgba(255, 210, 0, 0.1);
-  color: var(--orange);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -181,11 +181,11 @@ function declencher(group: ActionGroup, row: ActionRow) {
   white-space: nowrap;
   transition: background var(--transition), border-color var(--transition);
 }
-.queue-action:hover { background: rgba(255, 210, 0, 0.18); border-color: rgba(255, 210, 0, 0.45); }
+.queue-action:hover { background: var(--accent-soft); border-color: var(--accent-graphic); }
 .queue-action:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 .queue-more { margin: 8px 0 0; font-size: 12px; color: var(--ink-muted); }
-.queue-more-link { color: var(--orange); font-weight: 600; margin-left: 6px; }
+.queue-more-link { color: var(--accent-content); font-weight: 600; margin-left: 6px; }
 
 .queue-clear {
   display: flex;
@@ -201,7 +201,7 @@ function declencher(group: ActionGroup, row: ActionRow) {
   height: 32px;
   border-radius: 50%;
   background: var(--status-good-soft);
-  color: var(--status-good);
+  color: var(--success-content);
   font-weight: 800;
 }
 .queue-clear-title { font-size: 14px; font-weight: 700; color: var(--ink); }

@@ -50,12 +50,12 @@ const blocks = computed(() => {
   font-weight: 700;
   margin-top: 20px;
   margin-bottom: 8px;
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .legal-content p {
   font-size: 14px;
   line-height: 1.6;
-  color: #C4C5CA;
+  color: var(--content-2);
   margin-bottom: 12px;
 }
 </style>

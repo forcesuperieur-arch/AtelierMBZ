@@ -87,7 +87,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -98,7 +98,7 @@ onMounted(async () => {
 .vo-link-btn {
   background: none;
   border: none;
-  color: #f59e0b;
+  color: var(--warning-content);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;

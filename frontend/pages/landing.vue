@@ -2,7 +2,7 @@
   <div class="landing-page">
     <div class="landing-card">
       <div class="landing-brand">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFD200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="5.5" cy="17.5" r="3.5"/>
           <circle cx="18.5" cy="17.5" r="3.5"/>
           <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 2h2"/>
@@ -43,8 +43,8 @@ definePageMeta({ layout: false })
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0C0D12;
-  color: #E8E9ED;
+  background: var(--surface-0);
+  color: var(--content-1);
   font-family: system-ui, -apple-system, sans-serif;
 }
 .landing-card {
@@ -60,11 +60,11 @@ definePageMeta({ layout: false })
   font-size: 28px;
   font-weight: 800;
   margin: 16px 0 8px;
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .landing-brand p {
   font-size: 15px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin: 0;
 }
 .landing-actions {
@@ -88,12 +88,12 @@ definePageMeta({ layout: false })
   transform: translateY(-1px);
 }
 .landing-btn-primary {
-  background: #FFD200;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 .landing-btn-secondary {
-  background: rgba(255,255,255,0.06);
-  color: #E8E9ED;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--overlay-hover);
+  color: var(--content-1);
+  border: 1px solid var(--border-1);
 }
 </style>

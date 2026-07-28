@@ -10,22 +10,22 @@
       <!-- ─── MES CANAUX ─── -->
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📡 Mes canaux</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);">📡 Mes canaux</span>
         </template>
 
-        <div v-if="loadingProviders" style="text-align:center;padding:24px;color:#6B7280;">Chargement...</div>
+        <div v-if="loadingProviders" style="text-align:center;padding:24px;color:var(--content-3);">Chargement...</div>
         <div v-else style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
           <!-- SMS -->
-          <div style="padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
+          <div style="padding:16px;border-radius:12px;border:1px solid var(--border-2);background:var(--overlay-soft);">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
               <span style="font-size:20px;">📱</span>
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">SMS</span>
-              <span v-if="smsConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(16,185,129,0.15);color:#10B981;">✓ Configuré</span>
-              <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.15);color:#EF4444;">Non configuré</span>
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">SMS</span>
+              <span v-if="smsConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);">✓ Configuré</span>
+              <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);">Non configuré</span>
             </div>
             <div v-if="smsConfigured" style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-size:13px;color:#D1D5DB;">Provider : <strong style="color:#E8E9ED;">{{ smsProviders[0]?.provider }}</strong></div>
-              <div v-if="smsProviders[0]?.lastTestAt" style="font-size:12px;" :style="smsProviders[0]?.lastTestSuccess ? 'color:#10B981;' : 'color:#EF4444;'">
+              <div style="font-size:13px;color:var(--content-2);">Provider : <strong style="color:var(--content-1);">{{ smsProviders[0]?.provider }}</strong></div>
+              <div v-if="smsProviders[0]?.lastTestAt" style="font-size:12px;" :style="smsProviders[0]?.lastTestSuccess ? 'color:var(--success-content);' : 'color:var(--error-content);'">
                 Dernier test : {{ formatDate(smsProviders[0]?.lastTestAt) }} — {{ smsProviders[0]?.lastTestSuccess ? 'Succès' : 'Échec' }}
               </div>
               <div style="display:flex;gap:8px;margin-top:4px;">
@@ -34,22 +34,22 @@
               </div>
             </div>
             <div v-else style="display:flex;flex-direction:column;gap:10px;">
-              <div style="font-size:13px;color:#9CA3AF;">Aucun service SMS configuré. Les SMS ne pourront pas être envoyés.</div>
+              <div style="font-size:13px;color:var(--content-3);">Aucun service SMS configuré. Les SMS ne pourront pas être envoyés.</div>
               <button class="btn btn-primary" style="font-size:12px;align-self:flex-start;" @click="openProviderModal('sms')">Configurer SMS</button>
             </div>
           </div>
 
           <!-- Email -->
-          <div style="padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
+          <div style="padding:16px;border-radius:12px;border:1px solid var(--border-2);background:var(--overlay-soft);">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
               <span style="font-size:20px;">📧</span>
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Email</span>
-              <span v-if="emailConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(16,185,129,0.15);color:#10B981;">✓ Configuré</span>
-              <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.15);color:#EF4444;">Non configuré</span>
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">Email</span>
+              <span v-if="emailConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);">✓ Configuré</span>
+              <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);">Non configuré</span>
             </div>
             <div v-if="emailConfigured" style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-size:13px;color:#D1D5DB;">Provider : <strong style="color:#E8E9ED;">{{ emailProviders[0]?.provider }}</strong></div>
-              <div v-if="emailProviders[0]?.lastTestAt" style="font-size:12px;" :style="emailProviders[0]?.lastTestSuccess ? 'color:#10B981;' : 'color:#EF4444;'">
+              <div style="font-size:13px;color:var(--content-2);">Provider : <strong style="color:var(--content-1);">{{ emailProviders[0]?.provider }}</strong></div>
+              <div v-if="emailProviders[0]?.lastTestAt" style="font-size:12px;" :style="emailProviders[0]?.lastTestSuccess ? 'color:var(--success-content);' : 'color:var(--error-content);'">
                 Dernier test : {{ formatDate(emailProviders[0]?.lastTestAt) }} — {{ emailProviders[0]?.lastTestSuccess ? 'Succès' : 'Échec' }}
               </div>
               <div style="display:flex;gap:8px;margin-top:4px;">
@@ -58,7 +58,7 @@
               </div>
             </div>
             <div v-else style="display:flex;flex-direction:column;gap:10px;">
-              <div style="font-size:13px;color:#9CA3AF;">Aucun service Email configuré. Les emails ne pourront pas être envoyés.</div>
+              <div style="font-size:13px;color:var(--content-3);">Aucun service Email configuré. Les emails ne pourront pas être envoyés.</div>
               <button class="btn btn-primary" style="font-size:12px;align-self:flex-start;" @click="openProviderModal('email')">Configurer Email</button>
             </div>
           </div>
@@ -69,37 +69,37 @@
       <UCard>
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📝 Mes messages</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);">📝 Mes messages</span>
             <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" @click="openTemplateModal()">+ Nouveau message</button>
           </div>
         </template>
 
-        <div v-if="loadingTemplates" style="text-align:center;padding:24px;color:#6B7280;">Chargement...</div>
-        <div v-else-if="templates.length === 0" style="text-align:center;padding:24px;color:#9CA3AF;">
+        <div v-if="loadingTemplates" style="text-align:center;padding:24px;color:var(--content-3);">Chargement...</div>
+        <div v-else-if="templates.length === 0" style="text-align:center;padding:24px;color:var(--content-3);">
           Aucun message configuré.
         </div>
         <div v-else style="display:flex;flex-direction:column;gap:10px;">
           <div
             v-for="t in templates"
             :key="t.id"
-            style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);"
+            style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px;border-radius:8px;border:1px solid var(--border-2);background:var(--overlay-soft);"
           >
             <div style="flex:1;min-width:200px;">
               <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ t.libelle }}</span>
-                <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(139,92,246,0.14);color:#C4B5FD;">{{ t.channel }}</span>
-                <span v-if="!t.isActive" style="font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(107,114,128,0.15);color:#9CA3AF;">Inactif</span>
+                <span style="font-size:13px;font-weight:700;color:var(--content-1);">{{ t.libelle }}</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:var(--info-soft);color:var(--info-content);">{{ t.channel }}</span>
+                <span v-if="!t.isActive" style="font-size:11px;padding:2px 8px;border-radius:999px;background:var(--surface-3);color:var(--content-3);">Inactif</span>
               </div>
-              <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">
-                <code style="color:#60A5FA;">{{ t.code }}</code> — {{ t.sujet || 'Sans sujet' }}
+              <div style="font-size:12px;color:var(--content-3);margin-top:2px;">
+                <code style="color:var(--info-content);">{{ t.code }}</code> — {{ t.sujet || 'Sans sujet' }}
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="btn btn-ghost" style="font-size:12px;color:#FFD200;" @click="openTemplateModal(t)">✏ Modifier</button>
+              <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="openTemplateModal(t)">✏ Modifier</button>
               <button class="btn btn-ghost" style="font-size:12px;" @click="toggleTemplateActive(t)">
                 {{ t.isActive ? '⏸ Désactiver' : '▶ Activer' }}
               </button>
-              <button class="btn btn-ghost" style="font-size:12px;color:#EF4444;" @click="deleteTemplate(t)">🗑 Supprimer</button>
+              <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deleteTemplate(t)">🗑 Supprimer</button>
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@
       <!-- ─── HISTORIQUE ─── -->
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📋 Historique des envois</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);">📋 Historique des envois</span>
         </template>
 
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
@@ -120,21 +120,21 @@
           <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="fetchLogs()">🔄 Actualiser</button>
         </div>
 
-        <div v-if="loadingLogs" style="text-align:center;padding:24px;color:#6B7280;">Chargement...</div>
-        <div v-else-if="filteredLogs.length === 0" style="text-align:center;padding:24px;color:#9CA3AF;">Aucun envoi trouvé</div>
+        <div v-if="loadingLogs" style="text-align:center;padding:24px;color:var(--content-3);">Chargement...</div>
+        <div v-else-if="filteredLogs.length === 0" style="text-align:center;padding:24px;color:var(--content-3);">Aucun envoi trouvé</div>
         <div v-else style="display:flex;flex-direction:column;gap:8px;">
           <div
             v-for="l in filteredLogs"
             :key="l.id"
-            style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);"
+            style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--overlay-soft);"
           >
             <span style="font-size:14px;">{{ l.channel === 'sms' ? '📱' : '📧' }}</span>
             <div style="flex:1;min-width:180px;">
-              <div style="font-size:13px;color:#E8E9ED;">{{ l.toRecipient }}</div>
-              <div style="font-size:11px;color:#9CA3AF;">{{ l.templateCode || 'Sans template' }} — {{ formatDate(l.sentAt) }}</div>
+              <div style="font-size:13px;color:var(--content-1);">{{ l.toRecipient }}</div>
+              <div style="font-size:11px;color:var(--content-3);">{{ l.templateCode || 'Sans template' }} — {{ formatDate(l.sentAt) }}</div>
             </div>
             <StatusBadge :status="l.status" />
-            <span v-if="l.errorMessage" style="font-size:11px;color:#EF4444;max-width:200px;overflow:hidden;text-overflow:ellipsis;">{{ l.errorMessage }}</span>
+            <span v-if="l.errorMessage" style="font-size:11px;color:var(--error-content);max-width:200px;overflow:hidden;text-overflow:ellipsis;">{{ l.errorMessage }}</span>
           </div>
         </div>
       </UCard>
@@ -150,8 +150,8 @@
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ providerEditId ? 'Modifier' : 'Configurer' }} {{ providerForm.channel === 'sms' ? 'SMS' : 'Email' }}</span>
-              <button @click="closeProviderModal" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ providerEditId ? 'Modifier' : 'Configurer' }} {{ providerForm.channel === 'sms' ? 'SMS' : 'Email' }}</span>
+              <button @click="closeProviderModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
@@ -179,12 +179,12 @@
               </UFormField>
             </div>
 
-            <div v-else style="font-size:13px;color:#9CA3AF;">
-              Service : <strong style="color:#E8E9ED;">{{ providerForm.provider }}</strong>
+            <div v-else style="font-size:13px;color:var(--content-3);">
+              Service : <strong style="color:var(--content-1);">{{ providerForm.provider }}</strong>
             </div>
 
-            <UCard v-if="providerForm.provider" style="background:rgba(255,255,255,0.02);">
-              <template #header><span style="font-size:13px;font-weight:600;color:#E8E9ED;">🔑 Identifiants</span></template>
+            <UCard v-if="providerForm.provider" style="background:var(--overlay-soft);">
+              <template #header><span style="font-size:13px;font-weight:600;color:var(--content-1);">🔑 Identifiants</span></template>
               <div style="display:flex;flex-direction:column;gap:10px;">
                 <template v-if="providerForm.provider === 'twilio'">
                   <UFormField label="Account SID"><UInput v-model="providerForm.config.account_sid" placeholder="ACxxxxx" /></UFormField>
@@ -199,7 +199,7 @@
                   <UFormField label="Expéditeur"><UInput v-model="providerForm.config.sender" placeholder="AtelierMoto" /></UFormField>
                 </template>
                 <template v-else-if="providerForm.provider === 'log_sms'">
-                  <div style="font-size:12px;color:#9CA3AF;">Mode développement : les SMS sont journalisés localement.</div>
+                  <div style="font-size:12px;color:var(--content-3);">Mode développement : les SMS sont journalisés localement.</div>
                 </template>
                 <template v-else-if="providerForm.provider === 'mailgun'">
                   <UFormField label="API Key"><UInput v-model="providerForm.config.api_key" type="password" /></UFormField>
@@ -230,14 +230,14 @@
       <template #content>
         <UCard>
           <template #header>
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Tester {{ testTarget?.provider }}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);">Tester {{ testTarget?.provider }}</span>
           </template>
           <form @submit.prevent="runTest" style="display:flex;flex-direction:column;gap:12px;">
             <UFormField :label="testTarget?.channel === 'sms' ? 'Numéro de téléphone' : 'Adresse email'">
               <UInput v-model="testRecipient" :type="testTarget?.channel === 'email' ? 'email' : 'tel'" required
                 :placeholder="testTarget?.channel === 'sms' ? '+33612345678' : 'test@example.com'" />
             </UFormField>
-            <div v-if="testResult" :style="{ padding: '12px', borderRadius: '6px', background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: testResult.success ? '#10B981' : '#EF4444', fontSize: '13px' }">
+            <div v-if="testResult" :style="{ padding: '12px', borderRadius: '6px', background: testResult.success ? 'var(--success-soft)' : 'var(--error-soft)', color: testResult.success ? 'var(--success-content)' : 'var(--error-content)', fontSize: '13px' }">
               {{ testResult.success ? '✓ Test réussi' : '✗ Échec: ' + testResult.error }}
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -255,8 +255,8 @@
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ templateEditId ? 'Modifier' : 'Nouveau' }} message</span>
-              <button @click="closeTemplateModal" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ templateEditId ? 'Modifier' : 'Nouveau' }} message</span>
+              <button @click="closeTemplateModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
@@ -287,22 +287,22 @@
 
             <div v-if="templateForm.channel === 'email'" style="display:flex;align-items:center;gap:8px;">
               <input id="html-mode" v-model="templateHtmlMode" type="checkbox" />
-              <label for="html-mode" style="font-size:13px;color:#9CA3AF;">Le message contient du HTML</label>
+              <label for="html-mode" style="font-size:13px;color:var(--content-3);">Le message contient du HTML</label>
             </div>
 
-            <div style="padding:10px 12px;border-radius:8px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.15);">
-              <div style="font-size:12px;font-weight:600;color:#93C5FD;margin-bottom:4px;">Variables disponibles</div>
-              <div style="font-size:12px;color:#BFDBFE;display:flex;flex-wrap:wrap;gap:6px;">
-                <code v-for="v in availableVariables" :key="v" style="background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;cursor:pointer;" @click="insertVariable(v)">{{ v }}</code>
+            <div style="padding:10px 12px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
+              <div style="font-size:12px;font-weight:600;color:var(--info-content);margin-bottom:4px;">Variables disponibles</div>
+              <div style="font-size:12px;color:var(--info-content);display:flex;flex-wrap:wrap;gap:6px;">
+                <code v-for="v in availableVariables" :key="v" style="background:var(--overlay-hover);padding:2px 8px;border-radius:4px;cursor:pointer;" @click="insertVariable(v)">{{ v }}</code>
               </div>
             </div>
 
-            <div style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:4px;">Prévisualisation</div>
-              <div v-if="templateForm.channel === 'email' && templateHtmlMode" style="padding:16px;border-radius:6px;background:#ffffff;max-width:600px;overflow:auto;">
-                <div style="color:#111827;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;" v-html="previewTemplateHtml" />
+            <div style="padding:10px 12px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+              <div style="font-size:12px;font-weight:600;color:var(--content-1);margin-bottom:4px;">Prévisualisation</div>
+              <div v-if="templateForm.channel === 'email' && templateHtmlMode" style="padding:16px;border-radius:6px;background:var(--surface-1);max-width:600px;overflow:auto;">
+                <div style="color:var(--accent-ink);font-family:Arial,sans-serif;font-size:14px;line-height:1.5;" v-html="previewTemplateHtml" />
               </div>
-              <div v-else style="font-size:13px;color:#D1D5DB;white-space:pre-wrap;">{{ previewTemplate }}</div>
+              <div v-else style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ previewTemplate }}</div>
             </div>
 
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
@@ -612,9 +612,9 @@ onMounted(() => {
 
 <style scoped>
 .form-input {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #E8E9ED;
+  background: var(--overlay-hover);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 13px;

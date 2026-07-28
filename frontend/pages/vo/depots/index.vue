@@ -71,7 +71,7 @@
           {{ formatPrice(row.original.commissionAmount || 0) }}
         </template>
         <template #joursRestants-cell="{ row }">
-          <span :style="{ color: row.original.mandatExpire ? '#ef4444' : Number(row.original.joursRestants ?? 999) <= 7 ? '#f59e0b' : '#d1d5db', fontWeight: '700' }">
+          <span :style="{ color: row.original.mandatExpire ? 'var(--error-content)' : Number(row.original.joursRestants ?? 999) <= 7 ? 'var(--warning-content)' : 'var(--content-2)', fontWeight: '700' }">
             {{ row.original.mandatExpire ? 'Expiré' : `${row.original.joursRestants ?? 0} j` }}
           </span>
         </template>
@@ -177,7 +177,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -193,18 +193,18 @@ onMounted(async () => {
   gap: 6px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .vo-summary-card span,
 .vo-summary-card small {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
 .vo-summary-card strong {
-  color: #f9fafb;
+  color: var(--content-1);
   font-size: 24px;
   line-height: 1;
 }
@@ -229,30 +229,30 @@ onMounted(async () => {
   gap: 8px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: #9ca3af;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-size: 12px;
   font-weight: 700;
 }
 
 .vo-chip strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 .vo-chip.is-active {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.12);
-  color: #fcd34d;
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 .vo-select {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-actions {
@@ -264,26 +264,26 @@ onMounted(async () => {
 .vo-link-btn {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--content-3);
   cursor: pointer;
   font-size: 12px;
   text-decoration: none;
   font-weight: 700;
 }
 
-.vo-link-btn.is-warning { color: #f59e0b; }
+.vo-link-btn.is-warning { color: var(--warning-content); }
 
 .vo-empty-state {
   display: grid;
   gap: 6px;
   padding: 18px;
   border-radius: 14px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
+  border: 1px dashed var(--border-1);
+  color: var(--content-3);
 }
 
 .vo-empty-state strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 @media (max-width: 900px) {

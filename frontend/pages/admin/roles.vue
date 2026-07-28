@@ -8,19 +8,19 @@
     </div>
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">
-      <span style="color:#6B7280;">Chargement...</span>
+      <span style="color:var(--content-3);">Chargement...</span>
     </div>
 
     <UCard v-else-if="!isSuperAdmin">
-      <div style="padding:8px 0;color:#FCA5A5;font-weight:600;">Accès réservé au superadmin.</div>
+      <div style="padding:8px 0;color:var(--error-content);font-weight:600;">Accès réservé au superadmin.</div>
     </UCard>
 
     <UCard v-else>
       <UTable :data="roles" :columns="columns">
         <template #label-cell="{ row }">
           <div>
-            <div style="font-weight:700;color:#E8E9ED;">{{ row.original.label }}</div>
-            <div style="font-size:12px;color:#6B7280;">{{ row.original.role }}</div>
+            <div style="font-weight:700;color:var(--content-1);">{{ row.original.label }}</div>
+            <div style="font-size:12px;color:var(--content-3);">{{ row.original.role }}</div>
           </div>
         </template>
 
@@ -48,8 +48,8 @@
               borderRadius: '999px',
               fontSize: '11px',
               fontWeight: '700',
-              color: row.original.is_system ? '#FCD34D' : '#9CA3AF',
-              background: row.original.is_system ? 'rgba(252,211,77,0.12)' : 'rgba(156,163,175,0.12)'
+              color: row.original.is_system ? 'var(--warning-content)' : 'var(--content-3)',
+              background: row.original.is_system ? 'var(--warning-soft)' : 'var(--surface-3)'
             }"
           >
             {{ row.original.is_system ? 'Système' : 'Personnalisé' }}
@@ -58,10 +58,10 @@
 
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editRole(row.original)">✏ Modifier</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editRole(row.original)">✏ Modifier</button>
             <button
               v-if="!row.original.is_system && row.original.role !== 'super_admin'"
-              style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;"
+              style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;"
               @click="deleteRole(row.original)"
             >
               ✖ Supprimer
@@ -78,9 +78,9 @@
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
               <div>
                 <div style="font-weight:700;">{{ editKey ? 'Modifier' : 'Nouveau' }} rôle</div>
-                <div style="font-size:12px;color:#9CA3AF;">Active ou désactive simplement les accès avec les toggles ci-dessous.</div>
+                <div style="font-size:12px;color:var(--content-3);">Active ou désactive simplement les accès avec les toggles ci-dessous.</div>
               </div>
-              <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
 
@@ -147,7 +147,7 @@
               </div>
             </div>
 
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#9CA3AF;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--content-3);">
               <input v-model="roleForm.is_system" type="checkbox" />
               Rôle système
             </label>
@@ -398,20 +398,20 @@ onMounted(async () => {
 }
 
 .section-chip {
-  color: #93C5FD;
-  background: rgba(59, 130, 246, 0.12);
+  color: var(--info-content);
+  background: var(--info-soft);
 }
 
 .permission-chip {
-  color: #C4B5FD;
-  background: rgba(139, 92, 246, 0.12);
+  color: var(--info-content);
+  background: var(--info-soft);
 }
 
 .toggle-section {
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
   padding: 12px;
-  background: rgba(17, 24, 39, 0.45);
+  background: var(--surface-0);
 }
 
 .toggle-section-header {
@@ -425,12 +425,12 @@ onMounted(async () => {
 
 .toggle-section-title {
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .toggle-section-subtitle {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .toggle-grid {
@@ -445,8 +445,8 @@ onMounted(async () => {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   cursor: pointer;
 }
 
@@ -455,13 +455,13 @@ onMounted(async () => {
 }
 
 .toggle-item-label {
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 13px;
   font-weight: 600;
 }
 
 .toggle-item-hint {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 11px;
 }
 </style>

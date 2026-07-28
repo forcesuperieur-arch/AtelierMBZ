@@ -185,7 +185,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -197,12 +197,12 @@ onMounted(async () => {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
 .vo-empty {
-  color: #6b7280;
+  color: var(--content-3);
 }
 
 .vo-alert-list {
@@ -213,19 +213,19 @@ onMounted(async () => {
 .vo-alert-item {
   padding: 12px;
   border-radius: 12px;
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.16);
+  background: var(--error-soft);
+  border: 1px solid var(--error);
 }
 
 .vo-alert-title {
-  color: #fca5a5;
+  color: var(--error-content);
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 4px;
 }
 
 .vo-alert-text {
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 12px;
 }
 
@@ -242,7 +242,7 @@ onMounted(async () => {
 
 .vo-field span {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-weight: 700;
 }
 
@@ -255,9 +255,9 @@ onMounted(async () => {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-inline-actions {
@@ -271,7 +271,7 @@ onMounted(async () => {
 }
 
 .vo-link-btn {
-  color: #f59e0b;
+  color: var(--warning-content);
   text-decoration: none;
   font-size: 12px;
   font-weight: 700;

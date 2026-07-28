@@ -6,7 +6,7 @@
           <slot name="header" />
           <button
             type="button"
-            style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer"
+            style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer"
             aria-label="Fermer la modale"
             @click="open = false"
           >

@@ -1,6 +1,6 @@
 <template>
   <div style="position:relative;height:220px;width:100%;">
-    <Line :data="data" :options="mergedOptions" />
+    <Line :data="themedData" :options="themedOptions" />
   </div>
 </template>
 
@@ -22,12 +22,12 @@ const base: ChartOptions<'line'> = {
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
   plugins: {
-    legend: { display: true, labels: { color: '#9CA3AF', font: { size: 11 } } },
+    legend: { display: true, labels: { color: 'var(--content-3)', font: { size: 11 } } },
     tooltip: {
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      titleColor: '#E8E9ED',
-      bodyColor: '#D1D5DB',
-      borderColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: 'var(--surface-1)',
+      titleColor: 'var(--content-1)',
+      bodyColor: 'var(--content-2)',
+      borderColor: 'var(--border-2)',
       borderWidth: 1,
       padding: 10,
       cornerRadius: 8,
@@ -35,13 +35,13 @@ const base: ChartOptions<'line'> = {
   },
   scales: {
     x: {
-      grid: { color: 'rgba(255,255,255,0.05)' },
-      // #6B7280 fait 3,6:1 sur nos fonds : sous le minimum WCAG AA.
-      ticks: { color: '#9CA3AF', font: { size: 10 } },
+      grid: { color: 'var(--viz-grid)' },
+      // var(--content-3) fait 3,6:1 sur nos fonds : sous le minimum WCAG AA.
+      ticks: { color: 'var(--content-3)', font: { size: 10 } },
     },
     y: {
-      grid: { color: 'rgba(255,255,255,0.05)' },
-      ticks: { color: '#9CA3AF', font: { size: 10 } },
+      grid: { color: 'var(--viz-grid)' },
+      ticks: { color: 'var(--content-3)', font: { size: 10 } },
       beginAtZero: true,
     },
   },
@@ -61,4 +61,9 @@ const mergedOptions = computed<ChartOptions<'line'>>(() => {
     scales: { ...base.scales, ...(o.scales ?? {}) },
   } as ChartOptions<'line'>
 })
+/* Chart.js peint dans un <canvas>, qui ne résout pas les propriétés CSS
+   personnalisées : on convertit les tokens en valeurs calculées, et on
+   recalcule à chaque bascule de thème. */
+const themedData = useThemedChart(() => props.data)
+const themedOptions = useThemedChart(() => mergedOptions.value)
 </script>

@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/" style="color:var(--content-3);text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Demandes de travaux complémentaires</div>
       </div>
       <button class="btn btn-ghost" @click="load" :disabled="loading">🔄 Rafraîchir</button>
@@ -15,50 +15,50 @@
     </div>
 
     <UCard>
-      <div v-if="loading" style="text-align:center;padding:32px;color:#9CA3AF;">Chargement…</div>
-      <div v-else-if="filtered.length === 0" style="text-align:center;padding:32px;color:#6B7280;">Aucune demande.</div>
+      <div v-if="loading" style="text-align:center;padding:32px;color:var(--content-3);">Chargement…</div>
+      <div v-else-if="filtered.length === 0" style="text-align:center;padding:32px;color:var(--content-3);">Aucune demande.</div>
       <div v-else style="display:flex;flex-direction:column;gap:10px;">
-        <div v-for="d in filtered" :key="d.id" style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div v-for="d in filtered" :key="d.id" style="padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:240px;">
               <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;">
-                <span style="font-weight:800;color:#E8E9ED;font-size:14px;">#{{ d.id }} — {{ d.client_nom || '—' }}</span>
+                <span style="font-weight:800;color:var(--content-1);font-size:14px;">#{{ d.id }} — {{ d.client_nom || '—' }}</span>
                 <span :style="statutStyle(d.statut)" style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;">{{ labelStatut(d.statut) }}</span>
                 <span
                   v-if="isSignatureEnAttente(d)"
                   data-testid="badge-signature-attente"
-                  style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(251,191,36,0.14);color:#FCD34D;font-weight:700;"
+                  style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);font-weight:700;"
                 >✍️ Signature en attente</span>
-                <span v-if="d.urgence === 'urgent'" style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.14);color:#FCA5A5;font-weight:700;">URGENT</span>
+                <span v-if="d.urgence === 'urgent'" style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);font-weight:700;">URGENT</span>
               </div>
-              <div style="font-size:12px;color:#9CA3AF;">
+              <div style="font-size:12px;color:var(--content-3);">
                 <span v-if="d.vehicule_info">{{ d.vehicule_info }}</span>
                 <span v-if="d.vehicule_plaque"> • {{ d.vehicule_plaque }}</span>
                 <span> • RDV #{{ d.rendez_vous_id }}</span>
               </div>
-              <div v-if="d.description" style="margin-top:6px;font-size:12px;color:#D1D5DB;font-style:italic;">« {{ d.description }} »</div>
+              <div v-if="d.description" style="margin-top:6px;font-size:12px;color:var(--content-2);font-style:italic;">« {{ d.description }} »</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <span v-for="(p, i) in d.prestations" :key="i" style="font-size:11px;padding:3px 9px;border-radius:6px;background:rgba(139,92,246,0.14);color:#C4B5FD;">
+                <span v-for="(p, i) in d.prestations" :key="i" style="font-size:11px;padding:3px 9px;border-radius:6px;background:var(--info-soft);color:var(--info-content);">
                   {{ p.designation }} — {{ formatEuro(p.prix_ttc) }}
                 </span>
               </div>
             </div>
             <div style="text-align:right;min-width:140px;">
-              <div style="font-size:16px;font-weight:800;color:#FFD200;">{{ formatEuro(d.prix_estime) }}</div>
-              <div style="font-size:11px;color:#6B7280;">~{{ formatMinutes(d.temps_estime) }}</div>
-              <div v-if="d.decision_client_at" style="font-size:11px;color:#9CA3AF;margin-top:4px;">
+              <div style="font-size:16px;font-weight:800;color:var(--accent-content);">{{ formatEuro(d.prix_estime) }}</div>
+              <div style="font-size:11px;color:var(--content-3);">~{{ formatMinutes(d.temps_estime) }}</div>
+              <div v-if="d.decision_client_at" style="font-size:11px;color:var(--content-3);margin-top:4px;">
                 Décidé le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}
               </div>
               <div
                 v-if="isSignatureEnAttente(d) && d.decision_enregistree_par"
-                style="font-size:11px;color:#9CA3AF;margin-top:2px;"
+                style="font-size:11px;color:var(--content-3);margin-top:2px;"
               >
                 Accord tél. enregistré{{ staffLabel(d.decision_enregistree_par) }}<span v-if="d.decision_client_at"> le {{ new Date(d.decision_client_at).toLocaleString('fr-FR') }}</span>
               </div>
             </div>
           </div>
 
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-2);">
             <template v-if="['en_attente', 'en_attente_validation'].includes(d.statut)">
               <template v-if="showCanalFor === d.id">
                 <button
@@ -118,7 +118,7 @@
             <!-- Pas de page de détail OR : on affiche la référence sans lien mort. -->
             <span
               v-if="d.or_complementaire_id"
-              style="font-size:12px;padding:6px 14px;color:#9CA3AF;"
+              style="font-size:12px;padding:6px 14px;color:var(--content-3);"
             >📄 OR complémentaire n° {{ d.or_complementaire_id }}</span>
           </div>
         </div>
@@ -220,13 +220,13 @@ function labelStatut(s: string): string {
 
 function statutStyle(s: string) {
   const map: Record<string, string> = {
-    en_attente: 'background:rgba(156,163,175,0.14);color:#9CA3AF;',
-    en_attente_validation: 'background:rgba(156,163,175,0.14);color:#9CA3AF;',
-    en_attente_decision_client: 'background:rgba(251,191,36,0.14);color:#FCD34D;',
-    accepte: 'background:rgba(16,185,129,0.14);color:#6EE7B7;',
-    refuse: 'background:rgba(239,68,68,0.14);color:#FCA5A5;',
+    en_attente: 'background:var(--surface-3);color:var(--content-3);',
+    en_attente_validation: 'background:var(--surface-3);color:var(--content-3);',
+    en_attente_decision_client: 'background:var(--warning-soft);color:var(--warning-content);',
+    accepte: 'background:var(--success-soft);color:var(--success-content);',
+    refuse: 'background:var(--error-soft);color:var(--error-content);',
   }
-  return map[s] || 'background:rgba(255,255,255,0.06);color:#9CA3AF;'
+  return map[s] || 'background:var(--overlay-hover);color:var(--content-3);'
 }
 
 function formatEuro(v: any): string {

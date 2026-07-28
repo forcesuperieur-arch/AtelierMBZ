@@ -1,27 +1,12 @@
 /* ════════════════════════════════════════════════════════════════════
-   PADDOCK — Espace client · Design system « Pit Lane »
-   Carbone profond, jaune course #FFD200, typo Saira (plaques numéro).
+   PADDOCK — Espace client
+   Applique le design system Motoblouz. Les tokens, les deux thèmes et les
+   alias `--pad-*` historiques sont définis dans `tokens.css` : ce fichier ne
+   déclare plus aucune valeur, sinon les deux applications redivergent.
    ════════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@600;700;800&display=swap');
-
-:root {
-  --pad-yellow: #FFD200;
-  --pad-yellow-soft: rgba(255, 210, 0, 0.12);
-  --pad-bg: #0C0D12;
-  --pad-surface: #14161D;
-  --pad-surface-2: #1A1D26;
-  --pad-border: rgba(255, 255, 255, 0.07);
-  --pad-border-strong: rgba(255, 255, 255, 0.13);
-  --pad-text: #E8E9ED;
-  --pad-text-dim: #9CA3AF;
-  --pad-text-faint: #6B7280;
-  --pad-font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
-  --pad-font-body: 'Saira', system-ui, 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --pad-radius: 12px;
-  --pad-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-  --pad-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Inter:wght@400;500;600&display=swap');
+@import "./tokens.css";
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -44,8 +29,8 @@ body::before {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(900px 420px at 50% -160px, rgba(255, 210, 0, 0.07), transparent 70%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
+    radial-gradient(900px 420px at 50% -160px, var(--accent-soft), transparent 70%),
+    repeating-linear-gradient(135deg, var(--overlay-soft) 0 2px, transparent 2px 6px),
     var(--pad-bg);
   pointer-events: none;
 }
@@ -63,18 +48,18 @@ h1, h2, h3 {
 
 ::selection {
   background: var(--pad-yellow);
-  color: #111;
+  color: var(--accent-ink);
 }
 
 /* Scrollbar carbone */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--pad-bg); }
 ::-webkit-scrollbar-thumb {
-  background: #2A2E3A;
+  background: var(--surface-3);
   border-radius: 5px;
   border: 2px solid var(--pad-bg);
 }
-::-webkit-scrollbar-thumb:hover { background: #3A4050; }
+::-webkit-scrollbar-thumb:hover { background: var(--surface-3); }
 
 /* Accessibilité : focus visible jaune, jamais supprimé */
 :focus-visible {
@@ -108,7 +93,7 @@ h1, h2, h3 {
 
 a.rdv-card:hover, a.moto-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 210, 0, 0.35);
+  border-color: var(--accent-graphic);
   box-shadow: var(--pad-shadow);
 }
 
@@ -123,7 +108,7 @@ button {
 }
 .btn-primary:hover:not(:disabled), button[type='submit']:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(255, 210, 0, 0.25);
+  box-shadow: 0 6px 18px rgba(241,171,0,0.25);
   filter: brightness(1.05);
 }
 .btn-primary:active:not(:disabled), button[type='submit']:active:not(:disabled) {
@@ -136,8 +121,8 @@ input, textarea, select {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: rgba(255, 210, 0, 0.55) !important;
-  box-shadow: 0 0 0 3px rgba(255, 210, 0, 0.12);
+  border-color: var(--accent-graphic) !important;
+  box-shadow: 0 0 0 3px rgba(241,171,0,0.12);
   outline: none;
 }
 

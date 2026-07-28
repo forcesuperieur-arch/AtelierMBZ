@@ -9,7 +9,7 @@
     <UCard style="margin-bottom:16px;">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Filtres</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);">Filtres</span>
           <UInput
             v-model="filters.search"
             placeholder="Rechercher un utilisateur, une entité, une action..."
@@ -43,27 +43,27 @@
     <UCard>
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Entrées d'audit</span>
-          <span v-if="total > 0" style="font-size:12px;color:#9CA3AF;">{{ total }} résultat(s)</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);">Entrées d'audit</span>
+          <span v-if="total > 0" style="font-size:12px;color:var(--content-3);">{{ total }} résultat(s)</span>
         </div>
       </template>
 
-      <div v-if="loading" style="padding:32px;text-align:center;color:#6B7280;">Chargement…</div>
-      <div v-else-if="!logs.length" style="padding:32px;text-align:center;color:#9CA3AF;">Aucune entrée trouvée</div>
+      <div v-if="loading" style="padding:32px;text-align:center;color:var(--content-3);">Chargement…</div>
+      <div v-else-if="!logs.length" style="padding:32px;text-align:center;color:var(--content-3);">Aucune entrée trouvée</div>
       <div v-else style="display:flex;flex-direction:column;gap:1px;">
         <div
           v-for="log in logs"
           :key="log.id"
-          style="display:grid;grid-template-columns:140px 100px 1fr 150px;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;align-items:center;"
+          style="display:grid;grid-template-columns:140px 100px 1fr 150px;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border-2);font-size:13px;align-items:center;"
         >
-          <span style="color:#6B7280;font-family:monospace;font-size:11px;">{{ formatDate(log.createdAt || log.created_at) }}</span>
+          <span style="color:var(--content-3);font-family:monospace;font-size:11px;">{{ formatDate(log.createdAt || log.created_at) }}</span>
           <span :style="actionStyle(log.action)">{{ actionLabel(log.action) }}</span>
-          <span style="color:#E8E9ED;">
+          <span style="color:var(--content-1);">
             <strong>{{ log.entityType || log.entity_type || '' }}</strong>
-            <span v-if="log.entityId || log.entity_id" style="color:#6B7280;"> #{{ log.entityId || log.entity_id }}</span>
-            <span v-if="log.description || log.details" style="color:#9CA3AF;margin-left:8px;">— {{ log.description || log.details }}</span>
+            <span v-if="log.entityId || log.entity_id" style="color:var(--content-3);"> #{{ log.entityId || log.entity_id }}</span>
+            <span v-if="log.description || log.details" style="color:var(--content-3);margin-left:8px;">— {{ log.description || log.details }}</span>
           </span>
-          <span style="color:#9CA3AF;">{{ log.userEmail || log.user_email || log.username || 'système' }}</span>
+          <span style="color:var(--content-3);">{{ log.userEmail || log.user_email || log.username || 'système' }}</span>
         </div>
       </div>
     </UCard>
@@ -116,13 +116,13 @@ function actionLabel(a: string) {
 
 function actionStyle(a: string) {
   const colors: Record<string, string> = {
-    create: 'background:rgba(16,185,129,0.12);color:#6EE7B7;',
-    update: 'background:rgba(59,130,246,0.12);color:#93C5FD;',
-    delete: 'background:rgba(239,68,68,0.12);color:#FCA5A5;',
-    transition: 'background:rgba(245,158,11,0.12);color:#FCD34D;',
-    login: 'background:rgba(139,92,246,0.12);color:#C4B5FD;',
+    create: 'background:var(--success-soft);color:var(--success-content);',
+    update: 'background:var(--info-soft);color:var(--info-content);',
+    delete: 'background:var(--error-soft);color:var(--error-content);',
+    transition: 'background:var(--warning-soft);color:var(--warning-content);',
+    login: 'background:var(--info-soft);color:var(--info-content);',
   }
-  return (colors[a] || 'background:rgba(255,255,255,0.06);color:#9CA3AF;') + 'padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-align:center;'
+  return (colors[a] || 'background:var(--overlay-hover);color:var(--content-3);') + 'padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-align:center;'
 }
 
 async function fetchLogs() {
@@ -153,9 +153,9 @@ onMounted(fetchLogs)
 
 <style scoped>
 .form-input {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #E8E9ED;
+  background: var(--overlay-hover);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 13px;

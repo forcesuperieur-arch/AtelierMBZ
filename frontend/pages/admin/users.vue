@@ -3,7 +3,7 @@
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="page-title">Utilisateurs</div>
-        <span v-if="pendingCount" class="status-badge" style="background:rgba(251,191,36,0.16);color:#FCD34D;">
+        <span v-if="pendingCount" class="status-badge" style="background:var(--warning-soft);color:var(--warning-content);">
           {{ pendingCount }} en attente SSO
         </span>
       </div>
@@ -21,13 +21,13 @@
     <UCard>
       <UTable :data="filteredUsers" :columns="columns" :loading="loading">
         <template #username-cell="{ row }">
-          <span style="font-family:monospace;font-size:12px;color:#93C5FD;">{{ row.original.username }}</span>
+          <span style="font-family:monospace;font-size:12px;color:var(--info-content);">{{ row.original.username }}</span>
         </template>
         <template #role-cell="{ row }">
-          <span class="status-badge" style="background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ roleLabel(row.original.role) }}</span>
+          <span class="status-badge" style="background:var(--info-soft);color:var(--info-content);">{{ roleLabel(row.original.role) }}</span>
         </template>
         <template #auth_provider-cell="{ row }">
-          <span class="status-badge" :style="row.original.auth_provider === 'google' ? 'background:rgba(34,197,94,0.14);color:#86EFAC;' : 'background:rgba(59,130,246,0.14);color:#93C5FD;'">
+          <span class="status-badge" :style="row.original.auth_provider === 'google' ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--info-soft);color:var(--info-content);'">
             {{ row.original.auth_provider === 'google' ? 'Google' : 'Local' }}
           </span>
         </template>
@@ -41,14 +41,14 @@
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:#86EFAC;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openApproveModal(row.original)">✅ Valider</button>
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="rejectPendingUser(row.original)">⛔ Refuser</button>
-            <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editUser(row.original)">✏ Modifier</button>
-            <button style="color:#93C5FD;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleUserStatus(row.original)">
+            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openApproveModal(row.original)">✅ Valider</button>
+            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="rejectPendingUser(row.original)">⛔ Refuser</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editUser(row.original)">✏ Modifier</button>
+            <button style="color:var(--info-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleUserStatus(row.original)">
               {{ row.original.is_active ? '⏸ Désactiver' : '▶ Activer' }}
             </button>
-            <button style="color:#FCA5A5;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
-            <button style="color:#EF4444;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="hardDeleteUser(row.original)">🗑 Supprimer</button>
+            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
+            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="hardDeleteUser(row.original)">🗑 Supprimer</button>
           </div>
         </template>
       </UTable>
@@ -57,7 +57,7 @@
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvel' }} utilisateur</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ editId ? 'Modifier' : 'Nouvel' }} utilisateur</span></template>
           <form @submit.prevent="saveUser" style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Prénom"><UInput v-model="userForm.prenom" required /></UFormField>
@@ -70,10 +70,10 @@
                 <select
                   v-model="userForm.role"
                   class="form-input"
-                  style="background:#171B24;color:#E8E9ED;"
+                  style="background:var(--surface-2);color:var(--content-1);"
                   required
                 >
-                  <option v-for="role in roleOptions" :key="role.value" :value="role.value" style="background:#171B24;color:#E8E9ED;">
+                  <option v-for="role in roleOptions" :key="role.value" :value="role.value" style="background:var(--surface-2);color:var(--content-1);">
                     {{ role.label }}
                   </option>
                 </select>
@@ -85,7 +85,7 @@
                 <UInput v-model="userForm.password" type="password" required />
               </UFormField>
             </div>
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div style="font-size:12px;color:var(--content-3);">
               Le login sera utilisé pour la connexion si besoin. S'il existe déjà, un suffixe automatique sera ajouté.
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -100,15 +100,15 @@
     <AppModal v-model:open="showApprove" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Valider un compte SSO</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">Valider un compte SSO</span></template>
           <form @submit.prevent="approvePendingUser" style="display:flex;flex-direction:column;gap:12px;">
             <UFormField label="Atelier">
-              <select v-model="approveForm.atelier_id" class="form-input" style="background:#171B24;color:#E8E9ED;" required>
+              <select v-model="approveForm.atelier_id" class="form-input" style="background:var(--surface-2);color:var(--content-1);" required>
                 <option :value="null" disabled>Sélectionner un atelier</option>
                 <option v-for="atelier in ateliers" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
               </select>
             </UFormField>
-            <div style="font-size:12px;color:#9CA3AF;">
+            <div style="font-size:12px;color:var(--content-3);">
               L’utilisateur sera activé après affectation de l’atelier et du rôle métier.
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -250,10 +250,10 @@ function accessStatusLabel(status: string) {
 
 function statusBadgeStyle(status: string) {
   switch (status) {
-    case 'pending_validation': return 'background:rgba(251,191,36,0.16);color:#FCD34D;'
-    case 'disabled': return 'background:rgba(239,68,68,0.16);color:#FCA5A5;'
-    case 'archived': return 'background:rgba(107,114,128,0.18);color:#D1D5DB;'
-    default: return 'background:rgba(34,197,94,0.14);color:#86EFAC;'
+    case 'pending_validation': return 'background:var(--warning-soft);color:var(--warning-content);'
+    case 'disabled': return 'background:var(--error-soft);color:var(--error-content);'
+    case 'archived': return 'background:var(--surface-3);color:var(--content-2);'
+    default: return 'background:var(--success-soft);color:var(--success-content);'
   }
 }
 

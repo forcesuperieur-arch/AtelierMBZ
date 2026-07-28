@@ -211,7 +211,7 @@ function totalLigne(ligne: string): number | null {
 }
 .barre:hover { border-color: var(--border-hover); }
 .barre:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-.barre--on { border-color: rgba(255, 210, 0, 0.45); background: rgba(255, 210, 0, 0.07); }
+.barre--on { border-color: var(--accent-graphic); background: var(--accent-soft); }
 .barre-tete {
   display: flex;
   align-items: baseline;
@@ -225,7 +225,7 @@ function totalLigne(ligne: string): number | null {
 .barre-mesure { display: inline-flex; align-items: baseline; gap: 5px; font-size: 12px; }
 .barre-mesure-label { color: var(--ink-muted); }
 .barre-mesure strong { color: var(--ink); font-variant-numeric: tabular-nums; }
-.barre-piste { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+.barre-piste { height: 6px; border-radius: 999px; background: var(--overlay-hover); overflow: hidden; }
 .barre-jauge { height: 100%; border-radius: 999px; background: var(--viz-1); transition: width 0.3s ease; }
 .barre--on .barre-jauge { background: var(--ramp-2); }
 
@@ -253,8 +253,8 @@ function totalLigne(ligne: string): number | null {
 }
 .croise-col { text-align: right; }
 .croise-ligne { text-align: left; background: var(--glass-bg); }
-.croise-col:hover, .croise-ligne:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
-.croise-on { color: var(--orange); background: rgba(255, 210, 0, 0.1); }
+.croise-col:hover, .croise-ligne:hover { color: var(--ink); background: var(--overlay-hover); }
+.croise-on { color: var(--accent-content); background: var(--accent-soft); }
 .croise-cell {
   padding: 7px 10px;
   text-align: right;
@@ -268,7 +268,7 @@ function totalLigne(ligne: string): number | null {
 .croise-total { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-muted); }
 .croise-note { margin: 10px 0 0; font-size: 11px; color: var(--ink-muted); }
 
-.val--attention { color: var(--status-warn); }
-.val--bon { color: var(--status-good); }
+.val--attention { color: var(--warning-content); }
+.val--bon { color: var(--success-content); }
 .vide { margin: 4px 0 0; font-size: 13px; color: var(--ink-muted); }
 </style>

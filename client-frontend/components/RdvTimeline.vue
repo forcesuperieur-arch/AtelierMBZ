@@ -54,7 +54,7 @@ function formatDate(d: string) {
   top: 14px;
   bottom: 0;
   width: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
 }
 .timeline-step:last-child {
   padding-bottom: 0;
@@ -68,13 +68,13 @@ function formatDate(d: string) {
   height: 12px;
   margin-top: 3px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: var(--surface-3);
+  border: 2px solid var(--border-1);
 }
 .timeline-step.current .dot {
-  background: #FFD200;
-  border-color: #FFD200;
-  box-shadow: 0 0 10px rgba(255, 210, 0, 0.55);
+  background: var(--accent);
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 10px rgba(241,171,0,0.55);
 }
 .step-body {
   display: flex;
@@ -84,14 +84,14 @@ function formatDate(d: string) {
 }
 .step-label {
   font-size: 14px;
-  color: #D1D5DB;
+  color: var(--content-2);
   font-weight: 600;
 }
 .timeline-step.current .step-label {
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .step-date {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 </style>

@@ -4,13 +4,13 @@
       <div class="companion-container">
         <div v-if="loading" style="text-align:center;padding:40px;">
           <div style="font-size:32px;margin-bottom:12px;">⏳</div>
-          <p style="color:#9CA3AF;">Chargement…</p>
+          <p style="color:var(--content-3);">Chargement…</p>
         </div>
 
         <div v-else-if="error" style="text-align:center;padding:40px;">
           <div style="font-size:48px;margin-bottom:16px;">🚫</div>
-          <h2 style="color:#FCA5A5;font-size:18px;margin-bottom:8px;">Lien invalide</h2>
-          <p style="color:#9CA3AF;font-size:13px;">{{ error }}</p>
+          <h2 style="color:var(--error-content);font-size:18px;margin-bottom:8px;">Lien invalide</h2>
+          <p style="color:var(--content-3);font-size:13px;">{{ error }}</p>
         </div>
 
         <div v-else-if="rdv">
@@ -18,19 +18,19 @@
           <div class="companion-header">
             <div style="font-size:28px;">🏍</div>
             <div>
-              <h1 style="font-size:18px;font-weight:800;color:#E8E9ED;margin:0;">Réception PDA</h1>
-              <p style="font-size:12px;color:#9CA3AF;margin:2px 0 0;">RDV #{{ rdv.id }} · {{ rdv.date_rdv }} à {{ rdv.heure_rdv }}</p>
+              <h1 style="font-size:18px;font-weight:800;color:var(--content-1);margin:0;">Réception PDA</h1>
+              <p style="font-size:12px;color:var(--content-3);margin:2px 0 0;">RDV #{{ rdv.id }} · {{ rdv.date_rdv }} à {{ rdv.heure_rdv }}</p>
             </div>
           </div>
 
           <!-- RDV Info Summary -->
           <div class="companion-card">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;">
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
-              <div><span style="color:#6B7280;">Tél :</span> <span style="color:#D1D5DB;">{{ rdv.client?.telephone || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
-              <div><span style="color:#6B7280;">Plaque :</span> <span style="color:#D1D5DB;">{{ rdv.vehicule?.plaque || '—' }}</span></div>
-              <div style="grid-column:1/-1;"><span style="color:#6B7280;">Intervention :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
+              <div><span style="color:var(--content-3);">Client :</span> <span style="color:var(--content-2);">{{ rdv.client?.prenom }} {{ rdv.client?.nom }}</span></div>
+              <div><span style="color:var(--content-3);">Tél :</span> <span style="color:var(--content-2);">{{ rdv.client?.telephone || '—' }}</span></div>
+              <div><span style="color:var(--content-3);">Véhicule :</span> <span style="color:var(--content-2);">{{ rdv.vehicule?.marque }} {{ rdv.vehicule?.modele }}</span></div>
+              <div><span style="color:var(--content-3);">Plaque :</span> <span style="color:var(--content-2);">{{ rdv.vehicule?.plaque || '—' }}</span></div>
+              <div style="grid-column:1/-1;"><span style="color:var(--content-3);">Intervention :</span> <span style="color:var(--content-2);">{{ rdv.type_intervention }}</span></div>
             </div>
           </div>
 
@@ -50,7 +50,7 @@
             </div>
           </div>
 
-          <div v-if="statusError || statusMessage" class="companion-card" :style="statusError ? 'border-color:rgba(239,68,68,0.3);color:#FCA5A5;' : 'border-color:rgba(16,185,129,0.3);color:#6EE7B7;'">
+          <div v-if="statusError || statusMessage" class="companion-card" :style="statusError ? 'border-color:var(--error);color:var(--error-content);' : 'border-color:var(--success);color:var(--success-content);'">
             {{ statusError || statusMessage }}
           </div>
 
@@ -59,32 +59,32 @@
             <button class="companion-action-btn" @click="activeSection = 'photos'">
               <span style="font-size:36px;">📸</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Photos véhicule</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">État extérieur / intérieur</span>
+                <span style="font-size:14px;font-weight:700;color:var(--content-1);">Photos véhicule</span>
+                <span style="display:block;font-size:11px;color:var(--content-3);">État extérieur / intérieur</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'carte-grise'">
               <span style="font-size:36px;">🪪</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Scanner carte grise</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">OCR FR / BE auto-remplissage</span>
+                <span style="font-size:14px;font-weight:700;color:var(--content-1);">Scanner carte grise</span>
+                <span style="display:block;font-size:11px;color:var(--content-3);">OCR FR / BE auto-remplissage</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'checkup'">
               <span style="font-size:36px;">🔎</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Checkup express</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ checkupDone }}/{{ checkupItems.length }} point{{ checkupDone > 1 ? 's' : '' }} vérifié{{ checkupDone > 1 ? 's' : '' }}</span>
+                <span style="font-size:14px;font-weight:700;color:var(--content-1);">Checkup express</span>
+                <span style="display:block;font-size:11px;color:var(--content-3);">{{ checkupDone }}/{{ checkupItems.length }} point{{ checkupDone > 1 ? 's' : '' }} vérifié{{ checkupDone > 1 ? 's' : '' }}</span>
               </div>
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'signature'">
               <span style="font-size:36px;">✍️</span>
               <div>
-                <span style="font-size:14px;font-weight:700;color:#E8E9ED;">Signatures réception</span>
-                <span style="display:block;font-size:11px;color:#9CA3AF;">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Client + Atelier' }}</span>
+                <span style="font-size:14px;font-weight:700;color:var(--content-1);">Signatures réception</span>
+                <span style="display:block;font-size:11px;color:var(--content-3);">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Client + Atelier' }}</span>
               </div>
             </button>
           </div>
@@ -108,7 +108,7 @@
                   <img :src="photoUrl(photo.url)" :alt="photo.description || 'Photo'" />
                 </div>
               </div>
-              <p v-else style="text-align:center;color:#6B7280;font-size:13px;padding:20px;">Aucune photo pour l'instant</p>
+              <p v-else style="text-align:center;color:var(--content-3);font-size:13px;padding:20px;">Aucune photo pour l'instant</p>
             </div>
           </div>
 
@@ -128,12 +128,12 @@
 
               <div v-if="ocrProcessing" style="text-align:center;padding:20px;">
                 <div class="ocr-spinner"></div>
-                <p style="color:#FBBF24;font-size:13px;margin-top:12px;">Extraction des informations…</p>
-                <p style="color:#6B7280;font-size:11px;">Cela peut prendre quelques secondes</p>
+                <p style="color:var(--warning-content);font-size:13px;margin-top:12px;">Extraction des informations…</p>
+                <p style="color:var(--content-3);font-size:11px;">Cela peut prendre quelques secondes</p>
               </div>
 
-              <div v-if="ocrResult" class="companion-card" style="border-color:rgba(16,185,129,0.3);">
-                <div style="font-size:13px;font-weight:700;color:#6EE7B7;margin-bottom:10px;">✓ Données extraites — vérifiez et corrigez si besoin</div>
+              <div v-if="ocrResult" class="companion-card" style="border-color:var(--success);">
+                <div style="font-size:13px;font-weight:700;color:var(--success-content);margin-bottom:10px;">✓ Données extraites — vérifiez et corrigez si besoin</div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
                   <div v-for="field in ocrFields" :key="field.key" class="ocr-field">
                     <label>{{ field.label }}</label>
@@ -174,7 +174,7 @@
               <button class="companion-close" @click="activeSection = null">✕</button>
             </div>
 
-            <p style="font-size:12px;color:#9CA3AF;margin:0 0 12px;">
+            <p style="font-size:12px;color:var(--content-3);margin:0 0 12px;">
               Touchez chaque point pour faire défiler : non vérifié → OK → NOK.
             </p>
 
@@ -221,8 +221,8 @@
 
             <div v-if="rdv.has_signature && !resignMode" style="text-align:center;padding:20px;">
               <div style="font-size:48px;margin-bottom:12px;">✅</div>
-              <p style="color:#6EE7B7;font-size:15px;font-weight:600;">Réception déjà signée</p>
-              <p style="color:#9CA3AF;font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
+              <p style="color:var(--success-content);font-size:15px;font-weight:600;">Réception déjà signée</p>
+              <p style="color:var(--content-3);font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
             </div>
 
             <div v-else style="display:flex;flex-direction:column;gap:12px;">
@@ -237,11 +237,11 @@
                 />
               </div>
 
-              <p style="font-size:13px;color:#9CA3AF;text-align:center;">
+              <p style="font-size:13px;color:var(--content-3);text-align:center;">
                 Le client accepte les travaux décrits et confirme l'état du véhicule à la réception.
               </p>
 
-              <div style="font-size:12px;font-weight:700;color:#E8E9ED;">Signature client</div>
+              <div style="font-size:12px;font-weight:700;color:var(--content-1);">Signature client</div>
               <div class="sig-canvas-wrapper">
                 <canvas
                   ref="sigCanvasClient"
@@ -249,11 +249,11 @@
                   @pointermove="drawClient"
                   @pointerup="endDrawClient"
                   @pointerleave="endDrawClient"
-                  style="width:100%;height:160px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                  style="width:100%;height:160px;border-radius:12px;background:var(--surface-2);touch-action:none;cursor:crosshair;"
                 ></canvas>
               </div>
 
-              <div style="font-size:12px;font-weight:700;color:#E8E9ED;">Signature atelier</div>
+              <div style="font-size:12px;font-weight:700;color:var(--content-1);">Signature atelier</div>
               <div class="sig-canvas-wrapper">
                 <canvas
                   ref="sigCanvasAtelier"
@@ -261,7 +261,7 @@
                   @pointermove="drawAtelier"
                   @pointerup="endDrawAtelier"
                   @pointerleave="endDrawAtelier"
-                  style="width:100%;height:160px;border-radius:12px;background:rgba(255,255,255,0.95);touch-action:none;cursor:crosshair;"
+                  style="width:100%;height:160px;border-radius:12px;background:var(--surface-2);touch-action:none;cursor:crosshair;"
                 ></canvas>
               </div>
 
@@ -282,10 +282,10 @@
           </div>
 
           <!-- All-done summary -->
-          <div v-if="rdv.has_signature && rdv.photos_count > 0 && checkupDone > 0 && !activeSection" class="companion-card" style="border-color:rgba(16,185,129,0.3);text-align:center;margin-top:8px;">
+          <div v-if="rdv.has_signature && rdv.photos_count > 0 && checkupDone > 0 && !activeSection" class="companion-card" style="border-color:var(--success);text-align:center;margin-top:8px;">
             <div style="font-size:32px;margin-bottom:8px;">✅</div>
-            <p style="color:#6EE7B7;font-weight:700;font-size:14px;">Réception prête à valider</p>
-            <p style="color:#9CA3AF;font-size:12px;">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
+            <p style="color:var(--success-content);font-weight:700;font-size:14px;">Réception prête à valider</p>
+            <p style="color:var(--content-3);font-size:12px;">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
           </div>
         </div>
       </div>
@@ -904,7 +904,7 @@ function drawClient(e: PointerEvent) {
   ctx.beginPath()
   ctx.moveTo(lastXClient, lastYClient)
   ctx.lineTo(pos.x, pos.y)
-  ctx.strokeStyle = '#1a1a2e'
+  ctx.strokeStyle = 'var(--surface-2)'
   ctx.lineWidth = 3
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -940,7 +940,7 @@ function drawAtelier(e: PointerEvent) {
   ctx.beginPath()
   ctx.moveTo(lastXAtelier, lastYAtelier)
   ctx.lineTo(pos.x, pos.y)
-  ctx.strokeStyle = '#1a1a2e'
+  ctx.strokeStyle = 'var(--surface-2)'
   ctx.lineWidth = 3
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -1042,14 +1042,14 @@ onUnmounted(() => {
   margin-bottom: 16px;
   padding: 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255,210,0,0.08), rgba(245,158,11,0.04));
-  border: 1px solid rgba(255,210,0,0.15);
+  background: linear-gradient(135deg, var(--accent-soft), var(--warning-soft));
+  border: 1px solid var(--accent);
 }
 .companion-card {
   padding: 14px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   margin-bottom: 12px;
 }
 .companion-status-row {
@@ -1066,14 +1066,14 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
   text-align: center;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #6B7280;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-3);
 }
 .companion-pill.done {
-  background: rgba(16,185,129,0.08);
-  border-color: rgba(16,185,129,0.25);
-  color: #6EE7B7;
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success-content);
 }
 .companion-actions {
   display: flex;
@@ -1087,23 +1087,23 @@ onUnmounted(() => {
   gap: 14px;
   padding: 20px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 .companion-action-btn:active {
   transform: scale(0.98);
-  background: rgba(255,255,255,0.06);
+  background: var(--overlay-hover);
 }
 .companion-section {
   margin-top: 8px;
   padding: 16px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 .ocr-compare {
   margin-top: 6px;
@@ -1116,24 +1116,24 @@ onUnmounted(() => {
   gap: 8px;
 }
 .ocr-compare--ok {
-  background: rgba(16,185,129,0.08);
-  color: #6EE7B7;
-  border: 1px solid rgba(16,185,129,0.2);
+  background: var(--success-soft);
+  color: var(--success-content);
+  border: 1px solid var(--success);
 }
 .ocr-compare--warn {
-  background: rgba(245,158,11,0.08);
-  color: #FCD34D;
-  border: 1px solid rgba(245,158,11,0.2);
+  background: var(--warning-soft);
+  color: var(--warning-content);
+  border: 1px solid var(--warning);
 }
 .ocr-compare--diff {
-  background: rgba(239,68,68,0.08);
-  color: #FCA5A5;
-  border: 1px solid rgba(239,68,68,0.2);
+  background: var(--error-soft);
+  color: var(--error-content);
+  border: 1px solid var(--error);
 }
 .ocr-compare--neutral {
-  background: rgba(255,255,255,0.04);
-  color: #9CA3AF;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--overlay-soft);
+  color: var(--content-3);
+  border: 1px solid var(--border-2);
 }
 .ocr-compare-btn {
   border: 0;
@@ -1141,8 +1141,8 @@ onUnmounted(() => {
   padding: 6px 8px;
   font-size: 11px;
   font-weight: 700;
-  background: rgba(255,255,255,0.08);
-  color: #E8E9ED;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 .companion-section-header {
   display: flex;
@@ -1153,13 +1153,13 @@ onUnmounted(() => {
 .companion-section-header h2 {
   font-size: 16px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
   margin: 0;
 }
 .companion-close {
   background: none;
   border: none;
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
@@ -1171,16 +1171,16 @@ onUnmounted(() => {
   gap: 10px;
   padding: 16px;
   border-radius: 12px;
-  border: 2px dashed rgba(255,210,0,0.25);
-  background: rgba(255,210,0,0.04);
-  color: #FFD200;
+  border: 2px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
 }
 .companion-capture-btn:active {
-  background: rgba(255,210,0,0.1);
+  background: var(--accent-soft);
 }
 .companion-photo-grid {
   display: grid;
@@ -1191,7 +1191,7 @@ onUnmounted(() => {
   aspect-ratio: 1;
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(255,255,255,0.05);
+  background: var(--overlay-hover);
 }
 .companion-photo-thumb img {
   width: 100%;
@@ -1202,14 +1202,14 @@ onUnmounted(() => {
   width: 100%;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: #E8E9ED;
+  border: 1px solid var(--border-1);
+  background: var(--overlay-soft);
+  color: var(--content-1);
   font-size: 13px;
   outline: none;
 }
 .companion-input:focus {
-  border-color: rgba(255,210,0,0.4);
+  border-color: var(--accent-graphic);
 }
 .ocr-field {
   display: flex;
@@ -1218,7 +1218,7 @@ onUnmounted(() => {
 }
 .ocr-field label {
   font-size: 11px;
-  color: #6B7280;
+  color: var(--content-3);
   font-weight: 600;
 }
 .checkup-grid {
@@ -1232,30 +1232,30 @@ onUnmounted(() => {
   gap: 8px;
   padding: 12px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  color: #E8E9ED;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-1);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 .checkup-item.ok {
-  background: rgba(16,185,129,0.08);
-  border-color: rgba(16,185,129,0.25);
-  color: #6EE7B7;
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success-content);
 }
 .checkup-item.nok {
-  background: rgba(239,68,68,0.08);
-  border-color: rgba(239,68,68,0.25);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  border-color: var(--error);
+  color: var(--error-content);
 }
 .companion-validate-btn {
   width: 100%;
   padding: 14px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #FFD200, #D97706);
-  color: #111;
+  background: linear-gradient(135deg, var(--accent), var(--warning));
+  color: var(--accent-ink);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -1271,14 +1271,14 @@ onUnmounted(() => {
 .sig-canvas-wrapper {
   border-radius: 14px;
   overflow: hidden;
-  border: 2px solid rgba(255,255,255,0.12);
+  border: 2px solid var(--border-1);
 }
 .ocr-spinner {
   width: 40px;
   height: 40px;
   margin: 0 auto;
-  border: 3px solid rgba(255,210,0,0.15);
-  border-top-color: #FFD200;
+  border: 3px solid var(--accent);
+  border-top-color: var(--accent-graphic);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

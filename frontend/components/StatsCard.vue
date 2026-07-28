@@ -2,10 +2,10 @@
   <div class="stat-card">
     <div class="stat-label">{{ title }}</div>
     <div class="stat-value" :style="{ color: valueColor }">{{ formattedValue }}</div>
-    <div v-if="trend !== undefined" class="stat-delta" :style="{ color: trend >= 0 ? '#10B981' : '#EF4444' }">
+    <div v-if="trend !== undefined" class="stat-delta" :style="{ color: trend >= 0 ? 'var(--success-content)' : 'var(--error-content)' }">
       {{ trend >= 0 ? '▲' : '▼' }} {{ Math.abs(trend) }}% vs mois dernier
     </div>
-    <div v-if="subtitle" class="stat-delta" style="color: #6B7280;">{{ subtitle }}</div>
+    <div v-if="subtitle" class="stat-delta" style="color: var(--content-3);">{{ subtitle }}</div>
     <div class="stat-bar">
       <div class="stat-bar-fill" :style="{ width: barWidth, background: barColor }" />
     </div>
@@ -31,22 +31,22 @@ const formattedValue = computed(() => {
 })
 
 const colorMap: Record<string, string> = {
-  primary: '#FFD200',
-  blue: '#3B82F6',
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  purple: '#8B5CF6',
-  teal: '#14B8A6',
-  orange: '#F97316',
+  primary: 'var(--accent)',
+  blue: 'var(--info)',
+  success: 'var(--success)',
+  warning: 'var(--warning)',
+  error: 'var(--error)',
+  purple: 'var(--info)',
+  teal: 'var(--success)',
+  orange: 'var(--warning)',
 }
 
 const valueColor = computed(() => {
-  return '#F0F1F5'
+  return 'var(--content-1)'
 })
 
 const barColor = computed(() => {
-  return colorMap[props.color || 'primary'] || '#FFD200'
+  return colorMap[props.color || 'primary'] || 'var(--accent)'
 })
 
 const barWidth = computed(() => {

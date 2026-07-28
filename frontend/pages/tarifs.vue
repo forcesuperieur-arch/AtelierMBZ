@@ -12,7 +12,7 @@
         <UFormField label="Recherche" style="min-width:260px;">
           <UInput v-model="search" placeholder="Prestation, catégorie..." />
         </UFormField>
-        <div style="margin-left:auto;font-size:12px;color:#9CA3AF;">
+        <div style="margin-left:auto;font-size:12px;color:var(--content-3);">
           {{ filteredPrestations.length }} prestation(s) affichée(s)
         </div>
       </div>
@@ -38,9 +38,9 @@
           :key="cat"
           style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;"
           :style="{
-            background: selectedCat === cat ? 'rgba(255,210,0,0.1)' : 'rgba(255,255,255,0.03)',
-            border: selectedCat === cat ? '1px solid rgba(255,210,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
-            color: selectedCat === cat ? '#FFD200' : '#6B7280',
+            background: selectedCat === cat ? 'var(--accent-soft)' : 'var(--overlay-soft)',
+            border: selectedCat === cat ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+            color: selectedCat === cat ? 'var(--accent-content)' : 'var(--content-3)',
           }"
           @click="selectedCat = selectedCat === cat ? '' : cat"
         >{{ cat }}</button>
@@ -55,7 +55,7 @@
             {{ formatAmount(row.original.prix_base_ht) }}
           </template>
           <template #prix_base_ttc-cell="{ row }">
-            <span style="font-weight:700;color:#FFD200;">{{ formatAmount(row.original.prix_base_ttc) }}</span>
+            <span style="font-weight:700;color:var(--accent-content);">{{ formatAmount(row.original.prix_base_ttc) }}</span>
           </template>
         </UTable>
         <AppEmptyState

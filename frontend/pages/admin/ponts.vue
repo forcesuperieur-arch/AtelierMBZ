@@ -13,7 +13,7 @@
     <UCard>
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Postes de travail</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);">Postes de travail</span>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <UInput
               v-model="searchQuery"
@@ -21,7 +21,7 @@
               icon="i-heroicons-magnifying-glass"
               style="min-width:220px;"
             />
-            <select v-model="filterMeca" class="form-input" style="min-width:160px;background:#171B24;color:#E8E9ED;">
+            <select v-model="filterMeca" class="form-input" style="min-width:160px;background:var(--surface-2);color:var(--content-1);">
               <option value="all">Tous les ponts</option>
               <option value="assigned">Avec mécanicien</option>
               <option value="unassigned">Sans mécanicien</option>
@@ -33,24 +33,24 @@
       <UTable :data="filteredPontRows" :columns="columns" :loading="loading">
         <template #type_pont-cell="{ row }">
           <div style="display:grid;gap:2px;">
-            <span style="color:#E8E9ED;font-weight:600;">{{ row.original.type_pont || 'moto' }}</span>
-            <span style="color:#9CA3AF;font-size:11px;">{{ row.original.capacite_kg || 500 }} kg</span>
+            <span style="color:var(--content-1);font-weight:600;">{{ row.original.type_pont || 'moto' }}</span>
+            <span style="color:var(--content-3);font-size:11px;">{{ row.original.capacite_kg || 500 }} kg</span>
           </div>
         </template>
         <template #mecanicien-cell="{ row }">
-          <span v-if="row.original.mecanicien_nom" style="color:#E8E9ED;">{{ row.original.mecanicien_nom }}</span>
-          <span v-else style="color:#FCA5A5;">Non assigné</span>
+          <span v-if="row.original.mecanicien_nom" style="color:var(--content-1);">{{ row.original.mecanicien_nom }}</span>
+          <span v-else style="color:var(--error-content);">Non assigné</span>
         </template>
         <template #est_actif-cell="{ row }">
           <StatusBadge :status="row.original.est_actif ? 'confirme' : 'annule'" />
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" style="font-size:12px;color:#FFD200;" @click="editPont(row.original)">✏ Modifier</button>
-            <button class="btn btn-ghost" style="font-size:12px;color:#93C5FD;" @click="toggleActive(row.original)">
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="editPont(row.original)">✏ Modifier</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--info-content);" @click="toggleActive(row.original)">
               {{ row.original.est_actif ? '🔒 Désactiver' : '🔓 Activer' }}
             </button>
-            <button class="btn btn-ghost" style="font-size:12px;color:#FCA5A5;" @click="deletePont(row.original)">🗄 Archiver</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePont(row.original)">🗄 Archiver</button>
           </div>
         </template>
       </UTable>
@@ -62,7 +62,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:600;">{{ editId ? 'Modifier' : 'Nouveau' }} pont</span>
-              <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
             </div>
           </template>
           <form @submit.prevent="savePont" style="display:flex;flex-direction:column;gap:12px;">
@@ -98,7 +98,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <input id="pont-actif" v-model="form.est_actif" type="checkbox" />
-              <label for="pont-actif" style="font-size:13px;color:#9CA3AF;">Pont actif</label>
+              <label for="pont-actif" style="font-size:13px;color:var(--content-3);">Pont actif</label>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
               <button type="button" class="btn btn-ghost" @click="showModal = false">Annuler</button>

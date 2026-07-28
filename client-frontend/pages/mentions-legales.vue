@@ -2,7 +2,7 @@
   <div class="legal-page">
     <h1>Mentions légales</h1>
     <div v-if="pending">Chargement...</div>
-    <div v-else-if="error" style="color:#EF4444;">Impossible de charger les mentions légales.</div>
+    <div v-else-if="error" style="color:var(--error-content);">Impossible de charger les mentions légales.</div>
     <LegalText v-else :text="clause.texte" />
   </div>
 </template>

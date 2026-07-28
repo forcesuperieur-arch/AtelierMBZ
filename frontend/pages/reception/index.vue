@@ -8,15 +8,15 @@
       <div class="reception-kpis">
         <div class="stat-card reception-kpi">
           <div class="reception-kpi-label">RDV DU JOUR</div>
-          <div class="reception-kpi-value" style="color:#E8E9ED;">{{ kpis.total }}</div>
+          <div class="reception-kpi-value" style="color:var(--content-1);">{{ kpis.total }}</div>
         </div>
         <div class="stat-card reception-kpi">
           <div class="reception-kpi-label">CHECK-INS SIGNÉS</div>
-          <div class="reception-kpi-value" style="color:#10B981;">{{ kpis.signes }}</div>
+          <div class="reception-kpi-value" style="color:var(--success-content);">{{ kpis.signes }}</div>
         </div>
         <div class="stat-card reception-kpi">
           <div class="reception-kpi-label">RESTANTS</div>
-          <div class="reception-kpi-value" style="color:#FFD200;">{{ kpis.restants }}</div>
+          <div class="reception-kpi-value" style="color:var(--accent-content);">{{ kpis.restants }}</div>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
 
     <UCard v-else>
       <template #header>
-        <span style="font-size:15px;font-weight:700;color:#E8E9ED;">📥 Motos attendues aujourd'hui ({{ receptionRdvs.length }})</span>
+        <span style="font-size:15px;font-weight:700;color:var(--content-1);">📥 Motos attendues aujourd'hui ({{ receptionRdvs.length }})</span>
       </template>
 
       <div v-if="!receptionRdvs.length" class="reception-empty">
@@ -80,8 +80,8 @@
     <AppModal v-model:open="checkinOpen" size="lg">
       <template #header>
         <div>
-          <div style="font-size:16px;font-weight:800;color:#E8E9ED;" class="modal-title">📥 Check-in — état des lieux d'entrée</div>
-          <div v-if="checkinRdv" style="font-size:12px;color:#9CA3AF;margin-top:2px;">
+          <div style="font-size:16px;font-weight:800;color:var(--content-1);" class="modal-title">📥 Check-in — état des lieux d'entrée</div>
+          <div v-if="checkinRdv" style="font-size:12px;color:var(--content-3);margin-top:2px;">
             {{ checkinRdv.heure_debut }} · {{ checkinRdv.client_nom }} · {{ checkinRdv.vehicule_info }}
             <span v-if="checkinRdv.vehicule_plaque"> ({{ checkinRdv.vehicule_plaque }})</span>
           </div>
@@ -93,8 +93,8 @@
           <!-- État signé : lecture seule -->
           <div v-if="isSigned" class="checkin-signed" data-testid="checkin-signed">
             <div style="font-size:32px;">✅</div>
-            <p style="color:#6EE7B7;font-weight:700;font-size:15px;">État des lieux signé</p>
-            <p v-if="currentEdl?.signed_at" style="font-size:12px;color:#9CA3AF;">
+            <p style="color:var(--success-content);font-weight:700;font-size:15px;">État des lieux signé</p>
+            <p v-if="currentEdl?.signed_at" style="font-size:12px;color:var(--content-3);">
               Signé le {{ formatDateTime(currentEdl.signed_at) }}<span v-if="currentEdl?.signed_by"> — accueilli par {{ currentEdl.signed_by }}</span>
             </p>
             <div class="checkin-signed-recap">
@@ -125,7 +125,7 @@
           <!-- Saisie -->
           <template v-else>
             <div class="form-group">
-              <label class="form-label" for="checkin-km">Kilométrage compteur <span style="color:#EF4444;">*</span></label>
+              <label class="form-label" for="checkin-km">Kilométrage compteur <span style="color:var(--error-content);">*</span></label>
               <input
                 id="checkin-km"
                 v-model.number="form.kilometrage"
@@ -141,7 +141,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Niveau de carburant <span style="color:#EF4444;">*</span></label>
+              <label class="form-label">Niveau de carburant <span style="color:var(--error-content);">*</span></label>
               <div class="fuel-gauge" role="radiogroup" aria-label="Niveau de carburant">
                 <button
                   v-for="(level, idx) in FUEL_LEVELS"
@@ -178,7 +178,7 @@
             <div class="form-group">
               <div class="checkin-photos-header">
                 <label class="form-label" style="margin-bottom:0;">Photos d'entrée</label>
-                <span class="checkin-photos-count" :style="{ color: photosCount >= PHOTOS_MIN ? '#6EE7B7' : '#FCD34D' }" data-testid="checkin-photos-count">
+                <span class="checkin-photos-count" :style="{ color: photosCount >= PHOTOS_MIN ? 'var(--success-content)' : 'var(--warning-content)' }" data-testid="checkin-photos-count">
                   {{ photosCount }}/{{ PHOTOS_MIN }} photos minimum
                 </span>
               </div>
@@ -377,9 +377,9 @@ function edlBadgeLabel(rdvId: number): string {
 
 function edlBadgeStyle(rdvId: number): Record<string, string> {
   const edl = edlByRdv[rdvId]
-  if (edl?.signe) return { background: 'rgba(16,185,129,0.12)', color: '#6EE7B7' }
-  if (edl?.exists) return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
-  return { background: 'rgba(107,114,128,0.14)', color: '#D1D5DB' }
+  if (edl?.signe) return { background: 'var(--success-soft)', color: 'var(--success-content)' }
+  if (edl?.exists) return { background: 'var(--warning-soft)', color: 'var(--warning-content)' }
+  return { background: 'var(--surface-3)', color: 'var(--content-2)' }
 }
 
 function checkinButtonLabel(rdvId: number): string {
@@ -632,7 +632,7 @@ onMounted(() => {
 }
 .reception-kpi-label {
   font-size: 10px;
-  color: #6B7280;
+  color: var(--content-3);
 }
 .reception-kpi-value {
   font-size: 18px;
@@ -643,14 +643,14 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 48px;
-  color: #6B7280;
+  color: var(--content-3);
 }
 .reception-error {
   padding: 24px;
   border-radius: 12px;
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.2);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  border: 1px solid var(--error);
+  color: var(--error-content);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -660,7 +660,7 @@ onMounted(() => {
 .reception-empty {
   padding: 24px;
   text-align: center;
-  color: #6B7280;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -675,14 +675,14 @@ onMounted(() => {
   gap: 16px;
   padding: 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   flex-wrap: wrap;
 }
 .reception-card-heure {
   font-size: 18px;
   font-weight: 800;
-  color: #FFD200;
+  color: var(--accent-content);
   font-variant-numeric: tabular-nums;
   min-width: 58px;
 }
@@ -692,12 +692,12 @@ onMounted(() => {
 }
 .reception-card-client {
   font-weight: 600;
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 14px;
 }
 .reception-card-vehicule {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-top: 2px;
 }
 .reception-card-plaque {
@@ -705,14 +705,14 @@ onMounted(() => {
   margin-left: 6px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.06);
-  color: #D1D5DB;
+  background: var(--overlay-hover);
+  color: var(--content-2);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 .reception-card-type {
   font-size: 11px;
-  color: #6B7280;
+  color: var(--content-3);
   margin-top: 2px;
 }
 .reception-card-badges {
@@ -768,9 +768,9 @@ onMounted(() => {
   gap: 6px;
   padding: 8px 4px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.02);
-  color: #9CA3AF;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-family: inherit;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -780,18 +780,18 @@ onMounted(() => {
   width: 100%;
   height: 8px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.08);
+  background: var(--overlay-hover);
 }
 .fuel-segment.is-filled .fuel-segment-bar {
-  background: rgba(255,210,0,0.55);
+  background: var(--accent-soft);
 }
 .fuel-segment.is-selected {
-  border-color: rgba(255,210,0,0.6);
-  background: rgba(255,210,0,0.08);
-  color: #FFD200;
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 .fuel-segment.is-selected .fuel-segment-bar {
-  background: #FFD200;
+  background: var(--accent);
 }
 .fuel-segment-label {
   font-size: 12px;
@@ -815,16 +815,16 @@ onMounted(() => {
   justify-content: center;
   min-height: 56px;
   border-radius: 10px;
-  border: 1px dashed rgba(255,210,0,0.35);
-  background: rgba(255,210,0,0.04);
-  color: #FFD200;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .checkin-photo-btn:hover {
-  background: rgba(255,210,0,0.09);
+  background: var(--accent-soft);
 }
 .checkin-photo-grid {
   display: grid;
@@ -837,13 +837,13 @@ onMounted(() => {
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   cursor: zoom-in;
 }
 .checkin-photos-hint {
   margin-top: 8px;
   font-size: 11px;
-  color: #6B7280;
+  color: var(--content-3);
 }
 
 .checkin-alert {
@@ -853,22 +853,22 @@ onMounted(() => {
   font-size: 13px;
 }
 .checkin-alert-error {
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.2);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  border: 1px solid var(--error);
+  color: var(--error-content);
 }
 .checkin-alert-ok {
-  background: rgba(16,185,129,0.06);
-  border: 1px solid rgba(16,185,129,0.15);
-  color: #6EE7B7;
+  background: var(--success-soft);
+  border: 1px solid var(--success);
+  color: var(--success-content);
 }
 
 .checkin-signed {
   text-align: center;
   padding: 20px 12px;
   border-radius: 12px;
-  background: rgba(16,185,129,0.06);
-  border: 1px solid rgba(16,185,129,0.2);
+  background: var(--success-soft);
+  border: 1px solid var(--success);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -882,13 +882,13 @@ onMounted(() => {
   margin-top: 8px;
   padding: 12px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.03);
+  background: var(--overlay-soft);
   font-size: 13px;
-  color: #D1D5DB;
+  color: var(--content-2);
   text-align: left;
 }
 .checkin-recap-label {
-  color: #6B7280;
+  color: var(--content-3);
 }
 .checkin-signed-actions {
   display: flex;
