@@ -34,6 +34,12 @@ class Schedule implements ScheduleProviderInterface
             ->add(RecurringMessage::cron('0 9 * * *', new RunCommandMessage('app:rappel-prochaine-revision')))
             // Lot A : relance H+4 des travaux supp sans décision client (fenêtre 8h-19h gérée par la commande)
             ->add(RecurringMessage::cron('10 * * * *', new RunCommandMessage('app:relance-demandes-travaux')))
+            // Réconciliation analytique (2:00 AM) : la table de faits est
+            // alimentée message par message et dérive dès qu'un message est
+            // perdu ou qu'un RDV est écrit hors du flux applicatif. Un rebuild
+            // nocturne garantit que les chiffres de la page Stat correspondent
+            // aux rendez-vous réels, sans traquer chaque chemin d'écriture.
+            ->add(RecurringMessage::cron('0 2 * * *', new RunCommandMessage('app:analytics:rebuild --all')))
         ;
     }
 }

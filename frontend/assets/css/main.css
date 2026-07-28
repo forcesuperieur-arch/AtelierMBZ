@@ -52,6 +52,57 @@
 
   /* Motion */
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ------------------------------------------------------------------
+     Encres — la seule échelle de texte autorisée. #6B7280 est proscrit :
+     3,6:1 sur nos surfaces, sous le minimum WCAG AA de 4,5:1.
+     ------------------------------------------------------------------ */
+  --ink: #E8E9ED;          /* titres, valeurs        14,3:1 */
+  --ink-body: #D1D5DB;     /* corps de texte         11,0:1 */
+  --ink-muted: #9CA3AF;    /* libellés, axes          6,9:1 */
+
+  /* ------------------------------------------------------------------
+     Statuts — sens réservé (bon / attention / critique). JAMAIS utilisés
+     pour identifier une série de données, et toujours accompagnés d'un
+     libellé ou d'une icône : jamais la couleur seule.
+     ------------------------------------------------------------------ */
+  --status-good: #10B981;
+  --status-warn: #F59E0B;
+  --status-crit: #EF4444;
+  --status-good-soft: rgba(16,185,129,0.10);
+  --status-warn-soft: rgba(245,158,11,0.10);
+  --status-crit-soft: rgba(239,68,68,0.10);
+
+  /* ------------------------------------------------------------------
+     Palette de données — identité de série (catégorielle). Ordre FIXE,
+     attribué de --viz-1 vers --viz-5, jamais recyclé au-delà : la 6e
+     série se replie sur --viz-other (« Autre »).
+     Validée sur fond sombre #171A21 : bande de clarté OKLCH 0,48–0,67,
+     chroma ≥ 0,10, séparation daltonisme ΔE 14,2 (protan/deutan),
+     vision normale ΔE 15,9, contraste ≥ 3:1.
+     Le jaune marque #FFD200 est hors bande (trop clair, il éblouit en
+     grande surface) : il reste l'accent d'interface et le trait d'une
+     courbe unique, --viz-1 prend le relais dès qu'il y a des aplats.
+     ------------------------------------------------------------------ */
+  --viz-1: #B08F00;
+  --viz-2: #4A8FE7;
+  --viz-3: #0D9488;
+  --viz-4: #8B5CF6;
+  --viz-5: #C4608F;
+  --viz-other: #64748B;
+
+  /* Rampe ordinale — une seule teinte, clair → sombre, pour ce qui a un
+     ordre naturel (étapes d'un flux, paliers). 5 pas maximum : au 6e, le
+     pas le plus sombre passe sous 2:1 et disparaît du fond. */
+  --ramp-1: #FFF0B3;
+  --ramp-2: #FFD200;
+  --ramp-3: #C9A400;
+  --ramp-4: #997D00;
+  --ramp-5: #6E5A00;
+
+  /* Chrome de graphique */
+  --viz-grid: rgba(255,255,255,0.05);
+  --viz-surface: #171A21;
 }
 
 /* === BASE === */

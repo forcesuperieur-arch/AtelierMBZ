@@ -17,7 +17,7 @@ const props = defineProps<{
   options?: ChartOptions<'line'>
 }>()
 
-const mergedOptions = computed<ChartOptions<'line'>>(() => ({
+const base: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
@@ -35,15 +35,30 @@ const mergedOptions = computed<ChartOptions<'line'>>(() => ({
   },
   scales: {
     x: {
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: { color: '#6B7280', font: { size: 10 } },
+      grid: { color: 'rgba(255,255,255,0.05)' },
+      // #6B7280 fait 3,6:1 sur nos fonds : sous le minimum WCAG AA.
+      ticks: { color: '#9CA3AF', font: { size: 10 } },
     },
     y: {
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: { color: '#6B7280', font: { size: 10 } },
+      grid: { color: 'rgba(255,255,255,0.05)' },
+      ticks: { color: '#9CA3AF', font: { size: 10 } },
       beginAtZero: true,
     },
   },
-  ...props.options,
-}))
+}
+
+/**
+ * Fusion d'un niveau sur `plugins` et `scales` : un appelant qui personnalise
+ * la légende ne doit pas perdre au passage le style des infobulles (ce que
+ * faisait l'ancien `...props.options`, qui remplaçait le bloc entier).
+ */
+const mergedOptions = computed<ChartOptions<'line'>>(() => {
+  const o = props.options ?? {}
+  return {
+    ...base,
+    ...o,
+    plugins: { ...base.plugins, ...(o.plugins ?? {}) },
+    scales: { ...base.scales, ...(o.scales ?? {}) },
+  } as ChartOptions<'line'>
+})
 </script>

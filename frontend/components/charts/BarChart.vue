@@ -17,7 +17,7 @@ const props = defineProps<{
   options?: ChartOptions<'bar'>
 }>()
 
-const mergedOptions = computed<ChartOptions<'bar'>>(() => ({
+const base: ChartOptions<'bar'> = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -35,14 +35,25 @@ const mergedOptions = computed<ChartOptions<'bar'>>(() => ({
   scales: {
     x: {
       grid: { display: false },
-      ticks: { color: '#6B7280', font: { size: 10 } },
+      // #6B7280 fait 3,6:1 sur nos fonds : sous le minimum WCAG AA.
+      ticks: { color: '#9CA3AF', font: { size: 10 } },
     },
     y: {
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: { color: '#6B7280', font: { size: 10 } },
+      grid: { color: 'rgba(255,255,255,0.05)' },
+      ticks: { color: '#9CA3AF', font: { size: 10 } },
       beginAtZero: true,
     },
   },
-  ...props.options,
-}))
+}
+
+/** Fusion d'un niveau : personnaliser la légende ne doit pas effacer l'infobulle. */
+const mergedOptions = computed<ChartOptions<'bar'>>(() => {
+  const o = props.options ?? {}
+  return {
+    ...base,
+    ...o,
+    plugins: { ...base.plugins, ...(o.plugins ?? {}) },
+    scales: { ...base.scales, ...(o.scales ?? {}) },
+  } as ChartOptions<'bar'>
+})
 </script>

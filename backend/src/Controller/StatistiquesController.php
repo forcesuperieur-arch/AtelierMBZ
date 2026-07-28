@@ -1,8 +1,10 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\ConfigAtelier;
 use App\Entity\Facture;
 use App\Entity\RendezVous;
+use App\Service\SejourAtelierService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,7 +17,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/statistiques')]
 class StatistiquesController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private SejourAtelierService $sejour,
+    ) {}
 
     /**
      * Dashboard KPIs.
@@ -517,6 +522,235 @@ class StatistiquesController extends AbstractController
             ],
             'mecaniciens_actifs' => $mecanosActifs,
         ]);
+    }
+
+    /**
+     * File « À traiter » du tableau de bord : la liste priorisée des dossiers qui
+     * demandent une action humaine maintenant, avec de quoi ouvrir la fiche.
+     *
+     * Regroupe en UN appel ce que le front composait auparavant à partir de
+     * plusieurs endpoints (et calculait faux : les compteurs « dépassement » et
+     * « en retard » du bandeau lisaient heure_debut_travaux / heure_fin_travaux,
+     * qui n'existent pas — les colonnes sont heure_debut_travail /
+     * heure_fin_travail — donc affichaient toujours 0). Le dépassement est
+     * désormais mesuré contre le temps estimé de l'intervention, pas contre le
+     * seuil d'alerte seul.
+     */
+    #[Route('/a-traiter', methods: ['GET'])]
+    public function aTraiter(): JsonResponse
+    {
+        $this->assertStatsAccess();
+        $atelierId = $this->getUser()?->getAtelierId();
+        $conn = $this->em->getConnection();
+
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        $seuils = $config?->getDashboardThresholds() ?? ConfigAtelier::defaultDashboardThresholds();
+        $seuilDepassement = (int) ($seuils['overrun_warning_minutes'] ?? 15);
+        $seuilRestitution = (int) ($seuils['restitution_warning_minutes'] ?? 15);
+
+        // Contexte commun : de quoi afficher une ligne et ouvrir la fiche RDV.
+        $contexteRdv = "r.id as rdv_id, r.statut, r.date_rdv, r.heure_rdv, r.type_intervention,
+                    p.nom as pont_nom,
+                    NULLIF(TRIM(COALESCE(m.prenom, '') || ' ' || COALESCE(m.nom, '')), '') as mecanicien_nom,
+                    NULLIF(TRIM(COALESCE(c.prenom, '') || ' ' || COALESCE(c.nom, '')), '') as client_nom,
+                    c.telephone as client_telephone,
+                    NULLIF(TRIM(COALESCE(v.marque, '') || ' ' || COALESCE(v.modele, '')), '') as vehicule_info,
+                    v.plaque as vehicule_plaque";
+        $jointuresRdv = "LEFT JOIN ponts p ON p.id = r.pont_id
+             LEFT JOIN mecaniciens m ON m.id = r.mecanicien_id
+             LEFT JOIN clients c ON c.id = r.client_id
+             LEFT JOIN vehicules v ON v.id = r.vehicule_id";
+
+        $groupes = [];
+
+        // 1. Litiges signalés à la restitution — engagement juridique, priorité absolue.
+        $litiges = $conn->fetchAllAssociative(
+            "SELECT $contexteRdv, r.litige_commentaire as detail
+             FROM rendez_vous r $jointuresRdv
+             WHERE r.atelier_id = :a AND r.litige_signale = true
+             ORDER BY r.date_rdv DESC, r.heure_rdv DESC",
+            ['a' => $atelierId]
+        );
+        $groupes[] = [
+            'kind' => 'litige',
+            'severity' => 'critical',
+            'titre' => 'Litige signalé à la restitution',
+            'action_label' => 'Ouvrir la fiche',
+            'action' => ['type' => 'rdv'],
+            'rows' => $litiges,
+        ];
+
+        // 2. Interventions qui dépassent le temps estimé (au-delà du seuil d'alerte).
+        $depassements = $conn->fetchAllAssociative(
+            "SELECT $contexteRdv, o.numero_or,
+                    r.temps_estime,
+                    ROUND(EXTRACT(EPOCH FROM (NOW() - r.heure_debut_travail)) / 60) as ecoule_minutes
+             FROM ordres_reparation o
+             INNER JOIN rendez_vous r ON r.id = o.rendez_vous_id
+             $jointuresRdv
+             WHERE r.atelier_id = :a
+               AND o.statut IN ('en_cours', 'attente_pieces', 'attente_validation')
+               AND r.statut IN ('reception', 'en_cours')
+               AND r.heure_debut_travail IS NOT NULL
+               AND EXTRACT(EPOCH FROM (NOW() - r.heure_debut_travail)) / 60
+                   > COALESCE(r.temps_estime, 60) + :seuil
+             ORDER BY (EXTRACT(EPOCH FROM (NOW() - r.heure_debut_travail)) / 60 - COALESCE(r.temps_estime, 60)) DESC",
+            ['a' => $atelierId, 'seuil' => $seuilDepassement]
+        );
+        foreach ($depassements as $i => $row) {
+            $retard = (int) $row['ecoule_minutes'] - (int) ($row['temps_estime'] ?: 60);
+            $depassements[$i]['retard_minutes'] = $retard;
+            $depassements[$i]['detail'] = sprintf('+%s sur le temps estimé', $this->dureeLisible($retard));
+        }
+        $groupes[] = [
+            'kind' => 'depassement',
+            'severity' => 'warning',
+            'titre' => 'Intervention qui dépasse le temps estimé',
+            'action_label' => 'Ouvrir la fiche',
+            'action' => ['type' => 'rdv'],
+            'rows' => $depassements,
+        ];
+
+        // 3. Travaux terminés dont la restitution traîne.
+        $restitutions = $conn->fetchAllAssociative(
+            "SELECT $contexteRdv,
+                    ROUND(EXTRACT(EPOCH FROM (NOW() - r.heure_fin_travail)) / 60) as attente_minutes
+             FROM rendez_vous r $jointuresRdv
+             WHERE r.atelier_id = :a
+               AND r.statut = 'termine'
+               AND r.heure_fin_travail IS NOT NULL
+               AND EXTRACT(EPOCH FROM (NOW() - r.heure_fin_travail)) / 60 > :seuil
+             ORDER BY r.heure_fin_travail ASC",
+            ['a' => $atelierId, 'seuil' => $seuilRestitution]
+        );
+        foreach ($restitutions as $i => $row) {
+            $restitutions[$i]['detail'] = sprintf('terminé depuis %s', $this->dureeLisible((int) $row['attente_minutes']));
+        }
+        $groupes[] = [
+            'kind' => 'restitution',
+            'severity' => 'warning',
+            'titre' => 'Moto prête, en attente de restitution',
+            'action_label' => 'Ouvrir la fiche',
+            'action' => ['type' => 'rdv'],
+            'rows' => $restitutions,
+        ];
+
+        // 4. Demandes de travaux supplémentaires que le staff doit encore envoyer.
+        $demandes = $conn->fetchAllAssociative(
+            "SELECT $contexteRdv, d.id as demande_id, d.statut as demande_statut, d.urgence,
+                    LEFT(COALESCE(d.description, ''), 120) as detail
+             FROM demandes_travaux_supp d
+             INNER JOIN rendez_vous r ON r.id = d.rendez_vous_id
+             $jointuresRdv
+             WHERE r.atelier_id = :a
+               AND d.statut IN ('en_attente', 'en_attente_validation')
+             ORDER BY CASE d.urgence WHEN 'urgent' THEN 0 ELSE 1 END, d.created_at ASC",
+            ['a' => $atelierId]
+        );
+        $groupes[] = [
+            'kind' => 'demande_a_envoyer',
+            'severity' => 'warning',
+            'titre' => 'Demande de travaux supp. à envoyer au client',
+            'action_label' => 'Traiter les demandes',
+            'action' => ['type' => 'route', 'to' => '/demandes-travaux-supp'],
+            'rows' => $demandes,
+        ];
+
+        // 5. Accord client obtenu par téléphone : signature au comptoir en attente.
+        $signatures = $conn->fetchAllAssociative(
+            "SELECT $contexteRdv, o.id as or_id, o.numero_or,
+                    'signature client à recueillir' as detail
+             FROM ordres_reparation o
+             INNER JOIN rendez_vous r ON r.id = o.rendez_vous_id
+             $jointuresRdv
+             WHERE r.atelier_id = :a AND o.statut = 'en_attente_signature'
+             ORDER BY o.created_at ASC",
+            ['a' => $atelierId]
+        );
+        $groupes[] = [
+            'kind' => 'signature',
+            'severity' => 'warning',
+            'titre' => 'Ordre complémentaire en attente de signature',
+            'action_label' => 'Traiter les demandes',
+            'action' => ['type' => 'route', 'to' => '/demandes-travaux-supp'],
+            'rows' => $signatures,
+        ];
+
+        // 6. Motos immobilisées au-delà du seuil d'heures ouvrées.
+        $sejourSeuil = $this->sejour->seuilPourAtelier($atelierId);
+        $sejour = array_map(static fn (array $moto) => [
+            'rdv_id' => $moto['rdv_id'],
+            'statut' => $moto['statut'],
+            'date_rdv' => $moto['date_rdv'],
+            'heure_rdv' => $moto['heure_rdv'],
+            'type_intervention' => $moto['type_intervention'],
+            'pont_nom' => $moto['pont_nom'],
+            'mecanicien_nom' => $moto['mecanicien'],
+            'client_nom' => $moto['client_nom'],
+            'client_telephone' => $moto['client_telephone'],
+            'vehicule_info' => $moto['vehicule'],
+            'vehicule_plaque' => $moto['plaque'],
+            // Heures OUVRÉES, pas calendaires : on ne les convertit pas en jours,
+            // ce serait trompeur. On enlève juste la décimale au-delà de 100 h.
+            'detail' => sprintf(
+                '%s h ouvrées à l\'atelier',
+                $moto['heures_ouvrees'] >= 100
+                    ? number_format((float) $moto['heures_ouvrees'], 0, ',', ' ')
+                    : number_format((float) $moto['heures_ouvrees'], 1, ',', ' ')
+            ),
+        ], $this->sejour->motosEnDepassement());
+        $groupes[] = [
+            'kind' => 'sejour',
+            'severity' => 'info',
+            'titre' => sprintf('Moto à l\'atelier depuis plus de %d h ouvrées', $sejourSeuil),
+            'action_label' => 'Suivi des motos',
+            'action' => ['type' => 'route', 'to' => '/en-atelier'],
+            'rows' => $sejour,
+        ];
+
+        // Le front affiche les premières lignes de chaque groupe ; le total reste
+        // exact pour ne jamais laisser croire que la file est plus courte.
+        $items = [];
+        foreach ($groupes as $groupe) {
+            if (!$groupe['rows']) {
+                continue;
+            }
+            $groupe['total'] = count($groupe['rows']);
+            $groupe['rows'] = array_slice($groupe['rows'], 0, 5);
+            $items[] = $groupe;
+        }
+
+        return $this->json([
+            'generated_at' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+            'total' => array_sum(array_map(static fn (array $g) => $g['total'], $items)),
+            'items' => $items,
+            'seuils' => [
+                'depassement_minutes' => $seuilDepassement,
+                'restitution_minutes' => $seuilRestitution,
+                'sejour_heures' => $sejourSeuil,
+            ],
+        ]);
+    }
+
+    /**
+     * Durée en langage d'atelier : « 45 min », « 3 h 20 », « 4 j ».
+     * Un « terminé depuis 105798 min » ne se lit pas.
+     */
+    private function dureeLisible(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+        if ($minutes < 90) {
+            return sprintf('%d min', $minutes);
+        }
+        if ($minutes < 48 * 60) {
+            $heures = intdiv($minutes, 60);
+            $reste = $minutes % 60;
+
+            return $reste === 0 ? sprintf('%d h', $heures) : sprintf('%d h %02d', $heures, $reste);
+        }
+        $jours = intdiv($minutes, 60 * 24);
+
+        return sprintf('%d jours', $jours);
     }
 
     /**

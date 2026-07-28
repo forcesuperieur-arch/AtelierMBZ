@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\ConfigAtelier;
 use App\Service\AnalyticsExportService;
+use App\Service\AnalyticsQueryService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -14,7 +16,67 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/analytics')]
 class AnalyticsController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private AnalyticsQueryService $query,
+    ) {}
+
+    /**
+     * Catalogue de l'Explorateur : axes et mesures réellement disponibles.
+     * Les mesures liées à un module désactivé (facturation) sont retirées —
+     * proposer « CA HT » quand le module est coupé, c'est promettre des zéros.
+     */
+    #[Route('/catalogue', methods: ['GET'])]
+    public function catalogue(): JsonResponse
+    {
+        $this->assertStatsAccess();
+        $atelierId = $this->getUser()?->getAtelierId();
+        $config = $this->em->getRepository(ConfigAtelier::class)->findOneBy(['atelierId' => $atelierId]);
+        // `feature_modules` est une table clé → booléen (pas une liste) ; absent
+        // veut dire actif, comme côté front (`isModuleEnabled`).
+        $modules = $config?->getFeatureModules() ?? [];
+
+        $axes = [];
+        foreach ($this->query->axes() as $cle => $def) {
+            $axes[] = ['key' => $cle, 'libelle' => $def['libelle'], 'chronologique' => ($def['tri'] ?? '') === 'axe'];
+        }
+
+        $mesures = [];
+        foreach ($this->query->mesures() as $cle => $def) {
+            $module = $def['module'] ?? null;
+            if ($module !== null && ($modules[$module] ?? true) === false) {
+                continue;
+            }
+            $mesures[] = [
+                'key' => $cle,
+                'libelle' => $def['libelle'],
+                'unite' => $def['unite'],
+                'bon' => $def['bon'],
+            ];
+        }
+
+        return $this->json(['axes' => $axes, 'mesures' => $mesures]);
+    }
+
+    /**
+     * Requête d'exploration : 0 à 2 axes, plusieurs mesures, filtres cumulables,
+     * ou mode `detail` pour obtenir les rendez-vous derrière la sélection.
+     * Tout est validé contre le catalogue du service — le corps de la requête ne
+     * peut pas désigner autre chose que ce qui y est déclaré.
+     */
+    #[Route('/query', methods: ['POST'])]
+    public function requete(Request $request): JsonResponse
+    {
+        $this->assertStatsAccess();
+        $atelierId = $this->getUser()?->getAtelierId();
+
+        $corps = json_decode($request->getContent() ?: '{}', true);
+        if (!is_array($corps)) {
+            return $this->json(['error' => 'Requête illisible'], 400);
+        }
+
+        return $this->json($this->query->executer((int) $atelierId, $corps));
+    }
 
     private function assertStatsAccess(): void
     {
