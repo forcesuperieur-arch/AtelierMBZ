@@ -32,6 +32,15 @@
       <span style="color:#6B7280;">Chargement...</span>
     </div>
 
+    <div v-else-if="loadError" style="margin:24px 0;padding:18px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;text-align:center;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:16px;">⚠️</span>
+        <span style="font-size:14px;font-weight:600;color:#FCA5A5;">Chargement impossible</span>
+      </div>
+      <p style="font-size:13px;color:#D1D5DB;margin-bottom:14px;">{{ loadError }}</p>
+      <button class="btn-primary" @click="reload">Réessayer</button>
+    </div>
+
     <div v-else>
       <!-- Priority card -->
       <div v-if="absenceToday" style="margin-bottom:20px;padding:14px;border-radius:12px;background:#FEF2F2;border:1px solid #FCA5A5;">
@@ -415,6 +424,7 @@ const toast = useToast()
 const auth = useAuth()
 const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
+const loadError = ref('')
 const finishing = ref(false)
 const pausing = ref(false)
 const resuming = ref(false)
@@ -1001,14 +1011,25 @@ watch(rapportRdvId, (id) => {
   }
 })
 
-onMounted(async () => {
+async function reload() {
+  loading.value = true
+  loadError.value = ''
   try {
     await fetchMyRdvs()
     applySavedWorkshopReport()
-    chronoTimer = setInterval(() => { now.value = Date.now() }, 1000)
+  } catch (e: any) {
+    loadError.value = e?.data?.error === 'MECANICIEN_NOT_LINKED'
+      ? "Votre compte n'est pas relié à un profil mécanicien. Contactez un administrateur."
+      : (e?.data?.error || e?.message || "Impossible de charger vos rendez-vous. Vérifiez la connexion puis réessayez.")
+    myRdvs.value = []
   } finally {
     loading.value = false
   }
+}
+
+onMounted(async () => {
+  await reload()
+  chronoTimer = setInterval(() => { now.value = Date.now() }, 1000)
 })
 
 onUnmounted(() => {
