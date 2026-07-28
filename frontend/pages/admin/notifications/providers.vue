@@ -10,7 +10,7 @@
       <!-- ─── MES CANAUX ─── -->
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:var(--content-1);">📡 Mes canaux</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-broadcast-line" /> Mes canaux</span>
         </template>
 
         <div v-if="loadingProviders" style="text-align:center;padding:24px;color:var(--content-3);">Chargement...</div>
@@ -18,9 +18,9 @@
           <!-- SMS -->
           <div style="padding:16px;border-radius:12px;border:1px solid var(--border-2);background:var(--overlay-soft);">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              <span style="font-size:20px;">📱</span>
+              <span style="font-size:20px;"><AppIcon name="i-ri-smartphone-line" /></span>
               <span style="font-size:15px;font-weight:700;color:var(--content-1);">SMS</span>
-              <span v-if="smsConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);">✓ Configuré</span>
+              <span v-if="smsConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);"><AppIcon name="i-ri-check-line" /> Configuré</span>
               <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);">Non configuré</span>
             </div>
             <div v-if="smsConfigured" style="display:flex;flex-direction:column;gap:8px;">
@@ -42,9 +42,9 @@
           <!-- Email -->
           <div style="padding:16px;border-radius:12px;border:1px solid var(--border-2);background:var(--overlay-soft);">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-              <span style="font-size:20px;">📧</span>
+              <span style="font-size:20px;"><AppIcon name="i-ri-mail-line" /></span>
               <span style="font-size:15px;font-weight:700;color:var(--content-1);">Email</span>
-              <span v-if="emailConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);">✓ Configuré</span>
+              <span v-if="emailConfigured" style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);"><AppIcon name="i-ri-check-line" /> Configuré</span>
               <span v-else style="font-size:12px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);">Non configuré</span>
             </div>
             <div v-if="emailConfigured" style="display:flex;flex-direction:column;gap:8px;">
@@ -69,7 +69,7 @@
       <UCard>
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <span style="font-size:15px;font-weight:700;color:var(--content-1);">📝 Mes messages</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-draft-line" /> Mes messages</span>
             <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" @click="openTemplateModal()">+ Nouveau message</button>
           </div>
         </template>
@@ -95,11 +95,11 @@
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="openTemplateModal(t)">✏ Modifier</button>
+              <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="openTemplateModal(t)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
               <button class="btn btn-ghost" style="font-size:12px;" @click="toggleTemplateActive(t)">
-                {{ t.isActive ? '⏸ Désactiver' : '▶ Activer' }}
+                <AppIcon :name="t.isActive ? 'i-ri-pause-line' : 'i-ri-play-line'" /> {{ t.isActive ? 'Désactiver' : 'Activer' }}
               </button>
-              <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deleteTemplate(t)">🗑 Supprimer</button>
+              <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deleteTemplate(t)"><AppIcon name="i-ri-delete-bin-line" /> Supprimer</button>
             </div>
           </div>
         </div>
@@ -108,16 +108,16 @@
       <!-- ─── HISTORIQUE ─── -->
       <UCard>
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:var(--content-1);">📋 Historique des envois</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-clipboard-line" /> Historique des envois</span>
         </template>
 
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <UInput v-model="logSearch" placeholder="Rechercher..." icon="i-heroicons-magnifying-glass" style="flex:1;min-width:200px;" />
           <button class="btn" :class="logFilterChip === 'all' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'all'">Tous</button>
-          <button class="btn" :class="logFilterChip === 'sms' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'sms'">📱 SMS</button>
-          <button class="btn" :class="logFilterChip === 'email' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'email'">📧 Email</button>
-          <button class="btn" :class="logFilterChip === 'failed' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'failed'">❌ Échoués</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="fetchLogs()">🔄 Actualiser</button>
+          <button class="btn" :class="logFilterChip === 'sms' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'sms'"><AppIcon name="i-ri-smartphone-line" /> SMS</button>
+          <button class="btn" :class="logFilterChip === 'email' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'email'"><AppIcon name="i-ri-mail-line" /> Email</button>
+          <button class="btn" :class="logFilterChip === 'failed' ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:6px 14px;" @click="logFilterChip = 'failed'"><AppIcon name="i-ri-close-circle-line" /> Échoués</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="fetchLogs()"><AppIcon name="i-ri-refresh-line" /> Actualiser</button>
         </div>
 
         <div v-if="loadingLogs" style="text-align:center;padding:24px;color:var(--content-3);">Chargement...</div>
@@ -128,7 +128,7 @@
             :key="l.id"
             style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--overlay-soft);"
           >
-            <span style="font-size:14px;">{{ l.channel === 'sms' ? '📱' : '📧' }}</span>
+            <span style="font-size:14px;"><AppIcon :name="l.channel === 'sms' ? 'i-ri-smartphone-line' : 'i-ri-mail-line'" /></span>
             <div style="flex:1;min-width:180px;">
               <div style="font-size:13px;color:var(--content-1);">{{ l.toRecipient }}</div>
               <div style="font-size:11px;color:var(--content-3);">{{ l.templateCode || 'Sans template' }} — {{ formatDate(l.sentAt) }}</div>
@@ -151,7 +151,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ providerEditId ? 'Modifier' : 'Configurer' }} {{ providerForm.channel === 'sms' ? 'SMS' : 'Email' }}</span>
-              <button @click="closeProviderModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button @click="closeProviderModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -184,7 +184,7 @@
             </div>
 
             <UCard v-if="providerForm.provider" style="background:var(--overlay-soft);">
-              <template #header><span style="font-size:13px;font-weight:600;color:var(--content-1);">🔑 Identifiants</span></template>
+              <template #header><span style="font-size:13px;font-weight:600;color:var(--content-1);"><AppIcon name="i-ri-key-2-line" /> Identifiants</span></template>
               <div style="display:flex;flex-direction:column;gap:10px;">
                 <template v-if="providerForm.provider === 'twilio'">
                   <UFormField label="Account SID"><UInput v-model="providerForm.config.account_sid" placeholder="ACxxxxx" /></UFormField>
@@ -238,7 +238,7 @@
                 :placeholder="testTarget?.channel === 'sms' ? '+33612345678' : 'test@example.com'" />
             </UFormField>
             <div v-if="testResult" :style="{ padding: '12px', borderRadius: '6px', background: testResult.success ? 'var(--success-soft)' : 'var(--error-soft)', color: testResult.success ? 'var(--success-content)' : 'var(--error-content)', fontSize: '13px' }">
-              {{ testResult.success ? '✓ Test réussi' : '✗ Échec: ' + testResult.error }}
+              <AppIcon :name="testResult.success ? 'i-ri-check-line' : 'i-ri-close-line'" />{{ testResult.success ? 'Test réussi' : 'Échec : ' + testResult.error }}
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
               <button type="button" class="btn btn-ghost" @click="showTestModal = false">Fermer</button>
@@ -256,7 +256,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ templateEditId ? 'Modifier' : 'Nouveau' }} message</span>
-              <button @click="closeTemplateModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button @click="closeTemplateModal" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -267,8 +267,8 @@
               </UFormField>
               <UFormField label="Canal *">
                 <select v-model="templateForm.channel" class="form-input" required :disabled="!!templateEditId">
-                  <option value="sms">📱 SMS</option>
-                  <option value="email">📧 Email</option>
+                  <option value="sms"> SMS</option>
+                  <option value="email"> Email</option>
                 </select>
               </UFormField>
             </div>

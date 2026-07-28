@@ -1,12 +1,12 @@
 <template>
   <div v-if="loadError" class="sejour-alert sejour-alert--error">
-    <span>⚠️ Alerte séjour atelier indisponible.</span>
+    <span><AppIcon name="i-ri-error-warning-line" /> Alerte séjour atelier indisponible.</span>
     <button class="sejour-link" @click="load">Réessayer</button>
   </div>
 
   <div v-else-if="motos.length" class="sejour-alert">
     <div class="sejour-head">
-      <span class="sejour-icon">⏱</span>
+      <span class="sejour-icon"><AppIcon name="i-ri-timer-line" /></span>
       <span class="sejour-title">
         {{ motos.length }} moto{{ motos.length > 1 ? 's' : '' }} à l'atelier depuis plus de {{ seuil }} h ouvrées
       </span>

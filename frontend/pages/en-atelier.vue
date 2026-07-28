@@ -10,7 +10,7 @@
           </div>
         </div>
         <button class="btn btn-ghost" :disabled="loading" @click="load">
-          {{ loading ? 'Actualisation…' : '↻ Actualiser' }}
+          <AppIcon v-if="!(loading)" name="i-ri-refresh-line" />{{ loading ? 'Actualisation…' : 'Actualiser' }}
         </button>
       </div>
     </div>
@@ -64,7 +64,7 @@
           :class="{ 'puce--active': seulementDepassements }"
           @click="seulementDepassements = !seulementDepassements"
         >
-          ⏱ Seulement les dépassements
+          <AppIcon name="i-ri-timer-line" /> Seulement les dépassements
         </button>
         <button v-if="filtresActifs" class="lien-reset" @click="reinitialiser">Réinitialiser</button>
         <span class="compteur">{{ motosFiltrees.length }} affichée(s) / {{ motos.length - motosFiltrees.length }} masquée(s)</span>
@@ -72,7 +72,7 @@
 
       <AppEmptyState
         v-if="!motos.length"
-        icon="🏍️"
+        icon="i-ri-motorbike-line"
         title="Aucune moto à l'atelier"
         description="Aucune moto n'est actuellement immobilisée dans l'atelier."
       />

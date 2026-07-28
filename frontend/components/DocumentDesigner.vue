@@ -17,10 +17,10 @@
         </label>
       </div>
       <div class="toolbar-group">
-        <button class="btn btn-ghost" style="font-size:12px;" @click="undo" :disabled="!canUndo">↩ Annuler</button>
-        <button class="btn btn-ghost" style="font-size:12px;" @click="redo" :disabled="!canRedo">↪ Rétablir</button>
-        <button class="btn btn-primary" style="font-size:12px;" @click="$emit('save', layoutJson)">💾 Enregistrer</button>
-        <button class="btn btn-ghost" style="font-size:12px;" @click="previewPdf">👁️ PDF</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="undo" :disabled="!canUndo"><AppIcon name="i-ri-arrow-go-back-line" /> Annuler</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="redo" :disabled="!canRedo"><AppIcon name="i-ri-arrow-go-forward-line" /> Rétablir</button>
+        <button class="btn btn-primary" style="font-size:12px;" @click="$emit('save', layoutJson)"><AppIcon name="i-ri-save-line" /> Enregistrer</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="previewPdf"><AppIcon name="i-ri-eye-line" /> PDF</button>
       </div>
     </div>
 
@@ -36,21 +36,21 @@
             :class="{ active: selectedTool === tool.type }"
             @click="addElement(tool.type)"
           >
-            <span class="tool-icon">{{ tool.icon }}</span>
+            <span class="tool-icon"><AppIcon :name="tool.icon" /></span>
             <span class="tool-label">{{ tool.label }}</span>
           </button>
         </div>
         <div class="sidebar-title" style="margin-top:16px;">Actions</div>
         <button class="tool-btn" style="color:var(--error-content);" @click="deleteSelected" :disabled="!selectedId">
-          <span class="tool-icon">🗑</span>
+          <span class="tool-icon"><AppIcon name="i-ri-delete-bin-line" /></span>
           <span class="tool-label">Supprimer</span>
         </button>
         <button class="tool-btn" @click="clearAll">
-          <span class="tool-icon">✕</span>
+          <span class="tool-icon"><AppIcon name="i-ri-close-line" /></span>
           <span class="tool-label">Tout effacer</span>
         </button>
         <button class="tool-btn" @click="resetToDefault">
-          <span class="tool-icon">↺</span>
+          <span class="tool-icon"><AppIcon name="i-ri-eraser-line" /></span>
           <span class="tool-label">Réinitialiser</span>
         </button>
       </div>
@@ -165,9 +165,10 @@
                 :key="a"
                 class="align-btn"
                 :class="{ active: selectedElement.style.align === a }"
+                :aria-label="a === 'left' ? 'Aligner à gauche' : a === 'center' ? 'Centrer' : 'Aligner à droite'"
                 @click="selectedElement.style.align = a"
               >
-                {{ a === 'left' ? '⬅' : a === 'center' ? '↔' : '➡' }}
+                <AppIcon :name="a === 'left' ? 'i-ri-align-left' : a === 'center' ? 'i-ri-align-center' : 'i-ri-align-right'" />
               </button>
             </div>
           </div>
@@ -298,11 +299,11 @@ if (history.value.length === 0) {
 
 // ========== TOOLS ==========
 const tools = [
-  { type: 'text', label: 'Texte', icon: 'T' },
-  { type: 'variable', label: 'Variable', icon: '{x}' },
-  { type: 'image', label: 'Image', icon: '🖼' },
-  { type: 'line', label: 'Ligne', icon: '—' },
-  { type: 'rect', label: 'Rectangle', icon: '□' },
+  { type: 'text', label: 'Texte', icon: 'i-ri-text' },
+  { type: 'variable', label: 'Variable', icon: 'i-ri-braces-line' },
+  { type: 'image', label: 'Image', icon: 'i-ri-image-line' },
+  { type: 'line', label: 'Ligne', icon: 'i-ri-subtract-line' },
+  { type: 'rect', label: 'Rectangle', icon: 'i-ri-square-line' },
 ]
 
 function addElement(type: string) {

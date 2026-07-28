@@ -79,7 +79,7 @@
         </div>
         <AppEmptyState
           v-else
-          icon="🔧"
+          icon="i-ri-tools-line"
           title="Aucun pont actif"
           description="Configure les ponts de l'atelier dans Réglages pour suivre leur occupation."
         />

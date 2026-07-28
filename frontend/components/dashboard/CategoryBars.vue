@@ -14,7 +14,7 @@
 
   <AppEmptyState
     v-else
-    :icon="emptyIcon || '📊'"
+    :icon="emptyIcon || 'i-ri-bar-chart-2-line'"
     :title="emptyTitle || 'Aucune donnée'"
     :description="emptyDescription || 'Cette répartition se remplit dès que l’activité est enregistrée.'"
   />

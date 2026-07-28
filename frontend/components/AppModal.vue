@@ -10,7 +10,7 @@
             aria-label="Fermer la modale"
             @click="open = false"
           >
-            ✕
+            <AppIcon name="i-ri-close-line" />
           </button>
         </div>
 

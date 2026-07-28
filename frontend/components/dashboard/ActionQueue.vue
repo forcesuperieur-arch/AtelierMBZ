@@ -6,7 +6,7 @@
   >
     <!-- File vide : c'est une bonne nouvelle, on le dit. -->
     <div v-if="!groups.length" class="queue-clear">
-      <span class="queue-clear-mark" aria-hidden="true">✓</span>
+      <span class="queue-clear-mark" aria-hidden="true"><AppIcon name="i-ri-check-line" /></span>
       <div>
         <div class="queue-clear-title">Rien en attente</div>
         <div class="queue-clear-sub">Aucun litige, aucun dépassement, aucune restitution en retard.</div>

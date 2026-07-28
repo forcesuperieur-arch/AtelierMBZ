@@ -3,7 +3,8 @@
     <div class="stat-label">{{ title }}</div>
     <div class="stat-value" :style="{ color: valueColor }">{{ formattedValue }}</div>
     <div v-if="trend !== undefined" class="stat-delta" :style="{ color: trend >= 0 ? 'var(--success-content)' : 'var(--error-content)' }">
-      {{ trend >= 0 ? '▲' : '▼' }} {{ Math.abs(trend) }}% vs mois dernier
+      <AppIcon :name="trend >= 0 ? 'i-ri-arrow-up-s-fill' : 'i-ri-arrow-down-s-fill'" />
+      {{ Math.abs(trend) }}% vs mois dernier
     </div>
     <div v-if="subtitle" class="stat-delta" style="color: var(--content-3);">{{ subtitle }}</div>
     <div class="stat-bar">
@@ -16,7 +17,6 @@
 const props = defineProps<{
   title: string
   value: number | string
-  icon?: string
   color?: string
   subtitle?: string
   trend?: number

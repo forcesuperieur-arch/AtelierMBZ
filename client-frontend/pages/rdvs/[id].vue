@@ -1,6 +1,6 @@
 <template>
   <div>
-    <NuxtLink to="/rdvs" style="color:var(--content-3);font-size:13px;text-decoration:none;">← Retour aux RDV</NuxtLink>
+    <NuxtLink to="/rdvs" style="color:var(--content-3);font-size:13px;text-decoration:none;"><AppIcon name="i-ri-arrow-left-line" /> Retour aux RDV</NuxtLink>
     <h1 style="font-size:20px;font-weight:800;margin:12px 0 16px;">Détail du rendez-vous</h1>
 
     <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
@@ -68,7 +68,7 @@
           <!-- Accord donné par téléphone : il ne reste qu'à le confirmer en signant -->
           <div v-else-if="d.confirmation_telephone" class="demande-confirm-tel" data-testid="bloc-confirmation-telephone">
             <p class="demande-confirm-tel-text">
-              📞 Vous avez donné votre accord par téléphone le {{ formatDateShort(d.accord_telephone_at) }}.
+              <AppIcon name="i-ri-phone-line" /> Vous avez donné votre accord par téléphone le {{ formatDateShort(d.accord_telephone_at) }}.
               Confirmez-le en signant l'ordre de réparation complémentaire.
             </p>
             <button class="btn-accept" :disabled="decisionLoading" @click="ouvrirSignature(d)" data-testid="btn-confirmer-travaux-tel">
@@ -123,7 +123,7 @@
             :href="`/api/client/rdvs/${rdv.id}/etat-des-lieux/pdf`"
             target="_blank"
             class="pdf-btn edl-pdf"
-          >📄 Télécharger le PDF</a>
+          ><AppIcon name="i-ri-file-text-line" /> Télécharger le PDF</a>
         </div>
       </div>
 
@@ -137,7 +137,7 @@
               :href="`/api/client/rdvs/${rdv.id}/or/${o.id}/pdf`"
               target="_blank"
               class="pdf-btn"
-            >📄 Télécharger le PDF</a>
+            ><AppIcon name="i-ri-file-text-line" /> Télécharger le PDF</a>
           </li>
         </ul>
       </div>

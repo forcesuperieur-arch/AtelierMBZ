@@ -86,11 +86,11 @@
             <div class="rdv-vehicle">{{ rdv.vehicule_info || 'Véhicule non renseigné' }}</div>
           </div>
           <div class="rdv-card-meta">
-            <span>🔧 {{ rdv.type_intervention || 'Intervention' }}</span>
-            <span v-if="rdv.vehicule_plaque">🏍 {{ rdv.vehicule_plaque }}</span>
-            <span v-if="rdv.pont_nom">📍 {{ rdv.pont_nom }}</span>
-            <span v-if="rdv.mecanicien_nom">👤 {{ rdv.mecanicien_nom }}</span>
-            <span v-if="rdv.duree_estimee">⏱ {{ formatMinutes(rdv.duree_estimee) }}</span>
+            <span><AppIcon name="i-ri-tools-line" /> {{ rdv.type_intervention || 'Intervention' }}</span>
+            <span v-if="rdv.vehicule_plaque"><AppIcon name="i-ri-motorbike-line" /> {{ rdv.vehicule_plaque }}</span>
+            <span v-if="rdv.pont_nom"><AppIcon name="i-ri-map-pin-line" /> {{ rdv.pont_nom }}</span>
+            <span v-if="rdv.mecanicien_nom"><AppIcon name="i-ri-user-line" /> {{ rdv.mecanicien_nom }}</span>
+            <span v-if="rdv.duree_estimee"><AppIcon name="i-ri-timer-line" /> {{ formatMinutes(rdv.duree_estimee) }}</span>
           </div>
           <div v-if="rdv.commandes?.length" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
             <span v-for="cmd in rdv.commandes" :key="cmd" style="font-size:10px;color:var(--accent-content);background:var(--accent-soft);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);">
@@ -138,12 +138,12 @@
       </div>
       <div v-if="selectedRdv.client_nom || selectedRdv.client_telephone || selectedRdv.client_email" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ selectedRdv.client_nom || 'Client' }}</div>
-        <div v-if="selectedRdv.client_telephone" style="color:var(--content-3);">📞 {{ selectedRdv.client_telephone }}</div>
+        <div v-if="selectedRdv.client_telephone" style="color:var(--content-3);"><AppIcon name="i-ri-phone-line" /> {{ selectedRdv.client_telephone }}</div>
         <div v-if="selectedRdv.client_email" style="color:var(--content-3);">{{ selectedRdv.client_email }}</div>
       </div>
       <div v-if="selectedRdv.vehicule_info || selectedRdv.vehicule_plaque" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ selectedRdv.vehicule_info || 'Véhicule' }}</div>
-        <div v-if="selectedRdv.vehicule_plaque" style="color:var(--content-3);">🏍 {{ selectedRdv.vehicule_plaque }}</div>
+        <div v-if="selectedRdv.vehicule_plaque" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ selectedRdv.vehicule_plaque }}</div>
       </div>
       <div v-if="selectedRdv.description_probleme" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Description</div>

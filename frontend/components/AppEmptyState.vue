@@ -1,6 +1,6 @@
 <template>
   <div class="app-state app-state-empty">
-    <div class="app-state-icon" aria-hidden="true">{{ icon }}</div>
+    <div class="app-state-icon" aria-hidden="true"><AppIcon :name="icon" /></div>
     <div class="app-state-title">{{ title }}</div>
     <div v-if="description" class="app-state-description">{{ description }}</div>
     <button v-if="actionLabel" class="btn btn-ghost" @click="$emit('action')">{{ actionLabel }}</button>
@@ -11,7 +11,7 @@
 defineEmits(['action'])
 
 defineProps({
-  icon: { type: String, default: '📭' },
+  icon: { type: String, default: 'i-ri-mail-open-line' },
   title: { type: String, default: 'Aucune donnée disponible' },
   description: { type: String, default: '' },
   actionLabel: { type: String, default: '' },

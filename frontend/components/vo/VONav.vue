@@ -7,7 +7,7 @@
       class="vo-nav-link"
       :class="{ 'is-active': isActive(item.to) }"
     >
-      <span>{{ item.icon }}</span>
+      <span><AppIcon :name="item.icon" /></span>
       <span>{{ item.label }}</span>
     </NuxtLink>
   </div>
@@ -17,12 +17,12 @@
 const route = useRoute()
 
 const items = [
-  { to: '/vo', label: 'Stat', icon: '🏷️' },
-  { to: '/vo/rachats', label: 'Rachats', icon: '🏍️' },
-  { to: '/vo/depots', label: 'Dépôts', icon: '📋' },
-  { to: '/vo/remises-en-etat', label: 'Remises en état', icon: '🛠️' },
-  { to: '/vo/livre-police', label: 'Livre de Police', icon: '📕' },
-  { to: '/vo/factures', label: 'Factures', icon: '💳' },
+  { to: '/vo', label: 'Stat', icon: 'i-ri-price-tag-3-line' },
+  { to: '/vo/rachats', label: 'Rachats', icon: 'i-ri-motorbike-line' },
+  { to: '/vo/depots', label: 'Dépôts', icon: 'i-ri-clipboard-line' },
+  { to: '/vo/remises-en-etat', label: 'Remises en état', icon: 'i-ri-hammer-line' },
+  { to: '/vo/livre-police', label: 'Livre de Police', icon: 'i-ri-book-line' },
+  { to: '/vo/factures', label: 'Factures', icon: 'i-ri-bank-card-line' },
 ]
 
 function isActive(path: string) {

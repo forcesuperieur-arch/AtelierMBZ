@@ -8,22 +8,22 @@
     <!-- Stat cards -->
     <div class="grid-4" style="margin-bottom:20px;">
       <div class="stat-card">
-        <div class="stat-label">👥 Total Clients</div>
+        <div class="stat-label"><AppIcon name="i-ri-group-line" /> Total Clients</div>
         <div class="stat-value">{{ stats.total }}</div>
         <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--blue);" :style="{ width: '100%' }"></div></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">📅 Avec RDV</div>
+        <div class="stat-label"><AppIcon name="i-ri-calendar-line" /> Avec RDV</div>
         <div class="stat-value">{{ stats.avec_rdv }}</div>
         <div class="stat-delta" style="color:var(--success-content);">{{ stats.total ? Math.round(stats.avec_rdv / stats.total * 100) : 0 }}% actifs</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">🏍️ Total Véhicules</div>
+        <div class="stat-label"><AppIcon name="i-ri-motorbike-line" /> Total Véhicules</div>
         <div class="stat-value">{{ stats.vehicules }}</div>
         <div class="stat-delta" style="color:var(--content-3);">{{ stats.total ? (stats.vehicules / stats.total).toFixed(1) : 0 }} / client</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">💰 CA Total</div>
+        <div class="stat-label"><AppIcon name="i-ri-money-euro-box-line" /> CA Total</div>
         <div class="stat-value">{{ formatCA(stats.ca_total) }}</div>
         <div class="stat-bar"><div class="stat-bar-fill" style="background:var(--orange);" :style="{ width: stats.ca_total > 0 ? '65%' : '0%' }"></div></div>
       </div>
@@ -44,7 +44,7 @@
       </UTable>
       <!-- Pagination -->
       <div v-if="totalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-2);">
-        <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; fetchClients()" style="font-size:12px;padding:6px 12px;">← Préc</button>
+        <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; fetchClients()" style="font-size:12px;padding:6px 12px;"><AppIcon name="i-ri-arrow-left-line" /> Préc</button>
         <button v-for="p in visiblePages" :key="p" class="btn" :class="p === page ? 'btn-primary' : 'btn-ghost'" @click="page = p; fetchClients()" style="font-size:12px;padding:6px 12px;min-width:36px;">{{ p }}</button>
         <button class="btn btn-ghost" :disabled="page >= totalPages" @click="page++; fetchClients()" style="font-size:12px;padding:6px 12px;">Suiv →</button>
       </div>

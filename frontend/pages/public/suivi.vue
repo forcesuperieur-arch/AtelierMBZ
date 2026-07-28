@@ -1,7 +1,7 @@
 <template>
   <div class="public-card">
     <div class="public-card-header">
-      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="font-size:32px;margin-bottom:8px;"><AppIcon name="i-ri-search-line" /></div>
       <h1 class="text-gradient" style="font-size:22px;font-weight:800;">Suivi de rendez-vous</h1>
     </div>
 

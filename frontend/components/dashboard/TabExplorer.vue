@@ -34,7 +34,7 @@
             >
               <span class="puce-champ">{{ store.libelleAxe(filtre.field) }}</span>
               <span class="puce-valeurs">{{ resumerValeurs(filtre.values) }}</span>
-              <span class="puce-croix" aria-hidden="true">✕</span>
+              <span class="puce-croix" aria-hidden="true"><AppIcon name="i-ri-close-line" /></span>
             </button>
             <button type="button" class="tout-effacer" @click="store.toutEffacer(); lancer()">
               Tout effacer
@@ -152,7 +152,7 @@
             <button type="button" class="vue-ouvrir" @click="store.ouvrirVue(vue.nom); lancer()">
               {{ vue.nom }}
             </button>
-            <button type="button" class="vue-suppr" :title="`Supprimer ${vue.nom}`" @click="store.supprimerVue(vue.nom)">✕</button>
+            <button type="button" class="vue-suppr" :title="`Supprimer ${vue.nom}`" @click="store.supprimerVue(vue.nom)"><AppIcon name="i-ri-close-line" /></button>
           </div>
         </div>
       </DashboardSection>

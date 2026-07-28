@@ -34,7 +34,7 @@
 
     <div v-else-if="loadError" style="margin:24px 0;padding:18px;border-radius:12px;background:var(--error-soft);border:1px solid var(--error);text-align:center;">
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
-        <span style="font-size:16px;">⚠️</span>
+        <span style="font-size:16px;"><AppIcon name="i-ri-error-warning-line" /></span>
         <span style="font-size:14px;font-weight:600;color:var(--error-content);">Chargement impossible</span>
       </div>
       <p style="font-size:13px;color:var(--content-2);margin-bottom:14px;">{{ loadError }}</p>
@@ -45,7 +45,7 @@
       <!-- Priority card -->
       <div v-if="absenceToday" style="margin-bottom:20px;padding:14px;border-radius:12px;background:var(--error-soft);border:1px solid var(--error);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:14px;">⚠️</span>
+          <span style="font-size:14px;"><AppIcon name="i-ri-error-warning-line" /></span>
           <span style="font-size:13px;font-weight:600;color:var(--error-content);">Absence aujourd'hui</span>
         </div>
         <p style="font-size:13px;color:var(--content-2);">{{ absenceToday.motif }}</p>
@@ -53,7 +53,7 @@
 
       <div v-if="priorityAction" style="margin-bottom:20px;padding:14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:14px;">⚡</span>
+          <span style="font-size:14px;"><AppIcon name="i-ri-flashlight-line" /></span>
           <span style="font-size:13px;font-weight:600;color:var(--accent-content);">Prochaine action</span>
         </div>
         <p style="font-size:13px;color:var(--content-2);">{{ priorityAction }}</p>
@@ -63,19 +63,19 @@
       <UCard v-if="activeRdv" style="margin-bottom:24px;border-color:var(--warning);">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:15px;font-weight:700;color:var(--warning-content);">🔧 Intervention en cours</span>
+            <span style="font-size:15px;font-weight:700;color:var(--warning-content);"><AppIcon name="i-ri-tools-line" /> Intervention en cours</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span v-if="activeRdv.client_telephone" style="font-size:12px;">
-                <a :href="`tel:${activeRdv.client_telephone}`" style="color:var(--content-3);text-decoration:none;">📞 Appeler</a>
+                <a :href="`tel:${activeRdv.client_telephone}`" style="color:var(--content-3);text-decoration:none;"><AppIcon name="i-ri-phone-line" /> Appeler</a>
               </span>
-              <span v-if="activeOrId" style="font-size:12px;color:var(--content-3);font-weight:600;">📋 OR #{{ activeOrId }}</span>
+              <span v-if="activeOrId" style="font-size:12px;color:var(--content-3);font-weight:600;"><AppIcon name="i-ri-clipboard-line" /> OR #{{ activeOrId }}</span>
               <span style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;" :style="{ background: essaiRoutierValide ? 'var(--success-soft)' : 'var(--warning-soft)', color: essaiRoutierValide ? 'var(--success-content)' : 'var(--warning-content)' }">{{ essaiStatusLabel }}</span>
-              <span v-if="activeRdv.statut === 'en_pause'" style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;background:var(--surface-3);color:var(--content-3);">⏸ En pause</span>
-              <UButton v-if="activeRdv.statut === 'en_cours'" label="⏸ Pause" color="neutral" variant="outline" size="sm" @click="pauseWork" :loading="pausing" />
-              <UButton v-if="activeRdv.statut === 'en_pause'" label="▶ Reprendre" color="warning" variant="outline" size="sm" @click="resumeWork" :loading="resuming" />
-              <UButton label="💾 Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
-              <UButton label="🏍 Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
-              <UButton label="✅ Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
+              <span v-if="activeRdv.statut === 'en_pause'" style="font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;background:var(--surface-3);color:var(--content-3);"><AppIcon name="i-ri-pause-line" /> En pause</span>
+              <UButton v-if="activeRdv.statut === 'en_cours'" icon="i-ri-pause-line" label="Pause" color="neutral" variant="outline" size="sm" @click="pauseWork" :loading="pausing" />
+              <UButton v-if="activeRdv.statut === 'en_pause'" icon="i-ri-play-line" label="Reprendre" color="warning" variant="outline" size="sm" @click="resumeWork" :loading="resuming" />
+              <UButton icon="i-ri-save-line" label="Checkup" color="info" variant="outline" size="sm" @click="persistWorkshopReport()" :loading="persistingCheckup" />
+              <UButton icon="i-ri-motorbike-line" label="Valider essai" color="warning" variant="outline" size="sm" @click="saveActiveRoadTest" :loading="savingRoadTest" :disabled="essaiRoutierValide || !canValidateRoadTest" />
+              <UButton icon="i-ri-checkbox-circle-line" label="Terminer" color="success" size="sm" @click="finishWork" :loading="finishing" :disabled="!essaiRoutierValide" />
             </div>
           </div>
         </template>
@@ -92,7 +92,7 @@
 
         <div v-if="receptionPoints.length || receptionObservations || receptionFuelLevel || receptionPriority || activeRdv.vehicule_plaque || activeRdv.km_reception !== null" style="margin-top:14px;padding:12px;border-radius:10px;background:var(--info-soft);border:1px solid var(--info);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <span style="font-size:13px;font-weight:600;color:var(--info-content);">📥 Contexte réception</span>
+            <span style="font-size:13px;font-weight:600;color:var(--info-content);"><AppIcon name="i-ri-inbox-line" /> Contexte réception</span>
             <span style="font-size:11px;padding:3px 8px;border-radius:999px;" :style="{ background: activeRdv.or_signe ? 'var(--success-soft)' : 'var(--error-soft)', color: activeRdv.or_signe ? 'var(--success-content)' : 'var(--error-content)' }">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px;">
@@ -127,7 +127,7 @@
             <span>{{ formatMinutes(activeRdv.temps_estime) }} estimées</span>
           </div>
           <div v-if="progressPct > 100" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--error-soft);border:1px solid var(--error);font-size:12px;color:var(--error-content);">
-            ⚠️ Dépassement +{{ elapsedMin - activeRdv.temps_estime }}min — intervention en retard
+            <AppIcon name="i-ri-error-warning-line" /> Dépassement +{{ elapsedMin - activeRdv.temps_estime }}min — intervention en retard
           </div>
         </div>
 
@@ -140,9 +140,9 @@
           <div style="font-size:11px;color:var(--content-3);margin-bottom:8px;">Le rapport est enregistré dans le dossier atelier.</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">
             <div v-for="item in checkupItems" :key="item.key" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;border:1px solid var(--border-2);font-size:12px;cursor:pointer;" :style="{ background: checkup[item.key] === 'ok' ? 'var(--success-soft)' : checkup[item.key] === 'nok' ? 'var(--error-soft)' : 'transparent' }" @click="cycleCheckup(item.key)">
-              <span v-if="checkup[item.key] === 'ok'" style="color:var(--success-content);">✅</span>
-              <span v-else-if="checkup[item.key] === 'nok'" style="color:var(--error-content);">❌</span>
-              <span v-else style="color:var(--content-3);">⬜</span>
+              <span v-if="checkup[item.key] === 'ok'" style="color:var(--success-content);"><AppIcon name="i-ri-checkbox-circle-line" /></span>
+              <span v-else-if="checkup[item.key] === 'nok'" style="color:var(--error-content);"><AppIcon name="i-ri-close-circle-line" /></span>
+              <span v-else style="color:var(--content-3);"><AppIcon name="i-ri-checkbox-blank-line" /></span>
               <span style="color:var(--content-2);">{{ item.label }}</span>
             </div>
           </div>
@@ -151,7 +151,7 @@
         <!-- Essai routier atelier -->
         <div style="margin-top:16px;border-top:1px solid var(--border-2);padding-top:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <label style="font-size:13px;font-weight:600;color:var(--content-1);display:block;">🏍 Essai routier atelier</label>
+            <label style="font-size:13px;font-weight:600;color:var(--content-1);display:block;"><AppIcon name="i-ri-motorbike-line" /> Essai routier atelier</label>
             <span style="font-size:11px;color:var(--content-3);">{{ essaiFilledCount }}/{{ essaiPoints.length }} points renseignés</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;">
@@ -180,7 +180,7 @@
               }"
               @click="cycleEssaiPoint(pt.key)"
             >
-              <span>{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
+              <span><AppIcon :name="essaiForm.pointsControle[pt.key] === 'ok' ? 'i-ri-checkbox-circle-line' : essaiForm.pointsControle[pt.key] === 'nok' ? 'i-ri-close-circle-line' : 'i-ri-checkbox-blank-line'" /></span>
               {{ pt.label }}
             </button>
           </div>
@@ -197,7 +197,7 @@
         <!-- Travaux supplémentaires -->
         <div style="margin-top:16px;border-top:1px solid var(--border-2);padding-top:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:13px;font-weight:600;color:var(--content-1);">🔧 Travaux supplémentaires</span>
+            <span style="font-size:13px;font-weight:600;color:var(--content-1);"><AppIcon name="i-ri-tools-line" /> Travaux supplémentaires</span>
             <button class="btn btn-ghost" style="font-size:12px;" @click="showNewDemande = !showNewDemande">{{ showNewDemande ? 'Annuler' : '+ Signaler un problème' }}</button>
           </div>
           <div v-if="activeRdv.demandes_travaux_supp?.length" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
@@ -239,21 +239,21 @@
       <!-- Todo: RDVs to do -->
       <UCard style="margin-bottom:24px;">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:var(--content-1);">📋 À faire ({{ todoRdvs.length }})</span>
+          <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-clipboard-line" /> À faire ({{ todoRdvs.length }})</span>
         </template>
         <div v-if="!todoRdvs.length" style="padding:16px;text-align:center;color:var(--content-3);">
-          Toutes les interventions sont terminées 🎉
+          Toutes les interventions sont terminées 
         </div>
         <div v-else style="display:flex;flex-direction:column;gap:10px;">
           <div v-for="rdv in todoRdvs" :key="rdv.id" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;border:1px solid var(--border-2);background:var(--overlay-soft);">
             <div>
               <p style="font-weight:600;color:var(--content-1);font-size:13px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
               <p style="font-size:12px;color:var(--content-3);">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
-              <p v-if="rdv.temps_estime" style="font-size:11px;color:var(--content-3);">⏱ {{ formatMinutes(rdv.temps_estime) }}</p>
+              <p v-if="rdv.temps_estime" style="font-size:11px;color:var(--content-3);"><AppIcon name="i-ri-timer-line" /> {{ formatMinutes(rdv.temps_estime) }}</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <StatusBadge :status="rdv.status" />
-              <UButton v-if="rdv.status === 'reception'" size="xs" label="🔧 Démarrer" @click="startWork(rdv.id)" />
+              <UButton v-if="rdv.status === 'reception'" size="xs" icon="i-ri-tools-line" label="Démarrer" @click="startWork(rdv.id)" />
             </div>
           </div>
         </div>
@@ -262,17 +262,17 @@
       <!-- Done: Completed RDVs -->
       <UCard v-if="doneRdvs.length">
         <template #header>
-          <span style="font-size:15px;font-weight:700;color:var(--success-content);">✅ Terminés ({{ doneRdvs.length }})</span>
+          <span style="font-size:15px;font-weight:700;color:var(--success-content);"><AppIcon name="i-ri-checkbox-circle-line" /> Terminés ({{ doneRdvs.length }})</span>
         </template>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div v-for="rdv in doneRdvs" :key="rdv.id" style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;border:1px solid var(--border-2);font-size:13px;" :style="{ opacity: rdv.status === 'termine' ? 1 : 0.7 }">
             <div>
-              <span style="color:var(--success-content);">✅</span>
+              <span style="color:var(--success-content);"><AppIcon name="i-ri-checkbox-circle-line" /></span>
               <span style="color:var(--content-2);margin-left:8px;">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }} · {{ rdv.type_intervention }}</span>
               <span v-if="rdv.status === 'termine'" style="display:inline-block;margin-left:8px;padding:2px 6px;border-radius:4px;background:var(--warning-soft);border:1px solid var(--warning);font-size:10px;color:var(--warning-content);font-weight:600;">Rapport à compléter</span>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <UButton v-if="rdv.status === 'termine'" size="xs" label="📋 Rapport" color="warning" variant="outline" @click="openRapport(rdv.id)" />
+              <UButton v-if="rdv.status === 'termine'" size="xs" icon="i-ri-clipboard-line" label="Rapport" color="warning" variant="outline" @click="openRapport(rdv.id)" />
               <button style="color:var(--accent-content);font-size:11px;background:none;border:none;cursor:pointer;font-weight:600;" @click="openRdvDetail(rdv)">Voir →</button>
             </div>
           </div>
@@ -284,8 +284,8 @@
     <div v-if="rapportRdvId" style="position:fixed;inset:0;background:var(--scrim);z-index:50;overflow-y:auto;padding:16px;" @click.self="closeRapport">
       <div style="max-width:640px;margin:0 auto;background:var(--surface-1);border:1px solid var(--border-1);border-radius:16px;padding:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <h2 style="font-size:17px;font-weight:700;color:var(--content-1);">📋 Rapport d'intervention</h2>
-          <button @click="closeRapport" style="font-size:18px;color:var(--content-3);background:none;border:none;cursor:pointer;">✕</button>
+          <h2 style="font-size:17px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-clipboard-line" /> Rapport d'intervention</h2>
+          <button aria-label="Fermer le rapport" @click="closeRapport" style="font-size:18px;color:var(--content-3);background:none;border:none;cursor:pointer;"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
         <div v-if="rapportLoading" style="text-align:center;padding:32px;color:var(--content-3);">Chargement…</div>
@@ -293,9 +293,9 @@
 
         <div v-else-if="rapport">
           <div v-if="rapport.is_signed_by_both" style="text-align:center;padding:24px;background:var(--success-soft);border:1px solid var(--success);border-radius:12px;margin-bottom:16px;">
-            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div style="font-size:32px;margin-bottom:8px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
             <p style="color:var(--success-content);font-weight:700;">Rapport signé par les deux parties</p>
-            <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent-content);font-size:12px;font-weight:600;text-decoration:none;">📄 Télécharger PDF</a>
+            <a :href="`${apiBase.replace('/api','')}/api/rapport/${rapport.id}/pdf`" target="_blank" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent-content);font-size:12px;font-weight:600;text-decoration:none;"><AppIcon name="i-ri-file-text-line" /> Télécharger PDF</a>
           </div>
 
           <div v-else style="display:flex;flex-direction:column;gap:16px;">
@@ -327,7 +327,7 @@
 
             <!-- Entretien fluides -->
             <div style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
-              <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;">🔧 Entretien des fluides recommandé</div>
+              <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</div>
               <div style="font-size:12px;color:var(--content-2);">Huile moteur — <strong style="color:var(--info-content);">tous les ans</strong></div>
               <div style="font-size:12px;color:var(--content-2);">Liquide de frein — <strong style="color:var(--info-content);">tous les 2 ans</strong></div>
               <div style="font-size:12px;color:var(--content-2);">Liquide de refroidissement — <strong style="color:var(--info-content);">tous les 3 ans</strong></div>
@@ -335,7 +335,7 @@
 
             <!-- Essai routier -->
             <div style="padding:14px;border:1px solid var(--border-2);border-radius:10px;">
-              <div style="font-size:13px;font-weight:600;color:var(--content-1);margin-bottom:12px;">🏍 Essai routier</div>
+              <div style="font-size:13px;font-weight:600;color:var(--content-1);margin-bottom:12px;"><AppIcon name="i-ri-motorbike-line" /> Essai routier</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px;">
                 <div>
                   <label style="font-size:11px;color:var(--content-3);display:block;margin-bottom:2px;">Km départ</label>
@@ -363,7 +363,7 @@
                   }"
                   @click="cycleEssaiPoint(pt.key)"
                 >
-                  <span>{{ essaiForm.pointsControle[pt.key] === 'ok' ? '✅' : essaiForm.pointsControle[pt.key] === 'nok' ? '❌' : '⬜' }}</span>
+                  <span><AppIcon :name="essaiForm.pointsControle[pt.key] === 'ok' ? 'i-ri-checkbox-circle-line' : essaiForm.pointsControle[pt.key] === 'nok' ? 'i-ri-close-circle-line' : 'i-ri-checkbox-blank-line'" /></span>
                   {{ pt.label }}
                 </button>
               </div>
@@ -381,12 +381,12 @@
               :disabled="rapportSaving"
               @click="saveRapport"
             >
-              {{ rapportSaving ? 'Enregistrement…' : '💾 Enregistrer le rapport' }}
+              {{ rapportSaving ? 'Enregistrement…' : 'Enregistrer le rapport' }}
             </button>
 
             <!-- Signature mécanicien -->
             <div v-if="!rapport.signature_mecanicien" style="border-top:1px solid var(--border-2);padding-top:16px;">
-              <p style="font-size:13px;font-weight:600;color:var(--content-1);margin-bottom:8px;">✍️ Signature mécanicien</p>
+              <p style="font-size:13px;font-weight:600;color:var(--content-1);margin-bottom:8px;"><AppIcon name="i-ri-quill-pen-line" /> Signature mécanicien</p>
               <p style="font-size:12px;color:var(--content-3);margin-bottom:10px;">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
               <canvas
                 ref="sigRapportCanvas"
@@ -394,19 +394,19 @@
                 style="width:100%;aspect-ratio:4/1;border-radius:10px;background:var(--surface-2);touch-action:none;cursor:crosshair;"
               ></canvas>
               <div style="display:flex;gap:8px;margin-top:8px;">
-                <button class="btn btn-ghost" style="flex:1;font-size:12px;" @click="clearRapportSig">↺ Effacer</button>
+                <button class="btn btn-ghost" style="flex:1;font-size:12px;" @click="clearRapportSig"><AppIcon name="i-ri-eraser-line" /> Effacer</button>
                 <button
                   class="btn btn-success"
                   style="flex:2;font-size:12px;"
                   :disabled="!rapportSigDrawn || rapportSigning"
                   @click="signRapport"
-                >{{ rapportSigning ? 'Signature…' : '✓ Signer le rapport' }}</button>
+                >{{ rapportSigning ? 'Signature…' : 'Signer le rapport' }}</button>
               </div>
               <div v-if="rapportSignError" style="margin-top:8px;padding:8px 12px;background:var(--error-soft);border:1px solid var(--error);border-radius:8px;color:var(--error-content);font-size:12px;">{{ rapportSignError }}</div>
             </div>
 
             <div v-else style="padding:12px;background:var(--success-soft);border:1px solid var(--success);border-radius:10px;font-size:13px;color:var(--success-content);">
-              ✅ Rapport signé par le mécanicien — en attente de signature client lors de la restitution.
+              <AppIcon name="i-ri-checkbox-circle-line" /> Rapport signé par le mécanicien — en attente de signature client lors de la restitution.
             </div>
           </div>
         </div>
@@ -724,7 +724,7 @@ const kpis = computed(() => ({
 const priorityAction = computed(() => {
   const receptions = todoRdvs.value.filter(r => r.status === 'reception')
   if (receptions.length) return `Démarrer : ${receptions[0].client_nom} — ${receptions[0].vehicule_info}`
-  if (activeRdv.value && progressPct.value > 100) return `⚠️ Intervention en cours en retard — terminer rapidement`
+  if (activeRdv.value && progressPct.value > 100) return `Intervention en cours en retard — terminer rapidement`
   if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
   if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
   return null

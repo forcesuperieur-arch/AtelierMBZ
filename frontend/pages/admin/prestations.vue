@@ -12,7 +12,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
             <span style="font-size:15px;font-weight:700;color:var(--content-1);">Catalogue prestations</span>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="bootstrapCatalog">📦 Initialiser le catalogue</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="bootstrapCatalog"><AppIcon name="i-ri-archive-line" /> Initialiser le catalogue</button>
               <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
             </div>
           </div>
@@ -65,8 +65,8 @@
 
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" style="font-size:12px;color:var(--info-content);" @click="openTarifModal(row.original)">⚙ Configurer</button>
-            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--info-content);" @click="openTarifModal(row.original)"><AppIcon name="i-ri-settings-3-line" /> Configurer</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePrestation(row.original.id)"><AppIcon name="i-ri-database-2-line" /> Archiver</button>
           </div>
         </template>
       </UTable>
@@ -79,7 +79,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
-              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -114,7 +114,7 @@
                 <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
                 <div style="font-size:12px;color:var(--content-3);">Forfait, horaire ou sur devis selon chaque type de moto.</div>
               </div>
-              <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 

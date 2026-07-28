@@ -5,7 +5,7 @@
         <div class="page-title">Planning</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" :disabled="loading || refreshing" @click="refreshPlanning">
-            {{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}
+            <AppIcon v-if="!(refreshing)" name="i-ri-refresh-line" />{{ refreshing ? 'Actualisation…' : 'Actualiser' }}
           </button>
           <button v-if="canCreateRdv" class="btn btn-primary" @click="openQuickCreate()">+ RDV rapide</button>
         </div>
@@ -57,7 +57,7 @@
         <!-- Recherche + résumé + réinitialisation -->
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="position:relative;flex:1;min-width:220px;max-width:420px;">
-            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--content-3);font-size:13px;pointer-events:none;">🔍</span>
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--content-3);font-size:13px;pointer-events:none;"><AppIcon name="i-ri-search-line" /></span>
             <input
               v-model="searchQuery"
               type="text"
@@ -70,7 +70,7 @@
               style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--content-3);font-size:14px;cursor:pointer;"
               title="Effacer la recherche"
               @click="searchQuery = ''"
-            >✕</button>
+            ><AppIcon name="i-ri-close-line" /></button>
           </div>
           <span style="font-size:12px;color:var(--content-3);">
             <strong style="color:var(--content-1);">{{ filterSummary.shown }}</strong> affichés<template v-if="filterSummary.hidden"> · <span style="color:var(--warning-content);">{{ filterSummary.hidden }} masqués</span></template>
@@ -80,7 +80,7 @@
             style="margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);cursor:pointer;"
             @click="resetFilters"
           >
-            ✕ Réinitialiser les filtres
+            <AppIcon name="i-ri-close-line" /> Réinitialiser les filtres
           </button>
         </div>
 
@@ -130,7 +130,7 @@
             :title="showUnassigned ? 'Masquer les RDV non affectés' : 'Afficher les RDV non affectés'"
             @click="showUnassigned = !showUnassigned"
           >
-            {{ showUnassigned ? '☑' : '☐' }} Non affectés <span class="chip-count">{{ unassignedCount }}</span>
+            <AppIcon :name="showUnassigned ? 'i-ri-checkbox-line' : 'i-ri-checkbox-blank-line'" /> Non affectés <span class="chip-count">{{ unassignedCount }}</span>
           </button>
         </div>
 
@@ -195,7 +195,7 @@
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <span style="font-weight:700;color:var(--content-1);">Créer un RDV rapide</span>
-              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false">✕</button>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -402,7 +402,7 @@
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <span style="font-weight:700;color:var(--content-1);">Confirmer le déplacement</span>
-              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="cancelMove">✕</button>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="cancelMove" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -441,7 +441,7 @@
                 <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
                 <span v-if="selectedIsHistorical" style="font-size:11px;color:var(--success-content);background:var(--success-soft);border:1px solid var(--success);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
               </div>
-              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showRdvModal = false">✕</button>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showRdvModal = false" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -450,7 +450,7 @@
           <div v-else-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;">
             <!-- Demande d'annulation venant de l'espace client -->
             <div v-if="selectedRdv.annulation_demandee_at" style="padding:12px 14px;border-radius:10px;background:var(--warning-soft);border:1px solid var(--warning);">
-              <div style="font-size:13px;font-weight:700;color:var(--warning-content);margin-bottom:4px;">⚠️ Demande d'annulation client</div>
+              <div style="font-size:13px;font-weight:700;color:var(--warning-content);margin-bottom:4px;"><AppIcon name="i-ri-error-warning-line" /> Demande d'annulation client</div>
               <div style="font-size:12px;color:var(--content-2);margin-bottom:10px;">
                 Le client a demandé l'annulation de ce rendez-vous le {{ formatDateDisplay(selectedRdv.annulation_demandee_at) }}.
               </div>
@@ -469,7 +469,7 @@
               <span
                 data-testid="rdv-litige-badge"
                 style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--error-soft);border:1px solid var(--error);font-size:12px;font-weight:700;color:var(--error-content);"
-              >⚠️ Litige restitution</span>
+              ><AppIcon name="i-ri-error-warning-line" /> Litige restitution</span>
               <div
                 v-if="selectedRdv.litige_commentaire"
                 data-testid="rdv-litige-commentaire"
@@ -563,18 +563,18 @@
               <!-- Enhanced Reception Panel -->
               <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                  <div style="font-size:14px;font-weight:700;color:var(--accent-content);">📥 Réception du véhicule</div>
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus">↻ Statut PDA</button>
+                  <div style="font-size:14px;font-weight:700;color:var(--accent-content);"><AppIcon name="i-ri-inbox-line" /> Réception du véhicule</div>
+                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus"><AppIcon name="i-ri-refresh-line" /> Statut PDA</button>
                 </div>
 
                 <!-- Companion QR + Link -->
                 <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
                   <div style="flex:1;">
-                    <div style="font-size:12px;font-weight:600;color:var(--content-1);margin-bottom:6px;">📱 Compagnon PDA</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-smartphone-line" /> Compagnon PDA</div>
                     <p style="font-size:11px;color:var(--content-3);margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
                     <div style="display:flex;gap:6px;align-items:center;">
                       <input :value="companionUrl" class="form-input" style="font-size:11px;flex:1;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
-                      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl">📋</button>
+                      <button class="btn btn-ghost" aria-label="Copier le lien du compagnon PDA" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl"><AppIcon name="i-ri-clipboard-line" /></button>
                     </div>
                   </div>
                   <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
@@ -586,19 +586,19 @@
                 <!-- Companion Live Status -->
                 <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
                   <div class="reception-status-pill" :class="{ done: companionStatus.photos_count > 0 }">
-                    📸 {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
+                    <AppIcon name="i-ri-camera-line" /> {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
                   </div>
                   <div class="reception-status-pill" :class="{ done: companionStatus.checkup_done > 0 }">
-                    🔎 Checkup {{ companionStatus.checkup_done || 0 }}/10
+                    <AppIcon name="i-ri-search-line" /> Checkup {{ companionStatus.checkup_done || 0 }}/10
                   </div>
                   <div class="reception-status-pill" :class="{ done: companionStatus.has_signature }">
-                    ✍️ Signature {{ companionStatus.has_signature ? '✓' : '✗' }}
+                    <AppIcon name="i-ri-quill-pen-line" /> Signature <AppIcon :name="companionStatus.has_signature ? 'i-ri-check-line' : 'i-ri-close-line'" />
                   </div>
                 </div>
 
                 <!-- Checkup détail -->
                 <div v-if="companionStatus.checkup?.length" style="margin-bottom:14px;">
-                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;">🔎 Détail checkup</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;"><AppIcon name="i-ri-search-line" /> Détail checkup</div>
                   <div style="display:flex;flex-direction:column;gap:4px;">
                     <div v-for="(item, idx) in companionStatus.checkup" :key="idx" style="display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;border-radius:6px;background:var(--overlay-soft);">
                       <span style="color:var(--content-2);">{{ item.label || idx }}</span>
@@ -608,13 +608,13 @@
                     </div>
                   </div>
                   <div v-if="companionStatus.checkup_notes" style="font-size:12px;color:var(--content-3);margin-top:6px;white-space:pre-wrap;">
-                    📝 {{ companionStatus.checkup_notes }}
+                    <AppIcon name="i-ri-draft-line" /> {{ companionStatus.checkup_notes }}
                   </div>
                 </div>
 
                 <!-- Photos réception -->
                 <div v-if="receptionPhotos.length" style="margin-bottom:14px;">
-                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;">📸 Photos réception</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;"><AppIcon name="i-ri-camera-line" /> Photos réception</div>
                   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;">
                     <div v-for="(photo, idx) in receptionPhotos" :key="idx" style="position:relative;">
                       <img :src="photo.url || photo.src" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:white;cursor:pointer;" @click="openPhotoInTab(photo.url || photo.src)" />
@@ -639,7 +639,7 @@
 
                 <!-- Signature warning -->
                 <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--error-soft);border:1px solid var(--error);font-size:12px;color:var(--error-content);">
-                  ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
+                  <AppIcon name="i-ri-error-warning-line" /> Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
                 </div>
               </div>
 
@@ -656,7 +656,7 @@
 
             <!-- Document OR unique -->
             <div v-if="selectedRdv.ordres_reparation?.length" style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
-              <div style="font-size:13px;font-weight:700;color:var(--content-1);margin-bottom:10px;">📄 Ordre de Réparation</div>
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);margin-bottom:10px;"><AppIcon name="i-ri-file-text-line" /> Ordre de Réparation</div>
               <div style="display:flex;flex-direction:column;gap:6px;">
                 <div v-for="or in selectedRdv.ordres_reparation" :key="or.id" style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
                   <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -665,10 +665,10 @@
                   </div>
                   <!-- Signatures -->
                   <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client réception {{ or.signature_client ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_atelier_reception ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Atelier réception {{ or.signature_atelier_reception ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_mecanicien ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Mécanicien {{ or.signature_mecanicien ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client_restitution ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client restitution {{ or.signature_client_restitution ? '✓' : '—' }}</span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client réception <AppIcon v-if="or.signature_client" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_atelier_reception ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Atelier réception <AppIcon v-if="or.signature_atelier_reception" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_mecanicien ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Mécanicien <AppIcon v-if="or.signature_mecanicien" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client_restitution ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client restitution <AppIcon v-if="or.signature_client_restitution" name="i-ri-check-line" /><template v-else>—</template></span>
                   </div>
                   <div v-if="or.travaux_realises" style="font-size:11px;color:var(--content-3);">
                     <span style="color:var(--content-3);">Travaux :</span> {{ or.travaux_realises.slice(0, 80) }}{{ or.travaux_realises.length > 80 ? '…' : '' }}
@@ -681,7 +681,7 @@
                     :disabled="orDetailLoading === or.id"
                     @click="loadOrDetail(or.id)"
                   >
-                    {{ orDetailLoading === or.id ? 'Chargement…' : (orDetailOpen[or.id] ? '▲ Masquer le document' : '▶ Voir le document complet') }}
+                    <AppIcon v-if="orDetailLoading !== or.id" :name="orDetailOpen[or.id] ? 'i-ri-arrow-up-s-fill' : 'i-ri-play-line'" />{{ orDetailLoading === or.id ? 'Chargement…' : (orDetailOpen[or.id] ? 'Masquer le document' : 'Voir le document complet') }}
                   </button>
 
                   <!-- Panneau détail OR -->
@@ -694,13 +694,13 @@
                       class="btn btn-ghost"
                       style="font-size:12px;padding:6px 12px;align-self:flex-start;text-decoration:none;"
                     >
-                      📄 Télécharger le PDF
+                      <AppIcon name="i-ri-file-text-line" /> Télécharger le PDF
                     </a>
                     <div
                       v-else-if="orDetails[or.id]"
                       style="font-size:12px;color:var(--content-3);padding:6px 12px;align-self:flex-start;"
                     >
-                      📄 PDF disponible une fois l'OR finalisé (statut terminé)
+                      <AppIcon name="i-ri-file-text-line" /> PDF disponible une fois l'OR finalisé (statut terminé)
                     </div>
 
                     <!-- Photos -->
@@ -721,27 +721,27 @@
                     </template>
 
                     <div v-if="orDetails[or.id].travaux" style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
-                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;">📝 Travaux demandés</div>
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;"><AppIcon name="i-ri-draft-line" /> Travaux demandés</div>
                       <div style="font-size:12px;color:var(--content-2);white-space:pre-wrap;">{{ orDetails[or.id].travaux }}</div>
                     </div>
                     <div v-if="orDetails[or.id].etat_vehicule" style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
-                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;">🔍 État véhicule</div>
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;"><AppIcon name="i-ri-search-line" /> État véhicule</div>
                       <div style="font-size:12px;color:var(--content-2);white-space:pre-wrap;">{{ orDetails[or.id].etat_vehicule }}</div>
                     </div>
 
                     <!-- Intervention -->
                     <div v-if="orDetails[or.id].travaux_realises || orDetails[or.id].alertes || orDetails[or.id].recommandations || orDetails[or.id].garantie" style="padding:10px;border-radius:8px;background:var(--success-soft);border:1px solid var(--success);">
-                      <div style="font-size:11px;font-weight:700;color:var(--success-content);margin-bottom:6px;">🔧 Intervention</div>
+                      <div style="font-size:11px;font-weight:700;color:var(--success-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Intervention</div>
                       <div v-if="orDetails[or.id].travaux_realises" style="font-size:12px;color:var(--content-2);margin-bottom:6px;white-space:pre-wrap;"><span style="color:var(--content-3);">Travaux réalisés :</span> {{ orDetails[or.id].travaux_realises }}</div>
-                      <div v-if="orDetails[or.id].alertes?.length" style="font-size:12px;color:var(--error-content);margin-bottom:6px;"><span style="color:var(--error-content);">⚠️ Alertes :</span> {{ Array.isArray(orDetails[or.id].alertes) ? orDetails[or.id].alertes.join(', ') : orDetails[or.id].alertes }}</div>
-                      <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:var(--warning-content);margin-bottom:6px;white-space:pre-wrap;"><span style="color:var(--warning-content);">💡 Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
-                      <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:var(--success-content);white-space:pre-wrap;"><span style="color:var(--success-content);">🛡️ Garantie :</span> {{ orDetails[or.id].garantie }}</div>
+                      <div v-if="orDetails[or.id].alertes?.length" style="font-size:12px;color:var(--error-content);margin-bottom:6px;"><span style="color:var(--error-content);"><AppIcon name="i-ri-error-warning-line" /> Alertes :</span> {{ Array.isArray(orDetails[or.id].alertes) ? orDetails[or.id].alertes.join(', ') : orDetails[or.id].alertes }}</div>
+                      <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:var(--warning-content);margin-bottom:6px;white-space:pre-wrap;"><span style="color:var(--warning-content);"><AppIcon name="i-ri-lightbulb-line" /> Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
+                      <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:var(--success-content);white-space:pre-wrap;"><span style="color:var(--success-content);"><AppIcon name="i-ri-shield-line" /> Garantie :</span> {{ orDetails[or.id].garantie }}</div>
                       <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:var(--content-2);margin-top:4px;"><span style="color:var(--content-3);">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
                     </div>
 
                     <!-- Entretien fluides -->
                     <div style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
-                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;">🔧 Entretien des fluides recommandé</div>
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</div>
                       <div style="font-size:12px;color:var(--content-2);">Huile moteur — <strong style="color:var(--info-content);">tous les ans</strong></div>
                       <div style="font-size:12px;color:var(--content-2);">Liquide de frein — <strong style="color:var(--info-content);">tous les 2 ans</strong></div>
                       <div style="font-size:12px;color:var(--content-2);">Liquide de refroidissement — <strong style="color:var(--info-content);">tous les 3 ans</strong></div>
@@ -750,22 +750,22 @@
                     <!-- Signatures images -->
                     <div style="display:flex;flex-direction:column;gap:8px;">
                       <div v-if="orDetails[or.id].signature_client" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
-                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;">✍️ Signature client réception</div>
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature client réception</div>
                         <img :src="orDetails[or.id].signature_client" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
                         <div v-if="orDetails[or.id].signed_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signed_at }}</div>
                       </div>
                       <div v-if="orDetails[or.id].signature_atelier_reception" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
-                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;">✍️ Signature atelier réception</div>
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature atelier réception</div>
                         <img :src="orDetails[or.id].signature_atelier_reception" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
                         <div v-if="orDetails[or.id].signe_receptionniste_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_receptionniste_at }}</div>
                       </div>
                       <div v-if="orDetails[or.id].signature_mecanicien" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
-                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;">✍️ Signature mécanicien</div>
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature mécanicien</div>
                         <img :src="orDetails[or.id].signature_mecanicien" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
                         <div v-if="orDetails[or.id].signe_mecanicien_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_mecanicien_at }}</div>
                       </div>
                       <div v-if="orDetails[or.id].signature_client_restitution" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
-                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;">✍️ Signature client restitution</div>
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature client restitution</div>
                         <img :src="orDetails[or.id].signature_client_restitution" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
                         <div v-if="orDetails[or.id].signe_client_restitution_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_client_restitution_at }}</div>
                       </div>
@@ -791,6 +791,7 @@
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
+                  <AppIcon v-if="transition.icon && transitioning !== transition.name" :name="transition.icon" />
                   {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
                 </button>
                 <!-- Bouton annuler (discret) -->
@@ -801,6 +802,7 @@
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
+                  <AppIcon v-if="transition.icon && transitioning !== transition.name" :name="transition.icon" />
                   {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
                 </button>
               </div>
@@ -945,16 +947,16 @@ const {
   typeKey: 'vehicule_type',
 })
 
-const transitionCatalog: Record<string, { label: string; color: string }> = {
-  reserver: { label: '📌 Réserver', color: 'neutral' },
-  confirmer: { label: '✅ Confirmer', color: 'primary' },
-  reception: { label: '📥 Réceptionner', color: 'warning' },
-  start_travail: { label: '🔧 Démarrer', color: 'warning' },
-  terminer: { label: '✅ Terminer', color: 'success' },
-  restituer: { label: '🚚 Restituer', color: 'info' },
-  facturer: { label: '💶 Facturer', color: 'primary' },
-  payer: { label: '💳 Encaisser', color: 'success' },
-  annuler: { label: '❌ Annuler', color: 'error' },
+const transitionCatalog: Record<string, { icon: string; label: string; color: string }> = {
+  reserver: { icon: 'i-ri-pushpin-line', label: 'Réserver', color: 'neutral' },
+  confirmer: { icon: 'i-ri-checkbox-circle-line', label: 'Confirmer', color: 'primary' },
+  reception: { icon: 'i-ri-inbox-line', label: 'Réceptionner', color: 'warning' },
+  start_travail: { icon: 'i-ri-tools-line', label: 'Démarrer', color: 'warning' },
+  terminer: { icon: 'i-ri-checkbox-circle-line', label: 'Terminer', color: 'success' },
+  restituer: { icon: 'i-ri-truck-line', label: 'Restituer', color: 'info' },
+  facturer: { icon: 'i-ri-money-euro-circle-line', label: 'Facturer', color: 'primary' },
+  payer: { icon: 'i-ri-bank-card-line', label: 'Encaisser', color: 'success' },
+  annuler: { icon: 'i-ri-close-circle-line', label: 'Annuler', color: 'error' },
 }
 
 // Séquence de workflow : pour chaque statut, quelle est la prochaine transition attendue
@@ -1403,6 +1405,7 @@ function fallbackTransitionsForStatus(status?: string) {
   if (!seq) return []
   return [seq.next, seq.cancel].filter((n): n is string => !!n).map((name) => ({
     name,
+    icon: transitionCatalog[name]?.icon ?? '',
     label: transitionCatalog[name]?.label ?? name,
     color: transitionCatalog[name]?.color ?? 'neutral',
   }))
@@ -1598,6 +1601,7 @@ async function loadAvailableTransitions(id: number) {
       .filter((name: string) => allowed.has(name))
       .map((name: string) => ({
         name,
+        icon: transitionCatalog[name]?.icon ?? '',
         label: transitionCatalog[name]?.label ?? name,
         color: transitionCatalog[name]?.color ?? 'neutral',
       }))
@@ -1618,14 +1622,14 @@ async function reloadSelectedRdv(id: number) {
 
 function photoTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    checkin: '📸 Check-in / état des lieux',
-    reception: '📸 Photos réception',
-    avant_travaux: '📸 Photos avant travaux',
-    en_cours: '📸 Photos en cours',
-    apres_travaux: '📸 Photos après travaux',
-    restitution: '📸 Photos restitution',
-    probleme: '📸 Photos problème',
-    reception_base64: '📸 Photos PDA réception',
+    checkin: 'Check-in / état des lieux',
+    reception: 'Photos réception',
+    avant_travaux: 'Photos avant travaux',
+    en_cours: 'Photos en cours',
+    apres_travaux: 'Photos après travaux',
+    restitution: 'Photos restitution',
+    probleme: 'Photos problème',
+    reception_base64: 'Photos PDA réception',
   }
   return labels[type] || type
 }

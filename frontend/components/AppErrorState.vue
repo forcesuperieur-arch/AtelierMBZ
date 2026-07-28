@@ -1,6 +1,6 @@
 <template>
   <div class="app-state app-state-error">
-    <div class="app-state-icon" aria-hidden="true">⚠️</div>
+    <div class="app-state-icon" aria-hidden="true"><AppIcon name="i-ri-error-warning-line" /></div>
     <div class="app-state-title">{{ title }}</div>
     <div class="app-state-description">{{ description }}</div>
     <button class="btn btn-primary" @click="$emit('retry')">{{ actionLabel }}</button>

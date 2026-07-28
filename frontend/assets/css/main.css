@@ -312,6 +312,23 @@ select.form-input option {
   color: var(--content-1);
 }
 
+/* Icônes RemixIcon (`<UIcon class="app-icon">`), en remplacement des emoji que
+   le design system proscrit.
+
+   Le dimensionnement est en `em` : l'icône suit la taille du texte qui
+   l'entoure, sans qu'aucun appel n'ait à la régler. `flex-shrink: 0` empêche
+   qu'elle soit écrasée dans une rangée `.btn` serrée, et le décalage vertical
+   la pose sur la ligne de base plutôt que sur le jambage. La couleur vient de
+   `currentColor` : une icône hérite donc du token de son parent, et bascule
+   avec le thème sans réglage. */
+.app-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

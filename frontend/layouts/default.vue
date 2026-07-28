@@ -37,7 +37,7 @@
         {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
       </div>
       <button class="nav-btn nav-logout" @click="auth.logout()">
-        <span>⏻</span>
+        <span class="nav-icon"><AppIcon name="i-ri-shut-down-line" /></span>
         <span class="nav-label">Déconnexion</span>
       </button>
     </nav>
@@ -46,7 +46,7 @@
     <div class="main-area">
       <!-- TOPBAR -->
       <header class="topbar">
-        <button class="topbar-menu-btn" @click="appStore.toggleSidebar()">☰</button>
+        <button class="topbar-menu-btn" aria-label="Afficher ou masquer le menu" @click="appStore.toggleSidebar()"><AppIcon name="i-ri-menu-line" /></button>
         <div class="topbar-brand">
           <img v-if="atelierLogoUrl" :src="atelierLogoUrl" :alt="atelierName" class="topbar-brand-logo" />
           <span v-else class="topbar-brand-fallback">{{ atelierInitial }}</span>
@@ -179,21 +179,21 @@ const currentSection = computed(() => {
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard' },
-    { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
-    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
-    { to: '/reception', icon: '📥', label: 'Réception', section: 'planning' },
-    { to: '/en-atelier', icon: '⏳', label: 'En atelier', section: 'planning' },
-    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
-    { to: '/demandes-travaux-supp', icon: '🛠️', label: 'Travaux complémentaires', section: 'workshop' },
-    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },
-    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients' },
-    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos' },
-    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
-    { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
-    { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
-    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
-    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
+    { to: '/', icon: 'i-ri-bar-chart-2-line', label: 'Stat', section: 'dashboard' },
+    { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
+    { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
+    { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
+    { to: '/en-atelier', icon: 'i-ri-hourglass-line', label: 'En atelier', section: 'planning' },
+    { to: '/workshop', icon: 'i-ri-tools-line', label: 'Ponts & Méca', section: 'workshop' },
+    { to: '/demandes-travaux-supp', icon: 'i-ri-hammer-line', label: 'Travaux complémentaires', section: 'workshop' },
+    { to: '/suivi', icon: 'i-ri-eye-line', label: 'Suivi Live', section: 'suivi' },
+    { to: '/clients', icon: 'i-ri-group-line', label: 'Clients', section: 'clients' },
+    { to: '/motos', icon: 'i-ri-motorbike-line', label: 'Fiches moto', section: 'motos' },
+    { to: '/devis', icon: 'i-ri-draft-line', label: 'Devis', section: 'devis' },
+    { to: '/facturation', icon: 'i-ri-bank-card-line', label: 'Factures', section: 'facturation' },
+    { to: '/stock', icon: 'i-ri-archive-line', label: 'Stock', section: 'stock' },
+    { to: '/vo', icon: 'i-ri-price-tag-3-line', label: 'VO', section: 'vo' },
+    { to: '/admin', icon: 'i-ri-settings-3-line', label: 'Administration', section: 'admin' },
   ]
   return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
 })

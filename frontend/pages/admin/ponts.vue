@@ -46,11 +46,11 @@
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="editPont(row.original)">✏ Modifier</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--accent-content);" @click="editPont(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
             <button class="btn btn-ghost" style="font-size:12px;color:var(--info-content);" @click="toggleActive(row.original)">
-              {{ row.original.est_actif ? '🔒 Désactiver' : '🔓 Activer' }}
+              <AppIcon :name="row.original.est_actif ? 'i-ri-lock-line' : 'i-ri-lock-unlock-line'" /> {{ row.original.est_actif ? 'Désactiver' : 'Activer' }}
             </button>
-            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePont(row.original)">🗄 Archiver</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePont(row.original)"><AppIcon name="i-ri-database-2-line" /> Archiver</button>
           </div>
         </template>
       </UTable>
@@ -62,7 +62,7 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:600;">{{ editId ? 'Modifier' : 'Nouveau' }} pont</span>
-              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
           <form @submit.prevent="savePont" style="display:flex;flex-direction:column;gap:12px;">

@@ -17,7 +17,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
           <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ demande.client_nom || 'Client' }}</div>
-          <div v-if="demande.vehicule_info" style="color:var(--content-3);">🏍 {{ demande.vehicule_info }}</div>
+          <div v-if="demande.vehicule_info" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ demande.vehicule_info }}</div>
           <div v-if="demande.vehicule_plaque" style="color:var(--content-3);">{{ demande.vehicule_plaque }}</div>
         </div>
         <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
@@ -97,7 +97,7 @@
               style="background:none;border:none;color:var(--error-content);font-size:16px;cursor:pointer;"
               title="Supprimer"
               @click="removePrestation(i)"
-            >🗑</button>
+            ><AppIcon name="i-ri-delete-bin-line" /></button>
           </div>
 
           <!-- Ajouter prestation -->
@@ -126,9 +126,9 @@
           v-if="isSignatureEnAttente"
           data-testid="badge-signature-attente"
           style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);font-weight:700;"
-        >✍️ Signature en attente</span>
+        ><AppIcon name="i-ri-quill-pen-line" /> Signature en attente</span>
         <span v-if="demande.decision_client" style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--info-soft);color:var(--info-content);font-weight:700;">
-          Décision client : {{ demande.decision_client === 'accepte' ? '✅ Accepté' : '❌ Refusé' }}
+          Décision client : <AppIcon :name="demande.decision_client === 'accepte' ? 'i-ri-checkbox-circle-line' : 'i-ri-close-circle-line'" /> {{ demande.decision_client === 'accepte' ? 'Accepté' : 'Refusé' }}
         </span>
         <span v-if="demande.or_complementaire_id" style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);font-weight:700;">
           OR complémentaire #{{ demande.or_complementaire_id }}
@@ -153,20 +153,20 @@
           class="btn btn-ghost"
           data-testid="btn-decision-telephone"
           @click="ouvrirDecisionTelephone"
-        >📞 Décision téléphonique</button>
+        ><AppIcon name="i-ri-phone-line" /> Décision téléphonique</button>
 
         <button
           v-if="isSignatureEnAttente && demande?.token"
           class="btn btn-primary"
           data-testid="btn-faire-signer-comptoir"
           @click="faireSignerComptoir"
-        >✍️ Faire signer au comptoir</button>
+        ><AppIcon name="i-ri-quill-pen-line" /> Faire signer au comptoir</button>
 
         <button
           v-if="canEdit && !isEditing"
           class="btn btn-primary"
           @click="startEditing"
-        >✏️ Modifier</button>
+        ><AppIcon name="i-ri-pencil-line" /> Modifier</button>
 
         <button
           v-if="isEditing"
@@ -180,7 +180,7 @@
           class="btn btn-primary"
           :disabled="saving"
           @click="saveChanges"
-        >{{ saving ? 'Sauvegarde…' : '💾 Sauvegarder' }}</button>
+        ><AppIcon v-if="!(saving)" name="i-ri-save-line" />{{ saving ? 'Sauvegarde…' : 'Sauvegarder' }}</button>
 
         <!-- Pas de page de détail OR : référence affichée, sans lien mort. -->
         <span

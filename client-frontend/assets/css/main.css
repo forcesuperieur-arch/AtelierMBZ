@@ -12,6 +12,18 @@
   box-sizing: border-box;
 }
 
+/* Icônes RemixIcon (`<AppIcon>`), en remplacement des emoji que le design
+   system proscrit. Règles identiques à celles du front staff : dimension en
+   `em` pour suivre le texte, couleur héritée de `currentColor`, donc bascule
+   avec le thème sans réglage. */
+.app-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
 html, body {
   margin: 0;
   padding: 0;

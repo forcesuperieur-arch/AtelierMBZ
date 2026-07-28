@@ -23,7 +23,7 @@
     <template v-else>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
+          <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop"><AppIcon v-if="!(refreshing)" name="i-ri-refresh-line" />{{ refreshing ? 'Actualisation…' : 'Actualiser' }}</button>
           <NuxtLink class="btn btn-primary" to="/planning" style="text-decoration:none;">Ouvrir le planning</NuxtLink>
           <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" style="text-decoration:none;">+ RDV rapide</NuxtLink>
         </div>
@@ -52,10 +52,10 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'">🔧 Ponts</button>
-        <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'">👤 Mécaniciens</button>
-        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'">⏱ Temps par type</button>
-        <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'">📅 Absences</button>
+        <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'"><AppIcon name="i-ri-tools-line" /> Ponts</button>
+        <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'"><AppIcon name="i-ri-user-line" /> Mécaniciens</button>
+        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'"><AppIcon name="i-ri-timer-line" /> Temps par type</button>
+        <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'"><AppIcon name="i-ri-calendar-line" /> Absences</button>
       </div>
 
       <!-- PONTS TAB -->
@@ -113,7 +113,7 @@
               </div>
 
               <div style="padding:8px 10px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent);margin-bottom:10px;font-size:12px;color:var(--content-1);">
-                👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
+                <AppIcon name="i-ri-user-line" /> {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
               </div>
 
               <div v-if="pont.current_rdv" style="margin-bottom:10px;">
@@ -200,7 +200,7 @@
         </div>
         <AppEmptyState
           v-else
-          icon="🔧"
+          icon="i-ri-tools-line"
           title="Aucun pont visible"
           description="Aucun pont n’est remonté pour l’atelier actif. Vérifie la configuration atelier ou recharge la page."
         />
@@ -227,7 +227,7 @@
           </div>
           <!-- Current intervention -->
           <div v-if="m.currentRdv" style="padding:8px 10px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning);font-size:12px;margin-bottom:10px;">
-            <div style="color:var(--warning-content);font-weight:600;margin-bottom:4px;">🔧 En intervention</div>
+            <div style="color:var(--warning-content);font-weight:600;margin-bottom:4px;"><AppIcon name="i-ri-tools-line" /> En intervention</div>
             <div style="color:var(--content-2);">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
             <div v-if="m.currentRdv.temps_estime" style="margin-top:6px;">
               <div style="background:var(--dark3,var(--surface-2));border-radius:6px;height:6px;overflow:hidden;">
@@ -237,13 +237,13 @@
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--content-3);">
-            <span>📧 {{ m.email ?? '–' }}</span>
+            <span><AppIcon name="i-ri-mail-line" /> {{ m.email ?? '–' }}</span>
             <span>{{ m.rdvCount }} RDV aujourd'hui</span>
           </div>
         </div>
         <AppEmptyState
           v-if="!mecaniciens.length"
-          icon="👤"
+          icon="i-ri-user-line"
           title="Aucun mécanicien configuré"
           description="Ajoute un mécanicien depuis l’administration pour alimenter cette vue."
         />
@@ -265,7 +265,7 @@
           <UTable v-if="absences.length" :data="absences" :columns="absenceCols" />
           <AppEmptyState
             v-else
-            icon="📅"
+            icon="i-ri-calendar-line"
             title="Aucune absence enregistrée"
             description="L’équipe est complète sur la période affichée."
           />

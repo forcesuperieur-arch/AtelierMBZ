@@ -3,12 +3,12 @@
     <NuxtLayout name="public">
       <div class="companion-container">
         <div v-if="loading" style="text-align:center;padding:40px;">
-          <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+          <div style="font-size:32px;margin-bottom:12px;"><AppIcon name="i-ri-hourglass-line" /></div>
           <p style="color:var(--content-3);">Chargement…</p>
         </div>
 
         <div v-else-if="error" style="text-align:center;padding:40px;">
-          <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+          <div style="font-size:48px;margin-bottom:16px;"><AppIcon name="i-ri-forbid-line" /></div>
           <h2 style="color:var(--error-content);font-size:18px;margin-bottom:8px;">Lien invalide</h2>
           <p style="color:var(--content-3);font-size:13px;">{{ error }}</p>
         </div>
@@ -16,7 +16,7 @@
         <div v-else-if="rdv">
           <!-- Header -->
           <div class="companion-header">
-            <div style="font-size:28px;">🏍</div>
+            <div style="font-size:28px;"><AppIcon name="i-ri-motorbike-line" /></div>
             <div>
               <h1 style="font-size:18px;font-weight:800;color:var(--content-1);margin:0;">Réception PDA</h1>
               <p style="font-size:12px;color:var(--content-3);margin:2px 0 0;">RDV #{{ rdv.id }} · {{ rdv.date_rdv }} à {{ rdv.heure_rdv }}</p>
@@ -37,16 +37,16 @@
           <!-- Status Pills -->
           <div class="companion-status-row">
             <div class="companion-pill" :class="{ done: rdv.photos_count > 0 }">
-              📸 {{ rdv.photos_count }} photo{{ rdv.photos_count !== 1 ? 's' : '' }}
+              <AppIcon name="i-ri-camera-line" /> {{ rdv.photos_count }} photo{{ rdv.photos_count !== 1 ? 's' : '' }}
             </div>
             <div class="companion-pill" :class="{ done: carteGriseScanned }">
-              🪪 CG {{ carteGriseScanned ? '✓' : '' }}
+              <AppIcon name="i-ri-id-card-line" /> CG <AppIcon v-if="carteGriseScanned" name="i-ri-check-line" />
             </div>
             <div class="companion-pill" :class="{ done: checkupDone > 0 }">
-              🔎 {{ checkupDone }}/{{ checkupItems.length }}
+              <AppIcon name="i-ri-search-line" /> {{ checkupDone }}/{{ checkupItems.length }}
             </div>
             <div class="companion-pill" :class="{ done: rdv.has_signature }">
-              ✍️ Signé {{ rdv.has_signature ? '✓' : '' }}
+              <AppIcon name="i-ri-quill-pen-line" /> Signé <AppIcon v-if="rdv.has_signature" name="i-ri-check-line" />
             </div>
           </div>
 
@@ -57,7 +57,7 @@
           <!-- Action Buttons (main menu) -->
           <div v-if="!activeSection" class="companion-actions">
             <button class="companion-action-btn" @click="activeSection = 'photos'">
-              <span style="font-size:36px;">📸</span>
+              <span style="font-size:36px;"><AppIcon name="i-ri-camera-line" /></span>
               <div>
                 <span style="font-size:14px;font-weight:700;color:var(--content-1);">Photos véhicule</span>
                 <span style="display:block;font-size:11px;color:var(--content-3);">État extérieur / intérieur</span>
@@ -65,7 +65,7 @@
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'carte-grise'">
-              <span style="font-size:36px;">🪪</span>
+              <span style="font-size:36px;"><AppIcon name="i-ri-id-card-line" /></span>
               <div>
                 <span style="font-size:14px;font-weight:700;color:var(--content-1);">Scanner carte grise</span>
                 <span style="display:block;font-size:11px;color:var(--content-3);">OCR FR / BE auto-remplissage</span>
@@ -73,7 +73,7 @@
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'checkup'">
-              <span style="font-size:36px;">🔎</span>
+              <span style="font-size:36px;"><AppIcon name="i-ri-search-line" /></span>
               <div>
                 <span style="font-size:14px;font-weight:700;color:var(--content-1);">Checkup express</span>
                 <span style="display:block;font-size:11px;color:var(--content-3);">{{ checkupDone }}/{{ checkupItems.length }} point{{ checkupDone > 1 ? 's' : '' }} vérifié{{ checkupDone > 1 ? 's' : '' }}</span>
@@ -81,10 +81,10 @@
             </button>
 
             <button class="companion-action-btn" @click="activeSection = 'signature'">
-              <span style="font-size:36px;">✍️</span>
+              <span style="font-size:36px;"><AppIcon name="i-ri-quill-pen-line" /></span>
               <div>
                 <span style="font-size:14px;font-weight:700;color:var(--content-1);">Signatures réception</span>
-                <span style="display:block;font-size:11px;color:var(--content-3);">{{ rdv.has_signature ? 'Déjà signé ✓' : 'Client + Atelier' }}</span>
+                <span style="display:block;font-size:11px;color:var(--content-3);">{{ rdv.has_signature ? 'Déjà signé' : 'Client + Atelier' }}<AppIcon v-if="rdv.has_signature" name="i-ri-check-line" /></span>
               </div>
             </button>
           </div>
@@ -92,14 +92,14 @@
           <!-- PHOTOS SECTION -->
           <div v-if="activeSection === 'photos'" class="companion-section">
             <div class="companion-section-header">
-              <h2>📸 Photos du véhicule</h2>
-              <button class="companion-close" @click="activeSection = null">✕</button>
+              <h2><AppIcon name="i-ri-camera-line" /> Photos du véhicule</h2>
+              <button class="companion-close" aria-label="Fermer" @click="activeSection = null"><AppIcon name="i-ri-close-line" /></button>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
               <label class="companion-capture-btn">
                 <input type="file" accept="image/*" capture="environment" multiple @change="onPhotosSelected" style="display:none;" />
-                <span style="font-size:24px;">📷</span>
+                <span style="font-size:24px;"><AppIcon name="i-ri-camera-line" /></span>
                 <span>{{ uploading ? 'Envoi en cours…' : 'Prendre une photo' }}</span>
               </label>
 
@@ -115,14 +115,14 @@
           <!-- CARTE GRISE SECTION -->
           <div v-if="activeSection === 'carte-grise'" class="companion-section">
             <div class="companion-section-header">
-              <h2>🪪 Carte grise</h2>
-              <button class="companion-close" @click="activeSection = null">✕</button>
+              <h2><AppIcon name="i-ri-id-card-line" /> Carte grise</h2>
+              <button class="companion-close" aria-label="Fermer" @click="activeSection = null"><AppIcon name="i-ri-close-line" /></button>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
               <label class="companion-capture-btn">
                 <input type="file" accept="image/*" capture="environment" @change="onCarteGriseSelected" style="display:none;" />
-                <span style="font-size:24px;">📷</span>
+                <span style="font-size:24px;"><AppIcon name="i-ri-camera-line" /></span>
                 <span>{{ ocrProcessing ? 'Analyse OCR en cours…' : 'Photographier la carte grise / certificat' }}</span>
               </label>
 
@@ -133,7 +133,7 @@
               </div>
 
               <div v-if="ocrResult" class="companion-card" style="border-color:var(--success);">
-                <div style="font-size:13px;font-weight:700;color:var(--success-content);margin-bottom:10px;">✓ Données extraites — vérifiez et corrigez si besoin</div>
+                <div style="font-size:13px;font-weight:700;color:var(--success-content);margin-bottom:10px;"><AppIcon name="i-ri-check-line" /> Données extraites — vérifiez et corrigez si besoin</div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
                   <div v-for="field in ocrFields" :key="field.key" class="ocr-field">
                     <label>{{ field.label }}</label>
@@ -161,7 +161,7 @@
                   :disabled="ocrSaving"
                   @click="applyOcrData"
                 >
-                  {{ ocrSaving ? 'Application…' : '✓ Appliquer au véhicule' }}
+                  <AppIcon v-if="!(ocrSaving)" name="i-ri-check-line" />{{ ocrSaving ? 'Application…' : 'Appliquer au véhicule' }}
                 </button>
               </div>
             </div>
@@ -170,8 +170,8 @@
           <!-- CHECKUP SECTION -->
           <div v-if="activeSection === 'checkup'" class="companion-section">
             <div class="companion-section-header">
-              <h2>🔎 Checkup express</h2>
-              <button class="companion-close" @click="activeSection = null">✕</button>
+              <h2><AppIcon name="i-ri-search-line" /> Checkup express</h2>
+              <button class="companion-close" aria-label="Fermer" @click="activeSection = null"><AppIcon name="i-ri-close-line" /></button>
             </div>
 
             <p style="font-size:12px;color:var(--content-3);margin:0 0 12px;">
@@ -187,7 +187,7 @@
                 :class="checkup[item.key] || ''"
                 @click="cycleCheckup(item.key)"
               >
-                <span>{{ checkup[item.key] === 'ok' ? '✅' : checkup[item.key] === 'nok' ? '❌' : '⬜' }}</span>
+                <span><AppIcon :name="checkup[item.key] === 'ok' ? 'i-ri-checkbox-circle-line' : checkup[item.key] === 'nok' ? 'i-ri-close-circle-line' : 'i-ri-checkbox-blank-line'" /></span>
                 <span>{{ item.label }}</span>
               </button>
             </div>
@@ -208,19 +208,19 @@
               :disabled="checkupSaving"
               @click="saveCheckup"
             >
-              {{ checkupSaving ? 'Enregistrement…' : '✓ Enregistrer le checkup' }}
+              <AppIcon v-if="!(checkupSaving)" name="i-ri-check-line" />{{ checkupSaving ? 'Enregistrement…' : 'Enregistrer le checkup' }}
             </button>
           </div>
 
           <!-- SIGNATURE SECTION -->
           <div v-if="activeSection === 'signature'" class="companion-section">
             <div class="companion-section-header">
-              <h2>✍️ Signatures réception</h2>
-              <button class="companion-close" @click="activeSection = null">✕</button>
+              <h2><AppIcon name="i-ri-quill-pen-line" /> Signatures réception</h2>
+              <button class="companion-close" aria-label="Fermer" @click="activeSection = null"><AppIcon name="i-ri-close-line" /></button>
             </div>
 
             <div v-if="rdv.has_signature && !resignMode" style="text-align:center;padding:20px;">
-              <div style="font-size:48px;margin-bottom:12px;">✅</div>
+              <div style="font-size:48px;margin-bottom:12px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
               <p style="color:var(--success-content);font-size:15px;font-weight:600;">Réception déjà signée</p>
               <p style="color:var(--content-3);font-size:12px;">Le document est maintenant verrouillé côté atelier.</p>
             </div>
@@ -267,7 +267,7 @@
 
               <div style="display:flex;gap:8px;">
                 <button class="companion-capture-btn" style="flex:1;" @click="clearSignatures">
-                  <span>↺ Effacer</span>
+                  <span><AppIcon name="i-ri-eraser-line" /> Effacer</span>
                 </button>
                 <button
                   class="companion-validate-btn"
@@ -275,7 +275,7 @@
                   :disabled="sigSaving || !hasDrawnClient || !hasDrawnAtelier || !kilometrage"
                   @click="submitSignature"
                 >
-                  {{ sigSaving ? 'Envoi…' : '✓ Valider la réception' }}
+                  <AppIcon v-if="!(sigSaving)" name="i-ri-check-line" />{{ sigSaving ? 'Envoi…' : 'Valider la réception' }}
                 </button>
               </div>
             </div>
@@ -283,7 +283,7 @@
 
           <!-- All-done summary -->
           <div v-if="rdv.has_signature && rdv.photos_count > 0 && checkupDone > 0 && !activeSection" class="companion-card" style="border-color:var(--success);text-align:center;margin-top:8px;">
-            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div style="font-size:32px;margin-bottom:8px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
             <p style="color:var(--success-content);font-weight:700;font-size:14px;">Réception prête à valider</p>
             <p style="color:var(--content-3);font-size:12px;">Le réceptionnaire peut maintenant valider la réception depuis le planning PC.</p>
           </div>

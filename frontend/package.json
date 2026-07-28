@@ -23,6 +23,7 @@
     "vue-chartjs": "^5.3.3"
   },
   "devDependencies": {
+    "@iconify-json/ri": "^1.2.10",
     "@nuxt/eslint": "^1.0.0",
     "@playwright/test": "^1.59.1",
     "@types/qrcode": "^1.5.6",

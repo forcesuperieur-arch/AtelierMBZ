@@ -28,11 +28,12 @@
         <div class="bloc-titre">{{ moto.client_nom || 'Client inconnu' }}</div>
         <div class="ligne-actions">
           <a v-if="moto.client_telephone" :href="`tel:${moto.client_telephone}`" class="btn btn-primary btn-sm">
-            📞 Appeler {{ moto.client_telephone }}
+            <AppIcon name="i-ri-phone-line" /> Appeler {{ moto.client_telephone }}
           </a>
           <span v-else class="note">Aucun numéro de téléphone enregistré.</span>
           <button v-if="moto.client_telephone" class="btn btn-ghost btn-sm" @click="copierTelephone">
-            {{ telephoneCopie ? '✓ Copié' : 'Copier le numéro' }}
+            <AppIcon v-if="telephoneCopie" name="i-ri-check-line" />
+            {{ telephoneCopie ? 'Copié' : 'Copier le numéro' }}
           </button>
         </div>
         <div v-if="moto.derniere_relance" class="note">
@@ -52,10 +53,11 @@
         ></textarea>
         <div class="ligne-actions">
           <button class="btn btn-primary btn-sm" :disabled="relanceEnCours" @click="relancer('email')">
-            {{ relanceEnCours ? 'Envoi…' : '✉ Relancer par e-mail' }}
+            <AppIcon v-if="!relanceEnCours" name="i-ri-mail-line" />
+            {{ relanceEnCours ? 'Envoi…' : 'Relancer par e-mail' }}
           </button>
           <button class="btn btn-ghost btn-sm" :disabled="relanceEnCours" @click="relancer('sms')">
-            💬 Relancer par SMS
+            <AppIcon name="i-ri-chat-3-line" /> Relancer par SMS
           </button>
         </div>
       </div>
@@ -173,27 +175,27 @@ const STATUT_LABELS: Record<string, string> = {
 // Le workflow expose plusieurs alias pour une même étape : on les libelle tous, et
 // les doublons sont masqués par TRANSITIONS_REDONDANTES ci-dessous.
 const TRANSITION_LABELS: Record<string, string> = {
-  start_travail: '▶ Démarrer les travaux',
-  mettre_en_pause: '⏸ Mettre en pause',
-  pause_travail: '⏸ Mettre en pause',
-  reprendre: '▶ Reprendre',
-  reprendre_travail: '▶ Reprendre',
-  attendre_pieces: '📦 En attente de pièces',
-  mettre_en_attente_pieces: '📦 En attente de pièces',
-  reprendre_apres_pieces: '📦 Pièces reçues, reprendre',
-  mettre_en_attente_reprise: '⏭ Reprise remise à plus tard',
-  reprendre_demain: '▶ Reprendre le travail',
-  mettre_en_gardiennage: '🅿 Mettre en gardiennage',
-  passer_gardiennage: '🅿 Mettre en gardiennage',
-  sortir_gardiennage: '🅿 Sortir du gardiennage',
-  terminer: '✓ Terminer',
-  restituer: '🏍 Restituer',
-  restituer_partiel: '🏍 Restitution partielle',
-  reporter: '📅 Reporter le rendez-vous',
-  annuler: '✕ Annuler',
-  no_show: '✕ Client absent',
-  declarer_no_show: '✕ Client absent',
-  facturer: '🧾 Facturer',
+  start_travail: 'Démarrer les travaux',
+  mettre_en_pause: 'Mettre en pause',
+  pause_travail: 'Mettre en pause',
+  reprendre: 'Reprendre',
+  reprendre_travail: 'Reprendre',
+  attendre_pieces: 'En attente de pièces',
+  mettre_en_attente_pieces: 'En attente de pièces',
+  reprendre_apres_pieces: 'Pièces reçues, reprendre',
+  mettre_en_attente_reprise: 'Reprise remise à plus tard',
+  reprendre_demain: 'Reprendre le travail',
+  mettre_en_gardiennage: 'Mettre en gardiennage',
+  passer_gardiennage: 'Mettre en gardiennage',
+  sortir_gardiennage: 'Sortir du gardiennage',
+  terminer: 'Terminer',
+  restituer: 'Restituer',
+  restituer_partiel: 'Restitution partielle',
+  reporter: 'Reporter le rendez-vous',
+  annuler: 'Annuler',
+  no_show: 'Client absent',
+  declarer_no_show: 'Client absent',
+  facturer: 'Facturer',
 }
 
 /** Alias en doublon : on garde une seule entrée par action métier. */

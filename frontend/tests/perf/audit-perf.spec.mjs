@@ -58,13 +58,13 @@ for (const { path, name, needsAuth } of PAGES) {
 
     // Hard thresholds for critical issues
     if (vitals.lcp && vitals.lcp > 4000) {
-      console.warn(`  ⚠️ LCP > 4s: ${vitals.lcp.toFixed(0)}ms`);
+      console.warn(`  LCP > 4s: ${vitals.lcp.toFixed(0)}ms`);
     }
     if (vitals.cls && vitals.cls > 0.25) {
-      console.warn(`  ⚠️ CLS > 0.25: ${vitals.cls.toFixed(4)}`);
+      console.warn(`  CLS > 0.25: ${vitals.cls.toFixed(4)}`);
     }
     if (vitals.transferSize && vitals.transferSize > 5 * 1024 * 1024) {
-      console.warn(`  ⚠️ Transfer > 5MB: ${(vitals.transferSize / 1024 / 1024).toFixed(1)}MB`);
+      console.warn(`  Transfer > 5MB: ${(vitals.transferSize / 1024 / 1024).toFixed(1)}MB`);
     }
 
     expect(vitals.lcp || 0).toBeLessThan(5000);

@@ -1,7 +1,7 @@
 <template>
   <div class="public-card" style="max-width:640px;">
     <div class="public-card-header">
-      <div style="font-size:32px;margin-bottom:8px;">🛠️</div>
+      <div style="font-size:32px;margin-bottom:8px;"><AppIcon name="i-ri-hammer-line" /></div>
       <h1 class="text-gradient" style="font-size:22px;font-weight:800;">
         {{ demande?.confirmation_telephone ? 'Confirmez votre accord' : 'Demande de travaux complémentaires' }}
       </h1>
@@ -20,7 +20,7 @@
     <template v-else-if="demande">
       <!-- Accord donné par téléphone, déjà confirmé par signature -->
       <div v-if="isAccordTelConfirme" data-testid="etat-accord-confirme" style="padding:24px;text-align:center;border-radius:12px;background:var(--success-soft);border:1px solid var(--success);color:var(--success-content);">
-        <div style="font-size:40px;margin-bottom:12px;">✅</div>
+        <div style="font-size:40px;margin-bottom:12px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
         <div style="font-size:16px;font-weight:800;margin-bottom:6px;">
           Accord confirmé le {{ formatDateFr(demande.signed_at) }}
         </div>
@@ -35,7 +35,7 @@
 
       <div v-else-if="!demande.confirmation_telephone && (demande.statut === 'accepte' || demande.statut === 'refuse')" style="padding:24px;text-align:center;border-radius:12px;"
         :style="demande.statut === 'accepte' ? 'background:var(--success-soft);border:1px solid var(--success);color:var(--success-content);' : 'background:var(--error-soft);border:1px solid var(--error);color:var(--error-content);'">
-        <div style="font-size:40px;margin-bottom:12px;">{{ demande.statut === 'accepte' ? '✅' : '❌' }}</div>
+        <div style="font-size:40px;margin-bottom:12px;"><AppIcon :name="demande.statut === 'accepte' ? 'i-ri-checkbox-circle-line' : 'i-ri-close-circle-line'" /></div>
         <div style="font-size:16px;font-weight:800;margin-bottom:6px;">
           {{ demande.statut === 'accepte' ? 'Travaux acceptés' : 'Travaux refusés' }}
         </div>
@@ -45,7 +45,7 @@
       <template v-else>
         <!-- urgence badge -->
         <div v-if="demande.urgence === 'urgent'" style="margin-bottom:14px;padding:10px 14px;background:var(--error-soft);border:1px solid var(--error);border-radius:10px;color:var(--error-content);font-size:13px;font-weight:700;">
-          ⚠️ Intervention urgente — réponse rapide souhaitée
+          <AppIcon name="i-ri-error-warning-line" /> Intervention urgente — réponse rapide souhaitée
         </div>
 
         <div v-if="demande.description" style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);color:var(--content-1);font-size:13px;line-height:1.5;">
@@ -72,7 +72,7 @@
         <!-- confirmation d'un accord donné par téléphone : signature seule, pas de refus -->
         <div v-if="demande.confirmation_telephone" data-testid="bloc-confirmation-telephone" style="display:flex;flex-direction:column;gap:12px;">
           <div style="padding:12px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--content-1);font-size:13px;line-height:1.5;">
-            📞 Vous avez donné votre accord par téléphone le
+            <AppIcon name="i-ri-phone-line" /> Vous avez donné votre accord par téléphone le
             <strong>{{ formatDateFr(demande.accord_telephone_at) }}</strong>.
             Pour finaliser, il ne reste qu'à signer ci-dessous l'ordre de réparation complémentaire.
           </div>
@@ -82,7 +82,7 @@
           </div>
           <button class="btn btn-ghost" @click="clearSig">Effacer</button>
           <button class="btn btn-primary" data-testid="btn-confirmer-signature" style="padding:14px;font-weight:800;" :disabled="submitting || !hasSigned" @click="confirmer">
-            {{ submitting ? 'Envoi…' : '✍️ Je confirme mon accord' }}
+            <AppIcon v-if="!(submitting)" name="i-ri-quill-pen-line" />{{ submitting ? 'Envoi…' : 'Je confirme mon accord' }}
           </button>
           <div style="font-size:11px;color:var(--content-3);text-align:center;margin-top:4px;">
             En signant, vous confirmez l'accord déjà donné par téléphone.
@@ -93,10 +93,10 @@
         <!-- actions -->
         <div v-else-if="step === 'choice'" style="display:flex;flex-direction:column;gap:12px;">
           <button class="btn btn-primary" style="padding:14px;font-weight:800;" @click="step = 'sign'">
-            ✅ J'accepte ces travaux
+            <AppIcon name="i-ri-checkbox-circle-line" /> J'accepte ces travaux
           </button>
           <button class="btn btn-ghost" style="padding:14px;color:var(--error-content);border-color:var(--error);" @click="refuse" :disabled="submitting">
-            ❌ Je refuse ces travaux
+            <AppIcon name="i-ri-close-circle-line" /> Je refuse ces travaux
           </button>
           <div style="font-size:11px;color:var(--content-3);text-align:center;margin-top:4px;">
             En acceptant, vous signerez électroniquement un ordre de réparation complémentaire.
@@ -113,7 +113,7 @@
             <button class="btn btn-ghost" style="flex:1;" @click="step = 'choice'">Retour</button>
           </div>
           <button class="btn btn-primary" style="padding:14px;font-weight:800;" :disabled="submitting || !hasSigned" @click="accept">
-            {{ submitting ? 'Envoi…' : '✍️ Valider et accepter' }}
+            <AppIcon v-if="!(submitting)" name="i-ri-quill-pen-line" />{{ submitting ? 'Envoi…' : 'Valider et accepter' }}
           </button>
         </div>
       </template>

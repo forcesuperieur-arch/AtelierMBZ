@@ -2,7 +2,7 @@
   <div>
     <div class="planning-toolbar" style="margin-bottom: 18px;">
       <div class="planning-toolbar-group">
-        <button class="toolbar-btn" @click="prevWeek">◀</button>
+        <button class="toolbar-btn" aria-label="Semaine précédente" @click="prevWeek"><AppIcon name="i-ri-arrow-left-line" /></button>
         <div style="display:flex;flex-direction:column;gap:2px;min-width:160px;">
           <strong style="color:var(--content-1);font-size:14px;line-height:1.1;">Semaine</strong>
           <span style="font-size:12px;color:var(--content-2);">{{ formatDateRange }}</span>
@@ -12,7 +12,7 @@
             </span>
           </div>
         </div>
-        <button class="toolbar-btn" @click="nextWeek">▶</button>
+        <button class="toolbar-btn" aria-label="Semaine suivante" @click="nextWeek"><AppIcon name="i-ri-arrow-right-line" /></button>
       </div>
       <button class="toolbar-btn-today" @click="goToday">Aujourd'hui</button>
     </div>

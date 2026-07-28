@@ -14,7 +14,7 @@
          jamais un « 0 % » de remplissage quand la période précédente est vide.
          Le repère factuel vient en complément, pas à la place. -->
     <div v-if="deltaInfo" class="tile-delta" :class="`tile-delta--${deltaTone}`">
-      <span aria-hidden="true">{{ deltaInfo.sens === 'hausse' ? '↑' : deltaInfo.sens === 'baisse' ? '↓' : '=' }}</span>
+      <span aria-hidden="true"><AppIcon v-if="deltaInfo.sens === 'hausse' || deltaInfo.sens === 'baisse'" :name="deltaInfo.sens === 'hausse' ? 'i-ri-arrow-up-s-fill' : 'i-ri-arrow-down-s-fill'" /><template v-else>=</template></span>
       {{ deltaInfo.signe }}{{ deltaInfo.pct }} % <span class="tile-delta-ref">vs période précédente</span>
     </div>
     <div v-if="hint" class="tile-hint">{{ hint }}</div>

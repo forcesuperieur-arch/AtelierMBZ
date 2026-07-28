@@ -1,7 +1,7 @@
 <template>
   <div ref="rootEl" class="notif-bell-wrap">
     <button class="notif-bell-btn" type="button" aria-label="Ouvrir l'historique des notifications" @click="toggleOpen">
-      <span class="notif-bell-icon">🔔</span>
+      <span class="notif-bell-icon"><AppIcon name="i-ri-notification-3-line" /></span>
       <span v-if="unreadCount > 0" class="notif-bell-badge">{{ unreadLabel }}</span>
     </button>
 
@@ -50,13 +50,13 @@
       <div class="notif-detail-card">
         <div class="notif-detail-header">
           <div class="notif-detail-icon" :class="severityClass(selectedNotif?.severity)">
-            {{ severityIcon(selectedNotif?.severity) }}
+            <AppIcon :name="severityIcon(selectedNotif?.severity)" />
           </div>
           <div class="notif-detail-title-wrap">
             <h3 class="notif-detail-title">{{ selectedNotif?.title }}</h3>
             <p class="notif-detail-date">{{ selectedNotif?.createdAt ? formatDate(selectedNotif.createdAt) : '' }}</p>
           </div>
-          <button class="notif-detail-close" type="button" @click="closeDetail">✕</button>
+          <button class="notif-detail-close" type="button" aria-label="Fermer" @click="closeDetail"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
         <div class="notif-detail-body">
@@ -117,7 +117,8 @@
                 :disabled="detailActionLoading"
                 @click="envoyerDemande('email')"
               >
-                {{ detailActionLoading ? 'Envoi…' : '📧 Email' }}
+                <AppIcon v-if="!detailActionLoading" name="i-ri-mail-line" />
+                {{ detailActionLoading ? 'Envoi…' : 'Email' }}
               </button>
               <button
                 class="notif-detail-btn-primary"
@@ -125,7 +126,8 @@
                 :disabled="detailActionLoading"
                 @click="envoyerDemande('sms')"
               >
-                {{ detailActionLoading ? 'Envoi…' : '📱 SMS' }}
+                <AppIcon v-if="!detailActionLoading" name="i-ri-smartphone-line" />
+                {{ detailActionLoading ? 'Envoi…' : 'SMS' }}
               </button>
               <button
                 class="notif-detail-btn-secondary"
@@ -142,7 +144,7 @@
               type="button"
               @click="detailCanalOpen = true"
             >
-              📤 Envoyer au client
+              <AppIcon name="i-ri-upload-line" /> Envoyer au client
             </button>
           </template>
 
@@ -312,9 +314,9 @@ async function envoyerDemande(canal: 'email' | 'sms') {
 }
 
 function severityIcon(value?: string) {
-  if (value === 'critical') return '🔴'
-  if (value === 'warning') return '🟠'
-  return 'ℹ️'
+  if (value === 'critical') return 'i-ri-alarm-warning-fill'
+  if (value === 'warning') return 'i-ri-error-warning-fill'
+  return 'i-ri-information-line'
 }
 
 async function markEverythingRead() {

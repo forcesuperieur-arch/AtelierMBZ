@@ -119,6 +119,69 @@ calculées juste avant de les passer à Chart.js, puis recalcule à chaque bascu
 Si vous créez un nouveau graphique, passez par `BarChart` / `LineChart` /
 `DoughnutChart` / `Sparkline` : la résolution y est déjà branchée.
 
+## Icônes
+
+L'application utilisait des **emoji** comme icônes — 457 occurrences, une
+centaine de formes différentes. Le design system les proscrit au profit d'un
+jeu tracé : **RemixIcon**. Ils ont tous été remplacés.
+
+Une icône s'écrit **`<AppIcon name="i-ri-…" />`**, et rien d'autre.
+
+### Pourquoi un composant plutôt que `<UIcon>` directement
+
+Parce que les deux fronts doivent écrire le **même** balisage alors qu'ils
+n'ont pas les mêmes moyens :
+
+| | Front staff | Portail client |
+|---|---|---|
+| `components/AppIcon.vue` | enveloppe `UIcon` (`@nuxt/icon`, fourni par Nuxt UI) | rend du **SVG en ligne** |
+| Source des tracés | collection `@iconify-json/ri` | tracés inscrits dans le fichier, **généré** |
+
+Le portail n'a pas de module d'icônes et n'a pas à en gagner un pour trois
+icônes : c'est une application publique dont le temps de premier affichage
+compte. Son `AppIcon.vue` est donc **produit par un script** qui relève les
+icônes réellement employées et n'inscrit que celles-là. Ne le modifiez pas à
+la main.
+
+> **Piège vérifié au build.** Par défaut, `@nuxt/icon` n'embarque que les
+> **noms** et va chercher les tracés à l'affichage sur `api.iconify.design`.
+> Un poste d'atelier sans accès sortant afficherait une interface **sans
+> aucune icône**. `nuxt.config.ts` impose donc `clientBundle.scan` (les tracés
+> employés entrent dans le bundle : 92 icônes, 26 Ko) et `fallbackToApi: false`
+> (le repli réseau est interdit, une icône manquante se voit au build).
+
+### Accessibilité
+
+Une icône est **décorative** : `AppIcon` pose `aria-hidden` et il n'y a pas à
+y revenir. Elle double toujours un texte visible.
+
+Quand elle est le **seul** contenu d'un bouton, ce n'est pas l'icône qu'il faut
+nommer mais **le bouton**, avec un `aria-label` — c'est lui que le lecteur
+d'écran annonce. Le contrôle le vérifie et refuse toute commande muette. La
+migration a ainsi révélé **31 boutons et liens** qui n'avaient déjà aucun nom
+accessible, croix de fermeture des modales en tête.
+
+### Ce qui n'est PAS devenu une icône
+
+- **`→` dans une phrase** (« Réception → Atelier ») : c'est de la typographie,
+  la remplacer couperait la phrase.
+- **Les emoji d'un `<option>`** : un `<option>` natif ne peut pas contenir
+  d'élément. Ils ont été **supprimés**, le libellé porte le sens.
+- **Les emoji décoratifs en pleine phrase** (« Tout est terminé 🎉 ») :
+  supprimés, ils n'apportaient aucune information.
+- **Les libellés consommés comme texte pur** — ceux qui alimentent un message
+  de notification ou une comparaison de chaînes : l'emoji est retiré, mais
+  aucune icône n'est posée, une icône n'ayant pas sa place dans une chaîne.
+
+### Ajouter une icône
+
+1. choisir un nom dans RemixIcon et l'écrire `i-ri-…` ;
+2. `node scripts/design/check-icons.mjs` — il refuse un nom qui n'existe pas.
+   **Ce contrôle n'est pas facultatif** : un nom inventé ne lève aucune erreur
+   à l'exécution, il rend un carré vide ;
+3. si l'icône est destinée au **portail client**,
+   `node scripts/design/build-client-icons.mjs` pour régénérer son composant.
+
 ## Palette de data-visualisation
 
 Elle **n'est pas** dérivée de la palette de marque, et c'est volontaire. Elle
@@ -216,6 +279,9 @@ directement dans les composants du portail client.
 | `node scripts/design/apply-tokens.mjs` | Applique la migration. Idempotent : rejouable sur des fichiers arrivés après coup. |
 | `node scripts/design/sync-tokens.mjs [--check]` | Propage `tokens.css` vers le portail client. |
 | `node scripts/design/build-logos.mjs [--check]` | Régénère les déclinaisons de logo. |
+| `node scripts/design/check-icons.mjs` | Vérifie que chaque nom d'icône existe dans RemixIcon, qu'aucun emoji ne subsiste, et qu'aucune commande réduite à une icône n'est muette. |
+| `node scripts/design/apply-icons.mjs [--check]` | Remplace les emoji par des icônes dans les gabarits. Idempotent. Signale ce qu'il ne sait pas traiter seul. |
+| `node scripts/design/build-client-icons.mjs [--check]` | Régénère l'`AppIcon` du portail client à partir des icônes qu'il emploie. |
 
 Le contrôle de contraste porte sur **62 paires** de tokens (texte, encre sur
 aplat, bordures de composant, éléments graphiques), dans les deux thèmes. Il a
@@ -231,16 +297,13 @@ laisser passer en silence.
 
 ```bash
 node scripts/design/apply-tokens.mjs frontend/pages/mon-nouvel-ecran.vue
+node scripts/design/apply-icons.mjs  frontend/pages/mon-nouvel-ecran.vue
 node scripts/design/check-contrast.mjs
+node scripts/design/check-icons.mjs
 ```
 
 ## Reste à faire
 
-- **Icônes.** L'application utilise des **emoji** comme icônes (navigation, menus,
-  boutons). Le DS les proscrit au profit d'un jeu tracé (RemixIcon). Les polices
-  d'emoji sont donc maintenues en fin de pile typographique pour ne rien casser ;
-  la migration vers un jeu d'icônes touche une centaine de libellés et mérite son
-  propre chantier.
 - **Composants uniques.** Il subsiste deux boutons primaires concurrents
   (`.btn-primary`, `.topbar-new-btn`) et plusieurs systèmes de modale. Ils partagent
   désormais les mêmes tokens, mais pas encore le même composant.

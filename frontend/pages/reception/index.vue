@@ -30,7 +30,7 @@
 
     <UCard v-else>
       <template #header>
-        <span style="font-size:15px;font-weight:700;color:var(--content-1);">📥 Motos attendues aujourd'hui ({{ receptionRdvs.length }})</span>
+        <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-inbox-line" /> Motos attendues aujourd'hui ({{ receptionRdvs.length }})</span>
       </template>
 
       <div v-if="!receptionRdvs.length" class="reception-empty">
@@ -64,7 +64,7 @@
               type="button"
               data-testid="btn-edl-pdf"
               @click="openEdlPdf(edlByRdv[rdv.id])"
-            >📄 PDF</button>
+            ><AppIcon name="i-ri-file-text-line" /> PDF</button>
             <button
               class="btn btn-primary reception-btn"
               type="button"
@@ -80,7 +80,7 @@
     <AppModal v-model:open="checkinOpen" size="lg">
       <template #header>
         <div>
-          <div style="font-size:16px;font-weight:800;color:var(--content-1);" class="modal-title">📥 Check-in — état des lieux d'entrée</div>
+          <div style="font-size:16px;font-weight:800;color:var(--content-1);" class="modal-title"><AppIcon name="i-ri-inbox-line" /> Check-in — état des lieux d'entrée</div>
           <div v-if="checkinRdv" style="font-size:12px;color:var(--content-3);margin-top:2px;">
             {{ checkinRdv.heure_debut }} · {{ checkinRdv.client_nom }} · {{ checkinRdv.vehicule_info }}
             <span v-if="checkinRdv.vehicule_plaque"> ({{ checkinRdv.vehicule_plaque }})</span>
@@ -92,7 +92,7 @@
         <div v-if="checkinRdv" class="checkin-body">
           <!-- État signé : lecture seule -->
           <div v-if="isSigned" class="checkin-signed" data-testid="checkin-signed">
-            <div style="font-size:32px;">✅</div>
+            <div style="font-size:32px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
             <p style="color:var(--success-content);font-weight:700;font-size:15px;">État des lieux signé</p>
             <p v-if="currentEdl?.signed_at" style="font-size:12px;color:var(--content-3);">
               Signé le {{ formatDateTime(currentEdl.signed_at) }}<span v-if="currentEdl?.signed_by"> — accueilli par {{ currentEdl.signed_by }}</span>
@@ -110,7 +110,7 @@
                 type="button"
                 data-testid="btn-edl-pdf-modal"
                 @click="openEdlPdf(currentEdl)"
-              >📄 Voir le PDF</button>
+              ><AppIcon name="i-ri-file-text-line" /> Voir le PDF</button>
               <button
                 v-if="checkinRdv.status === 'confirme'"
                 class="btn btn-primary reception-btn"
@@ -118,7 +118,7 @@
                 data-testid="btn-passer-reception"
                 :disabled="transitioning"
                 @click="passerEnReception(checkinRdv)"
-              >{{ transitioning ? 'Transition…' : '🏍 Passer en réception' }}</button>
+              ><AppIcon v-if="!(transitioning)" name="i-ri-motorbike-line" />{{ transitioning ? 'Transition…' : 'Passer en réception' }}</button>
             </div>
           </div>
 
@@ -193,7 +193,7 @@
                   :disabled="uploadingPhotos || hydrating"
                   @change="onPhotosSelected"
                 />
-                <span>{{ uploadingPhotos ? '⏳ Envoi en cours…' : '📷 Prendre / ajouter des photos' }}</span>
+                <span><AppIcon :name="uploadingPhotos ? 'i-ri-hourglass-line' : 'i-ri-camera-line'" /> {{ uploadingPhotos ? 'Envoi en cours…' : 'Prendre / ajouter des photos' }}</span>
               </label>
               <div v-if="sessionPhotos.length" class="checkin-photo-grid">
                 <img
@@ -212,7 +212,7 @@
             </div>
 
             <div v-if="draftError" class="checkin-alert checkin-alert-error" data-testid="checkin-error">{{ draftError }}</div>
-            <div v-else-if="draftSavedAt" class="checkin-alert checkin-alert-ok">💾 Brouillon enregistré à {{ draftSavedAt }}</div>
+            <div v-else-if="draftSavedAt" class="checkin-alert checkin-alert-ok"><AppIcon name="i-ri-save-line" /> Brouillon enregistré à {{ draftSavedAt }}</div>
           </template>
         </div>
       </template>
@@ -227,7 +227,7 @@
               :disabled="savingDraft || hydrating"
               data-testid="btn-save-draft"
               @click="saveDraft(true)"
-            >{{ savingDraft ? 'Sauvegarde…' : '💾 Enregistrer le brouillon' }}</button>
+            ><AppIcon v-if="!(savingDraft)" name="i-ri-save-line" />{{ savingDraft ? 'Sauvegarde…' : 'Enregistrer le brouillon' }}</button>
             <button
               class="btn btn-primary reception-btn"
               type="button"
@@ -235,7 +235,7 @@
               :title="canSign ? '' : 'Kilométrage, carburant et 4 photos minimum requis'"
               data-testid="btn-faire-signer"
               @click="openSignature"
-            >✍️ Faire signer le client</button>
+            ><AppIcon name="i-ri-quill-pen-line" /> Faire signer le client</button>
           </template>
         </div>
       </template>
@@ -370,7 +370,7 @@ function formatDateTime(value: string): string {
 
 function edlBadgeLabel(rdvId: number): string {
   const edl = edlByRdv[rdvId]
-  if (edl?.signe) return '✓ Signé'
+  if (edl?.signe) return 'Signé'
   if (edl?.exists) return 'Saisie en cours'
   return 'À faire'
 }
@@ -384,9 +384,9 @@ function edlBadgeStyle(rdvId: number): Record<string, string> {
 
 function checkinButtonLabel(rdvId: number): string {
   const edl = edlByRdv[rdvId]
-  if (edl?.signe) return '✓ Voir le check-in'
-  if (edl?.exists) return '▶ Reprendre le check-in'
-  return '📋 Check-in'
+  if (edl?.signe) return 'Voir le check-in'
+  if (edl?.exists) return 'Reprendre le check-in'
+  return 'Check-in'
 }
 
 async function refreshEdl(rdvId: number) {

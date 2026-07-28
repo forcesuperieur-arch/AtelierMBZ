@@ -19,12 +19,12 @@
       </div>
       <div v-if="rdv.client_nom || rdv.client_prenom || rdv.client_telephone || rdv.client_email" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ clientName }}</div>
-        <div v-if="rdv.client_telephone" style="color:var(--content-3);">📞 {{ rdv.client_telephone }}</div>
+        <div v-if="rdv.client_telephone" style="color:var(--content-3);"><AppIcon name="i-ri-phone-line" /> {{ rdv.client_telephone }}</div>
         <div v-if="rdv.client_email" style="color:var(--content-3);">{{ rdv.client_email }}</div>
       </div>
       <div v-if="rdv.vehicule_info || rdv.vehicule_plaque" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ rdv.vehicule_info || 'Véhicule' }}</div>
-        <div v-if="rdv.vehicule_plaque" style="color:var(--content-3);">🏍 {{ rdv.vehicule_plaque }}</div>
+        <div v-if="rdv.vehicule_plaque" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ rdv.vehicule_plaque }}</div>
       </div>
       <div v-if="rdv.description_probleme || rdv.commentaire" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
         <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Description</div>

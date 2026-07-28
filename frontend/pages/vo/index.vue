@@ -14,10 +14,10 @@
     <VONav />
 
     <div v-if="stats" class="vo-stats-grid">
-      <StatsCard title="En stock" :value="stats.en_stock" icon="🏍️" />
-      <StatsCard title="Vendus ce mois" :value="stats.vendus" icon="✅" />
-      <StatsCard title="Dépôts actifs" :value="stats.depots_actifs" icon="📋" />
-      <StatsCard title="Alertes dossiers" :value="stats.alerts_count" icon="⚠️" :color="stats.alerts_count > 0 ? 'warning' : 'primary'" />
+      <StatsCard title="En stock" :value="stats.en_stock" />
+      <StatsCard title="Vendus ce mois" :value="stats.vendus" />
+      <StatsCard title="Dépôts actifs" :value="stats.depots_actifs" />
+      <StatsCard title="Alertes dossiers" :value="stats.alerts_count" :color="stats.alerts_count > 0 ? 'warning' : 'primary'" />
     </div>
 
     <div class="vo-dashboard-grid">

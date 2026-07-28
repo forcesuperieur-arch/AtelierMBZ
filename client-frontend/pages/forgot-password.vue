@@ -20,7 +20,7 @@
       </form>
 
       <NuxtLink to="/login" style="font-size:13px;color:var(--content-3);margin-top:16px;display:inline-block;">
-        ← Retour à la connexion
+        <AppIcon name="i-ri-arrow-left-line" /> Retour à la connexion
       </NuxtLink>
     </div>
   </div>

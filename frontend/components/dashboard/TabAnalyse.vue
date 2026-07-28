@@ -7,7 +7,7 @@
            empilées comme dans l'ancienne version. -->
       <AppEmptyState
         v-if="!aQuelqueChose"
-        icon="🗂"
+        icon="i-ri-folders-line"
         title="Pas encore assez d'historique"
         description="Cet onglet se remplit dès que des interventions sont clôturées sur la période choisie."
       />
@@ -150,7 +150,7 @@
         />
         <AppEmptyState
           v-else
-          icon="🔮"
+          icon="i-ri-magic-line"
           title="Historique insuffisant"
           description="La prévision demande au moins sept jours de données facturées."
         />

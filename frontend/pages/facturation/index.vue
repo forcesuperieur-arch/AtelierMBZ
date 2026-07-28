@@ -30,9 +30,9 @@
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;">
-            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)">📄 PDF</button>
-            <button v-if="row.original.statut !== 'payee' && row.original.statut !== 'annulee'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)">💶 Encaisser</button>
-            <button style="color:var(--info-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)">📧 Email</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="billingStore.downloadPdf(row.original.id)"><AppIcon name="i-ri-file-text-line" /> PDF</button>
+            <button v-if="row.original.statut !== 'payee' && row.original.statut !== 'annulee'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openEncaissement(row.original)"><AppIcon name="i-ri-money-euro-circle-line" /> Encaisser</button>
+            <button style="color:var(--info-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="sendFactureEmail(row.original)"><AppIcon name="i-ri-mail-line" /> Email</button>
           </div>
         </template>
       </UTable>
@@ -44,8 +44,8 @@
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;">💶 Encaissement — {{ selectedFacture?.numero_facture }}</span>
-              <button @click="showEncaissement = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <span style="font-weight:600;"><AppIcon name="i-ri-money-euro-circle-line" /> Encaissement — {{ selectedFacture?.numero_facture }}</span>
+              <button @click="showEncaissement = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -115,8 +115,8 @@
         <UCard style="max-width:700px;">
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;">📋 Aperçu facture</span>
-              <button @click="showPreview = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <span style="font-weight:600;"><AppIcon name="i-ri-clipboard-line" /> Aperçu facture</span>
+              <button @click="showPreview = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -178,7 +178,7 @@
             <div style="display:flex;gap:10px;justify-content:flex-end;">
               <button class="btn btn-ghost" @click="showPreview = false">Annuler</button>
               <button class="btn btn-primary" @click="generateInvoice" :disabled="generatingInvoice">
-                {{ generatingInvoice ? 'Génération…' : '✅ Générer la facture' }}
+                <AppIcon v-if="!(generatingInvoice)" name="i-ri-checkbox-circle-line" />{{ generatingInvoice ? 'Génération…' : 'Générer la facture' }}
               </button>
             </div>
           </template>

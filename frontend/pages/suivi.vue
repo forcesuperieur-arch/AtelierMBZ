@@ -14,13 +14,13 @@
     <!-- Alert strip -->
     <div class="alert-strip" style="margin-bottom:20px;">
       <div class="alert-chip" :class="enCoursCount > 0 ? 'success' : ''" style="border-color:var(--success);background:var(--success-soft);color:var(--success-content);">
-        🛠️ En cours: {{ enCoursCount }}
+        <AppIcon name="i-ri-hammer-line" /> En cours: {{ enCoursCount }}
       </div>
       <div class="alert-chip" :class="imminentsCount > 0 ? 'warning' : ''" :style="imminentsCount > 0 ? '' : 'border-color:var(--border-2);background:var(--overlay-soft);color:var(--content-3);'">
-        ⏰ Démarrages imminents: {{ imminentsCount }}
+        <AppIcon name="i-ri-alarm-line" /> Démarrages imminents: {{ imminentsCount }}
       </div>
       <div class="alert-chip" :class="retardsCount > 0 ? 'danger' : ''" :style="retardsCount > 0 ? '' : 'border-color:var(--border-2);background:var(--overlay-soft);color:var(--content-3);'">
-        ⚠️ Retards: {{ retardsCount }}
+        <AppIcon name="i-ri-error-warning-line" /> Retards: {{ retardsCount }}
       </div>
     </div>
 

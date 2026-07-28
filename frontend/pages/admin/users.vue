@@ -41,14 +41,14 @@
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openApproveModal(row.original)">✅ Valider</button>
-            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="rejectPendingUser(row.original)">⛔ Refuser</button>
-            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editUser(row.original)">✏ Modifier</button>
+            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--success-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openApproveModal(row.original)"><AppIcon name="i-ri-checkbox-circle-line" /> Valider</button>
+            <button v-if="row.original.access_status === 'pending_validation'" style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="rejectPendingUser(row.original)"><AppIcon name="i-ri-forbid-2-line" /> Refuser</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editUser(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
             <button style="color:var(--info-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="toggleUserStatus(row.original)">
-              {{ row.original.is_active ? '⏸ Désactiver' : '▶ Activer' }}
+              <AppIcon :name="row.original.is_active ? 'i-ri-pause-line' : 'i-ri-play-line'" /> {{ row.original.is_active ? 'Désactiver' : 'Activer' }}
             </button>
-            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)">🗄 Archiver RGPD</button>
-            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="hardDeleteUser(row.original)">🗑 Supprimer</button>
+            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteUser(row.original)"><AppIcon name="i-ri-database-2-line" /> Archiver RGPD</button>
+            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="hardDeleteUser(row.original)"><AppIcon name="i-ri-delete-bin-line" /> Supprimer</button>
           </div>
         </template>
       </UTable>

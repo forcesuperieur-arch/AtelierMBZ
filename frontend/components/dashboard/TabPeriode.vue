@@ -64,7 +64,7 @@
           <ChartsLineChart v-if="trend.length > 1" :data="trendRdvData" :options="OPTIONS_UNE_SERIE" />
           <AppEmptyState
             v-else
-            icon="📉"
+            icon="i-ri-line-chart-line"
             title="Période trop courte"
             description="Choisis au moins deux jours pour voir une évolution."
           />
@@ -91,7 +91,7 @@
         >
           <DashboardCategoryBars
             :items="origines"
-            empty-icon="🌐"
+            empty-icon="i-ri-global-line"
             empty-title="Aucun rendez-vous sur la période"
             empty-description="L'origine est enregistrée à chaque prise de rendez-vous (web, comptoir, téléphone, devis)."
           />

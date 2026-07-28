@@ -4,7 +4,7 @@
     :to="to"
     :class="['nav-btn', isActive ? 'active' : '']"
   >
-    <span class="nav-icon">{{ icon }}</span>
+    <span class="nav-icon"><AppIcon :name="icon" /></span>
     <span class="nav-label">{{ label }}</span>
     <span v-if="badgeCount && badgeCount > 0" class="nav-badge">{{ badgeCount > 99 ? '99+' : badgeCount }}</span>
   </NuxtLink>

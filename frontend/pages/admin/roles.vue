@@ -58,13 +58,13 @@
 
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editRole(row.original)">✏ Modifier</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editRole(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
             <button
               v-if="!row.original.is_system && row.original.role !== 'super_admin'"
               style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;"
               @click="deleteRole(row.original)"
             >
-              ✖ Supprimer
+              <AppIcon name="i-ri-close-line" /> Supprimer
             </button>
           </div>
         </template>
@@ -80,7 +80,7 @@
                 <div style="font-weight:700;">{{ editKey ? 'Modifier' : 'Nouveau' }} rôle</div>
                 <div style="font-size:12px;color:var(--content-3);">Active ou désactive simplement les accès avec les toggles ci-dessous.</div>
               </div>
-              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 

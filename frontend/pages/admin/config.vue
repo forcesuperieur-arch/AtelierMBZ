@@ -92,7 +92,7 @@
               <div v-if="config.dates_fermeture_exceptionnelles?.length" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
                 <span v-for="date in config.dates_fermeture_exceptionnelles" :key="date" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);">
                   {{ date }}
-                  <button type="button" style="background:none;border:none;color:inherit;cursor:pointer;" @click="removeExceptionalClosureDate(date)">✕</button>
+                  <button type="button" aria-label="Retirer cette date de fermeture" style="background:none;border:none;color:inherit;cursor:pointer;" @click="removeExceptionalClosureDate(date)"><AppIcon name="i-ri-close-line" /></button>
                 </span>
               </div>
               <div v-else style="font-size:12px;color:var(--content-3);margin-top:10px;">Aucune fermeture exceptionnelle enregistrée.</div>
@@ -143,7 +143,7 @@
                 data-testid="toggle-alerte-sejour"
                 @click="toggleAlerteSejour"
               >
-                {{ isAlerteSejourActive ? '🔔' : '🔕' }} Alerte automatique (notification + e-mail quotidien)
+                {{ isAlerteSejourActive ? 'i-ri-notification-3-line' : 'i-ri-notification-off-line' }} Alerte automatique (notification + e-mail quotidien)
               </button>
               <div style="font-size:11px;color:var(--content-3);margin-top:6px;">
                 Alerte coupée : l'onglet « En atelier » reste consultable, mais plus aucune notification
@@ -393,7 +393,7 @@
                 @click="toggleFeatureModule(item.key)"
               >
                 <span style="display:flex;align-items:flex-start;gap:10px;">
-                  <span style="font-size:20px;line-height:1;">{{ item.icon }}</span>
+                  <span style="font-size:20px;line-height:1;"><AppIcon :name="item.icon" /></span>
                   <span>
                     <span style="display:block;font-size:13px;font-weight:700;">{{ item.label }}</span>
                     <span style="display:block;font-size:11px;opacity:0.86;margin-top:2px;">{{ item.hint }}</span>
@@ -433,7 +433,7 @@
                   :title="etape.hint"
                   @click="toggleNotificationEtape(etape.key)"
                 >
-                  {{ isNotificationEtapeEnabled(etape.key) ? '🔔' : '🔕' }} {{ etape.label }}
+                  {{ isNotificationEtapeEnabled(etape.key) ? 'i-ri-notification-3-line' : 'i-ri-notification-off-line' }} {{ etape.label }}
                 </button>
               </div>
             </div>
@@ -451,7 +451,7 @@
                 data-testid="toggle-checkin-obligatoire"
                 @click="toggleCheckinObligatoire"
               >
-                {{ isCheckinObligatoire ? '🔒' : '🔓' }} Check-in obligatoire avant réception
+                {{ isCheckinObligatoire ? 'i-ri-lock-line' : 'i-ri-lock-unlock-line' }} Check-in obligatoire avant réception
               </button>
             </div>
 
@@ -590,13 +590,13 @@ function toNumber(value: any, fallback = 0) {
 
 
 const moduleDefinitions = [
-  { key: 'devis', label: 'Devis', icon: '📝', hint: 'Création et suivi des devis', impact: 'Masque la création, la consultation et la conversion des devis.' },
-  { key: 'facturation', label: 'Facturation', icon: '💳', hint: 'Factures, paiements et encaissements', impact: 'Retire la création de facture, l’encaissement et les écrans de paiement.' },
-  { key: 'stock', label: 'Stock', icon: '📦', hint: 'Pièces détachées et alertes', impact: 'Supprime les alertes de stock et la gestion des pièces atelier.' },
-  { key: 'suivi', label: 'Suivi live', icon: '👁', hint: 'Vue temps réel atelier', impact: 'Cache la vue live et les indicateurs temps réel de l’atelier.' },
-  { key: 'motos', label: 'Catalogue motos', icon: '🏍️', hint: 'Référentiel et fiches moto', impact: 'Masque les fiches moto et le catalogue de référence.' },
-  { key: 'rdv_siege', label: 'Prise de RDV par le siège', icon: '🏢', hint: 'Autorise le service client à prendre des RDV pour cet atelier depuis le siège', impact: 'Si désactivé, le service client ne peut ni voir ni réserver pour cet atelier hors contexte local.' },
-  { key: 'vo', label: 'Véhicules d’Occasion', icon: '🏷️', hint: 'Rachat, dépôt-vente, livre de police et facturation VO', impact: 'Masque le menu VO et toutes les opérations d’achat-vente d’occasion.' },
+  { key: 'devis', label: 'Devis', icon: 'i-ri-draft-line', hint: 'Création et suivi des devis', impact: 'Masque la création, la consultation et la conversion des devis.' },
+  { key: 'facturation', label: 'Facturation', icon: 'i-ri-bank-card-line', hint: 'Factures, paiements et encaissements', impact: 'Retire la création de facture, l’encaissement et les écrans de paiement.' },
+  { key: 'stock', label: 'Stock', icon: 'i-ri-archive-line', hint: 'Pièces détachées et alertes', impact: 'Supprime les alertes de stock et la gestion des pièces atelier.' },
+  { key: 'suivi', label: 'Suivi live', icon: 'i-ri-eye-line', hint: 'Vue temps réel atelier', impact: 'Cache la vue live et les indicateurs temps réel de l’atelier.' },
+  { key: 'motos', label: 'Catalogue motos', icon: 'i-ri-motorbike-line', hint: 'Référentiel et fiches moto', impact: 'Masque les fiches moto et le catalogue de référence.' },
+  { key: 'rdv_siege', label: 'Prise de RDV par le siège', icon: 'i-ri-building-line', hint: 'Autorise le service client à prendre des RDV pour cet atelier depuis le siège', impact: 'Si désactivé, le service client ne peut ni voir ni réserver pour cet atelier hors contexte local.' },
+  { key: 'vo', label: 'Véhicules d’Occasion', icon: 'i-ri-price-tag-3-line', hint: 'Rachat, dépôt-vente, livre de police et facturation VO', impact: 'Masque le menu VO et toutes les opérations d’achat-vente d’occasion.' },
 ]
 
 // Lot A — chaque étape activée envoie un email/SMS au client (transparence max par défaut)

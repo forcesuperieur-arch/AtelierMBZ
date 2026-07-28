@@ -2,7 +2,7 @@
   <AppModal :open="isOpen" size="md" @update:open="onOpenChange">
     <template #header>
       <span style="font-size:16px;font-weight:700;color:var(--content-1);">
-        📞 Décision téléphonique — demande #{{ demande?.id }}
+        <AppIcon name="i-ri-phone-line" /> Décision téléphonique — demande #{{ demande?.id }}
       </span>
     </template>
 
@@ -21,7 +21,7 @@
         v-if="!isChiffree"
         style="padding:10px 12px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning);color:var(--warning-content);font-size:12px;"
       >
-        ⚠️ Cette demande n'est pas chiffrée : un accord ne pourra pas être enregistré tant que les prestations n'ont pas été complétées.
+        <AppIcon name="i-ri-error-warning-line" /> Cette demande n'est pas chiffrée : un accord ne pourra pas être enregistré tant que les prestations n'ont pas été complétées.
       </div>
 
       <!-- Décision -->
@@ -30,11 +30,11 @@
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid var(--border-2);" :style="decision === 'accepte' ? 'background:var(--success-soft);border-color:var(--success);' : ''">
             <input v-model="decision" type="radio" value="accepte" data-testid="radio-tel-accepte" />
-            <span style="color:var(--success-content);font-weight:700;">✅ Accepté</span>
+            <span style="color:var(--success-content);font-weight:700;"><AppIcon name="i-ri-checkbox-circle-line" /> Accepté</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid var(--border-2);" :style="decision === 'refuse' ? 'background:var(--error-soft);border-color:var(--error);' : ''">
             <input v-model="decision" type="radio" value="refuse" data-testid="radio-tel-refuse" />
-            <span style="color:var(--error-content);font-weight:700;">❌ Refusé</span>
+            <span style="color:var(--error-content);font-weight:700;"><AppIcon name="i-ri-close-circle-line" /> Refusé</span>
           </label>
         </div>
       </div>
@@ -47,8 +47,8 @@
           data-testid="select-tel-canal"
           style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:8px 10px;color:var(--content-2);font-size:13px;"
         >
-          <option value="email">📧 E-mail</option>
-          <option value="sms">📱 SMS</option>
+          <option value="email"> E-mail</option>
+          <option value="sms"> SMS</option>
         </select>
         <div style="color:var(--content-3);font-size:11px;margin-top:6px;">
           Les travaux peuvent démarrer dès l'accord. Le client recevra un lien pour confirmer son accord en signant en ligne.

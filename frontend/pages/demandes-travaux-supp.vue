@@ -2,10 +2,10 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/" style="color:var(--content-3);text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour à l'accueil"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div class="page-title">Demandes de travaux complémentaires</div>
       </div>
-      <button class="btn btn-ghost" @click="load" :disabled="loading">🔄 Rafraîchir</button>
+      <button class="btn btn-ghost" @click="load" :disabled="loading"><AppIcon name="i-ri-refresh-line" /> Rafraîchir</button>
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
@@ -28,7 +28,7 @@
                   v-if="isSignatureEnAttente(d)"
                   data-testid="badge-signature-attente"
                   style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);font-weight:700;"
-                >✍️ Signature en attente</span>
+                ><AppIcon name="i-ri-quill-pen-line" /> Signature en attente</span>
                 <span v-if="d.urgence === 'urgent'" style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);font-weight:700;">URGENT</span>
               </div>
               <div style="font-size:12px;color:var(--content-3);">
@@ -67,7 +67,7 @@
                   :disabled="sending === d.id"
                   @click="envoyer(d, 'email')"
                 >
-                  {{ sending === d.id ? 'Envoi…' : '📧 Email' }}
+                  <AppIcon v-if="!(sending === d.id)" name="i-ri-mail-line" />{{ sending === d.id ? 'Envoi…' : 'Email' }}
                 </button>
                 <button
                   class="btn btn-primary"
@@ -75,7 +75,7 @@
                   :disabled="sending === d.id"
                   @click="envoyer(d, 'sms')"
                 >
-                  {{ sending === d.id ? 'Envoi…' : '📱 SMS' }}
+                  <AppIcon v-if="!(sending === d.id)" name="i-ri-smartphone-line" />{{ sending === d.id ? 'Envoi…' : 'SMS' }}
                 </button>
                 <button
                   class="btn btn-ghost"
@@ -92,7 +92,7 @@
                 style="font-size:12px;padding:6px 14px;"
                 @click="showCanalFor = d.id"
               >
-                📤 Envoyer au client
+                <AppIcon name="i-ri-upload-line" /> Envoyer au client
               </button>
             </template>
             <button
@@ -101,25 +101,25 @@
               style="font-size:12px;padding:6px 14px;"
               data-testid="btn-decision-telephone"
               @click="ouvrirDecisionTelephone(d)"
-            >📞 Décision téléphonique</button>
+            ><AppIcon name="i-ri-phone-line" /> Décision téléphonique</button>
             <button
               v-if="isSignatureEnAttente(d) && d.token"
               class="btn btn-primary"
               style="font-size:12px;padding:6px 14px;"
               data-testid="btn-faire-signer-comptoir"
               @click="faireSignerComptoir(d)"
-            >✍️ Faire signer au comptoir</button>
+            ><AppIcon name="i-ri-quill-pen-line" /> Faire signer au comptoir</button>
             <button
               v-if="d.token && d.statut === 'en_attente_decision_client'"
               class="btn btn-ghost"
               style="font-size:12px;padding:6px 14px;"
               @click="copyLink(d.token)"
-            >🔗 Copier le lien client</button>
+            ><AppIcon name="i-ri-links-line" /> Copier le lien client</button>
             <!-- Pas de page de détail OR : on affiche la référence sans lien mort. -->
             <span
               v-if="d.or_complementaire_id"
               style="font-size:12px;padding:6px 14px;color:var(--content-3);"
-            >📄 OR complémentaire n° {{ d.or_complementaire_id }}</span>
+            ><AppIcon name="i-ri-file-text-line" /> OR complémentaire n° {{ d.or_complementaire_id }}</span>
           </div>
         </div>
       </div>

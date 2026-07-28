@@ -13,7 +13,7 @@
     <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:var(--error);">
       <template #header>
         <span style="font-size:15px;font-weight:700;color:var(--error-content);">
-          ⚠ Alertes stock ({{ stockStore.alertes.length }})
+          <AppIcon name="i-ri-error-warning-line" /> Alertes stock ({{ stockStore.alertes.length }})
         </span>
       </template>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
@@ -32,7 +32,7 @@
           </span>
         </template>
         <template #actions-cell="{ row }">
-          <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
+          <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
         </template>
       </UTable>
     </UCard>

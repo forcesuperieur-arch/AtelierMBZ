@@ -2,7 +2,7 @@ x<template>
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/rdv" style="color:var(--content-3);text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/rdv" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour aux rendez-vous"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div>
           <div class="page-title">Prise de RDV</div>
           <div class="page-sub">Parcours intégré (identique public) + recherche client interne</div>
@@ -52,15 +52,15 @@ x<template>
         </div>
       </div>
       <div v-if="selectedClient" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;">
-        <span style="font-size:13px;color:var(--accent-content);font-weight:600;">✓ {{ selectedClient.prenom }} {{ selectedClient.nom }}</span>
-        <button class="btn btn-ghost" style="margin-left:auto;min-height:30px;padding:4px 10px;font-size:12px;" @click="clearClient">✕ Changer</button>
+        <span style="font-size:13px;color:var(--accent-content);font-weight:600;"><AppIcon name="i-ri-check-line" /> {{ selectedClient.prenom }} {{ selectedClient.nom }}</span>
+        <button class="btn btn-ghost" style="margin-left:auto;min-height:30px;padding:4px 10px;font-size:12px;" @click="clearClient"><AppIcon name="i-ri-close-line" /> Changer</button>
       </div>
     </div>
 
     <!-- Wizard Stepper -->
     <div class="steps" style="margin-bottom:28px;">
       <div class="step-item" v-for="(s, i) in stepLabels" :key="i">
-        <div class="step-dot" :class="{ active: step === i + 1, done: step > i + 1 }">{{ step > i + 1 ? '✓' : i + 1 }}</div>
+        <div class="step-dot" :class="{ active: step === i + 1, done: step > i + 1 }"><AppIcon v-if="step > i + 1" name="i-ri-check-line" /><template v-else>{{ i + 1 }}</template></div>
         <div class="step-label" :style="step === i + 1 ? 'color:var(--accent-content);' : ''">{{ s }}</div>
         <div v-if="i < stepLabels.length - 1" class="step-connector" :class="{ done: step > i + 1 }"></div>
       </div>
@@ -176,7 +176,7 @@ x<template>
                 background: selectedPrestas.includes(p.id) ? 'var(--accent)' : 'var(--overlay-hover)',
                 color: selectedPrestas.includes(p.id) ? 'var(--accent-ink)' : 'transparent',
               }"
-            >✓</div>
+            ><AppIcon name="i-ri-check-line" /></div>
             <div style="flex:1;">
               <div style="font-size:14px;font-weight:600;color:var(--content-1);">{{ p.nom }}</div>
               <div style="font-size:12px;color:var(--content-3);">{{ p.description || p.categorie || '' }}</div>
@@ -205,7 +205,7 @@ x<template>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
-        <button class="btn btn-ghost" @click="goStep(1)">← Retour</button>
+        <button class="btn btn-ghost" @click="goStep(1)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
         <button class="topbar-new-btn" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
       </div>
     </div>
@@ -217,7 +217,7 @@ x<template>
         <div style="font-size:12px;color:var(--content-3);margin-bottom:20px;">Vue planning réelle sur la semaine. Chaque case correspond à un créneau disponible en base, selon la configuration atelier.</div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek">← Semaine précédente</button>
+          <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek"><AppIcon name="i-ri-arrow-left-line" /> Semaine précédente</button>
           <div style="font-size:13px;color:var(--content-2);font-weight:600;">{{ planningRangeLabel }}</div>
           <button class="btn btn-ghost" @click="changeWeek(7)">Semaine suivante →</button>
         </div>
@@ -284,7 +284,7 @@ x<template>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
-        <button class="btn btn-ghost" @click="goStep(2)">← Retour</button>
+        <button class="btn btn-ghost" @click="goStep(2)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
         <button class="topbar-new-btn" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
       </div>
     </div>
@@ -369,7 +369,7 @@ x<template>
                 border: form.origine === 'comptoir' ? '1px solid var(--accent)' : '1px solid var(--border-2)',
                 color: form.origine === 'comptoir' ? 'var(--accent-content)' : 'var(--content-3)',
               }"
-            >🏪 Comptoir</button>
+            ><AppIcon name="i-ri-store-2-line" /> Comptoir</button>
             <button
               type="button"
               @click="form.origine = 'telephone'"
@@ -379,13 +379,13 @@ x<template>
                 border: form.origine === 'telephone' ? '1px solid var(--accent)' : '1px solid var(--border-2)',
                 color: form.origine === 'telephone' ? 'var(--accent-content)' : 'var(--content-3)',
               }"
-            >📞 Téléphone</button>
+            ><AppIcon name="i-ri-phone-line" /> Téléphone</button>
           </div>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
-        <button class="btn btn-ghost" @click="goStep(3)">← Retour</button>
+        <button class="btn btn-ghost" @click="goStep(3)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
         <button class="topbar-new-btn" :disabled="submitting || !canConfirm" @click="confirmRdv" style="padding:10px 24px;font-size:14px;">
           {{ submitting ? 'Création...' : 'Confirmer le rendez-vous' }}
         </button>

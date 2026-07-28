@@ -42,7 +42,7 @@
               <div style="font-size:15px;font-weight:700;color:var(--content-1);">Parc multiatelier</div>
               <div style="font-size:12px;color:var(--content-3);">Un atelier créé ici devient immédiatement sélectionnable dans le switch super-admin.</div>
             </div>
-            <button class="btn-secondary" @click="loadAteliers">↻ Actualiser</button>
+            <button class="btn-secondary" @click="loadAteliers"><AppIcon name="i-ri-refresh-line" /> Actualiser</button>
           </div>
         </template>
 
@@ -50,7 +50,7 @@
         <AppErrorState v-else-if="error" :description="error" action-label="Réessayer" @retry="loadAteliers" />
         <AppEmptyState
           v-else-if="!ateliers.length"
-          icon="🏢"
+          icon="i-ri-building-line"
           title="Aucun atelier"
           description="Crée le premier atelier pour activer le multi-site réel."
           action-label="Créer un atelier"
@@ -78,9 +78,9 @@
                 {{ atelier.has_config ? 'Config prête' : 'Config créée au premier accès' }}
               </span>
               <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-                <button class="btn-sm" @click="switchAtelier(atelier, false)">🎯 Activer</button>
-                <button class="btn-sm btn-outline" @click="switchAtelier(atelier, true)">⚙ Configurer</button>
-                <button class="btn-sm btn-outline" @click="openEdit(atelier)">✏ Modifier</button>
+                <button class="btn-sm" @click="switchAtelier(atelier, false)"><AppIcon name="i-ri-focus-3-line" /> Activer</button>
+                <button class="btn-sm btn-outline" @click="switchAtelier(atelier, true)"><AppIcon name="i-ri-settings-3-line" /> Configurer</button>
+                <button class="btn-sm btn-outline" @click="openEdit(atelier)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
               </div>
             </div>
           </div>

@@ -41,7 +41,7 @@
       <div class="app-modal-card app-modal-xl">
         <div class="app-modal-header">
           <span style="font-weight:600;font-size:16px;">Nouveau devis</span>
-          <button @click="showNew = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;">✕</button>
+          <button @click="showNew = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
         <div class="app-modal-body">
@@ -54,7 +54,7 @@
                 {{ c.prenom }} {{ c.nom }} <span style="color:var(--content-3);margin-left:8px;">{{ c.telephone }}</span>
               </div>
             </div>
-            <div v-if="newDevis.selectedClient" style="margin-top:6px;font-size:13px;color:var(--accent-content);">✓ {{ newDevis.selectedClient.prenom }} {{ newDevis.selectedClient.nom }}</div>
+            <div v-if="newDevis.selectedClient" style="margin-top:6px;font-size:13px;color:var(--accent-content);"><AppIcon name="i-ri-check-line" /> {{ newDevis.selectedClient.prenom }} {{ newDevis.selectedClient.nom }}</div>
           </div>
 
           <!-- Véhicule -->
@@ -86,7 +86,7 @@
                 <option :value="10">TVA 10%</option>
                 <option :value="0">TVA 0%</option>
               </select>
-              <button @click="newDevis.lignes.splice(i, 1)" style="background:none;border:none;color:var(--error-content);cursor:pointer;font-size:16px;">✕</button>
+              <button aria-label="Supprimer la ligne" @click="newDevis.lignes.splice(i, 1)" style="background:none;border:none;color:var(--error-content);cursor:pointer;font-size:16px;"><AppIcon name="i-ri-close-line" /></button>
             </div>
             <button @click="newDevis.lignes.push({ type: 'forfait_mo', designation: '', quantite: 1, prix_unitaire_ht: 0, tva: 20 })" class="btn btn-ghost" style="font-size:12px;">+ Ajouter ligne</button>
             <div style="margin-top:8px;text-align:right;font-size:13px;color:var(--accent-content);font-weight:700;">

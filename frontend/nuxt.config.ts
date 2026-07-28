@@ -57,6 +57,23 @@ export default defineNuxtConfig({
     storageKey: 'paddock-theme',
   },
 
+  // Icônes RemixIcon : tout est résolu à la COMPILATION.
+  //
+  // Par défaut, `@nuxt/icon` n'embarque que les NOMS et va chercher les tracés
+  // au moment de l'affichage, sur `api.iconify.design`. Un atelier dont le
+  // poste n'a pas d'accès sortant afficherait alors une interface sans aucune
+  // icône. `clientBundle.scan` relève les noms employés dans les sources et
+  // inscrit leur tracé dans le bundle ; `fallbackToApi: false` interdit
+  // explicitement le repli réseau, de sorte qu'une icône absente se voie au
+  // build plutôt qu'en production.
+  //
+  // La collection est fournie par `@iconify-json/ri`, en devDependency.
+  icon: {
+    clientBundle: { scan: true, sizeLimitKb: 512 },
+    serverBundle: false,
+    fallbackToApi: false,
+  },
+
   vite: {
     optimizeDeps: {
       include: ['chart.js'],

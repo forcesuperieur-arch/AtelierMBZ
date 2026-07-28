@@ -107,11 +107,13 @@
   /* Familles typographiques. Montserrat pour l'affichage et l'UI, Inter
      pour les zones denses (tableaux, formulaires touffus), comme le DS.
 
-     Les polices d'emoji sont OBLIGATOIRES en fin de pile : la navigation, les
-     menus et plusieurs boutons de l'application utilisent des emoji comme
-     icônes. Sans ces recours, ils s'affichent en carrés vides (« tofu »).
-     Le design system proscrit l'emoji au profit d'un jeu d'icônes tracées —
-     migration à faire à part, elle touche une centaine de libellés. */
+     Les polices d'emoji restent en fin de pile, mais plus pour l'interface :
+     celle-ci est passée aux icônes tracées (`<AppIcon>`, RemixIcon), comme le
+     demande le DS. Elles couvrent désormais les DONNÉES SAISIES — le nom d'un
+     client, une note d'atelier peuvent contenir un emoji, et sans ces recours
+     il s'afficherait en carré vide (« tofu »). Ne les retirez pas : n'écrivez
+     simplement plus d'emoji dans les gabarits, ce que le contrôle
+     `check-icons.mjs` fait respecter. */
   --font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol';
   --font-display: 'Montserrat', system-ui, -apple-system, 'Segoe UI', var(--font-emoji), sans-serif;
   --font-ui: 'Montserrat', system-ui, -apple-system, 'Segoe UI', var(--font-emoji), sans-serif;

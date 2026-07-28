@@ -19,8 +19,8 @@
         </template>
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editAbsence(row.original)">✏ Modifier</button>
-            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteAbsence(row.original.id)">✖ Supprimer</button>
+            <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editAbsence(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
+            <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="deleteAbsence(row.original.id)"><AppIcon name="i-ri-close-line" /> Supprimer</button>
           </div>
         </template>
       </UTable>
@@ -45,10 +45,10 @@
             <p style="font-size:12px;color:var(--content-3);margin:-4px 0 0;">Heures vides = absence sur la journée entière. Renseigner les deux = seule cette plage bloque le mécanicien (ex. rendez-vous médical le matin).</p>
             <UFormField label="Type de motif">
               <select v-model="absForm.type_motif" class="form-input">
-                <option value="conge">🏖️ Congé</option>
-                <option value="maladie">🏥 Maladie</option>
-                <option value="formation">📚 Formation</option>
-                <option value="autre">📋 Autre</option>
+                <option value="conge"> Congé</option>
+                <option value="maladie"> Maladie</option>
+                <option value="formation"> Formation</option>
+                <option value="autre"> Autre</option>
               </select>
             </UFormField>
             <UFormField label="Détail motif"><UInput v-model="absForm.motif" placeholder="Précisions optionnelles…" /></UFormField>
@@ -76,10 +76,10 @@ const editId = ref<number | null>(null)
 const absForm = reactive({ mecanicien_id: null as number | null, date_debut: '', date_fin: '', heure_debut: '', heure_fin: '', type_motif: 'conge', motif: '' })
 
 const typeMotifLabels: Record<string, { label: string; color: string; bg: string }> = {
-  conge: { label: '🏖️ Congé', color: 'var(--info-content)', bg: 'var(--info-soft)' },
-  maladie: { label: '🏥 Maladie', color: 'var(--error-content)', bg: 'var(--error-soft)' },
-  formation: { label: '📚 Formation', color: 'var(--info-content)', bg: 'var(--info-soft)' },
-  autre: { label: '📋 Autre', color: 'var(--content-3)', bg: 'var(--surface-3)' },
+  conge: { label: 'Congé', color: 'var(--info-content)', bg: 'var(--info-soft)' },
+  maladie: { label: 'Maladie', color: 'var(--error-content)', bg: 'var(--error-soft)' },
+  formation: { label: 'Formation', color: 'var(--info-content)', bg: 'var(--info-soft)' },
+  autre: { label: 'Autre', color: 'var(--content-3)', bg: 'var(--surface-3)' },
 }
 
 const columns = [

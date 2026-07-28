@@ -144,8 +144,8 @@ test.describe('4. Planning', () => {
   test('planning navigation prev/next week works', async ({ page }) => {
     await page.goto('/planning');
     await page.waitForLoadState('networkidle');
-    const prevBtn = page.locator('button').filter({ hasText: /précédent|←|<|semaine/i }).first();
-    const nextBtn = page.locator('button').filter({ hasText: /suivant|→|>|semaine/i }).first();
+    const prevBtn = page.locator('button').filter({ hasText: /précédent|semaine/i }).first();
+    const nextBtn = page.locator('button').filter({ hasText: /suivant|semaine/i }).first();
     if (await prevBtn.isVisible().catch(() => false)) {
       await prevBtn.click();
       await page.waitForTimeout(300);

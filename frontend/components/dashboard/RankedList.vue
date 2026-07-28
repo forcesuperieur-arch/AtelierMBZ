@@ -25,7 +25,7 @@
 
   <AppEmptyState
     v-else
-    :icon="emptyIcon || '📄'"
+    :icon="emptyIcon || 'i-ri-file-text-line'"
     :title="emptyTitle || 'Pas encore de données'"
     :description="emptyDescription || 'Ce classement se remplit au fil des interventions clôturées.'"
   />

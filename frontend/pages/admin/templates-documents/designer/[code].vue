@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin/templates-documents" style="color:var(--content-3);text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/admin/templates-documents" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour aux documents"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div class="page-title">En-tête : {{ label }}</div>
       </div>
     </div>

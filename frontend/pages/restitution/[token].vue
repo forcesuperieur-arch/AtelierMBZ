@@ -3,20 +3,20 @@
     <div class="restitution-container">
       <!-- Loading -->
       <div v-if="loading" style="text-align:center;padding:40px;">
-        <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+        <div style="font-size:32px;margin-bottom:12px;"><AppIcon name="i-ri-hourglass-line" /></div>
         <p style="color:var(--content-3);">Chargement…</p>
       </div>
 
       <!-- Error -->
       <div v-else-if="error" style="text-align:center;padding:40px;">
-        <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+        <div style="font-size:48px;margin-bottom:16px;"><AppIcon name="i-ri-forbid-line" /></div>
         <h2 style="color:var(--error-content);font-size:18px;margin-bottom:8px;">Lien invalide</h2>
         <p style="color:var(--content-3);font-size:13px;">{{ error }}</p>
       </div>
 
       <!-- Signed -->
       <div v-else-if="signed" style="text-align:center;padding:40px;">
-        <div style="font-size:48px;margin-bottom:16px;">✅</div>
+        <div style="font-size:48px;margin-bottom:16px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
         <h2 style="color:var(--success-content);font-size:18px;margin-bottom:8px;">Restitution signée</h2>
         <p
           v-if="signedWithLitige"
@@ -32,7 +32,7 @@
       <div v-else-if="data" class="restitution-card">
         <!-- Header -->
         <div class="restitution-header">
-          <div style="font-size:28px;">🔑</div>
+          <div style="font-size:28px;"><AppIcon name="i-ri-key-2-line" /></div>
           <div>
             <h1 style="font-size:18px;font-weight:800;color:var(--content-1);margin:0;">Restitution du véhicule</h1>
             <p style="font-size:12px;color:var(--content-3);margin:2px 0 0;">
@@ -53,26 +53,26 @@
 
         <!-- Travaux réalisés -->
         <div class="restitution-section">
-          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;">🔧 Travaux réalisés</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;"><AppIcon name="i-ri-tools-line" /> Travaux réalisés</h3>
           <div v-if="data.ordre?.travaux_realises" style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.travaux_realises }}</div>
           <div v-else style="font-size:13px;color:var(--content-3);font-style:italic;">Aucun détail renseigné</div>
         </div>
 
         <!-- Alertes -->
         <div v-if="data.ordre?.alertes" class="restitution-section" style="border-left:3px solid var(--error);">
-          <h3 style="font-size:13px;font-weight:700;color:var(--error-content);margin:0 0 8px;">⚠️ Alertes</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--error-content);margin:0 0 8px;"><AppIcon name="i-ri-error-warning-line" /> Alertes</h3>
           <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.alertes }}</div>
         </div>
 
         <!-- Recommandations -->
         <div v-if="data.ordre?.recommandations" class="restitution-section" style="border-left:3px solid var(--warning);">
-          <h3 style="font-size:13px;font-weight:700;color:var(--warning-content);margin:0 0 8px;">💡 Recommandations</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--warning-content);margin:0 0 8px;"><AppIcon name="i-ri-lightbulb-line" /> Recommandations</h3>
           <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.recommandations }}</div>
         </div>
 
         <!-- Garantie -->
         <div v-if="data.ordre?.garantie" class="restitution-section" style="border-left:3px solid var(--success);">
-          <h3 style="font-size:13px;font-weight:700;color:var(--success-content);margin:0 0 8px;">🛡️ Garantie</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--success-content);margin:0 0 8px;"><AppIcon name="i-ri-shield-line" /> Garantie</h3>
           <div style="font-size:13px;color:var(--content-2);white-space:pre-wrap;">{{ data.ordre.garantie }}</div>
         </div>
 
@@ -86,7 +86,7 @@
 
         <!-- Entretien fluides -->
         <div class="restitution-section" style="background:var(--info-soft);border-color:var(--info);">
-          <h3 style="font-size:13px;font-weight:700;color:var(--info-content);margin:0 0 8px;">🔧 Entretien des fluides recommandé</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--info-content);margin:0 0 8px;"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</h3>
           <div style="font-size:13px;color:var(--content-2);">Huile moteur — <strong style="color:var(--info-content);">tous les ans</strong></div>
           <div style="font-size:13px;color:var(--content-2);">Liquide de frein — <strong style="color:var(--info-content);">tous les 2 ans</strong></div>
           <div style="font-size:13px;color:var(--content-2);">Liquide de refroidissement — <strong style="color:var(--info-content);">tous les 3 ans</strong></div>
@@ -94,7 +94,7 @@
 
         <!-- Comparatif état d'entrée / état de sortie -->
         <div v-if="data.etat_des_lieux" class="restitution-section" data-testid="comparatif-edl">
-          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 12px;">📋 Comparatif état d'entrée / état de sortie</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 12px;"><AppIcon name="i-ri-clipboard-line" /> Comparatif état d'entrée / état de sortie</h3>
           <div class="comparatif-grid">
             <!-- Colonne entrée -->
             <div class="comparatif-col" data-testid="comparatif-entree">
@@ -128,7 +128,7 @@
                   >
                     <img :src="url" alt="Photo à l'entrée" loading="lazy" @error="markBroken(url)" />
                   </a>
-                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible">📷</span>
+                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible"><AppIcon name="i-ri-camera-line" /></span>
                 </template>
               </div>
               <div v-else class="comparatif-empty">Aucune photo</div>
@@ -158,7 +158,7 @@
                   >
                     <img :src="url" alt="Photo à la restitution" loading="lazy" @error="markBroken(url)" />
                   </a>
-                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible">📷</span>
+                  <span v-else class="mini-thumb mini-thumb-missing" title="Photo indisponible"><AppIcon name="i-ri-camera-line" /></span>
                 </template>
               </div>
               <div v-else class="comparatif-empty">Aucune photo</div>
@@ -168,7 +168,7 @@
 
         <!-- Signature -->
         <div class="restitution-section">
-          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;">✍️ Signature client</h3>
+          <h3 style="font-size:13px;font-weight:700;color:var(--content-1);margin:0 0 8px;"><AppIcon name="i-ri-quill-pen-line" /> Signature client</h3>
           <p style="font-size:12px;color:var(--content-3);margin:0 0 12px;">
             En signant, je reconnais avoir pris connaissance des travaux effectués et récupéré mon véhicule.
           </p>
@@ -211,7 +211,7 @@
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;">
             <button class="restitution-btn-secondary" style="flex:1;" @click="clearSignature">
-              ↺ Effacer
+              <AppIcon name="i-ri-eraser-line" /> Effacer
             </button>
             <button
               class="restitution-btn-primary"
@@ -219,7 +219,7 @@
               :disabled="sigSaving || !hasDrawn"
               @click="submitSignature"
             >
-              {{ sigSaving ? 'Enregistrement…' : '✓ Valider la restitution' }}
+              <AppIcon v-if="!(sigSaving)" name="i-ri-check-line" />{{ sigSaving ? 'Enregistrement…' : 'Valider la restitution' }}
             </button>
           </div>
           <p v-if="sigError" style="font-size:12px;color:var(--error-content);text-align:center;margin-top:8px;">{{ sigError }}</p>

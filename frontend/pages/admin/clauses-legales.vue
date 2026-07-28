@@ -36,7 +36,7 @@
               <div style="font-size:12px;color:var(--content-2);margin-top:6px;white-space:pre-wrap;max-height:100px;overflow:hidden;position:relative;">{{ c.texte.slice(0, 300) }}{{ c.texte.length > 300 ? '…' : '' }}</div>
             </div>
             <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
-              <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" @click="openEdit(c)">{{ c.isActive ? '✏️ Modifier' : '👁️ Voir' }}</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" @click="openEdit(c)"><AppIcon :name="c.isActive ? 'i-ri-pencil-line' : 'i-ri-eye-line'" /> {{ c.isActive ? 'Modifier' : 'Voir' }}</button>
               <button v-if="!c.isActive" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:var(--success-content);" @click="toggleActive(c, true)">Réactiver</button>
               <button v-else class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:var(--error-content);" @click="toggleActive(c, false)">Archiver</button>
             </div>
@@ -64,7 +64,7 @@
           <UTextarea v-model="editing.texte" :rows="10" placeholder="Texte juridique intégral…" />
         </UFormField>
         <p v-if="editing.id" style="font-size:11px;color:var(--warning-content);">
-          ⚠️ Toute modification du texte créera une nouvelle version et archivera cette version {{ editing.version }}.
+          <AppIcon name="i-ri-error-warning-line" /> Toute modification du texte créera une nouvelle version et archivera cette version {{ editing.version }}.
         </p>
       </div>
       <template #footer>
