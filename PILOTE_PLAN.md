@@ -167,6 +167,175 @@ restitution (le staff rouvre le lien public sur la tablette).
 
 ---
 
+## Chantier — Suivi des motos en atelier + alerte 72h ouvré ✅ FAIT (2026-07-27)
+
+Demande cmoreau : repérer les motos qui dorment à l'atelier, avant que le client rappelle —
+puis, sur sa demande complémentaire, **un onglet dédié pour suivre TOUTES les motos présentes**
+(pas seulement les dépassements) avec de vraies actions dessus.
+
+**Décisions métier (QCM cmoreau 2026-07-27)** : départ du compteur = arrivée physique de la
+moto ; « 72h ouvré » = chrono 24h/24 **gelé les jours de fermeture** (week-end, fériés,
+fermetures exceptionnelles) — donc une moto reçue vendredi n'alerte pas le lundi matin ;
+statuts surveillés = toute moto physiquement immobilisée (réception, en cours, en pause,
+attente pièces, attente reprise, gardiennage) ; trois canaux : badge planning + dashboard,
+notification cloche, e-mail à l'atelier.
+
+- [x] **Cœur du calcul** : `SejourAtelierService` — départ = réception tracée dans
+  `RdvStatutHistorique` si elle existe ; sinon la date **la plus ancienne** entre le premier
+  événement d'atelier connu et la date du RDV. Cette borne est indispensable : sans elle, sur un
+  dossier sans réception tracée (legacy, seed, moto entrée directement en gardiennage), une simple
+  mise en pause du jour devenait « l'arrivée » et **remettait le compteur à zéro** — défaut trouvé
+  et corrigé en recette navigateur (une moto à 56 j retombait à 0 h après un changement de statut).
+  Le calendrier de fermeture est délégué à `JoursOuvresService` (source unique, déjà utilisée par
+  le gardiennage) plutôt que dupliqué. 11 tests unitaires (calcul et règle de date sont purs).
+- [x] **Bug latent corrigé au passage** : `JoursOuvresService::estJourFerie` appelait `easter_days()`,
+  fonction de l'extension PHP `calendar` **absente de l'image Docker** → erreur fatale à chaque
+  appel du calendrier des jours ouvrés (donc `GardiennageService` et `app:relance-client-stockage`
+  étaient cassés). Remplacé par un calcul pur (Meeus/Jones/Butcher), vérifié sur 10 années de
+  référence — aucun rebuild d'image nécessaire.
+- [x] **Cron + notifications** : `app:alerte-sejour-atelier` (options `--seuil`, `--atelier`,
+  `--dry-run`), planifié à 8h30 dans `Schedule.php`. Crée une notification cloche `warning` par
+  moto (cible ADMIN + RECEPTIONNAIRE, push Mercure non bloquant) avec **anti-doublon 24h** — pas
+  de spam quotidien tant que l'alerte n'est pas traitée — puis un e-mail récapitulatif par atelier
+  à `ADMIN_EMAIL`. Le récap est volontairement envoyé à chaque passage : c'est la photo du jour.
+- [x] **Badge staff** : composant `AlerteSejourAtelier.vue` monté sur le dashboard et le planning
+  (bandeau ambre repliable, 10 lignes max + « … et N autres », lien « Suivi complet → » vers
+  l'onglet). Lit `GET /api/sejour-atelier/alertes` en direct (TenantFilter → atelier courant),
+  rafraîchi toutes les 5 min, échec de chargement signalé avec « Réessayer » (jamais avalé).
+- [x] **Onglet « En atelier »** (`pages/en-atelier.vue`, sidebar ⏳ section `planning`) : la liste de
+  TOUTES les motos présentes, triée du séjour le plus long au plus court, dépassements surlignés.
+  4 KPI (présentes / au-delà du seuil / ancienneté moyenne / la plus ancienne), filtres par statut,
+  recherche plaque-client-moto-mécano, bascule « seulement les dépassements », compteur affichées /
+  masquées, date de dernière relance par ligne. Alimenté par `GET /api/sejour-atelier/motos`
+  (même service, drapeau `en_depassement`, récapitulatif par statut), rafraîchi toutes les 2 min.
+
+### Fiche actionnable (décision cmoreau : « je ne peux rien faire dans la pop-in »)
+
+La `RdvDetailModal` partagée est en lecture seule (pied de page = « Fermer ») : inutile ici. D'où une
+modale dédiée `MotoEnAtelierModal.vue` — la modale partagée n'est pas touchée (zéro risque pour les
+4 écrans qui l'utilisent). Actions retenues au QCM, toutes vérifiées au navigateur :
+
+- [x] **Appeler le client** : numéro cliquable (`tel:`) + copie presse-papiers, avec rappel de la
+  date de dernière relance.
+- [x] **Relancer le client** : `POST /api/sejour-atelier/{id}/relancer` (e-mail ou SMS, message libre
+  du staff de 500 caractères max). Nouveau template `sejour_prolonge` (e-mail + SMS) ajouté au
+  catalogue — créé automatiquement par atelier via `ensureDefaultsForAtelier`, donc rien à faire à
+  l'install. Refus explicites : moto plus en atelier (409), aucun canal disponible (409), envoi
+  échoué (502) — jamais de faux « envoyé ». Traçé dans `notification_logs`, ce qui alimente la
+  date de dernière relance affichée dans l'onglet et la fiche.
+- [x] **Affecter / changer le mécanicien** : `PATCH /api/rendez-vous/{id}` (existant), liste chargée
+  en pagination complète et ordre stable.
+- [x] **Faire avancer le dossier** : boutons construits depuis `GET /api/rendez-vous/{id}/transitions`
+  — ce sont les transitions réellement autorisées par le serveur, donc **les mêmes gardes métier que
+  le planning** (aucun statut deviné côté front) ; les alias du workflow (`pause_travail` vs
+  `mettre_en_pause`…) sont dédoublonnés pour ne pas afficher deux fois la même action.
+- [x] **Recette** : commande vérifiée bout-en-bout (3 notifications, 2e passage bloqué par
+  l'anti-doublon, e-mail reçu dans MailHog) ; endpoints 200 ; relance réelle reçue avec message et
+  lien de suivi ; aller-retour complet au navigateur (affectation → mise en pause → reprise →
+  désaffectation, retour à l'état initial, 0 erreur console) ; E2E navigation / non-régression /
+  mvp-complete / lot-b / notifications **verts**.
+
+### Réglages en administration ✅ FAIT (2026-07-27, demande cmoreau)
+
+- [x] **Seuil d'alerte réglable** par atelier (`ConfigAtelier.seuilSejourAtelierHeures`, défaut 72,
+  migration `Version20260727120000`) + **interrupteur de l'alerte automatique**
+  (`alerteSejourAtelierActive`). Réglages exposés dans l'assistant de configuration, **étape 3
+  « Horaires »** — à côté des jours fermés et des fermetures exceptionnelles, dont ils dépendent —
+  et donc accessibles à tout admin d'atelier (pas réservés au super admin comme les modules).
+  Champ + raccourcis 1/2/3/5/7 jours + libellé calculé (« ≈ 3 jours, week-end et fériés non comptés »).
+- [x] **Portée du réglage** : l'API (`/alertes`, `/motos`) et le cron appliquent le seuil de chaque
+  atelier ; un paramètre `?seuil=` explicite le surcharge (diagnostic). Alerte coupée → le cron
+  n'envoie plus rien (« N moto(s) ignorée(s) : alerte désactivée en administration ») mais l'onglet
+  de suivi reste consultable.
+- [x] **Validation serveur** : seuil borné 1–8760 h dans `AdminConfigValidator` (un 0 alerterait
+  toutes les motos dès l'arrivée) → 400 avec message métier.
+- [x] **Recette** : cycle complet vérifié au navigateur (affichage 72, preset 5 jours, sauvegarde,
+  seuil appliqué immédiatement par l'API, remise à 72) ; refus du 0 vérifié ; cron avec alerte
+  coupée vérifié ; E2E navigation / non-régression / mvp-complete / en-atelier / lot-b **verts**.
+
+### Nettoyage — onglet « Dossiers atelier » supprimé (2026-07-27, demande cmoreau)
+
+L'entrée de menu `/ordres` pointait vers une **page inexistante** (aucun `pages/ordres*`). Retirée,
+ainsi que le titre de section associé et **deux boutons staff** qui menaient à la même route morte
+(`demandes-travaux-supp.vue`, `DemandeTravauxSuppDetailModal.vue`) — remplacés par la référence de
+l'OR en texte. Trois tests E2E « validaient » cette route grâce à des regex trop permissives (la
+regex `/ordre|réparation|or|dossier/i` matchait le menu lui-même) : supprimés ou recentrés sur l'API
+`ordres-reparation`, qui elle existe bien.
+
+> Non retenu pour l'instant : durée estimée dans la fiche (`RendezVous` n'expose pas de durée directe).
+
+---
+
+## Chantier — Refonte de l'administration + règles métier configurables ✅ FAIT (2026-07-27)
+
+Demande cmoreau : « plutôt que d'avoir des sous-menus, rentrer dans la page et avoir des onglets
+comme Google Chrome », puis « refondre toute la page admin, simplifier », et « regarder toutes les
+règles codées en dur et les rendre configurables dans la page admin ».
+
+### Navigation par onglets
+
+- [x] **`pages/admin.vue`** = cadre à onglets persistant + `<NuxtPage />`. Choix technique : les
+  **routes imbriquées de Nuxt**, donc les 11 pages `pages/admin/*.vue` restent inchangées et gardent
+  leur URL (rechargeable, partageable, historique navigateur intact) — contrairement à un `v-if`
+  local qui aurait exigé de fusionner 4 800 lignes dans un seul fichier.
+- [x] `/admin` n'est plus une grille de cartes : il ouvre directement le premier onglet. Les 11
+  flèches « ◀ retour » des pages enfants sont retirées (la barre d'onglets joue ce rôle).
+- [x] Onglet actif déduit de l'URL **par préfixe** : une sous-page (designer de documents) garde son
+  onglet parent actif. Onglets `Ateliers` / `Profils d'accès` réservés au super admin, comme avant.
+- [x] **Bug de scroll corrigé (remonté par cmoreau)** : un élément `sticky` se colle sur le *padding
+  box* du conteneur de défilement. La zone de contenu ayant `padding: 24px`, la barre se fixait 24 px
+  trop bas et le contenu défilait dans la bande restée visible au-dessus. Corrigé par `top: -24px` +
+  marges négatives (la barre déborde sur le padding et couvre toute la largeur). Vérifié par mesure :
+  haut de barre = haut de zone, plus rien ne passe au-dessus.
+
+### Onglet Configuration simplifié
+
+- [x] **L'assistant en 6 étapes est supprimé** : toutes les sections sont désormais sur une seule
+  page déroulante, avec un sommaire cliquable et une barre d'enregistrement collée en bas. Plus de
+  navigation Précédent/Suivant, plus de réglages cachés derrière une étape (le check-in et les
+  notifications étaient enfermés dans l'étape « Modules », donc invisibles pour un admin non super).
+- [x] **Doublon supprimé (remonté par cmoreau)** : la section « Tarifs par prestation » reprenait —
+  moins bien — ce que fait l'onglet **Prestations** (même modale de configuration). Remplacée par un
+  renvoi vers cet onglet ; la modale de tarifs et son code sont retirés de `config.vue`
+  (**1 293 → 1 143 lignes**), l'action d'amorçage « Pré-remplir les premiers tarifs » est conservée.
+
+### Règles métier sorties du code
+
+Nouveau service **`ReglesAtelier`** = source unique de lecture, avec repli sur les valeurs
+historiques (donc **aucun changement de comportement** sur une installation existante). Colonnes
+ajoutées à `ConfigAtelier` (migration `Version20260727140000`), pilotées dans la section
+« Règles métier » de l'onglet Configuration :
+
+| Règle | Était codée en dur dans | Défaut |
+|---|---|---|
+| Photos d'entrée exigées | `EtatDesLieuxDocumentService::MIN_PHOTOS_ENTREE` | 4 |
+| Rappels avant RDV (2 délais) | `SendRappelsCommand` (`+3 days` / `+1 day`) | 3 et 1 j |
+| Délai de relance travaux supp. | `RelanceDemandesTravauxCommand::DELAI_HEURES` | 4 h |
+| Fenêtre horaire des envois | `RelanceDemandesTravauxCommand::HEURE_MIN/MAX` | 8 h–19 h |
+| Validité des liens clients | `PublicTokenPolicy::GRACE_PERIOD` | 30 j |
+| Points de contrôle essai routier | `MecanicienController` (`< 5`) | 5 |
+| Rappel d'alerte « moto en atelier » | `AlerteSejourAtelierCommand::RENOTIFY_AFTER_HOURS` | 24 h |
+| Seuil d'alerte séjour | `SejourAtelierService::SEUIL_HEURES_DEFAUT` | 72 h ouvrées |
+
+- [x] **Validation serveur** sur chaque borne + deux contrôles croisés (heure de fin > heure de
+  début ; 1 ou 2 rappels entre 1 et 60 jours) → 400 avec message métier.
+- [x] **Volontairement NON exposé**, et affiché comme tel dans l'écran : durées de conservation RGPD
+  (3 ans / 10 ans), tailles maximales d'upload, durées de session et de jetons d'authentification,
+  throttle des e-mails d'erreur. Ce sont des obligations légales ou des garde-fous de sécurité, pas
+  des choix d'exploitation — les laisser réglables serait un risque, pas un service.
+- [x] `SejourAtelierService` délègue désormais ses réglages à `ReglesAtelier` (une seule lecture de
+  configuration au lieu de deux implémentations).
+- [x] **Recette** : 181 tests unitaires verts ; cycle complet au navigateur (affichage, modification,
+  enregistrement, relecture, remise des défauts) ; validations refusées vérifiées (fenêtre
+  incohérente, 3 rappels, seuil hors bornes) ; **effet métier prouvé** en bootant le noyau — le même
+  dossier clôturé passe de « lien expiré » à « lien valide » puis de nouveau « expiré » selon le
+  réglage de validité des liens.
+
+> Piège retenu : lancer la suite E2E pendant un `docker compose restart nuxt` produit une centaine de
+> faux échecs (front indisponible). Toujours attendre « Listening on » avant de lancer les tests.
+
+---
+
 ## Risques
 
 | Risque | Niveau | Parade |
