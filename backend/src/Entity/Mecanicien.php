@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,6 +19,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['mecanicien:read']],
     denormalizationContext: ['groups' => ['mecanicien:write']],
 )]
+#[ApiFilter(OrderFilter::class, properties: ['id' => 'ASC'])]
 class Mecanicien
 {
     #[ORM\Id]

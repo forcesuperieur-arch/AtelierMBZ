@@ -613,7 +613,7 @@ async function fetchPontsWithFallback() {
     return statusPonts
   }
 
-  const rawPayload = await api.get('/ponts').catch(() => [])
+  const rawPayload = await api.getAll('/ponts?order[id]=asc').catch(() => [])
   return normalizeCollection(rawPayload).map((item: any) => normalizePont(item))
 }
 
@@ -623,7 +623,7 @@ async function loadWorkshop() {
 
   const [p, m, a, r] = await Promise.allSettled([
     fetchPontsWithFallback(),
-    api.get('/mecaniciens'),
+    api.getAll('/mecaniciens?order[id]=asc'),
     api.getAll('/absences?order[id]=asc'),
     api.getAll('/rendez-vous?order[id]=asc'),
   ])
