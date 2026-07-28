@@ -27,3 +27,6 @@ tests-screenshots/
 *.orig
 *.rej
 playwright/
+
+# Worktrees des agents Claude (volumineux, purement locaux)
+.claude/worktrees/
