@@ -17,6 +17,7 @@ class SendRappelsCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private MessageBusInterface $bus,
+        private \App\Service\ReglesAtelier $regles,
     ) {
         parent::__construct();
     }
@@ -26,9 +27,17 @@ class SendRappelsCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $sent = 0;
 
-        // J-3 reminders: RDVs in 3 days with status 'confirme'
-        $j3 = (new \DateTime())->modify('+3 days')->format('Y-m-d');
-        $rdvsJ3 = $this->em->getRepository(RendezVous::class)
+        // Deux rappels client, dont les délais sont réglables en administration
+        // (par défaut J-3 puis J-1). Le rappel le plus proche du RDV utilise le
+        // gabarit `rappel_j1`, le plus anticipé `rappel_j3`.
+        $joursRappel = $this->regles->rappelsRdvJours();
+        $jourProche = $joursRappel[0];
+        $jourAnticipe = $joursRappel[1] ?? null;
+
+        $j3 = $jourAnticipe !== null
+            ? (new \DateTime())->modify(sprintf('+%d days', $jourAnticipe))->format('Y-m-d')
+            : null;
+        $rdvsJ3 = $j3 === null ? [] : $this->em->getRepository(RendezVous::class)
             ->createQueryBuilder('r')
             ->where('r.dateRdv = :date')
             ->andWhere('r.statut = :statut')
@@ -41,8 +50,7 @@ class SendRappelsCommand extends Command
             $sent++;
         }
 
-        // J-1 reminders: RDVs tomorrow with status 'confirme'
-        $j1 = (new \DateTime())->modify('+1 day')->format('Y-m-d');
+        $j1 = (new \DateTime())->modify(sprintf('+%d days', $jourProche))->format('Y-m-d');
         $rdvsJ1 = $this->em->getRepository(RendezVous::class)
             ->createQueryBuilder('r')
             ->where('r.dateRdv = :date')

@@ -80,6 +80,24 @@ class ConfigAtelier
     // des lieux d'entrée SIGNÉ tant que ce toggle est actif (défaut TRUE).
     #[ORM\Column(options: ['default' => true])] #[Groups(['config:read', 'config:write'])] private bool $checkinObligatoire = true;
 
+    // Suivi « moto en atelier » — seuil d'alerte en heures OUVRÉES (les jours de
+    // fermeture ne comptent pas) et interrupteur de l'alerte automatique
+    // (notification cloche + e-mail récapitulatif). L'onglet de suivi reste
+    // toujours accessible, même alerte coupée.
+    #[ORM\Column(options: ['default' => 72])] #[Groups(['config:read', 'config:write'])] private int $seuilSejourAtelierHeures = 72;
+    #[ORM\Column(options: ['default' => true])] #[Groups(['config:read', 'config:write'])] private bool $alerteSejourAtelierActive = true;
+
+    // Règles métier réglables en administration — auparavant des constantes dans
+    // le code (un changement demandait un déploiement). Voir App\Service\ReglesAtelier.
+    #[ORM\Column(options: ['default' => 4])] #[Groups(['config:read', 'config:write'])] private int $minPhotosEntree = 4;
+    #[ORM\Column(options: ['default' => 4])] #[Groups(['config:read', 'config:write'])] private int $relanceTravauxDelaiHeures = 4;
+    #[ORM\Column(options: ['default' => 8])] #[Groups(['config:read', 'config:write'])] private int $relanceHeureMin = 8;
+    #[ORM\Column(options: ['default' => 19])] #[Groups(['config:read', 'config:write'])] private int $relanceHeureMax = 19;
+    #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $rappelsRdvJours = [1, 3];
+    #[ORM\Column(options: ['default' => 30])] #[Groups(['config:read', 'config:write'])] private int $lienPublicJours = 30;
+    #[ORM\Column(options: ['default' => 5])] #[Groups(['config:read', 'config:write'])] private int $essaiPointsMin = 5;
+    #[ORM\Column(options: ['default' => 24])] #[Groups(['config:read', 'config:write'])] private int $rappelAlerteHeures = 24;
+
     public function __construct() { $this->updatedAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -141,6 +159,26 @@ class ConfigAtelier
 
     public function isCheckinObligatoire(): bool { return $this->checkinObligatoire; }
     public function setCheckinObligatoire(bool $v): static { $this->checkinObligatoire = $v; return $this; }
+    public function getMinPhotosEntree(): int { return $this->minPhotosEntree; }
+    public function setMinPhotosEntree(int $v): static { $this->minPhotosEntree = $v; return $this; }
+    public function getRelanceTravauxDelaiHeures(): int { return $this->relanceTravauxDelaiHeures; }
+    public function setRelanceTravauxDelaiHeures(int $v): static { $this->relanceTravauxDelaiHeures = $v; return $this; }
+    public function getRelanceHeureMin(): int { return $this->relanceHeureMin; }
+    public function setRelanceHeureMin(int $v): static { $this->relanceHeureMin = $v; return $this; }
+    public function getRelanceHeureMax(): int { return $this->relanceHeureMax; }
+    public function setRelanceHeureMax(int $v): static { $this->relanceHeureMax = $v; return $this; }
+    public function getRappelsRdvJours(): array { return $this->rappelsRdvJours; }
+    public function setRappelsRdvJours(array $v): static { $this->rappelsRdvJours = array_values($v); return $this; }
+    public function getLienPublicJours(): int { return $this->lienPublicJours; }
+    public function setLienPublicJours(int $v): static { $this->lienPublicJours = $v; return $this; }
+    public function getEssaiPointsMin(): int { return $this->essaiPointsMin; }
+    public function setEssaiPointsMin(int $v): static { $this->essaiPointsMin = $v; return $this; }
+    public function getRappelAlerteHeures(): int { return $this->rappelAlerteHeures; }
+    public function setRappelAlerteHeures(int $v): static { $this->rappelAlerteHeures = $v; return $this; }
+    public function getSeuilSejourAtelierHeures(): int { return $this->seuilSejourAtelierHeures; }
+    public function setSeuilSejourAtelierHeures(int $v): static { $this->seuilSejourAtelierHeures = $v; return $this; }
+    public function isAlerteSejourAtelierActive(): bool { return $this->alerteSejourAtelierActive; }
+    public function setAlerteSejourAtelierActive(bool $v): static { $this->alerteSejourAtelierActive = $v; return $this; }
 
     public function getTauxHoraireMoStandard(): string { return $this->tauxHoraireMoStandard; }
     public function setTauxHoraireMoStandard(string $v): static { $this->tauxHoraireMoStandard = $v; return $this; }

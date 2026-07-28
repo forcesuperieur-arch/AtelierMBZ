@@ -19,6 +19,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class RelanceDemandesTravauxCommand extends Command
 {
     /** Pas de relance la nuit : fenêtre d'envoi en heures locales atelier */
+    /** @deprecated Valeurs historiques : voir ReglesAtelier (réglables en administration). */
     private const HEURE_MIN = 8;
     private const HEURE_MAX = 19;
 
@@ -28,6 +29,7 @@ class RelanceDemandesTravauxCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private NotificationDispatcher $dispatcher,
+        private \App\Service\ReglesAtelier $regles,
     ) {
         parent::__construct();
     }
@@ -37,12 +39,13 @@ class RelanceDemandesTravauxCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $heure = (int) (new \DateTime())->format('G');
-        if ($heure < self::HEURE_MIN || $heure >= self::HEURE_MAX) {
+        [$heureMin, $heureMax] = $this->regles->fenetreEnvoi();
+        if ($heure < $heureMin || $heure >= $heureMax) {
             $io->writeln('Hors fenêtre d\'envoi (8h-19h) — aucune relance.');
             return Command::SUCCESS;
         }
 
-        $seuil = (new \DateTime())->modify(sprintf('-%d hours', self::DELAI_HEURES));
+        $seuil = (new \DateTime())->modify(sprintf('-%d hours', $this->regles->relanceTravauxDelaiHeures()));
 
         $demandes = $this->em->createQueryBuilder()
             ->select('d')

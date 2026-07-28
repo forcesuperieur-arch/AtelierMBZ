@@ -2,7 +2,6 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
         <div class="page-title">Configuration atelier</div>
       </div>
     </div>
@@ -12,42 +11,16 @@
     </div>
 
     <div v-else style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
-      <UCard>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#E8E9ED;">Assistant de configuration</div>
-            <div style="font-size:12px;color:#9CA3AF;">Retrouve le parcours pas à pas de l'ancienne application.</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button
-              v-for="item in steps"
-              :key="item.id"
-              class="btn"
-              :class="step === item.id ? 'btn-primary' : 'btn-ghost'"
-              style="font-size:12px;padding:6px 12px;"
-              @click="step = item.id"
-            >
-              {{ item.id }}. {{ item.title }}
-            </button>
-          </div>
-        </div>
-      </UCard>
-
-      <UCard v-if="isSuperAdmin" style="border-color:rgba(139,92,246,0.28);background:rgba(139,92,246,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div>
-            <div style="font-size:13px;font-weight:700;color:#C4B5FD;">Onglet super admin</div>
-            <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">L’activation des modules atelier se pilote dans l’onglet Modules.</div>
-          </div>
-          <button type="button" class="btn btn-primary" style="padding:8px 12px;font-size:12px;" @click="step = 6">
-            Ouvrir Modules atelier
-          </button>
-        </div>
-      </UCard>
+      <!-- Sommaire : tout est sur une seule page, ces liens font défiler. -->
+      <div class="sommaire">
+        <a v-for="sec in sections" :key="sec.id" :href="`#${sec.id}`" class="sommaire-lien">
+          {{ sec.titre }}
+        </a>
+      </div>
 
       <form @submit.prevent="saveConfig" style="display:flex;flex-direction:column;gap:16px;">
-        <UCard v-if="step === 1">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">1. Identité de l'atelier</span></template>
+        <UCard id="sec-atelier">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Identité de l'atelier</span></template>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <UFormField label="Nom atelier"><UInput v-model="atelier.nom" /></UFormField>
             <UFormField label="Téléphone"><UInput v-model="atelier.telephone" /></UFormField>
@@ -69,8 +42,8 @@
           </div>
         </UCard>
 
-        <UCard v-if="step === 2">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">2. Logo et image atelier</span></template>
+        <UCard id="sec-logo">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Logo et image atelier</span></template>
           <div style="display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start;">
             <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;min-height:180px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);">
               <img v-if="atelier.logo_url" :src="atelier.logo_url" alt="Logo atelier" style="max-width:100%;max-height:150px;object-fit:contain;" />
@@ -85,8 +58,8 @@
           </div>
         </UCard>
 
-        <UCard v-if="step === 3">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">3. Horaires d'ouverture</span></template>
+        <UCard id="sec-horaires">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Horaires, fermetures et alertes</span></template>
           <div style="display:flex;flex-direction:column;gap:12px;">
             <div v-for="h in horaires" :key="h.jour_semaine" style="display:grid;grid-template-columns:90px 1fr 1fr 1fr 1fr auto;gap:8px;align-items:center;font-size:13px;">
               <span style="font-weight:600;color:#E8E9ED;">{{ jourLabel(h.jour_semaine) }}</span>
@@ -124,11 +97,211 @@
               </div>
               <div v-else style="font-size:12px;color:#9CA3AF;margin-top:10px;">Aucune fermeture exceptionnelle enregistrée.</div>
             </div>
+
+            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);">
+              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">Motos en atelier — alerte de séjour prolongé</div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;margin-bottom:10px;">
+                Au-delà de ce seuil, la moto est signalée dans l'onglet « En atelier », sur le planning et
+                le tableau de bord. Le décompte est en heures <strong>ouvrées</strong> : les jours de
+                fermeture (week-end, fériés, fermetures exceptionnelles) ne comptent pas.
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+                <label style="display:block;">
+                  <span style="display:block;font-size:11px;color:#9CA3AF;margin-bottom:4px;">Seuil d'alerte (heures ouvrées)</span>
+                  <input
+                    v-model.number="config.seuil_sejour_atelier_heures"
+                    type="number"
+                    min="1"
+                    max="8760"
+                    step="1"
+                    class="form-input"
+                    style="max-width:160px;"
+                    data-testid="seuil-sejour-atelier"
+                  />
+                </label>
+                <div style="font-size:11px;color:#9CA3AF;padding-bottom:10px;">
+                  ≈ {{ seuilSejourEnJours }} — {{ seuilSejourExemple }}
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button
+                  v-for="preset in SEUILS_SEJOUR_PRESETS"
+                  :key="preset.heures"
+                  type="button"
+                  class="btn btn-ghost"
+                  style="padding:6px 10px;font-size:11px;"
+                  @click="config.seuil_sejour_atelier_heures = preset.heures"
+                >
+                  {{ preset.label }}
+                </button>
+              </div>
+              <button
+                type="button"
+                class="btn"
+                :class="isAlerteSejourActive ? 'btn-primary' : 'btn-ghost'"
+                style="padding:8px 12px;font-size:12px;margin-top:12px;"
+                data-testid="toggle-alerte-sejour"
+                @click="toggleAlerteSejour"
+              >
+                {{ isAlerteSejourActive ? '🔔' : '🔕' }} Alerte automatique (notification + e-mail quotidien)
+              </button>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">
+                Alerte coupée : l'onglet « En atelier » reste consultable, mais plus aucune notification
+                ni e-mail n'est envoyé.
+              </div>
+            </div>
           </div>
         </UCard>
 
-        <UCard v-if="step === 4">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">4. Types de moto activés</span></template>
+        <UCard id="sec-regles">
+          <template #header>
+            <div>
+              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Règles métier</span>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">
+                Ces règles étaient auparavant figées dans le code : elles se pilotent maintenant ici.
+              </div>
+            </div>
+          </template>
+
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="regle">
+              <div class="regle-titre">Photos d'entrée exigées</div>
+              <div class="regle-aide">
+                Nombre minimum de photos à prendre au dépôt pour pouvoir signer l'état des lieux
+                (0 = aucune obligation). Sert de preuve en cas de litige sur l'état de la moto.
+              </div>
+              <input
+                v-model.number="config.min_photos_entree"
+                type="number" min="0" max="20" step="1"
+                class="form-input regle-champ"
+                data-testid="regle-min-photos"
+              />
+            </div>
+
+            <div class="regle">
+              <div class="regle-titre">Rappels avant rendez-vous</div>
+              <div class="regle-aide">
+                Combien de jours avant le RDV le client est prévenu. Deux rappels maximum
+                (le plus proche du RDV utilise le message « veille »).
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                <label class="regle-sous-champ">
+                  <span>Rappel proche (jours avant)</span>
+                  <input
+                    v-model.number="rappelProche"
+                    type="number" min="1" max="60" step="1"
+                    class="form-input regle-champ"
+                    data-testid="regle-rappel-proche"
+                  />
+                </label>
+                <label class="regle-sous-champ">
+                  <span>Rappel anticipé (jours avant, vide = aucun)</span>
+                  <input
+                    v-model="rappelAnticipe"
+                    type="number" min="1" max="60" step="1"
+                    class="form-input regle-champ"
+                    data-testid="regle-rappel-anticipe"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div class="regle">
+              <div class="regle-titre">Relance des travaux supplémentaires</div>
+              <div class="regle-aide">
+                Délai sans réponse du client avant de le relancer automatiquement, et plage horaire
+                pendant laquelle ces envois sont autorisés (pas de SMS la nuit).
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                <label class="regle-sous-champ">
+                  <span>Relancer après (heures)</span>
+                  <input
+                    v-model.number="config.relance_travaux_delai_heures"
+                    type="number" min="1" max="168" step="1"
+                    class="form-input regle-champ"
+                    data-testid="regle-relance-delai"
+                  />
+                </label>
+                <label class="regle-sous-champ">
+                  <span>Envois à partir de (heure)</span>
+                  <input
+                    v-model.number="config.relance_heure_min"
+                    type="number" min="0" max="23" step="1"
+                    class="form-input regle-champ"
+                  />
+                </label>
+                <label class="regle-sous-champ">
+                  <span>Envois jusqu'à (heure)</span>
+                  <input
+                    v-model.number="config.relance_heure_max"
+                    type="number" min="1" max="24" step="1"
+                    class="form-input regle-champ"
+                  />
+                </label>
+              </div>
+              <div v-if="fenetreIncoherente" class="regle-alerte">
+                L'heure de fin doit être postérieure à l'heure de début.
+              </div>
+            </div>
+
+            <div class="regle">
+              <div class="regle-titre">Validité des liens clients</div>
+              <div class="regle-aide">
+                Durée pendant laquelle un lien de suivi envoyé par e-mail ou SMS reste consultable
+                après la clôture du dossier. Passé ce délai, le lien ne montre plus les données du client.
+              </div>
+              <input
+                v-model.number="config.lien_public_jours"
+                type="number" min="1" max="3650" step="1"
+                class="form-input regle-champ"
+                data-testid="regle-lien-public"
+              />
+              <span class="regle-unite">jours après la date du rendez-vous</span>
+            </div>
+
+            <div class="regle">
+              <div class="regle-titre">Essai routier</div>
+              <div class="regle-aide">
+                Nombre de points de contrôle que le mécanicien doit renseigner pour valider un essai
+                routier (l'essai validé est exigé avant de terminer une intervention).
+              </div>
+              <input
+                v-model.number="config.essai_points_min"
+                type="number" min="0" max="50" step="1"
+                class="form-input regle-champ"
+                data-testid="regle-essai-points"
+              />
+              <span class="regle-unite">points minimum</span>
+            </div>
+
+            <div class="regle">
+              <div class="regle-titre">Rappel d'une alerte « moto en atelier »</div>
+              <div class="regle-aide">
+                Délai avant qu'une moto déjà signalée le soit à nouveau, pour éviter une notification
+                identique chaque jour.
+              </div>
+              <input
+                v-model.number="config.rappel_alerte_heures"
+                type="number" min="1" max="720" step="1"
+                class="form-input regle-champ"
+                data-testid="regle-rappel-alerte"
+              />
+              <span class="regle-unite">heures</span>
+            </div>
+
+            <div class="regle regle--info">
+              <div class="regle-titre">Non modifiable ici</div>
+              <div class="regle-aide">
+                Les durées de conservation RGPD (anonymisation à 3 ans, factures 10 ans), les limites
+                de taille des fichiers et les durées de session restent fixées dans le code : ce sont
+                des obligations légales ou des garde-fous de sécurité, pas des choix d'exploitation.
+              </div>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard id="sec-types-moto">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Types de moto activés</span></template>
           <div style="display:flex;flex-direction:column;gap:12px;">
             <div style="font-size:13px;color:#D1D5DB;">Les types déjà en base se pilotent ici en simple toggle.</div>
 
@@ -170,50 +343,35 @@
           </div>
         </UCard>
 
-        <UCard v-if="step === 5">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">5. Tarifs par prestation</span></template>
-          <div style="display:flex;flex-direction:column;gap:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-              <div style="font-size:13px;color:#D1D5DB;">Chaque prestation s'ouvre dans une pop-in avec ses prix, temps et modes par type de moto.</div>
-              <button class="btn btn-primary" type="button" :disabled="seedLoading || !activeCategories.length || !prestations.length" @click="seedBaseTarifs">
+        <UCard id="sec-tarifs">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Tarifs</span></template>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="font-size:13px;color:#D1D5DB;">
+              Les prix, temps et modes de tarification par type de moto se gèrent dans l'onglet
+              <strong>Prestations</strong>, qui présente la liste complète et le même écran de configuration.
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <NuxtLink to="/admin/prestations" class="btn btn-primary" style="padding:8px 12px;font-size:12px;text-decoration:none;">
+                Ouvrir l'onglet Prestations
+              </NuxtLink>
+              <button
+                class="btn btn-ghost"
+                type="button"
+                style="padding:8px 12px;font-size:12px;"
+                :disabled="seedLoading || !activeCategories.length || !prestations.length"
+                @click="seedBaseTarifs"
+              >
                 {{ seedLoading ? 'Pré-remplissage…' : 'Pré-remplir les premiers tarifs' }}
               </button>
+              <span v-if="!activeCategories.length" style="font-size:11px;color:#FCA5A5;">
+                Active d'abord au moins un type de moto ci-dessus.
+              </span>
             </div>
-
-            <div v-if="!activeCategories.length" style="font-size:13px;color:#FCA5A5;">Active d'abord au moins un type de moto à l'étape précédente.</div>
-
-            <div v-else-if="prestationCards.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
-              <div v-for="item in prestationCards" :key="item.id" style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
-                  <div>
-                    <div style="font-weight:700;color:#E8E9ED;">{{ item.nom }}</div>
-                    <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ item.enabledCount }} type(s) actifs</div>
-                  </div>
-                  <span style="font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,210,0,0.12);color:#FFD200;">{{ formatMinutes(item.temps_estime) }}</span>
-                </div>
-
-                <div style="font-size:12px;color:#D1D5DB;">
-                  Base : {{ formatCurrency(item.prix_ttc) }}
-                </div>
-
-                <div style="display:flex;gap:6px;flex-wrap:wrap;min-height:24px;">
-                  <span v-for="mode in item.modes" :key="`${item.id}-${mode}`" style="font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(139,92,246,0.14);color:#C4B5FD;">
-                    {{ labelTypeTarif(mode) }}
-                  </span>
-                  <span v-if="!item.modes.length" style="font-size:11px;color:#9CA3AF;">Pas encore configuré</span>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;">
-                  <button type="button" class="btn btn-primary" style="padding:8px 12px;font-size:12px;" @click="openTarifModal(item)">Configurer</button>
-                </div>
-              </div>
-            </div>
-            <div v-else style="font-size:13px;color:#6B7280;">Aucune prestation active trouvée.</div>
           </div>
         </UCard>
 
-        <UCard v-if="isSuperAdmin && step === 6">
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">6. Activation des modules</span></template>
+        <UCard v-if="isSuperAdmin" id="sec-modules">
+          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">Modules de l'application</span></template>
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div style="border:1px solid rgba(255,210,0,0.16);border-radius:12px;padding:14px;background:rgba(255,210,0,0.05);">
               <div style="font-size:13px;font-weight:700;color:#FDE68A;">Pilote ici le périmètre de l'atelier</div>
@@ -323,72 +481,13 @@
           </div>
         </UCard>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="display:flex;gap:8px;">
-            <button type="button" class="btn btn-ghost" :disabled="step === steps[0]?.id" @click="goPrevStep">Précédent</button>
-            <button type="button" class="btn btn-ghost" :disabled="step === lastStepId" @click="goNextStep">Suivant</button>
-          </div>
+        <div class="barre-enregistrer">
+          <span style="font-size:11px;color:#9CA3AF;">Les modifications ne sont appliquées qu'après enregistrement.</span>
           <UButton type="submit" label="Enregistrer la configuration" :loading="saving" />
         </div>
       </form>
     </div>
 
-    <AppModal v-model:open="tarifModalOpen" size="xl">
-      <template #content>
-        <UCard>
-          <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <div>
-                <div style="font-weight:700;color:#E8E9ED;">{{ selectedPrestation?.nom || 'Tarifs prestation' }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">Forfait, horaire ou sur devis selon chaque type de moto.</div>
-              </div>
-              <button type="button" @click="tarifModalOpen = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
-            </div>
-          </template>
-
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div v-for="row in tarifRows" :key="row.categorie_id" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;background:rgba(255,255,255,0.02);">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-                <div>
-                  <div style="font-weight:700;color:#E8E9ED;">{{ row.categorie_label }}</div>
-                  <div style="font-size:11px;color:#9CA3AF;">Active ou masque cette prestation pour ce type.</div>
-                </div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#D1D5DB;">
-                  <input v-model="row.is_active" type="checkbox" :true-value="1" :false-value="0" />
-                  Activée
-                </label>
-              </div>
-
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '12px', opacity: Number(row.is_active) === 1 ? 1 : 0.55 }">
-                <div class="form-group">
-                  <label class="form-label">Mode tarif</label>
-                  <select v-model="row.type_tarif" class="form-input" :disabled="Number(row.is_active) !== 1">
-                    <option value="forfait">Forfait</option>
-                    <option value="horaire">Horaire</option>
-                    <option value="devis">Sur devis</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">{{ row.type_tarif === 'horaire' ? 'Taux horaire TTC (€)' : 'Prix TTC (€)' }}</label>
-                  <input v-model.number="row.prix_ttc" type="number" step="0.01" class="form-input" :disabled="Number(row.is_active) !== 1 || row.type_tarif === 'devis'" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Temps (min)</label>
-                  <input v-model.number="row.temps_minutes" type="number" step="1" class="form-input" :disabled="Number(row.is_active) !== 1" />
-                </div>
-              </div>
-
-              <div v-if="row.type_tarif === 'devis'" style="font-size:11px;color:#9CA3AF;margin-top:8px;">Le montant sera saisi au cas par cas sur le devis.</div>
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
-              <button type="button" class="btn btn-ghost" @click="tarifModalOpen = false">Annuler</button>
-              <button type="button" class="btn btn-primary" :disabled="modalSaving" @click="saveTarifModal">{{ modalSaving ? 'Enregistrement…' : 'Enregistrer la pop-in' }}</button>
-            </div>
-          </div>
-        </UCard>
-      </template>
-    </AppModal>
   </div>
 </template>
 
@@ -404,33 +503,30 @@ const loading = ref(true)
 const saving = ref(false)
 const uploadingLogo = ref(false)
 const seedLoading = ref(false)
-const modalSaving = ref(false)
 const togglingCategoryId = ref<number | null>(null)
-const step = ref(1)
-const tarifModalOpen = ref(false)
 
 const isSuperAdmin = computed(() => {
   const rolesList = user.value?.roles ?? []
   return user.value?.role === 'super_admin' || rolesList.includes('ROLE_SUPER_ADMIN')
 })
 
-const steps = computed(() => {
-  const baseSteps = [
-    { id: 1, title: 'Atelier' },
-    { id: 2, title: 'Logo' },
-    { id: 3, title: 'Horaires' },
-    { id: 4, title: 'Types moto' },
-    { id: 5, title: 'Tarifs' },
+// Toutes les sections sont affichées à la suite : le sommaire ne sert qu'à naviguer.
+const sections = computed(() => {
+  const base = [
+    { id: 'sec-atelier', titre: 'Identité' },
+    { id: 'sec-logo', titre: 'Logo' },
+    { id: 'sec-horaires', titre: 'Horaires & alertes' },
+    { id: 'sec-regles', titre: 'Règles métier' },
+    { id: 'sec-types-moto', titre: 'Types de moto' },
+    { id: 'sec-tarifs', titre: 'Tarifs' },
   ]
 
   if (isSuperAdmin.value) {
-    baseSteps.push({ id: 6, title: 'Modules · super admin' })
+    base.push({ id: 'sec-modules', titre: 'Modules' })
   }
 
-  return baseSteps
+  return base
 })
-
-const lastStepId = computed(() => steps.value[steps.value.length - 1]?.id ?? 1)
 
 const config = ref<any>({
   tva_mo_taux: 20,
@@ -444,6 +540,16 @@ const config = ref<any>({
   feature_modules: { ...DEFAULT_FEATURE_MODULES },
   notifications_etapes: {},
   checkin_obligatoire: true,
+  seuil_sejour_atelier_heures: 72,
+  alerte_sejour_atelier_active: true,
+  min_photos_entree: 4,
+  relance_travaux_delai_heures: 4,
+  relance_heure_min: 8,
+  relance_heure_max: 19,
+  rappels_rdv_jours: [1, 3],
+  lien_public_jours: 30,
+  essai_points_min: 5,
+  rappel_alerte_heures: 24,
 })
 
 const atelier = ref<any>({
@@ -462,8 +568,6 @@ const horaires = ref<any[]>([])
 const categories = ref<any[]>([])
 const prestations = ref<any[]>([])
 const grilles = ref<any[]>([])
-const selectedPrestation = ref<any | null>(null)
-const tarifRows = ref<any[]>([])
 
 const jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 const closureDayOptions = [
@@ -483,15 +587,7 @@ function toNumber(value: any, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(toNumber(v))
-}
 
-function labelTypeTarif(v: string) {
-  if (v === 'horaire') return 'Horaire'
-  if (v === 'devis') return 'Sur devis'
-  return 'Forfait'
-}
 
 const moduleDefinitions = [
   { key: 'devis', label: 'Devis', icon: '📝', hint: 'Création et suivi des devis', impact: 'Masque la création, la consultation et la conversion des devis.' },
@@ -545,6 +641,68 @@ function toggleCheckinObligatoire() {
       : 'Check-in obligatoire avant réception : désactivé',
     description: 'Prendra effet après sauvegarde.',
     color: config.value.checkin_obligatoire ? 'success' : 'warning',
+  })
+}
+
+// Suivi « moto en atelier » : seuil d'alerte en heures ouvrées + interrupteur d'alerte
+const SEUILS_SEJOUR_PRESETS = [
+  { heures: 24, label: '1 jour' },
+  { heures: 48, label: '2 jours' },
+  { heures: 72, label: '3 jours (défaut)' },
+  { heures: 120, label: '5 jours' },
+  { heures: 168, label: '7 jours' },
+]
+
+const seuilSejourEnJours = computed(() => {
+  const heures = Number(config.value.seuil_sejour_atelier_heures) || 0
+  if (heures < 24) return `${heures} h`
+  const jours = Math.floor(heures / 24)
+  const reste = heures % 24
+  return reste ? `${jours} j ${reste} h` : `${jours} jour${jours > 1 ? 's' : ''}`
+})
+
+const seuilSejourExemple = computed(() => {
+  const heures = Number(config.value.seuil_sejour_atelier_heures) || 0
+  // Les jours fermés étant gelés, un seuil de 72 h reçu vendredi alerte mercredi.
+  return heures <= 24
+    ? 'alerte dès le lendemain ouvré'
+    : `alerte après ${seuilSejourEnJours.value} d'ouverture, week-end et fériés non comptés`
+})
+
+// Le serveur stocke une liste de jours ; l'UI expose deux champs explicites.
+const rappelProche = computed({
+  get: () => (config.value.rappels_rdv_jours ?? [])[0] ?? 1,
+  set: (valeur: number) => {
+    const anticipe = (config.value.rappels_rdv_jours ?? [])[1]
+    const proche = Number(valeur) || 1
+    config.value.rappels_rdv_jours = anticipe ? [proche, anticipe] : [proche]
+  },
+})
+
+const rappelAnticipe = computed({
+  get: () => (config.value.rappels_rdv_jours ?? [])[1] ?? '',
+  set: (valeur: string | number) => {
+    const proche = (config.value.rappels_rdv_jours ?? [])[0] ?? 1
+    const anticipe = Number(valeur)
+    config.value.rappels_rdv_jours = anticipe > 0 ? [proche, anticipe] : [proche]
+  },
+})
+
+const fenetreIncoherente = computed(
+  () => Number(config.value.relance_heure_max) <= Number(config.value.relance_heure_min),
+)
+
+const isAlerteSejourActive = computed(() => config.value.alerte_sejour_atelier_active !== false)
+
+function toggleAlerteSejour() {
+  config.value.alerte_sejour_atelier_active = !isAlerteSejourActive.value
+
+  toast.add({
+    title: config.value.alerte_sejour_atelier_active
+      ? 'Alerte séjour atelier : activée'
+      : 'Alerte séjour atelier : désactivée',
+    description: 'Prendra effet après sauvegarde.',
+    color: config.value.alerte_sejour_atelier_active ? 'success' : 'warning',
   })
 }
 
@@ -695,21 +853,6 @@ function isCategoryActive(cat: any) {
 
 const activeCategories = computed(() => categories.value.filter((cat: any) => isCategoryActive(cat)))
 
-const prestationCards = computed(() => {
-  return prestations.value
-    .map((p: any) => {
-      const rows = grilles.value.filter((g: any) => g.prestation_id === p.id && activeCategories.value.some((cat: any) => cat.id === g.categorie_id))
-      const enabledRows = rows.filter((g: any) => Number(g.is_active ?? 1) === 1)
-      const modes = Array.from(new Set(enabledRows.map((g: any) => g.type_tarif || p.type_tarif || 'forfait')))
-
-      return {
-        ...p,
-        enabledCount: enabledRows.length,
-        modes,
-      }
-    })
-    .sort((a: any, b: any) => a.nom.localeCompare(b.nom))
-})
 
 function buildGrillePayload(entry: any) {
   const prixTtc = entry.type_tarif === 'devis' ? 0 : toNumber(entry.prix_ttc, 0)
@@ -750,22 +893,6 @@ async function fetchPrestations() {
 
 async function fetchGrilles() {
   grilles.value = normalizeGrilles(unwrapList(await api.getAll('/grille_tarifaires?order[id]=asc')))
-}
-
-function goPrevStep() {
-  const ids = steps.value.map((item) => item.id)
-  const index = ids.indexOf(step.value)
-  if (index > 0) {
-    step.value = ids[index - 1]
-  }
-}
-
-function goNextStep() {
-  const ids = steps.value.map((item) => item.id)
-  const index = ids.indexOf(step.value)
-  if (index >= 0 && index < ids.length - 1) {
-    step.value = ids[index + 1]
-  }
 }
 
 function addExceptionalClosureDate() {
@@ -865,59 +992,7 @@ async function toggleCategory(cat: any) {
   }
 }
 
-function openTarifModal(prestation: any) {
-  selectedPrestation.value = prestation
-  const byCategorie = new Map(
-    grilles.value
-      .filter((g: any) => g.prestation_id === prestation.id)
-      .map((g: any) => [g.categorie_id, g])
-  )
 
-  tarifRows.value = activeCategories.value.map((cat: any) => {
-    const existing = byCategorie.get(cat.id)
-    return {
-      id: existing?.id ?? null,
-      prestation_id: prestation.id,
-      categorie_id: cat.id,
-      categorie_label: cat.nom,
-      prix_ttc: toNumber(existing?.prix_ttc ?? prestation.prix_ttc, 0),
-      temps_minutes: toNumber(existing?.temps_minutes ?? prestation.temps_estime, 30),
-      type_tarif: existing?.type_tarif ?? prestation.type_tarif ?? 'forfait',
-      is_active: Number(existing?.is_active ?? 1),
-    }
-  })
-
-  tarifModalOpen.value = true
-}
-
-async function saveTarifModal() {
-  if (!selectedPrestation.value) return
-
-  modalSaving.value = true
-  try {
-    await Promise.all(
-      tarifRows.value.map(async (row: any) => {
-        const payload = buildGrillePayload(row)
-        if (row.id) {
-          await api.patch(`/grille_tarifaires/${row.id}`, payload)
-          return
-        }
-
-        if (Number(row.is_active ?? 1) === 1) {
-          await api.post('/grille_tarifaires', payload)
-        }
-      })
-    )
-
-    await fetchGrilles()
-    tarifModalOpen.value = false
-    toast.add({ title: 'Tarifs prestation enregistrés', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Enregistrement impossible', color: 'error' })
-  } finally {
-    modalSaving.value = false
-  }
-}
 
 async function seedBaseTarifs() {
   if (!activeCategories.value.length || !prestations.value.length) return
@@ -938,18 +1013,6 @@ async function seedBaseTarifs() {
   }
 }
 
-watch(tarifModalOpen, (open) => {
-  if (!open) {
-    selectedPrestation.value = null
-    tarifRows.value = []
-  }
-})
-
-watch(steps, (items) => {
-  if (!items.some((item) => item.id === step.value)) {
-    step.value = items[0]?.id ?? 1
-  }
-}, { immediate: true })
 
 onMounted(async () => {
   try {
@@ -980,3 +1043,101 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* La barre d'onglets est fixée en haut : sans cette marge, un saut d'ancre
+   masquerait le titre de la section visée derrière elle. */
+:deep([id^='sec-']) {
+  scroll-margin-top: 72px;
+}
+
+/* Sommaire de sections : la page est déroulante, ces liens ne font que défiler. */
+.sommaire {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sommaire-lien {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #D1D5DB;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sommaire-lien:hover {
+  background: rgba(255, 210, 0, 0.14);
+  color: #FFD200;
+}
+
+/* Le bouton d'enregistrement reste atteignable quelle que soit la section lue. */
+.barre-enregistrer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(13, 15, 20, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.regle {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.regle--info {
+  background: rgba(255, 255, 255, 0.01);
+  border-style: dashed;
+}
+
+.regle-titre {
+  font-size: 13px;
+  font-weight: 700;
+  color: #E8E9ED;
+}
+
+.regle-aide {
+  margin: 2px 0 10px;
+  font-size: 11px;
+  color: #9CA3AF;
+  max-width: 70ch;
+}
+
+.regle-champ {
+  max-width: 140px;
+}
+
+.regle-sous-champ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+.regle-unite {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+.regle-alerte {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #FCA5A5;
+}
+</style>

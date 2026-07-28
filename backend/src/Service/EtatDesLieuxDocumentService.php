@@ -26,6 +26,7 @@ class EtatDesLieuxDocumentService
     public const TYPES_PHOTOS_ENTREE = ['checkin', 'reception'];
 
     /** Nombre minimal de photos d'entrée exigé pour signer. */
+    /** @deprecated Valeur historique : le seuil vient désormais de ReglesAtelier. */
     public const MIN_PHOTOS_ENTREE = 4;
 
     private const ARCHIVE_SUBDIR = '/var/pdf/etat-des-lieux';
@@ -47,7 +48,14 @@ class EtatDesLieuxDocumentService
         private EntityManagerInterface $em,
         private PdfService $pdfService,
         private string $projectDir,
+        private ReglesAtelier $regles,
     ) {}
+
+    /** Nombre de photos d'entrée exigées pour cet atelier (réglage back-office). */
+    public function minPhotosEntree(?RendezVous $rdv = null): int
+    {
+        return $this->regles->minPhotosEntree($rdv?->getAtelierId());
+    }
 
     /**
      * État normalisé pour l'UI / l'API staff (contrat figé du design).
@@ -206,7 +214,7 @@ class EtatDesLieuxDocumentService
             }
 
             $rdv = $etatDesLieux->getRendezVous();
-            if ($this->countPhotosEntree($rdv) < self::MIN_PHOTOS_ENTREE) {
+            if ($this->countPhotosEntree($rdv) < $this->minPhotosEntree($rdv)) {
                 throw new \DomainException('PHOTOS_MANQUANTES');
             }
 

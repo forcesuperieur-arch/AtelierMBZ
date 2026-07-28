@@ -287,7 +287,7 @@ class EtatDesLieuxController extends AbstractController
         if ($code === 'PHOTOS_MANQUANTES' && $rdv) {
             $payload['missing'] = max(
                 0,
-                EtatDesLieuxDocumentService::MIN_PHOTOS_ENTREE - $this->documentService->countPhotosEntree($rdv),
+                $this->documentService->minPhotosEntree($rdv) - $this->documentService->countPhotosEntree($rdv),
             );
         }
 

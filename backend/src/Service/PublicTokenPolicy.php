@@ -29,8 +29,10 @@ class PublicTokenPolicy
         'termine', 'annule', 'restitue', 'restitue_partiel', 'facture', 'paye', 'livre',
     ];
 
-    /** Délai de grâce après clôture, décompté depuis la date du RDV. */
+    /** @deprecated Valeur historique : la durée est réglable en administration. */
     private const GRACE_PERIOD = '+30 days';
+
+    public function __construct(private ?ReglesAtelier $regles = null) {}
 
     public function isTokenExpired(RendezVous $rdv): bool
     {
@@ -43,6 +45,9 @@ class PublicTokenPolicy
             return false;
         }
 
-        return new \DateTime() > (clone $dateRdv)->modify(self::GRACE_PERIOD);
+        $jours = $this->regles?->lienPublicJours($rdv->getAtelierId())
+            ?? ReglesAtelier::DEFAUT_LIEN_PUBLIC_JOURS;
+
+        return new \DateTime() > (clone $dateRdv)->modify(sprintf('+%d days', $jours));
     }
 }

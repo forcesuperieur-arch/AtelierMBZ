@@ -126,6 +126,38 @@ class ConfigController extends AbstractController
         if (array_key_exists('checkin_obligatoire', $configData)) {
             $config->setCheckinObligatoire(!in_array($configData['checkin_obligatoire'], [false, 0, '0', 'false'], true));
         }
+        // Règles métier sorties du code (voir App\Service\ReglesAtelier)
+        foreach ([
+            'min_photos_entree' => 'setMinPhotosEntree',
+            'relance_travaux_delai_heures' => 'setRelanceTravauxDelaiHeures',
+            'relance_heure_min' => 'setRelanceHeureMin',
+            'relance_heure_max' => 'setRelanceHeureMax',
+            'lien_public_jours' => 'setLienPublicJours',
+            'essai_points_min' => 'setEssaiPointsMin',
+            'rappel_alerte_heures' => 'setRappelAlerteHeures',
+        ] as $champ => $setter) {
+            if (isset($configData[$champ])) {
+                $config->{$setter}((int) $configData[$champ]);
+            }
+        }
+        if (isset($configData['rappels_rdv_jours']) && is_array($configData['rappels_rdv_jours'])) {
+            $jours = array_values(array_unique(array_filter(
+                array_map(static fn ($j) => (int) $j, $configData['rappels_rdv_jours']),
+                static fn (int $j) => $j > 0,
+            )));
+            sort($jours);
+            $config->setRappelsRdvJours($jours);
+        }
+
+        // Suivi « moto en atelier » — seuil d'alerte et interrupteur de l'alerte
+        if (isset($configData['seuil_sejour_atelier_heures'])) {
+            $config->setSeuilSejourAtelierHeures((int) $configData['seuil_sejour_atelier_heures']);
+        }
+        if (array_key_exists('alerte_sejour_atelier_active', $configData)) {
+            $config->setAlerteSejourAtelierActive(
+                !in_array($configData['alerte_sejour_atelier_active'], [false, 0, '0', 'false'], true)
+            );
+        }
 
         $atelier = $this->resolveAtelier($config);
         if ($atelier && $atelierData) {

@@ -24,6 +24,7 @@ class MecanicienController extends AbstractController
         private \App\Service\MercureNotifier $mercureNotifier,
         private NotificationDispatcher $notificationDispatcher,
         private EtatDesLieuxEmailBlocBuilder $etatDesLieuxBloc,
+        private \App\Service\ReglesAtelier $regles,
     ) {}
 
     private function getCurrentMecanicien(): ?Mecanicien
@@ -545,7 +546,7 @@ class MecanicienController extends AbstractController
 
             $checkpoints = $essai->getCheckpoints();
             $doneCount = count(array_filter($checkpoints, fn (array $checkpoint) => $this->checkpointStatus($checkpoint) !== null));
-            if ($doneCount < 5) {
+            if ($doneCount < $this->regles->essaiPointsMin($rdv?->getAtelierId())) {
                 return $this->json([
                     'error' => 'Au moins 5 checkpoints doivent être renseignés pour valider.',
                 ], Response::HTTP_BAD_REQUEST);
