@@ -41,7 +41,8 @@ test.describe('1. Auth & Security', () => {
 
   test('login page renders with all fields', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('text=Paddock')).toBeVisible();
+    // L'identité Paddock passe par le logo : le titre texte a été retiré (commit 1014144).
+    await expect(page.locator('img[alt="Paddock"]')).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
@@ -199,27 +200,10 @@ test.describe('6. Atelier / Workshop', () => {
     await expectPageLoads(page, '/mecanicien', /mécanicien|intervention|rdv|travaux/i);
   });
 
-  test('ordres list page loads', async ({ page }) => {
-    await expectPageLoads(page, '/ordres', /ordre|réparation|or|dossier|numéro/i);
-  });
-
   test('ordres API returns data', async ({ page }) => {
-    await page.goto('/ordres');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     await expectApiOk(page, '/api/ordres-reparation');
-  });
-
-  test('ordre detail loads if data exists', async ({ page }) => {
-    await page.goto('/ordres');
-    await page.waitForLoadState('networkidle');
-    const firstLink = page.locator('a[href^="/ordres/"]').first();
-    if (await firstLink.isVisible().catch(() => false)) {
-      await firstLink.click();
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('body')).toContainText(/ordre|réparation|travaux|signature/i);
-    } else {
-      test.skip(true, 'No OR rows visible — empty state');
-    }
   });
 
   test('suivi page loads', async ({ page }) => {

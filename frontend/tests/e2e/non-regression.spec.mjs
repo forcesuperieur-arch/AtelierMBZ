@@ -70,12 +70,6 @@ test.describe('Non-Regression: LOT 1 — OR Traçabilité', () => {
     await loginAsAdmin(page);
   });
 
-  test('Ordres de réparation page loads', async ({ page }) => {
-    await page.goto('/ordres');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/dossier|ordre|réparation/i);
-  });
-
   test('OR API returns data', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

@@ -8,19 +8,19 @@ test.describe('LOT 11 — Multi-provider SMS/Email', () => {
 
   // ─── Admin navigation ───
 
-  test('Admin hub shows Notifications card', async ({ page }) => {
+  // L'administration est passée d'un hub de cartes à une barre d'onglets.
+  test('Admin: l’onglet Notifications est présent', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
 
-    const card = page.locator('.admin-card-label', { hasText: 'Notifications' });
-    await expect(card).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="admin-tab-notifications"]')).toBeVisible({ timeout: 10000 });
   });
 
-  test('Admin Notifications card navigates to providers page', async ({ page }) => {
+  test('Admin: l’onglet Notifications ouvre la page providers', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('.admin-card', { hasText: 'Notifications' }).click();
+    await page.locator('[data-testid="admin-tab-notifications"]').click();
     await page.waitForURL('**/admin/notifications/providers');
     await expect(page).toHaveURL(/\/admin\/notifications\/providers/);
   });
