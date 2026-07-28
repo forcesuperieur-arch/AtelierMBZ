@@ -12,6 +12,8 @@
       </div>
     </div>
 
+    <AlerteSejourAtelier />
+
     <div v-if="loading" class="loading-shimmer" style="height:400px;border-radius:14px;"></div>
 
     <template v-else>

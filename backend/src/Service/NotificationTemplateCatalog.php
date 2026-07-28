@@ -208,6 +208,26 @@ class NotificationTemplateCatalog
                 'corps' => 'Bonjour {{client_prenom}}, votre {{vehicule}} est due pour révision le {{date_revision}}. Prenez RDV sur notre site.',
                 'variables' => ['client_prenom', 'date_revision', 'vehicule'],
             ],
+            [
+                'code' => 'sejour_prolonge',
+                'channel' => 'email',
+                'libelle' => 'Relance — moto encore à l\'atelier',
+                'sujet' => 'Votre {{vehicule}} est toujours à l\'atelier',
+                'corps' => '<p>Bonjour {{client_prenom}},</p>'
+                    . '<p>Votre <strong>{{vehicule}}</strong> ({{plaque}}) est chez nous depuis le <strong>{{recu_le}}</strong>.</p>'
+                    . '<p>{{message_atelier}}</p>'
+                    . '<p>Suivez l\'avancement à tout moment :<br><a href="{{suivi_url}}">{{suivi_url}}</a></p>'
+                    . '<p>Vous pouvez aussi nous appeler pour en parler.</p>',
+                'variables' => ['client_prenom', 'vehicule', 'plaque', 'recu_le', 'message_atelier', 'suivi_url', 'atelier_nom'],
+            ],
+            [
+                'code' => 'sejour_prolonge',
+                'channel' => 'sms',
+                'libelle' => 'Relance moto encore à l\'atelier SMS',
+                'sujet' => null,
+                'corps' => 'Bonjour {{client_prenom}}, votre {{vehicule}} ({{plaque}}) est à l\'atelier depuis le {{recu_le}}. {{message_atelier}} Suivi : {{suivi_url}}',
+                'variables' => ['client_prenom', 'vehicule', 'plaque', 'recu_le', 'message_atelier', 'suivi_url'],
+            ],
         ];
     }
 
