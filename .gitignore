@@ -30,3 +30,6 @@ playwright/
 
 # Worktrees des agents Claude (volumineux, purement locaux)
 .claude/worktrees/
+
+# Captures de debug a la racine
+/var/
