@@ -182,13 +182,11 @@
           @click="saveChanges"
         >{{ saving ? 'Sauvegarde…' : '💾 Sauvegarder' }}</button>
 
-        <NuxtLink
+        <!-- Pas de page de détail OR : référence affichée, sans lien mort. -->
+        <span
           v-if="demande?.or_complementaire_id"
-          :to="`/ordres/${demande.or_complementaire_id}`"
-          class="btn btn-primary"
-          style="text-decoration:none;"
-          @click="close"
-        >Voir l'OR complémentaire</NuxtLink>
+          style="font-size:12px;color:#9CA3AF;align-self:center;"
+        >OR complémentaire n° {{ demande.or_complementaire_id }}</span>
       </div>
     </template>
   </AppModal>

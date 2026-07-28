@@ -115,12 +115,11 @@
               style="font-size:12px;padding:6px 14px;"
               @click="copyLink(d.token)"
             >🔗 Copier le lien client</button>
-            <NuxtLink
+            <!-- Pas de page de détail OR : on affiche la référence sans lien mort. -->
+            <span
               v-if="d.or_complementaire_id"
-              :to="`/ordres/${d.or_complementaire_id}`"
-              class="btn btn-ghost"
-              style="font-size:12px;padding:6px 14px;text-decoration:none;"
-            >📄 Voir OR complémentaire</NuxtLink>
+              style="font-size:12px;padding:6px 14px;color:#9CA3AF;"
+            >📄 OR complémentaire n° {{ d.or_complementaire_id }}</span>
           </div>
         </div>
       </div>
