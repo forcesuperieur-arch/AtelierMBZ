@@ -98,11 +98,29 @@ class JoursOuvresService
         return $current;
     }
 
+    /**
+     * Dimanche de Pâques (calendrier grégorien), algorithme de Meeus/Jones/Butcher.
+     * Calcul pur : ne dépend PAS de l'extension PHP `calendar` (absente de l'image
+     * Docker — `easter_days()` y provoquait une erreur fatale).
+     */
     private function computeEaster(int $year): \DateTime
     {
-        $base = new \DateTime("$year-03-21");
-        $days = easter_days($year);
-        return $base->modify("+{$days} days");
+        $a = $year % 19;
+        $b = intdiv($year, 100);
+        $c = $year % 100;
+        $d = intdiv($b, 4);
+        $e = $b % 4;
+        $f = intdiv($b + 8, 25);
+        $g = intdiv($b - $f + 1, 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = intdiv($c, 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = intdiv($a + 11 * $h + 22 * $l, 451);
+        $mois = intdiv($h + $l - 7 * $m + 114, 31);
+        $jour = (($h + $l - 7 * $m + 114) % 31) + 1;
+
+        return new \DateTime(sprintf('%04d-%02d-%02d', $year, $mois, $jour));
     }
 
     private function getConfig(int $atelierId): ConfigAtelier
