@@ -177,8 +177,10 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.015em; }
 .page-title {
   position: relative;
   font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 800;
+  /* Medium et 28 px : le DS pose « All text styles are Medium (500) » et son
+     échelle ne connaît pas le 26 px qui était ici (--mb-fs-500 = 28 px). */
+  font-size: 28px;
+  font-weight: var(--w-medium);
   color: var(--content-1);
   /* Casse normale, comme le demande le DS, et interlettrage resserré : le
      0.03em servait à aérer des CAPITALES, il déforme une casse normale. */
@@ -262,7 +264,7 @@ textarea.form-control {
   padding: 0 14px;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   cursor: pointer;
   transition: all var(--transition);
 }
@@ -416,7 +418,7 @@ select.form-input option {
   color: var(--accent-content);
   font-family: inherit;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   cursor: pointer;
   text-decoration: none;
 }
@@ -460,7 +462,7 @@ select.form-input option {
   border: 1px solid var(--border-2);
   color: var(--content-3);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--w-medium);
   box-shadow: var(--shadow-sm);
 }
 
@@ -641,7 +643,7 @@ input::placeholder, textarea::placeholder { color: var(--content-disabled) !impo
 [data-slot="button"] {
   border-radius: var(--radius-sm) !important;
   min-height: 38px !important;
-  font-weight: 700 !important;
+  font-weight: var(--w-medium) !important;
   transition: all var(--transition) !important;
 }
 
@@ -1090,7 +1092,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: var(--dark3);
   border: 2px solid var(--border-1);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: var(--content-3);
+  font-size: 13px; font-weight: var(--w-medium); color: var(--content-3);
   transition: all var(--transition);
 }
 .step-dot.active { background: var(--orange); border-color: var(--accent-graphic); color: var(--orange-ink); }
@@ -1158,7 +1160,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--info);
   background: var(--info-soft);
   color: var(--info-content);
-  font-size: 12px; font-weight: 700;
+  font-size: 12px; font-weight: var(--w-medium);
   cursor: pointer; transition: all var(--transition);
   font-family: inherit;
 }
@@ -1275,7 +1277,7 @@ main {
   border-color: var(--accent-graphic) !important;
 }
 .admin-card-icon { font-size: 28px; margin-bottom: 8px; }
-.admin-card-label { font-size: 15px; font-weight: 700; color: var(--content-1); }
+.admin-card-label { font-size: 15px; font-weight: var(--w-medium); color: var(--content-1); }
 .admin-card-desc { font-size: 12px; color: var(--content-3); margin-top: 2px; }
 
 /* ========================================
@@ -1300,7 +1302,7 @@ main {
   padding: 14px 18px;
   border-bottom: 1px solid var(--glass-border);
 }
-.pont-name { font-size: 15px; font-weight: 700; color: var(--content-1); }
+.pont-name { font-size: 15px; font-weight: var(--w-medium); color: var(--content-1); }
 .pont-card-body { padding: 14px 18px; }
 .pont-card-footer {
   padding: 10px 18px;
@@ -1390,7 +1392,7 @@ main {
   border-radius: 10px;
   padding: 0 6px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1548,7 +1550,7 @@ table, .kpi-value, .stat-value {
 }
 .atelier-switch-badge {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--w-medium);
   letter-spacing: 0.08em;
   color: var(--warning-content);
   background: var(--accent-soft);

@@ -228,7 +228,7 @@ Trois familles à ne pas confondre :
 ## Écarts assumés par rapport au design system
 
 Le design system Motoblouz est une bibliothèque de **boutique en ligne**. Appliqué
-tel quel à un ERP dense, il pose six problèmes concrets ; voici les arbitrages.
+tel quel à un ERP dense, il pose huit problèmes concrets ; voici les arbitrages.
 
 1. **Bordures en thème sombre.** Le DS pose `border-main: #A5A5A5`. Sur les
    centaines de bordures d'un ERP (tableaux, panneaux, cartes de pont) ce gris franc
@@ -264,7 +264,18 @@ tel quel à un ERP dense, il pose six problèmes concrets ; voici les arbitrages
 6. **Aucune astuce d'opacité.** Le DS l'écrit (« No opacity hacks — use explicit
    colors ») : les compteurs de puce du planning passaient par `opacity: .6`,
    remplacé par une graisse explicite.
-7. **Encre quasi noire en thème clair.** `--content-1` vaut `#1A1A1A` et non
+7. **Graisses.** Le DS l'écrit sans nuance : « All text styles are Medium
+   (500) ». C'est appliqué partout où il désigne un composant — boutons, puces,
+   pastilles, titres, dont `.page-title` qui passe de 800 à Medium et de 26 px à
+   **28 px** (`--mb-fs-500` ; 26 px ne figure pas dans son échelle).
+   **Douze règles restent plus grasses**, et c'est assumé : cinq portent des
+   valeurs chiffrées (`.stat-value`, `.planning-kpi-value`, `.pont-num`…), sept
+   des surtitres de **10 à 12 px** (`.planning-kpi-label`, en-têtes de tableau…).
+   L'échelle de titres du DS commence à 24 px et il est calibré pour une
+   boutique ; à 10 px dans un ERP dense, la graisse est le seul vecteur de
+   hiérarchie qui reste une fois la couleur réservée aux états. Les passer en
+   Medium rendrait ces libellés indistincts de la donnée qu'ils annoncent.
+8. **Encre quasi noire en thème clair.** `--content-1` vaut `#1A1A1A` et non
    `#000000`. Du noir pur sur une surface claire donne 21:1, le contraste le
    plus élevé qui existe — et c'est justement ce que l'œil supporte mal en
    lecture prolongée. La WCAG fixe un plancher, pas un plafond : dépasser
