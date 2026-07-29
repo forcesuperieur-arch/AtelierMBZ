@@ -69,6 +69,12 @@
   --mb-yellow-700: #C18900;
   --mb-yellow-800: #A97800;
   --mb-yellow-900: #916700;
+  /* Cran ajouté à l'échelle du DS, qui s'arrête à 900. Il prolonge sa propre
+     arithmétique (−24 en rouge, −17 en vert d'un cran à l'autre) et n'existe
+     que pour le JAUNE DE TEXTE en thème clair : depuis que le fond de page
+     descend à #ECECEC, le 900 n'y fait plus que 4,29:1. Ne pas l'employer
+     comme aplat, c'est un ton d'encre. */
+  --mb-yellow-950: #7D5600;
 
   /* Rouge (mb/core/color/red) */
   --mb-red-050: #FEECED;
@@ -180,15 +186,22 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  /* Surfaces, du fond de page au plus élevé */
-  --surface-0: var(--mb-white);      /* fond de page */
-  --surface-1: var(--mb-white);      /* panneau, carte */
-  /* Surfaces en retrait volontairement très claires : le design system sépare
-     par les BORDURES (« Prefer borders over shadows for card separation »), pas
-     par des paliers de gris. Un cran plus foncé (#ECECEC) faisait passer les
-     libellés de puce et le jaune de texte sous 4,5:1. */
-  --surface-2: var(--mb-grey-100);   /* zone en retrait, en-tête de tableau */
-  --surface-3: var(--mb-grey-200);   /* survol, ligne zébrée, puce */
+  /* Surfaces, du fond de page au plus élevé.
+
+     Le fond de page est le token le PLUS FONCÉ de l'échelle claire, et les
+     panneaux se posent dessus. C'est l'inverse d'une progression 0 → 3, et
+     c'est voulu : un fond de page et des cartes tous deux en blanc pur ne
+     laissaient aucun relief, l'écran entier devenait un seul aplat à
+     luminance maximale — c'est ce qui fatiguait l'œil sur une journée.
+
+     #ECECEC est le « container quiet » du DS, et la valeur la plus foncée
+     qui tienne : un cran plus bas (#E7E7E7), le jaune de texte tombe à
+     4,39:1. Les panneaux ne sont pas en blanc pur non plus, pour la même
+     raison de confort — ils occupent l'essentiel de l'écran. */
+  --surface-0: var(--mb-grey-300);   /* fond de page (le plus foncé) */
+  --surface-1: var(--mb-grey-100);   /* panneau, carte */
+  --surface-2: var(--mb-grey-200);   /* zone en retrait, en-tête de tableau */
+  --surface-3: var(--mb-grey-300);   /* survol, ligne zébrée, puce */
   --surface-inverse: var(--mb-black);
 
   /* Contenus.
@@ -197,7 +210,13 @@
      des LIBELLÉS de formulaire, pas pour du décor : #A5A5A5 sur blanc ne fait
      que 2,5:1. Le gris clair du DS reste disponible en `--content-disabled`,
      que la WCAG dispense de contraste. */
-  --content-1: var(--mb-black);      /* titres, valeurs */
+  /* Quasi-noir plutôt que noir pur : #000000 sur une surface claire donne
+     21:1, le contraste le plus élevé qui existe, et c'est précisément ce que
+     l'œil supporte mal en lecture prolongée (halo autour des lettres). Le
+     ton reste très au-dessus du seuil et garde un cran net au-dessus de
+     `--content-2`. Valeur hors échelle de marque, comme le `#141414` du
+     thème sombre : elle se situe entre `--mb-black` et `--mb-grey-900`. */
+  --content-1: #1A1A1A;              /* titres, valeurs */
   --content-2: var(--mb-grey-900);   /* corps de texte secondaire */
   --content-3: var(--mb-grey-800);   /* libellés, métadonnées */
   --content-disabled: var(--mb-grey-600);
@@ -214,7 +233,7 @@
   --accent-hover: #D79B00;
   --accent-active: #B78500;
   --accent-ink: var(--mb-black);           /* texte posé SUR un aplat jaune */
-  --accent-content: var(--mb-yellow-900);  /* jaune utilisé COMME texte */
+  --accent-content: var(--mb-yellow-950);  /* jaune utilisé COMME texte */
   --accent-graphic: var(--mb-yellow-800);  /* puce, série de graphique, jauge */
   --accent-soft: rgba(241, 171, 0, 0.10);  /* fond teinté — allégé pour que --accent-content tienne 4,5:1 dessus */
 

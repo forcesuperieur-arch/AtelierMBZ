@@ -1470,8 +1470,16 @@ main {
    Profondeur d'ambiance, focus accessibles, micro-interactions.
    ════════════════════════════════════════════════════════════════════ */
 
-/* Lueur d'ambiance + trame carbone, très discrètes (app de travail) */
-body::before {
+/* Lueur d'ambiance + trame carbone, très discrètes (app de travail).
+
+   RÉSERVÉES AU THÈME SOMBRE. Sur du noir, ces deux couches donnent de la
+   profondeur. Posées sur une surface claire elles font l'inverse : la trame
+   devient un quadrillage gris visible sur toute la hauteur, et la lueur un
+   voile jaune en haut d'écran — du bruit ajouté à une page déjà lumineuse.
+   Le fond clair tire sa profondeur de l'écart entre le fond de page et les
+   panneaux (cf. `--surface-0` / `--surface-1` dans tokens.css), pas d'une
+   texture. */
+:root[data-theme='dark'] body::before {
   content: '';
   position: fixed;
   inset: 0;

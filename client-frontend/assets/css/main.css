@@ -34,8 +34,12 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Atmosphère : lueur d'ambiance jaune en haut + trame carbone très légère */
-body::before {
+/* Atmosphère : lueur d'ambiance jaune en haut + trame carbone très légère.
+   RÉSERVÉE AU THÈME SOMBRE, comme sur le front staff : sur une surface claire
+   la trame devient un quadrillage gris et la lueur un voile jaune, du bruit
+   sur une page déjà lumineuse. Le `body` peint déjà `--pad-bg` : rien n'est
+   perdu en clair. */
+:root[data-theme='dark'] body::before {
   content: '';
   position: fixed;
   inset: 0;

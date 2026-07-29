@@ -221,19 +221,34 @@ tel quel à un ERP dense, il pose six problèmes concrets ; voici les arbitrages
    `--content-disabled`, que la WCAG dispense de contraste.
 3. **Jaune en texte et en bordure.** `#F1AB00` sur blanc ne fait que 1,99:1 :
    inutilisable pour du texte, insuffisant pour une limite de composant.
-   `--accent-content` descend à `--mb-yellow-900` en thème clair (5:1) et
-   `--accent-graphic` à `--mb-yellow-800` (3,9:1). Le jaune de **remplissage** reste
+   `--accent-content` descend à `--mb-yellow-950` en thème clair et
+   `--accent-graphic` à `--mb-yellow-800`. Le jaune de **remplissage** reste
    la couleur de marque, avec du noir dessus comme le prescrit le DS.
+   Le cran **950 (`#7D5600`) n'existe pas au DS** : son échelle s'arrête à 900.
+   Il a été ajouté en prolongeant l'arithmétique de l'échelle, parce que le
+   fond de page descendu à `#ECECEC` (point 5) ne laissait plus que 4,29:1 au
+   900. C'est un ton d'**encre** : ne l'employez jamais en aplat.
 4. **Alerte.** `#F37004` ne fait que 2,95:1 sur blanc, juste sous le seuil des
    éléments graphiques : même teinte, ton assombri (`#D96500`).
-5. **Surfaces en retrait du thème clair** très proches du blanc (`#FBFBFB` /
-   `#F6F6F6`). Un cran plus foncé (`#ECECEC`, le « container quiet » du DS)
-   faisait passer les libellés de puce et le jaune de texte sous 4,5:1. La
-   séparation vient donc des **bordures**, ce que le DS demande explicitement
-   (« Prefer borders over shadows for card separation »).
+5. **Aucune surface claire en blanc pur.** Le fond de page est le ton le plus
+   FONCÉ de l'échelle claire (`#ECECEC`, le « container quiet » du DS) et les
+   panneaux se posent dessus en `#FBFBFB`. C'est l'inverse d'une progression
+   0 → 3, et c'est voulu : le DS sépare les cartes par les **bordures**
+   (« Prefer borders over shadows »), ce qui suffit sur une page de boutique
+   mais pas sur un ERP dense — fond et cartes tous deux en `#FFFFFF`, les
+   quatre surfaces tenaient dans 4 % de luminance et l'écran devenait un seul
+   aplat éblouissant. Les bordures sont conservées, l'écart tonal s'y ajoute.
+   `#ECECEC` est le plancher : un cran plus bas, le jaune de texte ne tient
+   plus (voir le point 3).
 6. **Aucune astuce d'opacité.** Le DS l'écrit (« No opacity hacks — use explicit
    colors ») : les compteurs de puce du planning passaient par `opacity: .6`,
    remplacé par une graisse explicite.
+7. **Encre quasi noire en thème clair.** `--content-1` vaut `#1A1A1A` et non
+   `#000000`. Du noir pur sur une surface claire donne 21:1, le contraste le
+   plus élevé qui existe — et c'est justement ce que l'œil supporte mal en
+   lecture prolongée. La WCAG fixe un plancher, pas un plafond : dépasser
+   très largement le seuil n'est pas un gain. Valeur hors échelle de marque,
+   comme le `#141414` du thème sombre.
 
 Ces écarts existent pour tenir le niveau **WCAG AA**. Ils sont vérifiables :
 
@@ -251,6 +266,12 @@ node scripts/design/check-contrast.mjs     # 62 paires, deux thèmes
 - **Halo jaune** (`--shadow-glow`) : n'existe pas au DS, vaut `none`.
 - **Lueurs d'ambiance** de la page de connexion : trois dégradés radiaux jaunes
   superposés qui délavaient le thème clair.
+- **Trame carbone et lueur d'ambiance de l'application** : conservées, mais
+  **réservées au thème sombre** (`:root[data-theme='dark'] body::before`, dans
+  les deux fronts). Sur du noir elles donnent de la profondeur ; posées sur une
+  surface claire, la trame devenait un quadrillage gris sur toute la hauteur et
+  la lueur un voile jaune en haut d'écran. En clair, la profondeur vient de
+  l'écart entre le fond de page et les panneaux, pas d'une texture.
 - **Violet et cyan** : absents du DS, redirigés vers le bleu `--info`.
 
 ### Formes
