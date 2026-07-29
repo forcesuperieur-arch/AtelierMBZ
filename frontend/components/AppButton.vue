@@ -16,7 +16,7 @@
 -->
 <template>
   <component
-    :is="to ? 'NuxtLink' : 'button'"
+    :is="to ? NuxtLink : 'button'"
     :to="to"
     :type="to ? undefined : type"
     :disabled="to ? undefined : (disabled || loading)"
@@ -30,6 +30,13 @@
 </template>
 
 <script setup lang="ts">
+// `:is="'NuxtLink'"` (une chaîne) ne se résout pas à l'exécution : NuxtLink
+// n'est câblé par Nuxt qu'au moment de la compilation des templates, pas
+// enregistré dans le registre runtime des composants. Un `:is` dynamique a
+// donc besoin de la référence réelle, exposée par le module virtuel
+// `#components`.
+import { NuxtLink } from '#components'
+
 type Variante = 'primary' | 'secondary' | 'ghost' | 'link'
 
 const props = withDefaults(

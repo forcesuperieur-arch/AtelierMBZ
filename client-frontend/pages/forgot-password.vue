@@ -23,6 +23,7 @@
         <AppIcon name="i-ri-arrow-left-line" /> Retour à la connexion
       </NuxtLink>
     </div>
+    <LegalFooter />
   </div>
 </template>
 
@@ -58,8 +59,10 @@ async function handleSubmit() {
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   background: var(--surface-0);
   color: var(--content-1);
 }

@@ -21,6 +21,7 @@
     <main class="client-main">
       <slot />
     </main>
+    <LegalFooter />
   </div>
 </template>
 

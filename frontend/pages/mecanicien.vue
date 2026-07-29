@@ -325,6 +325,26 @@
               </div>
             </div>
 
+            <!-- Prochaine vidange : suggérée depuis l'intervalle de l'atelier (km restitution +
+                 intervalle km, aujourd'hui + intervalle mois), ajustable. Le rappel client se
+                 déclenche dès que l'un des deux seuils est atteint. -->
+            <div style="padding:14px;border:1px solid var(--border-2);border-radius:10px;">
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--content-1);cursor:pointer;">
+                <input type="checkbox" :checked="rapportForm.vidangePrevue" :disabled="!!rapport.signature_mecanicien" @change="toggleVidangePrevue" />
+                Prochaine vidange à prévoir
+              </label>
+              <div v-if="rapportForm.vidangePrevue" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:12px;">
+                <div>
+                  <label style="font-size:11px;color:var(--content-3);display:block;margin-bottom:2px;">Vers (km)</label>
+                  <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input" :disabled="!!rapport.signature_mecanicien" />
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--content-3);display:block;margin-bottom:2px;">Ou avant le</label>
+                  <input v-model="rapportForm.prochaineRevisionDate" type="date" class="form-input" :disabled="!!rapport.signature_mecanicien" />
+                </div>
+              </div>
+            </div>
+
             <!-- Entretien fluides -->
             <div style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
               <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</div>
@@ -469,8 +489,41 @@ const rapportForm = reactive({
   alertes: '',
   recommandations: '',
   kilometrageRestitution: null as number | null,
-  // prochaineRevisionKm retirée — trop variable selon marque/modèle en moto
+  vidangePrevue: false,
+  prochaineRevisionKm: null as number | null,
+  prochaineRevisionDate: '' as string,
 })
+
+// Intervalle par défaut (config atelier), pour préremplir la suggestion de
+// prochaine vidange sans obliger le mécanicien à calculer lui-même.
+const vidangeIntervalleKm = ref(7000)
+const vidangeIntervalleMois = ref(12)
+
+async function chargerIntervalleVidange() {
+  try {
+    const cfg = await api.get('/config')
+    vidangeIntervalleKm.value = cfg?.vidange_intervalle_km ?? 7000
+    vidangeIntervalleMois.value = cfg?.vidange_intervalle_mois ?? 12
+  } catch {
+    // Repli silencieux sur les valeurs par défaut : ce n'est qu'une suggestion.
+  }
+}
+
+function suggererProchaineVidange() {
+  if (rapportForm.kilometrageRestitution) {
+    rapportForm.prochaineRevisionKm = rapportForm.kilometrageRestitution + vidangeIntervalleKm.value
+  }
+  const date = new Date()
+  date.setMonth(date.getMonth() + vidangeIntervalleMois.value)
+  rapportForm.prochaineRevisionDate = date.toISOString().slice(0, 10)
+}
+
+function toggleVidangePrevue() {
+  rapportForm.vidangePrevue = !rapportForm.vidangePrevue
+  if (rapportForm.vidangePrevue && !rapportForm.prochaineRevisionKm && !rapportForm.prochaineRevisionDate) {
+    suggererProchaineVidange()
+  }
+}
 
 const essaiPoints = [
   { key: 'freinage_avant', label: 'Freinage avant' },
@@ -546,7 +599,9 @@ function fillRapportForm(r: any) {
   rapportForm.alertes = r.alertes ?? ''
   rapportForm.recommandations = r.recommandations ?? ''
   rapportForm.kilometrageRestitution = r.kilometrageRestitution ?? null
-  // rapportForm.prochaineRevisionKm retirée — trop variable selon marque/modèle en moto
+  rapportForm.prochaineRevisionKm = r.prochaineRevisionKm ?? null
+  rapportForm.prochaineRevisionDate = r.prochaineRevisionDate ? String(r.prochaineRevisionDate).slice(0, 10) : ''
+  rapportForm.vidangePrevue = Boolean(rapportForm.prochaineRevisionKm || rapportForm.prochaineRevisionDate)
   resetEssaiForm()
   if (r.essaiRoutier) {
     essaiForm.kmDebut = r.essaiRoutier.kmDebut ?? null
@@ -594,7 +649,8 @@ async function saveRapport() {
       alertes: rapportForm.alertes ? rapportForm.alertes.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
       recommandations: rapportForm.recommandations,
       kilometrage_restitution: rapportForm.kilometrageRestitution,
-      // prochaine_revision_km retirée — trop variable selon marque/modèle en moto
+      prochaine_revision_km: rapportForm.vidangePrevue ? rapportForm.prochaineRevisionKm : null,
+      prochaine_revision_date: rapportForm.vidangePrevue ? rapportForm.prochaineRevisionDate : null,
     })
     await fetchMyRdvs()
     toast.add({ title: 'Rapport enregistré', color: 'success' })
@@ -1030,6 +1086,7 @@ async function reload() {
 onMounted(async () => {
   await reload()
   chronoTimer = setInterval(() => { now.value = Date.now() }, 1000)
+  chargerIntervalleVidange()
 })
 
 onUnmounted(() => {

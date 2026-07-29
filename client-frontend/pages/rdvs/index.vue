@@ -4,15 +4,20 @@
     <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
     <div v-else-if="error" style="color:var(--error-content)">Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.</div>
     <div v-else-if="rdvs.length === 0" style="color:var(--content-3)">Aucun rendez-vous.</div>
-    <div v-else style="display:flex;flex-direction:column;gap:10px;">
-      <NuxtLink v-for="rdv in rdvs" :key="rdv.id" :to="`/rdvs/${rdv.id}`" class="rdv-card">
-        <div class="rdv-date">{{ formatDate(rdv.date_heure) }}</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span v-if="rdv.annulation_demandee_at" class="annulation-tag">Annulation demandée</span>
-          <div class="rdv-status" :class="statusClass(rdv.statut)">{{ rdvStatutLabel(rdv.statut) }}</div>
+    <template v-else>
+      <section v-if="aVenir.length" class="rdv-section">
+        <h2 class="rdv-section-title">À venir</h2>
+        <div class="rdv-list">
+          <RdvCard v-for="rdv in aVenir" :key="rdv.id" :rdv="rdv" />
         </div>
-      </NuxtLink>
-    </div>
+      </section>
+      <section v-if="passes.length" class="rdv-section">
+        <h2 class="rdv-section-title">Passés</h2>
+        <div class="rdv-list">
+          <RdvCard v-for="rdv in passes" :key="rdv.id" :rdv="rdv" />
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
@@ -29,66 +34,34 @@ const { data: rdvs, pending, error } = useAsyncData('client-rdvs', async () => {
   return await apiFetch('/api/client/rdvs')
 }, { default: () => [] })
 
-function formatDate(d: string) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-}
-
-// `statut` porte le CODE (termine, annule, restitue…), pas le libellé FR : la
-// comparaison précédente (s === 'Terminé') ne matchait jamais → tout en bleu.
-function statusClass(s: string) {
-  if (['termine', 'restitue', 'restitue_partiel', 'facture', 'paye', 'livre'].includes(s)) return 'status-termine'
-  if (['annule', 'no_show'].includes(s)) return 'status-annule'
-  return 'status-prevu'
-}
+const aVenir = computed(() => {
+  const now = new Date()
+  return (rdvs.value || [])
+    .filter((r: any) => new Date(r.date_heure) > now)
+    .sort((a: any, b: any) => new Date(a.date_heure).getTime() - new Date(b.date_heure).getTime())
+})
+const passes = computed(() => {
+  const now = new Date()
+  return (rdvs.value || [])
+    .filter((r: any) => new Date(r.date_heure) <= now)
+    .sort((a: any, b: any) => new Date(b.date_heure).getTime() - new Date(a.date_heure).getTime())
+})
 </script>
 
 <style scoped>
-.rdv-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  background: var(--overlay-soft);
-  border: 1px solid var(--border-2);
-  border-radius: 10px;
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.2s;
+.rdv-section + .rdv-section {
+  margin-top: 28px;
 }
-.rdv-card:hover {
-  background: var(--overlay-soft);
-}
-.rdv-date {
-  font-weight: 600;
-  font-size: 14px;
-}
-.rdv-status {
-  font-size: 12px;
+.rdv-section-title {
+  font-size: 13px;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
   text-transform: uppercase;
+  color: var(--content-3);
+  margin: 0 0 10px;
 }
-.status-prevu {
-  background: var(--info-soft);
-  color: var(--info-content);
-}
-.status-termine {
-  background: var(--success-soft);
-  color: var(--success-content);
-}
-.status-annule {
-  background: var(--error-soft);
-  color: var(--error-content);
-}
-.annulation-tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--warning-soft);
-  border: 1px solid var(--warning);
-  color: var(--warning-content);
+.rdv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 </style>

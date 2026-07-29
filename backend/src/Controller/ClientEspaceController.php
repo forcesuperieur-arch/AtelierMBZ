@@ -518,12 +518,17 @@ class ClientEspaceController extends AbstractController
 
             $items = array_map(fn(OrdreReparation $o) => [
                 'id' => $o->getId(),
+                'rdv_id' => $o->getRendezVous()->getId(),
                 'numero_or' => $o->getNumeroOr(),
                 'type_or' => $o->getTypeOr(),
-                'travaux' => $o->getTravaux(),
+                // Ce qui a été RÉELLEMENT fait prime sur ce qui était prévu à l'origine.
+                'travaux' => $o->getTravauxRealises() ?: $o->getTravaux(),
                 'signed_at' => $o->getSignedAt()?->format('c'),
                 'vehicule_plaque' => $o->getRendezVous()->getVehicule()?->getPlaque(),
                 'vehicule_info' => trim(($o->getRendezVous()->getVehicule()?->getMarque() ?? '') . ' ' . ($o->getRendezVous()->getVehicule()?->getModele() ?? '')),
+                // Même verrou que la fiche RDV : PDF exposé seulement une fois
+                // l'OR scellé à la restitution (final_hash présent).
+                'pdf_disponible' => $o->getFinalHash() !== null,
             ], $ors);
 
             return $this->json($items);
@@ -559,18 +564,61 @@ class ClientEspaceController extends AbstractController
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $items = array_map(fn(Vehicule $v) => [
-            'id' => $v->getId(),
-            'plaque' => $v->getPlaque(),
-            'marque' => $v->getMarque(),
-            'modele' => $v->getModele(),
-            'type_moto' => $v->getTypeMoto(),
-            'cylindree' => $v->getCylindree(),
-            'annee' => $v->getAnnee(),
-            'kilometrage' => $v->getKilometrage(),
-        ], $client->getVehicules()->toArray());
+        $items = array_map(function (Vehicule $v) {
+            $vidange = $this->prochaineVidange($v);
+
+            return [
+                'id' => $v->getId(),
+                'plaque' => $v->getPlaque(),
+                'marque' => $v->getMarque(),
+                'modele' => $v->getModele(),
+                'type_moto' => $v->getTypeMoto(),
+                'cylindree' => $v->getCylindree(),
+                'annee' => $v->getAnnee(),
+                'kilometrage' => $v->getKilometrage(),
+                'notes' => $v->getNotes(),
+                'prochaine_vidange' => $vidange,
+            ];
+        }, $client->getVehicules()->toArray());
 
         return $this->json($items);
+    }
+
+    /**
+     * Dernier OR signé de ce véhicule portant une suggestion de prochaine vidange
+     * (km et/ou date, saisis par le mécanicien à la restitution — voir
+     * ConfigAtelier::vidangeIntervalleKm/Mois pour la valeur suggérée par défaut).
+     * Due dès que l'un des deux seuils est atteint (km déclaré par le client
+     * en priorité, date toujours vérifiée), comme sur une notice constructeur.
+     */
+    private function prochaineVidange(Vehicule $v): ?array
+    {
+        $ordre = $this->em->getRepository(OrdreReparation::class)
+            ->createQueryBuilder('o')
+            ->join('o.rendezVous', 'r')
+            ->where('r.vehicule = :vehicule')
+            ->andWhere('o.signedAt IS NOT NULL')
+            ->andWhere('o.prochaineRevisionKm IS NOT NULL OR o.prochaineRevisionDate IS NOT NULL')
+            ->setParameter('vehicule', $v)
+            ->orderBy('o.signedAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$ordre) {
+            return null;
+        }
+
+        $km = $ordre->getProchaineRevisionKm();
+        $date = $ordre->getProchaineRevisionDate();
+        $dueParKm = $km !== null && $v->getKilometrage() !== null && $v->getKilometrage() >= $km;
+        $dueParDate = $date !== null && $date <= new \DateTime();
+
+        return [
+            'km' => $km,
+            'date' => $date?->format('c'),
+            'due' => $dueParKm || $dueParDate,
+        ];
     }
 
     #[Route('/vehicules/{id}', methods: ['PATCH'])]
@@ -600,6 +648,7 @@ class ClientEspaceController extends AbstractController
             'id' => $vehicule->getId(),
             'plaque' => $vehicule->getPlaque(),
             'kilometrage' => $vehicule->getKilometrage(),
+            'notes' => $vehicule->getNotes(),
         ]);
     }
 

@@ -135,6 +135,8 @@ class ConfigController extends AbstractController
             'lien_public_jours' => 'setLienPublicJours',
             'essai_points_min' => 'setEssaiPointsMin',
             'rappel_alerte_heures' => 'setRappelAlerteHeures',
+            'vidange_intervalle_km' => 'setVidangeIntervalleKm',
+            'vidange_intervalle_mois' => 'setVidangeIntervalleMois',
         ] as $champ => $setter) {
             if (isset($configData[$champ])) {
                 $config->{$setter}((int) $configData[$champ]);
