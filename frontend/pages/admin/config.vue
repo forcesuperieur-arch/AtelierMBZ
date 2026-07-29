@@ -289,6 +289,36 @@
               <span class="regle-unite">heures</span>
             </div>
 
+            <div class="regle">
+              <div class="regle-titre">Intervalle de vidange</div>
+              <div class="regle-aide">
+                Valeurs suggérées au mécanicien à la restitution (« prochaine vidange »),
+                ajustables OR par OR. Le rappel envoyé au client se déclenche dès que l'un
+                des deux seuils est atteint, au premier des deux — comme sur une notice
+                constructeur.
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                <label class="regle-sous-champ">
+                  <span>Tous les (km)</span>
+                  <input
+                    v-model.number="config.vidange_intervalle_km"
+                    type="number" min="500" max="50000" step="500"
+                    class="form-input regle-champ"
+                    data-testid="regle-vidange-km"
+                  />
+                </label>
+                <label class="regle-sous-champ">
+                  <span>Ou tous les (mois)</span>
+                  <input
+                    v-model.number="config.vidange_intervalle_mois"
+                    type="number" min="1" max="60" step="1"
+                    class="form-input regle-champ"
+                    data-testid="regle-vidange-mois"
+                  />
+                </label>
+              </div>
+            </div>
+
             <div class="regle regle--info">
               <div class="regle-titre">Non modifiable ici</div>
               <div class="regle-aide">
@@ -550,6 +580,8 @@ const config = ref<any>({
   lien_public_jours: 30,
   essai_points_min: 5,
   rappel_alerte_heures: 24,
+  vidange_intervalle_km: 7000,
+  vidange_intervalle_mois: 12,
 })
 
 const atelier = ref<any>({

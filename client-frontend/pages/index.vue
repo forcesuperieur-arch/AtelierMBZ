@@ -4,6 +4,15 @@
       Bonjour {{ auth.client?.prenom || '—' }}
     </h1>
 
+    <div v-for="v in motosVidangeDue" :key="v.id" class="vidange-banner">
+      <AppIcon name="i-ri-tools-line" />
+      <div>
+        <div class="vidange-banner-title">Vidange recommandée — {{ v.marque }} {{ v.modele }}</div>
+        <div class="vidange-banner-text">{{ vidangeBannerText(v) }}</div>
+      </div>
+      <a href="/public/booking" class="vidange-banner-btn">Prendre rendez-vous</a>
+    </div>
+
     <div class="dash-grid">
       <component :is="prochainRdv ? 'NuxtLink' : 'div'" :to="prochainRdv ? `/rdvs/${prochainRdv.id}` : undefined" class="dash-card" :class="{ clickable: !!prochainRdv }">
         <div class="dash-label">Prochain RDV</div>
@@ -46,10 +55,30 @@ const prochainRdvText = ref('—')
 const prochainRdv = ref<any>(null)
 const rdvsCount = ref(0)
 const loadError = ref(false)
+const motosVidangeDue = ref<any[]>([])
 
 const { apiFetch } = useClientApi()
 
+function vidangeBannerText(v: any): string {
+  const km = v.prochaine_vidange?.km
+  const date = v.prochaine_vidange?.date
+  if (km && v.kilometrage != null && v.kilometrage >= km) {
+    return `${v.kilometrage.toLocaleString('fr-FR')} km parcourus, seuil recommandé ${km.toLocaleString('fr-FR')} km.`
+  }
+  if (date) {
+    return `Recommandée depuis le ${new Date(date).toLocaleDateString('fr-FR')}.`
+  }
+  return 'Recommandée par votre atelier.'
+}
+
 onMounted(async () => {
+  try {
+    const motos = await apiFetch('/api/client/vehicules')
+    motosVidangeDue.value = (motos || []).filter((v: any) => v.prochaine_vidange?.due)
+  } catch {
+    // Ne bloque pas le reste du tableau de bord : la vidange n'est qu'une suggestion.
+  }
+
   try {
     const rdvs = await apiFetch('/api/client/rdvs')
 
@@ -80,6 +109,37 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.vidange-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  border-radius: 12px;
+}
+.vidange-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--warning-content);
+}
+.vidange-banner-text {
+  font-size: 12px;
+  color: var(--content-3);
+  margin-top: 2px;
+}
+.vidange-banner-btn {
+  margin-left: auto;
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
