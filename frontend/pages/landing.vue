@@ -1,69 +1,56 @@
 <template>
-  <div class="landing-page">
-    <div class="landing-card">
-      <div class="landing-brand">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="5.5" cy="17.5" r="3.5"/>
-          <circle cx="18.5" cy="17.5" r="3.5"/>
-          <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 2h2"/>
-        </svg>
-        <h1>Mon Atelier</h1>
-        <p>Votre atelier moto en ligne</p>
-      </div>
+  <div class="landing-card">
+    <div class="landing-brand">
+      <img :src="brandLogo.stacked.value" alt="Paddock" class="landing-logo" />
+      <p class="landing-sub">Votre atelier moto en ligne</p>
+    </div>
 
-      <div class="landing-actions">
-        <NuxtLink to="/public/booking" class="landing-btn landing-btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          Prendre un rendez-vous
-        </NuxtLink>
-        <NuxtLink to="/client" class="landing-btn landing-btn-secondary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          Accéder à mon espace client
-        </NuxtLink>
-      </div>
+    <div class="landing-actions">
+      <AppButton to="/public/booking" variant="primary" icon="i-ri-calendar-line" block>
+        Prendre un rendez-vous
+      </AppButton>
+      <!--
+        Lien vers le portail client (application Nuxt séparée, servie sur
+        `/client/*` par un autre conteneur — voir Caddyfile). Un <NuxtLink>
+        ferait une navigation SPA à l'intérieur du front STAFF, qui n'a pas
+        cette route : middleware d'auth → redirection vers /login. D'où une
+        ancre native, classes `.btn` posées à la main pour rester identique à
+        AppButton.
+      -->
+      <a href="/client" class="btn btn-secondary btn-block">
+        <AppIcon name="i-ri-user-line" />
+        Accéder à mon espace client
+      </a>
     </div>
   </div>
 </template>
 
-<script setup>
-definePageMeta({ layout: false })
+<script setup lang="ts">
+definePageMeta({ layout: 'public' })
+const brandLogo = useBrandLogo()
 </script>
 
 <style scoped>
-.landing-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-0);
-  color: var(--content-1);
-  font-family: system-ui, -apple-system, sans-serif;
-}
 .landing-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: 20px;
+  padding: 44px 36px;
+  width: min(420px, 100%);
   text-align: center;
-  padding: 48px 32px;
-  max-width: 420px;
-  width: 100%;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
 }
 .landing-brand {
-  margin-bottom: 48px;
+  margin-bottom: 36px;
 }
-.landing-brand h1 {
-  font-size: 28px;
-  font-weight: 800;
-  margin: 16px 0 8px;
-  color: var(--accent-content);
+.landing-logo {
+  width: min(100%, 320px);
+  height: auto;
+  display: block;
+  margin: 0 auto 14px;
 }
-.landing-brand p {
-  font-size: 15px;
+.landing-sub {
+  font-size: 14px;
   color: var(--content-3);
   margin: 0;
 }
@@ -71,29 +58,5 @@ definePageMeta({ layout: false })
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-.landing-btn {
-  display: block;
-  padding: 14px 20px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  transition: transform 0.15s, opacity 0.15s;
-  cursor: pointer;
-}
-.landing-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-.landing-btn-primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-.landing-btn-secondary {
-  background: var(--overlay-hover);
-  color: var(--content-1);
-  border: 1px solid var(--border-1);
 }
 </style>
