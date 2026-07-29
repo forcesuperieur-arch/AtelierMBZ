@@ -12,7 +12,7 @@
       <UFormField label="Téléphone">
         <UInput v-model="telephone" placeholder="06 12 34 56 78" />
       </UFormField>
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
         {{ loading ? 'Recherche...' : 'Rechercher' }}
       </button>
       <p v-if="error" style="font-size:13px;color:var(--error-content);text-align:center;">{{ error }}</p>
@@ -61,7 +61,7 @@
         </div>
       </div>
 
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:var(--overlay-hover);color:var(--content-2);margin-top:16px;" @click="rdv = null; email = ''; telephone = ''">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:var(--overlay-hover);color:var(--content-2);margin-top:16px;" @click="rdv = null; email = ''; telephone = ''">
         Nouvelle recherche
       </button>
     </div>

@@ -4,7 +4,7 @@
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="page-title">Clauses légales</div>
       </div>
-      <button class="topbar-new-btn" @click="openCreate">+ Nouvelle clause</button>
+      <button class="btn btn-primary" @click="openCreate">+ Nouvelle clause</button>
     </div>
 
     <p style="color:var(--content-3);font-size:13px;margin-bottom:16px;">

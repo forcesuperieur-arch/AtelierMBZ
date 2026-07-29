@@ -483,7 +483,7 @@
 
         <div class="barre-enregistrer">
           <span style="font-size:11px;color:var(--content-3);">Les modifications ne sont appliquées qu'après enregistrement.</span>
-          <UButton type="submit" label="Enregistrer la configuration" :loading="saving" />
+          <AppButton variant="primary" type="submit" label="Enregistrer la configuration" :loading="saving" />
         </div>
       </form>
     </div>

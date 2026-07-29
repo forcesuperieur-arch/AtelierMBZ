@@ -100,13 +100,34 @@ sombre (Nuxt UI remonte d'un cran en sombre, ce qui est le bon réflexe).
 > compris. Toute modification ici se vérifie en lisant `--radius-md` dans le
 > navigateur.
 
-> **Défaut préexistant identifié, non corrigé.** Un `UButton` « solid » sort
-> **sans fond** dans cette application : `bg-primary` ne produit rien, si bien
-> qu'un bouton primaire de Nuxt UI est une étiquette noire sans aplat —
-> illisible en thème sombre. Vérifié sur l'application **inchangée** : le défaut
-> est antérieur à cette refonte, et il explique que l'application ait ses
-> propres `.btn-primary` partout. Le sujet appartient au chantier « composant
-> `AppButton` unique ».
+> **Diagnostic corrigé.** Une version précédente de ce document affirmait
+> qu'un `UButton` « solid » sortait **sans fond**, `bg-primary` ne produisant
+> rien. C'était inexact, et la conclusion l'était aussi.
+>
+> `bg-primary` de Nuxt UI ne pose qu'un `background-color`. Deux blocs de
+> `main.css` visaient ces boutons avec un `background: linear-gradient(…)
+> !important` : le **raccourci** `background` remet `background-color` à
+> transparent, ce qui donnait l'impression d'un fond absent alors qu'un dégradé
+> le peignait. Le second bloc (`.content :where(button, a)[class*="bg-primary"]`)
+> avait la spécificité la plus forte — corriger le premier seul ne changeait
+> rien, ce qui a probablement égaré le diagnostic initial.
+>
+> Ces deux blocs posaient de surcroît un **dégradé**, un **halo jaune** et un
+> **déplacement au survol** : les trois choses que ce même document déclare
+> retirées parce que le DS les proscrit. Ils sont désormais alignés sur
+> `.btn-primary` — aplat de marque, encre noire, états par la teinte. Vérifié
+> à l'écran : le bouton primaire de Nuxt UI et celui de l'application calculent
+> la même couleur (`rgb(241,171,0)`), sans dégradé ni ombre.
+>
+> Cause racine, en une ligne : `@import "@nuxt/ui"` **manquait** dans
+> `main.css`, si bien que la feuille du framework n'était pas émise du tout —
+> ni `--ui-primary`, ni `--ui-radius`, ni les styles de composants. C'est ce qui
+> a rendu nécessaires le bloc `@theme` manuel et l'essentiel des surcharges.
+> L'import est **en place depuis** : `--ui-primary` vaut `#f4bc33` en sombre et
+> `.bg-primary` existe enfin (+63 Ko de CSS). Impact visuel mesuré en comparant
+> `admin/config` — une `UCard`, treize `UInput`, treize `UFormField` — avant et
+> après : **identique au pixel**. Les surcharges de l'application dominent
+> entièrement ; l'import assainit la base sans rien déplacer à l'écran.
 
 ## Graphiques
 
@@ -262,7 +283,9 @@ node scripts/design/check-contrast.mjs     # 62 paires, deux thèmes
   explicitement un voile `rgba(0,0,0,0.5)` **sans flou** derrière les modales.
 - **Dégradés sur les boutons** : le primaire est un aplat franc. Les états passent
   par la **teinte** (`--accent-hover`, `--accent-active`), plus par un
-  déplacement ni un halo (« No bounces »).
+  déplacement ni un halo (« No bounces »). Deux blocs y échappaient encore, ceux
+  qui visent les boutons de Nuxt UI ; ils sont alignés depuis (voir l'encadré
+  « Diagnostic corrigé » plus haut).
 - **Halo jaune** (`--shadow-glow`) : n'existe pas au DS, vaut `none`.
 - **Lueurs d'ambiance** de la page de connexion : trois dégradés radiaux jaunes
   superposés qui délavaient le thème clair.
@@ -279,6 +302,18 @@ node scripts/design/check-contrast.mjs     # 62 paires, deux thèmes
 Le DS met tout l'interactif en **pilule** (999 px). C'est appliqué aux boutons.
 Les **champs de saisie** gardent `--radius-m` (8 px, token officiel du DS) : une
 pilule sur les centaines de champs d'un ERP dense nuit à la lecture en colonnes.
+
+### Casse des titres
+
+Les titres sont en **casse normale**, comme le demande le DS. Ils étaient en
+capitales — signature historique de Paddock, abandonnée sur décision explicite.
+L'interlettrage a suivi : le `0.03em` de `.page-title` servait à aérer des
+capitales et déformait une casse normale, il passe au `-0.015em` du DS. La bande
+de course jaune sous les titres est conservée.
+
+Les petits libellés en capitales (« CHARGE VISIBLE », en-têtes de tableau) ne
+sont **pas** concernés : ce sont des surtitres, un procédé typographique que le
+DS n'interdit pas. Seules les neuf règles de TITRE ont changé.
 
 ## Logos
 
@@ -323,10 +358,37 @@ node scripts/design/check-contrast.mjs
 node scripts/design/check-icons.mjs
 ```
 
+## Boutons
+
+**Un bouton s'écrit `<AppButton>`.** Le composant ne réinvente rien : il pose les
+classes `.btn` de `main.css`, qui restent la définition visuelle unique. Il rend
+un `<button>`, ou un `<NuxtLink>` dès qu'une destination `to` est donnée.
+
+`.topbar-new-btn` **n'existe plus**. Elle avait **cinq** définitions
+concurrentes — une globale et quatre locales dans des `<style scoped>` — avec des
+rayons de 6 px, 10 px et pilule, et chacune son halo. C'était la dérive que ce
+document appelait « deux boutons primaires concurrents » ; il y en avait cinq.
+
+Deux pages VO s'en servaient pour un bouton **orange** (`--warning`), c'est-à-dire
+la couleur d'ALERTE employée pour l'action principale. Ces cinq boutons passent au
+primaire de marque.
+
+Les boutons secondaires VO (`.vo-secondary-btn`) héritaient de l'encre **noire**
+du primaire tout en posant un fond `--surface-2` : en thème sombre, du noir sur
+gris foncé, illisible. Ils sont rebasés sur `.btn`, dont l'encre suit le thème.
+
+Il reste **huit** `UButton` portant une couleur d'état (`success`, `warning`,
+`info`, `error`, `neutral`). Les migrer demanderait d'ajouter autant de variantes
+à `.btn` — un choix de design, pas un déplacement mécanique. Ils sont laissés en
+place.
+
 ## Reste à faire
 
-- **Composants uniques.** Il subsiste deux boutons primaires concurrents
-  (`.btn-primary`, `.topbar-new-btn`) et plusieurs systèmes de modale. Ils partagent
-  désormais les mêmes tokens, mais pas encore le même composant.
-- **Casse des titres.** Le DS demande des titres en casse normale ; les titres de
-  page restent en capitales (`text-transform: uppercase`), signature conservée.
+- **Systèmes de modale.** 27 `<AppModal>` et 3 voiles écrits à la main : la
+  convergence est presque faite, ces trois-là restent à rallier.
+- **Variantes d'état des boutons.** Ajouter `success` / `warning` / `info` /
+  `error` à `.btn` permettrait de retirer les huit derniers `UButton`.
+- **Migration des appels historiques.** Les classes `.btn` nues restent
+  employées telles quelles dans les écrans existants. Elles produisent le même
+  bouton qu'`AppButton` — c'est la même feuille — mais le jour où l'on voudra une
+  seule forme d'écriture, il y a là un passage mécanique à faire.

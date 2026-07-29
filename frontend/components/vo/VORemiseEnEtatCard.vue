@@ -9,7 +9,7 @@
 
         <div class="vo-inline-actions split compact">
           <NuxtLink to="/vo/remises-en-etat" class="vo-link-btn">File atelier VO</NuxtLink>
-          <button v-if="canCreateCampaign" type="button" class="topbar-new-btn" :disabled="creatingCampaign" @click="createCampaign">
+          <button v-if="canCreateCampaign" type="button" class="btn btn-primary" :disabled="creatingCampaign" @click="createCampaign">
             {{ creatingCampaign ? 'Creation...' : 'Nouvelle campagne' }}
           </button>
         </div>
@@ -79,7 +79,7 @@
           </div>
 
           <div class="vo-inline-actions">
-            <button type="button" class="topbar-new-btn" :disabled="savingCampaign" @click="saveCampaign">
+            <button type="button" class="btn btn-primary" :disabled="savingCampaign" @click="saveCampaign">
               {{ savingCampaign ? 'Enregistrement...' : 'Enregistrer la campagne' }}
             </button>
           </div>
@@ -316,7 +316,7 @@
               <button
                 v-if="selectedCampaign.document.canSign"
                 type="button"
-                class="topbar-new-btn"
+                class="btn btn-primary"
                 :disabled="signingDocument"
                 @click="toggleSignaturePanel"
               >
@@ -343,7 +343,7 @@
 
             <div class="vo-inline-actions">
               <button type="button" class="vo-link-btn" @click="clearSignature">Effacer</button>
-              <button type="button" class="topbar-new-btn" :disabled="signingDocument" @click="saveSignature">
+              <button type="button" class="btn btn-primary" :disabled="signingDocument" @click="saveSignature">
                 {{ signingDocument ? 'Signature...' : 'Enregistrer la signature' }}
               </button>
             </div>
@@ -930,7 +930,6 @@ async function saveSignature() {
   justify-content: flex-end;
 }
 
-.topbar-new-btn,
 .vo-link-btn {
   display: inline-flex;
   align-items: center;
@@ -943,11 +942,6 @@ async function saveSignature() {
   text-decoration: none;
 }
 
-.topbar-new-btn {
-  background: var(--warning);
-  color: var(--accent-ink);
-  font-weight: 700;
-}
 
 .vo-link-btn {
   background: var(--overlay-hover);

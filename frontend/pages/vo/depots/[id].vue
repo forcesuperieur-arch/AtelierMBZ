@@ -7,9 +7,9 @@
         <div class="vo-subtitle">Vue complète du mandat, des documents, de la restitution et de la vente.</div>
       </div>
       <div class="vo-header-actions">
-        <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
-        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
-        <button v-if="detail?.status === 'actif'" class="topbar-new-btn" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
+        <button class="btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
+        <button v-if="detail" class="btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+        <button v-if="detail?.status === 'actif'" class="btn btn-primary" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
       </div>
     </div>
 
@@ -227,7 +227,7 @@
 
           <div class="vo-inline-actions split">
             <button class="vo-secondary-cta" @click="extendMandate">Prolonger</button>
-            <button class="topbar-new-btn vo-danger-btn" @click="restituerDepot">Restituer le véhicule</button>
+            <button class="btn vo-danger-btn" @click="restituerDepot">Restituer le véhicule</button>
           </div>
         </UCard>
 
@@ -269,7 +269,7 @@
           </div>
 
           <div class="vo-inline-actions">
-            <button class="topbar-new-btn" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
+            <button class="btn btn-primary" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
           </div>
         </UCard>
       </div>
@@ -532,6 +532,8 @@ onMounted(async () => {
 
 .vo-danger-btn {
   background: var(--error);
+  color: var(--on-error);
+  border-color: transparent;
 }
 
 .vo-loading {

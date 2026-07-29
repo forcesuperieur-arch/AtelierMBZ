@@ -5,7 +5,7 @@
         <div class="page-title">Nouveau dépôt-vente</div>
         <div class="vo-subtitle">Wizard de dépôt, mandat, commission et pièces associées.</div>
       </div>
-      <NuxtLink to="/vo/depots" class="topbar-new-btn vo-secondary-btn">Retour aux dépôts</NuxtLink>
+      <NuxtLink to="/vo/depots" class="btn vo-secondary-btn">Retour aux dépôts</NuxtLink>
     </div>
 
     <VONav />
@@ -34,7 +34,7 @@
         <strong>QR compagnon immédiat</strong>
         <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces du déposant et de la moto sans attendre la finalisation métier du dépôt.</p>
         <div class="vo-inline-actions" style="margin-top: 10px;">
-          <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
+          <button type="button" class="btn btn-primary" :disabled="activatingCompanion" @click="activateCompanionNow()">
             {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
           </button>
           <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
@@ -112,7 +112,7 @@
               <span>Recherche par immatriculation ou VIN</span>
               <UInput v-model="vehicleSearch" placeholder="Ex: AB-123-CD ou VIN" />
             </label>
-            <button class="topbar-new-btn" type="button" @click="lookupVehicle">Rechercher</button>
+            <button class="btn btn-primary" type="button" @click="lookupVehicle">Rechercher</button>
           </div>
 
           <div v-if="selectedVehicle" class="vo-selected-box">
@@ -300,8 +300,8 @@
 
         <div class="vo-footer-actions">
           <button v-if="step > 1" type="button" class="vo-secondary-cta" @click="step -= 1">Retour</button>
-          <button v-if="step < 4" type="button" class="topbar-new-btn" @click="nextStep">Continuer</button>
-          <button v-else type="button" class="topbar-new-btn" :disabled="submitting" @click="submit">{{ submitting ? 'Création...' : 'Créer le dépôt' }}</button>
+          <button v-if="step < 4" type="button" class="btn btn-primary" @click="nextStep">Continuer</button>
+          <button v-else type="button" class="btn btn-primary" :disabled="submitting" @click="submit">{{ submitting ? 'Création...' : 'Créer le dépôt' }}</button>
         </div>
       </div>
 
@@ -350,7 +350,7 @@
             <span v-if="draftCompanion?.companion?.publicPath">Le brouillon dépôt-vente est actif. Tu peux déjà scanner les pièces sur le PDA pendant que tu termines le mandat.</span>
             <span v-else>Le brouillon PDA se prépare automatiquement pour lancer le scan sans attendre.</span>
             <div class="vo-inline-actions" style="margin-top: 10px;">
-              <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow">
+              <button type="button" class="btn btn-primary" :disabled="activatingCompanion" @click="activateCompanionNow">
                 {{ activatingCompanion ? 'Activation...' : (draftCompanion?.companion?.publicPath ? 'Rouvrir le QR compagnon' : 'Activer le compagnon maintenant') }}
               </button>
               <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>

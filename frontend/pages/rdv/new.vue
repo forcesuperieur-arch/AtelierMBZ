@@ -84,7 +84,7 @@ x<template>
           />
         </div>
         <button
-          class="topbar-new-btn"
+          class="btn btn-primary"
           style="margin-top:12px;"
           @click="searchVehicule"
         >Rechercher mon véhicule</button>
@@ -147,7 +147,7 @@ x<template>
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:20px;">
-        <button class="topbar-new-btn" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
       </div>
     </div>
 
@@ -206,7 +206,7 @@ x<template>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
         <button class="btn btn-ghost" @click="goStep(1)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
       </div>
     </div>
 
@@ -285,7 +285,7 @@ x<template>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
         <button class="btn btn-ghost" @click="goStep(2)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
       </div>
     </div>
 
@@ -386,7 +386,7 @@ x<template>
 
       <div style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;">
         <button class="btn btn-ghost" @click="goStep(3)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" :disabled="submitting || !canConfirm" @click="confirmRdv" style="padding:10px 24px;font-size:14px;">
+        <button class="btn btn-primary" :disabled="submitting || !canConfirm" @click="confirmRdv" style="padding:10px 24px;font-size:14px;">
           {{ submitting ? 'Création...' : 'Confirmer le rendez-vous' }}
         </button>
       </div>

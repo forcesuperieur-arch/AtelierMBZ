@@ -75,7 +75,7 @@
             @keydown.enter.prevent="searchVehicule"
           />
         </div>
-        <button class="topbar-new-btn" style="margin-top:12px;" @click="searchVehicule">Rechercher mon véhicule</button>
+        <button class="btn btn-primary" style="margin-top:12px;" @click="searchVehicule">Rechercher mon véhicule</button>
 
         <div v-if="vehiculeFound" style="margin-top:16px;padding:12px 16px;background:var(--success-soft);border:1px solid var(--success);border-radius:10px;">
           <div style="font-size:13px;color:var(--success-content);font-weight:600;margin-bottom:4px;">Véhicule trouvé</div>
@@ -133,7 +133,7 @@
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:12px;">
-        <button class="topbar-new-btn" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
       </div>
     </div>
 
@@ -195,7 +195,7 @@
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
         <button class="btn btn-ghost" @click="goStep(1)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
       </div>
     </div>
 
@@ -273,7 +273,7 @@
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
         <button class="btn btn-ghost" @click="goStep(2)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
       </div>
     </div>
 
@@ -342,7 +342,7 @@
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
         <button class="btn btn-ghost" @click="goStep(3)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
-        <button class="topbar-new-btn" :disabled="submitting || !canConfirm" @click="confirmBooking" style="padding:10px 24px;font-size:14px;">
+        <button class="btn btn-primary" :disabled="submitting || !canConfirm" @click="confirmBooking" style="padding:10px 24px;font-size:14px;">
           {{ submitting ? 'Envoi...' : 'Confirmer le rendez-vous' }}
         </button>
       </div>
@@ -366,7 +366,7 @@
       <p style="font-size:13px;color:var(--success-content);margin-top:4px;">
         Votre code de suivi : <strong>{{ confirmation.token_suivi }}</strong>
       </p>
-      <NuxtLink :to="`/public/suivi?token=${confirmation.token_suivi}`" class="topbar-new-btn" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
+      <NuxtLink :to="`/public/suivi?token=${confirmation.token_suivi}`" class="btn btn-primary" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
     </div>
   </div>
 </template>
@@ -1053,27 +1053,6 @@ onMounted(async () => {
   background: var(--success-soft);
 }
 
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.topbar-new-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-.topbar-new-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .btn-ghost {
   display: inline-flex;

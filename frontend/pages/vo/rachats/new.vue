@@ -5,7 +5,7 @@
         <div class="page-title">Nouveau rachat VO</div>
         <div class="vo-subtitle">Wizard en 4 étapes pour constituer un dossier complet et prêt à confirmer.</div>
       </div>
-      <NuxtLink to="/vo/rachats" class="topbar-new-btn vo-secondary-btn">Retour aux rachats</NuxtLink>
+      <NuxtLink to="/vo/rachats" class="btn vo-secondary-btn">Retour aux rachats</NuxtLink>
     </div>
 
     <VONav />
@@ -34,7 +34,7 @@
         <strong>QR compagnon immédiat</strong>
         <p>Ouvre le parcours PDA dès maintenant pour scanner les pièces et laisser le dossier se remplir tout seul.</p>
         <div class="vo-inline-actions" style="margin-top: 10px;">
-          <button type="button" class="topbar-new-btn" :disabled="activatingCompanion" @click="activateCompanionNow()">
+          <button type="button" class="btn btn-primary" :disabled="activatingCompanion" @click="activateCompanionNow()">
             {{ activatingCompanion ? 'Préparation...' : 'Régénérer le QR' }}
           </button>
           <a v-if="draftPublicUrl" :href="draftPublicUrl" target="_blank" class="vo-link-btn">Ouvrir le PDA</a>
@@ -115,7 +115,7 @@
                 <span>Recherche par immatriculation ou VIN</span>
                 <UInput v-model="vehicleSearch" placeholder="Ex: AB-123-CD ou VIN" />
               </label>
-              <button class="topbar-new-btn" type="button" @click="lookupVehicle">Rechercher</button>
+              <button class="btn btn-primary" type="button" @click="lookupVehicle">Rechercher</button>
             </div>
 
             <div v-if="selectedVehicle" class="vo-selected-box">
@@ -329,8 +329,8 @@
 
         <div class="vo-footer-actions">
           <button v-if="step > 1" type="button" class="vo-secondary-cta" @click="step -= 1">Retour</button>
-          <button v-if="step < 4" type="button" class="topbar-new-btn" @click="nextStep">Continuer</button>
-          <button v-else type="button" class="topbar-new-btn" :disabled="submitting" @click="submit">{{ submitting ? 'Création...' : 'Créer le dossier' }}</button>
+          <button v-if="step < 4" type="button" class="btn btn-primary" @click="nextStep">Continuer</button>
+          <button v-else type="button" class="btn btn-primary" :disabled="submitting" @click="submit">{{ submitting ? 'Création...' : 'Créer le dossier' }}</button>
         </div>
       </div>
 

@@ -54,7 +54,6 @@ html, body {
 h1, h2, h3 {
   font-family: var(--pad-font-display);
   letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 /* Données chiffrées alignées façon tableau de bord */
@@ -107,10 +106,9 @@ h1, h2, h3 {
   opacity: 0.85;
 }
 
+/* « No bounces » : la carte réagit par son BORD, pas en se soulevant. */
 a.rdv-card:hover, a.moto-card:hover {
-  transform: translateY(-2px);
   border-color: var(--accent-graphic);
-  box-shadow: var(--pad-shadow);
 }
 
 /* ── Boutons ───────────────────────────────────────────────────────── */
@@ -118,17 +116,17 @@ button {
   font-family: var(--pad-font-body);
 }
 
+/* Les états du primaire passent par la TEINTE : ni déplacement, ni halo
+   jaune, ni éclaircissement. Le DS l'écrit — « No bounces ». */
 .btn-primary, button[type='submit'] {
   position: relative;
-  transition: transform 0.15s var(--pad-ease), box-shadow 0.15s, filter 0.15s;
+  transition: background 0.15s var(--pad-ease), color 0.15s var(--pad-ease);
 }
 .btn-primary:hover:not(:disabled), button[type='submit']:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(241,171,0,0.25);
-  filter: brightness(1.05);
+  background: var(--accent-hover);
 }
 .btn-primary:active:not(:disabled), button[type='submit']:active:not(:disabled) {
-  transform: translateY(0);
+  background: var(--accent-active);
 }
 
 /* ── Formulaires ───────────────────────────────────────────────────── */

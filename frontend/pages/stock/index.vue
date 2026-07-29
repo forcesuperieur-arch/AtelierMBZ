@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div class="page-title">Stock — Pièces détachées</div>
-      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
+      <button class="btn btn-primary" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
     </div>
 
     <UCard style="margin-bottom:16px;">
@@ -52,8 +52,8 @@
               <UFormField label="Seuil alerte"><UInput v-model="pieceForm.seuil_alerte" type="number" /></UFormField>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showNew = false" />
-              <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
+              <AppButton variant="secondary" label="Annuler"  @click="showNew = false" />
+              <AppButton variant="primary" type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
           </form>
         </UCard>

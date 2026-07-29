@@ -4,7 +4,7 @@
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="page-title">Gestion des rôles</div>
       </div>
-      <button v-if="isSuperAdmin" class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouveau rôle</button>
+      <button v-if="isSuperAdmin" class="btn btn-primary" @click="resetForm(); showModal = true">+ Nouveau rôle</button>
     </div>
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">

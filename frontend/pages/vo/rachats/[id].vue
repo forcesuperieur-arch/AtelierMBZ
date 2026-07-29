@@ -7,9 +7,9 @@
         <div class="vo-subtitle">Vue complète du dossier, des documents obligatoires et du flux de vente.</div>
       </div>
       <div class="vo-header-actions">
-        <button class="topbar-new-btn vo-secondary-btn" @click="downloadPv">PV de rachat</button>
-        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Préparer dossier SIV' }}</button>
-        <button v-if="detail?.canConfirm" class="topbar-new-btn" @click="confirmPurchase">Confirmer</button>
+        <button class="btn vo-secondary-btn" @click="downloadPv">PV de rachat</button>
+        <button v-if="detail" class="btn vo-secondary-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Préparer dossier SIV' }}</button>
+        <button v-if="detail?.canConfirm" class="btn btn-primary" @click="confirmPurchase">Confirmer</button>
       </div>
     </div>
 
@@ -176,9 +176,9 @@
           </div>
 
           <div class="vo-inline-actions vo-inline-actions-start">
-            <button class="topbar-new-btn" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Générer la DA PDF' }}</button>
-            <button class="topbar-new-btn vo-secondary-btn" @click="downloadDaSiv">Voir la DA</button>
-            <button class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+            <button class="btn btn-primary" :disabled="preparingSiv" @click="prepareSivDossier">{{ preparingSiv ? 'Préparation...' : 'Générer la DA PDF' }}</button>
+            <button class="btn vo-secondary-btn" @click="downloadDaSiv">Voir la DA</button>
+            <button class="btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
           </div>
 
           <div class="vo-form-grid">
@@ -203,7 +203,7 @@
           </div>
 
           <div class="vo-inline-actions">
-            <button class="topbar-new-btn" :disabled="savingSiv" @click="saveSivState">{{ savingSiv ? 'Enregistrement...' : 'Enregistrer l’état SIV' }}</button>
+            <button class="btn btn-primary" :disabled="savingSiv" @click="saveSivState">{{ savingSiv ? 'Enregistrement...' : 'Enregistrer l’état SIV' }}</button>
           </div>
         </UCard>
 
@@ -317,7 +317,7 @@
             </div>
 
             <div class="vo-inline-actions">
-              <button class="topbar-new-btn" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
+              <button class="btn btn-primary" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
             </div>
           </div>
 

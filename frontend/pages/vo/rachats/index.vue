@@ -5,7 +5,7 @@
         <div class="page-title">Rachats VO</div>
         <div class="vo-subtitle">Tous les dossiers de rachat, de la constitution à la vente.</div>
       </div>
-      <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
+      <NuxtLink to="/vo/rachats/new" class="btn btn-primary">+ Nouveau rachat</NuxtLink>
     </div>
 
     <VONav />

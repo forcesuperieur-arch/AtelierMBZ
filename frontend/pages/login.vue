@@ -167,7 +167,6 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 10px;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 

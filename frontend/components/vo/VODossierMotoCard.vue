@@ -74,7 +74,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <button class="topbar-new-btn" :disabled="ocrSaving" @click="applyOcrData">
+          <button class="btn btn-primary" :disabled="ocrSaving" @click="applyOcrData">
             {{ ocrSaving ? 'Validation...' : 'Valider et mettre a jour le vehicule' }}
           </button>
         </div>
@@ -103,7 +103,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <button class="topbar-new-btn" :disabled="uploading" @click="uploadDocument">
+          <button class="btn btn-primary" :disabled="uploading" @click="uploadDocument">
             {{ uploading ? 'Archivage...' : 'Ajouter le document au dossier' }}
           </button>
         </div>

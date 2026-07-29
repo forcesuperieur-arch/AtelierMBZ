@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Feuille des composants Nuxt UI. Elle MANQUAIT, et rien ne le signalait :
+   sans elle le framework n'émet ni ses variables (`--ui-primary`,
+   `--ui-radius`) ni les styles de ses composants, si bien que les 375 UCard,
+   UInput, UTable et UFormField de l'application ne tenaient que par les
+   surcharges écrites plus bas dans ce fichier. C'est aussi ce qui a rendu
+   nécessaire la déclaration manuelle de l'échelle de rayons. */
+@import "@nuxt/ui";
 /* Montserrat (affichage + UI) et Inter (zones denses), les deux familles du
    design system Motoblouz. Les graisses importées sont celles réellement
    utilisées par les maquettes. */
@@ -97,13 +104,12 @@
   --color-mborange-900: #6E3300;
   --color-mborange-950: #4A2200;
 
-  /* NOTE — un UButton « solid » de Nuxt UI sort SANS fond dans cette
-     application : `bg-primary` ne produit rien. Défaut ANTÉRIEUR à cette
-     refonte, vérifié sur l'application inchangée, et qui explique que
-     l'application ait ses propres `.btn-primary` partout. Tenter de le
-     corriger par des alias `--color-*` dans ce bloc casse l'émission des
-     autres variables du thème (rayons compris) : le sujet appartient au
-     chantier « composant AppButton unique », pas à la couche de tokens. */
+  /* NOTE — ce bloc ne suffisait pas à colorer les composants Nuxt UI, parce
+     que `@import "@nuxt/ui"` manquait : la feuille du framework n'était pas
+     émise du tout, donc `--ui-primary` et `--radius-md` n'existaient pas. D'où
+     l'échelle de rayons déclarée ici à la main. L'import est en place depuis,
+     mais ces déclarations restent : elles désignent les VALEURS du DS, que le
+     framework ne peut pas deviner. */
 
   /* Rayons — l'échelle du DS pilote aussi les utilitaires `rounded-*` de
      Tailwind, que les composants Nuxt UI emploient. Sans déclaration
@@ -174,8 +180,9 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.015em; }
   font-size: 26px;
   font-weight: 800;
   color: var(--content-1);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  /* Casse normale, comme le demande le DS, et interlettrage resserré : le
+     0.03em servait à aérer des CAPITALES, il déforme une casse normale. */
+  letter-spacing: -0.015em;
   padding-bottom: 6px;
 }
 /* Bande de course sous les titres de page */
@@ -465,7 +472,7 @@ select.form-input option {
 }
 
 .step-dot.done {
-  background: linear-gradient(135deg, var(--orange), var(--orange2));
+  background: var(--accent);
   border-color: var(--accent-graphic);
   color: var(--orange-ink);
 }
@@ -491,7 +498,7 @@ select.form-input option {
 }
 
 .step-connector.done {
-  background: linear-gradient(90deg, var(--orange), var(--orange2));
+  background: var(--accent);
 }
 
 .content table:not([data-slot="table"]) {
@@ -643,27 +650,49 @@ input::placeholder, textarea::placeholder { color: var(--content-disabled) !impo
   justify-content: center;
 }
 
-/* Primary button — orange gradient */
+/* Neuf gabarits demandaient `.btn-sm` sans qu'elle existe : la classe ne
+   produisait rien. Définie ici, pour les barres d'outils denses. */
+.btn-sm {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: var(--fs-125);
+}
+
+/* Bouton primaire des composants Nuxt UI.
+
+   Ces règles alignent les UButton « solid » sur `.btn-primary`, afin que le
+   bouton primaire du framework et celui de l'application soient le MÊME
+   bouton à l'écran. C'est ici que se jouait l'écart : ce bloc posait un
+   dégradé, un halo jaune et un déplacement au survol — les trois choses que
+   le design system proscrit explicitement (« aplat franc », « No bounces »,
+   pas de `--shadow-glow`). Le primaire est donc désormais un aplat de marque,
+   avec du noir dessus, et ses états passent par la TEINTE.
+
+   Le raccourci `background` est conservé volontairement : il remet
+   `background-color` à sa valeur et efface tout `background-image` résiduel.
+   C'est aussi ce qui explique le diagnostic « un UButton solid sort sans
+   fond » : `bg-primary` de Nuxt UI ne pose qu'un `background-color`, que le
+   dégradé de ce bloc écrasait. */
 .ui-button[data-color="primary"],
 button[class*="bg-primary"],
 [data-slot="button"][data-color="primary"] {
-  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
-  color: var(--orange-ink) !important;
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
   border: none !important;
-  font-weight: 700 !important;
-  box-shadow: 0 1px 3px rgba(241,171,0,0.2) !important;
-  transition: all var(--transition) !important;
+  font-weight: var(--w-semi) !important;
+  box-shadow: none !important;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease) !important;
 }
 .ui-button[data-color="primary"]:hover,
 button[class*="bg-primary"]:hover,
 [data-slot="button"][data-color="primary"]:hover {
-  background: linear-gradient(135deg, var(--accent-hover), var(--orange)) !important;
-  box-shadow: 0 2px 8px rgba(241,171,0,0.3) !important;
-  transform: translateY(-1px);
+  background: var(--accent-hover) !important;
+  box-shadow: none !important;
 }
 .ui-button[data-color="primary"]:active,
+button[class*="bg-primary"]:active,
 [data-slot="button"][data-color="primary"]:active {
-  transform: translateY(0);
+  background: var(--accent-active) !important;
 }
 
 /* Ghost button */
@@ -721,14 +750,23 @@ button[class*="bg-primary"]:hover,
   border-color: var(--border-1) !important;
 }
 
+/* Second jeu de règles visant le même bouton primaire de Nuxt UI, à une
+   spécificité plus élevée (`.content` en tête). Il portait le même dégradé :
+   c'est LUI qui gagnait, et c'est pourquoi corriger le bloc précédent seul ne
+   suffisait pas. Aligné sur `.btn-primary` : aplat de marque, encre noire,
+   états par la teinte. */
 .content :where(button, a)[class*="bg-primary"] {
-  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
-  border-color: var(--accent-graphic) !important;
-  color: var(--orange-ink) !important;
+  background: var(--accent) !important;
+  border-color: transparent !important;
+  color: var(--accent-ink) !important;
 }
 
 .content :where(button, a)[class*="bg-primary"]:hover {
-  background: linear-gradient(135deg, var(--accent-hover), var(--orange)) !important;
+  background: var(--accent-hover) !important;
+}
+
+.content :where(button, a)[class*="bg-primary"]:active {
+  background: var(--accent-active) !important;
 }
 
 .content :where(textarea, input, select)[class*="bg-default"],
@@ -844,7 +882,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 18px;
   transition: all var(--transition);
 }
-.pont-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.pont-card:hover { border-color: var(--border-hover); }
 .pont-card.libre       { background: var(--success-soft); border-color: var(--success); }
 .pont-card.occupe      { background: var(--warning-soft); border-color: var(--warning); }
 .pont-card.maintenance { background: var(--warning-soft); border-color: var(--warning); }
@@ -1124,7 +1162,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   cursor: pointer; transition: all var(--transition);
   font-family: inherit;
 }
-.meca-chip:hover { transform: translateY(-1px); }
+.meca-chip:hover { background: var(--overlay-hover); }
 .meca-chip.is-muted { opacity: .42; }
 .meca-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -1235,8 +1273,6 @@ main {
 }
 .admin-card:hover {
   border-color: var(--accent-graphic) !important;
-  box-shadow: var(--shadow-glow) !important;
-  transform: translateY(-2px);
 }
 .admin-card-icon { font-size: 28px; margin-bottom: 8px; }
 .admin-card-label { font-size: 15px; font-weight: 700; color: var(--content-1); }
@@ -1256,8 +1292,6 @@ main {
 }
 .pont-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
 }
 .pont-card-header {
   display: flex;
@@ -1308,26 +1342,6 @@ main {
 /* ========================================
    TOPBAR NEW BUTTON (used in pages)
    ======================================== */
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px var(--space-l);
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-family: var(--font-ui);
-  font-size: var(--fs-150);
-  font-weight: var(--w-medium);
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.topbar-new-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(241,171,0,0.3);
-}
 
 /* ========================================
    ALERT STRIP (Dashboard)
@@ -1451,18 +1465,16 @@ main {
 }
 .meca-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
 }
 
 /* ========================================
    MISC UTILITIES
    ======================================== */
+/* Le DS ne connaît pas le texte en dégradé découpé, et le procédé rend la
+   couleur illisible en thème clair (le jaune de marque n'y tient pas 4,5:1).
+   Remplacé par le jaune de TEXTE, qui lui est mesuré pour ça. */
 .text-gradient {
-  background: linear-gradient(135deg, var(--orange), var(--accent-hover));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent-content);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1499,21 +1511,8 @@ main {
   border-radius: 4px;
 }
 
-/* Boutons primaires : réponse tactile */
-.btn-primary, .topbar-new-btn {
-  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s, filter 0.15s;
-}
-/* Réponse au survol : le DS demande un changement de TEINTE, pas de
-   déplacement ni de halo (« No bounces »). */
-.topbar-new-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-.topbar-new-btn:active:not(:disabled) {
-  background: var(--accent-active);
-}
-.btn-primary:active:not(:disabled), .topbar-new-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
+/* Les états du primaire passent par la TEINTE (cf. `.btn-primary` plus haut) :
+   ni déplacement, ni halo. Le DS l'écrit — « No bounces ». */
 
 /* Panneaux : bord réactif au survol */
 .panel {

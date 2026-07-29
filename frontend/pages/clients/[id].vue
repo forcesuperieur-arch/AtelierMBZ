@@ -5,7 +5,7 @@
         <NuxtLink to="/clients" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour aux clients"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div class="page-title">{{ client?.prenom }} {{ client?.nom }}</div>
       </div>
-      <button v-if="client" class="topbar-new-btn" @click="navigateTo('/rdv/new')">+ Planifier un RDV</button>
+      <button v-if="client" class="btn btn-primary" @click="navigateTo('/rdv/new')">+ Planifier un RDV</button>
     </div>
 
     <div v-if="loading" style="display:flex;justify-content:center;padding:48px;">

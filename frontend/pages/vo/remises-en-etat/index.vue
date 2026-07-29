@@ -48,7 +48,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <NuxtLink :to="item.dossierPath" class="topbar-new-btn">Ouvrir le dossier</NuxtLink>
+          <NuxtLink :to="item.dossierPath" class="btn btn-primary">Ouvrir le dossier</NuxtLink>
         </div>
       </UCard>
 
@@ -164,17 +164,6 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--warning);
-  color: var(--accent-ink);
-  font-weight: 700;
-  text-decoration: none;
-}
 
 @media (max-width: 960px) {
   .vo-kpi-grid {

@@ -5,7 +5,7 @@
         <div class="page-title">Dépôts-vente</div>
         <div class="vo-subtitle">Suivi des mandats, commissions et restitutions.</div>
       </div>
-      <NuxtLink to="/vo/depots/new" class="topbar-new-btn">+ Nouveau dépôt</NuxtLink>
+      <NuxtLink to="/vo/depots/new" class="btn btn-primary">+ Nouveau dépôt</NuxtLink>
     </div>
 
     <VONav />

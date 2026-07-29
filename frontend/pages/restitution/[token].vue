@@ -494,7 +494,6 @@ async function submitSignature() {
 .comparatif-col-title {
   font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--info-content);
   margin: 0;
@@ -532,7 +531,6 @@ async function submitSignature() {
   font-size: 11px;
   font-weight: 700;
   color: var(--content-3);
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 4px;
 }

@@ -62,7 +62,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <button class="topbar-new-btn" :disabled="uploading" @click="upload">{{ uploading ? 'Envoi...' : 'Téléverser' }}</button>
+          <button class="btn btn-primary" :disabled="uploading" @click="upload">{{ uploading ? 'Envoi...' : 'Téléverser' }}</button>
         </div>
       </UCard>
     </div>

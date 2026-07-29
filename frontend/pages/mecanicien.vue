@@ -253,7 +253,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <StatusBadge :status="rdv.status" />
-              <UButton v-if="rdv.status === 'reception'" size="xs" icon="i-ri-tools-line" label="Démarrer" @click="startWork(rdv.id)" />
+              <AppButton variant="primary" v-if="rdv.status === 'reception'" size="sm" icon="i-ri-tools-line" label="Démarrer" @click="startWork(rdv.id)" />
             </div>
           </div>
         </div>

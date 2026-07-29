@@ -91,7 +91,6 @@ async function handleLogin() {
 .login-card h1 {
   font-family: var(--pad-font-display, sans-serif);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 @keyframes card-in {
   from { opacity: 0; transform: translateY(14px) scale(0.99); }

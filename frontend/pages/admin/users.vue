@@ -7,7 +7,7 @@
           {{ pendingCount }} en attente SSO
         </span>
       </div>
-      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Ajouter</button>
+      <button class="btn btn-primary" @click="resetForm(); showNew = true">+ Ajouter</button>
     </div>
 
     <div style="display:flex;gap:12px;margin-bottom:12px;">
@@ -89,8 +89,8 @@
               Le login sera utilisé pour la connexion si besoin. S'il existe déjà, un suffixe automatique sera ajouté.
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showNew = false" />
-              <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
+              <AppButton variant="secondary" label="Annuler"  @click="showNew = false" />
+              <AppButton variant="primary" type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
           </form>
         </UCard>
@@ -112,8 +112,8 @@
               L’utilisateur sera activé après affectation de l’atelier et du rôle métier.
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showApprove = false" />
-              <UButton type="submit" label="Valider le compte" :loading="approving" />
+              <AppButton variant="secondary" label="Annuler"  @click="showApprove = false" />
+              <AppButton variant="primary" type="submit" label="Valider le compte" :loading="approving" />
             </div>
           </form>
         </UCard>

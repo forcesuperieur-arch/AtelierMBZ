@@ -158,7 +158,6 @@ function confirm() {
   color: var(--content-1);
   font-family: var(--font-display);
   letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
 .sig-hint {
   font-size: 13px;

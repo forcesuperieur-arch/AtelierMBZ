@@ -67,7 +67,7 @@
         <AppNotificationBell :atelier-id="currentNotificationAtelierId" />
         <div class="live-dot" />
         <span class="topbar-live">LIVE</span>
-        <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
+        <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="btn btn-primary">+ Nouveau RDV</NuxtLink>
       </header>
 
       <!-- CONTENT -->
@@ -290,12 +290,14 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   min-height: 600px;
 }
 
-/* === Sidebar overlay (mobile) === */
+/* === Sidebar overlay (mobile) ===
+   Voile opaque SANS flou : c'est ce que demande le design system pour un
+   arrière-plan de surcouche. `--scrim` porte déjà l'opacité prescrite. Ce
+   `backdrop-filter` était le dernier survivant des onze de l'application. */
 .sidebar-overlay {
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  backdrop-filter: blur(4px);
   z-index: 40;
 }
 @media (min-width: 1024px) {
@@ -575,25 +577,6 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 .topbar-live {
   font-size: 12px;
   color: var(--content-3);
-}
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-radius: 6px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(217,101,0,0.2);
-}
-.topbar-new-btn:hover {
-  background: var(--accent-hover);
-  box-shadow: 0 2px 8px rgba(217,101,0,0.3);
-  transform: translateY(-1px);
 }
 
 /* === CONTENT === */

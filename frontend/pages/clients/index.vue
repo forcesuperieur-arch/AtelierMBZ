@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div class="page-title">Clients</div>
-      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau client</button>
+      <button class="btn btn-primary" @click="showNew = true">+ Nouveau client</button>
     </div>
 
     <!-- Stat cards -->
@@ -69,8 +69,8 @@
               <span style="font-size:12px;color:var(--content-3);">Le client consent au traitement de ses données personnelles conformément à notre <NuxtLink to="/public/politique-confidentialite" target="_blank" style="color:var(--accent-content);">politique de confidentialité</NuxtLink>.</span>
             </label>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showNew = false" />
-              <UButton type="submit" label="Créer" :loading="creating" :disabled="!consentRGPD" />
+              <AppButton variant="secondary" label="Annuler"  @click="showNew = false" />
+              <AppButton variant="primary" type="submit" label="Créer" :loading="creating" :disabled="!consentRGPD" />
             </div>
           </form>
         </UCard>

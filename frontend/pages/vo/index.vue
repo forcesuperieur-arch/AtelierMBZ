@@ -6,8 +6,8 @@
         <div class="vo-subtitle">Pilotage du stock VO, des dossiers moto actifs et des points de validation OCR.</div>
       </div>
       <div class="vo-header-actions">
-        <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
-        <NuxtLink to="/vo/depots/new" class="topbar-new-btn vo-secondary-btn">+ Dépôt-vente</NuxtLink>
+        <NuxtLink to="/vo/rachats/new" class="btn btn-primary">+ Nouveau rachat</NuxtLink>
+        <NuxtLink to="/vo/depots/new" class="btn vo-secondary-btn">+ Dépôt-vente</NuxtLink>
       </div>
     </div>
 
@@ -150,8 +150,12 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
+/* Aplat d'état : l'encre doit être celle prévue pour lui, sinon le libellé
+   prend `--content-1` et ne contraste plus. */
 .vo-secondary-btn {
   background: var(--info);
+  color: var(--on-info);
+  border-color: transparent;
 }
 
 .vo-stats-grid {

@@ -7,7 +7,7 @@
           <div class="page-subtitle">Création et gestion multiatelier réservées au super-admin.</div>
         </div>
       </div>
-      <button v-if="isSuperAdmin" class="topbar-new-btn" @click="openCreate">+ Ajouter un atelier</button>
+      <button v-if="isSuperAdmin" class="btn btn-primary" @click="openCreate">+ Ajouter un atelier</button>
     </div>
 
     <UCard v-if="!isSuperAdmin">
@@ -141,8 +141,8 @@
             </div>
 
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showModal = false" />
-              <UButton type="submit" :label="editId ? 'Enregistrer' : 'Créer l’atelier'" :loading="saving" />
+              <AppButton variant="secondary" label="Annuler"  @click="showModal = false" />
+              <AppButton variant="primary" type="submit" :label="editId ? 'Enregistrer' : 'Créer l’atelier'" :loading="saving" />
             </div>
           </form>
         </UCard>

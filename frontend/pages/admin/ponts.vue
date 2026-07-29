@@ -7,7 +7,7 @@
           <div class="page-sub">Configuration des postes de travail et affectations</div>
         </div>
       </div>
-      <button class="topbar-new-btn" @click="resetForm(); showModal = true">+ Nouveau pont</button>
+      <button class="btn btn-primary" @click="resetForm(); showModal = true">+ Nouveau pont</button>
     </div>
 
     <UCard>

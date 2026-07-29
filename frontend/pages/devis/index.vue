@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div class="page-title">Devis</div>
-      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau devis</button>
+      <button class="btn btn-primary" @click="showNew = true">+ Nouveau devis</button>
     </div>
 
     <!-- Filtres -->

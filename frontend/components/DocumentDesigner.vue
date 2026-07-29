@@ -609,7 +609,6 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   font-weight: 700;
   color: var(--content-1);
   margin-bottom: 10px;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .tool-list {

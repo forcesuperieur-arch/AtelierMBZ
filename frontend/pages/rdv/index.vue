@@ -5,7 +5,7 @@
         <div class="page-title">Rendez-vous</div>
         <div class="page-sub">Vue atelier moderne avec filtres, statut et accès rapide aux fiches</div>
       </div>
-      <NuxtLink to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
+      <NuxtLink to="/rdv/new" class="btn btn-primary">+ Nouveau RDV</NuxtLink>
     </div>
 
     <div class="rdv-kpis">
@@ -48,7 +48,7 @@
           <input v-model="filters.search" type="text" class="form-control" placeholder="Client, plaque, moto, intervention..." />
         </div>
         <div class="rdv-filter-actions">
-          <button class="topbar-new-btn" style="height:40px;" @click="fetchData">Filtrer</button>
+          <button class="btn btn-primary" style="height:40px;" @click="fetchData">Filtrer</button>
           <button class="btn-secondary" style="height:40px;" @click="resetFilters">Reset</button>
         </div>
       </div>
