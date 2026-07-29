@@ -6,6 +6,7 @@
  * depuis une page protégée.
  */
 export const CLIENT_PUBLIC_PATHS = [
+  '/landing',
   '/login',
   '/forgot-password',
   '/reset-password',

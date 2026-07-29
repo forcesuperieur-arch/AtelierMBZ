@@ -93,6 +93,11 @@ class ConfigAtelier
     #[ORM\Column(options: ['default' => 4])] #[Groups(['config:read', 'config:write'])] private int $relanceTravauxDelaiHeures = 4;
     #[ORM\Column(options: ['default' => 8])] #[Groups(['config:read', 'config:write'])] private int $relanceHeureMin = 8;
     #[ORM\Column(options: ['default' => 19])] #[Groups(['config:read', 'config:write'])] private int $relanceHeureMax = 19;
+    // Intervalle par défaut de la vidange, suggéré au mécano à la restitution
+    // (ajustable par OR) et utilisé pour le rappel client (dû dès que l'un des
+    // deux seuils est franchi — logique constructeur « X km ou Y mois »).
+    #[ORM\Column(options: ['default' => 7000])] #[Groups(['config:read', 'config:write'])] private int $vidangeIntervalleKm = 7000;
+    #[ORM\Column(options: ['default' => 12])] #[Groups(['config:read', 'config:write'])] private int $vidangeIntervalleMois = 12;
     #[ORM\Column(type: 'json')] #[Groups(['config:read', 'config:write'])] private array $rappelsRdvJours = [1, 3];
     #[ORM\Column(options: ['default' => 30])] #[Groups(['config:read', 'config:write'])] private int $lienPublicJours = 30;
     #[ORM\Column(options: ['default' => 5])] #[Groups(['config:read', 'config:write'])] private int $essaiPointsMin = 5;
@@ -166,6 +171,10 @@ class ConfigAtelier
     public function getRelanceHeureMin(): int { return $this->relanceHeureMin; }
     public function setRelanceHeureMin(int $v): static { $this->relanceHeureMin = $v; return $this; }
     public function getRelanceHeureMax(): int { return $this->relanceHeureMax; }
+    public function getVidangeIntervalleKm(): int { return $this->vidangeIntervalleKm; }
+    public function setVidangeIntervalleKm(int $v): static { $this->vidangeIntervalleKm = $v; return $this; }
+    public function getVidangeIntervalleMois(): int { return $this->vidangeIntervalleMois; }
+    public function setVidangeIntervalleMois(int $v): static { $this->vidangeIntervalleMois = $v; return $this; }
     public function setRelanceHeureMax(int $v): static { $this->relanceHeureMax = $v; return $this; }
     public function getRappelsRdvJours(): array { return $this->rappelsRdvJours; }
     public function setRappelsRdvJours(array $v): static { $this->rappelsRdvJours = array_values($v); return $this; }

@@ -28,19 +28,39 @@ class RappelProchaineRevisionCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $targetDate = (new \DateTime())->modify('+30 days')->format('Y-m-d');
+        $statuts = ['intervention_signee', 'signe', 'execute', 'termine'];
 
-        $ordres = $this->em->createQueryBuilder()
+        // Rappel J-30 par date (comportement historique, inchangé).
+        $parDate = $this->em->createQueryBuilder()
             ->select('o')
             ->from(OrdreReparation::class, 'o')
             ->where('o.prochaineRevisionDate = :date')
             ->andWhere('o.statut IN (:statuts)')
             ->setParameter('date', $targetDate)
-            ->setParameter('statuts', ['intervention_signee', 'signe', 'execute', 'termine'])
+            ->setParameter('statuts', $statuts)
+            ->getQuery()
+            ->getResult();
+
+        // Rappel par kilométrage : le client a déclaré avoir atteint (ou dépassé)
+        // le seuil de son OR le plus récent. Anti-doublon par `vidangeNotifieeAt`
+        // (contrairement au rappel par date, la comparaison n'est pas bornée à un
+        // seul jour : sans ce verrou, elle enverrait le rappel à chaque exécution).
+        $parKm = $this->em->createQueryBuilder()
+            ->select('o')
+            ->from(OrdreReparation::class, 'o')
+            ->join('o.rendezVous', 'r')
+            ->join('r.vehicule', 'v')
+            ->where('o.prochaineRevisionKm IS NOT NULL')
+            ->andWhere('o.vidangeNotifieeAt IS NULL')
+            ->andWhere('o.statut IN (:statuts)')
+            ->andWhere('v.kilometrage IS NOT NULL')
+            ->andWhere('v.kilometrage >= o.prochaineRevisionKm')
+            ->setParameter('statuts', $statuts)
             ->getQuery()
             ->getResult();
 
         $count = 0;
-        foreach ($ordres as $ordre) {
+        foreach ([...$parDate, ...$parKm] as $ordre) {
             $rdv = $ordre->getRendezVous();
             $client = $rdv?->getClient();
 
@@ -48,12 +68,14 @@ class RappelProchaineRevisionCommand extends Command
                 continue;
             }
 
+            $ordre->setVidangeNotifieeAt(new \DateTimeImmutable());
+
             $atId = $ordre->getAtelierId() ?? 0;
             $vehicule = $rdv->getVehicule();
             $vars = [
                 'client_nom'    => $client->getNom(),
                 'client_prenom' => $client->getPrenom(),
-                'date_revision' => $ordre->getProchaineRevisionDate()->format('d/m/Y'),
+                'date_revision' => $ordre->getProchaineRevisionDate()?->format('d/m/Y') ?? '',
                 'vehicule'      => $vehicule
                     ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? ''))
                     : 'votre moto',
@@ -87,6 +109,8 @@ class RappelProchaineRevisionCommand extends Command
 
             $count++;
         }
+
+        $this->em->flush();
 
         $io->success(sprintf('%d rappel(s) de révision envoyé(s).', $count));
 

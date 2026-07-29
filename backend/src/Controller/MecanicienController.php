@@ -171,6 +171,8 @@ class MecanicienController extends AbstractController
             'recommandations' => $ordre->getRecommandations(),
             'garantie' => $ordre->getGarantie(),
             'kilometrageRestitution' => $ordre->getKilometrageRestitution(),
+            'prochaineRevisionKm' => $ordre->getProchaineRevisionKm(),
+            'prochaineRevisionDate' => $ordre->getProchaineRevisionDate()?->format('Y-m-d'),
             'mechanic_notes' => $ordre->getMechanicNotes(),
             'mechanic_checkup' => $ordre->getMechanicCheckup(),
             'signature_mecanicien' => $ordre->getSignatureMecanicien() !== null,

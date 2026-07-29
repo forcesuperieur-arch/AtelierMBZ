@@ -55,6 +55,16 @@ class Vehicule
     #[Groups(['vehicule:read', 'vehicule:write'])]
     private ?string $typeMoto = null;
 
+    /** Kilométrage déclaré par le client depuis son espace (pas le relevé atelier de l'état des lieux). */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write', 'client:read'])]
+    private ?int $kilometrage = null;
+
+    /** Notes libres du client sur sa moto (entretiens perso, particularités…). */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['vehicule:read', 'vehicule:write', 'client:read'])]
+    private ?string $notes = null;
+
     #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'vehicules')]
     #[ORM\JoinColumn(name: 'client_id', nullable: true)]
     #[Groups(['vehicule:read', 'vehicule:write'])]
@@ -94,6 +104,10 @@ class Vehicule
     public function setCylindree(?string $cylindree): static { $this->cylindree = $cylindree; return $this; }
     public function getTypeMoto(): ?string { return $this->typeMoto; }
     public function setTypeMoto(?string $typeMoto): static { $this->typeMoto = $typeMoto; return $this; }
+    public function getKilometrage(): ?int { return $this->kilometrage; }
+    public function setKilometrage(?int $kilometrage): static { $this->kilometrage = $kilometrage; return $this; }
+    public function getNotes(): ?string { return $this->notes; }
+    public function setNotes(?string $notes): static { $this->notes = $notes; return $this; }
     public function getClient(): ?Client { return $this->client; }
     public function setClient(?Client $client): static { $this->client = $client; return $this; }
     public function getCategorie(): ?CategorieMoto { return $this->categorie; }

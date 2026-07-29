@@ -71,13 +71,22 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost}, http://localhos
 
 	# Whitelisted public pages.
 	@public_pages {
-		path /landing /landing/* /public/booking* /public/suivi /public/suivi/* /public/demande /public/demande/* /public/mentions-legales* /public/politique-confidentialite* /restitution /restitution/*
+		path /public/booking* /public/suivi /public/suivi/* /public/demande /public/demande/* /public/mentions-legales* /public/politique-confidentialite* /restitution /restitution/*
 	}
 	handle @public_pages {
 		reverse_proxy nuxt:3000
 	}
 
-	# Client portal (espace client) — served by client-nuxt on port 3001.
+	# Ancienne URL de la vitrine publique (servie par le front staff) : la page
+	# vit désormais côté portail client, sous /client (app.baseURL de client-nuxt).
+	handle /landing {
+		redir * /client/landing 301
+	}
+	handle /landing/* {
+		redir * /client/landing 301
+	}
+
+	# Client portal (espace client + vitrine publique) — served by client-nuxt on port 3001.
 	handle /client {
 		redir * /client/ 308
 	}
@@ -93,9 +102,9 @@ http://{$APP_DOMAIN:localhost}, https://{$APP_DOMAIN:localhost}, http://localhos
 		reverse_proxy nuxt:3000
 	}
 
-	# Root → redirect to public landing page.
+	# Root → redirect to public landing page (portail client).
 	handle / {
-		redir * /landing 302
+		redir * /client/landing 302
 	}
 
 	# Everything else (admin, planning, vo, companion, login, profile, ...) is hidden.

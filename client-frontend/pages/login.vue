@@ -4,7 +4,7 @@
          page ne s'y monte pas, il faut la poser ici. -->
     <ThemeToggle floating />
     <div class="login-card">
-      <img :src="logo" alt="Paddock" style="width:72px;height:72px;margin:0 auto 12px;display:block;" />
+      <img :src="logo" alt="Paddock" class="login-logo" />
       <h1 style="font-size:22px;font-weight:800;margin-bottom:4px;">Espace Client</h1>
       <p style="font-size:13px;color:var(--content-3);margin-bottom:20px;">Connexion à votre espace client</p>
 
@@ -26,6 +26,7 @@
         Activer mon compte / Mot de passe oublié
       </NuxtLink>
     </div>
+    <LegalFooter />
   </div>
 </template>
 
@@ -57,14 +58,22 @@ async function handleLogin() {
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   padding: 24px;
   background:
     radial-gradient(700px 360px at 50% 18%, var(--accent-soft), transparent 70%),
     repeating-linear-gradient(135deg, var(--overlay-soft) 0 2px, transparent 2px 6px),
     var(--surface-0);
   color: var(--content-1);
+}
+.login-logo {
+  width: min(100%, 220px);
+  height: auto;
+  margin: 0 auto 12px;
+  display: block;
 }
 .login-card {
   position: relative;

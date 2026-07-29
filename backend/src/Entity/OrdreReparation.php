@@ -138,6 +138,10 @@ class OrdreReparation
     #[Groups(['ordre:read', 'ordre:write'])]
     private ?\DateTimeInterface $prochaineRevisionDate = null;
 
+    /** Anti-doublon du rappel de vidange (km ou date) : posé une fois notifié, jamais renvoyé. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $vidangeNotifieeAt = null;
+
     #[ORM\OneToOne(targetEntity: EssaiRoutier::class)]
     #[ORM\JoinColumn(name: 'essai_routier_id', nullable: true)]
     #[Groups(['ordre:read'])]
@@ -347,6 +351,8 @@ class OrdreReparation
     public function setProchaineRevisionKm(?int $v): static { $this->prochaineRevisionKm = $v; return $this; }
     public function getProchaineRevisionDate(): ?\DateTimeInterface { return $this->prochaineRevisionDate; }
     public function setProchaineRevisionDate(?\DateTimeInterface $v): static { $this->prochaineRevisionDate = $v; return $this; }
+    public function getVidangeNotifieeAt(): ?\DateTimeImmutable { return $this->vidangeNotifieeAt; }
+    public function setVidangeNotifieeAt(?\DateTimeImmutable $v): static { $this->vidangeNotifieeAt = $v; return $this; }
     public function getEssaiRoutier(): ?EssaiRoutier { return $this->essaiRoutier; }
     public function setEssaiRoutier(?EssaiRoutier $v): static { $this->essaiRoutier = $v; return $this; }
 
