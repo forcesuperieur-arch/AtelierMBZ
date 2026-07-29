@@ -13,14 +13,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(email: string, password: string): Promise<boolean> {
     try {
-      const res: any = await $fetch('/api/client/login', {
+      await $fetch('/api/client/login', {
         method: 'POST',
         body: { email, password },
         credentials: 'include',
         baseURL: '',
       })
-      client.value = res.client
-      hydrated.value = true
+      // La réponse de connexion ne porte qu'un profil minimal (id/nom/prenom/
+      // email) : sans ce fetchMe, le tableau de bord affichait « Motos : 0 »
+      // (et téléphone/adresse vides) jusqu'à la prochaine visite de /profil ou
+      // un F5 — les seuls endroits qui rappellent fetchMe.
+      await fetchMe()
       return true
     } catch {
       // Échec géré par l'appelant (login.vue affiche le message) : pas de log

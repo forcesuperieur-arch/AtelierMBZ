@@ -518,12 +518,17 @@ class ClientEspaceController extends AbstractController
 
             $items = array_map(fn(OrdreReparation $o) => [
                 'id' => $o->getId(),
+                'rdv_id' => $o->getRendezVous()->getId(),
                 'numero_or' => $o->getNumeroOr(),
                 'type_or' => $o->getTypeOr(),
-                'travaux' => $o->getTravaux(),
+                // Ce qui a été RÉELLEMENT fait prime sur ce qui était prévu à l'origine.
+                'travaux' => $o->getTravauxRealises() ?: $o->getTravaux(),
                 'signed_at' => $o->getSignedAt()?->format('c'),
                 'vehicule_plaque' => $o->getRendezVous()->getVehicule()?->getPlaque(),
                 'vehicule_info' => trim(($o->getRendezVous()->getVehicule()?->getMarque() ?? '') . ' ' . ($o->getRendezVous()->getVehicule()?->getModele() ?? '')),
+                // Même verrou que la fiche RDV : PDF exposé seulement une fois
+                // l'OR scellé à la restitution (final_hash présent).
+                'pdf_disponible' => $o->getFinalHash() !== null,
             ], $ors);
 
             return $this->json($items);
@@ -568,6 +573,7 @@ class ClientEspaceController extends AbstractController
             'cylindree' => $v->getCylindree(),
             'annee' => $v->getAnnee(),
             'kilometrage' => $v->getKilometrage(),
+            'notes' => $v->getNotes(),
         ], $client->getVehicules()->toArray());
 
         return $this->json($items);
@@ -600,6 +606,7 @@ class ClientEspaceController extends AbstractController
             'id' => $vehicule->getId(),
             'plaque' => $vehicule->getPlaque(),
             'kilometrage' => $vehicule->getKilometrage(),
+            'notes' => $vehicule->getNotes(),
         ]);
     }
 
