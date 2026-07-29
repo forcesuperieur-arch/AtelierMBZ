@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div class="page-title">Stock — Pièces détachées</div>
-      <button class="topbar-new-btn" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
+      <button class="btn btn-primary" @click="resetForm(); showNew = true">+ Nouvelle pièce</button>
     </div>
 
     <UCard style="margin-bottom:16px;">
@@ -10,16 +10,16 @@
     </UCard>
 
     <!-- Alerts -->
-    <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:rgba(239,68,68,0.2);">
+    <UCard v-if="stockStore.alertes.length" style="margin-bottom:16px;border-color:var(--error);">
       <template #header>
-        <span style="font-size:15px;font-weight:700;color:#FCA5A5;">
-          ⚠ Alertes stock ({{ stockStore.alertes.length }})
+        <span style="font-size:15px;font-weight:700;color:var(--error-content);">
+          <AppIcon name="i-ri-error-warning-line" /> Alertes stock ({{ stockStore.alertes.length }})
         </span>
       </template>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
-        <div v-for="p in stockStore.alertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.15);background:rgba(239,68,68,0.05);">
-          <span style="color:#D1D5DB;">{{ p.designation }}</span>
-          <span class="status-badge" style="background:rgba(239,68,68,0.12);color:#FCA5A5;">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</span>
+        <div v-for="p in stockStore.alertes" :key="p.id" style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid var(--error);background:var(--error-soft);">
+          <span style="color:var(--content-2);">{{ p.designation }}</span>
+          <span class="status-badge" style="background:var(--error-soft);color:var(--error-content);">{{ p.quantite_stock }} / {{ p.seuil_alerte }}</span>
         </div>
       </div>
     </UCard>
@@ -32,7 +32,7 @@
           </span>
         </template>
         <template #actions-cell="{ row }">
-          <button style="color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)">✏ Modifier</button>
+          <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="editPiece(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
         </template>
       </UTable>
     </UCard>
@@ -41,7 +41,7 @@
     <AppModal v-model:open="showNew" size="lg">
       <template #default>
         <UCard>
-          <template #header><span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</span></template>
+          <template #header><span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ editId ? 'Modifier' : 'Nouvelle' }} pièce</span></template>
           <form @submit.prevent="savePiece" style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
               <UFormField label="Référence"><UInput v-model="pieceForm.reference" required /></UFormField>
@@ -52,8 +52,8 @@
               <UFormField label="Seuil alerte"><UInput v-model="pieceForm.seuil_alerte" type="number" /></UFormField>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;">
-              <UButton label="Annuler" variant="outline" @click="showNew = false" />
-              <UButton type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
+              <AppButton variant="secondary" label="Annuler"  @click="showNew = false" />
+              <AppButton variant="primary" type="submit" :label="editId ? 'Modifier' : 'Créer'" :loading="saving" />
             </div>
           </form>
         </UCard>

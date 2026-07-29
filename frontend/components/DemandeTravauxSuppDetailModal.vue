@@ -2,79 +2,79 @@
   <AppModal :open="isOpen" @update:open="onOpenChange" size="lg">
     <template #header>
       <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:16px;font-weight:700;color:#E8E9ED;">
+        <span style="font-size:16px;font-weight:700;color:var(--content-1);">
           {{ isEditing ? 'Modifier la demande #' : 'Demande travaux complémentaires #' }}{{ demande?.id }}
         </span>
         <span
           v-if="demande?.urgence === 'urgent'"
-          style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(239,68,68,0.14);color:#FCA5A5;"
+          style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--error-soft);color:var(--error-content);"
         >URGENT</span>
       </div>
     </template>
 
-    <div v-if="demande" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:#D1D5DB;">
+    <div v-if="demande" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:var(--content-2);">
       <!-- Client & Véhicule -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-          <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">{{ demande.client_nom || 'Client' }}</div>
-          <div v-if="demande.vehicule_info" style="color:#9CA3AF;">🏍 {{ demande.vehicule_info }}</div>
-          <div v-if="demande.vehicule_plaque" style="color:#9CA3AF;">{{ demande.vehicule_plaque }}</div>
+        <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+          <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ demande.client_nom || 'Client' }}</div>
+          <div v-if="demande.vehicule_info" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ demande.vehicule_info }}</div>
+          <div v-if="demande.vehicule_plaque" style="color:var(--content-3);">{{ demande.vehicule_plaque }}</div>
         </div>
-        <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-          <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">Récapitulatif</div>
-          <div style="color:#FFD200;font-size:18px;font-weight:800;">{{ formatEuro(isEditing ? editedPrixTotal : demande.prix_estime) }}</div>
-          <div style="color:#9CA3AF;font-size:12px;">~{{ formatMinutes(isEditing ? editedTempsTotal : demande.temps_estime) }}</div>
-          <div style="color:#6B7280;font-size:11px;margin-top:4px;">RDV #{{ demande.rendez_vous_id }}</div>
+        <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+          <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Récapitulatif</div>
+          <div style="color:var(--accent-content);font-size:18px;font-weight:800;">{{ formatEuro(isEditing ? editedPrixTotal : demande.prix_estime) }}</div>
+          <div style="color:var(--content-3);font-size:12px;">~{{ formatMinutes(isEditing ? editedTempsTotal : demande.temps_estime) }}</div>
+          <div style="color:var(--content-3);font-size:11px;margin-top:4px;">RDV #{{ demande.rendez_vous_id }}</div>
         </div>
       </div>
 
       <!-- Description -->
-      <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">Commentaire mécanicien</div>
-        <div v-if="!isEditing" style="color:#9CA3AF;white-space:pre-wrap;font-style:italic;">
+      <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Commentaire mécanicien</div>
+        <div v-if="!isEditing" style="color:var(--content-3);white-space:pre-wrap;font-style:italic;">
           {{ demande.description ? `« ${demande.description} »` : 'Aucun commentaire' }}
         </div>
         <textarea
           v-else
           v-model="editedDescription"
           rows="2"
-          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px;color:#D1D5DB;font-size:13px;resize:vertical;"
+          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:8px;color:var(--content-2);font-size:13px;resize:vertical;"
           placeholder="Commentaire du mécanicien…"
         />
       </div>
 
       <!-- Urgence -->
       <div v-if="isEditing" style="display:flex;align-items:center;gap:8px;">
-        <span style="font-weight:600;color:#E8E9ED;">Urgence :</span>
-        <select v-model="editedUrgence" style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;color:#D1D5DB;font-size:13px;">
+        <span style="font-weight:600;color:var(--content-1);">Urgence :</span>
+        <select v-model="editedUrgence" style="background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:6px 10px;color:var(--content-2);font-size:13px;">
           <option value="normal">Normal</option>
           <option value="urgent">Urgent</option>
         </select>
       </div>
 
       <!-- Prestations -->
-      <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:8px;">Prestations</div>
+      <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:8px;">Prestations</div>
 
         <div v-if="!isEditing && demande.prestations?.length" style="display:flex;flex-direction:column;gap:6px;">
           <div
             v-for="(p, i) in demande.prestations"
             :key="i"
-            style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"
+            style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--overlay-soft);border-radius:6px;"
           >
             <span>{{ p.designation }}</span>
-            <span style="color:#FFD200;font-weight:700;">{{ formatEuro(p.prix_ttc) }}</span>
+            <span style="color:var(--accent-content);font-weight:700;">{{ formatEuro(p.prix_ttc) }}</span>
           </div>
         </div>
 
-        <div v-else-if="!isEditing" style="color:#6B7280;font-style:italic;">Aucune prestation.</div>
+        <div v-else-if="!isEditing" style="color:var(--content-3);font-style:italic;">Aucune prestation.</div>
 
         <!-- Mode édition -->
         <div v-else style="display:flex;flex-direction:column;gap:8px;">
           <div
             v-for="(p, i) in editedPrestations"
             :key="i"
-            style="display:flex;gap:8px;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;flex-wrap:wrap;"
+            style="display:flex;gap:8px;align-items:center;padding:8px 10px;background:var(--overlay-soft);border-radius:6px;flex-wrap:wrap;"
           >
             <span style="flex:1;min-width:120px;">{{ p.designation }}</span>
             <input
@@ -82,27 +82,27 @@
               type="number"
               step="0.01"
               min="0"
-              style="width:80px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px;color:#FFD200;font-weight:700;font-size:13px;"
+              style="width:80px;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:6px;color:var(--accent-content);font-weight:700;font-size:13px;"
               placeholder="Prix TTC"
             />
             <input
               v-model.number="p.temps_minutes"
               type="number"
               min="0"
-              style="width:70px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px;color:#D1D5DB;font-size:13px;"
+              style="width:70px;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:6px;color:var(--content-2);font-size:13px;"
               placeholder="Min"
             />
             <button
               type="button"
-              style="background:none;border:none;color:#EF4444;font-size:16px;cursor:pointer;"
+              style="background:none;border:none;color:var(--error-content);font-size:16px;cursor:pointer;"
               title="Supprimer"
               @click="removePrestation(i)"
-            >🗑</button>
+            ><AppIcon name="i-ri-delete-bin-line" /></button>
           </div>
 
           <!-- Ajouter prestation -->
-          <div v-if="catalogPrestations.length" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">
-            <select v-model="selectedCatalogPrestation" style="flex:1;min-width:160px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;color:#D1D5DB;font-size:13px;">
+          <div v-if="catalogPrestations.length" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;padding-top:8px;border-top:1px solid var(--border-2);">
+            <select v-model="selectedCatalogPrestation" style="flex:1;min-width:160px;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:6px 10px;color:var(--content-2);font-size:13px;">
               <option :value="null">+ Ajouter une prestation…</option>
               <option v-for="cp in availableCatalogPrestations" :key="cp.id" :value="cp">
                 {{ cp.nom }} — {{ formatEuro(cp.prix_base_ttc) }}
@@ -112,7 +112,7 @@
               Ajouter
             </button>
           </div>
-          <div v-else-if="isEditing" style="color:#6B7280;font-style:italic;font-size:12px;">Chargement du catalogue…</div>
+          <div v-else-if="isEditing" style="color:var(--content-3);font-style:italic;font-size:12px;">Chargement du catalogue…</div>
         </div>
       </div>
 
@@ -125,12 +125,12 @@
         <span
           v-if="isSignatureEnAttente"
           data-testid="badge-signature-attente"
-          style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(251,191,36,0.14);color:#FCD34D;font-weight:700;"
-        >✍️ Signature en attente</span>
-        <span v-if="demande.decision_client" style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(59,130,246,0.14);color:#93C5FD;font-weight:700;">
-          Décision client : {{ demande.decision_client === 'accepte' ? '✅ Accepté' : '❌ Refusé' }}
+          style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--warning-soft);color:var(--warning-content);font-weight:700;"
+        ><AppIcon name="i-ri-quill-pen-line" /> Signature en attente</span>
+        <span v-if="demande.decision_client" style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--info-soft);color:var(--info-content);font-weight:700;">
+          Décision client : <AppIcon :name="demande.decision_client === 'accepte' ? 'i-ri-checkbox-circle-line' : 'i-ri-close-circle-line'" /> {{ demande.decision_client === 'accepte' ? 'Accepté' : 'Refusé' }}
         </span>
-        <span v-if="demande.or_complementaire_id" style="font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(16,185,129,0.14);color:#6EE7B7;font-weight:700;">
+        <span v-if="demande.or_complementaire_id" style="font-size:11px;padding:4px 10px;border-radius:999px;background:var(--success-soft);color:var(--success-content);font-weight:700;">
           OR complémentaire #{{ demande.or_complementaire_id }}
         </span>
       </div>
@@ -138,7 +138,7 @@
       <!-- Accord téléphonique en attente de signature -->
       <div
         v-if="isSignatureEnAttente && demande.decision_enregistree_par"
-        style="font-size:12px;color:#9CA3AF;"
+        style="font-size:12px;color:var(--content-3);"
       >
         Accord tél. enregistré{{ staffLabel(demande.decision_enregistree_par) }}<span v-if="demande.decision_client_at"> le {{ new Date(demande.decision_client_at).toLocaleString('fr-FR') }}</span>
       </div>
@@ -153,20 +153,20 @@
           class="btn btn-ghost"
           data-testid="btn-decision-telephone"
           @click="ouvrirDecisionTelephone"
-        >📞 Décision téléphonique</button>
+        ><AppIcon name="i-ri-phone-line" /> Décision téléphonique</button>
 
         <button
           v-if="isSignatureEnAttente && demande?.token"
           class="btn btn-primary"
           data-testid="btn-faire-signer-comptoir"
           @click="faireSignerComptoir"
-        >✍️ Faire signer au comptoir</button>
+        ><AppIcon name="i-ri-quill-pen-line" /> Faire signer au comptoir</button>
 
         <button
           v-if="canEdit && !isEditing"
           class="btn btn-primary"
           @click="startEditing"
-        >✏️ Modifier</button>
+        ><AppIcon name="i-ri-pencil-line" /> Modifier</button>
 
         <button
           v-if="isEditing"
@@ -180,12 +180,12 @@
           class="btn btn-primary"
           :disabled="saving"
           @click="saveChanges"
-        >{{ saving ? 'Sauvegarde…' : '💾 Sauvegarder' }}</button>
+        ><AppIcon v-if="!(saving)" name="i-ri-save-line" />{{ saving ? 'Sauvegarde…' : 'Sauvegarder' }}</button>
 
         <!-- Pas de page de détail OR : référence affichée, sans lien mort. -->
         <span
           v-if="demande?.or_complementaire_id"
-          style="font-size:12px;color:#9CA3AF;align-self:center;"
+          style="font-size:12px;color:var(--content-3);align-self:center;"
         >OR complémentaire n° {{ demande.or_complementaire_id }}</span>
       </div>
     </template>
@@ -287,13 +287,13 @@ function labelStatut(statut?: string) {
 
 function statutStyle(statut?: string) {
   const styles: Record<string, string> = {
-    en_attente: 'background:rgba(245,158,11,0.14);color:#FCD34D;',
-    en_attente_validation: 'background:rgba(245,158,11,0.14);color:#FCD34D;',
-    en_attente_decision_client: 'background:rgba(59,130,246,0.14);color:#93C5FD;',
-    accepte: 'background:rgba(16,185,129,0.14);color:#6EE7B7;',
-    refuse: 'background:rgba(239,68,68,0.14);color:#FCA5A5;',
+    en_attente: 'background:var(--warning-soft);color:var(--warning-content);',
+    en_attente_validation: 'background:var(--warning-soft);color:var(--warning-content);',
+    en_attente_decision_client: 'background:var(--info-soft);color:var(--info-content);',
+    accepte: 'background:var(--success-soft);color:var(--success-content);',
+    refuse: 'background:var(--error-soft);color:var(--error-content);',
   }
-  return styles[statut || ''] || 'background:rgba(255,255,255,0.05);color:#9CA3AF;'
+  return styles[statut || ''] || 'background:var(--overlay-hover);color:var(--content-3);'
 }
 
 async function loadCatalog() {

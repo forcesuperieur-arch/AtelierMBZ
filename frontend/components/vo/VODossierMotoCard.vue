@@ -74,7 +74,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <button class="topbar-new-btn" :disabled="ocrSaving" @click="applyOcrData">
+          <button class="btn btn-primary" :disabled="ocrSaving" @click="applyOcrData">
             {{ ocrSaving ? 'Validation...' : 'Valider et mettre a jour le vehicule' }}
           </button>
         </div>
@@ -103,7 +103,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <button class="topbar-new-btn" :disabled="uploading" @click="uploadDocument">
+          <button class="btn btn-primary" :disabled="uploading" @click="uploadDocument">
             {{ uploading ? 'Archivage...' : 'Ajouter le document au dossier' }}
           </button>
         </div>
@@ -374,14 +374,14 @@ async function applyOcrData() {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
 .vo-card-subtitle,
 .vo-doc-count,
 .vo-field span {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
@@ -400,9 +400,9 @@ async function applyOcrData() {
 .vo-flow-pill {
   padding: 7px 12px;
   border-radius: 999px;
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.18);
-  color: #bfdbfe;
+  background: var(--info-soft);
+  border: 1px solid var(--info);
+  color: var(--info-content);
   font-size: 11px;
   font-weight: 700;
 }
@@ -417,29 +417,29 @@ async function applyOcrData() {
   gap: 6px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .vo-warning-box {
-  background: rgba(239, 68, 68, 0.06);
-  border-color: rgba(239, 68, 68, 0.18);
+  background: var(--error-soft);
+  border-color: var(--error);
 }
 
 .vo-ok-box {
-  background: rgba(34, 197, 94, 0.07);
-  border-color: rgba(34, 197, 94, 0.18);
+  background: var(--success-soft);
+  border-color: var(--success);
 }
 
 .vo-panel-title {
-  color: #f9fafb;
+  color: var(--content-1);
   font-size: 13px;
   font-weight: 700;
 }
 
 .vo-panel-text,
 .vo-empty-box {
-  color: #cbd5e1;
+  color: var(--content-2);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -448,7 +448,7 @@ async function applyOcrData() {
   grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
   align-items: center;
   gap: 14px;
-  background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), rgba(15, 23, 42, 0.4));
+  background: radial-gradient(circle at top left, var(--warning-soft), var(--surface-1));
 }
 
 .vo-scan-btn {
@@ -456,10 +456,10 @@ async function applyOcrData() {
   gap: 3px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px dashed rgba(245, 158, 11, 0.45);
-  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed var(--warning);
+  background: var(--warning-soft);
   cursor: pointer;
-  color: #fef3c7;
+  color: var(--warning-content);
   text-align: left;
 }
 
@@ -469,7 +469,7 @@ async function applyOcrData() {
 }
 
 .vo-scan-kicker {
-  color: #fcd34d;
+  color: var(--warning-content);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -477,28 +477,28 @@ async function applyOcrData() {
 }
 
 .vo-scan-btn strong {
-  color: #f9fafb;
+  color: var(--content-1);
   font-size: 14px;
 }
 
 .vo-scan-btn small {
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 12px;
 }
 
 .vo-ocr-summary.is-success {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.22);
+  background: var(--success-soft);
+  border-color: var(--success);
 }
 
 .vo-ocr-summary.is-warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.22);
+  background: var(--warning-soft);
+  border-color: var(--warning);
 }
 
 .vo-ocr-summary.is-neutral {
-  background: rgba(59, 130, 246, 0.07);
-  border-color: rgba(59, 130, 246, 0.18);
+  background: var(--info-soft);
+  border-color: var(--info);
 }
 
 .vo-ocr-grid,
@@ -515,7 +515,7 @@ async function applyOcrData() {
 }
 
 .vo-ocr-field label {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 11px;
   font-weight: 700;
 }
@@ -530,9 +530,9 @@ async function applyOcrData() {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-compare {
@@ -546,35 +546,35 @@ async function applyOcrData() {
 }
 
 .vo-compare.is-ok {
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.18);
-  color: #86efac;
+  background: var(--success-soft);
+  border: 1px solid var(--success);
+  color: var(--success-content);
 }
 
 .vo-compare.is-warn {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.18);
-  color: #fcd34d;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  color: var(--warning-content);
 }
 
 .vo-compare.is-diff {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.18);
-  color: #fca5a5;
+  background: var(--error-soft);
+  border: 1px solid var(--error);
+  color: var(--error-content);
 }
 
 .vo-compare.is-neutral {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-2);
 }
 
 .vo-compare-btn {
   border: 0;
   border-radius: 999px;
   padding: 6px 10px;
-  background: rgba(15, 23, 42, 0.45);
-  color: #f9fafb;
+  background: var(--surface-1);
+  color: var(--content-1);
   font-size: 11px;
   font-weight: 700;
 }
@@ -593,18 +593,18 @@ async function applyOcrData() {
   gap: 8px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   text-decoration: none;
 }
 
 .vo-document-item strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 .vo-document-item span,
 .vo-document-item small {
-  color: #cbd5e1;
+  color: var(--content-2);
 }
 
 .vo-document-top {
@@ -617,8 +617,8 @@ async function applyOcrData() {
 .vo-doc-chip {
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
+  background: var(--info-soft);
+  color: var(--info-content);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;

@@ -9,7 +9,7 @@
 
         <div class="vo-inline-actions split compact">
           <NuxtLink to="/vo/remises-en-etat" class="vo-link-btn">File atelier VO</NuxtLink>
-          <button v-if="canCreateCampaign" type="button" class="topbar-new-btn" :disabled="creatingCampaign" @click="createCampaign">
+          <button v-if="canCreateCampaign" type="button" class="btn btn-primary" :disabled="creatingCampaign" @click="createCampaign">
             {{ creatingCampaign ? 'Creation...' : 'Nouvelle campagne' }}
           </button>
         </div>
@@ -79,7 +79,7 @@
           </div>
 
           <div class="vo-inline-actions">
-            <button type="button" class="topbar-new-btn" :disabled="savingCampaign" @click="saveCampaign">
+            <button type="button" class="btn btn-primary" :disabled="savingCampaign" @click="saveCampaign">
               {{ savingCampaign ? 'Enregistrement...' : 'Enregistrer la campagne' }}
             </button>
           </div>
@@ -103,7 +103,7 @@
             </div>
             <div>
               <span class="vo-summary-label">Écart</span>
-              <strong :style="{ color: Number(selectedCampaign.costSummary.varianceTotal || 0) > 0 ? '#f59e0b' : '#22c55e' }">{{ formatPrice(selectedCampaign.costSummary.varianceTotal || 0) }}</strong>
+              <strong :style="{ color: Number(selectedCampaign.costSummary.varianceTotal || 0) > 0 ? 'var(--warning-content)' : 'var(--success-content)' }">{{ formatPrice(selectedCampaign.costSummary.varianceTotal || 0) }}</strong>
             </div>
             <div>
               <span class="vo-summary-label">Pièces en attente</span>
@@ -316,7 +316,7 @@
               <button
                 v-if="selectedCampaign.document.canSign"
                 type="button"
-                class="topbar-new-btn"
+                class="btn btn-primary"
                 :disabled="signingDocument"
                 @click="toggleSignaturePanel"
               >
@@ -343,7 +343,7 @@
 
             <div class="vo-inline-actions">
               <button type="button" class="vo-link-btn" @click="clearSignature">Effacer</button>
-              <button type="button" class="topbar-new-btn" :disabled="signingDocument" @click="saveSignature">
+              <button type="button" class="btn btn-primary" :disabled="signingDocument" @click="saveSignature">
                 {{ signingDocument ? 'Signature...' : 'Enregistrer la signature' }}
               </button>
             </div>
@@ -725,12 +725,12 @@ function resizeSignatureCanvas() {
   if (!ctx) return
 
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = 'var(--content-1)'
   ctx.fillRect(0, 0, rect.width, rect.height)
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.lineWidth = 2.5
-  ctx.strokeStyle = '#111827'
+  ctx.strokeStyle = 'var(--accent-ink)'
   hasSignatureStroke.value = false
   sigDrawnDistance = 0
 }
@@ -816,7 +816,7 @@ async function saveSignature() {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
@@ -824,7 +824,7 @@ async function saveSignature() {
 .vo-summary-label,
 .vo-field span,
 .vo-hint {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
@@ -845,19 +845,19 @@ async function saveSignature() {
   gap: 4px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  color: #d1d5db;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-2);
   text-align: left;
 }
 
 .vo-revo-tab.is-active {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .vo-revo-tab.is-blocking strong {
-  color: #fbbf24;
+  color: var(--warning-content);
 }
 
 .vo-revo-grid {
@@ -910,9 +910,9 @@ async function saveSignature() {
 .vo-textarea {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  color: #f8fafc;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-1);
   padding: 10px 12px;
 }
 
@@ -930,7 +930,6 @@ async function saveSignature() {
   justify-content: flex-end;
 }
 
-.topbar-new-btn,
 .vo-link-btn {
   display: inline-flex;
   align-items: center;
@@ -943,19 +942,14 @@ async function saveSignature() {
   text-decoration: none;
 }
 
-.topbar-new-btn {
-  background: #f59e0b;
-  color: #090b10;
-  font-weight: 700;
-}
 
 .vo-link-btn {
-  background: rgba(255,255,255,0.06);
-  color: #f8fafc;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .vo-link-btn.danger {
-  color: #fecaca;
+  color: var(--error-content);
 }
 
 .vo-info-box,
@@ -967,13 +961,13 @@ async function saveSignature() {
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .vo-warning-box {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.18);
+  background: var(--error-soft);
+  border-color: var(--error);
 }
 
 .vo-revo-summary-grid {
@@ -982,7 +976,7 @@ async function saveSignature() {
 
 .vo-revo-summary-grid strong {
   display: block;
-  color: #f8fafc;
+  color: var(--content-1);
   margin-top: 4px;
 }
 
@@ -997,13 +991,13 @@ async function saveSignature() {
   width: 100%;
   min-height: 180px;
   border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
   touch-action: none;
 }
 
 .vo-error-text {
-  color: #fca5a5;
+  color: var(--error-content);
   font-size: 12px;
 }
 

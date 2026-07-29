@@ -23,11 +23,11 @@
     <template v-else>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop">{{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}</button>
+          <button class="btn btn-ghost" :disabled="refreshing" @click="refreshWorkshop"><AppIcon v-if="!(refreshing)" name="i-ri-refresh-line" />{{ refreshing ? 'Actualisation…' : 'Actualiser' }}</button>
           <NuxtLink class="btn btn-primary" to="/planning" style="text-decoration:none;">Ouvrir le planning</NuxtLink>
           <NuxtLink class="btn btn-ghost" :to="buildPlanningCreateLink()" style="text-decoration:none;">+ RDV rapide</NuxtLink>
         </div>
-        <div style="font-size:12px;color:#9CA3AF;">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
+        <div style="font-size:12px;color:var(--content-3);">Mis à jour {{ lastUpdatedAt || 'à l’instant' }}</div>
       </div>
 
       <!-- KPI Bar -->
@@ -45,24 +45,24 @@
           <div class="workshop-kpi-value">{{ kpis.activeMecas }}</div>
         </div>
         <div class="workshop-kpi">
-          <div class="workshop-kpi-label" :style="kpis.conflicts > 0 ? 'color:#FCA5A5;' : ''">CONFLITS</div>
-          <div class="workshop-kpi-value" :style="kpis.conflicts > 0 ? 'color:#FCA5A5;' : ''">{{ kpis.conflicts }}</div>
+          <div class="workshop-kpi-label" :style="kpis.conflicts > 0 ? 'color:var(--error-content);' : ''">CONFLITS</div>
+          <div class="workshop-kpi-value" :style="kpis.conflicts > 0 ? 'color:var(--error-content);' : ''">{{ kpis.conflicts }}</div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'">🔧 Ponts</button>
-        <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'">👤 Mécaniciens</button>
-        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'">⏱ Temps par type</button>
-        <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'">📅 Absences</button>
+        <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'"><AppIcon name="i-ri-tools-line" /> Ponts</button>
+        <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'"><AppIcon name="i-ri-user-line" /> Mécaniciens</button>
+        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'"><AppIcon name="i-ri-timer-line" /> Temps par type</button>
+        <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'"><AppIcon name="i-ri-calendar-line" /> Absences</button>
       </div>
 
       <!-- PONTS TAB -->
       <div v-if="activeTab === 'ponts'">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-          <p style="margin:0;color:#9CA3AF;font-size:13px;">Ici tu actives ou désactives un pont et tu changes le mécanicien rattaché sans passer par l’admin.</p>
-          <NuxtLink to="/planning" style="color:#FFD200;font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
+          <p style="margin:0;color:var(--content-3);font-size:13px;">Ici tu actives ou désactives un pont et tu changes le mécanicien rattaché sans passer par l’admin.</p>
+          <NuxtLink to="/planning" style="color:var(--accent-content);font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
         </div>
 
         <div v-if="enrichedPonts.length" class="pont-grid">
@@ -77,16 +77,16 @@
               <span class="status-badge" :style="pontBadgeStyle(pont)">{{ pontBadgeLabel(pont) }}</span>
             </div>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#9CA3AF;margin-bottom:10px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--content-3);margin-bottom:10px;">
               <span>Type {{ (pont.type_pont || 'atelier').toString().toUpperCase() }}</span>
               <span>•</span>
               <span>{{ pont.capacite_kg ? `${pont.capacite_kg} kg` : 'Capacité n.c.' }}</span>
             </div>
 
             <div class="pont-card-body">
-              <div style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;display:grid;gap:8px;">
+              <div style="padding:10px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);margin-bottom:10px;display:grid;gap:8px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-                  <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;">Configuration pont</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--content-3);text-transform:uppercase;">Configuration pont</div>
                   <button
                     class="btn btn-ghost"
                     style="padding:5px 10px;min-height:32px;"
@@ -98,7 +98,7 @@
                 </div>
 
                 <div>
-                  <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">Mécanicien rattaché</div>
+                  <div style="font-size:11px;color:var(--content-3);margin-bottom:4px;">Mécanicien rattaché</div>
                   <select v-model="pontSettings[pont.id].mecanicien_id" class="form-input" style="min-height:38px;">
                     <option :value="null">Aucun</option>
                     <option v-for="m in activeMecaniciens" :key="`pont-meca-${pont.id}-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
@@ -112,55 +112,55 @@
                 </div>
               </div>
 
-              <div style="padding:8px 10px;border-radius:8px;background:rgba(255,210,0,0.06);border:1px solid rgba(255,210,0,0.14);margin-bottom:10px;font-size:12px;color:#E8E9ED;">
-                👤 {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
+              <div style="padding:8px 10px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent);margin-bottom:10px;font-size:12px;color:var(--content-1);">
+                <AppIcon name="i-ri-user-line" /> {{ pont.assigned_meca ? `${pont.assigned_meca.prenom ?? ''} ${pont.assigned_meca.nom ?? ''}`.trim() : 'Aucun mécanicien assigné' }}
               </div>
 
               <div v-if="pont.current_rdv" style="margin-bottom:10px;">
-                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
+                <p style="font-weight:700;color:var(--content-1);font-size:14px;margin:0 0 4px 0;">{{ rdvClientName(pont.current_rdv) }}</p>
+                <p style="color:var(--content-3);font-size:12px;margin:0 0 2px 0;">{{ rdvVehicleLabel(pont.current_rdv) }}</p>
+                <p style="color:var(--content-3);font-size:12px;margin:0;">Intervention en cours · {{ pont.current_rdv.type_intervention || 'atelier' }}</p>
                 <div style="margin-top:6px;"><StatusBadge :status="pont.current_rdv.status ?? pont.current_rdv.statut" /></div>
-                <button style="display:inline-block;margin-top:8px;color:#FFD200;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(pont.current_rdv)">Ouvrir le RDV →</button>
+                <button style="display:inline-block;margin-top:8px;color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="openRdvDetail(pont.current_rdv)">Ouvrir le RDV →</button>
                 <div v-if="pont.current_rdv.temps_estime" style="margin-top:8px;">
-                  <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
-                    <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
+                  <div style="background:var(--dark3,var(--surface-2));border-radius:6px;height:6px;overflow:hidden;">
+                    <div :style="{ width: Math.min(pontProgress(pont), 100) + '%', height: '100%', background: pontProgress(pont) > 100 ? 'var(--error)' : 'var(--accent)', borderRadius: '6px' }"></div>
                   </div>
-                  <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ pontProgress(pont) }}% · {{ formatMinutes(pont.current_rdv.temps_estime) }} estimées</div>
+                  <div style="font-size:10px;color:var(--content-3);margin-top:2px;">{{ pontProgress(pont) }}% · {{ formatMinutes(pont.current_rdv.temps_estime) }} estimées</div>
                 </div>
               </div>
 
               <div v-else-if="pont.next_rdv" style="margin-bottom:10px;">
-                <p style="font-weight:700;color:#E8E9ED;font-size:14px;margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
-                <p style="color:#9CA3AF;font-size:12px;margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
+                <p style="font-weight:700;color:var(--content-1);font-size:14px;margin:0 0 4px 0;">Prochain passage à {{ formatHourLabel(pont.next_rdv.heure_rdv) }}</p>
+                <p style="color:var(--content-3);font-size:12px;margin:0 0 2px 0;">{{ rdvClientName(pont.next_rdv) }}</p>
+                <p style="color:var(--content-3);font-size:12px;margin:0;">{{ pont.next_rdv.type_intervention || 'atelier' }} · {{ rdvVehicleLabel(pont.next_rdv) }}</p>
               </div>
 
               <div v-else style="margin-bottom:10px;">
-                <p style="color:#9CA3AF;font-size:13px;margin:0;">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourd’hui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
+                <p style="color:var(--content-3);font-size:13px;margin:0;">{{ isActiveFlag(pont.is_active ?? pont.est_actif) ? 'Aucun RDV planifié aujourd’hui sur ce pont' : 'Pont désactivé pour le moment' }}</p>
               </div>
 
               <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;">
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">RDV jour</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.total_rdvs_today }}</div>
+                <div style="padding:8px;border-radius:8px;background:var(--surface-0);">
+                  <div style="font-size:10px;color:var(--content-3);text-transform:uppercase;">RDV jour</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--content-1);">{{ pont.total_rdvs_today }}</div>
                 </div>
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">Charge</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ formatMinutes(pont.planned_minutes) }}</div>
+                <div style="padding:8px;border-radius:8px;background:var(--surface-0);">
+                  <div style="font-size:10px;color:var(--content-3);text-transform:uppercase;">Charge</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--content-1);">{{ formatMinutes(pont.planned_minutes) }}</div>
                 </div>
-                <div style="padding:8px;border-radius:8px;background:rgba(17,24,39,0.5);">
-                  <div style="font-size:10px;color:#6B7280;text-transform:uppercase;">File</div>
-                  <div style="font-size:16px;font-weight:700;color:#E8E9ED;">{{ pont.next_count ?? 0 }}</div>
+                <div style="padding:8px;border-radius:8px;background:var(--surface-0);">
+                  <div style="font-size:10px;color:var(--content-3);text-transform:uppercase;">File</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--content-1);">{{ pont.next_count ?? 0 }}</div>
                 </div>
               </div>
 
-              <div v-if="pont.day_schedule.length" style="padding-top:8px;border-top:1px solid rgba(107,114,128,0.2);">
-                <div style="font-size:11px;color:#9CA3AF;font-weight:700;margin-bottom:6px;">Planning du jour</div>
+              <div v-if="pont.day_schedule.length" style="padding-top:8px;border-top:1px solid var(--border-1);">
+                <div style="font-size:11px;color:var(--content-3);font-weight:700;margin-bottom:6px;">Planning du jour</div>
                 <div v-for="rdv in pont.day_schedule.slice(0, 3)" :key="rdv.id" style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:4px;">
-                  <span style="color:#FFD200;min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
-                  <span style="flex:1;color:#E5E7EB;">{{ rdvClientName(rdv) }}</span>
-                  <span style="color:#9CA3AF;white-space:nowrap;">{{ rdv.type_intervention || 'atelier' }}</span>
+                  <span style="color:var(--accent-content);min-width:42px;">{{ formatHourLabel(rdv.heure_rdv) }}</span>
+                  <span style="flex:1;color:var(--content-1);">{{ rdvClientName(rdv) }}</span>
+                  <span style="color:var(--content-3);white-space:nowrap;">{{ rdv.type_intervention || 'atelier' }}</span>
                 </div>
               </div>
 
@@ -200,7 +200,7 @@
         </div>
         <AppEmptyState
           v-else
-          icon="🔧"
+          icon="i-ri-tools-line"
           title="Aucun pont visible"
           description="Aucun pont n’est remonté pour l’atelier actif. Vérifie la configuration atelier ou recharge la page."
         />
@@ -215,35 +215,35 @@
             </div>
             <div style="flex:1;">
               <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-weight:700;color:#E8E9ED;">{{ m.prenom }} {{ m.nom }}</span>
+                <span style="font-weight:700;color:var(--content-1);">{{ m.prenom }} {{ m.nom }}</span>
                 <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:9999px;" :style="{ background: m.statusColor + '20', color: m.statusColor }">{{ m.statusLabel }}</span>
               </div>
-              <div style="font-size:12px;color:#6B7280;">{{ m.specialite ?? 'Mécanicien' }}</div>
+              <div style="font-size:12px;color:var(--content-3);">{{ m.specialite ?? 'Mécanicien' }}</div>
             </div>
           </div>
           <!-- Specialties -->
           <div v-if="m.specialites?.length" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
-            <span v-for="s in m.specialites" :key="s" style="font-size:10px;padding:2px 8px;border-radius:9999px;background:rgba(139,92,246,0.12);color:#C4B5FD;">{{ s }}</span>
+            <span v-for="s in m.specialites" :key="s" style="font-size:10px;padding:2px 8px;border-radius:9999px;background:var(--info-soft);color:var(--info-content);">{{ s }}</span>
           </div>
           <!-- Current intervention -->
-          <div v-if="m.currentRdv" style="padding:8px 10px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);font-size:12px;margin-bottom:10px;">
-            <div style="color:#F59E0B;font-weight:600;margin-bottom:4px;">🔧 En intervention</div>
-            <div style="color:#D1D5DB;">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
+          <div v-if="m.currentRdv" style="padding:8px 10px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning);font-size:12px;margin-bottom:10px;">
+            <div style="color:var(--warning-content);font-weight:600;margin-bottom:4px;"><AppIcon name="i-ri-tools-line" /> En intervention</div>
+            <div style="color:var(--content-2);">{{ m.currentRdv.client_nom ?? 'Client' }} — {{ m.currentRdv.vehicule_info ?? m.currentRdv.type_intervention }}</div>
             <div v-if="m.currentRdv.temps_estime" style="margin-top:6px;">
-              <div style="background:var(--dark3,#171B24);border-radius:6px;height:6px;overflow:hidden;">
-                <div :style="{ width: Math.min(m.progressPct, 100) + '%', height: '100%', background: m.progressPct > 100 ? '#EF4444' : '#FFD200', borderRadius: '6px' }"></div>
+              <div style="background:var(--dark3,var(--surface-2));border-radius:6px;height:6px;overflow:hidden;">
+                <div :style="{ width: Math.min(m.progressPct, 100) + '%', height: '100%', background: m.progressPct > 100 ? 'var(--error)' : 'var(--accent)', borderRadius: '6px' }"></div>
               </div>
-              <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ m.progressPct }}%</div>
+              <div style="font-size:10px;color:var(--content-3);margin-top:2px;">{{ m.progressPct }}%</div>
             </div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:#9CA3AF;">
-            <span>📧 {{ m.email ?? '–' }}</span>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--content-3);">
+            <span><AppIcon name="i-ri-mail-line" /> {{ m.email ?? '–' }}</span>
             <span>{{ m.rdvCount }} RDV aujourd'hui</span>
           </div>
         </div>
         <AppEmptyState
           v-if="!mecaniciens.length"
-          icon="👤"
+          icon="i-ri-user-line"
           title="Aucun mécanicien configuré"
           description="Ajoute un mécanicien depuis l’administration pour alimenter cette vue."
         />
@@ -252,9 +252,9 @@
       <!-- TEMPS TAB -->
       <div v-if="activeTab === 'temps'">
         <UCard>
-          <div style="color:#6B7280;padding:16px;text-align:center;">
+          <div style="color:var(--content-3);padding:16px;text-align:center;">
             Les temps par type d'intervention sont affichés dans la section Tarifs.
-            <NuxtLink to="/tarifs" style="color:#FFD200;font-weight:600;text-decoration:none;margin-left:6px;">Voir Tarifs →</NuxtLink>
+            <NuxtLink to="/tarifs" style="color:var(--accent-content);font-weight:600;text-decoration:none;margin-left:6px;">Voir Tarifs →</NuxtLink>
           </div>
         </UCard>
       </div>
@@ -265,7 +265,7 @@
           <UTable v-if="absences.length" :data="absences" :columns="absenceCols" />
           <AppEmptyState
             v-else
-            icon="📅"
+            icon="i-ri-calendar-line"
             title="Aucune absence enregistrée"
             description="L’équipe est complète sur la période affichée."
           />
@@ -509,7 +509,7 @@ const enrichedMecas = computed(() => {
       currentRdv,
       progressPct,
       statusLabel: isAbsent ? 'Absent' : isWorking ? 'En intervention' : 'Disponible',
-      statusColor: isAbsent ? '#EF4444' : isWorking ? '#F59E0B' : '#22C55E',
+      statusColor: isAbsent ? 'var(--error)' : isWorking ? 'var(--warning)' : 'var(--success)',
       specialites: normalizeSpecialites(m.specialites ?? m.competences),
     }
   })
@@ -524,15 +524,15 @@ function pontBadgeLabel(pont: any): string {
 
 function pontBadgeStyle(pont: any) {
   if (!isActiveFlag(pont.is_active ?? pont.est_actif)) {
-    return { background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }
+    return { background: 'var(--error-soft)', color: 'var(--error-content)' }
   }
   if (pont.current_rdv) {
-    return { background: 'rgba(20,184,166,0.12)', color: '#5EEAD4' }
+    return { background: 'var(--success-soft)', color: 'var(--success-content)' }
   }
   if (pont.day_schedule?.length) {
-    return { background: 'rgba(245,158,11,0.12)', color: '#FCD34D' }
+    return { background: 'var(--warning-soft)', color: 'var(--warning-content)' }
   }
-  return { background: 'rgba(34,197,94,0.12)', color: '#86EFAC' }
+  return { background: 'var(--success-soft)', color: 'var(--success-content)' }
 }
 
 function pontProgress(pont: any) {

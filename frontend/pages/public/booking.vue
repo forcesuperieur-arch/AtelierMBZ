@@ -2,7 +2,7 @@
   <div class="public-card">
     <div class="public-card-header">
       <div style="margin-bottom:8px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -10,40 +10,40 @@
         </svg>
       </div>
       <h1 class="text-gradient" style="font-size:22px;font-weight:800;">Réserver un rendez-vous</h1>
-      <p style="font-size:13px;color:#6B7280;margin-top:4px;">Parcours public complet avec estimation et créneaux réels</p>
+      <p style="font-size:13px;color:var(--content-3);margin-top:4px;">Parcours public complet avec estimation et créneaux réels</p>
     </div>
 
     <!-- Error banner -->
-    <div v-if="errorMessage" style="margin-bottom:16px;padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;color:#FCA5A5;font-size:13px;">
+    <div v-if="errorMessage" style="margin-bottom:16px;padding:12px 14px;background:var(--error-soft);border:1px solid var(--error);border-radius:12px;color:var(--error-content);font-size:13px;">
       {{ errorMessage }}
     </div>
 
     <!-- Atelier selection -->
-    <div style="margin-bottom:18px;padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-      <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:8px;">Lieu du rendez-vous</div>
+    <div style="margin-bottom:18px;padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
+      <div style="font-size:13px;font-weight:800;color:var(--content-1);margin-bottom:8px;">Lieu du rendez-vous</div>
       <div v-if="atelierOptions.length > 1">
         <select
           v-model.number="selectedAtelierId"
-          style="width:100%;padding:10px 14px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
+          style="width:100%;padding:10px 14px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;"
         >
           <option v-for="atelier in atelierOptions" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
         </select>
       </div>
-      <div v-else style="padding:10px 14px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#D1D5DB;font-size:14px;">
+      <div v-else style="padding:10px 14px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-2);font-size:14px;">
         {{ atelierDisplayName }}
       </div>
     </div>
 
     <!-- Booking disabled -->
-    <div v-if="!bookingEnabled && atelierSelected" style="padding:24px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);text-align:center;">
+    <div v-if="!bookingEnabled && atelierSelected" style="padding:24px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);text-align:center;">
       <div style="margin-bottom:8px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FCA5A5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
       </div>
-      <div style="font-size:15px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">Prise de rendez-vous désactivée</div>
-      <div style="font-size:13px;color:#9CA3AF;">La prise de rendez-vous en ligne est temporairement désactivée pour cet atelier. Merci de nous contacter directement.</div>
+      <div style="font-size:15px;font-weight:700;color:var(--content-1);margin-bottom:6px;">Prise de rendez-vous désactivée</div>
+      <div style="font-size:13px;color:var(--content-3);">La prise de rendez-vous en ligne est temporairement désactivée pour cet atelier. Merci de nous contacter directement.</div>
     </div>
 
     <!-- Wizard Stepper -->
@@ -53,68 +53,68 @@
           <svg v-if="step > i + 1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           <span v-else>{{ i + 1 }}</span>
         </div>
-        <div class="step-label" :style="step === i + 1 ? 'color:#FFD200;' : ''">{{ s }}</div>
+        <div class="step-label" :style="step === i + 1 ? 'color:var(--accent-content);' : ''">{{ s }}</div>
         <div v-if="i < stepLabels.length - 1" class="step-connector" :class="{ done: step > i + 1 }"></div>
       </div>
     </div>
 
     <!-- STEP 1 — Véhicule -->
     <div v-if="step === 1 && !confirmation && bookingEnabled" style="display:flex;flex-direction:column;gap:18px;">
-      <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-        <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:12px;">1. Votre moto</div>
+      <div style="padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
+        <div style="font-size:13px;font-weight:800;color:var(--content-1);margin-bottom:12px;">1. Votre moto</div>
 
         <!-- Vehicle search -->
-        <div class="form-label" style="margin-bottom:6px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Immatriculation / VIN</div>
+        <div class="form-label" style="margin-bottom:6px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Immatriculation / VIN</div>
         <div style="display:flex;gap:10px;">
           <input
             v-model="vehiculeSearch"
             type="text"
             placeholder="Ex: AB-123-CD ou VIN"
-            style="flex:1;padding:10px 14px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;"
+            style="flex:1;padding:10px 14px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;"
             @blur="vehiculeSearch = normalizeVehiculeQuery(vehiculeSearch)"
             @keydown.enter.prevent="searchVehicule"
           />
         </div>
-        <button class="topbar-new-btn" style="margin-top:12px;" @click="searchVehicule">Rechercher mon véhicule</button>
+        <button class="btn btn-primary" style="margin-top:12px;" @click="searchVehicule">Rechercher mon véhicule</button>
 
-        <div v-if="vehiculeFound" style="margin-top:16px;padding:12px 16px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">
-          <div style="font-size:13px;color:#10B981;font-weight:600;margin-bottom:4px;">Véhicule trouvé</div>
-          <div style="font-size:14px;color:#E8E9ED;font-weight:600;">{{ form.vehicule_marque }} {{ form.vehicule_modele }}</div>
-          <div style="font-size:12px;color:#9CA3AF;">{{ form.vehicule_plaque }} — {{ form.vehicule_annee }}</div>
+        <div v-if="vehiculeFound" style="margin-top:16px;padding:12px 16px;background:var(--success-soft);border:1px solid var(--success);border-radius:10px;">
+          <div style="font-size:13px;color:var(--success-content);font-weight:600;margin-bottom:4px;">Véhicule trouvé</div>
+          <div style="font-size:14px;color:var(--content-1);font-weight:600;">{{ form.vehicule_marque }} {{ form.vehicule_modele }}</div>
+          <div style="font-size:12px;color:var(--content-3);">{{ form.vehicule_plaque }} — {{ form.vehicule_annee }}</div>
         </div>
 
         <div v-if="showManualVehicle" style="margin-top:16px;">
-          <div style="font-size:13px;color:#6B7280;margin-bottom:12px;">Saisie manuelle du véhicule :</div>
+          <div style="font-size:13px;color:var(--content-3);margin-bottom:12px;">Saisie manuelle du véhicule :</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <div style="position:relative;">
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Marque</div>
-              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
-              <div v-if="marqueSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-height:150px;overflow-y:auto;">
-                <div v-for="s in marqueSuggestions" :key="s" @mousedown.prevent="selectMarque(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ s }}</div>
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Marque</div>
+              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
+              <div v-if="marqueSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--surface-1);border:1px solid var(--border-2);border-radius:8px;max-height:150px;overflow-y:auto;">
+                <div v-for="s in marqueSuggestions" :key="s" @mousedown.prevent="selectMarque(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--content-2);border-bottom:1px solid var(--border-2);">{{ s }}</div>
               </div>
             </div>
             <div style="position:relative;">
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Modèle</div>
-              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
-              <div v-if="modeleSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:8px;max-height:150px;overflow-y:auto;">
-                <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#D1D5DB;border-bottom:1px solid rgba(255,255,255,0.04);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Modèle</div>
+              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
+              <div v-if="modeleSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--surface-1);border:1px solid var(--border-2);border-radius:8px;max-height:150px;overflow-y:auto;">
+                <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--content-2);border-bottom:1px solid var(--border-2);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
               </div>
             </div>
             <div>
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Plaque</div>
-              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" @blur="normalizePlateField" />
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Plaque</div>
+              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @blur="normalizePlateField" />
             </div>
             <div>
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Année</div>
-              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Année</div>
+              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Cylindrée</div>
-              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Cylindrée</div>
+              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
             </div>
             <div>
-              <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Type moto</div>
-              <select v-model="form.vehicule_type" style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;">
+              <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Type moto</div>
+              <select v-model="form.vehicule_type" style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;">
                 <option value="">— Choisir —</option>
                 <option v-for="t in motoTypes" :key="t" :value="t">{{ t }}</option>
               </select>
@@ -122,28 +122,28 @@
           </div>
         </div>
 
-        <div v-if="vehicleMissingFields.length" style="margin-top:16px;padding:12px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.24);border-radius:10px;">
-          <div style="font-size:12px;color:#FDE68A;font-weight:700;">CHAMPS OBLIGATOIRES À COMPLÉTER</div>
-          <div style="font-size:12px;color:#E5E7EB;margin-top:4px;">{{ vehicleMissingFields.join(', ') }}</div>
+        <div v-if="vehicleMissingFields.length" style="margin-top:16px;padding:12px 16px;background:var(--warning-soft);border:1px solid var(--warning);border-radius:10px;">
+          <div style="font-size:12px;color:var(--warning-content);font-weight:700;">CHAMPS OBLIGATOIRES À COMPLÉTER</div>
+          <div style="font-size:12px;color:var(--content-1);margin-top:4px;">{{ vehicleMissingFields.join(', ') }}</div>
         </div>
 
         <div v-if="!showManualVehicle && !vehiculeFound" style="margin-top:12px;">
-          <button style="background:none;border:none;color:#9CA3AF;font-size:13px;cursor:pointer;text-decoration:underline;" @click="showManualVehicle = true">Saisie manuelle →</button>
+          <button style="background:none;border:none;color:var(--content-3);font-size:13px;cursor:pointer;text-decoration:underline;" @click="showManualVehicle = true">Saisie manuelle →</button>
         </div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:12px;">
-        <button class="topbar-new-btn" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
+        <button class="btn btn-primary" @click="goStep(2)" :disabled="!canStep2">Suivant →</button>
       </div>
     </div>
 
     <!-- STEP 2 — Service -->
     <div v-if="step === 2 && !confirmation" style="display:flex;flex-direction:column;gap:18px;">
-      <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-        <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:12px;">2. Prestations</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:12px;">Choisissez une ou plusieurs prestations adaptées à votre moto.</div>
+      <div style="padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
+        <div style="font-size:13px;font-weight:800;color:var(--content-1);margin-bottom:12px;">2. Prestations</div>
+        <div style="font-size:12px;color:var(--content-3);margin-bottom:12px;">Choisissez une ou plusieurs prestations adaptées à votre moto.</div>
 
-        <div v-if="loadingPrestas" style="height:120px;border-radius:10px;background:rgba(255,255,255,0.03);animation:shimmer 1.5s infinite;"></div>
+        <div v-if="loadingPrestas" style="height:120px;border-radius:10px;background:var(--overlay-soft);animation:shimmer 1.5s infinite;"></div>
 
         <div v-else style="display:flex;flex-direction:column;gap:8px;">
           <button
@@ -152,90 +152,90 @@
             type="button"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;cursor:pointer;transition:all 0.15s;"
             :style="{
-              background: selectedPrestas.includes(p.id) ? 'rgba(255,210,0,0.06)' : 'rgba(255,255,255,0.02)',
-              border: selectedPrestas.includes(p.id) ? '1px solid rgba(255,210,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
-              color: '#E8E9ED',
+              background: selectedPrestas.includes(p.id) ? 'var(--accent-soft)' : 'var(--overlay-soft)',
+              border: selectedPrestas.includes(p.id) ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+              color: 'var(--content-1)',
             }"
             @click="togglePresta(p.id)"
           >
             <div style="width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;"
               :style="{
-                background: selectedPrestas.includes(p.id) ? '#FFD200' : 'rgba(255,255,255,0.06)',
-                color: selectedPrestas.includes(p.id) ? '#111' : 'transparent',
+                background: selectedPrestas.includes(p.id) ? 'var(--accent)' : 'var(--overlay-hover)',
+                color: selectedPrestas.includes(p.id) ? 'var(--accent-ink)' : 'transparent',
               }"
             >
               <svg v-if="selectedPrestas.includes(p.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div style="flex:1;text-align:left;">
-              <div style="font-size:14px;font-weight:600;color:#E8E9ED;">{{ p.nom }}</div>
-              <div style="font-size:12px;color:#6B7280;">{{ p.description || p.categorie || '' }}</div>
+              <div style="font-size:14px;font-weight:600;color:var(--content-1);">{{ p.nom }}</div>
+              <div style="font-size:12px;color:var(--content-3);">{{ p.description || p.categorie || '' }}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:14px;font-weight:700;color:#FFD200;">{{ formatPrice(prestaPrice(p)) }}</div>
-              <div style="font-size:11px;color:#6B7280;">{{ formatMinutes(p.temps_estime_minutes ?? 60) }}</div>
+              <div style="font-size:14px;font-weight:700;color:var(--accent-content);">{{ formatPrice(prestaPrice(p)) }}</div>
+              <div style="font-size:11px;color:var(--content-3);">{{ formatMinutes(p.temps_estime_minutes ?? 60) }}</div>
             </div>
           </button>
-          <div v-if="!prestations.length" style="padding:20px;text-align:center;color:#6B7280;font-size:13px;">Aucune prestation active pour ce type de moto dans cet atelier.</div>
+          <div v-if="!prestations.length" style="padding:20px;text-align:center;color:var(--content-3);font-size:13px;">Aucune prestation active pour ce type de moto dans cet atelier.</div>
         </div>
 
         <!-- Recap -->
-        <div v-if="selectedPrestas.length" style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-          <div style="font-size:13px;font-weight:700;color:#9CA3AF;margin-bottom:8px;">RÉCAPITULATIF</div>
-          <div v-for="p in selectedPrestaItems" :key="p.id" style="display:flex;justify-content:space-between;font-size:13px;color:#D1D5DB;padding:4px 0;">
+        <div v-if="selectedPrestas.length" style="margin-top:20px;padding:16px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
+          <div style="font-size:13px;font-weight:700;color:var(--content-3);margin-bottom:8px;">RÉCAPITULATIF</div>
+          <div v-for="p in selectedPrestaItems" :key="p.id" style="display:flex;justify-content:space-between;font-size:13px;color:var(--content-2);padding:4px 0;">
             <span>{{ p.nom }}</span>
             <span style="font-weight:600;">{{ formatPrice(prestaPrice(p)) }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:14px;font-weight:700;">
-            <span style="color:#E8E9ED;">Total estimé</span>
-            <span style="color:#FFD200;">{{ formatPrice(totalEstime) }}</span>
+          <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:8px;border-top:1px solid var(--border-2);font-size:14px;font-weight:700;">
+            <span style="color:var(--content-1);">Total estimé</span>
+            <span style="color:var(--accent-content);">{{ formatPrice(totalEstime) }}</span>
           </div>
-          <div style="font-size:12px;color:#6B7280;margin-top:4px;">Durée estimée: {{ formatMinutes(dureeEstimee) }}</div>
+          <div style="font-size:12px;color:var(--content-3);margin-top:4px;">Durée estimée: {{ formatMinutes(dureeEstimee) }}</div>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
-        <button class="btn btn-ghost" @click="goStep(1)">← Retour</button>
-        <button class="topbar-new-btn" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
+        <button class="btn btn-ghost" @click="goStep(1)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
+        <button class="btn btn-primary" @click="goStep(3)" :disabled="!selectedPrestas.length">Suivant →</button>
       </div>
     </div>
 
     <!-- STEP 3 — Créneau -->
     <div v-if="step === 3 && !confirmation" style="display:flex;flex-direction:column;gap:18px;">
-      <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-        <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:4px;">3. Créneau</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px;">Sélectionnez un créneau disponible dans le planning.</div>
+      <div style="padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
+        <div style="font-size:13px;font-weight:800;color:var(--content-1);margin-bottom:4px;">3. Créneau</div>
+        <div style="font-size:12px;color:var(--content-3);margin-bottom:16px;">Sélectionnez un créneau disponible dans le planning.</div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek">← Semaine précédente</button>
-          <div style="font-size:13px;color:#D1D5DB;font-weight:600;">{{ planningRangeLabel }}</div>
+          <button class="btn btn-ghost" @click="changeWeek(-7)" :disabled="!canGoPrevWeek"><AppIcon name="i-ri-arrow-left-line" /> Semaine précédente</button>
+          <div style="font-size:13px;color:var(--content-2);font-weight:600;">{{ planningRangeLabel }}</div>
           <button class="btn btn-ghost" @click="changeWeek(7)">Semaine suivante →</button>
         </div>
 
-        <div style="overflow-x:auto;border:1px solid rgba(255,255,255,0.06);border-radius:14px;">
-          <div style="display:grid;grid-template-columns:80px repeat(7, minmax(120px, 1fr));min-width:980px;background:rgba(255,255,255,0.02);">
-            <div style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);"></div>
+        <div style="overflow-x:auto;border:1px solid var(--border-2);border-radius:14px;">
+          <div style="display:grid;grid-template-columns:80px repeat(7, minmax(120px, 1fr));min-width:980px;background:var(--overlay-soft);">
+            <div style="padding:10px;border-bottom:1px solid var(--border-2);"></div>
             <div
               v-for="day in planningDays"
               :key="`head-${day.date}`"
-              style="padding:10px;border-left:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);text-align:center;"
-              :style="{ background: form.date_rdv === day.date ? 'rgba(255,210,0,0.06)' : 'transparent' }"
+              style="padding:10px;border-left:1px solid var(--border-2);border-bottom:1px solid var(--border-2);text-align:center;"
+              :style="{ background: form.date_rdv === day.date ? 'var(--accent-soft)' : 'transparent' }"
             >
-              <div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;">{{ day.weekday }}</div>
-              <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ day.dayLabel }}</div>
-              <div style="font-size:11px;margin-top:4px;" :style="{ color: day.availableCount ? '#86EFAC' : '#FCA5A5' }">
+              <div style="font-size:11px;color:var(--content-3);text-transform:uppercase;">{{ day.weekday }}</div>
+              <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ day.dayLabel }}</div>
+              <div style="font-size:11px;margin-top:4px;" :style="{ color: day.availableCount ? 'var(--success-content)' : 'var(--error-content)' }">
                 {{ day.availableCount ? `${day.availableCount} dispo` : 'fermé / complet' }}
               </div>
             </div>
 
             <template v-for="time in planningTimeLabels" :key="time">
-              <div style="padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:#9CA3AF;font-weight:600;display:flex;align-items:center;justify-content:center;">
+              <div style="padding:10px 8px;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--content-3);font-weight:600;display:flex;align-items:center;justify-content:center;">
                 {{ time }}
               </div>
               <div
                 v-for="day in planningDays"
                 :key="`${day.date}-${time}`"
-                style="min-height:52px;padding:6px;border-left:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;"
-                :style="{ background: form.date_rdv === day.date ? 'rgba(255,255,255,0.015)' : 'transparent' }"
+                style="min-height:52px;padding:6px;border-left:1px solid var(--border-2);border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;"
+                :style="{ background: form.date_rdv === day.date ? 'var(--overlay-soft)' : 'transparent' }"
               >
                 <button
                   v-if="getSlotForCell(day.date, time)?.disponible && !isSlotPast(day.date, time)"
@@ -243,130 +243,130 @@
                   @click="selectPlanningSlot(day.date, getSlotForCell(day.date, time)!)"
                   style="width:100%;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:700;transition:all 0.15s;"
                   :style="{
-                    background: form.date_rdv === day.date && form.heure_debut === time ? 'rgba(255,210,0,0.16)' : 'rgba(16,185,129,0.10)',
-                    border: form.date_rdv === day.date && form.heure_debut === time ? '1px solid rgba(255,210,0,0.45)' : '1px solid rgba(16,185,129,0.28)',
-                    color: form.date_rdv === day.date && form.heure_debut === time ? '#FFD200' : '#A7F3D0'
+                    background: form.date_rdv === day.date && form.heure_debut === time ? 'var(--accent-soft)' : 'var(--success-soft)',
+                    border: form.date_rdv === day.date && form.heure_debut === time ? '1px solid var(--accent)' : '1px solid var(--success)',
+                    color: form.date_rdv === day.date && form.heure_debut === time ? 'var(--accent-content)' : 'var(--success-content)'
                   }"
                 >
                   {{ time }}
                 </button>
-                <span v-else style="font-size:11px;color:#4B5563;">—</span>
+                <span v-else style="font-size:11px;color:var(--content-disabled);">—</span>
               </div>
             </template>
           </div>
         </div>
 
-        <div style="margin-top:14px;padding:12px 16px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);border-radius:10px;">
-          <div style="font-size:12px;color:#BFDBFE;font-weight:700;">INFORMATION</div>
-          <div style="font-size:12px;color:#CBD5E1;margin-top:4px;">Les créneaux proposés reflètent la capacité réelle de l'atelier. La pause déjeuner est bloquante : l'horaire de fin tient compte de la reprise après pause si nécessaire.</div>
+        <div style="margin-top:14px;padding:12px 16px;background:var(--info-soft);border:1px solid var(--info);border-radius:10px;">
+          <div style="font-size:12px;color:var(--info-content);font-weight:700;">INFORMATION</div>
+          <div style="font-size:12px;color:var(--content-2);margin-top:4px;">Les créneaux proposés reflètent la capacité réelle de l'atelier. La pause déjeuner est bloquante : l'horaire de fin tient compte de la reprise après pause si nécessaire.</div>
         </div>
 
-        <div v-if="form.date_rdv && form.heure_debut" style="margin-top:16px;padding:12px 16px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);border-radius:10px;">
-          <div style="font-size:12px;color:#9CA3AF;font-weight:600;">CRÉNEAU SÉLECTIONNÉ</div>
-          <div style="font-size:15px;font-weight:700;color:#E8E9ED;margin-top:4px;">
+        <div v-if="form.date_rdv && form.heure_debut" style="margin-top:16px;padding:12px 16px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;">
+          <div style="font-size:12px;color:var(--content-3);font-weight:600;">CRÉNEAU SÉLECTIONNÉ</div>
+          <div style="font-size:15px;font-weight:700;color:var(--content-1);margin-top:4px;">
             {{ formatDisplayDate(form.date_rdv) }} à {{ form.heure_debut }}
           </div>
-          <div style="font-size:12px;color:#6B7280;margin-top:2px;">Durée: {{ formatMinutes(dureeEstimee) }}<span v-if="selectedSlotMeta?.heure_fin"> · Fin estimée {{ selectedSlotMeta.heure_fin }}</span></div>
-          <div v-if="selectedSlotMeta?.pause_appliquee" style="font-size:12px;color:#FDE68A;margin-top:4px;">La pause atelier est déjà prise en compte dans l’horaire de fin.</div>
+          <div style="font-size:12px;color:var(--content-3);margin-top:2px;">Durée: {{ formatMinutes(dureeEstimee) }}<span v-if="selectedSlotMeta?.heure_fin"> · Fin estimée {{ selectedSlotMeta.heure_fin }}</span></div>
+          <div v-if="selectedSlotMeta?.pause_appliquee" style="font-size:12px;color:var(--warning-content);margin-top:4px;">La pause atelier est déjà prise en compte dans l’horaire de fin.</div>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
-        <button class="btn btn-ghost" @click="goStep(2)">← Retour</button>
-        <button class="topbar-new-btn" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
+        <button class="btn btn-ghost" @click="goStep(2)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
+        <button class="btn btn-primary" @click="goStep(4)" :disabled="!form.date_rdv || !form.heure_debut">Suivant →</button>
       </div>
     </div>
 
     <!-- STEP 4 — Validation -->
     <div v-if="step === 4 && !confirmation" style="display:flex;flex-direction:column;gap:18px;">
-      <div style="padding:14px;border:1px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02);">
-        <div style="font-size:13px;font-weight:800;color:#E8E9ED;margin-bottom:12px;">4. Validation</div>
+      <div style="padding:14px;border:1px solid var(--border-2);border-radius:12px;background:var(--overlay-soft);">
+        <div style="font-size:13px;font-weight:800;color:var(--content-1);margin-bottom:12px;">4. Validation</div>
 
         <!-- Client info -->
-        <div style="font-size:12px;font-weight:700;color:#9CA3AF;margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase;">Vos coordonnées</div>
-        <div v-if="clientMissingFields.length" style="margin-bottom:10px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.24);border-radius:8px;font-size:12px;color:#FDE68A;">
+        <div style="font-size:12px;font-weight:700;color:var(--content-3);margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase;">Vos coordonnées</div>
+        <div v-if="clientMissingFields.length" style="margin-bottom:10px;padding:10px 12px;background:var(--warning-soft);border:1px solid var(--warning);border-radius:8px;font-size:12px;color:var(--warning-content);">
           Merci de compléter : {{ clientMissingFields.join(', ') }}.
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
           <div>
-            <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Prénom</div>
-            <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+            <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Prénom</div>
+            <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
           </div>
           <div>
-            <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Nom</div>
-            <input v-model="form.client_nom" type="text" required style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+            <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Nom</div>
+            <input v-model="form.client_nom" type="text" required style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
           </div>
           <div>
-            <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Téléphone</div>
-            <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+            <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Téléphone</div>
+            <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
           </div>
           <div>
-            <div class="form-label" style="margin-bottom:4px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Email</div>
-            <input v-model="form.client_email" type="email" required style="width:100%;padding:8px 12px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;" />
+            <div class="form-label" style="margin-bottom:4px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Email</div>
+            <input v-model="form.client_email" type="email" required style="width:100%;padding:8px 12px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
           </div>
         </div>
 
         <!-- Récap -->
         <div style="margin-top:20px;">
-          <div style="font-size:12px;font-weight:700;color:#9CA3AF;margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase;">RÉCAPITULATIF</div>
+          <div style="font-size:12px;font-weight:700;color:var(--content-3);margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase;">RÉCAPITULATIF</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-              <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CLIENT</div>
-              <div style="font-size:14px;color:#E8E9ED;font-weight:600;">{{ form.client_prenom }} {{ form.client_nom }}</div>
-              <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ form.client_telephone }}</div>
+            <div style="padding:14px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--content-3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CLIENT</div>
+              <div style="font-size:14px;color:var(--content-1);font-weight:600;">{{ form.client_prenom }} {{ form.client_nom }}</div>
+              <div style="font-size:12px;color:var(--content-3);margin-top:2px;">{{ form.client_telephone }}</div>
             </div>
-            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-              <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">VÉHICULE</div>
-              <div style="font-size:14px;color:#E8E9ED;font-weight:600;">{{ form.vehicule_marque }} {{ form.vehicule_modele }}</div>
-              <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ form.vehicule_plaque }}</div>
+            <div style="padding:14px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--content-3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">VÉHICULE</div>
+              <div style="font-size:14px;color:var(--content-1);font-weight:600;">{{ form.vehicule_marque }} {{ form.vehicule_modele }}</div>
+              <div style="font-size:12px;color:var(--content-3);margin-top:2px;">{{ form.vehicule_plaque }}</div>
             </div>
-            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-              <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CRÉNEAU</div>
-              <div style="font-size:14px;color:#E8E9ED;font-weight:600;">{{ formatDisplayDate(form.date_rdv) }}</div>
-              <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">{{ form.heure_debut }}<span v-if="selectedSlotMeta?.heure_fin"> → {{ selectedSlotMeta.heure_fin }}</span> — Durée {{ formatMinutes(dureeEstimee) }}</div>
+            <div style="padding:14px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--content-3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">CRÉNEAU</div>
+              <div style="font-size:14px;color:var(--content-1);font-weight:600;">{{ formatDisplayDate(form.date_rdv) }}</div>
+              <div style="font-size:12px;color:var(--content-3);margin-top:2px;">{{ form.heure_debut }}<span v-if="selectedSlotMeta?.heure_fin"> → {{ selectedSlotMeta.heure_fin }}</span> — Durée {{ formatMinutes(dureeEstimee) }}</div>
             </div>
-            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
-              <div style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">SERVICES</div>
-              <div v-for="p in selectedPrestaItems" :key="p.id" style="font-size:13px;color:#D1D5DB;">{{ p.nom }}</div>
-              <div style="font-size:14px;color:#FFD200;font-weight:700;margin-top:4px;">{{ formatPrice(totalEstime) }}</div>
+            <div style="padding:14px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--content-3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">SERVICES</div>
+              <div v-for="p in selectedPrestaItems" :key="p.id" style="font-size:13px;color:var(--content-2);">{{ p.nom }}</div>
+              <div style="font-size:14px;color:var(--accent-content);font-weight:700;margin-top:4px;">{{ formatPrice(totalEstime) }}</div>
             </div>
           </div>
         </div>
 
         <!-- Remarques -->
         <div style="margin-top:16px;">
-          <div class="form-label" style="margin-bottom:6px;color:#9CA3AF;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Description du problème</div>
-          <textarea v-model="form.description_probleme" rows="3" placeholder="Exemple : vidange, frein avant bruyant, révision avant départ…" style="width:100%;padding:10px 14px;background:#151621;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#E8E9ED;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+          <div class="form-label" style="margin-bottom:6px;color:var(--content-3);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Description du problème</div>
+          <textarea v-model="form.description_probleme" rows="3" placeholder="Exemple : vidange, frein avant bruyant, révision avant départ…" style="width:100%;padding:10px 14px;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;color:var(--content-1);font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
         </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;gap:12px;">
-        <button class="btn btn-ghost" @click="goStep(3)">← Retour</button>
-        <button class="topbar-new-btn" :disabled="submitting || !canConfirm" @click="confirmBooking" style="padding:10px 24px;font-size:14px;">
+        <button class="btn btn-ghost" @click="goStep(3)"><AppIcon name="i-ri-arrow-left-line" /> Retour</button>
+        <button class="btn btn-primary" :disabled="submitting || !canConfirm" @click="confirmBooking" style="padding:10px 24px;font-size:14px;">
           {{ submitting ? 'Envoi...' : 'Confirmer le rendez-vous' }}
         </button>
       </div>
     </div>
 
     <!-- Confirmation -->
-    <div v-if="confirmation" style="margin-top:16px;padding:16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;text-align:center;">
+    <div v-if="confirmation" style="margin-top:16px;padding:16px;background:var(--success-soft);border:1px solid var(--success);border-radius:12px;text-align:center;">
       <div style="margin-bottom:8px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
           <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
       </div>
-      <p style="font-weight:600;color:#86EFAC;">Rendez-vous confirmé</p>
-      <p style="font-size:13px;color:#6EE7B7;margin-top:4px;">
+      <p style="font-weight:600;color:var(--success-content);">Rendez-vous confirmé</p>
+      <p style="font-size:13px;color:var(--success-content);margin-top:4px;">
         {{ confirmation.message || 'Une confirmation vous sera envoyée par email.' }}
       </p>
-      <p v-if="confirmation.heure_fin" style="font-size:13px;color:#D1FAE5;margin-top:6px;">
+      <p v-if="confirmation.heure_fin" style="font-size:13px;color:var(--success-content);margin-top:6px;">
         Fin estimée : <strong>{{ confirmation.heure_fin }}</strong>
       </p>
-      <p style="font-size:13px;color:#6EE7B7;margin-top:4px;">
+      <p style="font-size:13px;color:var(--success-content);margin-top:4px;">
         Votre code de suivi : <strong>{{ confirmation.token_suivi }}</strong>
       </p>
-      <NuxtLink :to="`/public/suivi?token=${confirmation.token_suivi}`" class="topbar-new-btn" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
+      <NuxtLink :to="`/public/suivi?token=${confirmation.token_suivi}`" class="btn btn-primary" style="display:inline-flex;margin-top:12px;font-size:12px;padding:6px 12px;">Suivre mon RDV</NuxtLink>
     </div>
   </div>
 </template>
@@ -994,7 +994,7 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 .text-gradient {
-  background: linear-gradient(135deg, #E8E9ED 0%, #FFD200 100%);
+  background: linear-gradient(135deg, var(--surface-1) 0%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -1019,24 +1019,24 @@ onMounted(async () => {
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.06);
-  color: #6B7280;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--overlay-hover);
+  color: var(--content-3);
+  border: 1px solid var(--border-2);
   transition: all 0.2s;
 }
 .step-dot.active {
-  background: #FFD200;
-  color: #111;
-  border-color: #FFD200;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent-graphic);
 }
 .step-dot.done {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10B981;
-  border-color: rgba(16, 185, 129, 0.4);
+  background: var(--success-soft);
+  color: var(--success-content);
+  border-color: var(--success);
 }
 .step-label {
   font-size: 11px;
-  color: #6B7280;
+  color: var(--content-3);
   margin-top: 6px;
   font-weight: 600;
   white-space: nowrap;
@@ -1044,45 +1044,24 @@ onMounted(async () => {
 .step-connector {
   width: 40px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
   margin: 0 8px;
   position: relative;
   top: -14px;
 }
 .step-connector.done {
-  background: rgba(16, 185, 129, 0.4);
+  background: var(--success-soft);
 }
 
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: #FFD200;
-  color: #111;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.topbar-new-btn:hover:not(:disabled) {
-  background: #ffe033;
-}
-.topbar-new-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #D1D5DB;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--overlay-soft);
+  color: var(--content-2);
+  border: 1px solid var(--border-2);
   border-radius: 10px;
   font-weight: 600;
   font-size: 13px;
@@ -1090,7 +1069,7 @@ onMounted(async () => {
   transition: all 0.15s;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--overlay-hover);
 }
 .btn-ghost:disabled {
   opacity: 0.4;
@@ -1102,7 +1081,7 @@ onMounted(async () => {
   100% { background-position: calc(200px + 100%) 0; }
 }
 .loading-shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background: linear-gradient(90deg, var(--overlay-soft) 25%, var(--overlay-hover) 50%, var(--overlay-soft) 75%);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
 }

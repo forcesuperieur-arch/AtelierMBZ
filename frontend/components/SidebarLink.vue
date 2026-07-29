@@ -4,7 +4,7 @@
     :to="to"
     :class="['nav-btn', isActive ? 'active' : '']"
   >
-    <span class="nav-icon">{{ icon }}</span>
+    <span class="nav-icon"><AppIcon :name="icon" /></span>
     <span class="nav-label">{{ label }}</span>
     <span v-if="badgeCount && badgeCount > 0" class="nav-badge">{{ badgeCount > 99 ? '99+' : badgeCount }}</span>
   </NuxtLink>
@@ -37,7 +37,7 @@ const visible = computed(() => auth.hasSection(props.section))
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: #6B7280;
+  color: var(--content-3);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -51,12 +51,12 @@ const visible = computed(() => auth.hasSection(props.section))
   text-decoration: none;
 }
 .nav-btn:hover {
-  background: rgba(255,255,255,0.05);
-  color: #D1D5DB;
+  background: var(--overlay-hover);
+  color: var(--content-2);
 }
 .nav-btn.active {
-  background: rgba(245,158,11,0.08);
-  color: #FFD200;
+  background: var(--warning-soft);
+  color: var(--accent-content);
 }
 .nav-btn.active::before {
   content: '';
@@ -66,10 +66,10 @@ const visible = computed(() => auth.hasSection(props.section))
   bottom: 8px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #FFD200;
+  background: var(--accent);
 }
 .nav-btn:focus-visible {
-  outline: 2px solid #FFD200;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .nav-icon {
@@ -85,8 +85,8 @@ const visible = computed(() => auth.hasSection(props.section))
 }
 .nav-badge {
   margin-left: auto;
-  background: #EF4444;
-  color: white;
+  background: var(--error);
+  color: var(--on-error);
   font-size: 11px;
   font-weight: 700;
   min-width: 20px;

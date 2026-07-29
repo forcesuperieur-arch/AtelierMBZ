@@ -13,7 +13,7 @@
           :aria-current="estActif(onglet) ? 'page' : undefined"
           :data-testid="`admin-tab-${onglet.cle}`"
         >
-          <span class="tab-icon" aria-hidden="true">{{ onglet.icone }}</span>
+          <span class="tab-icon" aria-hidden="true"><AppIcon :name="onglet.icone" /></span>
           <span class="tab-label">{{ onglet.label }}</span>
         </NuxtLink>
       </div>
@@ -50,17 +50,17 @@ interface OngletAdmin {
 }
 
 const TOUS_LES_ONGLETS: OngletAdmin[] = [
-  { cle: 'config', to: '/admin/config', icone: '⚙️', label: 'Configuration' },
-  { cle: 'users', to: '/admin/users', icone: '👥', label: 'Utilisateurs' },
-  { cle: 'ponts', to: '/admin/ponts', icone: '🔧', label: 'Ponts & mécanos' },
-  { cle: 'absences', to: '/admin/absences', icone: '📅', label: 'Absences' },
-  { cle: 'prestations', to: '/admin/prestations', icone: '📋', label: 'Prestations' },
-  { cle: 'notifications', to: '/admin/notifications/providers', icone: '📡', label: 'Notifications' },
-  { cle: 'clauses', to: '/admin/clauses-legales', icone: '⚖️', label: 'Clauses légales' },
-  { cle: 'templates', to: '/admin/templates-documents', icone: '📄', label: 'Documents' },
-  { cle: 'audit', to: '/admin/audit', icone: '🔍', label: 'Audit' },
-  { cle: 'ateliers', to: '/admin/ateliers', icone: '🏢', label: 'Ateliers', superAdminSeulement: true },
-  { cle: 'roles', to: '/admin/roles', icone: '🛡️', label: 'Profils d\'accès', superAdminSeulement: true },
+  { cle: 'config', to: '/admin/config', icone: 'i-ri-settings-3-line', label: 'Configuration' },
+  { cle: 'users', to: '/admin/users', icone: 'i-ri-group-line', label: 'Utilisateurs' },
+  { cle: 'ponts', to: '/admin/ponts', icone: 'i-ri-tools-line', label: 'Ponts & mécanos' },
+  { cle: 'absences', to: '/admin/absences', icone: 'i-ri-calendar-line', label: 'Absences' },
+  { cle: 'prestations', to: '/admin/prestations', icone: 'i-ri-clipboard-line', label: 'Prestations' },
+  { cle: 'notifications', to: '/admin/notifications/providers', icone: 'i-ri-broadcast-line', label: 'Notifications' },
+  { cle: 'clauses', to: '/admin/clauses-legales', icone: 'i-ri-scales-3-line', label: 'Clauses légales' },
+  { cle: 'templates', to: '/admin/templates-documents', icone: 'i-ri-file-text-line', label: 'Documents' },
+  { cle: 'audit', to: '/admin/audit', icone: 'i-ri-search-line', label: 'Audit' },
+  { cle: 'ateliers', to: '/admin/ateliers', icone: 'i-ri-building-line', label: 'Ateliers', superAdminSeulement: true },
+  { cle: 'roles', to: '/admin/roles', icone: 'i-ri-shield-line', label: 'Profils d\'accès', superAdminSeulement: true },
 ]
 
 const onglets = computed(() =>
@@ -96,8 +96,8 @@ provide('adminPremierOnglet', premierOnglet)
   z-index: 30;
   margin: -24px -24px 0;
   padding: 24px 24px 0;
-  background: #11141B;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-2);
 }
 
 .tabstrip-scroll {
@@ -115,7 +115,7 @@ provide('adminPremierOnglet', premierOnglet)
 }
 
 .tabstrip-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-3);
   border-radius: 999px;
 }
 
@@ -129,8 +129,8 @@ provide('adminPremierOnglet', premierOnglet)
   border: 1px solid transparent;
   border-bottom: none;
   border-radius: 10px 10px 0 0;
-  background: rgba(255, 255, 255, 0.03);
-  color: #9CA3AF;
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-size: 12.5px;
   font-weight: 600;
   text-decoration: none;
@@ -139,21 +139,25 @@ provide('adminPremierOnglet', premierOnglet)
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: #E5E7EB;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
-/* Onglet actif : même fond que le panneau, il s'y « raccroche ». */
+/* Onglet actif : même fond que le panneau, il s'y « raccroche ».
+   L'état actif est porté par le LISERÉ jaune, comme au design system ; le
+   libellé reste en encre franche — un jaune de texte sur ce fond ne tenait
+   pas 4,5:1. */
 .tab--active {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #FFD200;
-  box-shadow: inset 0 2px 0 #FFD200;
+  background: var(--overlay-hover);
+  border-color: var(--border-2);
+  color: var(--content-1);
+  font-weight: var(--w-semi);
+  box-shadow: inset 0 2px 0 var(--accent);
 }
 
 .tab--active:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #FFD200;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .tab-icon {

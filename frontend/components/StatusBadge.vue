@@ -8,19 +8,21 @@
 const props = defineProps<{ status: string }>()
 
 const statusMap: Record<string, { label: string; bg: string; color: string }> = {
-  en_attente:  { label: 'En attente',  bg: 'rgba(107,114,128,0.12)', color: '#D1D5DB' },
-  reserve:     { label: 'Réservé',     bg: 'rgba(245,158,11,0.12)',  color: '#FCD34D' },
-  confirme:    { label: 'Confirmé',    bg: 'rgba(59,130,246,0.12)',  color: '#93C5FD' },
-  reception:   { label: 'Réception',   bg: 'rgba(245,158,11,0.12)',  color: '#FCD34D' },
-  en_cours:    { label: 'En cours',    bg: 'rgba(20,184,166,0.12)',  color: '#5EEAD4' },
-  termine:     { label: 'Terminé',     bg: 'rgba(16,185,129,0.12)',  color: '#6EE7B7' },
-  restitue:    { label: 'Restitué',    bg: 'rgba(16,185,129,0.12)',  color: '#6EE7B7' },
-  facture:     { label: 'Facturé',     bg: 'rgba(139,92,246,0.12)',  color: '#C4B5FD' },
-  paye:        { label: 'Payé',        bg: '#10B981',                color: '#ffffff' },
-  annule:      { label: 'Annulé',      bg: 'rgba(239,68,68,0.12)',   color: '#FCA5A5' },
+  en_attente:  { label: 'En attente',  bg: 'var(--surface-3)', color: 'var(--content-2)' },
+  reserve:     { label: 'Réservé',     bg: 'var(--warning-soft)',  color: 'var(--warning-content)' },
+  confirme:    { label: 'Confirmé',    bg: 'var(--info-soft)',  color: 'var(--info-content)' },
+  reception:   { label: 'Réception',   bg: 'var(--warning-soft)',  color: 'var(--warning-content)' },
+  en_cours:    { label: 'En cours',    bg: 'var(--success-soft)',  color: 'var(--success-content)' },
+  termine:     { label: 'Terminé',     bg: 'var(--success-soft)',  color: 'var(--success-content)' },
+  restitue:    { label: 'Restitué',    bg: 'var(--success-soft)',  color: 'var(--success-content)' },
+  facture:     { label: 'Facturé',     bg: 'var(--info-soft)',  color: 'var(--info-content)' },
+  // Seul statut posé sur un APLAT plein (et non un fond teinté) : son encre
+  // suit la luminosité de l'aplat, pas celle du thème, d'où `--on-success`.
+  paye:        { label: 'Payé',        bg: 'var(--success)',       color: 'var(--on-success)' },
+  annule:      { label: 'Annulé',      bg: 'var(--error-soft)',   color: 'var(--error-content)' },
 }
 
-const entry = computed(() => statusMap[props.status] || { label: props.status, bg: 'rgba(107,114,128,0.12)', color: '#D1D5DB' })
+const entry = computed(() => statusMap[props.status] || { label: props.status, bg: 'var(--surface-3)', color: 'var(--content-2)' })
 const label = computed(() => entry.value.label)
 const badgeStyle = computed(() => ({
   background: entry.value.bg,

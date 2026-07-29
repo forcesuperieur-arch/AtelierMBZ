@@ -5,7 +5,7 @@
         <div class="page-title">Livre de Police</div>
         <div class="vo-subtitle">Registre atelier des acquisitions et ventes VO.</div>
       </div>
-      <button class="topbar-new-btn" @click="downloadPdf">Télécharger le PDF</button>
+      <button class="btn btn-primary" @click="downloadPdf">Télécharger le PDF</button>
     </div>
 
     <VONav />
@@ -93,7 +93,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 

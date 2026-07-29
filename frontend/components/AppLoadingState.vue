@@ -24,8 +24,8 @@ defineProps({
   min-height: 220px;
   padding: 28px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   text-align: center;
 }
 
@@ -37,22 +37,22 @@ defineProps({
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  border: 3px solid rgba(255,255,255,0.12);
-  border-top-color: #FFD200;
+  border: 3px solid var(--border-1);
+  border-top-color: var(--accent-graphic);
   animation: spin 0.85s linear infinite;
 }
 
 .app-state-title {
   font-size: 15px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .app-state-description {
   max-width: 440px;
   font-size: 13px;
   line-height: 1.45;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 @keyframes spin {

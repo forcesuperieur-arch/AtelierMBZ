@@ -2,7 +2,7 @@
   <div class="legal-page">
     <h1>Conditions Générales de Vente</h1>
     <div v-if="pending">Chargement...</div>
-    <div v-else-if="error || !clause" style="color:#EF4444;">Impossible de charger les CGV.</div>
+    <div v-else-if="error || !clause" style="color:var(--error-content);">Impossible de charger les CGV.</div>
     <LegalText v-else :text="clause.texte" />
   </div>
 </template>

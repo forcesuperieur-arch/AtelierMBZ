@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <div class="page-title">Devis</div>
-      <button class="topbar-new-btn" @click="showNew = true">+ Nouveau devis</button>
+      <button class="btn btn-primary" @click="showNew = true">+ Nouveau devis</button>
     </div>
 
     <!-- Filtres -->
@@ -14,7 +14,7 @@
       <input v-model="searchText" class="form-input" placeholder="Rechercher n° devis, client…" style="width:250px;" />
     </div>
 
-    <div v-if="loadError" style="margin-bottom:16px;padding:12px 14px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#FCA5A5;font-size:13px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div v-if="loadError" style="margin-bottom:16px;padding:12px 14px;border-radius:8px;background:var(--error-soft);border:1px solid var(--error);color:var(--error-content);font-size:13px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <span>{{ loadError }}</span>
       <button class="btn btn-ghost" type="button" style="font-size:12px;padding:4px 12px;" @click="loadDevis()">Réessayer</button>
     </div>
@@ -31,7 +31,7 @@
           {{ formatDate(row.original.date_creation || row.original.dateCreation) }}
         </template>
         <template #actions-cell="{ row }">
-          <NuxtLink :to="`/devis/${row.original.id}`" style="color:#FFD200;font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
+          <NuxtLink :to="`/devis/${row.original.id}`" style="color:var(--accent-content);font-size:12px;font-weight:600;text-decoration:none;">Voir →</NuxtLink>
         </template>
       </UTable>
     </UCard>
@@ -41,7 +41,7 @@
       <div class="app-modal-card app-modal-xl">
         <div class="app-modal-header">
           <span style="font-weight:600;font-size:16px;">Nouveau devis</span>
-          <button @click="showNew = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+          <button @click="showNew = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
         <div class="app-modal-body">
@@ -49,12 +49,12 @@
           <div style="margin-bottom:16px;">
             <label class="form-label">Client *</label>
             <input v-model="newDevis.clientSearch" @input="searchClients" class="form-input" placeholder="Rechercher un client…" />
-            <div v-if="clientResults.length" style="background:var(--dark3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;margin-top:4px;max-height:150px;overflow-y:auto;">
-              <div v-for="c in clientResults" :key="c.id" @click="selectClient(c)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#E8E9ED;border-bottom:1px solid rgba(255,255,255,0.04);" class="hover-row">
-                {{ c.prenom }} {{ c.nom }} <span style="color:#6B7280;margin-left:8px;">{{ c.telephone }}</span>
+            <div v-if="clientResults.length" style="background:var(--dark3);border:1px solid var(--border-2);border-radius:8px;margin-top:4px;max-height:150px;overflow-y:auto;">
+              <div v-for="c in clientResults" :key="c.id" @click="selectClient(c)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--content-1);border-bottom:1px solid var(--border-2);" class="hover-row">
+                {{ c.prenom }} {{ c.nom }} <span style="color:var(--content-3);margin-left:8px;">{{ c.telephone }}</span>
               </div>
             </div>
-            <div v-if="newDevis.selectedClient" style="margin-top:6px;font-size:13px;color:#FFD200;">✓ {{ newDevis.selectedClient.prenom }} {{ newDevis.selectedClient.nom }}</div>
+            <div v-if="newDevis.selectedClient" style="margin-top:6px;font-size:13px;color:var(--accent-content);"><AppIcon name="i-ri-check-line" /> {{ newDevis.selectedClient.prenom }} {{ newDevis.selectedClient.nom }}</div>
           </div>
 
           <!-- Véhicule -->
@@ -86,10 +86,10 @@
                 <option :value="10">TVA 10%</option>
                 <option :value="0">TVA 0%</option>
               </select>
-              <button @click="newDevis.lignes.splice(i, 1)" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;">✕</button>
+              <button aria-label="Supprimer la ligne" @click="newDevis.lignes.splice(i, 1)" style="background:none;border:none;color:var(--error-content);cursor:pointer;font-size:16px;"><AppIcon name="i-ri-close-line" /></button>
             </div>
             <button @click="newDevis.lignes.push({ type: 'forfait_mo', designation: '', quantite: 1, prix_unitaire_ht: 0, tva: 20 })" class="btn btn-ghost" style="font-size:12px;">+ Ajouter ligne</button>
-            <div style="margin-top:8px;text-align:right;font-size:13px;color:#FFD200;font-weight:700;">
+            <div style="margin-top:8px;text-align:right;font-size:13px;color:var(--accent-content);font-weight:700;">
               Total HT : {{ formatCurrency(newDevis.lignes.reduce((s, l) => s + (l.prix_unitaire_ht || 0) * (l.quantite || 1), 0)) }}
             </div>
           </div>
@@ -98,8 +98,8 @@
           <div style="margin-bottom:16px;">
             <label class="form-label">Remise (%)</label>
             <div style="display:flex;align-items:center;gap:12px;">
-              <input type="range" v-model.number="newDevis.remise" min="0" max="100" style="flex:1;accent-color:#FFD200;" />
-              <span style="font-size:14px;font-weight:700;color:#10B981;min-width:40px;">{{ newDevis.remise }}%</span>
+              <input type="range" v-model.number="newDevis.remise" min="0" max="100" style="flex:1;accent-color:var(--accent);" />
+              <span style="font-size:14px;font-weight:700;color:var(--success-content);min-width:40px;">{{ newDevis.remise }}%</span>
             </div>
           </div>
 

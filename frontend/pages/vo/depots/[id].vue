@@ -2,14 +2,14 @@
   <div>
     <div class="page-header vo-header">
       <div>
-        <NuxtLink to="/vo/depots" class="vo-back-link">← Retour aux dépôts</NuxtLink>
+        <NuxtLink to="/vo/depots" class="vo-back-link"><AppIcon name="i-ri-arrow-left-line" /> Retour aux dépôts</NuxtLink>
         <div class="page-title">Dossier dépôt #{{ route.params.id }}</div>
         <div class="vo-subtitle">Vue complète du mandat, des documents, de la restitution et de la vente.</div>
       </div>
       <div class="vo-header-actions">
-        <button class="topbar-new-btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
-        <button v-if="detail" class="topbar-new-btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
-        <button v-if="detail?.status === 'actif'" class="topbar-new-btn" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
+        <button class="btn vo-secondary-btn" @click="downloadContrat">Contrat PDF</button>
+        <button v-if="detail" class="btn vo-secondary-btn" @click="downloadMandat">Mandat immat</button>
+        <button v-if="detail?.status === 'actif'" class="btn btn-primary" :disabled="!detail?.canSell" @click="showSale = true">Vendre</button>
       </div>
     </div>
 
@@ -145,7 +145,7 @@
           <div v-if="legalChecklist.length" class="vo-lines" style="margin-top: 14px;">
             <div v-for="item in legalChecklist" :key="item.key" class="vo-line-detail">
               <span>{{ item.label }}</span>
-              <strong :style="{ color: item.completed ? '#22c55e' : item.blocking ? '#ef4444' : '#f59e0b' }">{{ item.completed ? 'OK' : item.blocking ? 'Bloquant' : 'À prévoir' }}</strong>
+              <strong :style="{ color: item.completed ? 'var(--success-content)' : item.blocking ? 'var(--error-content)' : 'var(--warning-content)' }">{{ item.completed ? 'OK' : item.blocking ? 'Bloquant' : 'À prévoir' }}</strong>
             </div>
           </div>
         </UCard>
@@ -158,7 +158,7 @@
           <div class="vo-lines" style="margin-bottom: 14px;">
             <div class="vo-line-detail">
               <span>Mandat immat prérempli</span>
-              <strong :style="{ color: (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? '#22c55e' : '#9ca3af' }">{{ (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? 'Archivé' : 'Disponible au téléchargement' }}</strong>
+              <strong :style="{ color: (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? 'var(--success)' : 'var(--content-3)' }">{{ (detail?.documents || []).some((doc: any) => doc.type === 'mandat_immatriculation') ? 'Archivé' : 'Disponible au téléchargement' }}</strong>
             </div>
           </div>
 
@@ -185,7 +185,7 @@
             </div>
             <div>
               <span class="vo-k">Mandat</span>
-              <strong :style="{ color: detail.mandatExpire ? '#ef4444' : Number(detail.joursRestants ?? 999) <= 7 ? '#f59e0b' : '#e8e9ed' }">{{ detail.mandatExpire ? 'Expiré' : `${detail.joursRestants} jour(s) restants` }}</strong>
+              <strong :style="{ color: detail.mandatExpire ? 'var(--error-content)' : Number(detail.joursRestants ?? 999) <= 7 ? 'var(--warning-content)' : 'var(--content-1)' }">{{ detail.mandatExpire ? 'Expiré' : `${detail.joursRestants} jour(s) restants` }}</strong>
             </div>
           </div>
         </UCard>
@@ -227,7 +227,7 @@
 
           <div class="vo-inline-actions split">
             <button class="vo-secondary-cta" @click="extendMandate">Prolonger</button>
-            <button class="topbar-new-btn vo-danger-btn" @click="restituerDepot">Restituer le véhicule</button>
+            <button class="btn vo-danger-btn" @click="restituerDepot">Restituer le véhicule</button>
           </div>
         </UCard>
 
@@ -269,7 +269,7 @@
           </div>
 
           <div class="vo-inline-actions">
-            <button class="topbar-new-btn" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
+            <button class="btn btn-primary" :disabled="selling" @click="sellVehicle">{{ selling ? 'Vente...' : 'Enregistrer la vente' }}</button>
           </div>
         </UCard>
       </div>
@@ -486,8 +486,8 @@ onMounted(async () => {
   margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(251, 191, 36, 0.32);
-  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid var(--warning);
+  background: var(--warning-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -496,19 +496,19 @@ onMounted(async () => {
 
 .vo-companion-banner strong {
   display: block;
-  color: #f8fafc;
+  color: var(--content-1);
   margin-bottom: 4px;
 }
 
 .vo-companion-banner span {
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 13px;
 }
 
 .vo-back-link {
   display: inline-block;
   margin-bottom: 8px;
-  color: #9ca3af;
+  color: var(--content-3);
   text-decoration: none;
   font-size: 12px;
   font-weight: 700;
@@ -516,7 +516,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -527,16 +527,18 @@ onMounted(async () => {
 }
 
 .vo-secondary-btn {
-  background: #1f2937;
+  background: var(--surface-2);
 }
 
 .vo-danger-btn {
-  background: #dc2626;
+  background: var(--error);
+  color: var(--on-error);
+  border-color: transparent;
 }
 
 .vo-loading {
   padding: 24px;
-  color: #9ca3af;
+  color: var(--content-3);
 }
 
 .vo-detail-grid {
@@ -560,7 +562,7 @@ onMounted(async () => {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
@@ -568,7 +570,7 @@ onMounted(async () => {
 .vo-doc-count,
 .vo-k,
 .vo-field span {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
@@ -581,7 +583,7 @@ onMounted(async () => {
 
 .vo-kpi-grid strong {
   display: block;
-  color: #e8e9ed;
+  color: var(--content-1);
   margin-top: 4px;
 }
 
@@ -594,28 +596,28 @@ onMounted(async () => {
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .vo-warning-box {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.18);
+  background: var(--error-soft);
+  border-color: var(--error);
 }
 
 .vo-health-box.is-success {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: var(--success-soft);
+  border-color: var(--success);
 }
 
 .vo-health-box.is-warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.2);
+  background: var(--warning-soft);
+  border-color: var(--warning);
 }
 
 .vo-health-box.is-accent {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.18);
+  background: var(--info-soft);
+  border-color: var(--info);
 }
 
 .vo-progress-block {
@@ -628,13 +630,13 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
   font-weight: 700;
 }
 
 .vo-progress-head strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 .vo-progress-bar {
@@ -642,18 +644,18 @@ onMounted(async () => {
   height: 9px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
 }
 
 .vo-progress-bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #22c55e, #86efac);
+  background: linear-gradient(90deg, var(--success), var(--success));
 }
 
 .vo-progress-bar.is-secondary span {
-  background: linear-gradient(90deg, #f59e0b, #fcd34d);
+  background: linear-gradient(90deg, var(--warning), var(--warning));
 }
 
 .vo-workflow-strip {
@@ -665,20 +667,20 @@ onMounted(async () => {
 .vo-workflow-step {
   padding: 7px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #9ca3af;
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-size: 11px;
   font-weight: 700;
 }
 
 .vo-workflow-step.is-current {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fcd34d;
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 .vo-workflow-step.is-done {
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 
 .vo-field {
@@ -696,9 +698,9 @@ onMounted(async () => {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-inline-actions {
@@ -720,16 +722,16 @@ onMounted(async () => {
   text-decoration: none;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: #e8e9ed;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-1);
   text-align: left;
 }
 
 .vo-link-btn {
   background: none;
   border: none;
-  color: #f59e0b;
+  color: var(--warning-content);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -739,9 +741,9 @@ onMounted(async () => {
 .vo-secondary-cta {
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1px solid #374151;
-  background: #111827;
-  color: #e8e9ed;
+  border: 1px solid var(--border-1);
+  background: var(--surface-0);
+  color: var(--content-1);
 }
 
 @media (max-width: 1100px) {

@@ -65,7 +65,7 @@ onMounted(() => {
   // Fond blanc : la signature est encre sombre sur blanc dans le PDF figé
   const ctx = sigCanvas.value?.getContext('2d')
   if (ctx && sigCanvas.value) {
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = 'var(--content-1)'
     ctx.fillRect(0, 0, sigCanvas.value.width, sigCanvas.value.height)
   }
 })
@@ -96,7 +96,7 @@ function draw(e: PointerEvent) {
   if (!ctx) return
   const pos = getPos(e)
   ctx.lineTo(pos.x, pos.y)
-  ctx.strokeStyle = '#111'
+  ctx.strokeStyle = 'var(--accent-ink)'
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -117,7 +117,7 @@ function clearSignature() {
   const c = sigCanvas.value
   const ctx = c?.getContext('2d')
   if (!c || !ctx) return
-  ctx.fillStyle = '#fff'
+  ctx.fillStyle = 'var(--content-1)'
   ctx.fillRect(0, 0, c.width, c.height)
   hasDrawn.value = false
   drawnDistance = 0
@@ -140,37 +140,36 @@ function confirm() {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--scrim);
 }
 .sig-modal {
   width: 100%;
   max-width: 720px;
   padding: 22px;
   border-radius: 14px;
-  background: var(--dark2, #14161D);
-  border: 1px solid rgba(255, 210, 0, 0.18);
+  background: var(--dark2, var(--surface-1));
+  border: 1px solid var(--accent);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
 }
 .sig-title {
   font-size: 17px;
   font-weight: 800;
   margin: 0 0 4px;
-  color: #E8E9ED;
-  font-family: 'Saira Condensed', 'Saira', sans-serif;
+  color: var(--content-1);
+  font-family: var(--font-display);
   letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
 .sig-hint {
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin: 0 0 12px;
 }
 .sig-canvas {
   width: 100%;
   height: auto;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 210, 0, 0.35);
-  background: #fff;
+  border: 1px dashed var(--accent);
+  background: var(--surface-1);
   /* Indispensable : sans ça la tablette scrolle au lieu de dessiner */
   touch-action: none;
   cursor: crosshair;
@@ -178,7 +177,7 @@ function confirm() {
 .sig-error {
   margin-top: 8px;
   font-size: 13px;
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 .sig-actions {
   display: flex;

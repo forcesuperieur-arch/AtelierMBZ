@@ -2,12 +2,12 @@
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/admin/templates-documents" style="color:#6B7280;text-decoration:none;font-size:18px;">◀</NuxtLink>
+        <NuxtLink to="/admin/templates-documents" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour aux documents"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div class="page-title">En-tête : {{ label }}</div>
       </div>
     </div>
 
-    <p style="color:#9CA3AF;font-size:13px;margin-bottom:12px;">
+    <p style="color:var(--content-3);font-size:13px;margin-bottom:12px;">
       Composez le <strong>bandeau d'en-tête</strong> de ce document : il est appliqué aux PDF réellement générés.
       Le corps du document (lignes, totaux, photos, signatures) reste mis en page par l'application — sa hauteur
       dépend des données et ne peut pas être positionnée au millimètre.

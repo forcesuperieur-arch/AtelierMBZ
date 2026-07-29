@@ -1,108 +1,142 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&display=swap');
+/* Feuille des composants Nuxt UI. Elle MANQUAIT, et rien ne le signalait :
+   sans elle le framework n'émet ni ses variables (`--ui-primary`,
+   `--ui-radius`) ni les styles de ses composants, si bien que les 375 UCard,
+   UInput, UTable et UFormField de l'application ne tenaient que par les
+   surcharges écrites plus bas dans ce fichier. C'est aussi ce qui a rendu
+   nécessaire la déclaration manuelle de l'échelle de rayons. */
+@import "@nuxt/ui";
+/* Montserrat (affichage + UI) et Inter (zones denses), les deux familles du
+   design system Motoblouz. Les graisses importées sont celles réellement
+   utilisées par les maquettes. */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Inter:wght@400;500;600&display=swap');
+@import "./tokens.css";
 
 /* ==================================================================
-   ATELIER MOTO PRO — Design System (Nuxt UI Port)
-   Faithful reproduction of legacy premium workshop theme
+   PADDOCK — feuille applicative
+   Les tokens (couleurs, échelles, thèmes clair/sombre, palette de
+   data-visualisation) vivent dans `tokens.css`. Cette feuille ne contient
+   que des composants et ne doit plus déclarer de couleur en dur : tout
+   passe par `var(--…)`, sinon la bascule clair/sombre ne suit pas.
+
+   Les encres (`--ink*`), les statuts (`--status-*`) et la palette de données
+   (`--viz-*`, `--ramp-*`) étaient déclarés ici : ils sont désormais dans
+   `tokens.css`, par thème, avec le raisonnement qui les justifie.
    ================================================================== */
 
-:root {
-  color-scheme: dark;
+/* ==================================================================
+   ÉCHELLES TAILWIND — pour les composants Nuxt UI
+   ------------------------------------------------------------------
+   Les 375 composants Nuxt UI de l'application (UCard, UInput, UTable,
+   UButton…) ne lisent PAS nos variables : ils prennent leur accent dans la
+   palette Tailwind que Nuxt UI désigne via `app.config.ts`. Sans ces
+   échelles, `--ui-primary` restait le VERT par défaut du framework — ni
+   Paddock, ni Motoblouz.
 
-  /* Primary — Motoblouz-inspired yellow */
-  --orange: #FFD200;
-  --orange2: #FFB800;
-  --orange-ink: #111111;
+   Le pas 500 porte la couleur de référence de chaque famille, c'est celui
+   que Nuxt UI prend comme base. Les pas 100 à 900 des familles jaune, rouge,
+   vert et bleu sont ceux du design system ; les extrémités (50, 950) et les
+   pas manquants sont interpolés dans la même teinte.
+   ================================================================== */
+@theme static {
+  /* Jaune de marque — accent primaire */
+  --color-mbyellow-50: #FDF6E5;
+  --color-mbyellow-100: #FBE6B3;
+  --color-mbyellow-200: #F9DD99;
+  --color-mbyellow-300: #F7CD66;
+  --color-mbyellow-400: #F4BC33;
+  --color-mbyellow-500: #F1AB00;
+  --color-mbyellow-600: #D99A00;
+  --color-mbyellow-700: #C18900;
+  --color-mbyellow-800: #A97800;
+  --color-mbyellow-900: #916700;
+  --color-mbyellow-950: #6E5A00;
 
-  /* Surface layers — graphite darks */
-  --dark: #090B10;
-  --dark2: #11141B;
-  --dark3: #171B24;
-  --dark4: #242936;
+  /* Rouge de marque — erreur */
+  --color-mbred-50: #FEECED;
+  --color-mbred-100: #FEC9CB;
+  --color-mbred-200: #FD9297;
+  --color-mbred-300: #FD7278;
+  --color-mbred-400: #E22B3F;
+  --color-mbred-500: #D70321;
+  --color-mbred-600: #AB0009;
+  --color-mbred-700: #870007;
+  --color-mbred-800: #6E0006;
+  --color-mbred-900: #5A0005;
+  --color-mbred-950: #3D0003;
 
-  /* Text tones */
-  --gray: #9CA3AF;
-  --gray2: #D1D5DB;
+  /* Vert — succès */
+  --color-mbgreen-50: #EAF5E1;
+  --color-mbgreen-100: #CDE9B9;
+  --color-mbgreen-200: #A7D98A;
+  --color-mbgreen-300: #5BB736;
+  --color-mbgreen-400: #35A61B;
+  --color-mbgreen-500: #179500;
+  --color-mbgreen-600: #106B00;
+  --color-mbgreen-700: #0B4C00;
+  --color-mbgreen-800: #084000;
+  --color-mbgreen-900: #062E00;
+  --color-mbgreen-950: #041F00;
 
-  /* Semantic */
-  --green: #10B981;
-  --amber: #FFD200;
-  --red: #EF4444;
-  --blue: #3B82F6;
-  --purple: #8B5CF6;
-  --teal: #14B8A6;
+  /* Bleu — information */
+  --color-mbblue-50: #E5F1F7;
+  --color-mbblue-100: #C6E0EF;
+  --color-mbblue-200: #9CCAE3;
+  --color-mbblue-300: #72B3D6;
+  --color-mbblue-400: #5C9EC6;
+  --color-mbblue-500: #4A8DB7;
+  --color-mbblue-600: #3B7094;
+  --color-mbblue-700: #2D5573;
+  --color-mbblue-800: #264861;
+  --color-mbblue-900: #203C53;
+  --color-mbblue-950: #16293A;
 
-  /* Borders / glass */
-  --border-color: rgba(255,255,255,0.07);
-  --border-hover: rgba(255,255,255,0.14);
-  --glass-bg: rgba(255,255,255,0.03);
-  --glass-border: rgba(255,255,255,0.06);
+  /* Orange — alerte */
+  --color-mborange-50: #FDF0E4;
+  --color-mborange-100: #FCDCC0;
+  --color-mborange-200: #FABF8C;
+  --color-mborange-300: #F79E56;
+  --color-mborange-400: #F58429;
+  --color-mborange-500: #F37004;
+  --color-mborange-600: #D96500;
+  --color-mborange-700: #B35300;
+  --color-mborange-800: #8E4200;
+  --color-mborange-900: #6E3300;
+  --color-mborange-950: #4A2200;
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  /* NOTE — ce bloc ne suffisait pas à colorer les composants Nuxt UI, parce
+     que `@import "@nuxt/ui"` manquait : la feuille du framework n'était pas
+     émise du tout, donc `--ui-primary` et `--radius-md` n'existaient pas. D'où
+     l'échelle de rayons déclarée ici à la main. L'import est en place depuis,
+     mais ces déclarations restent : elles désignent les VALEURS du DS, que le
+     framework ne peut pas deviner. */
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-  --shadow: 0 4px 14px rgba(0,0,0,0.25);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.4);
-  --shadow-glow: 0 0 24px rgba(255,210,0,0.14);
+  /* Rayons — l'échelle du DS pilote aussi les utilitaires `rounded-*` de
+     Tailwind, que les composants Nuxt UI emploient. Sans déclaration
+     explicite, `--radius-md` n'était plus émis et `rounded-md` ne produisait
+     rien (rayon 0). Le DS n'a que trois valeurs : 8 px pour les conteneurs,
+     24 px pour les grandes surfaces, et la pilule pour l'interactif. */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 24px;
+  --radius-2xl: 24px;
+  --radius-3xl: 24px;
+  --radius-4xl: 24px;
 
-  /* Motion */
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* ------------------------------------------------------------------
-     Encres — la seule échelle de texte autorisée. #6B7280 est proscrit :
-     3,6:1 sur nos surfaces, sous le minimum WCAG AA de 4,5:1.
-     ------------------------------------------------------------------ */
-  --ink: #E8E9ED;          /* titres, valeurs        14,3:1 */
-  --ink-body: #D1D5DB;     /* corps de texte         11,0:1 */
-  --ink-muted: #9CA3AF;    /* libellés, axes          6,9:1 */
-
-  /* ------------------------------------------------------------------
-     Statuts — sens réservé (bon / attention / critique). JAMAIS utilisés
-     pour identifier une série de données, et toujours accompagnés d'un
-     libellé ou d'une icône : jamais la couleur seule.
-     ------------------------------------------------------------------ */
-  --status-good: #10B981;
-  --status-warn: #F59E0B;
-  --status-crit: #EF4444;
-  --status-good-soft: rgba(16,185,129,0.10);
-  --status-warn-soft: rgba(245,158,11,0.10);
-  --status-crit-soft: rgba(239,68,68,0.10);
-
-  /* ------------------------------------------------------------------
-     Palette de données — identité de série (catégorielle). Ordre FIXE,
-     attribué de --viz-1 vers --viz-5, jamais recyclé au-delà : la 6e
-     série se replie sur --viz-other (« Autre »).
-     Validée sur fond sombre #171A21 : bande de clarté OKLCH 0,48–0,67,
-     chroma ≥ 0,10, séparation daltonisme ΔE 14,2 (protan/deutan),
-     vision normale ΔE 15,9, contraste ≥ 3:1.
-     Le jaune marque #FFD200 est hors bande (trop clair, il éblouit en
-     grande surface) : il reste l'accent d'interface et le trait d'une
-     courbe unique, --viz-1 prend le relais dès qu'il y a des aplats.
-     ------------------------------------------------------------------ */
-  --viz-1: #B08F00;
-  --viz-2: #4A8FE7;
-  --viz-3: #0D9488;
-  --viz-4: #8B5CF6;
-  --viz-5: #C4608F;
-  --viz-other: #64748B;
-
-  /* Rampe ordinale — une seule teinte, clair → sombre, pour ce qui a un
-     ordre naturel (étapes d'un flux, paliers). 5 pas maximum : au 6e, le
-     pas le plus sombre passe sous 2:1 et disparaît du fond. */
-  --ramp-1: #FFF0B3;
-  --ramp-2: #FFD200;
-  --ramp-3: #C9A400;
-  --ramp-4: #997D00;
-  --ramp-5: #6E5A00;
-
-  /* Chrome de graphique */
-  --viz-grid: rgba(255,255,255,0.05);
-  --viz-surface: #171A21;
+  /* Gris officiels — neutre */
+  --color-mbgrey-50: #FBFBFB;
+  --color-mbgrey-100: #F6F6F6;
+  --color-mbgrey-200: #ECECEC;
+  --color-mbgrey-300: #D4D4D4;
+  --color-mbgrey-400: #BDBDBD;
+  --color-mbgrey-500: #A5A5A5;
+  --color-mbgrey-600: #6F6E6E;
+  --color-mbgrey-700: #5E5E5E;
+  --color-mbgrey-800: #2F2F2F;
+  --color-mbgrey-900: #141414;
+  --color-mbgrey-950: #000000;
 }
 
 /* === BASE === */
@@ -111,47 +145,46 @@
 html, body, #__nuxt { min-height: 100vh; }
 
 body {
-  font-family: 'Saira', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  background: var(--dark);
-  color: #E8E9ED;
-  font-size: 14px;
+  font-family: var(--font-ui);
+  background: var(--surface-0);
+  color: var(--content-1);
+  font-size: var(--fs-150);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  color-scheme: dark;
 }
 
-input,
-select,
-textarea,
-button {
-  color-scheme: dark;
-}
+/* `color-scheme` est porté par les thèmes dans tokens.css : le figer en
+   « dark » ici laisserait les contrôles natifs sombres en thème clair. */
 
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--orange);
+  accent-color: var(--accent);
 }
 
-h1, h2, h3 { letter-spacing: -0.02em; }
+/* Le DS pose des titres en Montserrat Medium, interlettrage serré. */
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.015em; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+::-webkit-scrollbar-thumb { background: var(--border-1); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--content-3); }
 
 /* === PAGE STRUCTURE === */
 .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
 .page-title {
   position: relative;
-  font-family: 'Saira Condensed', 'Arial Narrow', sans-serif;
-  font-size: 26px;
-  font-weight: 800;
-  color: #F0F1F5;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  /* Medium et 28 px : le DS pose « All text styles are Medium (500) » et son
+     échelle ne connaît pas le 26 px qui était ici (--mb-fs-500 = 28 px). */
+  font-size: 28px;
+  font-weight: var(--w-medium);
+  color: var(--content-1);
+  /* Casse normale, comme le demande le DS, et interlettrage resserré : le
+     0.03em servait à aérer des CAPITALES, il déforme une casse normale. */
+  letter-spacing: -0.015em;
   padding-bottom: 6px;
 }
 /* Bande de course sous les titres de page */
@@ -162,10 +195,10 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   bottom: 0;
   height: 3px;
   width: 44px;
-  background: linear-gradient(90deg, #FFD200 70%, transparent);
+  background: linear-gradient(90deg, var(--accent) 70%, transparent);
   clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
-.page-sub { font-size: 14px; color: #9CA3AF; margin-top: 2px; }
+.page-sub { font-size: 14px; color: var(--content-3); margin-top: 2px; }
 
 .panel {
   background: var(--dark2);
@@ -182,9 +215,9 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   width: 100%;
   min-height: 40px;
   background: var(--dark3);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
-  color: #E8E9ED;
+  color: var(--content-1);
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
@@ -202,8 +235,8 @@ textarea.form-control {
 .content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
 .content select:focus,
 .content textarea:focus {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(255,210,0,0.10);
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 0 3px rgba(241,171,0,0.10);
 }
 
 .content select,
@@ -211,7 +244,7 @@ textarea.form-control {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #9CA3AF 50%), linear-gradient(135deg, #9CA3AF 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--surface-3) 50%), linear-gradient(135deg, var(--surface-3) 50%, transparent 50%);
   background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
@@ -220,25 +253,25 @@ textarea.form-control {
 
 .content select option {
   background: var(--dark3);
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
-  color: #D1D5DB;
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: var(--bw) solid var(--border-control);
+  color: var(--content-1);
+  border-radius: var(--radius-pill);
   padding: 0 14px;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   cursor: pointer;
   transition: all var(--transition);
 }
 
 .btn-secondary:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.18);
+  background: var(--overlay-hover);
+  border-color: var(--border-1);
 }
 
 /* === GLOBAL FORM + BUTTON UTILITIES === */
@@ -252,9 +285,9 @@ textarea.form-control {
   width: 100%;
   min-height: 40px;
   background: var(--dark3);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
-  color: #E8E9ED;
+  color: var(--content-1);
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
@@ -268,15 +301,15 @@ textarea.form-input {
 }
 
 .form-input:focus {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(255,210,0,0.10);
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 0 3px rgba(241,171,0,0.10);
 }
 
 select.form-input {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #9CA3AF 50%), linear-gradient(135deg, #9CA3AF 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--surface-3) 50%), linear-gradient(135deg, var(--surface-3) 50%, transparent 50%);
   background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
@@ -285,7 +318,24 @@ select.form-input {
 
 select.form-input option {
   background: var(--dark3);
-  color: #E8E9ED;
+  color: var(--content-1);
+}
+
+/* Icônes RemixIcon (`<UIcon class="app-icon">`), en remplacement des emoji que
+   le design system proscrit.
+
+   Le dimensionnement est en `em` : l'icône suit la taille du texte qui
+   l'entoure, sans qu'aucun appel n'ait à la régler. `flex-shrink: 0` empêche
+   qu'elle soit écrasée dans une rangée `.btn` serrée, et le décalage vertical
+   la pose sur la ligne de base plutôt que sur le jambage. La couleur vient de
+   `currentColor` : une icône hérite donc du token de son parent, et bascule
+   avec le thème sans réglage. */
+.app-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
 }
 
 .btn {
@@ -295,22 +345,28 @@ select.form-input option {
   gap: 8px;
   min-height: 38px;
   padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.04);
-  color: #E5E7EB;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: inherit;
+  border-radius: var(--radius-pill);
+  border: var(--bw) solid var(--border-control);
+  background: transparent;
+  color: var(--content-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-150);
+  font-weight: var(--w-medium);
   text-decoration: none;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
 }
 
+/* Le DS obtient ses états en changeant la TEINTE, jamais par un déplacement
+   ni un jeu d'opacité. `.btn` nu correspond au type « secondaire » (contour). */
 .btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.07);
+  background: var(--overlay-hover);
+  border-color: var(--border-strong);
+}
+
+.btn:active {
+  background: var(--surface-3);
 }
 
 .btn:disabled,
@@ -321,27 +377,35 @@ select.form-input option {
   transform: none;
 }
 
+/* Primaire : aplat de marque, encre noire dessus comme le prescrit le DS
+   (`.mb-btn--accent { color: black }`). Aucun dégradé, aucun halo. */
 .btn-primary {
-  background: linear-gradient(135deg, var(--orange), var(--orange2));
-  color: var(--orange-ink);
-  border-color: rgba(255,210,0,0.24);
-  box-shadow: 0 1px 3px rgba(255,210,0,0.2);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #FFDE33, var(--orange));
-  box-shadow: 0 2px 8px rgba(255,210,0,0.3);
+  background: var(--accent-hover);
+  border-color: transparent;
+  box-shadow: none;
 }
 
+.btn-primary:active {
+  background: var(--accent-active);
+}
+
+/* Fantôme : type « tertiaire » du DS, sans contour. */
 .btn-ghost {
-  background: rgba(255,255,255,0.02);
-  color: #D1D5DB;
-  border-color: rgba(255,255,255,0.08);
+  background: transparent;
+  color: var(--content-2);
+  border-color: transparent;
 }
 
 .btn-ghost:hover {
-  background: rgba(255,255,255,0.06);
-  color: #F3F4F6;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .btn-link {
@@ -351,16 +415,16 @@ select.form-input option {
   padding: 0;
   border: none;
   background: none;
-  color: var(--orange);
+  color: var(--accent-content);
   font-family: inherit;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   cursor: pointer;
   text-decoration: none;
 }
 
 .btn-link:hover {
-  color: #FFDE33;
+  color: var(--accent-content);
   text-decoration: underline;
 }
 
@@ -369,7 +433,7 @@ select.form-input option {
 }
 
 .hover-row:hover {
-  background: rgba(255,255,255,0.035) !important;
+  background: var(--overlay-soft) !important;
 }
 
 .steps {
@@ -395,29 +459,29 @@ select.form-input option {
   align-items: center;
   justify-content: center;
   background: var(--dark3);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #9CA3AF;
+  border: 1px solid var(--border-2);
+  color: var(--content-3);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--w-medium);
   box-shadow: var(--shadow-sm);
 }
 
 .step-dot.active {
-  background: rgba(255,210,0,0.12);
-  border-color: rgba(255,210,0,0.35);
-  color: var(--orange);
-  box-shadow: 0 0 0 4px rgba(255,210,0,0.06);
+  background: var(--accent-soft);
+  border-color: var(--accent-graphic);
+  color: var(--accent-content);
+  box-shadow: 0 0 0 4px rgba(241,171,0,0.06);
 }
 
 .step-dot.done {
-  background: linear-gradient(135deg, var(--orange), var(--orange2));
-  border-color: rgba(255,210,0,0.28);
+  background: var(--accent);
+  border-color: var(--accent-graphic);
   color: var(--orange-ink);
 }
 
 .step-label {
   margin-top: 8px;
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -432,11 +496,11 @@ select.form-input option {
   width: calc(100% - 52px);
   height: 2px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: var(--overlay-hover);
 }
 
 .step-connector.done {
-  background: linear-gradient(90deg, var(--orange), var(--orange2));
+  background: var(--accent);
 }
 
 .content table:not([data-slot="table"]) {
@@ -448,8 +512,8 @@ select.form-input option {
 }
 
 .content table:not([data-slot="table"]) th {
-  background: rgba(255,255,255,0.03);
-  color: #9CA3AF;
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -461,12 +525,12 @@ select.form-input option {
 
 .content table:not([data-slot="table"]) td {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  color: #D1D5DB;
+  border-bottom: 1px solid var(--border-2);
+  color: var(--content-2);
 }
 
 .content table:not([data-slot="table"]) tr:hover td {
-  background: rgba(255,255,255,0.02);
+  background: var(--overlay-soft);
 }
 
 /* === GRIDS === */
@@ -485,7 +549,7 @@ select.form-input option {
   transition: border-color var(--transition) !important;
 }
 [data-slot="card"]:hover {
-  border-color: rgba(255,255,255,0.09) !important;
+  border-color: var(--border-2) !important;
 }
 [data-slot="card-header"] {
   border-bottom: 1px solid var(--glass-border) !important;
@@ -512,9 +576,9 @@ select.form-input option {
   display: flex !important;
   align-items: center !important;
   background: var(--dark3) !important;
-  border-color: rgba(255,255,255,0.08) !important;
+  border-color: var(--border-2) !important;
   border-radius: var(--radius-sm) !important;
-  color: #E8E9ED !important;
+  color: var(--content-1) !important;
   font-family: inherit !important;
   font-size: 14px !important;
 }
@@ -539,7 +603,7 @@ select.form-input option {
   padding: 10px 12px !important;
   background: transparent !important;
   background-color: transparent !important;
-  color: #E8E9ED !important;
+  color: var(--content-1) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -548,12 +612,12 @@ select.form-input option {
 [data-slot="textarea"]:focus-within,
 [data-slot="input-wrapper"]:focus-within,
 [data-slot="select-wrapper"]:focus-within {
-  border-color: var(--orange) !important;
-  box-shadow: 0 0 0 3px rgba(255,210,0,0.1) !important;
+  border-color: var(--accent-graphic) !important;
+  box-shadow: 0 0 0 3px rgba(241,171,0,0.1) !important;
 }
 
 /* Placeholder color */
-input::placeholder, textarea::placeholder { color: #4B5563 !important; }
+input::placeholder, textarea::placeholder { color: var(--content-disabled) !important; }
 
 /* Form labels — legacy style */
 [data-slot="form-field"] {
@@ -568,7 +632,7 @@ input::placeholder, textarea::placeholder { color: #4B5563 !important; }
 .form-label {
   font-size: 12px !important;
   font-weight: 600 !important;
-  color: #9CA3AF !important;
+  color: var(--content-3) !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
@@ -579,7 +643,7 @@ input::placeholder, textarea::placeholder { color: #4B5563 !important; }
 [data-slot="button"] {
   border-radius: var(--radius-sm) !important;
   min-height: 38px !important;
-  font-weight: 700 !important;
+  font-weight: var(--w-medium) !important;
   transition: all var(--transition) !important;
 }
 
@@ -588,37 +652,59 @@ input::placeholder, textarea::placeholder { color: #4B5563 !important; }
   justify-content: center;
 }
 
-/* Primary button — orange gradient */
+/* Neuf gabarits demandaient `.btn-sm` sans qu'elle existe : la classe ne
+   produisait rien. Définie ici, pour les barres d'outils denses. */
+.btn-sm {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: var(--fs-125);
+}
+
+/* Bouton primaire des composants Nuxt UI.
+
+   Ces règles alignent les UButton « solid » sur `.btn-primary`, afin que le
+   bouton primaire du framework et celui de l'application soient le MÊME
+   bouton à l'écran. C'est ici que se jouait l'écart : ce bloc posait un
+   dégradé, un halo jaune et un déplacement au survol — les trois choses que
+   le design system proscrit explicitement (« aplat franc », « No bounces »,
+   pas de `--shadow-glow`). Le primaire est donc désormais un aplat de marque,
+   avec du noir dessus, et ses états passent par la TEINTE.
+
+   Le raccourci `background` est conservé volontairement : il remet
+   `background-color` à sa valeur et efface tout `background-image` résiduel.
+   C'est aussi ce qui explique le diagnostic « un UButton solid sort sans
+   fond » : `bg-primary` de Nuxt UI ne pose qu'un `background-color`, que le
+   dégradé de ce bloc écrasait. */
 .ui-button[data-color="primary"],
 button[class*="bg-primary"],
 [data-slot="button"][data-color="primary"] {
-  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
-  color: var(--orange-ink) !important;
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
   border: none !important;
-  font-weight: 700 !important;
-  box-shadow: 0 1px 3px rgba(255,210,0,0.2) !important;
-  transition: all var(--transition) !important;
+  font-weight: var(--w-semi) !important;
+  box-shadow: none !important;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease) !important;
 }
 .ui-button[data-color="primary"]:hover,
 button[class*="bg-primary"]:hover,
 [data-slot="button"][data-color="primary"]:hover {
-  background: linear-gradient(135deg, #FFDE33, var(--orange)) !important;
-  box-shadow: 0 2px 8px rgba(255,210,0,0.3) !important;
-  transform: translateY(-1px);
+  background: var(--accent-hover) !important;
+  box-shadow: none !important;
 }
 .ui-button[data-color="primary"]:active,
+button[class*="bg-primary"]:active,
 [data-slot="button"][data-color="primary"]:active {
-  transform: translateY(0);
+  background: var(--accent-active) !important;
 }
 
 /* Ghost button */
 [data-slot="button"][data-variant="ghost"] {
-  color: #9CA3AF !important;
+  color: var(--content-3) !important;
   transition: all var(--transition) !important;
 }
 [data-slot="button"][data-variant="ghost"]:hover {
-  background: rgba(255,255,255,0.04) !important;
-  color: #E8E9ED !important;
+  background: var(--overlay-soft) !important;
+  color: var(--content-1) !important;
 }
 
 /* Nuxt UI runtime class overrides */
@@ -627,20 +713,20 @@ button[class*="bg-primary"]:hover,
 }
 
 .content :where(.bg-elevated, .bg-elevated\/50) {
-  background: rgba(255,255,255,0.03) !important;
+  background: var(--overlay-soft) !important;
 }
 
 .content :where(.text-highlighted, .text-default) {
-  color: #E8E9ED !important;
+  color: var(--content-1) !important;
 }
 
 .content :where(.text-muted, .text-toned) {
-  color: #9CA3AF !important;
+  color: var(--content-3) !important;
 }
 
 .content :where(.ring-default, .ring-accented, .divide-default) {
-  --tw-ring-color: rgba(255,255,255,0.08) !important;
-  border-color: rgba(255,255,255,0.08) !important;
+  --tw-ring-color: var(--overlay-hover) !important;
+  border-color: var(--border-2) !important;
 }
 
 .content :where(.shadow-xs, .shadow-sm, .shadow-md) {
@@ -655,43 +741,52 @@ button[class*="bg-primary"]:hover,
 
 .content :where(button, a)[class*="ring-accented"],
 .content :where(button, a)[class*="ring-default"] {
-  background: rgba(255,255,255,0.03) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  color: #E8E9ED !important;
+  background: var(--overlay-soft) !important;
+  border: 1px solid var(--border-2) !important;
+  color: var(--content-1) !important;
 }
 
 .content :where(button, a)[class*="ring-accented"]:hover,
 .content :where(button, a)[class*="ring-default"]:hover {
-  background: rgba(255,255,255,0.06) !important;
-  border-color: rgba(255,255,255,0.16) !important;
+  background: var(--overlay-hover) !important;
+  border-color: var(--border-1) !important;
 }
 
+/* Second jeu de règles visant le même bouton primaire de Nuxt UI, à une
+   spécificité plus élevée (`.content` en tête). Il portait le même dégradé :
+   c'est LUI qui gagnait, et c'est pourquoi corriger le bloc précédent seul ne
+   suffisait pas. Aligné sur `.btn-primary` : aplat de marque, encre noire,
+   états par la teinte. */
 .content :where(button, a)[class*="bg-primary"] {
-  background: linear-gradient(135deg, var(--orange), var(--orange2)) !important;
-  border-color: rgba(255,210,0,0.28) !important;
-  color: var(--orange-ink) !important;
+  background: var(--accent) !important;
+  border-color: transparent !important;
+  color: var(--accent-ink) !important;
 }
 
 .content :where(button, a)[class*="bg-primary"]:hover {
-  background: linear-gradient(135deg, #FFDE33, var(--orange)) !important;
+  background: var(--accent-hover) !important;
+}
+
+.content :where(button, a)[class*="bg-primary"]:active {
+  background: var(--accent-active) !important;
 }
 
 .content :where(textarea, input, select)[class*="bg-default"],
 .content :where(textarea, input, select)[class*="bg-elevated"] {
   background: var(--dark3) !important;
-  color: #E8E9ED !important;
-  border-color: rgba(255,255,255,0.08) !important;
+  color: var(--content-1) !important;
+  border-color: var(--border-2) !important;
 }
 
 /* Outline button */
 [data-slot="button"][data-variant="outline"] {
-  border-color: rgba(255,255,255,0.1) !important;
-  color: #9CA3AF !important;
+  border-color: var(--border-1) !important;
+  color: var(--content-3) !important;
 }
 [data-slot="button"][data-variant="outline"]:hover {
-  border-color: rgba(255,255,255,0.2) !important;
-  color: #E8E9ED !important;
-  background: rgba(255,255,255,0.04) !important;
+  border-color: var(--border-1) !important;
+  color: var(--content-1) !important;
+  background: var(--overlay-soft) !important;
 }
 
 /* Focus ring */
@@ -722,7 +817,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 [data-slot="table"] thead,
 [data-slot="table"] th {
   background: var(--glass-bg) !important;
-  color: #9CA3AF !important;
+  color: var(--content-3) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: 0.06em !important;
@@ -732,25 +827,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 [data-slot="table"] td {
   padding: 12px 14px !important;
-  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  border-bottom: 1px solid var(--border-2) !important;
   vertical-align: middle !important;
-  color: #D1D5DB !important;
+  color: var(--content-2) !important;
   font-size: 13px !important;
 }
 [data-slot="table"] tbody tr:hover td {
-  background: rgba(255,255,255,0.02) !important;
+  background: var(--overlay-soft) !important;
 }
 
 /* ========================================
    NUXT UI — MODAL
    ======================================== */
 [data-slot="dialog-overlay"] {
-  background: rgba(0,0,0,0.6) !important;
-  backdrop-filter: blur(4px) !important;
+  background: var(--scrim) !important;
 }
 [data-slot="dialog-content"] {
   background: var(--dark2) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
+  border: 1px solid var(--border-2) !important;
   border-radius: var(--radius-lg) !important;
   box-shadow: var(--shadow-lg) !important;
 }
@@ -772,12 +866,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 [data-slot="dialog-content"] select,
 [data-slot="dialog-content"] textarea {
   background: var(--dark3) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  color: #E8E9ED !important;
+  border: 1px solid var(--border-2) !important;
+  color: var(--content-1) !important;
   font-family: inherit !important;
 }
 [data-slot="dialog-content"] label {
-  color: #9CA3AF !important;
+  color: var(--content-3) !important;
 }
 
 /* ========================================
@@ -790,15 +884,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 18px;
   transition: all var(--transition);
 }
-.pont-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-.pont-card.libre       { background: rgba(16,185,129,0.06); border-color: rgba(16,185,129,0.2); }
-.pont-card.occupe      { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
-.pont-card.maintenance { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
+.pont-card:hover { border-color: var(--border-hover); }
+.pont-card.libre       { background: var(--success-soft); border-color: var(--success); }
+.pont-card.occupe      { background: var(--warning-soft); border-color: var(--warning); }
+.pont-card.maintenance { background: var(--warning-soft); border-color: var(--warning); }
 .pont-num  { font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -0.5px; }
-.pont-name { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
-.pont-moto { font-size: 14px; font-weight: 600; color: #E8E9ED; margin-top: 8px; }
-.pont-meca { font-size: 12px; color: #9CA3AF; }
-.pont-progress      { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+.pont-name { font-size: 12px; color: var(--content-3); margin-top: 2px; }
+.pont-moto { font-size: 14px; font-weight: 600; color: var(--content-1); margin-top: 8px; }
+.pont-meca { font-size: 12px; color: var(--content-3); }
+.pont-progress      { height: 4px; background: var(--overlay-hover); border-radius: 2px; margin-top: 12px; overflow: hidden; }
 .pont-progress-fill { height: 100%; border-radius: 2px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* ========================================
@@ -814,7 +908,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .stat-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow); }
 .stat-label {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -823,13 +917,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .stat-value {
   font-size: 32px;
   font-weight: 800;
-  color: #F0F1F5;
+  color: var(--content-1);
   line-height: 1;
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
 }
 .stat-delta { font-size: 12px; margin-top: 6px; }
-.stat-bar { height: 4px; border-radius: 2px; margin-top: 12px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.stat-bar { height: 4px; border-radius: 2px; margin-top: 12px; background: var(--overlay-hover); overflow: hidden; }
 .stat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* ========================================
@@ -863,11 +957,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .detail-banner {
   padding: 14px;
-  background: rgba(255,210,0,0.06);
-  border: 1px solid rgba(255,210,0,0.15);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
   border-radius: 12px;
   font-size: 12px;
-  color: #FFD200;
+  color: var(--accent-content);
   line-height: 1.6;
 }
 
@@ -879,8 +973,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(3, 7, 18, 0.68);
-  backdrop-filter: blur(6px);
+  background: var(--surface-0);
 }
 
 .detail-modal-card {
@@ -914,8 +1007,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(3, 7, 18, 0.72);
-  backdrop-filter: blur(6px);
+  background: var(--surface-0);
 }
 
 .app-modal-card {
@@ -975,7 +1067,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 10px 18px;
   font-size: 13px;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--content-3);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all var(--transition);
@@ -986,8 +1078,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-left: none;
   border-right: none;
 }
-.tab:hover { color: #D1D5DB; }
-.tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+.tab:hover { color: var(--content-2); }
+.tab.active { color: var(--accent-content); border-bottom-color: var(--accent-graphic); }
 
 /* ========================================
    WIZARD STEPPER (RDV New)
@@ -998,15 +1090,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   width: 32px; height: 32px;
   border-radius: 50%;
   background: var(--dark3);
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid var(--border-1);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #9CA3AF;
+  font-size: 13px; font-weight: var(--w-medium); color: var(--content-3);
   transition: all var(--transition);
 }
-.step-dot.active { background: var(--orange); border-color: var(--orange); color: var(--orange-ink); }
+.step-dot.active { background: var(--orange); border-color: var(--accent-graphic); color: var(--orange-ink); }
 .step-dot.done { background: var(--green); border-color: var(--green); color: white; }
-.step-label { font-size: 12px; font-weight: 600; color: #9CA3AF; }
-.step-line { height: 2px; width: 48px; background: rgba(255,255,255,0.08); margin: 0 8px; margin-bottom: 20px; }
+.step-label { font-size: 12px; font-weight: 600; color: var(--content-3); }
+.step-line { height: 2px; width: 48px; background: var(--overlay-hover); margin: 0 8px; margin-bottom: 20px; }
 .step-line.done { background: var(--green); }
 
 /* ========================================
@@ -1017,29 +1109,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   min-height: 118px; padding: 18px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);
-  background: linear-gradient(180deg, rgba(23,27,36,.96), rgba(17,20,27,.92));
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
   box-shadow: var(--shadow-sm);
 }
 .planning-kpi.primary {
-  border-color: rgba(255,210,0,.25) !important;
-  background: linear-gradient(135deg, rgba(255,210,0,.14), rgba(23,27,36,.96)) !important;
+  border-color: var(--accent-graphic) !important;
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface-2)) !important;
 }
 .planning-kpi-label {
   font-size: 10px; font-weight: 800;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--content-3);
 }
 .planning-kpi-value {
   font-size: 38px; font-weight: 800;
   line-height: 1; letter-spacing: -0.05em;
-  color: #f8fafc; font-variant-numeric: tabular-nums;
+  color: var(--content-1); font-variant-numeric: tabular-nums;
 }
 .planning-kpi-meta {
   margin-top: auto;
-  font-size: 12px; line-height: 1.45; color: #cbd5e1;
+  font-size: 12px; line-height: 1.45; color: var(--content-2);
 }
 .planning-kpi-sub {
-  font-size: 12px; color: #94a3b8; margin-top: auto;
+  font-size: 12px; color: var(--content-3); margin-top: auto;
 }
 
 /* ========================================
@@ -1053,26 +1145,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);
-  background: rgba(255,255,255,0.03);
+  background: var(--overlay-soft);
 }
 .planning-toolbar-label {
   font-size: 10px; font-weight: 800;
   letter-spacing: .12em; text-transform: uppercase;
-  color: #94a3b8; white-space: nowrap;
+  color: var(--content-3); white-space: nowrap;
 }
 
 /* Mechanic filter chips */
 .meca-chip {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 7px 12px; border-radius: 999px;
-  border: 1px solid rgba(59,130,246,.28);
-  background: rgba(59,130,246,.12);
-  color: #60a5fa;
-  font-size: 12px; font-weight: 700;
+  border: 1px solid var(--info);
+  background: var(--info-soft);
+  color: var(--info-content);
+  font-size: 12px; font-weight: var(--w-medium);
   cursor: pointer; transition: all var(--transition);
   font-family: inherit;
 }
-.meca-chip:hover { transform: translateY(-1px); }
+.meca-chip:hover { background: var(--overlay-hover); }
 .meca-chip.is-muted { opacity: .42; }
 .meca-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -1086,7 +1178,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .planning-board {
   position: relative; width: 100%;
   border: 1px solid var(--glass-border);
-  background: linear-gradient(180deg, rgba(17,20,27,.98), rgba(12,14,20,.95));
+  background: linear-gradient(180deg, var(--surface-1), var(--surface-0));
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
@@ -1098,8 +1190,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   gap: 6px; justify-content: center;
 }
 .planning-day-header.is-today {
-  color: var(--orange);
-  background: rgba(255,210,0,.05);
+  color: var(--accent-content);
+  background: var(--accent-soft);
 }
 .planning-day-name {
   font-size: 12px; font-weight: 800;
@@ -1107,12 +1199,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .planning-day-date {
   font-size: 20px; font-weight: 800;
-  letter-spacing: -0.03em; color: #f8fafc;
+  letter-spacing: -0.03em; color: var(--content-1);
 }
 .planning-today-label {
   font-size: 10px; font-weight: 800;
   letter-spacing: .1em; text-transform: uppercase;
-  color: var(--orange);
+  color: var(--accent-content);
 }
 
 /* RDV blocks in planning */
@@ -1122,24 +1214,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size: 11px; font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.14);
+  border: 1px solid var(--border-1);
   box-shadow: 0 16px 28px rgba(3,7,18,.3);
   overflow: hidden;
 }
 .rdv-block:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 
 /* RDV block status colors */
-.rdv-status-en_attente { box-shadow: inset 0 0 0 2px rgba(148,163,184,.25); background: rgba(71,85,105,.25); }
-.rdv-status-reserve { box-shadow: inset 0 0 0 2px rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
-.rdv-status-confirme { box-shadow: inset 0 0 0 2px rgba(59,130,246,.35); background: rgba(59,130,246,.12); }
-.rdv-status-reception { box-shadow: inset 0 0 0 2px rgba(245,158,11,.4); background: rgba(245,158,11,.15); }
-.rdv-status-en_cours { box-shadow: inset 0 0 0 2px rgba(20,184,166,.4); background: rgba(20,184,166,.15); }
-.rdv-status-termine { box-shadow: inset 0 0 0 2px rgba(16,185,129,.4); background: rgba(16,185,129,.12); }
-.rdv-status-restitue { box-shadow: inset 0 0 0 2px rgba(16,185,129,.45); background: rgba(16,185,129,.15); }
-.rdv-status-facture { box-shadow: inset 0 0 0 2px rgba(139,92,246,.4); background: rgba(139,92,246,.12); }
-.rdv-status-paye { box-shadow: inset 0 0 0 2px rgba(16,185,129,.45); background: rgba(16,185,129,.18); }
-.rdv-status-annule { box-shadow: inset 0 0 0 2px rgba(239,68,68,.4); background: rgba(239,68,68,.12); opacity: .8; }
+.rdv-status-en_attente { box-shadow: inset 0 0 0 2px rgba(148,163,184,.25); background: var(--surface-3); }
+.rdv-status-reserve { box-shadow: inset 0 0 0 2px rgba(217,101,0,.35); background: var(--warning-soft); }
+.rdv-status-confirme { box-shadow: inset 0 0 0 2px rgba(74,141,183,.35); background: var(--info-soft); }
+.rdv-status-reception { box-shadow: inset 0 0 0 2px rgba(217,101,0,.4); background: var(--warning-soft); }
+.rdv-status-en_cours { box-shadow: inset 0 0 0 2px rgba(23,149,0,.4); background: var(--success-soft); }
+.rdv-status-termine { box-shadow: inset 0 0 0 2px rgba(23,149,0,.4); background: var(--success-soft); }
+.rdv-status-restitue { box-shadow: inset 0 0 0 2px rgba(23,149,0,.45); background: var(--success-soft); }
+.rdv-status-facture { box-shadow: inset 0 0 0 2px rgba(74,141,183,.4); background: var(--info-soft); }
+.rdv-status-paye { box-shadow: inset 0 0 0 2px rgba(23,149,0,.45); background: var(--success-soft); }
+.rdv-status-annule { box-shadow: inset 0 0 0 2px rgba(215,3,33,.4); background: var(--error-soft); opacity: .8; }
 
 /* ========================================
    LIVE DOT
@@ -1149,7 +1240,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: var(--green);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(16,185,129,0.4);
+  box-shadow: 0 0 8px rgba(23,149,0,0.4);
 }
 @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.3); } }
 
@@ -1183,13 +1274,11 @@ main {
   text-align: center;
 }
 .admin-card:hover {
-  border-color: var(--orange) !important;
-  box-shadow: var(--shadow-glow) !important;
-  transform: translateY(-2px);
+  border-color: var(--accent-graphic) !important;
 }
 .admin-card-icon { font-size: 28px; margin-bottom: 8px; }
-.admin-card-label { font-size: 15px; font-weight: 700; color: #E8E9ED; }
-.admin-card-desc { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+.admin-card-label { font-size: 15px; font-weight: var(--w-medium); color: var(--content-1); }
+.admin-card-desc { font-size: 12px; color: var(--content-3); margin-top: 2px; }
 
 /* ========================================
    PONT CARDS (WORKSHOP VIEW)
@@ -1205,8 +1294,6 @@ main {
 }
 .pont-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
 }
 .pont-card-header {
   display: flex;
@@ -1215,13 +1302,13 @@ main {
   padding: 14px 18px;
   border-bottom: 1px solid var(--glass-border);
 }
-.pont-name { font-size: 15px; font-weight: 700; color: #E8E9ED; }
+.pont-name { font-size: 15px; font-weight: var(--w-medium); color: var(--content-1); }
 .pont-card-body { padding: 14px 18px; }
 .pont-card-footer {
   padding: 10px 18px;
   border-top: 1px solid var(--glass-border);
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 .pont-occupe { border-left: 3px solid var(--amber); }
 .pont-libre { border-left: 3px solid var(--green); }
@@ -1232,11 +1319,10 @@ main {
 .public-card {
   max-width: 460px;
   width: 100%;
-  background: rgba(19, 20, 27, 0.85);
+  background: var(--surface-1);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: 32px;
-  backdrop-filter: blur(20px);
 }
 .public-card-header { text-align: center; margin-bottom: 24px; }
 
@@ -1258,25 +1344,6 @@ main {
 /* ========================================
    TOPBAR NEW BUTTON (used in pages)
    ======================================== */
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #FFD200, var(--orange2));
-  color: #111;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.topbar-new-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255,210,0,0.3);
-}
 
 /* ========================================
    ALERT STRIP (Dashboard)
@@ -1298,19 +1365,19 @@ main {
   border: 1px solid;
 }
 .alert-chip.danger {
-  background: rgba(239,68,68,0.08);
-  border-color: rgba(239,68,68,0.25);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  border-color: var(--error);
+  color: var(--error-content);
 }
 .alert-chip.warning {
-  background: rgba(255,210,0,0.08);
-  border-color: rgba(255,210,0,0.25);
-  color: #FCD34D;
+  background: var(--accent-soft);
+  border-color: var(--accent-graphic);
+  color: var(--warning-content);
 }
 .alert-chip.success {
-  background: rgba(16,185,129,0.08);
-  border-color: rgba(16,185,129,0.25);
-  color: #6EE7B7;
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success-content);
 }
 
 /* ========================================
@@ -1325,7 +1392,7 @@ main {
   border-radius: 10px;
   padding: 0 6px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--w-medium);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1343,7 +1410,7 @@ main {
   content: '';
   position: absolute;
   top: 0; left: -100%; width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--overlay-soft) 50%, transparent 100%);
   animation: shimmer 1.8s ease-in-out infinite;
 }
 @keyframes shimmer {
@@ -1374,12 +1441,12 @@ main {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 .workshop-kpi-value {
   font-size: 24px;
   font-weight: 800;
-  color: #F0F1F5;
+  color: var(--content-1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1400,18 +1467,16 @@ main {
 }
 .meca-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
 }
 
 /* ========================================
    MISC UTILITIES
    ======================================== */
+/* Le DS ne connaît pas le texte en dégradé découpé, et le procédé rend la
+   couleur illisible en thème clair (le jaune de marque n'y tient pas 4,5:1).
+   Remplacé par le jaune de TEXTE, qui lui est mesuré pour ça. */
 .text-gradient {
-  background: linear-gradient(135deg, var(--orange), #FFDE33);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent-content);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1419,45 +1484,44 @@ main {
    Profondeur d'ambiance, focus accessibles, micro-interactions.
    ════════════════════════════════════════════════════════════════════ */
 
-/* Lueur d'ambiance + trame carbone, très discrètes (app de travail) */
-body::before {
+/* Lueur d'ambiance + trame carbone, très discrètes (app de travail).
+
+   RÉSERVÉES AU THÈME SOMBRE. Sur du noir, ces deux couches donnent de la
+   profondeur. Posées sur une surface claire elles font l'inverse : la trame
+   devient un quadrillage gris visible sur toute la hauteur, et la lueur un
+   voile jaune en haut d'écran — du bruit ajouté à une page déjà lumineuse.
+   Le fond clair tire sa profondeur de l'écart entre le fond de page et les
+   panneaux (cf. `--surface-0` / `--surface-1` dans tokens.css), pas d'une
+   texture. */
+:root[data-theme='dark'] body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(1100px 480px at 28% -200px, rgba(255, 210, 0, 0.045), transparent 70%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.008) 0 2px, transparent 2px 7px);
+    radial-gradient(1100px 480px at 28% -200px, var(--accent-soft), transparent 70%),
+    repeating-linear-gradient(135deg, var(--overlay-soft) 0 2px, transparent 2px 7px);
   pointer-events: none;
 }
 
-::selection { background: #FFD200; color: #111; }
+::selection { background: var(--accent); color: var(--accent-ink); }
 
 /* Focus clavier toujours visible (accessibilité) */
 :focus-visible {
-  outline: 2px solid #FFD200;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Boutons primaires : réponse tactile */
-.btn-primary, .topbar-new-btn {
-  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s, filter 0.15s;
-}
-.btn-primary:hover:not(:disabled), .topbar-new-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(255, 210, 0, 0.22);
-}
-.btn-primary:active:not(:disabled), .topbar-new-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
+/* Les états du primaire passent par la TEINTE (cf. `.btn-primary` plus haut) :
+   ni déplacement, ni halo. Le DS l'écrit — « No bounces ». */
 
 /* Panneaux : bord réactif au survol */
 .panel {
   transition: border-color 0.18s;
 }
 .panel:hover {
-  border-color: rgba(255, 255, 255, 0.13);
+  border-color: var(--border-1);
 }
 
 /* Chiffres alignés dans les tableaux et KPIs */
@@ -1467,7 +1531,7 @@ table, .kpi-value, .stat-value {
 
 /* Titres condensés sur les en-têtes de modale UI */
 .modal-title, .panel-title {
-  font-family: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  font-family: var(--font-display);
   letter-spacing: 0.03em;
 }
 
@@ -1486,11 +1550,11 @@ table, .kpi-value, .stat-value {
 }
 .atelier-switch-badge {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--w-medium);
   letter-spacing: 0.08em;
-  color: #FCD34D;
-  background: rgba(255, 210, 0, 0.1);
-  border: 1px solid rgba(255, 210, 0, 0.3);
+  color: var(--warning-content);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
   border-radius: 5px;
   padding: 3px 6px;
   cursor: help;
@@ -1499,26 +1563,26 @@ table, .kpi-value, .stat-value {
   appearance: none;
   -webkit-appearance: none;
   background: var(--dark3);
-  color: #E8E9ED;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--content-1);
+  border: 1px solid var(--border-1);
   border-radius: 7px;
   padding: 6px 30px 6px 10px;
   font-size: 12px;
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, #9CA3AF 50%), linear-gradient(135deg, #9CA3AF 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--surface-3) 50%), linear-gradient(135deg, var(--surface-3) 50%, transparent 50%);
   background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
   transition: border-color 0.15s;
 }
 .atelier-switch-select:hover {
-  border-color: rgba(255, 210, 0, 0.4);
+  border-color: var(--accent-graphic);
 }
 .atelier-switch-select option {
   background: var(--dark3);
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 /* ── Filet de sécurité anti-bugs d'affichage ─────────────────────────

@@ -5,7 +5,7 @@
         <div class="page-title">Rachats VO</div>
         <div class="vo-subtitle">Tous les dossiers de rachat, de la constitution à la vente.</div>
       </div>
-      <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
+      <NuxtLink to="/vo/rachats/new" class="btn btn-primary">+ Nouveau rachat</NuxtLink>
     </div>
 
     <VONav />
@@ -73,7 +73,7 @@
           {{ formatPrice(row.original.targetSalePrice) }}
         </template>
         <template #margin-cell="{ row }">
-          <span :style="{ color: Number(row.original.margin || 0) >= 0 ? '#22c55e' : '#ef4444', fontWeight: '700' }">
+          <span :style="{ color: Number(row.original.margin || 0) >= 0 ? 'var(--success-content)' : 'var(--error-content)', fontWeight: '700' }">
             {{ formatPrice(row.original.margin || 0) }}
           </span>
         </template>
@@ -198,7 +198,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -214,18 +214,18 @@ onMounted(async () => {
   gap: 6px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .vo-summary-card span,
 .vo-summary-card small {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
 .vo-summary-card strong {
-  color: #f9fafb;
+  color: var(--content-1);
   font-size: 24px;
   line-height: 1;
 }
@@ -250,30 +250,30 @@ onMounted(async () => {
   gap: 8px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: #9ca3af;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-3);
   font-size: 12px;
   font-weight: 700;
 }
 
 .vo-chip strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 .vo-chip.is-active {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.12);
-  color: #fcd34d;
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 .vo-select {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #1a1a2e;
-  border: 1px solid #374151;
-  color: #e8e9ed;
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  color: var(--content-1);
 }
 
 .vo-actions {
@@ -285,15 +285,15 @@ onMounted(async () => {
 .vo-link-btn {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--content-3);
   cursor: pointer;
   font-size: 12px;
   text-decoration: none;
   font-weight: 700;
 }
 
-.vo-link-btn.is-success { color: #22c55e; }
-.vo-link-btn.is-warning { color: #f59e0b; }
+.vo-link-btn.is-success { color: var(--success-content); }
+.vo-link-btn.is-warning { color: var(--warning-content); }
 
 .vo-doc-pill {
   display: inline-flex;
@@ -304,13 +304,13 @@ onMounted(async () => {
 }
 
 .vo-doc-pill.is-ok {
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 
 .vo-doc-pill.is-warning {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 
 .vo-empty-state {
@@ -318,12 +318,12 @@ onMounted(async () => {
   gap: 6px;
   padding: 18px;
   border-radius: 14px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
+  border: 1px dashed var(--border-1);
+  color: var(--content-3);
 }
 
 .vo-empty-state strong {
-  color: #f9fafb;
+  color: var(--content-1);
 }
 
 @media (max-width: 900px) {

@@ -2,39 +2,39 @@
   <div>
     <div class="planning-toolbar" style="margin-bottom: 18px;">
       <div class="planning-toolbar-group">
-        <button class="toolbar-btn" @click="prevWeek">◀</button>
+        <button class="toolbar-btn" aria-label="Semaine précédente" @click="prevWeek"><AppIcon name="i-ri-arrow-left-line" /></button>
         <div style="display:flex;flex-direction:column;gap:2px;min-width:160px;">
-          <strong style="color:#f8fafc;font-size:14px;line-height:1.1;">Semaine</strong>
-          <span style="font-size:12px;color:#cbd5e1;">{{ formatDateRange }}</span>
+          <strong style="color:var(--content-1);font-size:14px;line-height:1.1;">Semaine</strong>
+          <span style="font-size:12px;color:var(--content-2);">{{ formatDateRange }}</span>
           <div v-if="pontsWithMecano.length" style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;">
-            <span v-for="p in pontsWithMecano" :key="p.id" style="font-size:11px;color:#9CA3AF;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:6px;">
-              {{ p.nom }} — <span style="color:#D1D5DB;">{{ p.mecano }}</span>
+            <span v-for="p in pontsWithMecano" :key="p.id" style="font-size:11px;color:var(--content-3);background:var(--overlay-soft);padding:2px 8px;border-radius:6px;">
+              {{ p.nom }} — <span style="color:var(--content-2);">{{ p.mecano }}</span>
             </span>
           </div>
         </div>
-        <button class="toolbar-btn" @click="nextWeek">▶</button>
+        <button class="toolbar-btn" aria-label="Semaine suivante" @click="nextWeek"><AppIcon name="i-ri-arrow-right-line" /></button>
       </div>
       <button class="toolbar-btn-today" @click="goToday">Aujourd'hui</button>
     </div>
 
     <div v-if="!weekDays.length" class="planning-board" style="padding:18px;">
-      <div style="font-size:13px;color:#9CA3AF;">Aucun jour d'ouverture n'est configuré pour l'atelier.</div>
+      <div style="font-size:13px;color:var(--content-3);">Aucun jour d'ouverture n'est configuré pour l'atelier.</div>
     </div>
 
     <div v-else class="planning-board" style="position:relative;">
       <div style="overflow-x:auto;">
         <div :style="boardStyle">
-          <div style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);"></div>
+          <div style="padding:10px;border-bottom:1px solid var(--border-2);background:var(--overlay-soft);"></div>
           <div
             v-for="day in weekDays"
             :key="'h-' + day.date"
             :class="['planning-day-header', day.isToday ? 'is-today' : '']"
-            style="border-bottom:1px solid rgba(255,255,255,0.06);border-left:1px solid rgba(255,255,255,0.04);"
+            style="border-bottom:1px solid var(--border-2);border-left:1px solid var(--border-2);"
           >
             <div class="planning-day-name">{{ day.label }}</div>
             <div class="planning-day-date">{{ day.dateNum }}</div>
             <div v-if="day.isToday" class="planning-today-label">AUJOURD'HUI</div>
-            <div style="font-size:10px;color:#6B7280;margin-top:2px;">{{ countRdvsForDay(day.date) }} RDV</div>
+            <div style="font-size:10px;color:var(--content-3);margin-top:2px;">{{ countRdvsForDay(day.date) }} RDV</div>
           </div>
 
           <template v-for="slot in timeSlots" :key="slot.label">
@@ -61,13 +61,13 @@
             >
               <div
                 v-if="isDropTarget(day.date, slot.minutes)"
-                style="position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none;border-radius:4px;background:rgba(255,210,0,0.12);border:1px dashed rgba(255,210,0,0.45);box-shadow:inset 0 0 0 1px rgba(255,210,0,0.2);"
+                style="position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none;border-radius:4px;background:var(--accent-soft);border:1px dashed var(--accent);box-shadow:inset 0 0 0 1px rgba(241,171,0,0.2);"
                 :style="{ height: draggingRdvHeight + 'px' }"
               ></div>
 
               <div
                 v-if="isPauseSlot(day.date, slot.minutes)"
-                style="position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:#9CA3AF;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(99,102,241,0.14) 0 6px,rgba(15,16,20,0.66) 6px 12px);"
+                style="position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:9px;color:var(--content-3);pointer-events:none;background:repeating-linear-gradient(45deg,var(--info-soft) 0 6px,var(--surface-0) 6px 12px);"
               >
                 pause
               </div>
@@ -116,8 +116,8 @@
           :style="{ top: nowLineTop + 'px' }"
         >
           <div style="display:flex;align-items:center;">
-            <div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div>
-            <div style="flex:1;height:2px;background:#EF4444;opacity:0.7;"></div>
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--error);"></div>
+            <div style="flex:1;height:2px;background:var(--error);opacity:0.7;"></div>
           </div>
         </div>
       </div>
@@ -313,9 +313,9 @@ const timeLabelStyle = computed(() => ({
   padding: '2px 8px 2px 4px',
   fontSize: '10px',
   fontWeight: '600',
-  color: '#6B7280',
+  color: 'var(--content-3)',
   textAlign: 'right',
-  borderTop: '1px solid rgba(255,255,255,0.04)',
+  borderTop: '1px solid var(--border-2)',
   height: `${ROW_HEIGHT}px`,
   display: 'flex',
   alignItems: 'flex-start',
@@ -486,14 +486,14 @@ function cellStyle(day: { isToday: boolean; date: string }, minutes: number) {
   return [
     {
       position: 'relative',
-      borderTop: '1px solid rgba(255,255,255,0.04)',
-      borderLeft: '1px solid rgba(255,255,255,0.04)',
+      borderTop: '1px solid var(--border-2)',
+      borderLeft: '1px solid var(--border-2)',
       height: `${ROW_HEIGHT}px`,
       cursor: props.canCreate && isSlotOpen(day.date, minutes) ? 'pointer' : 'default',
     },
-    day.isToday ? { background: 'rgba(255,210,0,0.02)' } : {},
-    !isSlotOpen(day.date, minutes) ? { background: 'rgba(255,255,255,0.015)' } : {},
-    isPauseSlot(day.date, minutes) ? { background: 'rgba(99,102,241,0.06)' } : {},
+    day.isToday ? { background: 'var(--accent-soft)' } : {},
+    !isSlotOpen(day.date, minutes) ? { background: 'var(--overlay-soft)' } : {},
+    isPauseSlot(day.date, minutes) ? { background: 'var(--info-soft)' } : {},
   ]
 }
 
@@ -582,13 +582,13 @@ function onDragStart(event: DragEvent, rdv: any) {
     const ghost = document.createElement('div')
     ghost.style.width = (event.target as HTMLElement)?.offsetWidth + 'px' || '120px'
     ghost.style.height = rdvHeight(rdv) + 'px'
-    ghost.style.background = 'rgba(255,210,0,0.15)'
-    ghost.style.border = '1px dashed rgba(255,210,0,0.5)'
+    ghost.style.background = 'var(--accent-soft)'
+    ghost.style.border = '1px dashed var(--accent-soft)'
     ghost.style.borderRadius = '4px'
     ghost.style.display = 'flex'
     ghost.style.alignItems = 'center'
     ghost.style.justifyContent = 'center'
-    ghost.style.color = '#FFD200'
+    ghost.style.color = 'var(--accent)'
     ghost.style.fontSize = '11px'
     ghost.style.fontWeight = '700'
     ghost.style.backdropFilter = 'blur(2px)'
@@ -641,9 +641,9 @@ function onDragEnd() {
 <style scoped>
 .toolbar-btn {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-1);
   border-radius: 6px;
-  color: #9CA3AF;
+  color: var(--content-3);
   cursor: pointer;
   padding: 6px 12px;
   font-size: 14px;
@@ -651,14 +651,14 @@ function onDragEnd() {
   transition: all 0.2s;
 }
 .toolbar-btn:hover {
-  background: rgba(255,255,255,0.04);
-  color: #E8E9ED;
+  background: var(--overlay-soft);
+  color: var(--content-1);
 }
 .toolbar-btn-today {
   background: transparent;
-  border: 1px solid rgba(255,210,0,0.3);
+  border: 1px solid var(--accent);
   border-radius: 6px;
-  color: #FFD200;
+  color: var(--accent-content);
   cursor: pointer;
   padding: 8px 14px;
   font-size: 12px;
@@ -667,14 +667,14 @@ function onDragEnd() {
   transition: all 0.2s;
 }
 .toolbar-btn-today:hover {
-  background: rgba(255,210,0,0.08);
+  background: var(--accent-soft);
 }
 .planning-cell.is-clickable:hover {
-  background: rgba(255,210,0,0.05) !important;
+  background: var(--accent-soft) !important;
 }
 .planning-cell.is-drop-target {
-  box-shadow: inset 0 0 0 1px rgba(255,210,0,0.45);
-  background: rgba(255,210,0,0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(241,171,0,0.45);
+  background: var(--accent-soft) !important;
 }
 .rdv-block.is-dragging {
   opacity: 0.35 !important;

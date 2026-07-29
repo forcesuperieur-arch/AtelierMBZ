@@ -7,7 +7,7 @@
            empilées comme dans l'ancienne version. -->
       <AppEmptyState
         v-if="!aQuelqueChose"
-        icon="🗂"
+        icon="i-ri-folders-line"
         title="Pas encore assez d'historique"
         description="Cet onglet se remplit dès que des interventions sont clôturées sur la période choisie."
       />
@@ -150,7 +150,7 @@
         />
         <AppEmptyState
           v-else
-          icon="🔮"
+          icon="i-ri-magic-line"
           title="Historique insuffisant"
           description="La prévision demande au moins sept jours de données facturées."
         />
@@ -404,10 +404,10 @@ function changerHorizon(d: number) {
 }
 
 const OPTIONS_FORECAST = {
-  plugins: { legend: { display: true, labels: { color: '#9CA3AF', font: { size: 11 } } } },
+  plugins: { legend: { display: true, labels: { color: 'var(--content-3)', font: { size: 11 } } } },
   scales: {
-    x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 10 }, maxTicksLimit: 8 } },
-    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
+    x: { grid: { display: false }, ticks: { color: 'var(--content-3)', font: { size: 10 }, maxTicksLimit: 8 } },
+    y: { grid: { color: 'var(--content-3)' }, ticks: { color: 'var(--content-3)', font: { size: 10 } }, beginAtZero: true },
   },
 }
 
@@ -420,8 +420,8 @@ const forecastData = computed(() => {
       {
         label: 'Réalisé',
         data: [...hist.map((h: any) => Number(h.ca_ht ?? 0)), ...prev.map(() => null)],
-        borderColor: '#FFD200',
-        backgroundColor: 'rgba(255,210,0,0.10)',
+        borderColor: 'var(--accent)',
+        backgroundColor: 'var(--accent-soft)',
         borderWidth: 2,
         pointRadius: 0,
         fill: true,
@@ -430,8 +430,8 @@ const forecastData = computed(() => {
       {
         label: 'Prévu',
         data: [...hist.map(() => null), ...prev.map((f: any) => Number(f.ca_ht ?? 0))],
-        borderColor: '#0D9488',
-        backgroundColor: 'rgba(13,148,136,0.10)',
+        borderColor: 'var(--viz-3)',
+        backgroundColor: 'var(--viz-3-soft)',
         borderWidth: 2,
         // Le pointillé est réservé à ce qui n'est pas encore arrivé : ici il
         // porte du sens, contrairement à une grille en pointillés.
@@ -469,8 +469,8 @@ onMounted(() => {
 }
 .derive-label { font-size: 13px; color: var(--ink-body); }
 .derive-value { font-size: 14px; font-weight: 700; color: var(--ink); }
-.derive-value--good { color: var(--status-good); }
-.derive-value--warn { color: var(--status-warn); }
+.derive-value--good { color: var(--success-content); }
+.derive-value--warn { color: var(--warning-content); }
 
 .explore-controls {
   /* Aligné en haut : en flex-end, le champ « Dimension » (une ligne) se
@@ -495,7 +495,7 @@ onMounted(() => {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--overlay-soft);
   color: var(--ink-body);
   font-family: inherit;
   font-size: 13px;
@@ -534,8 +534,8 @@ onMounted(() => {
   cursor: pointer;
 }
 .horizon--on {
-  border-color: rgba(255, 210, 0, 0.35);
-  background: rgba(255, 210, 0, 0.12);
-  color: var(--orange);
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
+  color: var(--accent-content);
 }
 </style>

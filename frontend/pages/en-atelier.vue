@@ -10,7 +10,7 @@
           </div>
         </div>
         <button class="btn btn-ghost" :disabled="loading" @click="load">
-          {{ loading ? 'Actualisation…' : '↻ Actualiser' }}
+          <AppIcon v-if="!(loading)" name="i-ri-refresh-line" />{{ loading ? 'Actualisation…' : 'Actualiser' }}
         </button>
       </div>
     </div>
@@ -64,7 +64,7 @@
           :class="{ 'puce--active': seulementDepassements }"
           @click="seulementDepassements = !seulementDepassements"
         >
-          ⏱ Seulement les dépassements
+          <AppIcon name="i-ri-timer-line" /> Seulement les dépassements
         </button>
         <button v-if="filtresActifs" class="lien-reset" @click="reinitialiser">Réinitialiser</button>
         <span class="compteur">{{ motosFiltrees.length }} affichée(s) / {{ motos.length - motosFiltrees.length }} masquée(s)</span>
@@ -72,7 +72,7 @@
 
       <AppEmptyState
         v-if="!motos.length"
-        icon="🏍️"
+        icon="i-ri-motorbike-line"
         title="Aucune moto à l'atelier"
         description="Aucune moto n'est actuellement immobilisée dans l'atelier."
       />
@@ -301,33 +301,33 @@ onUnmounted(() => {
 .kpi-card {
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
 }
 
 .kpi-card--alerte {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.07);
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .kpi-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .kpi-value {
   margin-top: 4px;
   font-size: 26px;
   font-weight: 800;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .kpi-sub {
   margin-top: 2px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .filtres {
@@ -343,26 +343,26 @@ onUnmounted(() => {
   min-width: 200px;
   padding: 7px 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #E5E7EB;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-1);
   font-size: 12px;
 }
 
 .puce {
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #D1D5DB;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-2);
   font-size: 12px;
   cursor: pointer;
 }
 
 .puce--active {
-  background: rgba(255, 210, 0, 0.16);
-  border-color: #FFD200;
-  color: #FFD200;
+  background: var(--accent-soft);
+  border-color: var(--accent-graphic);
+  color: var(--accent-content);
   font-weight: 600;
 }
 
@@ -370,7 +370,11 @@ onUnmounted(() => {
 .lien-action {
   background: transparent;
   border: none;
-  color: #FFD200;
+  /* Le DS écrit ses liens en encre soulignée (`.mb-link`) : le jaune de texte
+     ne tenait pas 4,5:1 sur la ligne teintée. */
+  color: var(--content-1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -380,13 +384,13 @@ onUnmounted(() => {
 .compteur {
   margin-left: auto;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .table-wrap {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-2);
 }
 
 .table-atelier {
@@ -400,20 +404,20 @@ onUnmounted(() => {
   text-align: left;
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: #9CA3AF;
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--content-3);
+  background: var(--overlay-soft);
   white-space: nowrap;
 }
 
 .table-atelier td {
   padding: 10px 12px;
-  color: #E5E7EB;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--content-1);
+  border-top: 1px solid var(--border-2);
   vertical-align: top;
 }
 
 .ligne--depassement {
-  background: rgba(245, 158, 11, 0.06);
+  background: var(--warning-soft);
 }
 
 .duree {
@@ -422,20 +426,20 @@ onUnmounted(() => {
 }
 
 .duree--alerte {
-  color: #FBBF24;
+  color: var(--warning-content);
 }
 
 .cell-sub {
   margin-top: 2px;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .badge-statut {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #D1D5DB;
+  background: var(--overlay-hover);
+  color: var(--content-2);
   white-space: nowrap;
 }
 
@@ -443,8 +447,8 @@ onUnmounted(() => {
   padding: 20px;
   text-align: center;
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-2);
 }
 </style>

@@ -37,7 +37,7 @@
         {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
       </div>
       <button class="nav-btn nav-logout" @click="auth.logout()">
-        <span>⏻</span>
+        <span class="nav-icon"><AppIcon name="i-ri-shut-down-line" /></span>
         <span class="nav-label">Déconnexion</span>
       </button>
     </nav>
@@ -46,7 +46,7 @@
     <div class="main-area">
       <!-- TOPBAR -->
       <header class="topbar">
-        <button class="topbar-menu-btn" @click="appStore.toggleSidebar()">☰</button>
+        <button class="topbar-menu-btn" aria-label="Afficher ou masquer le menu" @click="appStore.toggleSidebar()"><AppIcon name="i-ri-menu-line" /></button>
         <div class="topbar-brand">
           <img v-if="atelierLogoUrl" :src="atelierLogoUrl" :alt="atelierName" class="topbar-brand-logo" />
           <span v-else class="topbar-brand-fallback">{{ atelierInitial }}</span>
@@ -63,10 +63,11 @@
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
         </div>
+        <AppThemeToggle />
         <AppNotificationBell :atelier-id="currentNotificationAtelierId" />
         <div class="live-dot" />
         <span class="topbar-live">LIVE</span>
-        <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
+        <NuxtLink v-if="auth.hasSection('rdv')" to="/rdv/new" class="btn btn-primary">+ Nouveau RDV</NuxtLink>
       </header>
 
       <!-- CONTENT -->
@@ -91,7 +92,9 @@ const { fetchUnreadCount, fetchNotifications, connect: connectNotifs, disconnect
 
 const atelierName = computed(() => atelierStore.branding?.nom || 'Paddock')
 const atelierLogoUrl = computed(() => atelierStore.branding?.logo_url || '/branding/paddock-logo-symbol.svg')
-const topbarLogoUrl = computed(() => '/branding/paddock-logo-horizontal.svg')
+const brandLogo = useBrandLogo()
+// Variante encrée en thème clair : le mot-symbole d'origine est blanc cassé.
+const topbarLogoUrl = brandLogo.horizontal
 const atelierInitial = computed(() => atelierName.value.trim().charAt(0).toUpperCase() || 'P')
 const isDesktop = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -176,21 +179,21 @@ const currentSection = computed(() => {
 
 const menuItems = computed(() => {
   const items = [
-    { to: '/', icon: '📊', label: 'Stat', section: 'dashboard' },
-    { to: '/rdv', icon: '📅', label: 'Prise de RDV', section: 'rdv' },
-    { to: '/planning', icon: '🗓', label: 'Planning', section: 'planning' },
-    { to: '/reception', icon: '📥', label: 'Réception', section: 'planning' },
-    { to: '/en-atelier', icon: '⏳', label: 'En atelier', section: 'planning' },
-    { to: '/workshop', icon: '🔧', label: 'Ponts & Méca', section: 'workshop' },
-    { to: '/demandes-travaux-supp', icon: '🛠️', label: 'Travaux complémentaires', section: 'workshop' },
-    { to: '/suivi', icon: '👁', label: 'Suivi Live', section: 'suivi' },
-    { to: '/clients', icon: '👥', label: 'Clients', section: 'clients' },
-    { to: '/motos', icon: '🏍️', label: 'Fiches moto', section: 'motos' },
-    { to: '/devis', icon: '📝', label: 'Devis', section: 'devis' },
-    { to: '/facturation', icon: '💳', label: 'Factures', section: 'facturation' },
-    { to: '/stock', icon: '📦', label: 'Stock', section: 'stock' },
-    { to: '/vo', icon: '🏷️', label: 'VO', section: 'vo' },
-    { to: '/admin', icon: '⚙', label: 'Administration', section: 'admin' },
+    { to: '/', icon: 'i-ri-bar-chart-2-line', label: 'Stat', section: 'dashboard' },
+    { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
+    { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
+    { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
+    { to: '/en-atelier', icon: 'i-ri-hourglass-line', label: 'En atelier', section: 'planning' },
+    { to: '/workshop', icon: 'i-ri-tools-line', label: 'Ponts & Méca', section: 'workshop' },
+    { to: '/demandes-travaux-supp', icon: 'i-ri-hammer-line', label: 'Travaux complémentaires', section: 'workshop' },
+    { to: '/suivi', icon: 'i-ri-eye-line', label: 'Suivi Live', section: 'suivi' },
+    { to: '/clients', icon: 'i-ri-group-line', label: 'Clients', section: 'clients' },
+    { to: '/motos', icon: 'i-ri-motorbike-line', label: 'Fiches moto', section: 'motos' },
+    { to: '/devis', icon: 'i-ri-draft-line', label: 'Devis', section: 'devis' },
+    { to: '/facturation', icon: 'i-ri-bank-card-line', label: 'Factures', section: 'facturation' },
+    { to: '/stock', icon: 'i-ri-archive-line', label: 'Stock', section: 'stock' },
+    { to: '/vo', icon: 'i-ri-price-tag-3-line', label: 'VO', section: 'vo' },
+    { to: '/admin', icon: 'i-ri-settings-3-line', label: 'Administration', section: 'admin' },
   ]
   return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
 })
@@ -287,12 +290,14 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   min-height: 600px;
 }
 
-/* === Sidebar overlay (mobile) === */
+/* === Sidebar overlay (mobile) ===
+   Voile opaque SANS flou : c'est ce que demande le design system pour un
+   arrière-plan de surcouche. `--scrim` porte déjà l'opacité prescrite. Ce
+   `backdrop-filter` était le dernier survivant des onze de l'application. */
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
   z-index: 40;
 }
 @media (min-width: 1024px) {
@@ -302,8 +307,8 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 /* === SIDEBAR === */
 .sidebar {
   width: 220px;
-  background: linear-gradient(180deg, #111218 0%, #0E0F15 100%);
-  border-right: 1px solid rgba(255,255,255,0.06);
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-2);
   display: flex;
   flex-direction: column;
   padding: 16px 0;
@@ -368,7 +373,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 /* Logo */
 .sidebar-logo {
   min-height: 58px;
-  background: linear-gradient(135deg, #FFD200, #D97706);
+  background: var(--accent);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -378,22 +383,22 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   padding: 9px 10px;
   font-size: 18px;
   font-weight: 800;
-  color: #111;
+  color: var(--accent-ink);
   cursor: pointer;
   letter-spacing: 0.3px;
-  box-shadow: 0 2px 12px rgba(245,158,11,0.2);
+  box-shadow: 0 2px 12px rgba(217,101,0,0.2);
   transition: all 0.2s;
   border: none;
   font-family: inherit;
   text-align: left;
 }
 .sidebar-logo:hover {
-  box-shadow: 0 4px 20px rgba(245,158,11,0.3);
+  box-shadow: 0 4px 20px rgba(217,101,0,0.3);
   transform: translateY(-1px);
 }
 .sidebar-logo-image,
 .topbar-brand-logo {
-  background: rgba(255,255,255,0.92);
+  background: var(--surface-2);
   border-radius: 8px;
   object-fit: contain;
   flex-shrink: 0;
@@ -410,8 +415,8 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   justify-content: center;
   border-radius: 8px;
   font-weight: 800;
-  background: rgba(17,17,17,0.18);
-  color: #111;
+  background: var(--surface-3);
+  color: var(--accent-ink);
   flex-shrink: 0;
 }
 .sidebar-logo-fallback {
@@ -431,7 +436,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #8B5CF6;
+  background: var(--info);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -440,11 +445,11 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s;
-  color: white;
+  color: var(--on-info);
   margin-left: 16px;
   margin-bottom: 4px;
 }
-.meca-avatar:hover { border-color: #8B5CF6; }
+.meca-avatar:hover { border-color: var(--info); }
 
 /* Logout button */
 .nav-logout {
@@ -452,7 +457,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: #4B5563;
+  color: var(--content-disabled);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -466,7 +471,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 }
 .nav-logout span:first-child { font-size: 14px; width: 24px; text-align: center; }
 .nav-label { font-size: 13px; font-weight: 500; }
-.nav-logout:hover { color: #9CA3AF; background: rgba(255,255,255,0.04); }
+.nav-logout:hover { color: var(--content-3); background: var(--overlay-soft); }
 
 /* === MAIN AREA === */
 .main-area {
@@ -480,8 +485,8 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 .topbar {
   position: relative;
   height: 56px;
-  background: #11141B;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-2);
   display: flex;
   align-items: center;
   padding: 0 24px;
@@ -491,9 +496,9 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 .topbar-menu-btn {
   display: none;
   background: none;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-1);
   border-radius: 6px;
-  color: #9CA3AF;
+  color: var(--content-3);
   cursor: pointer;
   padding: 6px 10px;
   font-size: 16px;
@@ -507,7 +512,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   gap: 8px;
   padding-right: 12px;
   margin-right: 2px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid var(--border-2);
   position: relative;
   z-index: 1;
 }
@@ -544,7 +549,7 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 @media (max-width: 900px) {
@@ -565,32 +570,13 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
 .topbar-title {
   font-size: 16px;
   font-weight: 600;
-  color: #E8E9ED;
+  color: var(--content-1);
   letter-spacing: -0.2px;
 }
 .topbar-spacer { flex: 1; }
 .topbar-live {
   font-size: 12px;
-  color: #6B7280;
-}
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #FFD200, #D97706);
-  color: #111;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(245,158,11,0.2);
-}
-.topbar-new-btn:hover {
-  background: linear-gradient(135deg, #FBBF24, #FFD200);
-  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
-  transform: translateY(-1px);
+  color: var(--content-3);
 }
 
 /* === CONTENT === */

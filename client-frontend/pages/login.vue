@@ -1,9 +1,12 @@
 <template>
   <div class="login-page">
+    <!-- Ces pages sont en `layout: false` : la bascule de thème de la mise en
+         page ne s'y monte pas, il faut la poser ici. -->
+    <ThemeToggle floating />
     <div class="login-card">
-      <img src="/branding/paddock-logo-stacked.svg" alt="Paddock" style="width:72px;height:72px;margin:0 auto 12px;display:block;" />
+      <img :src="logo" alt="Paddock" style="width:72px;height:72px;margin:0 auto 12px;display:block;" />
       <h1 style="font-size:22px;font-weight:800;margin-bottom:4px;">Espace Client</h1>
-      <p style="font-size:13px;color:#9CA3AF;margin-bottom:20px;">Connexion à votre espace client</p>
+      <p style="font-size:13px;color:var(--content-3);margin-bottom:20px;">Connexion à votre espace client</p>
 
       <form @submit.prevent="handleLogin">
         <div class="login-field">
@@ -19,7 +22,7 @@
         </button>
         <div v-if="error" class="login-error">{{ error }}</div>
       </form>
-      <NuxtLink to="/forgot-password" style="font-size:13px;color:#9CA3AF;margin-top:16px;display:inline-block;">
+      <NuxtLink to="/forgot-password" style="font-size:13px;color:var(--content-3);margin-top:16px;display:inline-block;">
         Activer mon compte / Mot de passe oublié
       </NuxtLink>
     </div>
@@ -27,6 +30,8 @@
 </template>
 
 <script setup lang="ts">
+const { stacked: logo } = useBrandLogo()
+
 definePageMeta({ layout: false })
 
 const auth = useAuthStore()
@@ -56,18 +61,18 @@ async function handleLogin() {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(700px 360px at 50% 18%, rgba(255, 210, 0, 0.08), transparent 70%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0 2px, transparent 2px 6px),
-    #0A0B0F;
-  color: #E8E9ED;
+    radial-gradient(700px 360px at 50% 18%, var(--accent-soft), transparent 70%),
+    repeating-linear-gradient(135deg, var(--overlay-soft) 0 2px, transparent 2px 6px),
+    var(--surface-0);
+  color: var(--content-1);
 }
 .login-card {
   position: relative;
   width: 100%;
   max-width: 380px;
   padding: 40px 32px 32px;
-  background: linear-gradient(180deg, #1A1D26, #14161D);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--border-2);
   border-radius: 16px;
   text-align: center;
   box-shadow: 0 16px 48px rgba(0,0,0,0.55);
@@ -80,13 +85,12 @@ async function handleLogin() {
   position: absolute;
   top: 0; left: 0;
   height: 4px; width: 96px;
-  background: linear-gradient(90deg, #FFD200 70%, transparent);
+  background: linear-gradient(90deg, var(--accent) 70%, transparent);
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 .login-card h1 {
   font-family: var(--pad-font-display, sans-serif);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 @keyframes card-in {
   from { opacity: 0; transform: translateY(14px) scale(0.99); }
@@ -102,29 +106,31 @@ async function handleLogin() {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 6px;
 }
 .login-field input {
   width: 100%;
   padding: 11px 13px;
   background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-1);
   border-radius: 9px;
-  color: #E8E9ED;
+  color: var(--content-1);
   font-size: 14px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .login-field input:focus {
-  border-color: rgba(255, 210, 0, 0.6);
-  box-shadow: 0 0 0 3px rgba(255, 210, 0, 0.12);
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 0 3px rgba(241,171,0,0.12);
 }
 .login-btn {
   width: 100%;
   padding: 13px;
-  background: linear-gradient(135deg, #FFD200, #F0B90B);
-  color: #14161D;
+  /* Aplat franc : le design system n'a aucun dégradé. Encre noire sur le
+     jaune de marque, comme le prescrit `.mb-btn--accent`. */
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   border-radius: 9px;
   font-family: var(--pad-font-display, sans-serif);
@@ -134,12 +140,14 @@ async function handleLogin() {
   text-transform: uppercase;
   cursor: pointer;
   margin-top: 8px;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  transition: background var(--dur-fast) var(--ease);
 }
+/* Le DS obtient ses états par la TEINTE, sans déplacement ni halo. */
 .login-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(255, 210, 0, 0.3);
-  filter: brightness(1.04);
+  background: var(--accent-hover);
+}
+.login-btn:active:not(:disabled) {
+  background: var(--accent-active);
 }
 .login-btn:disabled {
   opacity: 0.6;
@@ -148,6 +156,6 @@ async function handleLogin() {
 .login-error {
   margin-top: 12px;
   font-size: 13px;
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 </style>

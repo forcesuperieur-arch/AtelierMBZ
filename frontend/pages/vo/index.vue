@@ -6,18 +6,18 @@
         <div class="vo-subtitle">Pilotage du stock VO, des dossiers moto actifs et des points de validation OCR.</div>
       </div>
       <div class="vo-header-actions">
-        <NuxtLink to="/vo/rachats/new" class="topbar-new-btn">+ Nouveau rachat</NuxtLink>
-        <NuxtLink to="/vo/depots/new" class="topbar-new-btn vo-secondary-btn">+ Dépôt-vente</NuxtLink>
+        <NuxtLink to="/vo/rachats/new" class="btn btn-primary">+ Nouveau rachat</NuxtLink>
+        <NuxtLink to="/vo/depots/new" class="btn vo-secondary-btn">+ Dépôt-vente</NuxtLink>
       </div>
     </div>
 
     <VONav />
 
     <div v-if="stats" class="vo-stats-grid">
-      <StatsCard title="En stock" :value="stats.en_stock" icon="🏍️" />
-      <StatsCard title="Vendus ce mois" :value="stats.vendus" icon="✅" />
-      <StatsCard title="Dépôts actifs" :value="stats.depots_actifs" icon="📋" />
-      <StatsCard title="Alertes dossiers" :value="stats.alerts_count" icon="⚠️" :color="stats.alerts_count > 0 ? 'warning' : 'primary'" />
+      <StatsCard title="En stock" :value="stats.en_stock" />
+      <StatsCard title="Vendus ce mois" :value="stats.vendus" />
+      <StatsCard title="Dépôts actifs" :value="stats.depots_actifs" />
+      <StatsCard title="Alertes dossiers" :value="stats.alerts_count" :color="stats.alerts_count > 0 ? 'warning' : 'primary'" />
     </div>
 
     <div class="vo-dashboard-grid">
@@ -52,7 +52,7 @@
               </div>
               <div v-if="item.source === 'purchase'">
                 <span class="vo-k">Marge</span>
-                <strong :style="{ color: Number(item.marge || 0) >= 0 ? '#22c55e' : '#ef4444' }">{{ formatPrice(item.marge || 0) }}</strong>
+                <strong :style="{ color: Number(item.marge || 0) >= 0 ? 'var(--success-content)' : 'var(--error-content)' }">{{ formatPrice(item.marge || 0) }}</strong>
               </div>
               <div v-else>
                 <span class="vo-k">Net déposant</span>
@@ -140,7 +140,7 @@ onMounted(async () => {
 
 .vo-subtitle {
   margin-top: 6px;
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 13px;
 }
 
@@ -150,8 +150,12 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
+/* Aplat d'état : l'encre doit être celle prévue pour lui, sinon le libellé
+   prend `--content-1` et ne contraste plus. */
 .vo-secondary-btn {
-  background: #1d4ed8;
+  background: var(--info);
+  color: var(--on-info);
+  border-color: transparent;
 }
 
 .vo-stats-grid {
@@ -172,12 +176,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
 .vo-inline-link {
-  color: #f59e0b;
+  color: var(--warning-content);
   text-decoration: none;
   font-size: 12px;
   font-weight: 700;
@@ -186,7 +190,7 @@ onMounted(async () => {
 .vo-empty {
   padding: 18px;
   text-align: center;
-  color: #6b7280;
+  color: var(--content-3);
 }
 
 .vo-quick-list,
@@ -200,8 +204,8 @@ onMounted(async () => {
   gap: 12px;
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   text-decoration: none;
 }
 
@@ -213,13 +217,13 @@ onMounted(async () => {
 }
 
 .vo-stock-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-size: 15px;
   font-weight: 700;
 }
 
 .vo-stock-meta {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
   margin-top: 4px;
 }
@@ -232,12 +236,12 @@ onMounted(async () => {
 
 .vo-stock-metrics strong {
   display: block;
-  color: #e8e9ed;
+  color: var(--content-1);
   margin-top: 4px;
 }
 
 .vo-k {
-  color: #6b7280;
+  color: var(--content-3);
   font-size: 11px;
   text-transform: uppercase;
 }
@@ -251,22 +255,22 @@ onMounted(async () => {
 .vo-flag {
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #d1d5db;
+  background: var(--overlay-hover);
+  color: var(--content-2);
   font-size: 11px;
   font-weight: 700;
 }
 
 .vo-flag.is-warning {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 
 .vo-alert-item {
   padding: 14px;
   border-radius: 12px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid var(--error);
+  background: var(--error-soft);
 }
 
 .vo-alert-item.is-link {
@@ -275,14 +279,14 @@ onMounted(async () => {
 }
 
 .vo-alert-title {
-  color: #fca5a5;
+  color: var(--error-content);
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 6px;
 }
 
 .vo-alert-text {
-  color: #d1d5db;
+  color: var(--content-2);
   font-size: 12px;
   line-height: 1.5;
 }

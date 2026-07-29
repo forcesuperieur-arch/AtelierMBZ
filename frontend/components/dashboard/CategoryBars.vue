@@ -14,7 +14,7 @@
 
   <AppEmptyState
     v-else
-    :icon="emptyIcon || '📊'"
+    :icon="emptyIcon || 'i-ri-bar-chart-2-line'"
     :title="emptyTitle || 'Aucune donnée'"
     :description="emptyDescription || 'Cette répartition se remplit dès que l’activité est enregistrée.'"
   />
@@ -61,7 +61,7 @@ function largeur(value: number): number {
 .cat-track {
   height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-hover);
   overflow: hidden;
 }
 .cat-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }

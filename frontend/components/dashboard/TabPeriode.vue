@@ -64,7 +64,7 @@
           <ChartsLineChart v-if="trend.length > 1" :data="trendRdvData" :options="OPTIONS_UNE_SERIE" />
           <AppEmptyState
             v-else
-            icon="📉"
+            icon="i-ri-line-chart-line"
             title="Période trop courte"
             description="Choisis au moins deux jours pour voir une évolution."
           />
@@ -91,7 +91,7 @@
         >
           <DashboardCategoryBars
             :items="origines"
-            empty-icon="🌐"
+            empty-icon="i-ri-global-line"
             empty-title="Aucun rendez-vous sur la période"
             empty-description="L'origine est enregistrée à chaque prise de rendez-vous (web, comptoir, téléphone, devis)."
           />
@@ -173,8 +173,8 @@ const origines = computed(() => {
 const OPTIONS_UNE_SERIE = {
   plugins: { legend: { display: false } },
   scales: {
-    x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 10 }, maxTicksLimit: 8 } },
-    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
+    x: { grid: { display: false }, ticks: { color: 'var(--content-3)', font: { size: 10 }, maxTicksLimit: 8 } },
+    y: { grid: { color: 'var(--content-3)' }, ticks: { color: 'var(--content-3)', font: { size: 10 } }, beginAtZero: true },
   },
 }
 
@@ -183,8 +183,8 @@ const trendRdvData = computed(() => ({
   datasets: [{
     label: 'Rendez-vous',
     data: trend.value.map((r: any) => Number(r.rdvs ?? 0)),
-    borderColor: '#FFD200',
-    backgroundColor: 'rgba(255,210,0,0.12)',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--accent-soft)',
     borderWidth: 2,
     pointRadius: 0,
     pointHoverRadius: 4,
@@ -198,8 +198,8 @@ const trendCaData = computed(() => ({
   datasets: [{
     label: 'Chiffre d\'affaires',
     data: trend.value.map((r: any) => Number(r.revenue ?? 0)),
-    borderColor: '#0D9488',
-    backgroundColor: 'rgba(13,148,136,0.12)',
+    borderColor: 'var(--viz-3)',
+    backgroundColor: 'var(--viz-3-soft)',
     borderWidth: 2,
     pointRadius: 0,
     pointHoverRadius: 4,

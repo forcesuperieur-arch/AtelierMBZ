@@ -62,7 +62,7 @@ onMounted(() => {
   // Fond blanc : la signature est encre sombre sur blanc dans le PDF figé
   const ctx = sigCanvas.value?.getContext('2d')
   if (ctx && sigCanvas.value) {
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = 'var(--content-1)'
     ctx.fillRect(0, 0, sigCanvas.value.width, sigCanvas.value.height)
   }
 })
@@ -93,7 +93,7 @@ function draw(e: PointerEvent) {
   if (!ctx) return
   const pos = getPos(e)
   ctx.lineTo(pos.x, pos.y)
-  ctx.strokeStyle = '#111'
+  ctx.strokeStyle = 'var(--accent-ink)'
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -114,7 +114,7 @@ function clearSignature() {
   const c = sigCanvas.value
   const ctx = c?.getContext('2d')
   if (!c || !ctx) return
-  ctx.fillStyle = '#fff'
+  ctx.fillStyle = 'var(--content-1)'
   ctx.fillRect(0, 0, c.width, c.height)
   hasDrawn.value = false
   drawnDistance = 0
@@ -138,15 +138,15 @@ function confirm() {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--scrim);
 }
 .sig-modal {
   width: 100%;
   max-width: 640px;
   padding: 20px;
   border-radius: 12px;
-  background: #15161D;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
 }
 .sig-title {
   font-size: 17px;
@@ -155,15 +155,15 @@ function confirm() {
 }
 .sig-hint {
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin: 0 0 12px;
 }
 .sig-canvas {
   width: 100%;
   height: auto;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  background: #fff;
+  border: 1px dashed var(--border-1);
+  background: var(--surface-1);
   /* Indispensable : sans ça le navigateur scrolle au lieu de dessiner */
   touch-action: none;
   cursor: crosshair;
@@ -171,7 +171,7 @@ function confirm() {
 .sig-error {
   margin-top: 8px;
   font-size: 13px;
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 .sig-actions {
   display: flex;

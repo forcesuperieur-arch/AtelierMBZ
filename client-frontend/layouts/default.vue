@@ -11,9 +11,13 @@
         <NuxtLink to="/historique">Historique</NuxtLink>
         <NuxtLink to="/motos">Mes motos</NuxtLink>
         <NuxtLink to="/profil">Mon profil</NuxtLink>
+        <ThemeToggle />
         <button class="nav-logout" @click="auth.logout">Déconnexion</button>
       </div>
     </nav>
+    <!-- Hors session (connexion, réinitialisation) la barre de navigation est
+         masquée : le réglage de thème reste joignable en coin d'écran. -->
+    <ThemeToggle v-else floating />
     <main class="client-main">
       <slot />
     </main>
@@ -22,12 +26,16 @@
 
 <script setup lang="ts">
 const auth = useAuthStore()
+
+// Monte la gestion de thème au niveau de la mise en page : c'est elle qui
+// applique l'attribut `data-theme` et suit la préférence système.
+useTheme()
 </script>
 
 <style>
 .client-layout {
   min-height: 100vh;
-  color: var(--pad-text, #E8E9ED);
+  color: var(--pad-text, var(--content-1));
 }
 
 /* Barre de nav : surface translucide + bande de course en tête */
@@ -41,9 +49,8 @@ const auth = useAuthStore()
   flex-wrap: wrap;
   gap: 8px;
   padding: 14px 28px;
-  background: rgba(16, 17, 23, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--pad-border, rgba(255,255,255,0.07));
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--pad-border, var(--border-2));
 }
 .client-nav::before {
   content: '';
@@ -52,14 +59,14 @@ const auth = useAuthStore()
   left: 0;
   height: 3px;
   width: 140px;
-  background: linear-gradient(90deg, #FFD200 60%, transparent);
+  background: linear-gradient(90deg, var(--accent) 60%, transparent);
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .brand-text {
   font-family: var(--pad-font-display, sans-serif);
@@ -81,7 +88,7 @@ const auth = useAuthStore()
 /* Liens : soulignement course qui se déploie */
 .nav-links a {
   position: relative;
-  color: #9CA3AF;
+  color: var(--content-3);
   text-decoration: none;
   padding: 10px 4px;
   font-weight: 500;
@@ -94,13 +101,13 @@ const auth = useAuthStore()
   bottom: -2px;
   height: 2px;
   width: 100%;
-  background: #FFD200;
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.22s var(--pad-ease, ease-out);
 }
 .nav-links a:hover, .nav-links a.router-link-active {
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .nav-links a.router-link-active::after,
 .nav-links a:hover::after {
@@ -109,8 +116,8 @@ const auth = useAuthStore()
 
 .nav-logout {
   background: none;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #FCA5A5;
+  border: 1px solid var(--error);
+  color: var(--error-content);
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -118,8 +125,8 @@ const auth = useAuthStore()
   transition: background 0.15s, border-color 0.15s;
 }
 .nav-logout:hover {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: var(--error-soft);
+  border-color: var(--error);
 }
 
 .client-main {

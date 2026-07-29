@@ -38,7 +38,7 @@ const pct = computed(() => {
 .meter-track {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--overlay-hover);
   overflow: hidden;
 }
 .meter-fill {

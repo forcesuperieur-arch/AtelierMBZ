@@ -17,18 +17,11 @@
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  background: radial-gradient(ellipse at 50% 40%, #16150e 0%, #0C0D12 60%, #080810 100%);
+  /* Le design system pose des fonds PROPRES : « No gradients in the system ».
+     Les trois lueurs jaunes superposées ici délavaient le thème clair. */
+  background: var(--surface-0);
   position: relative;
   overflow: hidden;
-}
-.public-layout::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(600px circle at 50% 30%, rgba(255,210,0,0.06), transparent 60%),
-    radial-gradient(400px circle at 30% 70%, rgba(255,210,0,0.035), transparent 60%);
-  pointer-events: none;
 }
 .public-content {
   flex: 1;
@@ -44,14 +37,14 @@
   text-align: center;
   padding: 16px;
   font-size: 12px;
-  color: #6B7280;
+  color: var(--content-3);
 }
 .public-footer a {
-  color: #9CA3AF;
+  color: var(--content-3);
   text-decoration: none;
 }
 .public-footer a:hover {
-  color: #FFD200;
+  color: var(--accent-content);
 }
 .public-footer span {
   margin: 0 8px;

@@ -34,7 +34,7 @@
             >
               <span class="puce-champ">{{ store.libelleAxe(filtre.field) }}</span>
               <span class="puce-valeurs">{{ resumerValeurs(filtre.values) }}</span>
-              <span class="puce-croix" aria-hidden="true">✕</span>
+              <span class="puce-croix" aria-hidden="true"><AppIcon name="i-ri-close-line" /></span>
             </button>
             <button type="button" class="tout-effacer" @click="store.toutEffacer(); lancer()">
               Tout effacer
@@ -152,7 +152,7 @@
             <button type="button" class="vue-ouvrir" @click="store.ouvrirVue(vue.nom); lancer()">
               {{ vue.nom }}
             </button>
-            <button type="button" class="vue-suppr" :title="`Supprimer ${vue.nom}`" @click="store.supprimerVue(vue.nom)">✕</button>
+            <button type="button" class="vue-suppr" :title="`Supprimer ${vue.nom}`" @click="store.supprimerVue(vue.nom)"><AppIcon name="i-ri-close-line" /></button>
           </div>
         </div>
       </DashboardSection>
@@ -283,9 +283,9 @@ onMounted(async () => {
   transition: border-color var(--transition), background var(--transition);
 }
 .depart:hover { border-color: var(--border-hover); }
-.depart--on { border-color: rgba(255, 210, 0, 0.4); background: rgba(255, 210, 0, 0.07); }
+.depart--on { border-color: var(--accent-graphic); background: var(--accent-soft); }
 .depart-titre { font-size: 13px; font-weight: 700; color: var(--ink); }
-.depart--on .depart-titre { color: var(--orange); }
+.depart--on .depart-titre { color: var(--accent-content); }
 .depart-desc { font-size: 11px; line-height: 1.4; color: var(--ink-muted); white-space: normal; }
 
 .selection {
@@ -319,14 +319,14 @@ onMounted(async () => {
   min-height: 26px;
   padding: 3px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 210, 0, 0.35);
-  background: rgba(255, 210, 0, 0.1);
-  color: var(--orange);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
 }
-.puce:hover { background: rgba(255, 210, 0, 0.18); }
+.puce:hover { background: var(--accent-soft); }
 .puce-champ { color: var(--ink-muted); }
 .puce-valeurs { font-weight: 700; }
 .puce-croix { font-size: 10px; opacity: 0.8; }
@@ -342,7 +342,7 @@ onMounted(async () => {
 .tout-effacer:hover { color: var(--ink); }
 .compteur { display: flex; align-items: baseline; gap: 5px; font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
 .compteur strong { font-size: 17px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-.compteur--filtre strong { color: var(--orange); }
+.compteur--filtre strong { color: var(--accent-content); }
 
 .reglages {
   display: flex;
@@ -366,7 +366,7 @@ onMounted(async () => {
   padding: 7px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--overlay-soft);
   color: var(--ink-body);
   font-family: inherit;
   font-size: 13px;
@@ -385,9 +385,9 @@ onMounted(async () => {
 }
 .mesure:hover { border-color: var(--border-hover); color: var(--ink-body); }
 .mesure--on {
-  border-color: rgba(255, 210, 0, 0.4);
-  background: rgba(255, 210, 0, 0.1);
-  color: var(--orange);
+  border-color: var(--accent-graphic);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-weight: 600;
 }
 
@@ -440,23 +440,23 @@ onMounted(async () => {
   padding: 1px 7px;
   border-radius: 999px;
   background: var(--status-crit-soft);
-  color: #FCA5A5;
+  color: var(--error-content);
 }
 .detail-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-muted); }
 .detail-action {
   min-height: 28px;
   padding: 4px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 210, 0, 0.28);
-  background: rgba(255, 210, 0, 0.1);
-  color: var(--orange);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-content);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
-.detail-action:hover { background: rgba(255, 210, 0, 0.18); }
+.detail-action:hover { background: var(--accent-soft); }
 .detail-note { margin: 10px 0 0; font-size: 11px; color: var(--ink-muted); }
 
 .vues { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -477,9 +477,9 @@ onMounted(async () => {
   padding: 5px 10px;
   cursor: pointer;
 }
-.vue-ouvrir:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.vue-ouvrir:hover { background: var(--overlay-hover); color: var(--ink); }
 .vue-suppr { color: var(--ink-muted); border-left: 1px solid var(--glass-border); }
-.vue-suppr:hover { color: #FCA5A5; }
+.vue-suppr:hover { color: var(--error-content); }
 
 .vide { margin: 0; font-size: 13px; color: var(--ink-muted); }
 </style>

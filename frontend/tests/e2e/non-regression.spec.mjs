@@ -208,7 +208,7 @@ test.describe('Non-Regression: Core Navigation', () => {
     await page.waitForLoadState('networkidle');
 
     // Key sidebar links should exist (check text content for icon/label)
-    for (const label of ['📅', '🗓', '🔧', '👥']) {
+    for (const label of ['Prise de RDV', 'Planning', 'Ponts & Méca', 'Clients']) {
       const link = page.locator(`nav a:has-text("${label}")`).first();
       await expect(link).toBeVisible({ timeout: 5000 });
     }

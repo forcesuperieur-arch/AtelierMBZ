@@ -17,10 +17,10 @@
         </label>
       </div>
       <div class="toolbar-group">
-        <button class="btn btn-ghost" style="font-size:12px;" @click="undo" :disabled="!canUndo">↩ Annuler</button>
-        <button class="btn btn-ghost" style="font-size:12px;" @click="redo" :disabled="!canRedo">↪ Rétablir</button>
-        <button class="btn btn-primary" style="font-size:12px;" @click="$emit('save', layoutJson)">💾 Enregistrer</button>
-        <button class="btn btn-ghost" style="font-size:12px;" @click="previewPdf">👁️ PDF</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="undo" :disabled="!canUndo"><AppIcon name="i-ri-arrow-go-back-line" /> Annuler</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="redo" :disabled="!canRedo"><AppIcon name="i-ri-arrow-go-forward-line" /> Rétablir</button>
+        <button class="btn btn-primary" style="font-size:12px;" @click="$emit('save', layoutJson)"><AppIcon name="i-ri-save-line" /> Enregistrer</button>
+        <button class="btn btn-ghost" style="font-size:12px;" @click="previewPdf"><AppIcon name="i-ri-eye-line" /> PDF</button>
       </div>
     </div>
 
@@ -36,21 +36,21 @@
             :class="{ active: selectedTool === tool.type }"
             @click="addElement(tool.type)"
           >
-            <span class="tool-icon">{{ tool.icon }}</span>
+            <span class="tool-icon"><AppIcon :name="tool.icon" /></span>
             <span class="tool-label">{{ tool.label }}</span>
           </button>
         </div>
         <div class="sidebar-title" style="margin-top:16px;">Actions</div>
-        <button class="tool-btn" style="color:#FCA5A5;" @click="deleteSelected" :disabled="!selectedId">
-          <span class="tool-icon">🗑</span>
+        <button class="tool-btn" style="color:var(--error-content);" @click="deleteSelected" :disabled="!selectedId">
+          <span class="tool-icon"><AppIcon name="i-ri-delete-bin-line" /></span>
           <span class="tool-label">Supprimer</span>
         </button>
         <button class="tool-btn" @click="clearAll">
-          <span class="tool-icon">✕</span>
+          <span class="tool-icon"><AppIcon name="i-ri-close-line" /></span>
           <span class="tool-label">Tout effacer</span>
         </button>
         <button class="tool-btn" @click="resetToDefault">
-          <span class="tool-icon">↺</span>
+          <span class="tool-icon"><AppIcon name="i-ri-eraser-line" /></span>
           <span class="tool-label">Réinitialiser</span>
         </button>
       </div>
@@ -80,7 +80,7 @@
             <div class="el-content" :style="contentStyle(el)">
               <template v-if="el.type === 'image'">
                 <img v-if="el.content" :src="el.content" style="width:100%;height:100%;object-fit:contain;" />
-                <span v-else style="color:#9CA3AF;font-size:10px;">[Image]</span>
+                <span v-else style="color:var(--content-3);font-size:10px;">[Image]</span>
               </template>
               <template v-else-if="el.type === 'line'">
                 <div style="width:100%;height:0;border-top:1px solid currentColor;" />
@@ -165,9 +165,10 @@
                 :key="a"
                 class="align-btn"
                 :class="{ active: selectedElement.style.align === a }"
+                :aria-label="a === 'left' ? 'Aligner à gauche' : a === 'center' ? 'Centrer' : 'Aligner à droite'"
                 @click="selectedElement.style.align = a"
               >
-                {{ a === 'left' ? '⬅' : a === 'center' ? '↔' : '➡' }}
+                <AppIcon :name="a === 'left' ? 'i-ri-align-left' : a === 'center' ? 'i-ri-align-center' : 'i-ri-align-right'" />
               </button>
             </div>
           </div>
@@ -175,12 +176,12 @@
 
         <div v-else class="props-panel">
           <div class="sidebar-title">Propriétés</div>
-          <p style="color:#6B7280;font-size:12px;">Sélectionnez un élément pour éditer ses propriétés.</p>
+          <p style="color:var(--content-3);font-size:12px;">Sélectionnez un élément pour éditer ses propriétés.</p>
         </div>
 
         <div class="vars-panel">
           <div class="sidebar-title">Variables</div>
-          <p style="color:#6B7280;font-size:11px;margin-bottom:8px;">Cliquez pour copier, puis collez dans le texte.</p>
+          <p style="color:var(--content-3);font-size:11px;margin-bottom:8px;">Cliquez pour copier, puis collez dans le texte.</p>
           <div class="var-list">
             <button
               v-for="v in availableVariables"
@@ -298,11 +299,11 @@ if (history.value.length === 0) {
 
 // ========== TOOLS ==========
 const tools = [
-  { type: 'text', label: 'Texte', icon: 'T' },
-  { type: 'variable', label: 'Variable', icon: '{x}' },
-  { type: 'image', label: 'Image', icon: '🖼' },
-  { type: 'line', label: 'Ligne', icon: '—' },
-  { type: 'rect', label: 'Rectangle', icon: '□' },
+  { type: 'text', label: 'Texte', icon: 'i-ri-text' },
+  { type: 'variable', label: 'Variable', icon: 'i-ri-braces-line' },
+  { type: 'image', label: 'Image', icon: 'i-ri-image-line' },
+  { type: 'line', label: 'Ligne', icon: 'i-ri-subtract-line' },
+  { type: 'rect', label: 'Rectangle', icon: 'i-ri-square-line' },
 ]
 
 function addElement(type: string) {
@@ -318,7 +319,7 @@ function addElement(type: string) {
     content: type === 'text' ? 'Nouveau texte' : type === 'variable' ? '{{variable}}' : type === 'image' ? '' : '',
     style: {
       fontSize: 11,
-      color: '#1f2937',
+      color: 'var(--content-1)',
       align: 'left',
     },
   }
@@ -453,7 +454,7 @@ const a4Style = computed(() => ({
 }))
 
 const gridStyle = computed(() => ({
-  backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${SCALE * GRID - 1}px, rgba(255,255,255,0.04) ${SCALE * GRID - 1}px, rgba(255,255,255,0.04) ${SCALE * GRID}px), repeating-linear-gradient(90deg, transparent, transparent ${SCALE * GRID - 1}px, rgba(255,255,255,0.04) ${SCALE * GRID - 1}px, rgba(255,255,255,0.04) ${SCALE * GRID}px)`,
+  backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${SCALE * GRID - 1}px, var(--overlay-soft) ${SCALE * GRID - 1}px, var(--overlay-soft) ${SCALE * GRID}px), repeating-linear-gradient(90deg, transparent, transparent ${SCALE * GRID - 1}px, var(--overlay-soft) ${SCALE * GRID - 1}px, var(--overlay-soft) ${SCALE * GRID}px)`,
   backgroundSize: '100% 100%',
 }))
 
@@ -464,7 +465,7 @@ function elementStyle(el: LayoutElement) {
     width: `${el.w * SCALE}px`,
     height: `${el.h * SCALE}px`,
     fontSize: `${(el.style.fontSize ?? 11) * SCALE / 3.81}px`,
-    color: el.style.color ?? '#1f2937',
+    color: el.style.color ?? 'var(--content-1)',
     fontWeight: el.style.bold ? 'bold' : 'normal',
     fontStyle: el.style.italic ? 'italic' : 'normal',
     textAlign: el.style.align ?? 'left',
@@ -565,9 +566,9 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(255,255,255,0.03);
+  background: var(--overlay-soft);
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--border-2);
 }
 .toolbar-group {
   display: flex;
@@ -579,7 +580,7 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #D1D5DB;
+  color: var(--content-2);
   cursor: pointer;
 }
 .designer-body {
@@ -591,9 +592,9 @@ const layoutJson = computed(() => ({ elements: elements.value }))
 .designer-sidebar {
   width: 200px;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.02);
+  background: var(--overlay-soft);
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--border-2);
   padding: 12px;
   overflow-y: auto;
 }
@@ -606,9 +607,8 @@ const layoutJson = computed(() => ({ elements: elements.value }))
 .sidebar-title {
   font-size: 12px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
   margin-bottom: 10px;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .tool-list {
@@ -624,19 +624,19 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   border-radius: 8px;
   background: transparent;
   border: 1px solid transparent;
-  color: #D1D5DB;
+  color: var(--content-2);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .tool-btn:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.1);
+  background: var(--overlay-hover);
+  border-color: var(--border-1);
 }
 .tool-btn.active {
-  background: rgba(251,191,36,0.12);
-  border-color: rgba(251,191,36,0.3);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  border-color: var(--warning);
+  color: var(--warning-content);
 }
 .tool-icon {
   font-size: 14px;
@@ -674,10 +674,10 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   user-select: none;
 }
 .designer-element:hover {
-  border-color: rgba(251,191,36,0.3);
+  border-color: var(--warning);
 }
 .designer-element.selected {
-  border: 1px solid #FBBF24;
+  border: 1px solid var(--warning);
   z-index: 10;
 }
 .designer-element.preview {
@@ -686,13 +686,13 @@ const layoutJson = computed(() => ({ elements: elements.value }))
 .el-content {
   font-family: DejaVu Sans, sans-serif;
   line-height: 1.3;
-  color: #1f2937;
+  color: var(--content-1);
 }
 .resize-handle {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: #FBBF24;
+  background: var(--warning);
   border-radius: 50%;
   z-index: 20;
   cursor: nwse-resize;
@@ -710,7 +710,7 @@ const layoutJson = computed(() => ({ elements: elements.value }))
 .prop-row label {
   display: block;
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 4px;
 }
 .toggle-label {
@@ -718,23 +718,23 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #D1D5DB;
+  color: var(--content-2);
   cursor: pointer;
 }
 .align-btn {
   flex: 1;
   padding: 4px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: #D1D5DB;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-2);
   font-size: 12px;
   cursor: pointer;
 }
 .align-btn.active {
-  background: rgba(251,191,36,0.2);
-  border-color: rgba(251,191,36,0.4);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  border-color: var(--warning);
+  color: var(--warning-content);
 }
 .var-list {
   display: flex;
@@ -745,13 +745,13 @@ const layoutJson = computed(() => ({ elements: elements.value }))
   font-size: 10px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(96,165,250,0.12);
-  color: #93C5FD;
-  border: 1px solid rgba(96,165,250,0.2);
+  background: var(--info-soft);
+  color: var(--info-content);
+  border: 1px solid var(--info);
   cursor: pointer;
   white-space: nowrap;
 }
 .var-chip:hover {
-  background: rgba(96,165,250,0.25);
+  background: var(--info-soft);
 }
 </style>

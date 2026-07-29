@@ -10,9 +10,9 @@
       <UCard>
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Catalogue prestations</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);">Catalogue prestations</span>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="bootstrapCatalog">📦 Initialiser le catalogue</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;" @click="bootstrapCatalog"><AppIcon name="i-ri-archive-line" /> Initialiser le catalogue</button>
               <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" @click="resetForm(); showModal = true">+ Nouvelle prestation</button>
             </div>
           </div>
@@ -25,17 +25,17 @@
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-          <div style="font-size:13px;color:#D1D5DB;">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
-          <div style="font-size:12px;color:#9CA3AF;">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
+          <div style="font-size:13px;color:var(--content-2);">La page prestation reprend maintenant la même logique de pop-in par type de moto.</div>
+          <div style="font-size:12px;color:var(--content-3);">{{ activeMotoCategories.length }} type(s) moto actif(s)</div>
         </div>
 
         <UTable :data="filteredPrestations" :columns="columns" :loading="loading" :meta="{ class: { tr: (row: any) => row.original?.is_active === false ? 'opacity-50' : '' } }">
         <template #categorie-cell="{ row }">
-          <span style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(139,92,246,0.1);color:#C4B5FD;">{{ row.original.categorie_nom || '—' }}</span>
+          <span style="font-size:11px;padding:3px 10px;border-radius:6px;background:var(--info-soft);color:var(--info-content);">{{ row.original.categorie_nom || '—' }}</span>
         </template>
 
         <template #prix_ht-cell="{ row }">
-          <span style="color:#FFD200;font-weight:600;">{{ formatCurrency(row.original.prix_ht) }}</span>
+          <span style="color:var(--accent-content);font-weight:600;">{{ formatCurrency(row.original.prix_ht) }}</span>
         </template>
 
         <template #temps_estime-cell="{ row }">
@@ -43,30 +43,30 @@
         </template>
 
         <template #type_tarif-cell="{ row }">
-          <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(255,210,0,0.1);color:#FFD200;">{{ labelTypeTarif(row.original.type_tarif) }}</span>
+          <span style="font-size:11px;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-content);">{{ labelTypeTarif(row.original.type_tarif) }}</span>
         </template>
 
         <template #tarifs_moto-cell="{ row }">
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <span style="font-size:12px;color:#E8E9ED;">{{ row.original.enabledCount }} type(s) actif(s)</span>
+            <span style="font-size:12px;color:var(--content-1);">{{ row.original.enabledCount }} type(s) actif(s)</span>
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <span v-for="mode in row.original.modes" :key="`${row.original.id}-${mode}`" style="font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(139,92,246,0.14);color:#C4B5FD;">
+              <span v-for="mode in row.original.modes" :key="`${row.original.id}-${mode}`" style="font-size:10px;padding:2px 8px;border-radius:999px;background:var(--info-soft);color:var(--info-content);">
                 {{ labelTypeTarif(mode) }}
               </span>
-              <span v-if="!row.original.modes.length" style="font-size:10px;color:#9CA3AF;">Non configuré</span>
+              <span v-if="!row.original.modes.length" style="font-size:10px;color:var(--content-3);">Non configuré</span>
             </div>
           </div>
         </template>
 
         <template #statut-cell="{ row }">
-          <span v-if="row.original?.is_active === false" style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(107,114,128,0.15);color:#9CA3AF;">Inactif</span>
-          <span v-else style="font-size:11px;padding:3px 10px;border-radius:6px;background:rgba(16,185,129,0.1);color:#34D399;">Actif</span>
+          <span v-if="row.original?.is_active === false" style="font-size:11px;padding:3px 10px;border-radius:6px;background:var(--surface-3);color:var(--content-3);">Inactif</span>
+          <span v-else style="font-size:11px;padding:3px 10px;border-radius:6px;background:var(--success-soft);color:var(--success-content);">Actif</span>
         </template>
 
         <template #actions-cell="{ row }">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" style="font-size:12px;color:#93C5FD;" @click="openTarifModal(row.original)">⚙ Configurer</button>
-            <button class="btn btn-ghost" style="font-size:12px;color:#FCA5A5;" @click="deletePrestation(row.original.id)">🗄 Archiver</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--info-content);" @click="openTarifModal(row.original)"><AppIcon name="i-ri-settings-3-line" /> Configurer</button>
+            <button class="btn btn-ghost" style="font-size:12px;color:var(--error-content);" @click="deletePrestation(row.original.id)"><AppIcon name="i-ri-database-2-line" /> Archiver</button>
           </div>
         </template>
       </UTable>
@@ -78,8 +78,8 @@
         <UCard>
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
-              <button @click="showModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <span style="font-size:15px;font-weight:700;color:var(--content-1);">{{ editId ? 'Modifier' : 'Nouvelle' }} prestation</span>
+              <button @click="showModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -111,14 +111,14 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
               <div>
-                <div style="font-size:15px;font-weight:700;color:#E8E9ED;">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
-                <div style="font-size:12px;color:#9CA3AF;">Forfait, horaire ou sur devis selon chaque type de moto.</div>
+                <div style="font-size:15px;font-weight:700;color:var(--content-1);">{{ activeTarifPrestation?.nom || 'Tarifs prestation' }}</div>
+                <div style="font-size:12px;color:var(--content-3);">Forfait, horaire ou sur devis selon chaque type de moto.</div>
               </div>
-              <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;">✕</button>
+              <button type="button" @click="showTarifModal = false" style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
-          <div v-if="!activeMotoCategories.length" style="font-size:13px;color:#FCA5A5;">Aucun type moto actif n'est disponible pour cette configuration.</div>
+          <div v-if="!activeMotoCategories.length" style="font-size:13px;color:var(--error-content);">Aucun type moto actif n'est disponible pour cette configuration.</div>
 
           <div v-else style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:4px;">
@@ -135,13 +135,13 @@
                 </select>
               </UFormField>
             </div>
-            <div v-for="row in tarifRows" :key="row.categorie_id" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;background:rgba(255,255,255,0.02);">
+            <div v-for="row in tarifRows" :key="row.categorie_id" style="border:1px solid var(--border-2);border-radius:10px;padding:12px;background:var(--overlay-soft);">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
                 <div>
-                  <div style="font-weight:700;color:#E8E9ED;">{{ row.categorie_label }}</div>
-                  <div style="font-size:11px;color:#9CA3AF;">Active ou masque cette prestation pour ce type.</div>
+                  <div style="font-weight:700;color:var(--content-1);">{{ row.categorie_label }}</div>
+                  <div style="font-size:11px;color:var(--content-3);">Active ou masque cette prestation pour ce type.</div>
                 </div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#D1D5DB;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--content-2);">
                   <input v-model="row.is_active" type="checkbox" :true-value="1" :false-value="0" />
                   Activée
                 </label>
@@ -166,7 +166,7 @@
                 </div>
               </div>
 
-              <div v-if="row.type_tarif === 'devis'" style="font-size:11px;color:#9CA3AF;margin-top:8px;">Le montant sera saisi au cas par cas sur le devis.</div>
+              <div v-if="row.type_tarif === 'devis'" style="font-size:11px;color:var(--content-3);margin-top:8px;">Le montant sera saisi au cas par cas sur le devis.</div>
             </div>
 
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">

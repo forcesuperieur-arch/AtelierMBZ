@@ -1,7 +1,7 @@
 <template>
   <div ref="rootEl" class="notif-bell-wrap">
     <button class="notif-bell-btn" type="button" aria-label="Ouvrir l'historique des notifications" @click="toggleOpen">
-      <span class="notif-bell-icon">🔔</span>
+      <span class="notif-bell-icon"><AppIcon name="i-ri-notification-3-line" /></span>
       <span v-if="unreadCount > 0" class="notif-bell-badge">{{ unreadLabel }}</span>
     </button>
 
@@ -50,13 +50,13 @@
       <div class="notif-detail-card">
         <div class="notif-detail-header">
           <div class="notif-detail-icon" :class="severityClass(selectedNotif?.severity)">
-            {{ severityIcon(selectedNotif?.severity) }}
+            <AppIcon :name="severityIcon(selectedNotif?.severity)" />
           </div>
           <div class="notif-detail-title-wrap">
             <h3 class="notif-detail-title">{{ selectedNotif?.title }}</h3>
             <p class="notif-detail-date">{{ selectedNotif?.createdAt ? formatDate(selectedNotif.createdAt) : '' }}</p>
           </div>
-          <button class="notif-detail-close" type="button" @click="closeDetail">✕</button>
+          <button class="notif-detail-close" type="button" aria-label="Fermer" @click="closeDetail"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
         <div class="notif-detail-body">
@@ -65,7 +65,7 @@
           <!-- Dynamic detail for DemandeTravauxSupp -->
           <div v-if="selectedNotif?.relatedEntityType === 'DemandeTravauxSupp'" class="notif-detail-section">
             <div v-if="detailLoading" class="notif-detail-loading">Chargement des détails…</div>
-            <div v-else-if="detailError" class="notif-detail-loading" style="color:#FCA5A5;">{{ detailError }}</div>
+            <div v-else-if="detailError" class="notif-detail-loading" style="color:var(--error-content);">{{ detailError }}</div>
             <template v-else-if="detailData">
               <div v-if="detailData.description" class="notif-detail-block">
                 <span class="notif-detail-label">Commentaire mécanicien :</span>
@@ -117,7 +117,8 @@
                 :disabled="detailActionLoading"
                 @click="envoyerDemande('email')"
               >
-                {{ detailActionLoading ? 'Envoi…' : '📧 Email' }}
+                <AppIcon v-if="!detailActionLoading" name="i-ri-mail-line" />
+                {{ detailActionLoading ? 'Envoi…' : 'Email' }}
               </button>
               <button
                 class="notif-detail-btn-primary"
@@ -125,7 +126,8 @@
                 :disabled="detailActionLoading"
                 @click="envoyerDemande('sms')"
               >
-                {{ detailActionLoading ? 'Envoi…' : '📱 SMS' }}
+                <AppIcon v-if="!detailActionLoading" name="i-ri-smartphone-line" />
+                {{ detailActionLoading ? 'Envoi…' : 'SMS' }}
               </button>
               <button
                 class="notif-detail-btn-secondary"
@@ -142,7 +144,7 @@
               type="button"
               @click="detailCanalOpen = true"
             >
-              📤 Envoyer au client
+              <AppIcon name="i-ri-upload-line" /> Envoyer au client
             </button>
           </template>
 
@@ -312,9 +314,9 @@ async function envoyerDemande(canal: 'email' | 'sms') {
 }
 
 function severityIcon(value?: string) {
-  if (value === 'critical') return '🔴'
-  if (value === 'warning') return '🟠'
-  return 'ℹ️'
+  if (value === 'critical') return 'i-ri-alarm-warning-fill'
+  if (value === 'warning') return 'i-ri-error-warning-fill'
+  return 'i-ri-information-line'
 }
 
 async function markEverythingRead() {
@@ -362,9 +364,9 @@ watch(() => props.atelierId, async () => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #E8E9ED;
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
+  color: var(--content-1);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -372,8 +374,8 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-bell-btn:hover {
-  background: rgba(255, 210, 0, 0.08);
-  border-color: rgba(255, 210, 0, 0.25);
+  background: var(--accent-soft);
+  border-color: var(--accent-graphic);
 }
 
 .notif-bell-icon {
@@ -387,8 +389,8 @@ watch(() => props.atelierId, async () => {
   min-width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: #EF4444;
-  color: white;
+  background: var(--error);
+  color: var(--on-error);
   font-size: 10px;
   font-weight: 800;
   display: flex;
@@ -405,8 +407,8 @@ watch(() => props.atelierId, async () => {
   max-height: 70vh;
   overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #11141B;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
   z-index: 80;
 }
@@ -417,24 +419,24 @@ watch(() => props.atelierId, async () => {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-2);
 }
 
 .notif-panel-title {
   font-size: 14px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
 }
 
 .notif-panel-subtitle {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .notif-clear-btn {
   border: none;
   background: transparent;
-  color: #FCD34D;
+  color: var(--warning-content);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -455,7 +457,7 @@ watch(() => props.atelierId, async () => {
 .notif-empty {
   padding: 20px 14px;
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .notif-item {
@@ -464,7 +466,7 @@ watch(() => props.atelierId, async () => {
   gap: 8px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-2);
   background: transparent;
   text-align: left;
   padding: 12px 14px;
@@ -472,11 +474,11 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-item:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--overlay-soft);
 }
 
 .notif-item.is-unread {
-  background: rgba(255, 210, 0, 0.05);
+  background: var(--accent-soft);
 }
 
 .notif-item-top {
@@ -487,18 +489,18 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-item-title {
-  color: #F9FAFB;
+  color: var(--content-1);
   font-size: 13px;
 }
 
 .notif-item-date {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 11px;
   white-space: nowrap;
 }
 
 .notif-item-message {
-  color: #D1D5DB;
+  color: var(--content-2);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -520,23 +522,23 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-pill.is-critical {
-  background: rgba(239, 68, 68, 0.16);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 
 .notif-pill.is-warning {
-  background: rgba(245, 158, 11, 0.16);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  color: var(--warning-content);
 }
 
 .notif-pill.is-info {
-  background: rgba(59, 130, 246, 0.14);
-  color: #93C5FD;
+  background: var(--info-soft);
+  color: var(--info-content);
 }
 
 .notif-link-hint {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 /* Detail modal */
@@ -547,15 +549,14 @@ watch(() => props.atelierId, async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
 }
 
 .notif-detail-card {
   width: min(420px, 92vw);
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #11141B;
+  border: 1px solid var(--border-1);
+  background: var(--surface-1);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
@@ -567,7 +568,7 @@ watch(() => props.atelierId, async () => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-2);
 }
 
 .notif-detail-icon {
@@ -582,15 +583,15 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-detail-icon.is-critical {
-  background: rgba(239, 68, 68, 0.16);
+  background: var(--error-soft);
 }
 
 .notif-detail-icon.is-warning {
-  background: rgba(245, 158, 11, 0.16);
+  background: var(--warning-soft);
 }
 
 .notif-detail-icon.is-info {
-  background: rgba(59, 130, 246, 0.16);
+  background: var(--info-soft);
 }
 
 .notif-detail-title-wrap {
@@ -601,14 +602,14 @@ watch(() => props.atelierId, async () => {
 .notif-detail-title {
   font-size: 15px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
   margin: 0;
   line-height: 1.3;
 }
 
 .notif-detail-date {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--content-3);
   margin: 2px 0 0;
 }
 
@@ -617,8 +618,8 @@ watch(() => props.atelierId, async () => {
   height: 32px;
   border-radius: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: #9CA3AF;
+  background: var(--overlay-hover);
+  color: var(--content-3);
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -628,8 +629,8 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-detail-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #E8E9ED;
+  background: var(--surface-3);
+  color: var(--content-1);
 }
 
 .notif-detail-body {
@@ -641,7 +642,7 @@ watch(() => props.atelierId, async () => {
 
 .notif-detail-message {
   font-size: 13px;
-  color: #D1D5DB;
+  color: var(--content-2);
   line-height: 1.5;
   margin: 0;
 }
@@ -654,23 +655,23 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-detail-label {
-  color: #6B7280;
+  color: var(--content-3);
 }
 
 .notif-detail-value {
-  color: #9CA3AF;
+  color: var(--content-3);
   font-weight: 600;
 }
 
 .notif-detail-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-2);
   padding-top: 12px;
   margin-top: 4px;
 }
 
 .notif-detail-loading {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--content-3);
   font-style: italic;
 }
 
@@ -683,7 +684,7 @@ watch(() => props.atelierId, async () => {
 
 .notif-detail-block-text {
   font-size: 12px;
-  color: #D1D5DB;
+  color: var(--content-2);
   line-height: 1.4;
   margin: 0;
   font-style: italic;
@@ -700,14 +701,14 @@ watch(() => props.atelierId, async () => {
 
 .notif-detail-list li {
   font-size: 12px;
-  color: #D1D5DB;
+  color: var(--content-2);
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--overlay-soft);
   border-radius: 6px;
 }
 
 .notif-detail-muted {
-  color: #6B7280;
+  color: var(--content-3);
   font-size: 11px;
 }
 
@@ -716,7 +717,7 @@ watch(() => props.atelierId, async () => {
   flex-wrap: wrap;
   gap: 12px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--overlay-soft);
   border-radius: 8px;
   margin-top: 4px;
 }
@@ -728,7 +729,7 @@ watch(() => props.atelierId, async () => {
 }
 
 .notif-detail-value-highlight {
-  color: #FFD200;
+  color: var(--accent-content);
   font-weight: 700;
   font-size: 14px;
 }
@@ -738,8 +739,8 @@ watch(() => props.atelierId, async () => {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(239, 68, 68, 0.16);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 
 .notif-detail-footer {
@@ -752,31 +753,31 @@ watch(() => props.atelierId, async () => {
 .notif-detail-btn-secondary {
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-1);
   background: transparent;
-  color: #9CA3AF;
+  color: var(--content-3);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .notif-detail-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #E8E9ED;
+  background: var(--overlay-hover);
+  color: var(--content-1);
 }
 
 .notif-detail-btn-primary {
   padding: 8px 14px;
   border-radius: 8px;
   border: none;
-  background: rgba(255, 210, 0, 0.85);
-  color: #0B0E14;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .notif-detail-btn-primary:hover {
-  background: #FFD200;
+  background: var(--accent);
 }
 </style>

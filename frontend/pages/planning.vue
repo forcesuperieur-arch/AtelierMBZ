@@ -5,7 +5,7 @@
         <div class="page-title">Planning</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" :disabled="loading || refreshing" @click="refreshPlanning">
-            {{ refreshing ? 'Actualisation…' : '↻ Actualiser' }}
+            <AppIcon v-if="!(refreshing)" name="i-ri-refresh-line" />{{ refreshing ? 'Actualisation…' : 'Actualiser' }}
           </button>
           <button v-if="canCreateRdv" class="btn btn-primary" @click="openQuickCreate()">+ RDV rapide</button>
         </div>
@@ -23,9 +23,9 @@
           <div class="planning-kpi-value">{{ kpis.charge }}</div>
           <div class="planning-kpi-sub">{{ kpis.chargeDetail }}</div>
         </div>
-        <div class="planning-kpi" :style="kpis.conflicts > 0 ? 'border-color:rgba(239,68,68,0.3);' : ''">
+        <div class="planning-kpi" :style="kpis.conflicts > 0 ? 'border-color:var(--error);' : ''">
           <div class="planning-kpi-label">CONFLITS</div>
-          <div class="planning-kpi-value" :style="kpis.conflicts > 0 ? 'color:#FCA5A5;' : ''">{{ kpis.conflicts }}</div>
+          <div class="planning-kpi-value" :style="kpis.conflicts > 0 ? 'color:var(--error-content);' : ''">{{ kpis.conflicts }}</div>
           <div class="planning-kpi-sub">{{ kpis.conflicts > 0 ? 'Attention' : 'Aucun conflit' }}</div>
         </div>
         <div class="planning-kpi">
@@ -33,31 +33,31 @@
           <div class="planning-kpi-value">{{ kpis.unassigned }}</div>
           <div class="planning-kpi-sub">RDV actifs non assignés</div>
         </div>
-        <div class="planning-kpi" :style="kpis.late > 0 ? 'border-color:rgba(239,68,68,0.3);' : ''">
+        <div class="planning-kpi" :style="kpis.late > 0 ? 'border-color:var(--error);' : ''">
           <div class="planning-kpi-label">RETARDS</div>
-          <div class="planning-kpi-value" :style="kpis.late > 0 ? 'color:#FCA5A5;' : ''">{{ kpis.late }}</div>
+          <div class="planning-kpi-value" :style="kpis.late > 0 ? 'color:var(--error-content);' : ''">{{ kpis.late }}</div>
           <div class="planning-kpi-sub">{{ kpis.late > 0 ? 'En retard' : 'À l\'heure' }}</div>
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;font-size:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;padding:10px 16px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;font-size:12px;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <span style="color:#6B7280;font-weight:600;">Légende :</span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);"></span><span style="color:#9CA3AF;">Réservé</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.35);"></span><span style="color:#9CA3AF;">Confirmé</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(20,184,166,0.15);border:1px solid rgba(20,184,166,0.4);"></span><span style="color:#9CA3AF;">En cours</span></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);"></span><span style="color:#9CA3AF;">Terminé / historisé</span></span>
+          <span style="color:var(--content-3);font-weight:600;">Légende :</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--warning-soft);border:1px solid var(--warning);"></span><span style="color:var(--content-3);">Réservé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--info-soft);border:1px solid var(--info);"></span><span style="color:var(--content-3);">Confirmé</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--success-soft);border:1px solid var(--success);"></span><span style="color:var(--content-3);">En cours</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--success-soft);border:1px solid var(--success);"></span><span style="color:var(--content-3);">Terminé / historisé</span></span>
         </div>
-        <div style="color:#CBD5E1;">
-          Horaires atelier : <strong style="color:#F8FAFC;">{{ hourRangeLabel }}</strong> · {{ openDaysLabel }}
+        <div style="color:var(--content-2);">
+          Horaires atelier : <strong style="color:var(--content-1);">{{ hourRangeLabel }}</strong> · {{ openDaysLabel }}
         </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;padding:12px 16px;background:var(--overlay-soft);border:1px solid var(--border-2);border-radius:10px;">
         <!-- Recherche + résumé + réinitialisation -->
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="position:relative;flex:1;min-width:220px;max-width:420px;">
-            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6B7280;font-size:13px;pointer-events:none;">🔍</span>
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--content-3);font-size:13px;pointer-events:none;"><AppIcon name="i-ri-search-line" /></span>
             <input
               v-model="searchQuery"
               type="text"
@@ -67,84 +67,84 @@
             />
             <button
               v-if="searchQuery"
-              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#9CA3AF;font-size:14px;cursor:pointer;"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--content-3);font-size:14px;cursor:pointer;"
               title="Effacer la recherche"
               @click="searchQuery = ''"
-            >✕</button>
+            ><AppIcon name="i-ri-close-line" /></button>
           </div>
-          <span style="font-size:12px;color:#9CA3AF;">
-            <strong style="color:#E8E9ED;">{{ filterSummary.shown }}</strong> affichés<template v-if="filterSummary.hidden"> · <span style="color:#FBBF24;">{{ filterSummary.hidden }} masqués</span></template>
+          <span style="font-size:12px;color:var(--content-3);">
+            <strong style="color:var(--content-1);">{{ filterSummary.shown }}</strong> affichés<template v-if="filterSummary.hidden"> · <span style="color:var(--warning-content);">{{ filterSummary.hidden }} masqués</span></template>
           </span>
           <button
             v-if="hasActiveFilters"
-            style="margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,210,0,0.10);border:1px solid rgba(255,210,0,0.3);color:#FFD200;cursor:pointer;"
+            style="margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);cursor:pointer;"
             @click="resetFilters"
           >
-            ✕ Réinitialiser les filtres
+            <AppIcon name="i-ri-close-line" /> Réinitialiser les filtres
           </button>
         </div>
 
         <!-- Filtre par statut -->
         <div v-if="availableStatuts.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Statut :</span>
+          <span style="font-size:12px;font-weight:600;color:var(--content-3);min-width:88px;">Statut :</span>
           <button
             v-for="s in availableStatuts"
             :key="`statut-${s.code}`"
             style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
             :style="{
-              background: activeStatuts.includes(s.code) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
-              border: activeStatuts.includes(s.code) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
-              color: activeStatuts.includes(s.code) ? '#FFD200' : '#6B7280',
+              background: activeStatuts.includes(s.code) ? 'var(--accent)' : 'var(--overlay-soft)',
+              border: activeStatuts.includes(s.code) ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+              color: activeStatuts.includes(s.code) ? 'var(--accent-ink)' : 'var(--content-3)',
             }"
             @click="toggleStatut(s.code)"
           >
-            {{ s.label }} <span style="opacity:.6;">{{ s.count }}</span>
+            {{ s.label }} <span class="chip-count">{{ s.count }}</span>
           </button>
         </div>
 
         <!-- Filtre par mécanicien + non-affectés -->
         <div v-if="mecaniciens.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Mécaniciens :</span>
+          <span style="font-size:12px;font-weight:600;color:var(--content-3);min-width:88px;">Mécaniciens :</span>
           <button
             v-for="m in mecaniciens"
             :key="m.id"
             style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
             :style="{
-              background: activeMecas.includes(m.id) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
-              border: activeMecas.includes(m.id) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
-              color: activeMecas.includes(m.id) ? '#FFD200' : '#6B7280',
+              background: activeMecas.includes(m.id) ? 'var(--accent)' : 'var(--overlay-soft)',
+              border: activeMecas.includes(m.id) ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+              color: activeMecas.includes(m.id) ? 'var(--accent-ink)' : 'var(--content-3)',
             }"
             @click="toggleMeca(m.id)"
           >
-            <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: m.couleur || '#8B5CF6' }"></span>
+            <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: m.couleur || 'var(--info)' }"></span>
             {{ m.prenom }} {{ m.nom?.charAt(0) }}.
           </button>
           <button
             v-if="unassignedCount"
             style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
             :style="{
-              background: showUnassigned ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
-              border: showUnassigned ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
-              color: showUnassigned ? '#FFD200' : '#6B7280',
+              background: showUnassigned ? 'var(--accent)' : 'var(--overlay-soft)',
+              border: showUnassigned ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+              color: showUnassigned ? 'var(--accent-ink)' : 'var(--content-3)',
             }"
             :title="showUnassigned ? 'Masquer les RDV non affectés' : 'Afficher les RDV non affectés'"
             @click="showUnassigned = !showUnassigned"
           >
-            {{ showUnassigned ? '☑' : '☐' }} Non affectés <span style="opacity:.6;">{{ unassignedCount }}</span>
+            <AppIcon :name="showUnassigned ? 'i-ri-checkbox-line' : 'i-ri-checkbox-blank-line'" /> Non affectés <span class="chip-count">{{ unassignedCount }}</span>
           </button>
         </div>
 
         <!-- Filtre par pont -->
         <div v-if="ponts.length" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:600;color:#6B7280;min-width:88px;">Ponts :</span>
+          <span style="font-size:12px;font-weight:600;color:var(--content-3);min-width:88px;">Ponts :</span>
           <button
             v-for="p in ponts"
             :key="`pont-${p.id}`"
             style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;"
             :style="{
-              background: activePonts.includes(p.id) ? 'rgba(255,210,0,0.12)' : 'rgba(255,255,255,0.03)',
-              border: activePonts.includes(p.id) ? '1px solid rgba(255,210,0,0.35)' : '1px solid rgba(255,255,255,0.06)',
-              color: activePonts.includes(p.id) ? '#FFD200' : '#6B7280',
+              background: activePonts.includes(p.id) ? 'var(--accent-soft)' : 'var(--overlay-soft)',
+              border: activePonts.includes(p.id) ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+              color: activePonts.includes(p.id) ? 'var(--accent-content)' : 'var(--content-3)',
             }"
             @click="togglePont(p.id)"
           >
@@ -167,8 +167,8 @@
       <UCard v-if="historicalRdvs.length" style="margin-top:20px;">
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:15px;font-weight:700;color:#E8E9ED;">Historique figé</span>
-            <span style="font-size:12px;color:#9CA3AF;">Les RDV terminés, facturés ou annulés sont verrouillés ici.</span>
+            <span style="font-size:15px;font-weight:700;color:var(--content-1);">Historique figé</span>
+            <span style="font-size:12px;color:var(--content-3);">Les RDV terminés, facturés ou annulés sont verrouillés ici.</span>
           </div>
         </template>
 
@@ -176,12 +176,12 @@
           <button
             v-for="rdv in historicalRdvs"
             :key="`history-${rdv.id}`"
-            style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);text-align:left;cursor:pointer;"
+            style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);text-align:left;cursor:pointer;"
             @click="onSelectRdv(rdv)"
           >
             <div>
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ rdv.client_nom || 'Client' }} · {{ rdv.type_intervention }}</div>
-              <div style="font-size:12px;color:#9CA3AF;">{{ formatDateDisplay(rdv.date_rdv) }} à {{ rdv.heure_debut }} · {{ rdv.vehicule_info || 'Véhicule non précisé' }}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);">{{ rdv.client_nom || 'Client' }} · {{ rdv.type_intervention }}</div>
+              <div style="font-size:12px;color:var(--content-3);">{{ formatDateDisplay(rdv.date_rdv) }} à {{ rdv.heure_debut }} · {{ rdv.vehicule_info || 'Véhicule non précisé' }}</div>
             </div>
             <StatusBadge :status="rdv.status" />
           </button>
@@ -194,8 +194,8 @@
         <UCard>
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <span style="font-weight:700;color:#E8E9ED;">Créer un RDV rapide</span>
-              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false">✕</button>
+              <span style="font-weight:700;color:var(--content-1);">Créer un RDV rapide</span>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showQuickCreateModal = false" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
@@ -211,11 +211,11 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Fin estimée</label>
-                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickEstimatedEnd }}</div>
+                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:var(--content-2);">{{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+            <div style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
               <div class="form-label" style="margin-bottom:6px;">Recherche client</div>
               <input
                 v-model="quickClientSearch"
@@ -224,24 +224,24 @@
                 placeholder="Nom, prénom, téléphone ou email..."
                 @input="searchQuickClients"
               />
-              <div v-if="quickClientResults.length" style="margin-top:8px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;max-height:160px;overflow:auto;">
+              <div v-if="quickClientResults.length" style="margin-top:8px;border:1px solid var(--border-2);border-radius:10px;max-height:160px;overflow:auto;">
                 <button
                   v-for="client in quickClientResults"
                   :key="`quick-client-${client.id}`"
                   type="button"
-                  style="width:100%;text-align:left;padding:10px 12px;background:transparent;border:none;color:#D1D5DB;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);"
+                  style="width:100%;text-align:left;padding:10px 12px;background:transparent;border:none;color:var(--content-2);cursor:pointer;border-bottom:1px solid var(--border-2);"
                   @click="selectQuickClient(client)"
                 >
                   <strong>{{ client.prenom }} {{ client.nom }}</strong> · {{ client.telephone || client.email || '—' }}
                 </button>
               </div>
-              <div v-if="quickSelectedClient" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(255,210,0,0.08);border:1px solid rgba(255,210,0,0.2);">
-                <span style="font-size:12px;color:#FDE68A;">Client lié : {{ quickSelectedClient.prenom }} {{ quickSelectedClient.nom }}</span>
+              <div v-if="quickSelectedClient" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent);">
+                <span style="font-size:12px;color:var(--warning-content);">Client lié : {{ quickSelectedClient.prenom }} {{ quickSelectedClient.nom }}</span>
                 <button type="button" class="btn btn-ghost" style="padding:4px 10px;min-height:30px;" @click="clearQuickClient">Changer</button>
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+            <div style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
               <div class="form-label" style="margin-bottom:6px;">Recherche véhicule par plaque / VIN</div>
               <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
                 <input
@@ -254,7 +254,7 @@
                 />
                 <button type="button" class="btn btn-ghost" @click="searchQuickVehicle">Rechercher</button>
               </div>
-              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:#86EFAC;">Véhicule trouvé et prérempli.</div>
+              <div v-if="quickVehicleFound" style="margin-top:8px;font-size:12px;color:var(--success-content);">Véhicule trouvé et prérempli.</div>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
@@ -282,7 +282,7 @@
                     v-for="item in quickMarqueSuggestions"
                     :key="`quick-brand-${item}`"
                     type="button"
-                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid var(--border-2);background:var(--overlay-soft);color:var(--content-2);font-size:12px;cursor:pointer;"
                     @mousedown.prevent="selectQuickMarque(item)"
                   >
                     {{ item }}
@@ -297,7 +297,7 @@
                     v-for="item in quickModeleSuggestions"
                     :key="`quick-model-${item.id || item.modele}`"
                     type="button"
-                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:#D1D5DB;font-size:12px;cursor:pointer;"
+                    style="text-align:left;padding:7px 10px;border-radius:8px;border:1px solid var(--border-2);background:var(--overlay-soft);color:var(--content-2);font-size:12px;cursor:pointer;"
                     @mousedown.prevent="selectQuickModele(item)"
                   >
                     {{ quickSuggestionLabel(item) }}
@@ -332,26 +332,26 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Mécanicien affecté</label>
-                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ quickAssignedMecanicienLabel }}</div>
+                <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:var(--content-2);">{{ quickAssignedMecanicienLabel }}</div>
               </div>
             </div>
 
             <div>
-              <div class="form-label" style="margin-bottom:8px;">Prestations atelier <span style="font-size:11px;color:#9CA3AF;">· filtrées selon le type de moto</span></div>
+              <div class="form-label" style="margin-bottom:8px;">Prestations atelier <span style="font-size:11px;color:var(--content-3);">· filtrées selon le type de moto</span></div>
               <div v-if="filteredQuickPrestations.length" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:220px;overflow:auto;">
                 <label
                   v-for="presta in filteredQuickPrestations"
                   :key="presta.id"
-                  style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);cursor:pointer;"
+                  style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);cursor:pointer;"
                 >
-                  <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:#FFD200;" />
+                  <input v-model="quickSelectedPrestas" :value="presta.id" type="checkbox" style="margin-top:2px;accent-color:var(--accent);" />
                   <div>
-                    <div style="font-size:13px;font-weight:700;color:#E8E9ED;">{{ presta.nom }}</div>
-                    <div style="font-size:11px;color:#9CA3AF;">{{ formatCurrency(prestaPrice(presta)) }} · {{ formatMinutes(presta.temps_estime_minutes || 60) }}</div>
+                    <div style="font-size:13px;font-weight:700;color:var(--content-1);">{{ presta.nom }}</div>
+                    <div style="font-size:11px;color:var(--content-3);">{{ formatCurrency(prestaPrice(presta)) }} · {{ formatMinutes(presta.temps_estime_minutes || 60) }}</div>
                   </div>
                 </label>
               </div>
-              <div v-else style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);font-size:12px;color:#9CA3AF;">
+              <div v-else style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px dashed var(--border-2);font-size:12px;color:var(--content-3);">
                 Aucune prestation ne correspond encore au type de moto renseigné.
               </div>
             </div>
@@ -364,9 +364,9 @@
               <div class="form-group" style="margin:0;">
                 <label class="form-label">Numéros de commande</label>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                  <span v-for="(cmd, idx) in quickForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#FFD200;background:rgba(255,210,0,0.08);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,210,0,0.15);">
+                  <span v-for="(cmd, idx) in quickForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--accent-content);background:var(--accent-soft);padding:4px 10px;border-radius:6px;border:1px solid var(--accent);">
                     #{{ cmd }}
-                    <button type="button" style="background:none;border:none;color:#FFD200;font-size:14px;line-height:1;cursor:pointer;" @click="quickForm.commandes.splice(idx, 1)">×</button>
+                    <button type="button" style="background:none;border:none;color:var(--accent-content);font-size:14px;line-height:1;cursor:pointer;" @click="quickForm.commandes.splice(idx, 1)">×</button>
                   </span>
                 </div>
                 <input
@@ -377,11 +377,11 @@
                   @keydown.",.prevent="addQuickCommande"
                 />
               </div>
-              <div style="min-width:200px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-                <div style="font-size:11px;color:#9CA3AF;">Estimé</div>
-                <div style="font-size:18px;font-weight:800;color:#FFD200;">{{ formatCurrency(quickEstimateTotal) }}</div>
-                <div style="font-size:12px;color:#CBD5E1;">{{ formatMinutes(quickEstimateDuration) }}</div>
-                <div style="font-size:12px;color:#CBD5E1;">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
+              <div style="min-width:200px;padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                <div style="font-size:11px;color:var(--content-3);">Estimé</div>
+                <div style="font-size:18px;font-weight:800;color:var(--accent-content);">{{ formatCurrency(quickEstimateTotal) }}</div>
+                <div style="font-size:12px;color:var(--content-2);">{{ formatMinutes(quickEstimateDuration) }}</div>
+                <div style="font-size:12px;color:var(--content-2);">{{ quickForm.heure_debut || '—' }} → {{ quickEstimatedEnd }}</div>
               </div>
             </div>
 
@@ -401,23 +401,23 @@
         <UCard>
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <span style="font-weight:700;color:#E8E9ED;">Confirmer le déplacement</span>
-              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="cancelMove">✕</button>
+              <span style="font-weight:700;color:var(--content-1);">Confirmer le déplacement</span>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="cancelMove" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
-          <div v-if="pendingMove?.rdv" style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#D1D5DB;">
+          <div v-if="pendingMove?.rdv" style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--content-2);">
             <div>
-              <span style="color:#6B7280;">RDV :</span>
-              <strong style="color:#E8E9ED;">{{ pendingMove.rdv.client_nom || 'Client' }} · {{ pendingMove.rdv.type_intervention }}</strong>
+              <span style="color:var(--content-3);">RDV :</span>
+              <strong style="color:var(--content-1);">{{ pendingMove.rdv.client_nom || 'Client' }} · {{ pendingMove.rdv.type_intervention }}</strong>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="color:#6B7280;">De :</span>
+              <span style="color:var(--content-3);">De :</span>
               <span>{{ formatDateDisplay(pendingMove.rdv.date_rdv) }} à {{ pendingMove.rdv.heure_debut }}</span>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="color:#6B7280;">Vers :</span>
-              <span style="color:#FFD200;font-weight:700;">{{ formatDateDisplay(pendingMove.date) }} à {{ pendingMove.time }}</span>
+              <span style="color:var(--content-3);">Vers :</span>
+              <span style="color:var(--accent-content);font-weight:700;">{{ formatDateDisplay(pendingMove.date) }} à {{ pendingMove.time }}</span>
             </div>
           </div>
 
@@ -437,21 +437,21 @@
           <template #header>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span style="font-weight:700;color:#E8E9ED;font-size:15px;">RDV #{{ selectedRdv?.id }}</span>
+                <span style="font-weight:700;color:var(--content-1);font-size:15px;">RDV #{{ selectedRdv?.id }}</span>
                 <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
-                <span v-if="selectedIsHistorical" style="font-size:11px;color:#10B981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
+                <span v-if="selectedIsHistorical" style="font-size:11px;color:var(--success-content);background:var(--success-soft);border:1px solid var(--success);padding:4px 10px;border-radius:999px;">Historisé · figé</span>
               </div>
-              <button style="background:none;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;" @click="showRdvModal = false">✕</button>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" @click="showRdvModal = false" aria-label="Fermer"><AppIcon name="i-ri-close-line" /></button>
             </div>
           </template>
 
-          <div v-if="modalLoading" style="padding:16px;color:#9CA3AF;">Chargement du rendez-vous…</div>
+          <div v-if="modalLoading" style="padding:16px;color:var(--content-3);">Chargement du rendez-vous…</div>
 
           <div v-else-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;">
             <!-- Demande d'annulation venant de l'espace client -->
-            <div v-if="selectedRdv.annulation_demandee_at" style="padding:12px 14px;border-radius:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);">
-              <div style="font-size:13px;font-weight:700;color:#FCD34D;margin-bottom:4px;">⚠️ Demande d'annulation client</div>
-              <div style="font-size:12px;color:#D1D5DB;margin-bottom:10px;">
+            <div v-if="selectedRdv.annulation_demandee_at" style="padding:12px 14px;border-radius:10px;background:var(--warning-soft);border:1px solid var(--warning);">
+              <div style="font-size:13px;font-weight:700;color:var(--warning-content);margin-bottom:4px;"><AppIcon name="i-ri-error-warning-line" /> Demande d'annulation client</div>
+              <div style="font-size:12px;color:var(--content-2);margin-bottom:10px;">
                 Le client a demandé l'annulation de ce rendez-vous le {{ formatDateDisplay(selectedRdv.annulation_demandee_at) }}.
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -464,35 +464,35 @@
             <div
               v-if="selectedRdv.litige_signale"
               data-testid="rdv-litige-alert"
-              style="padding:12px 14px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);"
+              style="padding:12px 14px;border-radius:10px;background:var(--error-soft);border:1px solid var(--error);"
             >
               <span
                 data-testid="rdv-litige-badge"
-                style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);font-size:12px;font-weight:700;color:#FCA5A5;"
-              >⚠️ Litige restitution</span>
+                style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--error-soft);border:1px solid var(--error);font-size:12px;font-weight:700;color:var(--error-content);"
+              ><AppIcon name="i-ri-error-warning-line" /> Litige restitution</span>
               <div
                 v-if="selectedRdv.litige_commentaire"
                 data-testid="rdv-litige-commentaire"
-                style="margin-top:8px;font-size:12px;color:#D1D5DB;white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;"
+                style="margin-top:8px;font-size:12px;color:var(--content-2);white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;"
               >{{ selectedRdv.litige_commentaire }}</div>
-              <div v-else style="margin-top:8px;font-size:12px;color:#9CA3AF;">Réserve signalée sans commentaire.</div>
+              <div v-else style="margin-top:8px;font-size:12px;color:var(--content-3);">Réserve signalée sans commentaire.</div>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
-              <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
-              <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ selectedRdv.heure_debut }}</span></div>
-              <div><span style="color:#6B7280;">Client :</span> <span style="color:#D1D5DB;">{{ selectedRdv.client_nom || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Véhicule :</span> <span style="color:#D1D5DB;">{{ selectedRdv.vehicule_info || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Mécanicien :</span> <span style="color:#D1D5DB;">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
-              <div><span style="color:#6B7280;">Durée :</span> <span style="color:#D1D5DB;">{{ formatMinutes(selectedRdv.temps_estime ?? selectedRdv.duree_estimee) }}</span></div>
-              <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ selectedRdv.type_intervention || '—' }}</span></div>
-              <div v-if="selectedRdv.prix_estime"><span style="color:#6B7280;">Total estimé :</span> <span style="color:#FFD200;font-weight:700;">{{ formatCurrency(selectedRdv.prix_estime) }}</span> <span style="color:#6B7280;font-size:11px;">(indicatif)</span></div>
-              <div v-if="selectedRdv.prestations_snapshot?.length" style="grid-column:1 / -1;"><span style="color:#6B7280;">Prestations :</span> <span style="color:#D1D5DB;">{{ selectedRdv.prestations_snapshot.map((p) => p.designation).join(', ') }}</span></div>
+              <div><span style="color:var(--content-3);">Date :</span> <span style="color:var(--content-2);">{{ formatDateDisplay(selectedRdv.date_rdv) }}</span></div>
+              <div><span style="color:var(--content-3);">Heure :</span> <span style="color:var(--content-2);">{{ selectedRdv.heure_debut }}</span></div>
+              <div><span style="color:var(--content-3);">Client :</span> <span style="color:var(--content-2);">{{ selectedRdv.client_nom || '—' }}</span></div>
+              <div><span style="color:var(--content-3);">Véhicule :</span> <span style="color:var(--content-2);">{{ selectedRdv.vehicule_info || '—' }}</span></div>
+              <div><span style="color:var(--content-3);">Pont :</span> <span style="color:var(--content-2);">{{ selectedRdv.pont?.nom || selectedRdv.pont_nom || '—' }}</span></div>
+              <div><span style="color:var(--content-3);">Mécanicien :</span> <span style="color:var(--content-2);">{{ selectedRdv.mecanicien_nom || '—' }}</span></div>
+              <div><span style="color:var(--content-3);">Durée :</span> <span style="color:var(--content-2);">{{ formatMinutes(selectedRdv.temps_estime ?? selectedRdv.duree_estimee) }}</span></div>
+              <div><span style="color:var(--content-3);">Type :</span> <span style="color:var(--content-2);">{{ selectedRdv.type_intervention || '—' }}</span></div>
+              <div v-if="selectedRdv.prix_estime"><span style="color:var(--content-3);">Total estimé :</span> <span style="color:var(--accent-content);font-weight:700;">{{ formatCurrency(selectedRdv.prix_estime) }}</span> <span style="color:var(--content-3);font-size:11px;">(indicatif)</span></div>
+              <div v-if="selectedRdv.prestations_snapshot?.length" style="grid-column:1 / -1;"><span style="color:var(--content-3);">Prestations :</span> <span style="color:var(--content-2);">{{ selectedRdv.prestations_snapshot.map((p) => p.designation).join(', ') }}</span></div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Édition rapide / affectation</div>
+            <div style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);margin-bottom:10px;">Édition rapide / affectation</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
                 <div class="form-group">
                   <label class="form-label">Date</label>
@@ -528,7 +528,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Mécanicien affecté</label>
-                  <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">{{ editAssignedMecanicienLabel }}</div>
+                  <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:var(--content-2);">{{ editAssignedMecanicienLabel }}</div>
                 </div>
               </div>
 
@@ -540,9 +540,9 @@
               <div class="form-group" style="margin-top:12px;">
                 <label class="form-label">Numéros de commande</label>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                  <span v-for="(cmd, idx) in editForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#FFD200;background:rgba(255,210,0,0.08);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,210,0,0.15);">
+                  <span v-for="(cmd, idx) in editForm.commandes" :key="idx" style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--accent-content);background:var(--accent-soft);padding:4px 10px;border-radius:6px;border:1px solid var(--accent);">
                     #{{ cmd }}
-                    <button v-if="!selectedIsHistorical && canEditRdv" type="button" style="background:none;border:none;color:#FFD200;font-size:14px;line-height:1;cursor:pointer;" @click="editForm.commandes.splice(idx, 1)">×</button>
+                    <button v-if="!selectedIsHistorical && canEditRdv" type="button" style="background:none;border:none;color:var(--accent-content);font-size:14px;line-height:1;cursor:pointer;" @click="editForm.commandes.splice(idx, 1)">×</button>
                   </span>
                 </div>
                 <input
@@ -556,69 +556,69 @@
                 />
               </div>
 
-              <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#FBBF24;">
+              <div v-if="prestationLocked" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning);font-size:12px;color:var(--warning-content);">
                 Après la réception, la prestation et sa durée sont figées. Seules l'affectation, la note et le suivi restent modifiables.
               </div>
 
               <!-- Enhanced Reception Panel -->
-              <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(255,210,0,0.04);border:1px solid rgba(255,210,0,0.15);">
+              <div v-if="isReceptionEligible" style="margin-top:12px;padding:14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                  <div style="font-size:14px;font-weight:700;color:#FFD200;">📥 Réception du véhicule</div>
-                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus">↻ Statut PDA</button>
+                  <div style="font-size:14px;font-weight:700;color:var(--accent-content);"><AppIcon name="i-ri-inbox-line" /> Réception du véhicule</div>
+                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;min-height:auto;" @click="refreshCompanionStatus"><AppIcon name="i-ri-refresh-line" /> Statut PDA</button>
                 </div>
 
                 <!-- Companion QR + Link -->
-                <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
                   <div style="flex:1;">
-                    <div style="font-size:12px;font-weight:600;color:#E8E9ED;margin-bottom:6px;">📱 Compagnon PDA</div>
-                    <p style="font-size:11px;color:#9CA3AF;margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
+                    <div style="font-size:12px;font-weight:600;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-smartphone-line" /> Compagnon PDA</div>
+                    <p style="font-size:11px;color:var(--content-3);margin:0 0 8px;">Ouvrez ce lien sur le téléphone pour : photos, scan carte grise, checkup express, signature client.</p>
                     <div style="display:flex;gap:6px;align-items:center;">
                       <input :value="companionUrl" class="form-input" style="font-size:11px;flex:1;" readonly @focus="($event.target as HTMLInputElement)?.select()" />
-                      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl">📋</button>
+                      <button class="btn btn-ghost" aria-label="Copier le lien du compagnon PDA" style="padding:6px 10px;font-size:11px;min-height:auto;" @click="copyCompanionUrl"><AppIcon name="i-ri-clipboard-line" /></button>
                     </div>
                   </div>
                   <div v-if="companionQrUrl" style="min-width:100px;text-align:center;">
                     <img :src="companionQrUrl" alt="QR Code" style="width:100px;height:100px;border-radius:8px;background:white;padding:4px;" />
-                    <div style="font-size:10px;color:#6B7280;margin-top:4px;">Scanner avec le tél.</div>
+                    <div style="font-size:10px;color:var(--content-3);margin-top:4px;">Scanner avec le tél.</div>
                   </div>
                 </div>
 
                 <!-- Companion Live Status -->
                 <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
                   <div class="reception-status-pill" :class="{ done: companionStatus.photos_count > 0 }">
-                    📸 {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
+                    <AppIcon name="i-ri-camera-line" /> {{ companionStatus.photos_count || 0 }} photo{{ (companionStatus.photos_count || 0) !== 1 ? 's' : '' }}
                   </div>
                   <div class="reception-status-pill" :class="{ done: companionStatus.checkup_done > 0 }">
-                    🔎 Checkup {{ companionStatus.checkup_done || 0 }}/10
+                    <AppIcon name="i-ri-search-line" /> Checkup {{ companionStatus.checkup_done || 0 }}/10
                   </div>
                   <div class="reception-status-pill" :class="{ done: companionStatus.has_signature }">
-                    ✍️ Signature {{ companionStatus.has_signature ? '✓' : '✗' }}
+                    <AppIcon name="i-ri-quill-pen-line" /> Signature <AppIcon :name="companionStatus.has_signature ? 'i-ri-check-line' : 'i-ri-close-line'" />
                   </div>
                 </div>
 
                 <!-- Checkup détail -->
                 <div v-if="companionStatus.checkup?.length" style="margin-bottom:14px;">
-                  <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">🔎 Détail checkup</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;"><AppIcon name="i-ri-search-line" /> Détail checkup</div>
                   <div style="display:flex;flex-direction:column;gap:4px;">
-                    <div v-for="(item, idx) in companionStatus.checkup" :key="idx" style="display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,0.03);">
-                      <span style="color:#D1D5DB;">{{ item.label || idx }}</span>
-                      <span :style="item.value === 'ok' || item === 'ok' ? 'color:#6EE7B7;' : (item.value === 'nok' || item === 'nok' ? 'color:#FCA5A5;' : 'color:#9CA3AF;')">
+                    <div v-for="(item, idx) in companionStatus.checkup" :key="idx" style="display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;border-radius:6px;background:var(--overlay-soft);">
+                      <span style="color:var(--content-2);">{{ item.label || idx }}</span>
+                      <span :style="item.value === 'ok' || item === 'ok' ? 'color:var(--success-content);' : (item.value === 'nok' || item === 'nok' ? 'color:var(--error-content);' : 'color:var(--content-3);')">
                         {{ item.value || item }}
                       </span>
                     </div>
                   </div>
-                  <div v-if="companionStatus.checkup_notes" style="font-size:12px;color:#9CA3AF;margin-top:6px;white-space:pre-wrap;">
-                    📝 {{ companionStatus.checkup_notes }}
+                  <div v-if="companionStatus.checkup_notes" style="font-size:12px;color:var(--content-3);margin-top:6px;white-space:pre-wrap;">
+                    <AppIcon name="i-ri-draft-line" /> {{ companionStatus.checkup_notes }}
                   </div>
                 </div>
 
                 <!-- Photos réception -->
                 <div v-if="receptionPhotos.length" style="margin-bottom:14px;">
-                  <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">📸 Photos réception</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;"><AppIcon name="i-ri-camera-line" /> Photos réception</div>
                   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;">
                     <div v-for="(photo, idx) in receptionPhotos" :key="idx" style="position:relative;">
                       <img :src="photo.url || photo.src" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:white;cursor:pointer;" @click="openPhotoInTab(photo.url || photo.src)" />
-                      <div v-if="photo.description" style="font-size:9px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
+                      <div v-if="photo.description" style="font-size:9px;color:var(--content-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
                     </div>
                   </div>
                 </div>
@@ -627,7 +627,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
                   <div class="form-group">
                     <label class="form-label">Kilométrage réception</label>
-                    <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:#CBD5E1;">
+                    <div class="form-input" style="display:flex;align-items:center;min-height:42px;color:var(--content-2);">
                       {{ selectedRdv?.kilometrage ? selectedRdv.kilometrage + ' km' : 'Saisi via le compagnon PDA' }}
                     </div>
                   </div>
@@ -638,8 +638,8 @@
                 </div>
 
                 <!-- Signature warning -->
-                <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);font-size:12px;color:#FCA5A5;">
-                  ⚠️ Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
+                <div v-if="!companionStatus.has_signature" style="margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--error-soft);border:1px solid var(--error);font-size:12px;color:var(--error-content);">
+                  <AppIcon name="i-ri-error-warning-line" /> Signature client obligatoire pour valider la réception. Utilisez le compagnon PDA pour faire signer.
                 </div>
               </div>
 
@@ -648,30 +648,30 @@
                 <button v-if="canEditRdv && !selectedIsHistorical" class="btn btn-primary" :disabled="editSaving" @click="saveRdvChanges">
                   {{ editSaving ? 'Sauvegarde…' : 'Enregistrer les modifications' }}
                 </button>
-                <button v-if="canDeleteSelected" class="btn" style="background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);" :disabled="deleting" @click="deleteSelectedRdv">
+                <button v-if="canDeleteSelected" class="btn" style="background:var(--error-soft);color:var(--error-content);border-color:var(--error);" :disabled="deleting" @click="deleteSelectedRdv">
                   {{ deleting ? 'Suppression…' : 'Supprimer le RDV' }}
                 </button>
               </div>
             </div>
 
             <!-- Document OR unique -->
-            <div v-if="selectedRdv.ordres_reparation?.length" style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">📄 Ordre de Réparation</div>
+            <div v-if="selectedRdv.ordres_reparation?.length" style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);margin-bottom:10px;"><AppIcon name="i-ri-file-text-line" /> Ordre de Réparation</div>
               <div style="display:flex;flex-direction:column;gap:6px;">
-                <div v-for="or in selectedRdv.ordres_reparation" :key="or.id" style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                <div v-for="or in selectedRdv.ordres_reparation" :key="or.id" style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
                   <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div style="font-size:12px;font-weight:600;color:#D1D5DB;">{{ or.numero_or }}</div>
-                    <div style="font-size:11px;color:#6B7280;">{{ or.statut }}</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--content-2);">{{ or.numero_or }}</div>
+                    <div style="font-size:11px;color:var(--content-3);">{{ or.statut }}</div>
                   </div>
                   <!-- Signatures -->
                   <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;">
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Client réception {{ or.signature_client ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_atelier_reception ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Atelier réception {{ or.signature_atelier_reception ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_mecanicien ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Mécanicien {{ or.signature_mecanicien ? '✓' : '—' }}</span>
-                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client_restitution ? 'background:rgba(16,185,129,0.08);color:#6EE7B7;' : 'background:rgba(255,255,255,0.03);color:#6B7280;'">Client restitution {{ or.signature_client_restitution ? '✓' : '—' }}</span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client réception <AppIcon v-if="or.signature_client" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_atelier_reception ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Atelier réception <AppIcon v-if="or.signature_atelier_reception" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_mecanicien ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Mécanicien <AppIcon v-if="or.signature_mecanicien" name="i-ri-check-line" /><template v-else>—</template></span>
+                    <span style="padding:3px 8px;border-radius:999px;" :style="or.signature_client_restitution ? 'background:var(--success-soft);color:var(--success-content);' : 'background:var(--overlay-soft);color:var(--content-3);'">Client restitution <AppIcon v-if="or.signature_client_restitution" name="i-ri-check-line" /><template v-else>—</template></span>
                   </div>
-                  <div v-if="or.travaux_realises" style="font-size:11px;color:#9CA3AF;">
-                    <span style="color:#6B7280;">Travaux :</span> {{ or.travaux_realises.slice(0, 80) }}{{ or.travaux_realises.length > 80 ? '…' : '' }}
+                  <div v-if="or.travaux_realises" style="font-size:11px;color:var(--content-3);">
+                    <span style="color:var(--content-3);">Travaux :</span> {{ or.travaux_realises.slice(0, 80) }}{{ or.travaux_realises.length > 80 ? '…' : '' }}
                   </div>
 
                   <!-- Toggle détail complet -->
@@ -681,7 +681,7 @@
                     :disabled="orDetailLoading === or.id"
                     @click="loadOrDetail(or.id)"
                   >
-                    {{ orDetailLoading === or.id ? 'Chargement…' : (orDetailOpen[or.id] ? '▲ Masquer le document' : '▶ Voir le document complet') }}
+                    <AppIcon v-if="orDetailLoading !== or.id" :name="orDetailOpen[or.id] ? 'i-ri-arrow-up-s-fill' : 'i-ri-play-line'" />{{ orDetailLoading === or.id ? 'Chargement…' : (orDetailOpen[or.id] ? 'Masquer le document' : 'Voir le document complet') }}
                   </button>
 
                   <!-- Panneau détail OR -->
@@ -694,19 +694,19 @@
                       class="btn btn-ghost"
                       style="font-size:12px;padding:6px 12px;align-self:flex-start;text-decoration:none;"
                     >
-                      📄 Télécharger le PDF
+                      <AppIcon name="i-ri-file-text-line" /> Télécharger le PDF
                     </a>
                     <div
                       v-else-if="orDetails[or.id]"
-                      style="font-size:12px;color:#6B7280;padding:6px 12px;align-self:flex-start;"
+                      style="font-size:12px;color:var(--content-3);padding:6px 12px;align-self:flex-start;"
                     >
-                      📄 PDF disponible une fois l'OR finalisé (statut terminé)
+                      <AppIcon name="i-ri-file-text-line" /> PDF disponible une fois l'OR finalisé (statut terminé)
                     </div>
 
                     <!-- Photos -->
                     <template v-for="(photoList, type) in orPhotos[or.id]" :key="type">
-                      <div v-if="photoList?.length" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:8px;">{{ photoTypeLabel(type) }}</div>
+                      <div v-if="photoList?.length" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:8px;">{{ photoTypeLabel(type) }}</div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;">
                           <div v-for="(photo, idx) in photoList" :key="idx" style="position:relative;">
                             <img
@@ -714,64 +714,64 @@
                               style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;background:white;cursor:pointer;"
                               @click="openPhotoInTab(photo.url || photo.src)"
                             />
-                            <div v-if="photo.description" style="font-size:9px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
+                            <div v-if="photo.description" style="font-size:9px;color:var(--content-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ photo.description }}</div>
                           </div>
                         </div>
                       </div>
                     </template>
 
-                    <div v-if="orDetails[or.id].travaux" style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
-                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:4px;">📝 Travaux demandés</div>
-                      <div style="font-size:12px;color:#D1D5DB;white-space:pre-wrap;">{{ orDetails[or.id].travaux }}</div>
+                    <div v-if="orDetails[or.id].travaux" style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;"><AppIcon name="i-ri-draft-line" /> Travaux demandés</div>
+                      <div style="font-size:12px;color:var(--content-2);white-space:pre-wrap;">{{ orDetails[or.id].travaux }}</div>
                     </div>
-                    <div v-if="orDetails[or.id].etat_vehicule" style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
-                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:4px;">🔍 État véhicule</div>
-                      <div style="font-size:12px;color:#D1D5DB;white-space:pre-wrap;">{{ orDetails[or.id].etat_vehicule }}</div>
+                    <div v-if="orDetails[or.id].etat_vehicule" style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:4px;"><AppIcon name="i-ri-search-line" /> État véhicule</div>
+                      <div style="font-size:12px;color:var(--content-2);white-space:pre-wrap;">{{ orDetails[or.id].etat_vehicule }}</div>
                     </div>
 
                     <!-- Intervention -->
-                    <div v-if="orDetails[or.id].travaux_realises || orDetails[or.id].alertes || orDetails[or.id].recommandations || orDetails[or.id].garantie" style="padding:10px;border-radius:8px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);">
-                      <div style="font-size:11px;font-weight:700;color:#6EE7B7;margin-bottom:6px;">🔧 Intervention</div>
-                      <div v-if="orDetails[or.id].travaux_realises" style="font-size:12px;color:#D1D5DB;margin-bottom:6px;white-space:pre-wrap;"><span style="color:#6B7280;">Travaux réalisés :</span> {{ orDetails[or.id].travaux_realises }}</div>
-                      <div v-if="orDetails[or.id].alertes?.length" style="font-size:12px;color:#FCA5A5;margin-bottom:6px;"><span style="color:#EF4444;">⚠️ Alertes :</span> {{ Array.isArray(orDetails[or.id].alertes) ? orDetails[or.id].alertes.join(', ') : orDetails[or.id].alertes }}</div>
-                      <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:#FBBF24;margin-bottom:6px;white-space:pre-wrap;"><span style="color:#F59E0B;">💡 Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
-                      <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:#6EE7B7;white-space:pre-wrap;"><span style="color:#10B981;">🛡️ Garantie :</span> {{ orDetails[or.id].garantie }}</div>
-                      <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:#D1D5DB;margin-top:4px;"><span style="color:#6B7280;">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
+                    <div v-if="orDetails[or.id].travaux_realises || orDetails[or.id].alertes || orDetails[or.id].recommandations || orDetails[or.id].garantie" style="padding:10px;border-radius:8px;background:var(--success-soft);border:1px solid var(--success);">
+                      <div style="font-size:11px;font-weight:700;color:var(--success-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Intervention</div>
+                      <div v-if="orDetails[or.id].travaux_realises" style="font-size:12px;color:var(--content-2);margin-bottom:6px;white-space:pre-wrap;"><span style="color:var(--content-3);">Travaux réalisés :</span> {{ orDetails[or.id].travaux_realises }}</div>
+                      <div v-if="orDetails[or.id].alertes?.length" style="font-size:12px;color:var(--error-content);margin-bottom:6px;"><span style="color:var(--error-content);"><AppIcon name="i-ri-error-warning-line" /> Alertes :</span> {{ Array.isArray(orDetails[or.id].alertes) ? orDetails[or.id].alertes.join(', ') : orDetails[or.id].alertes }}</div>
+                      <div v-if="orDetails[or.id].recommandations" style="font-size:12px;color:var(--warning-content);margin-bottom:6px;white-space:pre-wrap;"><span style="color:var(--warning-content);"><AppIcon name="i-ri-lightbulb-line" /> Recommandations :</span> {{ orDetails[or.id].recommandations }}</div>
+                      <div v-if="orDetails[or.id].garantie" style="font-size:12px;color:var(--success-content);white-space:pre-wrap;"><span style="color:var(--success-content);"><AppIcon name="i-ri-shield-line" /> Garantie :</span> {{ orDetails[or.id].garantie }}</div>
+                      <div v-if="orDetails[or.id].kilometrage_restitution" style="font-size:12px;color:var(--content-2);margin-top:4px;"><span style="color:var(--content-3);">Km restitution :</span> {{ orDetails[or.id].kilometrage_restitution }} km</div>
                     </div>
 
                     <!-- Entretien fluides -->
-                    <div style="padding:10px;border-radius:8px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);">
-                      <div style="font-size:11px;font-weight:700;color:#BFDBFE;margin-bottom:6px;">🔧 Entretien des fluides recommandé</div>
-                      <div style="font-size:12px;color:#D1D5DB;">Huile moteur — <strong style="color:#93C5FD;">tous les ans</strong></div>
-                      <div style="font-size:12px;color:#D1D5DB;">Liquide de frein — <strong style="color:#93C5FD;">tous les 2 ans</strong></div>
-                      <div style="font-size:12px;color:#D1D5DB;">Liquide de refroidissement — <strong style="color:#93C5FD;">tous les 3 ans</strong></div>
+                    <div style="padding:10px;border-radius:8px;background:var(--info-soft);border:1px solid var(--info);">
+                      <div style="font-size:11px;font-weight:700;color:var(--info-content);margin-bottom:6px;"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</div>
+                      <div style="font-size:12px;color:var(--content-2);">Huile moteur — <strong style="color:var(--info-content);">tous les ans</strong></div>
+                      <div style="font-size:12px;color:var(--content-2);">Liquide de frein — <strong style="color:var(--info-content);">tous les 2 ans</strong></div>
+                      <div style="font-size:12px;color:var(--content-2);">Liquide de refroidissement — <strong style="color:var(--info-content);">tous les 3 ans</strong></div>
                     </div>
 
                     <!-- Signatures images -->
                     <div style="display:flex;flex-direction:column;gap:8px;">
-                      <div v-if="orDetails[or.id].signature_client" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature client réception</div>
+                      <div v-if="orDetails[or.id].signature_client" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature client réception</div>
                         <img :src="orDetails[or.id].signature_client" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
-                        <div v-if="orDetails[or.id].signed_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signed_at }}</div>
+                        <div v-if="orDetails[or.id].signed_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signed_at }}</div>
                       </div>
-                      <div v-if="orDetails[or.id].signature_atelier_reception" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature atelier réception</div>
+                      <div v-if="orDetails[or.id].signature_atelier_reception" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature atelier réception</div>
                         <img :src="orDetails[or.id].signature_atelier_reception" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
-                        <div v-if="orDetails[or.id].signe_receptionniste_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_receptionniste_at }}</div>
+                        <div v-if="orDetails[or.id].signe_receptionniste_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_receptionniste_at }}</div>
                       </div>
-                      <div v-if="orDetails[or.id].signature_mecanicien" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature mécanicien</div>
+                      <div v-if="orDetails[or.id].signature_mecanicien" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature mécanicien</div>
                         <img :src="orDetails[or.id].signature_mecanicien" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
-                        <div v-if="orDetails[or.id].signe_mecanicien_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_mecanicien_at }}</div>
+                        <div v-if="orDetails[or.id].signe_mecanicien_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_mecanicien_at }}</div>
                       </div>
-                      <div v-if="orDetails[or.id].signature_client_restitution" style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:11px;font-weight:700;color:#E8E9ED;margin-bottom:6px;">✍️ Signature client restitution</div>
+                      <div v-if="orDetails[or.id].signature_client_restitution" style="padding:10px;border-radius:8px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+                        <div style="font-size:11px;font-weight:700;color:var(--content-1);margin-bottom:6px;"><AppIcon name="i-ri-quill-pen-line" /> Signature client restitution</div>
                         <img :src="orDetails[or.id].signature_client_restitution" style="max-width:200px;border-radius:6px;background:white;padding:4px;" />
-                        <div v-if="orDetails[or.id].signe_client_restitution_at" style="font-size:10px;color:#6B7280;margin-top:4px;">{{ orDetails[or.id].signe_client_restitution_at }}</div>
+                        <div v-if="orDetails[or.id].signe_client_restitution_at" style="font-size:10px;color:var(--content-3);margin-top:4px;">{{ orDetails[or.id].signe_client_restitution_at }}</div>
                       </div>
                     </div>
 
-                    <div v-if="orDetails[or.id].signed_hash" style="font-size:10px;color:#6B7280;word-break:break-all;">
+                    <div v-if="orDetails[or.id].signed_hash" style="font-size:10px;color:var(--content-3);word-break:break-all;">
                       Empreinte : {{ orDetails[or.id].signed_hash }}
                     </div>
                   </div>
@@ -779,8 +779,8 @@
               </div>
             </div>
 
-            <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
-              <div style="font-size:13px;font-weight:700;color:#E8E9ED;margin-bottom:10px;">Workflow atelier</div>
+            <div style="padding:12px;border-radius:10px;background:var(--overlay-soft);border:1px solid var(--border-2);">
+              <div style="font-size:13px;font-weight:700;color:var(--content-1);margin-bottom:10px;">Workflow atelier</div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <!-- Bouton principal (prochaine étape) -->
                 <button
@@ -791,22 +791,24 @@
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
+                  <AppIcon v-if="transition.icon && transitioning !== transition.name" :name="transition.icon" />
                   {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
                 </button>
                 <!-- Bouton annuler (discret) -->
                 <button
                   v-for="transition in availableTransitions.filter(t => t.name === 'annuler')"
                   :key="transition.name"
-                  style="background:none;border:none;color:#9CA3AF;font-size:11px;cursor:pointer;padding:4px 8px;"
+                  style="background:none;border:none;color:var(--content-3);font-size:11px;cursor:pointer;padding:4px 8px;"
                   :disabled="transitioning === transition.name || selectedIsHistorical"
                   @click="applyTransition(transition.name)"
                 >
+                  <AppIcon v-if="transition.icon && transitioning !== transition.name" :name="transition.icon" />
                   {{ transitioning === transition.name ? 'Traitement…' : transition.label }}
                 </button>
               </div>
             </div>
 
-            <div v-if="selectedRdv.commentaire" style="font-size:12px;color:#CBD5E1;">{{ selectedRdv.commentaire }}</div>
+            <div v-if="selectedRdv.commentaire" style="font-size:12px;color:var(--content-2);">{{ selectedRdv.commentaire }}</div>
           </div>
         </UCard>
       </template>
@@ -945,16 +947,16 @@ const {
   typeKey: 'vehicule_type',
 })
 
-const transitionCatalog: Record<string, { label: string; color: string }> = {
-  reserver: { label: '📌 Réserver', color: 'neutral' },
-  confirmer: { label: '✅ Confirmer', color: 'primary' },
-  reception: { label: '📥 Réceptionner', color: 'warning' },
-  start_travail: { label: '🔧 Démarrer', color: 'warning' },
-  terminer: { label: '✅ Terminer', color: 'success' },
-  restituer: { label: '🚚 Restituer', color: 'info' },
-  facturer: { label: '💶 Facturer', color: 'primary' },
-  payer: { label: '💳 Encaisser', color: 'success' },
-  annuler: { label: '❌ Annuler', color: 'error' },
+const transitionCatalog: Record<string, { icon: string; label: string; color: string }> = {
+  reserver: { icon: 'i-ri-pushpin-line', label: 'Réserver', color: 'neutral' },
+  confirmer: { icon: 'i-ri-checkbox-circle-line', label: 'Confirmer', color: 'primary' },
+  reception: { icon: 'i-ri-inbox-line', label: 'Réceptionner', color: 'warning' },
+  start_travail: { icon: 'i-ri-tools-line', label: 'Démarrer', color: 'warning' },
+  terminer: { icon: 'i-ri-checkbox-circle-line', label: 'Terminer', color: 'success' },
+  restituer: { icon: 'i-ri-truck-line', label: 'Restituer', color: 'info' },
+  facturer: { icon: 'i-ri-money-euro-circle-line', label: 'Facturer', color: 'primary' },
+  payer: { icon: 'i-ri-bank-card-line', label: 'Encaisser', color: 'success' },
+  annuler: { icon: 'i-ri-close-circle-line', label: 'Annuler', color: 'error' },
 }
 
 // Séquence de workflow : pour chaque statut, quelle est la prochaine transition attendue
@@ -1371,11 +1373,11 @@ const kpis = computed(() => {
 })
 
 function transitionButtonStyle(color: string) {
-  if (color === 'error') return 'background:rgba(239,68,68,0.14);color:#FCA5A5;border-color:rgba(239,68,68,0.28);'
-  if (color === 'success') return 'background:rgba(16,185,129,0.14);color:#6EE7B7;border-color:rgba(16,185,129,0.28);'
-  if (color === 'warning') return 'background:rgba(245,158,11,0.14);color:#FBBF24;border-color:rgba(245,158,11,0.28);'
-  if (color === 'info') return 'background:rgba(59,130,246,0.14);color:#93C5FD;border-color:rgba(59,130,246,0.28);'
-  return 'background:rgba(255,255,255,0.05);color:#E8E9ED;border-color:rgba(255,255,255,0.12);'
+  if (color === 'error') return 'background:var(--error-soft);color:var(--error-content);border-color:var(--error);'
+  if (color === 'success') return 'background:var(--success-soft);color:var(--success-content);border-color:var(--success);'
+  if (color === 'warning') return 'background:var(--warning-soft);color:var(--warning-content);border-color:var(--warning);'
+  if (color === 'info') return 'background:var(--info-soft);color:var(--info-content);border-color:var(--info);'
+  return 'background:var(--overlay-hover);color:var(--content-1);border-color:var(--border-1);'
 }
 
 function formatCurrency(value: any) {
@@ -1403,6 +1405,7 @@ function fallbackTransitionsForStatus(status?: string) {
   if (!seq) return []
   return [seq.next, seq.cancel].filter((n): n is string => !!n).map((name) => ({
     name,
+    icon: transitionCatalog[name]?.icon ?? '',
     label: transitionCatalog[name]?.label ?? name,
     color: transitionCatalog[name]?.color ?? 'neutral',
   }))
@@ -1598,6 +1601,7 @@ async function loadAvailableTransitions(id: number) {
       .filter((name: string) => allowed.has(name))
       .map((name: string) => ({
         name,
+        icon: transitionCatalog[name]?.icon ?? '',
         label: transitionCatalog[name]?.label ?? name,
         color: transitionCatalog[name]?.color ?? 'neutral',
       }))
@@ -1618,14 +1622,14 @@ async function reloadSelectedRdv(id: number) {
 
 function photoTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    checkin: '📸 Check-in / état des lieux',
-    reception: '📸 Photos réception',
-    avant_travaux: '📸 Photos avant travaux',
-    en_cours: '📸 Photos en cours',
-    apres_travaux: '📸 Photos après travaux',
-    restitution: '📸 Photos restitution',
-    probleme: '📸 Photos problème',
-    reception_base64: '📸 Photos PDA réception',
+    checkin: 'Check-in / état des lieux',
+    reception: 'Photos réception',
+    avant_travaux: 'Photos avant travaux',
+    en_cours: 'Photos en cours',
+    apres_travaux: 'Photos après travaux',
+    restitution: 'Photos restitution',
+    probleme: 'Photos problème',
+    reception_base64: 'Photos PDA réception',
   }
   return labels[type] || type
 }
@@ -2029,6 +2033,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Compteur d'une puce de filtre. Le design system interdit les astuces
+   d'opacité : la nuance vient de la graisse, pas d'une transparence qui
+   ferait tomber le contraste sous le seuil. */
+.chip-count {
+  font-weight: var(--w-regular);
+}
+
 .reception-status-pill {
   flex: 1;
   padding: 8px 12px;
@@ -2036,13 +2047,13 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   text-align: center;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #6B7280;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-3);
 }
 .reception-status-pill.done {
-  background: rgba(16,185,129,0.08);
-  border-color: rgba(16,185,129,0.25);
-  color: #6EE7B7;
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success-content);
 }
 </style>

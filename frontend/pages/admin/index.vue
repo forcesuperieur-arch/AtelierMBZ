@@ -1,5 +1,5 @@
 <template>
-  <div style="padding:24px;color:#9CA3AF;font-size:13px;">Ouverture de l'administration…</div>
+  <div style="padding:24px;color:var(--content-3);font-size:13px;">Ouverture de l'administration…</div>
 </template>
 
 <script setup lang="ts">

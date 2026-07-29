@@ -7,8 +7,8 @@
     </p>
 
     <div v-if="pending">Chargement des clauses...</div>
-    <div v-else-if="error" style="color:#EF4444;">Impossible de charger les clauses.</div>
-    <div v-else-if="!clauses?.length" style="color:#6B7280;">Aucune clause disponible.</div>
+    <div v-else-if="error" style="color:var(--error-content);">Impossible de charger les clauses.</div>
+    <div v-else-if="!clauses?.length" style="color:var(--content-3);">Aucune clause disponible.</div>
 
     <template v-else>
       <nav class="clause-toc">
@@ -50,7 +50,7 @@ const { data: clauses, pending, error } = await useFetch('/api/clauses-legales',
 .intro {
   font-size: 14px;
   line-height: 1.6;
-  color: #9CA3AF;
+  color: var(--content-3);
   margin-bottom: 20px;
 }
 .clause-toc {
@@ -59,32 +59,32 @@ const { data: clauses, pending, error } = await useFetch('/api/clauses-legales',
   gap: 8px;
   margin-bottom: 24px;
   padding: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 10px;
 }
 .clause-toc a {
   font-size: 12px;
   font-weight: 600;
-  color: #FFD200;
+  color: var(--accent-content);
   text-decoration: none;
   padding: 4px 10px;
   border-radius: 6px;
-  background: rgba(255,210,0,0.08);
+  background: var(--accent-soft);
   transition: background 0.2s;
 }
 .clause-toc a:hover {
-  background: rgba(255,210,0,0.15);
+  background: var(--accent-soft);
 }
 .clause-section {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--border-2);
 }
 .clause-title {
   font-size: 18px;
   font-weight: 700;
-  color: #E8E9ED;
+  color: var(--content-1);
   margin-bottom: 12px;
 }
 </style>

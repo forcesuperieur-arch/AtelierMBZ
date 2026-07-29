@@ -26,7 +26,7 @@
 
   <AppEmptyState
     v-else
-    icon="📋"
+    icon="i-ri-clipboard-line"
     title="Aucun dossier actif"
     description="La répartition apparaît dès qu'un rendez-vous est en cours de traitement."
   />

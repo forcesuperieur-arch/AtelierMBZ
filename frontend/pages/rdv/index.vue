@@ -5,7 +5,7 @@
         <div class="page-title">Rendez-vous</div>
         <div class="page-sub">Vue atelier moderne avec filtres, statut et accès rapide aux fiches</div>
       </div>
-      <NuxtLink to="/rdv/new" class="topbar-new-btn">+ Nouveau RDV</NuxtLink>
+      <NuxtLink to="/rdv/new" class="btn btn-primary">+ Nouveau RDV</NuxtLink>
     </div>
 
     <div class="rdv-kpis">
@@ -48,7 +48,7 @@
           <input v-model="filters.search" type="text" class="form-control" placeholder="Client, plaque, moto, intervention..." />
         </div>
         <div class="rdv-filter-actions">
-          <button class="topbar-new-btn" style="height:40px;" @click="fetchData">Filtrer</button>
+          <button class="btn btn-primary" style="height:40px;" @click="fetchData">Filtrer</button>
           <button class="btn-secondary" style="height:40px;" @click="resetFilters">Reset</button>
         </div>
       </div>
@@ -69,7 +69,7 @@
     />
 
     <div v-else class="rdv-list">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#9CA3AF;padding:0 4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--content-3);padding:0 4px;">
         <span>{{ filteredRdvs.length }} RDV visible(s)</span>
         <span v-if="filters.status">Filtre actif : {{ statusOptions.find(o => o.value === filters.status)?.label }}</span>
       </div>
@@ -86,14 +86,14 @@
             <div class="rdv-vehicle">{{ rdv.vehicule_info || 'Véhicule non renseigné' }}</div>
           </div>
           <div class="rdv-card-meta">
-            <span>🔧 {{ rdv.type_intervention || 'Intervention' }}</span>
-            <span v-if="rdv.vehicule_plaque">🏍 {{ rdv.vehicule_plaque }}</span>
-            <span v-if="rdv.pont_nom">📍 {{ rdv.pont_nom }}</span>
-            <span v-if="rdv.mecanicien_nom">👤 {{ rdv.mecanicien_nom }}</span>
-            <span v-if="rdv.duree_estimee">⏱ {{ formatMinutes(rdv.duree_estimee) }}</span>
+            <span><AppIcon name="i-ri-tools-line" /> {{ rdv.type_intervention || 'Intervention' }}</span>
+            <span v-if="rdv.vehicule_plaque"><AppIcon name="i-ri-motorbike-line" /> {{ rdv.vehicule_plaque }}</span>
+            <span v-if="rdv.pont_nom"><AppIcon name="i-ri-map-pin-line" /> {{ rdv.pont_nom }}</span>
+            <span v-if="rdv.mecanicien_nom"><AppIcon name="i-ri-user-line" /> {{ rdv.mecanicien_nom }}</span>
+            <span v-if="rdv.duree_estimee"><AppIcon name="i-ri-timer-line" /> {{ formatMinutes(rdv.duree_estimee) }}</span>
           </div>
           <div v-if="rdv.commandes?.length" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
-            <span v-for="cmd in rdv.commandes" :key="cmd" style="font-size:10px;color:#FFD200;background:rgba(255,210,0,0.08);padding:2px 8px;border-radius:4px;border:1px solid rgba(255,210,0,0.15);">
+            <span v-for="cmd in rdv.commandes" :key="cmd" style="font-size:10px;color:var(--accent-content);background:var(--accent-soft);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);">
               #{{ cmd }}
             </span>
           </div>
@@ -121,33 +121,33 @@
   <AppModal v-model:open="showRdvModal" size="lg">
     <template #header>
       <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:16px;font-weight:700;color:#E8E9ED;">RDV #{{ selectedRdv?.id }}</span>
+        <span style="font-size:16px;font-weight:700;color:var(--content-1);">RDV #{{ selectedRdv?.id }}</span>
         <StatusBadge v-if="selectedRdv" :status="selectedRdv.status" />
       </div>
     </template>
-    <div v-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:#D1D5DB;">
+    <div v-if="selectedRdv" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:var(--content-2);">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div><span style="color:#6B7280;">Date :</span> {{ formatDisplayDate(selectedRdv.date_rdv) }}</div>
-        <div><span style="color:#6B7280;">Heure :</span> {{ selectedRdv.heure_debut || '—' }}</div>
-        <div><span style="color:#6B7280;">Type :</span> {{ selectedRdv.type_intervention || '—' }}</div>
-        <div><span style="color:#6B7280;">Durée :</span> {{ formatMinutes(selectedRdv.duree_estimee) }}</div>
+        <div><span style="color:var(--content-3);">Date :</span> {{ formatDisplayDate(selectedRdv.date_rdv) }}</div>
+        <div><span style="color:var(--content-3);">Heure :</span> {{ selectedRdv.heure_debut || '—' }}</div>
+        <div><span style="color:var(--content-3);">Type :</span> {{ selectedRdv.type_intervention || '—' }}</div>
+        <div><span style="color:var(--content-3);">Durée :</span> {{ formatMinutes(selectedRdv.duree_estimee) }}</div>
       </div>
       <div v-if="selectedRdv.pont_nom || selectedRdv.mecanicien_nom" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div v-if="selectedRdv.pont_nom"><span style="color:#6B7280;">Pont :</span> {{ selectedRdv.pont_nom }}</div>
-        <div v-if="selectedRdv.mecanicien_nom"><span style="color:#6B7280;">Mécano :</span> {{ selectedRdv.mecanicien_nom }}</div>
+        <div v-if="selectedRdv.pont_nom"><span style="color:var(--content-3);">Pont :</span> {{ selectedRdv.pont_nom }}</div>
+        <div v-if="selectedRdv.mecanicien_nom"><span style="color:var(--content-3);">Mécano :</span> {{ selectedRdv.mecanicien_nom }}</div>
       </div>
-      <div v-if="selectedRdv.client_nom || selectedRdv.client_telephone || selectedRdv.client_email" style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">{{ selectedRdv.client_nom || 'Client' }}</div>
-        <div v-if="selectedRdv.client_telephone" style="color:#9CA3AF;">📞 {{ selectedRdv.client_telephone }}</div>
-        <div v-if="selectedRdv.client_email" style="color:#9CA3AF;">{{ selectedRdv.client_email }}</div>
+      <div v-if="selectedRdv.client_nom || selectedRdv.client_telephone || selectedRdv.client_email" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ selectedRdv.client_nom || 'Client' }}</div>
+        <div v-if="selectedRdv.client_telephone" style="color:var(--content-3);"><AppIcon name="i-ri-phone-line" /> {{ selectedRdv.client_telephone }}</div>
+        <div v-if="selectedRdv.client_email" style="color:var(--content-3);">{{ selectedRdv.client_email }}</div>
       </div>
-      <div v-if="selectedRdv.vehicule_info || selectedRdv.vehicule_plaque" style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">{{ selectedRdv.vehicule_info || 'Véhicule' }}</div>
-        <div v-if="selectedRdv.vehicule_plaque" style="color:#9CA3AF;">🏍 {{ selectedRdv.vehicule_plaque }}</div>
+      <div v-if="selectedRdv.vehicule_info || selectedRdv.vehicule_plaque" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ selectedRdv.vehicule_info || 'Véhicule' }}</div>
+        <div v-if="selectedRdv.vehicule_plaque" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ selectedRdv.vehicule_plaque }}</div>
       </div>
-      <div v-if="selectedRdv.description_probleme" style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">Description</div>
-        <div style="color:#9CA3AF;white-space:pre-wrap;">{{ selectedRdv.description_probleme }}</div>
+      <div v-if="selectedRdv.description_probleme" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Description</div>
+        <div style="color:var(--content-3);white-space:pre-wrap;">{{ selectedRdv.description_probleme }}</div>
       </div>
     </div>
     <template #footer>
@@ -273,28 +273,28 @@ onMounted(() => { void fetchData() })
 }
 
 .rdv-kpi-card.accent {
-  border-color: rgba(255, 210, 0, 0.22);
-  box-shadow: 0 0 0 1px rgba(255, 210, 0, 0.06) inset;
+  border-color: var(--accent-graphic);
+  box-shadow: 0 0 0 1px rgba(241,171,0,0.06) inset;
 }
 
 .rdv-kpi-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #6B7280;
+  color: var(--content-3);
 }
 
 .rdv-kpi-value {
   margin-top: 6px;
   font-size: 28px;
   font-weight: 800;
-  color: #F3F4F6;
+  color: var(--content-1);
 }
 
 .rdv-kpi-sub {
   margin-top: 2px;
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .rdv-filter-bar {
@@ -339,7 +339,7 @@ onMounted(() => { void fetchData() })
 }
 
 .rdv-card:hover {
-  border-color: rgba(255,255,255,0.12);
+  border-color: var(--border-1);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -355,12 +355,12 @@ onMounted(() => { void fetchData() })
   font-size: 26px;
   line-height: 1;
   font-weight: 800;
-  color: #FFD200;
+  color: var(--accent-content);
 }
 
 .rdv-date {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .rdv-card-main {
@@ -377,12 +377,12 @@ onMounted(() => { void fetchData() })
 .rdv-client {
   font-size: 16px;
   font-weight: 700;
-  color: #F3F4F6;
+  color: var(--content-1);
 }
 
 .rdv-vehicle {
   font-size: 14px;
-  color: #D1D5DB;
+  color: var(--content-2);
 }
 
 .rdv-card-meta {
@@ -391,12 +391,12 @@ onMounted(() => { void fetchData() })
   flex-wrap: wrap;
   gap: 8px 14px;
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--content-3);
 }
 
 .rdv-card-note {
   margin-top: 10px;
-  color: #D1D5DB;
+  color: var(--content-2);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -408,7 +408,7 @@ onMounted(() => { void fetchData() })
 }
 
 .rdv-action-link {
-  color: #FFD200;
+  color: var(--accent-content);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;

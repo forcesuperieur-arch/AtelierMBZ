@@ -653,12 +653,12 @@ function resizeSignatureCanvas() {
   if (!ctx) return
 
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = 'var(--content-1)'
   ctx.fillRect(0, 0, rect.width, rect.height)
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.lineWidth = 2.5
-  ctx.strokeStyle = '#111827'
+  ctx.strokeStyle = 'var(--accent-ink)'
   hasSignatureStroke.value = false
   sigDrawnDistance = 0
 }
@@ -719,9 +719,9 @@ function clearSignature() {
   min-height: 100vh;
   padding: 28px 16px;
   background:
-    radial-gradient(circle at top left, rgba(251, 191, 36, 0.14), transparent 28%),
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 24%),
-    linear-gradient(180deg, #0f172a 0%, #111827 55%, #0b1120 100%);
+    radial-gradient(circle at top left, var(--warning-soft), transparent 28%),
+    radial-gradient(circle at top right, var(--info-soft), transparent 24%),
+    linear-gradient(180deg, var(--surface-1) 0%, var(--accent-ink) 55%, var(--surface-0) 100%);
 }
 
 .vo-public-card {
@@ -729,9 +729,8 @@ function clearSignature() {
   margin: 0 auto;
   padding: 24px;
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
@@ -745,7 +744,7 @@ function clearSignature() {
 
 .vo-public-header h1 {
   margin: 8px 0 6px;
-  color: #f8fafc;
+  color: var(--content-1);
   font-size: clamp(28px, 5vw, 42px);
   line-height: 1.05;
 }
@@ -759,11 +758,11 @@ function clearSignature() {
 .vo-public-tag,
 .vo-public-doc-chip,
 .vo-public-state {
-  color: #cbd5e1;
+  color: var(--content-2);
 }
 
 .vo-public-kicker {
-  color: #fbbf24;
+  color: var(--warning-content);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -773,8 +772,8 @@ function clearSignature() {
 .vo-public-progress-pill {
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(248, 250, 252, 0.08);
-  color: #f8fafc;
+  background: var(--surface-3);
+  color: var(--content-1);
   white-space: nowrap;
 }
 
@@ -798,8 +797,8 @@ function clearSignature() {
 .vo-public-alert,
 .vo-signature-box {
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
 }
 
 .vo-public-summary-box {
@@ -812,7 +811,7 @@ function clearSignature() {
 .vo-public-section h2,
 .vo-public-upload-box strong,
 .vo-public-step-tab span {
-  color: #f8fafc;
+  color: var(--content-1);
 }
 
 .vo-public-stepper {
@@ -822,8 +821,8 @@ function clearSignature() {
 
 .vo-public-step-tab {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-soft);
   padding: 14px;
   border-radius: 18px;
   display: grid;
@@ -833,18 +832,18 @@ function clearSignature() {
 }
 
 .vo-public-step-tab strong {
-  color: #fbbf24;
+  color: var(--warning-content);
   font-size: 11px;
   letter-spacing: 0.12em;
 }
 
 .vo-public-step-tab.is-active {
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .vo-public-step-tab.is-done {
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: var(--success);
 }
 
 .vo-public-section {
@@ -869,17 +868,17 @@ function clearSignature() {
   border-radius: 999px;
   white-space: nowrap;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-1);
 }
 
 .vo-public-state.is-done {
-  color: #bbf7d0;
-  background: rgba(34, 197, 94, 0.12);
+  color: var(--success-content);
+  background: var(--success-soft);
 }
 
 .vo-public-state.is-pending {
-  color: #fde68a;
-  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning-content);
+  background: var(--warning-soft);
 }
 
 .vo-public-form-grid {
@@ -900,9 +899,9 @@ function clearSignature() {
   width: 100%;
   min-height: 46px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.82);
-  color: #f8fafc;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  color: var(--content-1);
   padding: 12px 14px;
 }
 
@@ -915,7 +914,7 @@ function clearSignature() {
 }
 
 .vo-public-upload-box input {
-  color: #f8fafc;
+  color: var(--content-1);
 }
 
 .vo-public-actions {
@@ -933,15 +932,15 @@ function clearSignature() {
   border: 0;
   border-radius: 14px;
   padding: 12px 18px;
-  background: linear-gradient(135deg, #f59e0b, #fb7185);
-  color: #111827;
+  background: linear-gradient(135deg, var(--warning), var(--error));
+  color: var(--accent-ink);
   font-weight: 800;
   cursor: pointer;
 }
 
 .vo-public-btn.is-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
+  background: var(--surface-3);
+  color: var(--content-1);
 }
 
 .vo-public-btn:disabled {
@@ -954,18 +953,18 @@ function clearSignature() {
 }
 
 .vo-public-alert.is-error {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--error);
+  background: var(--error-soft);
 }
 
 .vo-public-alert.is-warning {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.12);
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .vo-public-alert.is-success {
-  border-color: rgba(34, 197, 94, 0.35);
-  background: rgba(34, 197, 94, 0.12);
+  border-color: var(--success);
+  background: var(--success-soft);
 }
 
 .vo-public-tags,
@@ -981,18 +980,18 @@ function clearSignature() {
 .vo-public-doc-chip {
   padding: 10px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-2);
+  background: var(--overlay-hover);
   font-size: 12px;
   text-decoration: none;
 }
 
 .vo-public-tag.is-done {
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: var(--success);
 }
 
 .vo-public-tag.is-pending {
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: var(--warning);
 }
 
 .vo-signature-box {
@@ -1013,19 +1012,19 @@ function clearSignature() {
 }
 
 .tone-ok {
-  color: #86efac;
+  color: var(--success-content);
 }
 
 .tone-warn {
-  color: #fde68a;
+  color: var(--warning-content);
 }
 
 .tone-diff {
-  color: #fca5a5;
+  color: var(--error-content);
 }
 
 .tone-neutral {
-  color: #94a3b8;
+  color: var(--content-3);
 }
 
 @media (max-width: 860px) {

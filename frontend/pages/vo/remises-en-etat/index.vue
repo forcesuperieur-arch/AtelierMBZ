@@ -48,7 +48,7 @@
         </div>
 
         <div class="vo-inline-actions">
-          <NuxtLink :to="item.dossierPath" class="topbar-new-btn">Ouvrir le dossier</NuxtLink>
+          <NuxtLink :to="item.dossierPath" class="btn btn-primary">Ouvrir le dossier</NuxtLink>
         </div>
       </UCard>
 
@@ -92,7 +92,7 @@ onMounted(async () => {
 .vo-subtitle,
 .vo-card-subtitle,
 .vo-k {
-  color: #9ca3af;
+  color: var(--content-3);
   font-size: 12px;
 }
 
@@ -104,7 +104,7 @@ onMounted(async () => {
 }
 
 .vo-card-title {
-  color: #e8e9ed;
+  color: var(--content-1);
   font-weight: 700;
 }
 
@@ -120,7 +120,7 @@ onMounted(async () => {
 
 .vo-kpi-grid strong {
   display: block;
-  color: #f8fafc;
+  color: var(--content-1);
   margin-top: 4px;
 }
 
@@ -131,14 +131,14 @@ onMounted(async () => {
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: #d1d5db;
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
+  color: var(--content-2);
 }
 
 .vo-warning-box {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.18);
+  background: var(--error-soft);
+  border-color: var(--error);
 }
 
 .vo-chip {
@@ -149,13 +149,13 @@ onMounted(async () => {
 }
 
 .vo-chip.is-warning {
-  color: #713f12;
-  background: rgba(253, 224, 71, 0.9);
+  color: var(--warning-content);
+  background: var(--warning);
 }
 
 .vo-chip.is-done {
-  color: #14532d;
-  background: rgba(134, 239, 172, 0.9);
+  color: var(--success-content);
+  background: var(--success);
 }
 
 .vo-inline-actions {
@@ -164,17 +164,6 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.topbar-new-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #f59e0b;
-  color: #090b10;
-  font-weight: 700;
-  text-decoration: none;
-}
 
 @media (max-width: 960px) {
   .vo-kpi-grid {

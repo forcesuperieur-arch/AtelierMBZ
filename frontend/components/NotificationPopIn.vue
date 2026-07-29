@@ -9,7 +9,7 @@
       <div class="flex items-center gap-3 mb-4">
         <div class="w-10 h-10 rounded-full flex items-center justify-center"
           :class="severityBg">
-          <span class="text-xl">{{ severityIcon }}</span>
+          <span class="text-xl"><AppIcon :name="severityIcon" /></span>
         </div>
         <div class="flex-1">
           <h3 class="text-lg font-bold text-white">{{ currentNotif?.title }}</h3>
@@ -77,9 +77,9 @@ const severityBg = computed(() => {
 
 const severityIcon = computed(() => {
   switch (currentNotif.value?.severity) {
-    case 'critical': return '🔴'
-    case 'warning': return '🟠'
-    default: return 'ℹ️'
+    case 'critical': return 'i-ri-alarm-warning-fill'
+    case 'warning': return 'i-ri-error-warning-fill'
+    default: return 'i-ri-information-line'
   }
 })
 
@@ -136,10 +136,10 @@ watch(pendingNotifs, (val) => {
 /* CTA primaire au jaune de marque (les autres boutons primaires le sont aussi) ;
    la bordure d'alerte pulsante reste, elle, orange/rouge pour signaler l'urgence. */
 .notif-cta-primary {
-  background: #FFD200;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 .notif-cta-primary:hover {
-  background: #FFDE33;
+  background: var(--accent-hover);
 }
 </style>

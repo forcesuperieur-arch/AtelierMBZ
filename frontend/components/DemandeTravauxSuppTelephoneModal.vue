@@ -1,68 +1,68 @@
 <template>
   <AppModal :open="isOpen" size="md" @update:open="onOpenChange">
     <template #header>
-      <span style="font-size:16px;font-weight:700;color:#E8E9ED;">
-        📞 Décision téléphonique — demande #{{ demande?.id }}
+      <span style="font-size:16px;font-weight:700;color:var(--content-1);">
+        <AppIcon name="i-ri-phone-line" /> Décision téléphonique — demande #{{ demande?.id }}
       </span>
     </template>
 
-    <div v-if="demande" data-testid="modal-decision-telephone" style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:#D1D5DB;">
+    <div v-if="demande" data-testid="modal-decision-telephone" style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--content-2);">
       <!-- Récapitulatif -->
-      <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-        <div style="font-weight:600;color:#E8E9ED;">{{ demande.client_nom || 'Client' }}</div>
-        <div v-if="demande.vehicule_info || demande.vehicule_plaque" style="color:#9CA3AF;font-size:12px;margin-top:2px;">
+      <div style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
+        <div style="font-weight:600;color:var(--content-1);">{{ demande.client_nom || 'Client' }}</div>
+        <div v-if="demande.vehicule_info || demande.vehicule_plaque" style="color:var(--content-3);font-size:12px;margin-top:2px;">
           {{ demande.vehicule_info }}<span v-if="demande.vehicule_plaque"> • {{ demande.vehicule_plaque }}</span>
         </div>
-        <div style="margin-top:6px;color:#FFD200;font-size:16px;font-weight:800;">{{ formatEuro(demande.prix_estime) }}</div>
+        <div style="margin-top:6px;color:var(--accent-content);font-size:16px;font-weight:800;">{{ formatEuro(demande.prix_estime) }}</div>
       </div>
 
       <!-- Avertissement demande non chiffrée -->
       <div
         v-if="!isChiffree"
-        style="padding:10px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#FCD34D;font-size:12px;"
+        style="padding:10px 12px;border-radius:8px;background:var(--warning-soft);border:1px solid var(--warning);color:var(--warning-content);font-size:12px;"
       >
-        ⚠️ Cette demande n'est pas chiffrée : un accord ne pourra pas être enregistré tant que les prestations n'ont pas été complétées.
+        <AppIcon name="i-ri-error-warning-line" /> Cette demande n'est pas chiffrée : un accord ne pourra pas être enregistré tant que les prestations n'ont pas été complétées.
       </div>
 
       <!-- Décision -->
       <div>
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:8px;">Décision du client au téléphone</div>
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:8px;">Décision du client au téléphone</div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);" :style="decision === 'accepte' ? 'background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.4);' : ''">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid var(--border-2);" :style="decision === 'accepte' ? 'background:var(--success-soft);border-color:var(--success);' : ''">
             <input v-model="decision" type="radio" value="accepte" data-testid="radio-tel-accepte" />
-            <span style="color:#6EE7B7;font-weight:700;">✅ Accepté</span>
+            <span style="color:var(--success-content);font-weight:700;"><AppIcon name="i-ri-checkbox-circle-line" /> Accepté</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);" :style="decision === 'refuse' ? 'background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.4);' : ''">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid var(--border-2);" :style="decision === 'refuse' ? 'background:var(--error-soft);border-color:var(--error);' : ''">
             <input v-model="decision" type="radio" value="refuse" data-testid="radio-tel-refuse" />
-            <span style="color:#FCA5A5;font-weight:700;">❌ Refusé</span>
+            <span style="color:var(--error-content);font-weight:700;"><AppIcon name="i-ri-close-circle-line" /> Refusé</span>
           </label>
         </div>
       </div>
 
       <!-- Canal d'envoi du lien (si accepté) -->
       <div v-if="decision === 'accepte'">
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">Envoi du lien de signature</div>
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Envoi du lien de signature</div>
         <select
           v-model="canalEnvoi"
           data-testid="select-tel-canal"
-          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 10px;color:#D1D5DB;font-size:13px;"
+          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:8px 10px;color:var(--content-2);font-size:13px;"
         >
-          <option value="email">📧 E-mail</option>
-          <option value="sms">📱 SMS</option>
+          <option value="email"> E-mail</option>
+          <option value="sms"> SMS</option>
         </select>
-        <div style="color:#6B7280;font-size:11px;margin-top:6px;">
+        <div style="color:var(--content-3);font-size:11px;margin-top:6px;">
           Les travaux peuvent démarrer dès l'accord. Le client recevra un lien pour confirmer son accord en signant en ligne.
         </div>
       </div>
 
       <!-- Commentaire -->
       <div>
-        <div style="font-weight:600;color:#E8E9ED;margin-bottom:6px;">Commentaire (optionnel)</div>
+        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Commentaire (optionnel)</div>
         <textarea
           v-model="commentaire"
           rows="2"
           data-testid="input-tel-commentaire"
-          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px;color:#D1D5DB;font-size:13px;resize:vertical;"
+          style="width:100%;background:rgba(0,0,0,0.2);border:1px solid var(--border-1);border-radius:6px;padding:8px;color:var(--content-2);font-size:13px;resize:vertical;"
           placeholder="Ex. : accord donné par M. Dupont, rappeler avant toute pièce supplémentaire…"
         />
       </div>
@@ -71,7 +71,7 @@
       <div
         v-if="errorMessage"
         data-testid="erreur-decision-telephone"
-        style="padding:10px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#FCA5A5;font-size:12px;"
+        style="padding:10px 12px;border-radius:8px;background:var(--error-soft);border:1px solid var(--error);color:var(--error-content);font-size:12px;"
       >
         {{ errorMessage }}
       </div>

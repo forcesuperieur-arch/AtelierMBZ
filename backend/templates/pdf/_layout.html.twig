@@ -19,8 +19,25 @@
     - @page porte les marges : `body { margin }` n'est appliqué qu'à la
       première page, les suivantes collent au bord de la feuille.
 #}
-{% set accent = accent|default('#1d4ed8') %}
-{% set accent_soft = accent_soft|default('#eff4ff') %}
+{#
+  Identité Motoblouz. Le bandeau est NOIR souligné d'un filet jaune : c'est
+  l'analogie que revendique le design system (« yellow + black = highway
+  caution stripes »). Le jaune de marque ne peut pas porter le bandeau lui-même,
+  du texte blanc dessus ne ferait que 2:1 ; il sert de filet, et l'encre du
+  document reste une teinte foncée, lisible à l'impression noir et blanc.
+
+  `accent` = encre du document (intitulés de section, en-têtes de tableau,
+  encadré de total). Une famille par nature de document, toutes issues de la
+  palette Motoblouz :
+    - atelier (OR, facture, état des lieux, historique) : jaune  #916700
+    - devis                                             : orange #B35300
+    - rapport d'intervention                            : vert   #106B00
+    - véhicules d'occasion                              : bleu   #2D5573
+#}
+{% set accent = accent|default('#916700') %}
+{% set accent_soft = accent_soft|default('#FBE6B3') %}
+{% set brand_yellow = '#F1AB00' %}
+{% set brand_ink = '#000000' %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -40,8 +57,17 @@
         p { margin: 0 0 6px; }
         strong { font-weight: bold; }
 
-        /* ---------- Bandeau d'en-tête ---------- */
-        .doc-band { background: {{ accent }}; color: #ffffff; padding: 9px 11px; margin-bottom: 14px; }
+        /* ---------- Bandeau d'en-tête ----------
+           Aplat noir souligné du filet jaune de marque. Le filet passe par une
+           bordure basse : dompdf peint bien une bordure de bloc, alors qu'il
+           ignorerait un pseudo-élément décoratif. */
+        .doc-band {
+            background: {{ brand_ink }};
+            border-bottom: 3px solid {{ brand_yellow }};
+            color: #ffffff;
+            padding: 9px 11px;
+            margin-bottom: 14px;
+        }
         .band-table { width: 100%; border-collapse: collapse; }
         .band-table td { vertical-align: top; padding: 0; color: #ffffff; }
         .band-left { width: 56%; }

@@ -1,7 +1,7 @@
 <template>
   <div class="public-card">
     <div class="public-card-header">
-      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="font-size:32px;margin-bottom:8px;"><AppIcon name="i-ri-search-line" /></div>
       <h1 class="text-gradient" style="font-size:22px;font-weight:800;">Suivi de rendez-vous</h1>
     </div>
 
@@ -12,10 +12,10 @@
       <UFormField label="Téléphone">
         <UInput v-model="telephone" placeholder="06 12 34 56 78" />
       </UFormField>
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" @click="lookup" :disabled="loading">
         {{ loading ? 'Recherche...' : 'Rechercher' }}
       </button>
-      <p v-if="error" style="font-size:13px;color:#FCA5A5;text-align:center;">{{ error }}</p>
+      <p v-if="error" style="font-size:13px;color:var(--error-content);text-align:center;">{{ error }}</p>
     </div>
 
     <div v-else style="display:flex;flex-direction:column;gap:16px;">
@@ -24,11 +24,11 @@
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:13px;">
-        <div><span style="color:#6B7280;">Date :</span> <span style="color:#D1D5DB;">{{ rdv.date }}</span></div>
-        <div><span style="color:#6B7280;">Heure :</span> <span style="color:#D1D5DB;">{{ rdv.heure }}</span></div>
-        <div><span style="color:#6B7280;">Type :</span> <span style="color:#D1D5DB;">{{ rdv.type_intervention }}</span></div>
-        <div v-if="rdv.pont"><span style="color:#6B7280;">Pont :</span> <span style="color:#D1D5DB;">{{ rdv.pont }}</span></div>
-        <div v-if="rdv.mecanicien"><span style="color:#6B7280;">Mécano :</span> <span style="color:#D1D5DB;">{{ rdv.mecanicien }}</span></div>
+        <div><span style="color:var(--content-3);">Date :</span> <span style="color:var(--content-2);">{{ rdv.date }}</span></div>
+        <div><span style="color:var(--content-3);">Heure :</span> <span style="color:var(--content-2);">{{ rdv.heure }}</span></div>
+        <div><span style="color:var(--content-3);">Type :</span> <span style="color:var(--content-2);">{{ rdv.type_intervention }}</span></div>
+        <div v-if="rdv.pont"><span style="color:var(--content-3);">Pont :</span> <span style="color:var(--content-2);">{{ rdv.pont }}</span></div>
+        <div v-if="rdv.mecanicien"><span style="color:var(--content-3);">Mécano :</span> <span style="color:var(--content-2);">{{ rdv.mecanicien }}</span></div>
       </div>
 
       <!-- Progress steps -->
@@ -49,19 +49,19 @@
                 justifyContent: 'center',
                 fontSize: '12px',
                 fontWeight: '700',
-                background: step.done ? 'linear-gradient(135deg, #FFD200, #D97706)' : 'rgba(255,255,255,0.06)',
-                color: step.done ? '#111' : '#6B7280',
+                background: step.done ? 'linear-gradient(135deg, var(--accent), var(--warning))' : 'var(--overlay-hover)',
+                color: step.done ? 'var(--accent-ink)' : 'var(--content-3)',
                 transition: 'all 0.3s',
               }"
             >
               {{ i + 1 }}
             </div>
-            <span style="font-size:10px;margin-top:4px;text-align:center;color:#6B7280;">{{ step.label }}</span>
+            <span style="font-size:10px;margin-top:4px;text-align:center;color:var(--content-3);">{{ step.label }}</span>
           </div>
         </div>
       </div>
 
-      <button class="topbar-new-btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:rgba(255,255,255,0.06);color:#D1D5DB;margin-top:16px;" @click="rdv = null; email = ''; telephone = ''">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:var(--overlay-hover);color:var(--content-2);margin-top:16px;" @click="rdv = null; email = ''; telephone = ''">
         Nouvelle recherche
       </button>
     </div>

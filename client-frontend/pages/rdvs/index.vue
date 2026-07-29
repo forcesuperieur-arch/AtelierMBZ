@@ -1,9 +1,9 @@
 <template>
   <div>
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Mes rendez-vous</h1>
-    <div v-if="pending" style="color:#9CA3AF">Chargement…</div>
-    <div v-else-if="error" style="color:#FCA5A5">Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.</div>
-    <div v-else-if="rdvs.length === 0" style="color:#9CA3AF">Aucun rendez-vous.</div>
+    <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
+    <div v-else-if="error" style="color:var(--error-content)">Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.</div>
+    <div v-else-if="rdvs.length === 0" style="color:var(--content-3)">Aucun rendez-vous.</div>
     <div v-else style="display:flex;flex-direction:column;gap:10px;">
       <NuxtLink v-for="rdv in rdvs" :key="rdv.id" :to="`/rdvs/${rdv.id}`" class="rdv-card">
         <div class="rdv-date">{{ formatDate(rdv.date_heure) }}</div>
@@ -49,15 +49,15 @@ function statusClass(s: string) {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--overlay-soft);
+  border: 1px solid var(--border-2);
   border-radius: 10px;
   text-decoration: none;
   color: inherit;
   transition: background 0.2s;
 }
 .rdv-card:hover {
-  background: rgba(255,255,255,0.04);
+  background: var(--overlay-soft);
 }
 .rdv-date {
   font-weight: 600;
@@ -71,24 +71,24 @@ function statusClass(s: string) {
   text-transform: uppercase;
 }
 .status-prevu {
-  background: rgba(59,130,246,0.15);
-  color: #60A5FA;
+  background: var(--info-soft);
+  color: var(--info-content);
 }
 .status-termine {
-  background: rgba(34,197,94,0.15);
-  color: #4ADE80;
+  background: var(--success-soft);
+  color: var(--success-content);
 }
 .status-annule {
-  background: rgba(239,68,68,0.15);
-  color: #FCA5A5;
+  background: var(--error-soft);
+  color: var(--error-content);
 }
 .annulation-tag {
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(245,158,11,0.12);
-  border: 1px solid rgba(245,158,11,0.3);
-  color: #FCD34D;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  color: var(--warning-content);
 }
 </style>

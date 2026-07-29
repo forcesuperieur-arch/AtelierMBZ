@@ -24,7 +24,7 @@
 <script setup lang="ts">
 /**
  * En-tête de section normalisé. Avant, chaque bloc réécrivait son titre en
- * style inline (`font-size:15px;font-weight:700;color:#E8E9ED`) : quatorze
+ * style inline (`font-size:15px;font-weight:700;color:var(--content-1)`) : quatorze
  * copies du même code, donc quatorze occasions de divergence.
  */
 defineProps<{
@@ -58,7 +58,7 @@ defineProps<{
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--overlay-hover);
   color: var(--ink-body);
 }
 .sec-actions {
