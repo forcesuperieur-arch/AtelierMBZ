@@ -33,6 +33,7 @@
         <NuxtLink to="/login" style="color:var(--accent-content);font-weight:700;">Se connecter</NuxtLink>
       </div>
     </div>
+    <LegalFooter />
   </div>
 </template>
 
@@ -99,8 +100,10 @@ async function handleSubmit() {
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   background: var(--surface-0);
   color: var(--content-1);
 }
