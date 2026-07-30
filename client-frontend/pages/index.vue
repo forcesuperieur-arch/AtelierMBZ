@@ -10,7 +10,7 @@
         <div class="vidange-banner-title">Vidange recommandée — {{ v.marque }} {{ v.modele }}</div>
         <div class="vidange-banner-text">{{ vidangeBannerText(v) }}</div>
       </div>
-      <a href="/public/booking" class="vidange-banner-btn">Prendre rendez-vous</a>
+      <NuxtLink to="/rdvs/new" class="vidange-banner-btn">Prendre rendez-vous</NuxtLink>
     </div>
 
     <div class="dash-grid">
