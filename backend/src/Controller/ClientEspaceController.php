@@ -2,19 +2,25 @@
 
 namespace App\Controller;
 
+use App\Entity\Atelier;
 use App\Entity\Client;
+use App\Entity\ConfigAtelier;
 use App\Entity\DemandeTravauxSupp;
 use App\Entity\EtatDesLieux;
 use App\Entity\Notification;
 use App\Entity\OrdreReparation;
 use App\Entity\PhotoIntervention;
+use App\Entity\Pont;
+use App\Entity\Prestation;
 use App\Entity\RdvStatutHistorique;
 use App\Entity\RendezVous;
 use App\Entity\Vehicule;
 use App\Service\DemandeTravauxSuppDecisionService;
 use App\Service\EtatDesLieuxDocumentService;
 use App\Service\MercureNotifier;
+use App\Service\NotificationDispatcher;
 use App\Service\PdfService;
+use App\Service\SlotService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -22,6 +28,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -37,6 +44,9 @@ class ClientEspaceController extends AbstractController
         private MercureNotifier $mercureNotifier,
         private DemandeTravauxSuppDecisionService $decisionService,
         private EtatDesLieuxDocumentService $etatDesLieuxDocumentService,
+        private SlotService $slotService,
+        private RateLimiterFactory $publicBookingLimiter,
+        private NotificationDispatcher $notificationDispatcher,
     ) {}
 
     #[Route('/me', methods: ['GET'])]
@@ -621,6 +631,72 @@ class ClientEspaceController extends AbstractController
         ];
     }
 
+    /**
+     * Ajoute une moto au parc du client connecté. Contrairement au booking
+     * public, pas de recherche par plaque tous clients confondus : une
+     * plaque déjà associée à CE client renvoie la fiche existante (idempotent),
+     * déjà associée à un AUTRE client est refusée (pas de rattachement erroné).
+     */
+    #[Route('/vehicules', methods: ['POST'])]
+    public function createVehicule(Request $request): JsonResponse
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        if (empty($data['marque']) || empty($data['modele'])) {
+            return $this->json(['error' => 'Marque et modèle sont requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $plaque = !empty($data['plaque']) ? strtoupper(trim((string) $data['plaque'])) : null;
+        if ($plaque) {
+            $existing = $this->em->getRepository(Vehicule::class)->findOneBy(['plaque' => $plaque]);
+            if ($existing) {
+                if ($existing->getClient()?->getId() !== $client->getId()) {
+                    return $this->json(['error' => 'Cette plaque est déjà enregistrée sur un autre compte.'], Response::HTTP_CONFLICT);
+                }
+                // Déjà dans le parc de ce client : idempotent, pas de doublon.
+                return $this->json(['id' => $existing->getId()]);
+            }
+        }
+
+        $vehicule = new Vehicule();
+        $vehicule->setClient($client);
+        $vehicule->setAtelierId($client->getAtelierId());
+        $vehicule->setMarque((string) $data['marque']);
+        $vehicule->setModele((string) $data['modele']);
+        if ($plaque) {
+            $vehicule->setPlaque($plaque);
+        }
+        if (!empty($data['annee'])) {
+            $vehicule->setAnnee((int) $data['annee']);
+        }
+        if (!empty($data['cylindree'])) {
+            $vehicule->setCylindree((string) $data['cylindree']);
+        }
+        if (!empty($data['type_moto'])) {
+            $vehicule->setTypeMoto((string) $data['type_moto']);
+        }
+
+        $this->em->persist($vehicule);
+        $this->em->flush();
+
+        return $this->json([
+            'id' => $vehicule->getId(),
+            'plaque' => $vehicule->getPlaque(),
+            'marque' => $vehicule->getMarque(),
+            'modele' => $vehicule->getModele(),
+            'type_moto' => $vehicule->getTypeMoto(),
+            'cylindree' => $vehicule->getCylindree(),
+            'annee' => $vehicule->getAnnee(),
+            'kilometrage' => $vehicule->getKilometrage(),
+            'notes' => $vehicule->getNotes(),
+            'prochaine_vidange' => null,
+        ], Response::HTTP_CREATED);
+    }
+
     #[Route('/vehicules/{id}', methods: ['PATCH'])]
     public function updateVehicule(int $id, Request $request): JsonResponse
     {
@@ -650,6 +726,290 @@ class ClientEspaceController extends AbstractController
             'kilometrage' => $vehicule->getKilometrage(),
             'notes' => $vehicule->getNotes(),
         ]);
+    }
+
+    /**
+     * Catalogue des prestations actives de l'atelier du client connecté
+     * (même logique que PublicBookingController::prestations, scopée sur
+     * le client authentifié au lieu d'un atelier_id soumis par le visiteur).
+     */
+    #[Route('/prestations', methods: ['GET'])]
+    public function prestations(): JsonResponse
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $limiter = $this->publicBookingLimiter->create('client:' . $client->getId());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $atelierId = $client->getAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Aucun atelier associé à ce compte'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $prestations = $this->em->getRepository(Prestation::class)
+            ->createQueryBuilder('p')
+            ->where('p.atelierId = :atelier')
+            ->andWhere('p.isActive = 1')
+            ->setParameter('atelier', $atelierId)
+            ->orderBy('p.categorie', 'ASC')
+            ->addOrderBy('p.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->json(array_map(static fn (Prestation $p): array => [
+            'id' => $p->getId(),
+            'code' => $p->getCode(),
+            'nom' => $p->getNom(),
+            'description' => $p->getDescription(),
+            'categorie' => $p->getCategorie(),
+            'type_vehicule' => $p->getTypeVehicule(),
+            'cylindree_min' => $p->getCylindreeMin(),
+            'cylindree_max' => $p->getCylindreeMax(),
+            'type_tarif' => $p->getTypeTarif(),
+            'prix_base_ht' => (float) $p->getPrixBaseHt(),
+            'prix_base_ttc' => (float) $p->getPrixBaseTtc(),
+            'temps_estime_minutes' => $p->getTempsEstimeMinutes(),
+        ], $prestations));
+    }
+
+    /**
+     * Créneaux disponibles pour l'atelier du client connecté (même moteur
+     * que le booking public, `SlotService::getAvailableSlots`).
+     */
+    #[Route('/slots', methods: ['GET'])]
+    public function slots(Request $request): JsonResponse
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $limiter = $this->publicBookingLimiter->create('client:' . $client->getId());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $atelierId = $client->getAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Aucun atelier associé à ce compte'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $dateDebut = $request->query->get('date_debut', (new \DateTime())->format('Y-m-d'));
+        $dateFin = $request->query->get('date_fin', (new \DateTime('+14 days'))->format('Y-m-d'));
+        $tempsMinutes = (int) $request->query->get('temps_minutes', 60);
+
+        return $this->json([
+            'bookingEnabled' => $this->isBookingEnabled($atelierId),
+            'slots' => $this->slotService->getAvailableSlots(
+                new \DateTime($dateDebut),
+                new \DateTime($dateFin),
+                $tempsMinutes,
+                $atelierId,
+            ),
+        ]);
+    }
+
+    /**
+     * Création d'un RDV par le client connecté. Contrairement au booking
+     * public (PublicBookingController::createBooking), le RDV est rattaché
+     * DIRECTEMENT au client de la session — pas de recherche/création par
+     * téléphone, qui exposerait à un rattachement erroné (doublon de fiche)
+     * si le téléphone du compte diffère de celui saisi.
+     */
+    #[Route('/rdvs', methods: ['POST'])]
+    public function createRdv(Request $request): JsonResponse
+    {
+        $client = $this->getCurrentClient();
+        if (!$client) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $limiter = $this->publicBookingLimiter->create('client:' . $client->getId());
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        $atelierId = $client->getAtelierId();
+        if (!$atelierId) {
+            return $this->json(['error' => 'Aucun atelier associé à ce compte'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        $required = ['date_rdv', 'heure_rdv', 'type_intervention'];
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                return $this->json(['error' => "Field '$field' is required"], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        if (!$this->isBookingEnabled($atelierId)) {
+            return $this->json([
+                'error' => 'La réservation en ligne n\'est pas disponible pour cet atelier.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $vehicule = null;
+        if (!empty($data['vehicule_id'])) {
+            $vehicule = $this->em->getRepository(Vehicule::class)->find((int) $data['vehicule_id']);
+            if (!$vehicule || $vehicule->getClient()?->getId() !== $client->getId()) {
+                return $this->json(['error' => 'Véhicule introuvable'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
+        $tempsEstime = max(15, (int) ($data['duree_estimee'] ?? 60));
+        $targetDate = new \DateTime($data['date_rdv']);
+
+        // Même verrou transactionnel anti-course que le booking public : deux
+        // réservations simultanées sur le même atelier/jour sont sérialisées.
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+        try {
+            $connection->executeStatement(
+                'SELECT pg_advisory_xact_lock(hashtext(:lockKey))',
+                ['lockKey' => sprintf('public-booking:%d:%s', $atelierId, $targetDate->format('Y-m-d'))]
+            );
+
+            $response = $this->doCreateRdv($data, $client, $vehicule, $atelierId, $tempsEstime, $targetDate, $request);
+            $connection->commit();
+
+            return $response;
+        } catch (\Throwable $e) {
+            if ($connection->isTransactionActive()) {
+                $connection->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    private function doCreateRdv(array $data, Client $client, ?Vehicule $vehicule, int $atelierId, int $tempsEstime, \DateTime $targetDate, Request $request): JsonResponse
+    {
+        $availableSlots = $this->slotService->getSlotsForDay($targetDate, $tempsEstime, $atelierId);
+        $matchingSlots = array_values(array_filter($availableSlots, static fn(array $slot) => ($slot['heure'] ?? null) === ($data['heure_rdv'] ?? null)));
+
+        if (empty($matchingSlots)) {
+            return $this->json([
+                'error' => 'Le créneau sélectionné n’est plus disponible. Merci d’en choisir un autre.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $selectedSlot = null;
+        if (!empty($data['pont_id'])) {
+            foreach ($matchingSlots as $slot) {
+                if ((int) ($slot['pont_id'] ?? 0) === (int) $data['pont_id']) {
+                    $selectedSlot = $slot;
+                    break;
+                }
+            }
+        }
+        $selectedSlot ??= $matchingSlots[0];
+
+        $client->touchActivity();
+
+        $rdv = new RendezVous();
+        $rdv->setClient($client);
+        $rdv->setVehicule($vehicule);
+        $rdv->setDateRdv(new \DateTime($data['date_rdv']));
+        $rdv->setHeureRdv(new \DateTime($data['heure_rdv']));
+        $rdv->setTypeIntervention($data['type_intervention']);
+        $rdv->setCommentaire($data['commentaire'] ?? null);
+        $rdv->setTempsEstime($tempsEstime);
+
+        // Prestations réservées : figer le snapshot + RECALCULER le total serveur
+        // (même règle anti-falsification que le booking public).
+        $prestationsInput = $data['prestations'] ?? null;
+        if (is_array($prestationsInput) && $prestationsInput !== []) {
+            $norm = RendezVous::normalizePrestationsInput($prestationsInput);
+            $rdv->setPrestationsSnapshot($norm['snapshot']);
+            $rdv->setPrixEstime(number_format($norm['total'], 2, '.', ''));
+        }
+        $rdv->setStatut('en_attente');
+        $rdv->setAtelierId($atelierId);
+        $rdv->setOrigine('web'); // KPI pilote : même bucket « en ligne » que le booking public
+
+        if (!empty($selectedSlot['pont_id'])) {
+            $pont = $this->em->getRepository(Pont::class)->find((int) $selectedSlot['pont_id']);
+            if ($pont) {
+                $rdv->setPont($pont);
+                if ($pont->getMecanicien()) {
+                    $rdv->setMecanicien($pont->getMecanicien());
+                }
+            }
+        }
+
+        $this->em->persist($rdv);
+        $this->em->flush();
+
+        try {
+            $this->sendBookingConfirmation($rdv, $client, $request);
+        } catch (\Throwable) {
+            // l'email échoue silencieusement, le RDV est créé
+        }
+
+        return $this->json([
+            'id' => $rdv->getId(),
+            'message' => 'Rendez-vous enregistré.',
+            'date' => $rdv->getDateRdv()->format('Y-m-d'),
+            'heure' => $rdv->getHeureRdv()->format('H:i'),
+            'heure_fin' => $selectedSlot['heure_fin'] ?? null,
+            'pause_appliquee' => (bool) ($selectedSlot['pause_appliquee'] ?? false),
+        ], Response::HTTP_CREATED);
+    }
+
+    private function sendBookingConfirmation(RendezVous $rdv, Client $client, Request $request): void
+    {
+        $to = $client->getEmail();
+        $atelierId = $rdv->getAtelierId();
+        if (!$to || !$atelierId) {
+            return;
+        }
+
+        $baseUrl = rtrim($_ENV['PUBLIC_URL'] ?? $request->getSchemeAndHttpHost(), '/');
+        $atelier = $this->em->getRepository(Atelier::class)->find($atelierId);
+        $atelierNom = $atelier?->getNom() ?? 'votre atelier';
+
+        $this->notificationDispatcher->sendFromTemplate(
+            'booking_accuse',
+            'email',
+            $atelierId,
+            $to,
+            [
+                'client_prenom' => htmlspecialchars($client->getPrenom() ?? ''),
+                'atelier_nom' => htmlspecialchars($atelierNom),
+                'date_rdv' => $rdv->getDateRdv()->format('d/m/Y'),
+                'heure_rdv' => $rdv->getHeureRdv()->format('H\hi'),
+                'type_intervention' => htmlspecialchars($rdv->getTypeIntervention() ?? ''),
+                // Client déjà connu du portail : lien direct vers sa fiche RDV
+                // (pas de lien de suivi public ni de bloc d'activation).
+                'suivi_url' => htmlspecialchars($baseUrl . '/client/rdvs/' . $rdv->getId()),
+                'activation_bloc' => '',
+            ],
+            'RendezVous',
+            $rdv->getId(),
+        );
+    }
+
+    private function isBookingEnabled(int $atelierId): bool
+    {
+        $config = $this->em->getRepository(ConfigAtelier::class)
+            ->createQueryBuilder('c')
+            ->where('c.atelierId = :atelier')
+            ->setParameter('atelier', $atelierId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$config) {
+            return false;
+        }
+
+        $modules = $config->getFeatureModules();
+        return !empty($modules['public_booking']);
     }
 
     private function getCurrentClient(): ?Client
