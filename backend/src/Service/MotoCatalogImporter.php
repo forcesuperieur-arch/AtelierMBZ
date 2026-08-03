@@ -26,6 +26,34 @@ class MotoCatalogImporter
     private const SPROCKET_SUBTYPES = ['Front sprocket', 'Alternative front sprocket', 'Rear sprocket', 'Alternative rear sprocket'];
     private const CHAIN_SUBTYPES = ['Chain', 'Alternative chain'];
 
+    /** Taxonomie déjà utilisée par l'atelier : on ne matche que sur ces catégories, jamais de nouvelle création. */
+    private const CANONICAL_CATEGORIES = ['Roadster', 'Sportive', 'Trail', 'Touring', 'Custom', 'Scooter', 'Enduro', 'Supermotard', 'Vintage', 'Électrique'];
+
+    /** "Bike type" DC-AFAM qui ne correspond à aucune moto (quad, motoneige, jet-ski) : exclus du catalogue. */
+    private const NON_MOTO_BIKE_TYPES = ['ATV And Quad', 'Snow', 'Watercraft'];
+
+    private const KEYWORD_RULES = [
+        'Scooter' => ['scoot', 'xmax', 'tmax', 'forza', 'pcx', 'burgman', 'vespa', 'mp3', 'downtown', 'citystar'],
+        'Trail' => ['adventure', 'africa twin', 'transalp', 'tenere', 'gs', 'v-strom', 'versys', 'multistrada', 'tracer'],
+        'Sportive' => ['r1', 'r6', 'r7', 'cbr', 'gsx-r', 'zx-', 'ninja', 'panigale', 'rc ', 'supersport'],
+        'Custom' => ['custom', 'shadow', 'intruder', 'boulevard', 'rebel', 'vulcan', 'sportster', 'softail', 'fat boy'],
+        'Touring' => ['touring', 'gold wing', 'rt', 'lt', 'electra glide', 'road glide', 'k 1600'],
+        'Enduro' => ['enduro', 'cross', 'wr', 'yz', 'crf', 'exc', 'sx', 'rm-z', 'kx'],
+        'Supermotard' => ['supermot', 'smc', 'hypermotard', 'dr-z sm'],
+        'Électrique' => ['electric', 'electrique', 'zero'],
+    ];
+
+    /** Repli par "Bike type" DC-AFAM quand le nom du modèle ne matche aucun mot-clé. */
+    private const BIKE_TYPE_FALLBACK = [
+        'Scooter' => 'Scooter',
+        'Cross' => 'Enduro',
+        'Enduro' => 'Enduro',
+        'Off-Road' => 'Enduro',
+        'Trial' => 'Enduro',
+        'Adventure' => 'Trail',
+        'Dual Sport' => 'Trail',
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
         private string $projectDir,
@@ -82,9 +110,17 @@ class MotoCatalogImporter
             $progress(sprintf('part_applications.xlsx : %d moto(s) supplémentaire(s) repêchée(s) (identité seule, sans pièces détaillées).', $recovered));
         }
 
+        $excluded = 0;
         foreach ($snapshots as $key => $snapshot) {
-            $snapshots[$key] = self::finalizeSnapshot($snapshot);
+            $final = self::finalizeSnapshot($snapshot);
+            if ($final['categorie'] === null) {
+                unset($snapshots[$key]);
+                $excluded++;
+                continue;
+            }
+            $snapshots[$key] = $final;
         }
+        $progress(sprintf('%d véhicule(s) exclu(s) (quad/motoneige/jet-ski, hors périmètre moto).', $excluded));
 
         $progress('Regroupement par modèle et détection des générations…');
         $byModel = [];
@@ -113,7 +149,7 @@ class MotoCatalogImporter
             'modele' => self::str($row['Bike model'] ?? ''),
             'cylindree' => self::intOrNull($row['Bike cc'] ?? null),
             'annee' => self::intOrNull($row['Bike year'] ?? null),
-            'categorie' => self::str($row['Bike type'] ?? '') ?: 'Non catégorisé',
+            'bike_type_raw' => self::str($row['Bike type'] ?? ''),
             'sprockets' => [],
             'chains' => [],
             'bougies' => [],
@@ -217,7 +253,7 @@ class MotoCatalogImporter
             'modele' => $snapshot['modele'],
             'cylindree' => $snapshot['cylindree'],
             'annee' => $snapshot['annee'],
-            'categorie' => $snapshot['categorie'],
+            'categorie' => self::mapToCanonicalCategory($snapshot['bike_type_raw'], $snapshot['modele']),
             'transmission' => ($avant || $arriere || $chain) ? [
                 'pignon_avant_dents' => $avant['dents'] ?? null,
                 'pignon_arriere_dents' => $arriere['dents'] ?? null,
@@ -228,6 +264,31 @@ class MotoCatalogImporter
             'batteries' => array_values($snapshot['batteries']),
             'filtres' => array_values($snapshot['filtres']),
         ];
+    }
+
+    /**
+     * Fait correspondre une moto à l'une des catégories déjà utilisées par l'atelier
+     * (jamais de nouvelle catégorie) : d'abord par mot-clé dans le nom du modèle
+     * (le plus fiable pour les nomenclatures connues), puis par "Bike type" DC-AFAM
+     * en repli. Retourne null pour les véhicules qui ne sont pas des motos (quad,
+     * motoneige, jet-ski) : ils sont exclus du catalogue.
+     */
+    public static function mapToCanonicalCategory(string $bikeTypeRaw, string $modele): ?string
+    {
+        if (in_array($bikeTypeRaw, self::NON_MOTO_BIKE_TYPES, true)) {
+            return null;
+        }
+
+        $haystack = mb_strtolower($modele);
+        foreach (self::KEYWORD_RULES as $category => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($haystack, $keyword)) {
+                    return $category;
+                }
+            }
+        }
+
+        return self::BIKE_TYPE_FALLBACK[$bikeTypeRaw] ?? 'Roadster';
     }
 
     // ------------------------------------------------------------------
@@ -342,17 +403,18 @@ class MotoCatalogImporter
 
         $modelesCreated = 0;
         $specsCreated = 0;
+        $skippedUnknownCategory = 0;
         $i = 0;
 
         foreach ($byModel as $modelKey => $yearSnapshots) {
             $first = $yearSnapshots[0];
             $nomCategorie = $first['categorie'];
 
+            // On ne matche que sur les catégories déjà utilisées par l'atelier : jamais de création.
             if (!isset($categories[$nomCategorie])) {
-                $cat = new CategorieMoto();
-                $cat->setNom($nomCategorie);
-                $this->em->persist($cat);
-                $categories[$nomCategorie] = $cat;
+                $skippedUnknownCategory++;
+                $progress(sprintf('  ! catégorie "%s" introuvable, modèle %s %s ignoré', $nomCategorie, $first['marque'], $first['modele']));
+                continue;
             }
 
             $generations = $generationsByModel[$modelKey];
@@ -416,6 +478,7 @@ class MotoCatalogImporter
             'modeles' => $modelesCreated,
             'specs' => $specsCreated,
             'categories' => count($categories),
+            'modeles_ignores_categorie_inconnue' => $skippedUnknownCategory,
         ];
     }
 

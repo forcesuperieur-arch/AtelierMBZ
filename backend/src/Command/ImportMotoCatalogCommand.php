@@ -49,6 +49,13 @@ class ImportMotoCatalogCommand extends Command
             $result['specs'] ?? 0,
         ));
 
+        if (($result['modeles_ignores_categorie_inconnue'] ?? 0) > 0) {
+            $io->warning(sprintf(
+                '%d modèle(s) ignoré(s) : catégorie introuvable en base (voir les lignes "!" ci-dessus).',
+                $result['modeles_ignores_categorie_inconnue'],
+            ));
+        }
+
         return Command::SUCCESS;
     }
 }

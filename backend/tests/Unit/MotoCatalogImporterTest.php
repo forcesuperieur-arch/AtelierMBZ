@@ -7,6 +7,41 @@ use PHPUnit\Framework\TestCase;
 
 class MotoCatalogImporterTest extends TestCase
 {
+    public function testMapToCanonicalCategoryExcludesNonMotoVehicleTypes(): void
+    {
+        self::assertNull(MotoCatalogImporter::mapToCanonicalCategory('ATV And Quad', 'TRX 450'));
+        self::assertNull(MotoCatalogImporter::mapToCanonicalCategory('Snow', 'MXZ 600'));
+        self::assertNull(MotoCatalogImporter::mapToCanonicalCategory('Watercraft', 'GTX 300'));
+    }
+
+    public function testMapToCanonicalCategoryPrefersModelKeywordOverBikeType(): void
+    {
+        self::assertSame('Sportive', MotoCatalogImporter::mapToCanonicalCategory('Road', 'CBR 600 RR'));
+        self::assertSame('Custom', MotoCatalogImporter::mapToCanonicalCategory('Road', 'Shadow VT 750'));
+        self::assertSame('Scooter', MotoCatalogImporter::mapToCanonicalCategory('Road', 'XMAX 300'));
+    }
+
+    public function testMapToCanonicalCategoryFallsBackToBikeTypeWhenNoKeywordMatches(): void
+    {
+        self::assertSame('Enduro', MotoCatalogImporter::mapToCanonicalCategory('Cross', 'YZ 250 F'));
+        self::assertSame('Trail', MotoCatalogImporter::mapToCanonicalCategory('Adventure', 'GS 1250'));
+        self::assertSame('Scooter', MotoCatalogImporter::mapToCanonicalCategory('Scooter', 'AD 400'));
+    }
+
+    public function testMapToCanonicalCategoryDefaultsToRoadsterForPlainRoadBikes(): void
+    {
+        self::assertSame('Roadster', MotoCatalogImporter::mapToCanonicalCategory('Road', 'MT 07'));
+        self::assertSame('Roadster', MotoCatalogImporter::mapToCanonicalCategory('', 'Unknown Model'));
+    }
+
+    public function testFinalizeSnapshotReturnsNullCategoryForNonMotoVehicles(): void
+    {
+        $row = array_merge($this->bikeRow(), ['Bike type' => 'ATV And Quad']);
+        $snapshot = MotoCatalogImporter::finalizeSnapshot(MotoCatalogImporter::emptySnapshot($row));
+
+        self::assertNull($snapshot['categorie']);
+    }
+
     public function testExtractTeethParsesFrontSprocketDescription(): void
     {
         $result = MotoCatalogImporter::extractTeeth('Pignon AFAM 20313, 12 dents, 520, 20CrMnTi');
