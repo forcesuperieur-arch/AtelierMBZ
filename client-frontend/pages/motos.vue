@@ -1,6 +1,46 @@
 <template>
   <div>
-    <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Mes motos</h1>
+    <div class="motos-header">
+      <h1 style="font-size:20px;font-weight:800;">Mes motos</h1>
+      <button class="add-moto-btn" @click="showAddForm = !showAddForm">
+        {{ showAddForm ? 'Annuler' : '+ Ajouter une moto' }}
+      </button>
+    </div>
+
+    <form v-if="showAddForm" class="add-moto-card" @submit.prevent="submitAdd">
+      <div class="add-moto-grid">
+        <div class="moto-field">
+          <label>Marque *</label>
+          <input v-model="addForm.marque" required placeholder="Yamaha" />
+        </div>
+        <div class="moto-field">
+          <label>Modèle *</label>
+          <input v-model="addForm.modele" required placeholder="MT-07" />
+        </div>
+        <div class="moto-field">
+          <label>Plaque</label>
+          <input v-model="addForm.plaque" placeholder="AB-123-CD" />
+        </div>
+        <div class="moto-field">
+          <label>Type</label>
+          <select v-model="addForm.type_moto">
+            <option value="">— Choisir —</option>
+            <option v-for="t in motoTypes" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="moto-field">
+          <label>Cylindrée</label>
+          <input v-model="addForm.cylindree" type="number" placeholder="700" />
+        </div>
+        <div class="moto-field">
+          <label>Année</label>
+          <input v-model="addForm.annee" type="number" placeholder="2022" />
+        </div>
+      </div>
+      <p v-if="addError" class="moto-error">{{ addError }}</p>
+      <button class="moto-save" type="submit" :disabled="addSaving">{{ addSaving ? 'Ajout…' : 'Ajouter' }}</button>
+    </form>
+
     <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
     <div v-else-if="error" style="color:var(--error-content)">Impossible de charger vos motos pour le moment. Réessayez plus tard.</div>
     <div v-else-if="motos.length === 0" style="color:var(--content-3)">Aucune moto enregistrée.</div>
@@ -84,9 +124,93 @@ async function save(id: number) {
     saving[id] = false
   }
 }
+
+const motoTypes = ['Roadster', 'Sportive', 'Trail', 'Custom', 'Scooter', 'Enduro']
+const showAddForm = ref(false)
+const addSaving = ref(false)
+const addError = ref('')
+const addForm = reactive({ marque: '', modele: '', plaque: '', type_moto: '', cylindree: '', annee: '' })
+
+async function submitAdd() {
+  addSaving.value = true
+  addError.value = ''
+  try {
+    const created: any = await apiFetch('/api/client/vehicules', {
+      method: 'POST',
+      body: {
+        marque: addForm.marque,
+        modele: addForm.modele,
+        plaque: addForm.plaque || null,
+        type_moto: addForm.type_moto || null,
+        cylindree: addForm.cylindree || null,
+        annee: addForm.annee || null,
+      },
+    })
+    motos.value = [...motos.value, {
+      id: created.id,
+      plaque: created.plaque ?? addForm.plaque ?? null,
+      marque: created.marque ?? addForm.marque,
+      modele: created.modele ?? addForm.modele,
+      type_moto: created.type_moto ?? addForm.type_moto ?? null,
+      cylindree: created.cylindree ?? addForm.cylindree ?? null,
+      annee: created.annee ?? addForm.annee ?? null,
+      kilometrage: created.kilometrage ?? null,
+      notes: created.notes ?? null,
+      prochaine_vidange: created.prochaine_vidange ?? null,
+    }]
+    Object.assign(addForm, { marque: '', modele: '', plaque: '', type_moto: '', cylindree: '', annee: '' })
+    showAddForm.value = false
+  } catch (e: any) {
+    addError.value = e?.data?.error || 'Impossible d\'ajouter cette moto. Réessayez.'
+  } finally {
+    addSaving.value = false
+  }
+}
 </script>
 
 <style scoped>
+.motos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.add-moto-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-1);
+  background: transparent;
+  color: var(--content-1);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.add-moto-card {
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+}
+.add-moto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.add-moto-grid select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--overlay-hover);
+  border: 1px solid var(--border-1);
+  border-radius: 8px;
+  color: var(--content-1);
+  font-family: inherit;
+  font-size: 14px;
+}
 .moto-card {
   padding: 16px;
   background: var(--surface-1);

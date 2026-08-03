@@ -1,6 +1,9 @@
 <template>
   <div>
-    <h1 style="font-size:20px;font-weight:800;margin-bottom:16px;">Mes rendez-vous</h1>
+    <div class="rdv-header">
+      <h1 style="font-size:20px;font-weight:800;">Mes rendez-vous</h1>
+      <NuxtLink to="/rdvs/new" class="new-rdv-btn">Prendre un rendez-vous</NuxtLink>
+    </div>
     <div v-if="pending" style="color:var(--content-3)">Chargement…</div>
     <div v-else-if="error" style="color:var(--error-content)">Impossible de charger vos rendez-vous pour le moment. Réessayez plus tard.</div>
     <div v-else-if="rdvs.length === 0" style="color:var(--content-3)">Aucun rendez-vous.</div>
@@ -49,6 +52,24 @@ const passes = computed(() => {
 </script>
 
 <style scoped>
+.rdv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.new-rdv-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
 .rdv-section + .rdv-section {
   margin-top: 28px;
 }
