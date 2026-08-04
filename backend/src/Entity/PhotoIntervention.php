@@ -23,6 +23,12 @@ class PhotoIntervention
     #[ORM\Column(type: 'json', nullable: true)] private ?array $exif = null;
     #[ORM\Column(type: 'datetime', nullable: true)] private ?\DateTimeInterface $takenAt = null;
 
+    // Espace mécanicien — photo rattachée à un point précis de checkup ou
+    // d'essai routier (ex: "freinage_avant" en NOK), pour la retrouver aussi
+    // bien dans la galerie de saisie que dans le rapport/PDF signé.
+    #[ORM\Column(length: 30, nullable: true)] private ?string $checkpointSource = null;
+    #[ORM\Column(length: 60, nullable: true)] private ?string $checkpointKey = null;
+
     public function __construct() { $this->createdAt = new \DateTime(); }
 
     public function getId(): ?int { return $this->id; }
@@ -48,4 +54,9 @@ class PhotoIntervention
     public function setExif(?array $v): static { $this->exif = $v; return $this; }
     public function getTakenAt(): ?\DateTimeInterface { return $this->takenAt; }
     public function setTakenAt(?\DateTimeInterface $v): static { $this->takenAt = $v; return $this; }
+
+    public function getCheckpointSource(): ?string { return $this->checkpointSource; }
+    public function setCheckpointSource(?string $v): static { $this->checkpointSource = $v; return $this; }
+    public function getCheckpointKey(): ?string { return $this->checkpointKey; }
+    public function setCheckpointKey(?string $v): static { $this->checkpointKey = $v; return $this; }
 }

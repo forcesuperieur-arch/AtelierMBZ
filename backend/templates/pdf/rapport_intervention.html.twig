@@ -9,8 +9,8 @@
   l'essai routier associé, jusqu'ici absent de tout PDF.
 #}
 
-{% set accent = '#106B00' %}
-{% set accent_soft = '#EAF5E1' %}
+{% set accent = '#047857' %}
+{% set accent_soft = '#ecfdf5' %}
 {% set doc_title = "Rapport d'intervention" %}
 
 {% set vehiculeLibelle = ((vehicule.marque|default('')) ~ ' ' ~ (vehicule.modele|default('')))|trim %}
@@ -96,14 +96,21 @@
                     <tr>
                         <td>{{ point.label|default('—') }}</td>
                         <td class="center nowrap">
-                            {% if point.ok|default(false) %}
+                            {% if point.statut|default('') == 'ok' %}
                                 <span class="badge badge-ok">Conforme</span>
-                            {% else %}
+                            {% elseif point.statut|default('') == 'nok' %}
                                 <span class="badge badge-warn">À surveiller</span>
+                            {% else %}
+                                <span class="badge badge-off">Non renseigné</span>
                             {% endif %}
                         </td>
                         <td>{{ point.commentaire|default('—') }}</td>
                     </tr>
+                    {% if point.photos|default([])|length %}
+                        <tr>
+                            <td colspan="3">{{ ui.photos(point.photos, point.label|default('Photo')) }}</td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
                 </tbody>
             </table>

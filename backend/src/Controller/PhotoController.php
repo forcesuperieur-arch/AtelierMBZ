@@ -74,6 +74,14 @@ class PhotoController extends AbstractController
             return $this->json(['error' => 'File too large (max 10MB)'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Photo rattachée à un point de checkup/essai routier (espace mécanicien) :
+        // optionnel, validé contre les deux seules sources connues.
+        $checkpointSource = $request->request->get('checkpoint_source');
+        if ($checkpointSource !== null && $checkpointSource !== '' && !in_array($checkpointSource, ['checkup', 'essai_routier'], true)) {
+            return $this->json(['error' => 'checkpoint_source invalide (checkup ou essai_routier attendu)'], Response::HTTP_BAD_REQUEST);
+        }
+        $checkpointKey = $request->request->get('checkpoint_key');
+
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeName = $this->slugger->slug($originalName);
         $filename = $safeName . '-' . bin2hex(random_bytes(8)) . '.' . $file->guessExtension();
@@ -90,6 +98,10 @@ class PhotoController extends AbstractController
         $photo->setAtelierId($rdv->getAtelierId());
         if ($type !== null && $type !== '') {
             $photo->setType($type);
+        }
+        if ($checkpointSource !== null && $checkpointSource !== '') {
+            $photo->setCheckpointSource($checkpointSource);
+            $photo->setCheckpointKey($checkpointKey !== null && $checkpointKey !== '' ? $checkpointKey : null);
         }
         $photo->setSha256(hash_file('sha256', $uploadDir . '/' . $filename) ?: null);
         $photo->setTakenAt(new \DateTime());
@@ -153,7 +165,39 @@ class PhotoController extends AbstractController
             'filename' => $p->getFilename(),
             'original_name' => $p->getOriginalName(),
             'description' => $p->getDescription(),
+            'type' => $p->getType(),
+            'checkpoint_source' => $p->getCheckpointSource(),
+            'checkpoint_key' => $p->getCheckpointKey(),
             'url' => '/api/photos/file/' . $p->getFilename(),
         ], $photos));
+    }
+
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(int $id): JsonResponse
+    {
+        $photo = $this->em->getRepository(PhotoIntervention::class)->find($id);
+        if (!$photo) {
+            return $this->json(['error' => 'Photo not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Même garde que serve() : une photo ne se supprime que depuis son
+        // propre atelier, jamais en croisant les tenants.
+        $currentAtelierId = $this->getUser()?->getAtelierId();
+        if ($currentAtelierId !== null && $photo->getAtelierId() !== null && $photo->getAtelierId() !== $currentAtelierId) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $path = $this->getParameter('kernel.project_dir') . '/var/photos/' . basename($photo->getFilename());
+        if (file_exists($path)) {
+            @unlink($path);
+        }
+
+        $photoId = $photo->getId();
+        $this->em->remove($photo);
+        $this->em->flush();
+
+        $this->auditService->log('photo_delete', 'PhotoIntervention', $photoId, sprintf('Photo #%d supprimée', $photoId));
+
+        return $this->json(['success' => true]);
     }
 }
