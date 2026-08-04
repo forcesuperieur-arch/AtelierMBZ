@@ -2,7 +2,6 @@
 namespace App\Controller;
 
 use App\Entity\ModeleMoto;
-use App\Service\MotoCatalogImporter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,28 +13,12 @@ class MotosLookupController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private MotoCatalogImporter $importer,
     ) {
-    }
-
-    private function ensureCatalogLoaded(): void
-    {
-        if ($this->em->getRepository(ModeleMoto::class)->count([]) > 0) {
-            return;
-        }
-
-        try {
-            $this->importer->importFromDefaultFile();
-        } catch (\Throwable) {
-            // L’autocomplétion reste vide si le fichier source est indisponible.
-        }
     }
 
     #[Route('/marques', methods: ['GET'])]
     public function marques(): JsonResponse
     {
-        $this->ensureCatalogLoaded();
-
         $rows = $this->em->getRepository(ModeleMoto::class)
             ->createQueryBuilder('m')
             ->select('DISTINCT m.marque AS marque')
@@ -53,8 +36,6 @@ class MotosLookupController extends AbstractController
     #[Route('/autocomplete', methods: ['GET'])]
     public function autocomplete(Request $request): JsonResponse
     {
-        $this->ensureCatalogLoaded();
-
         $marque = trim((string) $request->query->get('marque', ''));
         $query = trim((string) $request->query->get('query', ''));
         $limit = max(1, min(20, (int) $request->query->get('limit', 10)));

@@ -9,13 +9,37 @@
 
     <form v-if="showAddForm" class="add-moto-card" @submit.prevent="submitAdd">
       <div class="add-moto-grid">
-        <div class="moto-field">
+        <div class="moto-field autocomplete-field">
           <label>Marque *</label>
-          <input v-model="addForm.marque" required placeholder="Yamaha" />
+          <input
+            v-model="addForm.marque"
+            required
+            placeholder="Yamaha"
+            autocomplete="off"
+            @input="onMarqueInput"
+            @focus="onMarqueInput"
+            @blur="deferHideMarqueSuggestions"
+          />
+          <ul v-if="marqueSuggestions.length" class="autocomplete-list">
+            <li v-for="m in marqueSuggestions" :key="m" @mousedown.prevent="selectMarque(m)">{{ m }}</li>
+          </ul>
         </div>
-        <div class="moto-field">
+        <div class="moto-field autocomplete-field">
           <label>Modèle *</label>
-          <input v-model="addForm.modele" required placeholder="MT-07" />
+          <input
+            v-model="addForm.modele"
+            required
+            placeholder="MT-07"
+            autocomplete="off"
+            @input="onModeleInput"
+            @focus="onModeleInput"
+            @blur="deferHideModeleSuggestions"
+          />
+          <ul v-if="modeleSuggestions.length" class="autocomplete-list">
+            <li v-for="item in modeleSuggestions" :key="item.id" @mousedown.prevent="selectModele(item)">
+              {{ suggestionLabel(item) }}
+            </li>
+          </ul>
         </div>
         <div class="moto-field">
           <label>Plaque</label>
@@ -37,6 +61,7 @@
           <input v-model="addForm.annee" type="number" placeholder="2022" />
         </div>
       </div>
+      <p class="moto-hint">Choisissez une suggestion pour préremplir type, cylindrée et année automatiquement.</p>
       <p v-if="addError" class="moto-error">{{ addError }}</p>
       <button class="moto-save" type="submit" :disabled="addSaving">{{ addSaving ? 'Ajout…' : 'Ajouter' }}</button>
     </form>
@@ -125,11 +150,30 @@ async function save(id: number) {
   }
 }
 
-const motoTypes = ['Roadster', 'Sportive', 'Trail', 'Custom', 'Scooter', 'Enduro']
+const motoTypes = ['Roadster', 'Sportive', 'Trail', 'Touring', 'Custom', 'Scooter', 'Enduro', 'Supermotard', 'Vintage', 'Électrique']
 const showAddForm = ref(false)
 const addSaving = ref(false)
 const addError = ref('')
 const addForm = reactive({ marque: '', modele: '', plaque: '', type_moto: '', cylindree: '', annee: '' })
+
+const {
+  marqueSuggestions,
+  modeleSuggestions,
+  onMarqueInput,
+  onModeleInput,
+  selectMarque,
+  selectModele,
+  deferHideMarqueSuggestions,
+  deferHideModeleSuggestions,
+  suggestionLabel,
+} = useMotoAutocomplete({
+  form: addForm,
+  marqueKey: 'marque',
+  modeleKey: 'modele',
+  cylindreeKey: 'cylindree',
+  typeKey: 'type_moto',
+  anneeKey: 'annee',
+})
 
 async function submitAdd() {
   addSaving.value = true
@@ -210,6 +254,39 @@ async function submitAdd() {
   color: var(--content-1);
   font-family: inherit;
   font-size: 14px;
+}
+.autocomplete-field {
+  position: relative;
+}
+.autocomplete-list {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.autocomplete-list li {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.autocomplete-list li:hover {
+  background: var(--overlay-hover);
+}
+.moto-hint {
+  margin: -4px 0 12px;
+  font-size: 11px;
+  color: var(--content-3);
 }
 .moto-card {
   padding: 16px;

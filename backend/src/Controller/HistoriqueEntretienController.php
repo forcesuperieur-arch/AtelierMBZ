@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Vehicule;
 use App\Service\AuditService;
+use App\Service\CurrentAtelierResolver;
 use App\Service\HistoriqueEntretienService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +22,19 @@ class HistoriqueEntretienController extends AbstractController
         private EntityManagerInterface $em,
         private HistoriqueEntretienService $historiqueService,
         private AuditService $audit,
+        private CurrentAtelierResolver $atelierResolver,
     ) {}
+
+    // Ouvert par le nouveau consommateur "Historique de cette moto" côté
+    // mécanicien : la route n'avait jamais de vérification de tenant, elle ne
+    // servait qu'à un usage staff interne non encore branché.
+    private function assertVehiculeAccessible(Vehicule $vehicule): void
+    {
+        $atelierId = $this->atelierResolver->resolveAtelierId();
+        if ($atelierId !== null && $vehicule->getAtelierId() !== $atelierId) {
+            throw $this->createAccessDeniedException();
+        }
+    }
 
     #[Route('/api/vehicules/{id}/historique-entretien', methods: ['GET'])]
     public function historique(int $id): JsonResponse
@@ -30,6 +43,7 @@ class HistoriqueEntretienController extends AbstractController
         if (!$vehicule) {
             return $this->json(['error' => 'Véhicule non trouvé'], Response::HTTP_NOT_FOUND);
         }
+        $this->assertVehiculeAccessible($vehicule);
 
         $historique = $this->historiqueService->buildHistorique($vehicule);
 
@@ -43,6 +57,7 @@ class HistoriqueEntretienController extends AbstractController
         if (!$vehicule) {
             return $this->json(['error' => 'Véhicule non trouvé'], Response::HTTP_NOT_FOUND);
         }
+        $this->assertVehiculeAccessible($vehicule);
 
         $pdfContent = $this->historiqueService->generatePdf($vehicule);
 

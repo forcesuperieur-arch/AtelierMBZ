@@ -604,6 +604,7 @@ class MecanicienController extends AbstractController
             'heure_fin_travail' => $rdv->getHeureFinTravail()?->format('Y-m-d H:i:s'),
             'client_nom' => $client ? trim(($client->getPrenom() ?? '') . ' ' . ($client->getNom() ?? '')) : null,
             'client_telephone' => $client?->getTelephone(),
+            'vehicule_id' => $vehicule?->getId(),
             'vehicule_info' => $vehicule ? trim(($vehicule->getMarque() ?? '') . ' ' . ($vehicule->getModele() ?? '')) : null,
             'vehicule_plaque' => $vehicule?->getPlaque(),
             'vehicule_type' => $vehicule?->getTypeMoto(),

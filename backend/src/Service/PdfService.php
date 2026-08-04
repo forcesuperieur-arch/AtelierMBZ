@@ -173,6 +173,7 @@ class PdfService
         $mecanicien = $rdv?->getMecanicien();
         $client = $rdv?->getClient();
         $vehicule = $rdv?->getVehicule();
+        $essaiPhotosByKey = $essai !== null ? $this->extractCheckpointPhotos($rdv, 'essai_routier') : [];
 
         return $this->renderDocument(
             'rapport_intervention',
@@ -205,7 +206,7 @@ class PdfService
                     'kmFin' => $essai->getKmFin(),
                     'distance' => $essai->getDistance(),
                     'dureeMinutes' => $essai->getDureeMinutes(),
-                    'pointsControle' => $essai->getCheckpoints(),
+                    'pointsControle' => $this->attachCheckpointPhotos($essai->getCheckpoints(), $essaiPhotosByKey),
                     'anomalies' => $essai->getAnomalies(),
                     'actionsCorrectives' => $essai->getActionsCorrectives(),
                 ],
@@ -582,6 +583,53 @@ class PdfService
         }
 
         return array_slice($photos, 0, 6);
+    }
+
+    /**
+     * Photos rattachées à un point précis de checkup/essai routier (espace
+     * mécanicien), groupées par clé de point pour être insérées sous la ligne
+     * correspondante du rapport — pas dans la galerie générique en vrac.
+     *
+     * @return array<string, array<int, array{src: string, label: string, takenAt: ?string}>>
+     */
+    private function extractCheckpointPhotos(?RendezVous $rdv, string $source): array
+    {
+        if (!$rdv) {
+            return [];
+        }
+
+        $byKey = [];
+        foreach ($rdv->getPhotosIntervention() as $photo) {
+            if ($photo->getCheckpointSource() !== $source) {
+                continue;
+            }
+            $key = $photo->getCheckpointKey();
+            if (!$key) {
+                continue;
+            }
+            $byKey[$key] ??= [];
+            $this->appendStoredPhoto($byKey[$key], $photo);
+        }
+
+        foreach ($byKey as $key => $photos) {
+            $byKey[$key] = array_slice($photos, 0, 4);
+        }
+
+        return $byKey;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $points
+     * @param array<string, array<int, array{src: string, label: string, takenAt: ?string}>> $photosByKey
+     * @return array<int, array<string, mixed>>
+     */
+    private function attachCheckpointPhotos(array $points, array $photosByKey): array
+    {
+        return array_map(function (array $point) use ($photosByKey) {
+            $key = $point['key'] ?? null;
+            $point['photos'] = $key !== null ? ($photosByKey[$key] ?? []) : [];
+            return $point;
+        }, $points);
     }
 
     /**
