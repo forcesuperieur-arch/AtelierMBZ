@@ -260,6 +260,21 @@
             </div>
 
             <div class="regle">
+              <div class="regle-titre">Validité des devis</div>
+              <div class="regle-aide">
+                Durée pendant laquelle un devis reste valable après sa création. Passé ce délai,
+                il passe automatiquement en statut « expiré » et ne peut plus être accepté.
+              </div>
+              <input
+                v-model.number="config.validite_devis_jours"
+                type="number" min="1" max="365" step="1"
+                class="form-input regle-champ"
+                data-testid="regle-validite-devis"
+              />
+              <span class="regle-unite">jours</span>
+            </div>
+
+            <div class="regle">
               <div class="regle-titre">Essai routier</div>
               <div class="regle-aide">
                 Nombre de points de contrôle que le mécanicien doit renseigner pour valider un essai
@@ -578,6 +593,7 @@ const config = ref<any>({
   relance_heure_max: 19,
   rappels_rdv_jours: [1, 3],
   lien_public_jours: 30,
+  validite_devis_jours: 30,
   essai_points_min: 5,
   rappel_alerte_heures: 24,
   vidange_intervalle_km: 7000,

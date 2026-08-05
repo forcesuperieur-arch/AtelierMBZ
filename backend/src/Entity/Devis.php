@@ -3,6 +3,8 @@ namespace App\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -12,6 +14,16 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     normalizationContext: ['groups' => ['devis:read']],
     denormalizationContext: ['groups' => ['devis:write']],
+    // Le devis est un document commercial dont la création/mutation passe EXCLUSIVEMENT
+    // par DevisController (calcul serveur des totaux, numérotation atomique, audit, garde
+    // de rôle/statut). Les opérations Post/Put/Patch/Delete génériques ont été retirées :
+    // elles permettaient à n'importe quel compte staff authentifié de poser des montants
+    // arbitraires ou de supprimer un devis accepté sans laisser de trace d'audit. Même
+    // correctif que celui déjà appliqué à OrdreReparation pour le même risque.
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
 )]
 #[ApiFilter(OrderFilter::class, properties: ['id', 'dateCreation'])]
 class Devis
@@ -42,28 +54,33 @@ class Devis
     #[Groups(['devis:read', 'devis:write'])]
     private \DateTimeInterface $dateValidite;
 
+    // statut n'a plus de groupe d'écriture : les transitions passent EXCLUSIVEMENT par les
+    // actions dédiées de DevisController (garde de rôle + garde d'état + audit), jamais par
+    // une écriture directe.
     #[ORM\Column(length: 50, options: ['default' => 'brouillon'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $statut = 'brouillon';
 
     #[ORM\Column(nullable: true)]
     #[Groups(['devis:read', 'devis:write'])]
     private ?int $kilometrage = null;
 
+    // Totaux et remise en montant : dérivés côté serveur des lignes + remisePourcentage par
+    // DevisController::create (jamais posés directement, sinon falsifiables via l'API).
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $totalMoHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $totalPiecesHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $totalHt = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $totalTtc = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
@@ -71,7 +88,7 @@ class Devis
     private string $remisePourcentage = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['devis:read'])]
     private string $remiseMontant = '0.00';
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, options: ['default' => '0.00'])]
@@ -132,9 +149,14 @@ class Devis
     private Collection $lignes;
 
     public function __construct() { $this->dateCreation = new \DateTime(); $this->dateValidite = (new \DateTime())->modify('+30 days'); $this->createdAt = new \DateTime(); $this->updatedAt = new \DateTime(); $this->lignes = new ArrayCollection(); }
-    #[ORM\PrePersist] public function prePersist(): void { if (!isset($this->numeroDevis) || $this->numeroDevis === '') { $this->numeroDevis = 'DEV-' . date('Y') . '-' . str_pad((string)random_int(1, 99999), 5, '0', STR_PAD_LEFT); } if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } $this->snapshotClientData(); }
+    // numeroDevis est posé par DevisNumeroSubscriber (séquence PostgreSQL atomique, voir
+    // App\Service\DevisNumberingService) : un random_int() sur colonne unique produisait un
+    // 500 brut en cas de collision, sans retry possible.
+    #[ORM\PrePersist] public function prePersist(): void { if (!isset($this->dateValidite)) { $this->dateValidite = (new \DateTime())->modify('+30 days'); } $this->snapshotClientData(); }
     public function snapshotClientData(): void {
-        if ($this->client && !$this->snapClientNom) {
+        // isset() (pas une simple évaluation booléenne) : $client est un typed property sans
+        // valeur par défaut, y accéder avant initialisation lève une erreur fatale PHP 8.
+        if (isset($this->client) && $this->client && !$this->snapClientNom) {
             $this->snapClientNom = $this->client->getNom();
             $this->snapClientPrenom = $this->client->getPrenom();
             $this->snapClientEmail = $this->client->getEmail();
@@ -158,6 +180,7 @@ class Devis
     public function getVehicule(): ?Vehicule { return $this->vehicule; }
     public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }
     public function getDateCreation(): \DateTimeInterface { return $this->dateCreation; }
+    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getDateValidite(): \DateTimeInterface { return $this->dateValidite; }
     public function setDateValidite(\DateTimeInterface $v): static { $this->dateValidite = $v; return $this; }

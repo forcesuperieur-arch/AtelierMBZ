@@ -1,23 +1,50 @@
 <?php
 namespace App\Entity;
-use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
-#[ORM\Entity] #[ORM\Table(name: 'lignes_devis')] #[ApiResource]
+// PAS de #[ApiResource] : une ligne de devis n'a pas de colonne atelier_id, donc TenantFilter
+// ne peut pas l'isoler par atelier. Une route /api/lignes_devis/{id} directe permettait de
+// lire/modifier/supprimer une ligne d'un AUTRE atelier en devinant son id. Elle n'est de toute
+// façon lue par le front QUE via la collection `Devis::$lignes` (voir DevisController::create),
+// jamais en accès direct — la retirer ferme la faille sans rien casser.
+#[ORM\Entity] #[ORM\Table(name: 'lignes_devis')]
 class LigneDevis
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
+    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
+    #[Groups(['devis:read'])]
+    private ?int $id = null;
     #[ORM\ManyToOne(targetEntity: Devis::class, inversedBy: 'lignes')] #[ORM\JoinColumn(nullable: false)] private Devis $devis;
-    #[ORM\Column(length: 50)] private string $typeLigne;
-    #[ORM\ManyToOne(targetEntity: PieceDetachee::class)] #[ORM\JoinColumn(name: 'piece_id', nullable: true)] private ?PieceDetachee $piece = null;
-    #[ORM\Column(length: 300)] private string $designation;
-    #[ORM\Column(type: 'text', nullable: true)] private ?string $descriptionDetail = null;
-    #[ORM\Column(options: ['default' => 1])] private int $quantite = 1;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $prixUnitaireHt;
-    #[ORM\Column(type: 'float', options: ['default' => 20.0])] private float $tauxTva = 20.0;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $totalLigneHt;
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)] private string $totalLigneTtc;
-    #[ORM\Column(options: ['default' => 0])] private int $ordre = 0;
+    #[ORM\Column(length: 50)]
+    #[Groups(['devis:read'])]
+    private string $typeLigne;
+    #[ORM\ManyToOne(targetEntity: PieceDetachee::class)] #[ORM\JoinColumn(name: 'piece_id', nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?PieceDetachee $piece = null;
+    #[ORM\Column(length: 300)]
+    #[Groups(['devis:read'])]
+    private string $designation;
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['devis:read'])]
+    private ?string $descriptionDetail = null;
+    #[ORM\Column(options: ['default' => 1])]
+    #[Groups(['devis:read'])]
+    private int $quantite = 1;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Groups(['devis:read'])]
+    private string $prixUnitaireHt;
+    #[ORM\Column(type: 'float', options: ['default' => 20.0])]
+    #[Groups(['devis:read'])]
+    private float $tauxTva = 20.0;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Groups(['devis:read'])]
+    private string $totalLigneHt;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Groups(['devis:read'])]
+    private string $totalLigneTtc;
+    #[ORM\Column(options: ['default' => 0])]
+    #[Groups(['devis:read'])]
+    private int $ordre = 0;
 
     public function getId(): ?int { return $this->id; }
     public function getDevis(): Devis { return $this->devis; }
