@@ -4,6 +4,12 @@
       <div class="page-title">Cockpit SRC</div>
     </div>
 
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn" :class="tab === 'recherche' ? 'btn-primary' : 'btn-ghost'" @click="tab = 'recherche'">Recherche</button>
+      <button class="btn" :class="tab === 'file' ? 'btn-primary' : 'btn-ghost'" @click="tab = 'file'; loadFileTravail()">File de travail</button>
+    </div>
+
+    <template v-if="tab === 'recherche'">
     <UCard style="margin-bottom:16px;">
       <div style="display:flex;gap:8px;align-items:center;">
         <input
@@ -51,6 +57,15 @@
                 <span v-if="dossier.email"> · <AppIcon name="i-ri-mail-line" /> {{ dossier.email }}</span>
               </div>
             </div>
+            <button class="btn btn-ghost" style="font-size:12px;" @click="showReclamationForm = true"><AppIcon name="i-ri-alarm-warning-line" /> Signaler une réclamation</button>
+          </div>
+          <div v-if="showReclamationForm" style="margin-top:12px;padding:12px;border:1px solid var(--border-2);border-radius:8px;">
+            <input v-model="newReclamationSujet" class="form-input" placeholder="Sujet de la réclamation…" style="margin-bottom:8px;" />
+            <textarea v-model="newReclamationNote" class="form-input" rows="2" placeholder="Note (optionnel)…" style="margin-bottom:8px;" />
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost" style="font-size:12px;" @click="showReclamationForm = false">Annuler</button>
+              <button class="btn btn-primary" style="font-size:12px;" :disabled="!newReclamationSujet.trim() || submittingReclamation" @click="submitReclamation">Créer</button>
+            </div>
           </div>
           <div v-if="dossier.vehicules?.length" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <span v-for="v in dossier.vehicules" :key="v.id" style="font-size:12px;padding:4px 10px;border-radius:6px;background:var(--overlay-hover);color:var(--content-1);">
@@ -71,6 +86,59 @@
         </UCard>
       </div>
     </div>
+    </template>
+
+    <!-- File de travail -->
+    <template v-if="tab === 'file'">
+      <UCard style="margin-bottom:16px;">
+        <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-close-circle-line" /> Annulations à traiter</span></template>
+        <div v-if="!fileTravail.annulations.length" style="padding:16px;color:var(--content-3);font-size:13px;">Aucune demande en attente.</div>
+        <div v-for="a in fileTravail.annulations" :key="a.id" style="display:flex;align-items:center;gap:16px;padding:10px 8px;border-bottom:1px solid var(--border-2);font-size:13px;">
+          <div style="flex:1;">
+            <strong>{{ a.client?.prenom }} {{ a.client?.nom }}</strong> ({{ a.client?.telephone }})
+            <span v-if="a.vehicule"> — {{ a.vehicule.plaque }}</span>
+            <div style="color:var(--content-3);font-size:12px;">{{ a.atelier_nom }} · RDV du {{ formatDate(a.date_rdv) }} · demande envoyée {{ formatDateTime(a.demandee_at) }}</div>
+          </div>
+          <button class="btn btn-ghost" style="font-size:12px;" @click="openRdv(a.id)">Voir le RDV</button>
+        </div>
+      </UCard>
+
+      <UCard style="margin-bottom:16px;">
+        <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-phone-line" /> Relances à passer</span></template>
+        <div v-if="!fileTravail.relances.travaux_supp.length && !fileTravail.relances.devis.length" style="padding:16px;color:var(--content-3);font-size:13px;">Rien en attente.</div>
+        <div v-for="d in fileTravail.relances.travaux_supp" :key="'ts-' + d.id" style="padding:10px 8px;border-bottom:1px solid var(--border-2);font-size:13px;">
+          <strong>Travaux supp.</strong> — {{ d.client?.prenom }} {{ d.client?.nom }} ({{ d.client?.telephone }}) — {{ d.atelier_nom }}
+          <div style="color:var(--content-3);font-size:12px;">{{ d.description }} · envoyé le {{ formatDateTime(d.sent_at) }}</div>
+        </div>
+        <div v-for="d in fileTravail.relances.devis" :key="'dv-' + d.id" style="padding:10px 8px;border-bottom:1px solid var(--border-2);font-size:13px;">
+          <strong>Devis {{ d.numero_devis }}</strong> — {{ d.client?.prenom }} {{ d.client?.nom }} ({{ d.client?.telephone }}) — {{ d.atelier_nom }}
+          <div style="color:var(--content-3);font-size:12px;">{{ formatCurrency(d.total_ttc) }} · envoyé depuis {{ formatDateTime(d.envoye_depuis) }}</div>
+        </div>
+      </UCard>
+
+      <UCard>
+        <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-alarm-warning-line" /> Réclamations</span></template>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button v-for="s in ['nouveau', 'en_cours', 'clos']" :key="s" class="btn" :class="reclamationFilter === s ? 'btn-primary' : 'btn-ghost'" style="font-size:12px;padding:4px 12px;" @click="reclamationFilter = s; loadReclamations()">{{ s }}</button>
+        </div>
+        <div v-if="!fileTravail.reclamations.length" style="padding:16px;color:var(--content-3);font-size:13px;">Aucune réclamation {{ reclamationFilter }}.</div>
+        <div v-for="rc in fileTravail.reclamations" :key="rc.id" style="padding:10px 8px;border-bottom:1px solid var(--border-2);font-size:13px;">
+          <div style="display:flex;justify-content:space-between;">
+            <div><strong>{{ rc.sujet }}</strong> — {{ rc.client?.prenom }} {{ rc.client?.nom }} · {{ rc.atelier_nom }}</div>
+            <select :value="rc.statut" class="form-input" style="font-size:12px;width:auto;" @change="changeReclamationStatut(rc, ($event.target as HTMLSelectElement).value)">
+              <option value="nouveau">nouveau</option>
+              <option value="en_cours">en_cours</option>
+              <option value="clos">clos</option>
+            </select>
+          </div>
+          <div v-for="(n, i) in rc.notes" :key="i" style="font-size:12px;color:var(--content-3);margin-top:4px;">{{ formatDateTime(n.date) }} — {{ n.auteur_nom }} : {{ n.texte }}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <input v-model="noteDrafts[rc.id]" class="form-input" placeholder="Ajouter une note…" style="font-size:12px;flex:1;" />
+            <button class="btn btn-ghost" style="font-size:12px;" @click="addNote(rc)">Ajouter</button>
+          </div>
+        </div>
+      </UCard>
+    </template>
 
     <!-- Détail RDV (modale simple) -->
     <div v-if="selectedRdvId" class="app-modal-overlay" @click.self="closeRdv">
@@ -116,9 +184,20 @@
 <script setup lang="ts">
 const api = useApi()
 
+const tab = ref<'recherche' | 'file'>('recherche')
+
 const query = ref('')
 const results = ref<any[]>([])
 const searching = ref(false)
+
+const showReclamationForm = ref(false)
+const newReclamationSujet = ref('')
+const newReclamationNote = ref('')
+const submittingReclamation = ref(false)
+
+const reclamationFilter = ref('nouveau')
+const noteDrafts = reactive<Record<number, string>>({})
+const fileTravail = reactive<any>({ annulations: [], relances: { travaux_supp: [], devis: [] }, reclamations: [] })
 
 const selectedClientId = ref<number | null>(null)
 const dossier = ref<any>(null)
@@ -141,6 +220,63 @@ function formatDate(d: string) {
 function formatDateTime(d: string) {
   if (!d) return ''
   try { return new Date(d).toLocaleString('fr-FR') } catch { return d }
+}
+function formatCurrency(v: number) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(v) || 0)
+}
+
+async function loadFileTravail() {
+  try {
+    const [annulRes, relancesRes] = await Promise.all([
+      api.get('/cockpit/file/annulations'),
+      api.get('/cockpit/file/relances'),
+    ])
+    fileTravail.annulations = annulRes?.annulations ?? []
+    fileTravail.relances = relancesRes ?? { travaux_supp: [], devis: [] }
+  } catch {
+    fileTravail.annulations = []
+    fileTravail.relances = { travaux_supp: [], devis: [] }
+  }
+  await loadReclamations()
+}
+
+async function loadReclamations() {
+  try {
+    const data = await api.get(`/cockpit/reclamations?statut=${reclamationFilter.value}`)
+    fileTravail.reclamations = data?.reclamations ?? []
+  } catch {
+    fileTravail.reclamations = []
+  }
+}
+
+async function submitReclamation() {
+  if (!dossier.value || !newReclamationSujet.value.trim()) return
+  submittingReclamation.value = true
+  try {
+    await api.post('/cockpit/reclamations', {
+      client_id: dossier.value.id,
+      sujet: newReclamationSujet.value.trim(),
+      note: newReclamationNote.value.trim() || undefined,
+    })
+    showReclamationForm.value = false
+    newReclamationSujet.value = ''
+    newReclamationNote.value = ''
+  } finally {
+    submittingReclamation.value = false
+  }
+}
+
+async function changeReclamationStatut(rc: any, statut: string) {
+  await api.post(`/cockpit/reclamations/${rc.id}/note`, { statut })
+  await loadReclamations()
+}
+
+async function addNote(rc: any) {
+  const texte = (noteDrafts[rc.id] || '').trim()
+  if (!texte) return
+  await api.post(`/cockpit/reclamations/${rc.id}/note`, { note: texte })
+  noteDrafts[rc.id] = ''
+  await loadReclamations()
 }
 
 let searchTimer: any = null
@@ -165,6 +301,9 @@ async function openDossier(id: number) {
   selectedClientId.value = id
   loadingDossier.value = true
   dossier.value = null
+  showReclamationForm.value = false
+  newReclamationSujet.value = ''
+  newReclamationNote.value = ''
   try {
     dossier.value = await api.get(`/cockpit/clients/${id}`)
   } catch {
