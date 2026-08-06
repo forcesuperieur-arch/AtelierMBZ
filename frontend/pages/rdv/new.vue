@@ -372,14 +372,14 @@ x<template>
             ><AppIcon name="i-ri-store-2-line" /> Comptoir</button>
             <button
               type="button"
-              @click="form.origine = 'telephone'"
+              @click="form.origine = isServiceClient ? 'src_telephone' : 'telephone'"
               :style="{
                 padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', cursor: 'pointer',
-                background: form.origine === 'telephone' ? 'var(--accent-soft)' : 'var(--overlay-soft)',
-                border: form.origine === 'telephone' ? '1px solid var(--accent)' : '1px solid var(--border-2)',
-                color: form.origine === 'telephone' ? 'var(--accent-content)' : 'var(--content-3)',
+                background: ['telephone', 'src_telephone'].includes(form.origine) ? 'var(--accent-soft)' : 'var(--overlay-soft)',
+                border: ['telephone', 'src_telephone'].includes(form.origine) ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+                color: ['telephone', 'src_telephone'].includes(form.origine) ? 'var(--accent-content)' : 'var(--content-3)',
               }"
-            ><AppIcon name="i-ri-phone-line" /> Téléphone</button>
+            ><AppIcon name="i-ri-phone-line" /> {{ isServiceClient ? 'Téléphone (SRC)' : 'Téléphone' }}</button>
           </div>
         </div>
       </div>
@@ -421,6 +421,9 @@ const selectedAtelierId = ref<number | null>(parseAtelierId(activeAtelierCookie.
 const selectedAtelier = computed(() => atelierOptions.value.find(atelier => atelier.id === selectedAtelierId.value) || null)
 const canSelectAtelier = computed(() => atelierOptions.value.length > 1)
 const canSwitchAtelierContext = computed(() => ((authStore.user?.roles || []) as string[]).some(role => role === 'ROLE_SUPER_ADMIN' || role === 'ROLE_SERVICE_CLIENT'))
+// Lot C3 : un appel pris par le SRC central est tracé src_telephone (distinct d'un appel reçu
+// directement par l'atelier) pour ne pas fausser le KPI "% RDV en ligne" par canal.
+const isServiceClient = computed(() => ((authStore.user?.roles || []) as string[]).includes('ROLE_SERVICE_CLIENT'))
 const atelierDisplayName = computed(() => {
   return selectedAtelier.value?.nom?.trim() || atelierStore.branding?.nom?.trim() || authStore.user?.atelier_nom?.trim() || 'Atelier Moto'
 })
