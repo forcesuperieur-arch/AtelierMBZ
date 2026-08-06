@@ -92,6 +92,36 @@ class BookingAtelierAccessService
         return $fallbackAtelierId && $fallbackAtelierId > 0 ? $fallbackAtelierId : null;
     }
 
+    /**
+     * Ouvre une fenêtre de LECTURE cross-atelier pour un compte SRC (ROLE_SERVICE_CLIENT) : le
+     * temps de $callback, le filtre tenant autorise TOUS les ateliers de getAllowedAteliers()
+     * au lieu du seul atelier actif. Se referme automatiquement (retour au scope normal à un seul
+     * atelier) même en cas d'exception. Pour tout autre rôle, exécute $callback sans rien changer
+     * — défense en profondeur si jamais appelé par erreur hors d'un contrôleur SRC.
+     *
+     * Volontairement scoping LOCAL (pas de changement dans TenantFilterListener/le comportement
+     * global des requêtes) : les écrans existants (planning, réception, /clients…) ne sont jamais
+     * conçus pour afficher plusieurs ateliers mélangés. Seuls les nouveaux écrans du Cockpit SRC
+     * appellent cette méthode explicitement (recherche universelle, dossier 360°, file de travail).
+     */
+    public function withCrossAtelierRead(User $user, callable $callback): mixed
+    {
+        if (!$this->isServiceClient($user)) {
+            return $callback();
+        }
+
+        $ids = array_map(fn (Atelier $a) => (int) $a->getId(), $this->getAllowedAteliers($user));
+        $filter = $this->em->getFilters()->enable('tenant_filter');
+        $filter->setParameter('atelier_ids', implode(',', $ids));
+
+        try {
+            return $callback();
+        } finally {
+            $filter = $this->em->getFilters()->enable('tenant_filter');
+            $filter->setParameter('atelier_ids', '__NONE__');
+        }
+    }
+
     public function isServiceClient(User $user): bool
     {
         return in_array('ROLE_SERVICE_CLIENT', $user->getRoles(), true)
