@@ -56,6 +56,7 @@ class SeedCommand extends Command
             $this->seedPonts($io);
             $this->seedClients($io);
             $this->seedPieces($io);
+            $this->seedServiceClientDemo($io);
         }
 
         $this->em->flush();
@@ -170,6 +171,21 @@ class SeedCommand extends Command
             $this->em->persist($t);
         }
         $io->info('Email templates seeded.');
+    }
+
+    /** Compte de test pour la recette manuelle du Cockpit SRC (PILOTE_PLAN.md Lot C5). */
+    private function seedServiceClientDemo(SymfonyStyle $io): void
+    {
+        if ($this->em->getRepository(User::class)->findOneBy(['username' => 'src'])) return;
+
+        $user = new User();
+        $user->setUsername('src');
+        $user->setEmail('src@atelier.local');
+        $user->setRole('service_client');
+        $user->setAtelierId(1);
+        $user->setHashedPassword($this->hasher->hashPassword($user, 'src123'));
+        $this->em->persist($user);
+        $io->info('Compte de test service_client seedé (src@atelier.local / src123).');
     }
 
     private function seedMecaniciens(SymfonyStyle $io): void
