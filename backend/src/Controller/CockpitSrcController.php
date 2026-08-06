@@ -5,8 +5,10 @@ namespace App\Controller;
 use App\Entity\Atelier;
 use App\Entity\Client;
 use App\Entity\DemandeTravauxSupp;
+use App\Entity\Devis;
 use App\Entity\EtatDesLieux;
 use App\Entity\NotificationLog;
+use App\Entity\Reclamation;
 use App\Entity\RdvStatutHistorique;
 use App\Entity\RendezVous;
 use App\Entity\User;
@@ -271,6 +273,206 @@ class CockpitSrcController extends AbstractController
         $this->auditCrossAtelierConsultation('rendez_vous', $id, $result['atelier_id']);
 
         return $this->json($result);
+    }
+
+    /**
+     * Lot C4 — file de travail : demandes d'annulation en attente, cross-atelier, les plus
+     * anciennes en premier (ancienneté = priorité).
+     */
+    #[Route('/file/annulations', methods: ['GET'])]
+    public function fileAnnulations(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $ateliers = $this->atelierNamesById();
+
+        $rdvs = $this->atelierAccess->withCrossAtelierRead($user, fn () => $this->em->getRepository(RendezVous::class)
+            ->createQueryBuilder('r')
+            ->leftJoin('r.client', 'cl')->addSelect('cl')
+            ->leftJoin('r.vehicule', 'v')->addSelect('v')
+            ->where('r.annulationDemandeeAt IS NOT NULL')
+            ->orderBy('r.annulationDemandeeAt', 'ASC')
+            ->setMaxResults(100)
+            ->getQuery()->getResult());
+
+        return $this->json(['annulations' => array_map(fn (RendezVous $r) => [
+            'id' => $r->getId(),
+            'atelier_nom' => $ateliers[$r->getAtelierId()] ?? null,
+            'demandee_at' => $r->getAnnulationDemandeeAt()?->format('c'),
+            'motif' => $r->getMotifAnnulation(),
+            'commentaire' => $r->getCommentaireAnnulation(),
+            'date_rdv' => $r->getDateRdv()->format('Y-m-d'),
+            'client' => $r->getClient() ? ['id' => $r->getClient()->getId(), 'nom' => $r->getClient()->getNom(), 'prenom' => $r->getClient()->getPrenom(), 'telephone' => $r->getClient()->getTelephone()] : null,
+            'vehicule' => $r->getVehicule() ? ['plaque' => $r->getVehicule()->getPlaque()] : null,
+        ], $rdvs)]);
+    }
+
+    /**
+     * Lot C4 — relances : travaux supplémentaires ET devis envoyés sans décision client,
+     * cross-atelier, triés par ancienneté d'attente.
+     */
+    #[Route('/file/relances', methods: ['GET'])]
+    public function fileRelances(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $ateliers = $this->atelierNamesById();
+
+        [$demandes, $devisEnvoyes] = $this->atelierAccess->withCrossAtelierRead($user, fn () => [
+            $this->em->getRepository(DemandeTravauxSupp::class)
+                ->createQueryBuilder('d')
+                ->leftJoin('d.rendezVous', 'r')->addSelect('r')
+                ->leftJoin('r.client', 'cl')->addSelect('cl')
+                ->where('d.statut = :statut')
+                ->setParameter('statut', DemandeTravauxSupp::STATUT_EN_ATTENTE_DECISION_CLIENT)
+                ->orderBy('d.sentAt', 'ASC')
+                ->setMaxResults(100)
+                ->getQuery()->getResult(),
+            $this->em->getRepository(Devis::class)
+                ->createQueryBuilder('dv')
+                ->leftJoin('dv.client', 'cl')->addSelect('cl')
+                ->where('dv.statut = :statut')
+                ->setParameter('statut', 'envoye')
+                ->orderBy('dv.updatedAt', 'ASC')
+                ->setMaxResults(100)
+                ->getQuery()->getResult(),
+        ]);
+
+        return $this->json([
+            'travaux_supp' => array_map(fn (DemandeTravauxSupp $d) => [
+                'id' => $d->getId(),
+                'rendez_vous_id' => $d->getRendezVous()?->getId(),
+                'atelier_nom' => $ateliers[$d->getAtelierId()] ?? null,
+                'client' => $d->getRendezVous()?->getClient() ? ['nom' => $d->getRendezVous()->getClient()->getNom(), 'prenom' => $d->getRendezVous()->getClient()->getPrenom(), 'telephone' => $d->getRendezVous()->getClient()->getTelephone()] : null,
+                'description' => $d->getDescription(),
+                'sent_at' => $d->getSentAt()?->format('c'),
+            ], $demandes),
+            'devis' => array_map(fn (Devis $d) => [
+                'id' => $d->getId(),
+                'numero_devis' => $d->getNumeroDevis(),
+                'atelier_nom' => $ateliers[$d->getAtelierId()] ?? null,
+                'client' => $d->getClient() ? ['nom' => $d->getClient()->getNom(), 'prenom' => $d->getClient()->getPrenom(), 'telephone' => $d->getClient()->getTelephone()] : null,
+                'total_ttc' => $d->getTotalTtc(),
+                'envoye_depuis' => $d->getUpdatedAt()->format('c'),
+            ], $devisEnvoyes),
+        ]);
+    }
+
+    /** Lot C4 — cahier de bord des réclamations, cross-atelier. */
+    #[Route('/reclamations', methods: ['GET'])]
+    public function listReclamations(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $statutFiltre = $request->query->get('statut');
+        $ateliers = $this->atelierNamesById();
+
+        $reclamations = $this->atelierAccess->withCrossAtelierRead($user, function () use ($statutFiltre) {
+            $qb = $this->em->getRepository(Reclamation::class)->createQueryBuilder('rc')
+                ->leftJoin('rc.client', 'cl')->addSelect('cl')
+                ->orderBy('rc.updatedAt', 'DESC');
+            if ($statutFiltre && in_array($statutFiltre, Reclamation::STATUTS, true)) {
+                $qb->andWhere('rc.statut = :statut')->setParameter('statut', $statutFiltre);
+            }
+
+            return $qb->setMaxResults(200)->getQuery()->getResult();
+        });
+
+        return $this->json(['reclamations' => array_map(fn (Reclamation $rc) => $this->serializeReclamation($rc, $ateliers), $reclamations)]);
+    }
+
+    #[Route('/reclamations', methods: ['POST'])]
+    public function createReclamation(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        $clientId = is_numeric($data['client_id'] ?? null) ? (int) $data['client_id'] : null;
+        $sujet = trim((string) ($data['sujet'] ?? ''));
+        if (!$clientId || $sujet === '') {
+            return $this->json(['error' => 'client_id et sujet sont requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $reclamation = $this->atelierAccess->withCrossAtelierRead($user, function () use ($clientId, $sujet, $data, $user) {
+            $client = $this->em->getRepository(Client::class)->find($clientId);
+            if (!$client) {
+                return null;
+            }
+
+            $rc = new Reclamation();
+            $rc->setClient($client);
+            $rc->setAtelierId($client->getAtelierId());
+            $rc->setSujet($sujet);
+            $rc->setCreatedBy($user->getId());
+            if (!empty($data['rendez_vous_id']) && is_numeric($data['rendez_vous_id'])) {
+                $rdv = $this->em->getRepository(RendezVous::class)->find((int) $data['rendez_vous_id']);
+                if ($rdv) {
+                    $rc->setRendezVous($rdv);
+                }
+            }
+            if (!empty($data['note'])) {
+                $rc->addNote((string) $data['note'], $user->getId(), $user->getUsername());
+            }
+            $this->em->persist($rc);
+            $this->em->flush();
+
+            return $rc;
+        });
+
+        if ($reclamation === null) {
+            return $this->json(['error' => 'Client introuvable ou hors périmètre'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->serializeReclamation($reclamation, $this->atelierNamesById()), Response::HTTP_CREATED);
+    }
+
+    #[Route('/reclamations/{id}/note', methods: ['POST'])]
+    public function addReclamationNote(int $id, Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $data = json_decode($request->getContent(), true) ?? [];
+        $texte = trim((string) ($data['note'] ?? ''));
+        $nouveauStatut = $data['statut'] ?? null;
+
+        $reclamation = $this->atelierAccess->withCrossAtelierRead($user, function () use ($id, $texte, $nouveauStatut, $user) {
+            $rc = $this->em->getRepository(Reclamation::class)->find($id);
+            if (!$rc) {
+                return null;
+            }
+            if ($texte !== '') {
+                $rc->addNote($texte, $user->getId(), $user->getUsername());
+            }
+            if (is_string($nouveauStatut) && in_array($nouveauStatut, Reclamation::STATUTS, true)) {
+                $rc->setStatut($nouveauStatut);
+            }
+            $this->em->flush();
+
+            return $rc;
+        });
+
+        if ($reclamation === null) {
+            return $this->json(['error' => 'Réclamation introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->serializeReclamation($reclamation, $this->atelierNamesById()));
+    }
+
+    /** @param array<int, string> $ateliers */
+    private function serializeReclamation(Reclamation $rc, array $ateliers): array
+    {
+        return [
+            'id' => $rc->getId(),
+            'atelier_nom' => $ateliers[$rc->getAtelierId()] ?? null,
+            'statut' => $rc->getStatut(),
+            'sujet' => $rc->getSujet(),
+            'client' => ['id' => $rc->getClient()->getId(), 'nom' => $rc->getClient()->getNom(), 'prenom' => $rc->getClient()->getPrenom()],
+            'rendez_vous_id' => $rc->getRendezVous()?->getId(),
+            'notes' => $rc->getNotes(),
+            'created_at' => $rc->getCreatedAt()->format('c'),
+            'updated_at' => $rc->getUpdatedAt()->format('c'),
+        ];
     }
 
     /**
