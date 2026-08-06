@@ -180,6 +180,7 @@ const currentSection = computed(() => {
 const menuItems = computed(() => {
   const items = [
     { to: '/', icon: 'i-ri-bar-chart-2-line', label: 'Stat', section: 'dashboard' },
+    { to: '/cockpit', icon: 'i-ri-radar-line', label: 'Cockpit SRC', section: 'cockpit' },
     { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
     { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
     { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
