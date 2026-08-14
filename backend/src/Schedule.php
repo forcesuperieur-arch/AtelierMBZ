@@ -42,6 +42,9 @@ class Schedule implements ScheduleProviderInterface
             // nocturne garantit que les chiffres de la page Stat correspondent
             // aux rendez-vous réels, sans traquer chaque chemin d'écriture.
             ->add(RecurringMessage::cron('0 2 * * *', new RunCommandMessage('app:analytics:rebuild --all')))
+            // Expiration des devis dont la date de validité est dépassée (5:00 AM daily) :
+            // le statut "expire" n'était jamais posé, un devis restait valable indéfiniment.
+            ->add(RecurringMessage::cron('0 5 * * *', new RunCommandMessage('app:devis-expire')))
         ;
     }
 }

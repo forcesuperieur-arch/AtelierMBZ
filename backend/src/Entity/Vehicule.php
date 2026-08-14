@@ -17,7 +17,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['vehicule:read']],
     denormalizationContext: ['groups' => ['vehicule:write']],
 )]
-#[ApiFilter(SearchFilter::class, properties: ['plaque' => 'exact', 'marque' => 'partial', 'modele' => 'partial'])]
+#[ApiFilter(SearchFilter::class, properties: ['plaque' => 'exact', 'marque' => 'partial', 'modele' => 'partial', 'client' => 'exact'])]
 class Vehicule
 {
     use VOTrait;

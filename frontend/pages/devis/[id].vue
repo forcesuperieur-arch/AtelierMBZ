@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="page-header" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <NuxtLink to="/devis" style="color:var(--content-3);text-decoration:none;font-size:20px;" aria-label="Retour aux devis"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
-      <div class="page-title">Devis {{ devis.numero_devis || devis.numeroDevis }}</div>
+      <div class="page-title">Devis {{ devis.numero_devis }}</div>
       <StatusBadge :status="statusMap[devis.statut] || 'en_attente'" />
       <div style="flex:1;" />
       <button class="btn btn-ghost" @click="downloadPdf" style="font-size:13px;"><AppIcon name="i-ri-file-text-line" /> PDF</button>
@@ -35,9 +35,9 @@
       <UCard>
         <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-clipboard-line" /> Infos</span></template>
         <div style="font-size:14px;line-height:1.8;">
-          <div>Créé le : {{ formatDate(devis.date_creation || devis.dateCreation) }}</div>
-          <div v-if="devis.date_validite || devis.dateValidite">Valide jusqu'au : {{ formatDate(devis.date_validite || devis.dateValidite) }}</div>
-          <div v-if="devis.acompte_demande || devis.acompteDemande">Acompte : {{ formatCurrency(devis.acompte_demande || devis.acompteDemande) }}</div>
+          <div>Créé le : {{ formatDate(devis.date_creation) }}</div>
+          <div v-if="devis.date_validite">Valide jusqu'au : {{ formatDate(devis.date_validite) }}</div>
+          <div v-if="devis.acompte_demande">Acompte : {{ formatCurrency(devis.acompte_demande) }}</div>
         </div>
       </UCard>
     </div>
@@ -56,37 +56,42 @@
           </tr>
         </thead>
         <tbody>
+          <tr v-if="!lignes.length">
+            <td colspan="5" style="padding:16px;text-align:center;color:var(--error-content);">
+              <AppIcon name="i-ri-error-warning-line" /> Ce devis n'a aucune ligne — il ne peut pas être envoyé au client en l'état.
+            </td>
+          </tr>
           <tr v-for="(l, i) in lignes" :key="i" style="border-bottom:1px solid var(--border-2);">
             <td style="padding:8px;">
               <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--overlay-hover);color:var(--content-3);">{{ typeLabel(l.type) }}</span>
             </td>
             <td style="padding:8px;color:var(--content-1);">{{ l.designation }}</td>
             <td style="text-align:center;padding:8px;color:var(--content-1);">{{ l.quantite }}</td>
-            <td style="text-align:right;padding:8px;color:var(--content-1);">{{ formatCurrency(l.prix_unitaire_ht || l.prixUnitaireHt) }}</td>
-            <td style="text-align:right;padding:8px;color:var(--accent-content);font-weight:600;">{{ formatCurrency((l.prix_unitaire_ht || l.prixUnitaireHt || 0) * (l.quantite || 1)) }}</td>
+            <td style="text-align:right;padding:8px;color:var(--content-1);">{{ formatCurrency(l.prix_unitaire_ht) }}</td>
+            <td style="text-align:right;padding:8px;color:var(--accent-content);font-weight:600;">{{ formatCurrency((l.prix_unitaire_ht || 0) * (l.quantite || 1)) }}</td>
           </tr>
         </tbody>
       </table>
 
       <!-- Totaux -->
       <div style="border-top:2px solid var(--border-2);margin-top:8px;padding-top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:13px;">
-        <div v-if="devis.total_mo_ht || devis.totalMoHt"><span style="color:var(--content-3);margin-right:16px;">MO HT :</span> {{ formatCurrency(devis.total_mo_ht || devis.totalMoHt) }}</div>
-        <div v-if="devis.total_pieces_ht || devis.totalPiecesHt"><span style="color:var(--content-3);margin-right:16px;">Pièces HT :</span> {{ formatCurrency(devis.total_pieces_ht || devis.totalPiecesHt) }}</div>
-        <div v-if="remise > 0"><span style="color:var(--content-3);margin-right:16px;">Remise ({{ devis.remise_pourcentage || devis.remisePourcentage }}%) :</span> <span style="color:var(--error-content);">-{{ formatCurrency(remise) }}</span></div>
-        <div><span style="color:var(--content-3);margin-right:16px;">Total HT :</span> <strong>{{ formatCurrency(devis.total_ht || devis.totalHt) }}</strong></div>
-        <div style="font-size:16px;font-weight:700;color:var(--accent-content);margin-top:4px;"><span style="color:var(--content-3);margin-right:16px;font-size:13px;font-weight:400;">Total TTC :</span> {{ formatCurrency(devis.total_ttc || devis.totalTtc) }}</div>
+        <div v-if="devis.total_mo_ht"><span style="color:var(--content-3);margin-right:16px;">MO HT :</span> {{ formatCurrency(devis.total_mo_ht) }}</div>
+        <div v-if="devis.total_pieces_ht"><span style="color:var(--content-3);margin-right:16px;">Pièces HT :</span> {{ formatCurrency(devis.total_pieces_ht) }}</div>
+        <div v-if="remise > 0"><span style="color:var(--content-3);margin-right:16px;">Remise ({{ devis.remise_pourcentage }}%) :</span> <span style="color:var(--error-content);">-{{ formatCurrency(remise) }}</span></div>
+        <div><span style="color:var(--content-3);margin-right:16px;">Total HT :</span> <strong>{{ formatCurrency(devis.total_ht) }}</strong></div>
+        <div style="font-size:16px;font-weight:700;color:var(--accent-content);margin-top:4px;"><span style="color:var(--content-3);margin-right:16px;font-size:13px;font-weight:400;">Total TTC :</span> {{ formatCurrency(devis.total_ttc) }}</div>
       </div>
     </UCard>
 
     <!-- Notes -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
-      <UCard v-if="devis.notes_client || devis.notesClient">
+      <UCard v-if="devis.notes_client">
         <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-pushpin-line" /> Notes client</span></template>
-        <div style="font-size:14px;white-space:pre-wrap;color:var(--content-1);">{{ devis.notes_client || devis.notesClient }}</div>
+        <div style="font-size:14px;white-space:pre-wrap;color:var(--content-1);">{{ devis.notes_client }}</div>
       </UCard>
-      <UCard v-if="devis.notes_internes || devis.notesInternes">
+      <UCard v-if="devis.notes_internes">
         <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-lock-line" /> Notes internes</span></template>
-        <div style="font-size:14px;white-space:pre-wrap;color:var(--content-1);">{{ devis.notes_internes || devis.notesInternes }}</div>
+        <div style="font-size:14px;white-space:pre-wrap;color:var(--content-1);">{{ devis.notes_internes }}</div>
       </UCard>
     </div>
 
@@ -94,7 +99,7 @@
     <UCard>
       <template #header><span style="font-size:13px;font-weight:600;color:var(--content-3);"><AppIcon name="i-ri-flashlight-line" /> Actions</span></template>
       <div style="display:flex;flex-wrap:wrap;gap:10px;">
-        <button v-if="devis.statut === 'brouillon'" class="btn btn-secondary" @click="action('envoyer')" :disabled="acting"><AppIcon name="i-ri-mail-send-line" /> Envoyer au client</button>
+        <button v-if="devis.statut === 'brouillon'" class="btn btn-secondary" @click="action('envoyer')" :disabled="acting || !lignes.length" :title="!lignes.length ? 'Ce devis n\'a aucune ligne' : ''"><AppIcon name="i-ri-mail-send-line" /> Envoyer au client</button>
         <button v-if="['envoye','accepte'].includes(devis.statut) && client?.email" class="btn btn-ghost" @click="sendDevisEmail" :disabled="sendingEmail" style="color:var(--info-content);"><AppIcon v-if="!sendingEmail" name="i-ri-mail-line" />{{ sendingEmail ? 'Envoi…' : 'Renvoyer par email' }}</button>
         <button v-if="devis.statut === 'envoye'" class="btn btn-primary" @click="action('accepter')" :disabled="acting"><AppIcon name="i-ri-checkbox-circle-line" /> Accepter</button>
         <button v-if="devis.statut === 'envoye'" class="btn btn-ghost" @click="action('refuser')" :disabled="acting"><AppIcon name="i-ri-close-circle-line" /> Refuser</button>
@@ -121,7 +126,7 @@ const client = computed(() => devis.value?.client)
 const vehicule = computed(() => devis.value?.vehicule)
 const clientNom = computed(() => client.value ? `${client.value.prenom ?? ''} ${client.value.nom ?? ''}`.trim() : '—')
 const lignes = computed(() => devis.value?.lignes ?? [])
-const remise = computed(() => devis.value?.remise_montant || devis.value?.remiseMontant || 0)
+const remise = computed(() => devis.value?.remise_montant || 0)
 
 const statusMap: Record<string, string> = {
   brouillon: 'en_attente',

@@ -59,8 +59,11 @@
 
           <!-- Véhicule -->
           <div style="margin-bottom:16px;">
-            <label class="form-label">Véhicule (optionnel)</label>
-            <input v-model="newDevis.vehiculeSearch" class="form-input" placeholder="Plaque ou marque…" />
+            <label class="form-label" for="devis-vehicule">Véhicule (optionnel)</label>
+            <select id="devis-vehicule" v-model="newDevis.vehiculeId" class="form-input" :disabled="!newDevis.selectedClient || loadingVehicules">
+              <option :value="null">{{ !newDevis.selectedClient ? 'Sélectionnez d\'abord un client' : (loadingVehicules ? 'Chargement…' : 'Aucun') }}</option>
+              <option v-for="v in clientVehicules" :key="v.id" :value="v.id">{{ v.marque }} {{ v.modele }} — {{ v.plaque }}</option>
+            </select>
           </div>
 
           <!-- Kilométrage -->
@@ -150,12 +153,15 @@ const devisStatusMap: Record<string, string> = {
 const newDevis = reactive({
   clientSearch: '',
   selectedClient: null as any,
-  vehiculeSearch: '',
+  vehiculeId: null as number | null,
   kilometrage: null as number | null,
   lignes: [{ type: 'forfait_mo', designation: '', quantite: 1, prix_unitaire_ht: 0, tva: 20 }] as any[],
   notes_client: '',
   remise: 0,
 })
+
+const clientVehicules = ref<any[]>([])
+const loadingVehicules = ref(false)
 
 const columns = [
   { key: 'numero_devis', label: 'N°' },
@@ -200,24 +206,54 @@ function searchClients() {
   }, 300)
 }
 
-function selectClient(c: any) {
+async function selectClient(c: any) {
   newDevis.selectedClient = c
   newDevis.clientSearch = `${c.prenom} ${c.nom}`
   clientResults.value = []
+
+  // Le véhicule d'un devis doit appartenir au client choisi (garde côté serveur aussi) :
+  // on ne propose que ses motos, pas une recherche libre sur tout le parc.
+  newDevis.vehiculeId = null
+  clientVehicules.value = []
+  loadingVehicules.value = true
+  try {
+    const data = await api.get(`/vehicules?client=${c.id}`)
+    clientVehicules.value = data?.['hydra:member'] ?? data?.member ?? (Array.isArray(data) ? data : [])
+  } catch {
+    clientVehicules.value = []
+  } finally {
+    loadingVehicules.value = false
+  }
+}
+
+function resetNewDevisForm() {
+  newDevis.clientSearch = ''
+  newDevis.selectedClient = null
+  newDevis.vehiculeId = null
+  newDevis.kilometrage = null
+  newDevis.lignes = [{ type: 'forfait_mo', designation: '', quantite: 1, prix_unitaire_ht: 0, tva: 20 }]
+  newDevis.notes_client = ''
+  newDevis.remise = 0
+  clientVehicules.value = []
 }
 
 async function submitDevis() {
   if (!newDevis.selectedClient) {
     toast.add({ title: 'Sélectionnez un client', color: 'warning' }); return
   }
+  const lignesValides = newDevis.lignes.filter(l => l.designation?.trim())
+  if (lignesValides.length === 0) {
+    toast.add({ title: 'Ajoutez au moins une ligne au devis', color: 'warning' }); return
+  }
   submitting.value = true
   try {
     const payload: any = {
       client: `/api/clients/${newDevis.selectedClient.id}`,
+      vehicule: newDevis.vehiculeId ? `/api/vehicules/${newDevis.vehiculeId}` : null,
       kilometrage: newDevis.kilometrage,
       notes_client: newDevis.notes_client,
       remise_pourcentage: newDevis.remise || 0,
-      lignes: newDevis.lignes.filter(l => l.designation).map(l => ({
+      lignes: lignesValides.map(l => ({
         type: l.type,
         designation: l.designation,
         quantite: l.quantite,
@@ -228,9 +264,10 @@ async function submitDevis() {
     await api.post('/devis', payload)
     toast.add({ title: 'Devis créé', color: 'success' })
     showNew.value = false
+    resetNewDevisForm()
     await loadDevis()
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e?.message || 'Échec', color: 'error' })
+    toast.add({ title: 'Erreur', description: e?.data?.error || e?.message || 'Échec', color: 'error' })
   } finally {
     submitting.value = false
   }

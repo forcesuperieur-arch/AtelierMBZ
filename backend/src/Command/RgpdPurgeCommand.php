@@ -38,7 +38,7 @@ class RgpdPurgeCommand extends Command
         }
 
         $now = new \DateTime();
-        $stats = ['clients_anonymized' => 0, 'notif_logs_anonymized' => 0, 'audit_ips_cleared' => 0, 'rappels_deleted' => 0, 'devis_deleted' => 0];
+        $stats = ['clients_anonymized' => 0, 'notif_logs_anonymized' => 0, 'audit_ips_cleared' => 0, 'rappels_deleted' => 0, 'devis_deleted' => 0, 'devis_snapshots_anonymized' => 0];
 
         // 1. Anonymize clients inactive > 3 years with no invoice < 10 years
         $threeYearsAgo = (clone $now)->modify('-3 years');
@@ -90,6 +90,21 @@ class RgpdPurgeCommand extends Command
                         ->setParameter('null', null)
                         ->setParameter('recipients', $recipients)
                         ->getQuery()->execute();
+                }
+            }
+
+            // Les devis conservent une copie figée (RGPD: snapshot) des coordonnées du client
+            // au moment de la création, y compris pour les devis acceptés/convertis qui ne sont
+            // jamais purgés physiquement. Sans ce pas, ces données restaient en clair
+            // indéfiniment alors que la fiche client elle-même est anonymisée.
+            $devisDuClient = $this->em->getRepository(Devis::class)->findBy(['client' => $client]);
+            $stats['devis_snapshots_anonymized'] += count($devisDuClient);
+            if (!$dryRun) {
+                foreach ($devisDuClient as $devisClient) {
+                    $devisClient->setSnapClientNom('ANONYME');
+                    $devisClient->setSnapClientPrenom('ANONYME');
+                    $devisClient->setSnapClientEmail(null);
+                    $devisClient->setSnapClientTelephone(null);
                 }
             }
 
@@ -191,13 +206,14 @@ class RgpdPurgeCommand extends Command
         }
 
         $io->success(sprintf(
-            '%s — Clients: %d | Notif logs: %d | IPs audit: %d | Rappels: %d | Devis: %d',
+            '%s — Clients: %d | Notif logs: %d | IPs audit: %d | Rappels: %d | Devis: %d | Snapshots devis anonymisés: %d',
             $dryRun ? 'DRY-RUN' : 'EXÉCUTÉ',
             $stats['clients_anonymized'],
             $stats['notif_logs_anonymized'],
             $stats['audit_ips_cleared'],
             $stats['rappels_deleted'],
             $stats['devis_deleted'],
+            $stats['devis_snapshots_anonymized'],
         ));
 
         return Command::SUCCESS;
