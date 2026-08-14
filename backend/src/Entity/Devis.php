@@ -158,6 +158,7 @@ class Devis
     public function getVehicule(): ?Vehicule { return $this->vehicule; }
     public function setVehicule(?Vehicule $v): static { $this->vehicule = $v; return $this; }
     public function getDateCreation(): \DateTimeInterface { return $this->dateCreation; }
+    public function getUpdatedAt(): \DateTimeInterface { return $this->updatedAt; }
     public function getDateValidite(): \DateTimeInterface { return $this->dateValidite; }
     public function setDateValidite(\DateTimeInterface $v): static { $this->dateValidite = $v; return $this; }
     public function getStatut(): string { return $this->statut; }

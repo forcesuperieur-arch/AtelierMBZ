@@ -110,8 +110,10 @@ class RendezVousController extends AbstractController
 
         // KPI pilote — origine du RDV côté staff : validée contre la liste
         // fermée, défaut 'comptoir' (toute valeur inattendue est ignorée).
+        // src_telephone (Lot C3) : appel pris par le SRC central, distinct de
+        // 'telephone' (appel reçu directement par l'atelier).
         $origine = $data['origine'] ?? null;
-        $rdv->setOrigine(in_array($origine, ['comptoir', 'telephone'], true) ? $origine : 'comptoir');
+        $rdv->setOrigine(in_array($origine, ['comptoir', 'telephone', 'src_telephone'], true) ? $origine : 'comptoir');
 
         if (!empty($data['pont_id'])) {
             $pont = $this->em->getRepository(Pont::class)->find($data['pont_id']);

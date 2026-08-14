@@ -56,6 +56,7 @@ class SeedCommand extends Command
             $this->seedPonts($io);
             $this->seedClients($io);
             $this->seedPieces($io);
+            $this->seedServiceClientDemo($io);
         }
 
         $this->em->flush();
@@ -72,7 +73,7 @@ class SeedCommand extends Command
             ['receptionnaire', 'Réceptionnaire', 'Gestion RDV, clients, facturation', '["dashboard","rdv","planning","clients","workshop","or","devis","facturation","suivi"]', '["rdv.create","rdv.edit","client.create","client.edit","facturation.create","facturation.edit"]', 1],
             ['mecanicien', 'Mécanicien', 'Espace technicien, rapports', '["mecanicien","suivi"]', '["rdv.edit","or.edit"]', 1],
             ['comptable', 'Comptable', 'Facturation et statistiques', '["dashboard","facturation","stock"]', '["facturation.create","facturation.edit","stock.edit"]', 1],
-            ['service_client', 'Service Client', 'Suivi cross-atelier (lecture seule)', '["dashboard","rdv","planning","clients","suivi"]', '[]', 1],
+            ['service_client', 'Service Client', 'Suivi cross-atelier (lecture seule)', '["dashboard","rdv","planning","clients","suivi","cockpit"]', '[]', 1],
         ];
 
         foreach ($roles as [$role, $label, $desc, $sections, $perms, $system]) {
@@ -170,6 +171,21 @@ class SeedCommand extends Command
             $this->em->persist($t);
         }
         $io->info('Email templates seeded.');
+    }
+
+    /** Compte de test pour la recette manuelle du Cockpit SRC (PILOTE_PLAN.md Lot C5). */
+    private function seedServiceClientDemo(SymfonyStyle $io): void
+    {
+        if ($this->em->getRepository(User::class)->findOneBy(['username' => 'src'])) return;
+
+        $user = new User();
+        $user->setUsername('src');
+        $user->setEmail('src@atelier.local');
+        $user->setRole('service_client');
+        $user->setAtelierId(1);
+        $user->setHashedPassword($this->hasher->hashPassword($user, 'src123'));
+        $this->em->persist($user);
+        $io->info('Compte de test service_client seedé (src@atelier.local / src123).');
     }
 
     private function seedMecaniciens(SymfonyStyle $io): void
