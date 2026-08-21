@@ -8,7 +8,7 @@
         </div>
 
         <div class="vo-inline-actions split compact">
-          <NuxtLink to="/vo/remises-en-etat" class="vo-link-btn">File atelier VO</NuxtLink>
+          <NuxtLink to="/vo?filtre=remise" class="vo-link-btn">File atelier VO</NuxtLink>
           <button v-if="canCreateCampaign" type="button" class="btn btn-primary" :disabled="creatingCampaign" @click="createCampaign">
             {{ creatingCampaign ? 'Creation...' : 'Nouvelle campagne' }}
           </button>

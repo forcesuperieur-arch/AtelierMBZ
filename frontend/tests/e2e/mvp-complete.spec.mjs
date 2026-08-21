@@ -378,15 +378,15 @@ test.describe('11. VO — Véhicules d\'Occasion', () => {
   });
 
   test('vo depots list loads', async ({ page }) => {
-    await expectModulePageOrDisabled(page, '/vo/depots', 'vo', /dépôt|vente|mandat|commission|déposant|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo?origine=depot', 'vo', /dépôt|véhicule|stock|module est désactivé/i);
   });
 
   test('vo rachats list loads', async ({ page }) => {
-    await expectModulePageOrDisabled(page, '/vo/rachats', 'vo', /rachat|achat|vendeur|prix|siv|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo/rachats/new', 'vo', /rachat|achat|vendeur|prix|siv|module est désactivé/i);
   });
 
   test('vo remises-en-etat list loads', async ({ page }) => {
-    await expectModulePageOrDisabled(page, '/vo/remises-en-etat', 'vo', /remise|état|réfection|campagne|chiffrage|module est désactivé/i);
+    await expectModulePageOrDisabled(page, '/vo?filtre=remise', 'vo', /remise|état|véhicule|stock|module est désactivé/i);
   });
 
   test('vo factures page loads', async ({ page }) => {
@@ -395,10 +395,10 @@ test.describe('11. VO — Véhicules d\'Occasion', () => {
     await expect(page.locator('body')).toContainText(/facture|vo|occasion|tva|marge|vente|module est désactivé/i);
   });
 
-  test('vo documents page loads', async ({ page }) => {
-    await page.goto('/vo/documents');
+  test('les documents à valider sont une colonne de la liste VO', async ({ page }) => {
+    await page.goto('/vo');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/document|vo|cerfa|carte grise|contrôle technique|module est désactivé/i);
+    await expect(page.locator('body')).toContainText(/document|véhicule|livre de police|module est désactivé/i);
   });
 
   test('vo livre-police page loads', async ({ page }) => {

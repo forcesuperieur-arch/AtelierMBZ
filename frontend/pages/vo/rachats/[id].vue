@@ -2,7 +2,7 @@
   <div>
     <div class="page-header vo-header">
       <div>
-        <NuxtLink to="/vo/rachats" class="vo-back-link"><AppIcon name="i-ri-arrow-left-line" /> Retour aux rachats</NuxtLink>
+        <NuxtLink to="/vo" class="vo-back-link"><AppIcon name="i-ri-arrow-left-line" /> Retour aux véhicules</NuxtLink>
         <div class="page-title">Dossier rachat #{{ route.params.id }}</div>
         <div class="vo-subtitle">Vue complète du dossier, des documents obligatoires et du flux de vente.</div>
       </div>

@@ -112,7 +112,24 @@ deux onglets quittent l'administration.
 - Les commandes d'écriture ne s'affichent qu'aux profils d'administration — le serveur
   le vérifie déjà ; l'interface évite le bouton qui échoue.
 
-**VO** — les huit pages → une liste + une fiche (4b) ; l'origine rachat/dépôt est un champ.
+**VO ✅ (au niveau de la liste)** — `/vo` devient la **liste unique** de 4b : rachats et
+dépôts ensemble, triés par ancienneté de stock, avec les colonnes Véhicule, Origine,
+Jours de stock, **Ce qui bloque**, Prix de vente, Marge (ou net déposant). Les points de
+validation OCR ne sont plus un écran à part : ils forment la colonne « Documents à
+valider », qui porte aussi le rappel du livre de police et son délai légal de 5 jours.
+`rachats/index.vue`, `depots/index.vue`, `remises-en-etat/index.vue` et `documents.vue`
+sont supprimés ; la remise en état est un état du véhicule, donc un filtre.
+
+> **La fusion s'arrête à la liste, et c'est la réserve de 8a qui s'applique.** Le tour 8a
+> conditionnait la fusion des fiches au fait que « les deux parcours partagent leurs
+> règles de mandat et de marge ». Relecture du code : ils ne les partagent pas. Le dépôt
+> porte un **mandat** (type de commission, valeur, date de début, durée) et un net
+> déposant ; le rachat porte un **régime de TVA sur marge** et une marge nette. Ce sont
+> exactement les deux règles nommées par la réserve, et elles divergent — les fiches
+> `rachats/[id]`, `depots/[id]` et les deux parcours de saisie restent donc distincts.
+
+Le **livre de police** reste une page : c'est un registre légal avec son export PDF, et
+4b ne fond dans la colonne que son *alerte* (« 2 entrées à inscrire »), pas le registre.
 
 **Dossier moto** — `motos.vue` + `clients/[id].vue` + `devis/[id].vue` : **une entrée,
 trois vues**. La fusion vaut pour la navigation, pas pour les écrans (arbitrage 51a) —

@@ -5,7 +5,7 @@
         <div class="page-title">Nouveau dépôt-vente</div>
         <div class="vo-subtitle">Wizard de dépôt, mandat, commission et pièces associées.</div>
       </div>
-      <NuxtLink to="/vo/depots" class="btn vo-secondary-btn">Retour aux dépôts</NuxtLink>
+      <NuxtLink to="/vo" class="btn vo-secondary-btn">Retour aux véhicules</NuxtLink>
     </div>
 
     <VONav />

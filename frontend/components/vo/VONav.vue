@@ -17,11 +17,8 @@
 const route = useRoute()
 
 const items = [
-  { to: '/vo', label: 'Stat', icon: 'i-ri-price-tag-3-line' },
-  { to: '/vo/rachats', label: 'Rachats', icon: 'i-ri-motorbike-line' },
-  { to: '/vo/depots', label: 'Dépôts', icon: 'i-ri-clipboard-line' },
-  { to: '/vo/remises-en-etat', label: 'Remises en état', icon: 'i-ri-hammer-line' },
-  { to: '/vo/livre-police', label: 'Livre de Police', icon: 'i-ri-book-line' },
+  { to: '/vo', label: 'Véhicules', icon: 'i-ri-motorbike-line' },
+  { to: '/vo/livre-police', label: 'Livre de police', icon: 'i-ri-book-line' },
   { to: '/vo/factures', label: 'Factures', icon: 'i-ri-bank-card-line' },
 ]
 

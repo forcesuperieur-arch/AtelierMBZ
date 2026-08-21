@@ -2,7 +2,7 @@
   <div>
     <div class="page-header vo-header">
       <div>
-        <NuxtLink to="/vo/depots" class="vo-back-link"><AppIcon name="i-ri-arrow-left-line" /> Retour aux dépôts</NuxtLink>
+        <NuxtLink to="/vo" class="vo-back-link"><AppIcon name="i-ri-arrow-left-line" /> Retour aux véhicules</NuxtLink>
         <div class="page-title">Dossier dépôt #{{ route.params.id }}</div>
         <div class="vo-subtitle">Vue complète du mandat, des documents, de la restitution et de la vente.</div>
       </div>

@@ -5,7 +5,7 @@
         <div class="page-title">Nouveau rachat VO</div>
         <div class="vo-subtitle">Wizard en 4 étapes pour constituer un dossier complet et prêt à confirmer.</div>
       </div>
-      <NuxtLink to="/vo/rachats" class="btn vo-secondary-btn">Retour aux rachats</NuxtLink>
+      <NuxtLink to="/vo" class="btn vo-secondary-btn">Retour aux véhicules</NuxtLink>
     </div>
 
     <VONav />
