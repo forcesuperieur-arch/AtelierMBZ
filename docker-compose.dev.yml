@@ -1,0 +1,44 @@
+# Surcouche de DÉVELOPPEMENT — rechargement à chaud des deux fronts.
+#
+# POURQUOI CE FICHIER EXISTE
+# --------------------------
+# docker-compose.yml lance les deux fronts en BUILD DE PRODUCTION :
+#   npm install && npx nuxt build && node .output/server/index.mjs
+# Le build n'a donc lieu qu'au DÉMARRAGE du conteneur. Modifier un `.vue` ne
+# change rien à ce qui est servi tant que le service n'est pas redémarré — c'est
+# la cause n°1 du « pourquoi je n'ai pas la nouvelle version en local ».
+# Cette surcouche remplace ce build figé par `nuxt dev` : la page se met à jour
+# toute seule, sans rechargement.
+#
+# COMMENT L'UTILISER — le `-f` est OBLIGATOIRE et c'est voulu
+# ----------------------------------------------------------
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d nuxt client-nuxt
+# Pour revenir au comportement de production :
+#   docker compose up -d --force-recreate nuxt client-nuxt
+#
+# CE FICHIER NE S'APPELLE **PAS** docker-compose.override.yml, DÉLIBÉRÉMENT.
+# Un override est chargé automatiquement par toute commande `docker compose`.
+# Or scripts/deploy-server.sh enchaîne `git reset --hard` puis `docker compose
+# build` et `up` sans `-f` — et `git reset --hard` NE SUPPRIME PAS un fichier
+# ignoré. Une copie égarée sur le serveur basculerait donc la production en
+# `nuxt dev`, silencieusement, sans rien laisser paraître dans `git status`.
+# Le fichier est suivi par git pour cette même raison : une copie inattendue se
+# voit. Le prix à payer est un `-f` à taper ; il est bien inférieur au risque.
+#
+# CE QUE CETTE SURCOUCHE NE CORRIGE PAS
+# -------------------------------------
+# `nuxt.config.ts` pose `experimental.appManifest: false` : l'application n'a
+# aucune détection de nouveau déploiement. Dès qu'on revient en mode production,
+# un onglet resté ouvert garde l'ancienne version sans le moindre signal.
+# Le bundle de dev n'est pas le bundle de production non plus : ni tree-shaking,
+# ni CSS purgé, ni `icon.clientBundle.scan`. Avant toute recette, revenir en
+# mode production puis vérifier avec `scripts/rebuild-front.sh --check`.
+
+services:
+  nuxt:
+    # `--host 0.0.0.0` : sans cela Vite n'écoute que sur la boucle locale du
+    # conteneur et Caddy ne peut pas l'atteindre.
+    command: ["sh", "-c", "npm install && exec npx nuxt dev --host 0.0.0.0 --port 3000"]
+
+  client-nuxt:
+    command: ["sh", "-c", "npm install && exec npx nuxt dev --host 0.0.0.0 --port 3001"]
