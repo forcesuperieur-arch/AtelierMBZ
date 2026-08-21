@@ -66,6 +66,12 @@
               @click="openEdlPdf(edlByRdv[rdv.id])"
             ><AppIcon name="i-ri-file-text-line" /> PDF</button>
             <button
+              class="btn btn-ghost reception-btn"
+              type="button"
+              data-testid="btn-edl-panneau"
+              @click="ouvrirEtatDesLieux(rdv)"
+            ><AppIcon name="i-ri-camera-line" /> État des lieux</button>
+            <button
               class="btn btn-primary reception-btn"
               type="button"
               data-testid="btn-checkin"
@@ -75,6 +81,18 @@
         </div>
       </div>
     </UCard>
+
+    <!-- État des lieux photo (47b) : les deux séries côte à côte, entrée et
+         sortie dans le même ordre — c'est la comparaison qui fait preuve. Le
+         poste de travail ne se quitte pas : ça s'ouvre en panneau. -->
+    <AppEtatDesLieuxPanel
+      :open="edlPanneauOuvert"
+      :rdv-id="edlPanneauRdv?.id ?? null"
+      :vehicule="edlPanneauRdv?.vehicule_info || ''"
+      :plaque="edlPanneauRdv?.vehicule_plaque || ''"
+      :client="edlPanneauRdv?.client_nom || ''"
+      @close="edlPanneauOuvert = false"
+    />
 
     <!-- ===== Panneau check-in ===== -->
     <AppModal v-model:open="checkinOpen" size="lg">
@@ -289,6 +307,14 @@ const ERROR_MESSAGES: Record<string, string> = {
 const loading = ref(true)
 const loadError = ref('')
 const edlByRdv = reactive<Record<number, any>>({})
+
+const edlPanneauOuvert = ref(false)
+const edlPanneauRdv = ref<any>(null)
+
+function ouvrirEtatDesLieux(rdv: any) {
+  edlPanneauRdv.value = rdv
+  edlPanneauOuvert.value = true
+}
 
 const checkinOpen = ref(false)
 const checkinRdv = ref<any>(null)
