@@ -1,0 +1,44 @@
+/* Motoblouz — Spacing tokens
+   Core scale (px) + semantic t-shirt aliases. Used for gap, padding, margin. */
+
+:root {
+  /* ---- Core spacing scale (px) ---- */
+  --mb-space-0: 0px;
+  --mb-space-010: 1px;
+  --mb-space-025: 2px;
+  --mb-space-050: 4px;
+  --mb-space-075: 6px;
+  --mb-space-100: 8px;
+  --mb-space-150: 12px;
+  --mb-space-200: 16px;
+  --mb-space-250: 20px;
+  --mb-space-300: 24px;
+  --mb-space-400: 32px;
+  --mb-space-500: 40px;
+  --mb-space-600: 48px;
+  --mb-space-650: 64px;
+  --mb-space-700: 80px;
+  --mb-space-800: 96px;
+  --mb-space-850: 128px;
+  --mb-space-900: 160px;
+
+  /* ---- Semantic spacing (t-shirt) ---- */
+  --mb-spacing-none: var(--mb-space-0);
+  --mb-spacing-4xs: var(--mb-space-010);   /* 1 */
+  --mb-spacing-3xs: var(--mb-space-025);   /* 2 */
+  --mb-spacing-2xs: var(--mb-space-050);   /* 4 */
+  --mb-spacing-xs: var(--mb-space-075);    /* 6 */
+  --mb-spacing-s: var(--mb-space-100);     /* 8 */
+  --mb-spacing-m: var(--mb-space-150);     /* 12 */
+  --mb-spacing-l: var(--mb-space-200);     /* 16 */
+  --mb-spacing-xl: var(--mb-space-250);    /* 20 */
+  --mb-spacing-2xl: var(--mb-space-300);   /* 24 */
+  --mb-spacing-3xl: var(--mb-space-400);   /* 32 */
+  --mb-spacing-4xl: var(--mb-space-500);   /* 40 */
+  --mb-spacing-5xl: var(--mb-space-600);   /* 48 */
+  --mb-spacing-6xl: var(--mb-space-650);   /* 64 */
+  --mb-spacing-7xl: var(--mb-space-700);   /* 80 */
+  --mb-spacing-8xl: var(--mb-space-800);   /* 96 */
+  --mb-spacing-9xl: var(--mb-space-850);   /* 128 */
+  --mb-spacing-10xl: var(--mb-space-900);  /* 160 */
+}

@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" viewport="700x320" name="Core" subtitle="Button, FilterPill, StatusBadge, Callout, Field" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { Button, FilterPill, StatusBadge, Counter, Callout, Field } = NS;
+function Card(){return (
+<div className="col">
+  <div className="row">
+    <Button variant="primary" tone="accent" size="small" startIcon="ri-add-line">Nouveau RDV</Button>
+    <Button variant="primary" tone="neutral" size="small">Enregistrer</Button>
+    <Button variant="secondary" tone="neutral" size="small">Reporter</Button>
+    <Button variant="secondary" tone="error" size="small">Annuler l'OR</Button>
+    <Button variant="tertiary" size="small" endIcon="ri-arrow-right-line">Voir la liste</Button>
+    <Button variant="primary" tone="accent" size="small" disabled>Désactivé</Button>
+  </div>
+  <div className="row">
+    <FilterPill label="À réceptionner" count={5} selected />
+    <FilterPill label="En cours" count={4} />
+    <FilterPill label="Sans pont" count={1} dashed />
+    <FilterPill label="3 créneaux libres jeudi" icon="ri-calendar-check-line" tone="warning" />
+    <StatusBadge tone="error" icon="ri-error-warning-line">Critique</StatusBadge>
+    <StatusBadge tone="warning">À surveiller</StatusBadge>
+    <StatusBadge>Normal</StatusBadge>
+    <Counter>7</Counter>
+    <Counter tone="accent">7</Counter>
+    <Counter tone="error">4</Counter>
+  </div>
+  <div className="row" style={{alignItems:'stretch'}}>
+    <Callout tone="warning" style={{flex:'1 1 300px'}}>À dire au client maintenant : les plaquettes arrivent lundi, la moto ressort ce soir sans ce travail.</Callout>
+    <Callout tone="accent" edge style={{flex:'1 1 240px'}}>Vous pouvez déjà prendre des rendez-vous dès que les ponts sont déclarés.</Callout>
+  </div>
+  <div className="row" style={{alignItems:'flex-start'}}>
+    <Field label="Immatriculation" value="EF-771-GH" focused style={{flex:'1 1 200px'}} />
+    <Field label="Carburant" value="½ réservoir" endIcon="ri-arrow-down-s-line" dense style={{flex:'1 1 150px'}} />
+    <Field label="Code postal" value="5960" error="5 chiffres attendus." style={{flex:'1 1 180px'}} />
+  </div>
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

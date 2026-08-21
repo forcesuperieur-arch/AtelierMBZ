@@ -1,0 +1,50 @@
+<!-- @dsCard group="Components" viewport="980x400" name="Shell" subtitle="IconRail, TopBar, PageHeading, tabs, SidePanel" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { IconRail, TopBar, SearchField, IconAction, PageHeading, PillTabs, UnderlineTabs, SidePanel, PanelSection, Button, Field } = NS;
+const items=[{id:'stat',label:'Stat',icon:'ri-bar-chart-2-line'},{id:'planning',label:'Planning',icon:'ri-calendar-2-line'},{id:'atelier',label:'En atelier',icon:'ri-hourglass-line',badge:4},{id:'ponts',label:'Ponts & Méca',icon:'ri-tools-line'},{id:'clients',label:'Clients',icon:'ri-group-line'},{id:'devis',label:'Devis',icon:'ri-draft-line'}];
+function Card(){const [tab,setTab]=React.useState('planning');return (
+<div style={{display:'flex',gap:14,alignItems:'stretch',height:360}}>
+  <IconRail logo="../../assets/paddock-logo-favicon.svg" items={items} active={tab==='planning'?'planning':'stat'} onSelect={()=>{}} user="JD" style={{border:'1px solid var(--pk-border)',borderRadius:'var(--pk-radius-card)'}} />
+  <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:12,border:'1px solid var(--pk-border)',borderRadius:'var(--pk-radius-card)',overflow:'hidden',background:'var(--pk-canvas)'}}>
+    <TopBar workshop="Atelier Principal" live="Données en direct · 14:32">
+      <div style={{flex:1}} />
+      <SearchField style={{minWidth:150}} />
+      <IconAction icon="ri-notification-3-line" label="Notifications" badge={4} />
+      <Button variant="primary" tone="accent" size="small" startIcon="ri-add-line">RDV</Button>
+    </TopBar>
+    <div style={{padding:'0 14px'}}>
+      <PageHeading title="Stat" description="L'état de l'atelier maintenant et ce qu'il y a à traiter.">
+        <PillTabs value={tab} onChange={setTab} items={[{value:'planning',label:'Atelier',count:7},{value:'periode',label:'Période'},{value:'analyse',label:'Analyse'}]} />
+      </PageHeading>
+    </div>
+    <UnderlineTabs value="explorer" items={[{value:'atelier',label:'Atelier'},{value:'periode',label:'Période'},{value:'explorer',label:'Explorer'}]}>
+      <span style={{fontSize:12,color:'var(--pk-ink-muted)'}}>3 recherches enregistrées</span>
+    </UnderlineTabs>
+    <div style={{flex:1}} />
+  </div>
+  <SidePanel icon="ri-inbox-line" title="Réception · 08:30" subtitle="Tracer 9 · GT-908-ZK · N. Belkacem" width={280}
+    footer={<><Button variant="primary" tone="accent" fullWidth style={{fontSize:13}}>Réceptionner</Button><Button variant="secondary" size="small" fullWidth>Client absent</Button></>}>
+    <PanelSection label="Travaux prévus">
+      <div style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><i className="ri-check-line" style={{fontSize:16,color:'var(--pk-success-line)'}} /><span style={{flex:1}}>Révision 20 000 km</span><span style={{color:'var(--pk-ink-quiet)'}}>1 h 40</span></div>
+      <div style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><i className="ri-alert-line" style={{fontSize:16,color:'var(--pk-warning-ink-soft)'}} /><span style={{flex:1}}>Plaquettes avant</span><span style={{color:'var(--pk-ink-quiet)'}}>1 h</span></div>
+    </PanelSection>
+    <PanelSection label="État des lieux" aside="28 412 km"><Field label="Compteur" value="28 412 km" dense /></PanelSection>
+  </SidePanel>
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" viewport="980x400" name="Planning" subtitle="PlanningGrid and every AppointmentBlock state" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { PlanningGrid, AppointmentBlock } = NS;
+const hours=['08:00','09:00','10:00','11:00','12:00','14:00','15:00','16:00'];
+const bays=[{name:'Pont 1',assignee:'Karim M.'},{name:'Pont 2',assignee:'Karim M.'},{name:'Pont 3',assignee:'Non affecté'},{name:'Pont 4',assignee:'Sophie L.'},{name:'Pont 5',assignee:'Thomas B.'},{name:'Pont 6',assignee:'Thomas B.'}];
+function Card(){return (
+<div style={{display:'flex',flexDirection:'column',height:368}}>
+  <PlanningGrid hours={hours} bays={bays}>
+    <AppointmentBlock column={2} row={1} span={2} state="received" statusLabel="08:00 · réceptionnée" vehicle="MT-09 · Renard" detail="Révision 20 000" />
+    <AppointmentBlock column={2} row={6} span={2} state="ready" statusLabel="15:30 · à restituer" vehicle="MT-09 · Renard" detail="Prête · essai validé" />
+    <AppointmentBlock column={3} row={1} span={3} state="open" icon="ri-inbox-line" statusLabel="08:30 · réception en cours" vehicle="Tracer 9 · Belkacem" detail="Révision + plaquettes" note="Panneau ouvert →" />
+    <AppointmentBlock column={3} row={6} span={2} state="confirmed" statusLabel="14:00 · confirmé" vehicle="Z650 · Amrani" detail="Révision annuelle" />
+    <AppointmentBlock column={4} row={3} span={2} state="unassigned" statusLabel="10:30 · sans pont" vehicle="CB500F · Guérin" detail="Diagnostic" />
+    <AppointmentBlock column={5} row={1} span={3} state="running" statusLabel="08:00 · en cours" vehicle="MT-07 · Delaunay" detail="Travaux compl. en attente" detailTone="warning" />
+    <AppointmentBlock column={5} row={4} span={2} state="conflict" icon="ri-error-warning-line" statusLabel="Conflit 11:00" vehicle="R1250 GS · Vasseur" detail="Chevauche 11:30" />
+    <AppointmentBlock column={6} row={2} span={3} state="waiting" statusLabel="09:00 · en attente client" vehicle="Africa Twin · Fournier" detail="Travaux compl. · 4 h" />
+    <AppointmentBlock column={6} row={6} span={2} state="done" statusLabel="14:00 · terminé" vehicle="Z900 · Ravel" />
+  </PlanningGrid>
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

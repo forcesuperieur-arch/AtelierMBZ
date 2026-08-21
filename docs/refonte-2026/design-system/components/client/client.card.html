@@ -1,0 +1,42 @@
+<!-- @dsCard group="Components" viewport="980x400" name="Client front" subtitle="StepBar, ServiceCard, SlotGrid, StatusTimeline" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { StepBar, ServiceCard, SlotGrid, StatusTimeline } = NS;
+function Card(){const [slot,setSlot]=React.useState('Mar 26 août 8 h 00');return (
+<div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+  <div style={{flex:'1 1 240px',display:'flex',flexDirection:'column',gap:10}}>
+    <div style={{background:'#000',padding:'14px 16px'}}><StepBar total={4} current={2} label="Étape 2 sur 4 · ce dont vous avez besoin" /></div>
+    <ServiceCard selected title="Révision 20 000 km" price="289 €" description="Huile, filtres, bougies, contrôle des 22 points constructeur." recommendation="Conseillée pour votre kilométrage" />
+    <ServiceCard title="Pneus" price="dès 145 €" description="Avant, arrière ou les deux" />
+  </div>
+  <div style={{flex:'1 1 230px'}}>
+    <SlotGrid selected={slot} onSelect={setSlot} days={[
+      {label:'Lun 25 août',slots:[{time:'8 h 00'},{time:'8 h 30',full:true}]},
+      {label:'Mar 26 août',slots:[{time:'8 h 00'},{time:'8 h 30'}]},
+      {label:'Mer 27 août',slots:[{time:'8 h 00'},{time:'9 h 00'}]},
+      {label:'Jeu 28 août',slots:[{time:'8 h 00',full:true},{time:'9 h 00',full:true}]}]} />
+  </div>
+  <div style={{flex:'1 1 210px'}}>
+    <StatusTimeline steps={[
+      {state:'done',title:'Moto réceptionnée · 8 h 06',detail:'État des lieux signé, 6 photos prises.'},
+      {state:'done',title:'Révision faite · 11 h 40',detail:'Huile, filtres, bougies.'},
+      {state:'current',title:'En attente de votre réponse · 15 h 24',detail:'Disque arrière.'},
+      {state:'pending',title:'Restitution',detail:'À partir de 17 h, jusqu\u2019à 19 h.'}]} />
+  </div>
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

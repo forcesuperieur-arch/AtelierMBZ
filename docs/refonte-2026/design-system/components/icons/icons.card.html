@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Icon" subtitle="The 19 Motoblouz house glyphs — currentColor, 24px viewBox" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink);padding:16px}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const { Icon } = window.PaddockDesignSystem_8059f4;
+const NAMES = ['AddLine','SubtractFill','ArrowUpSLine','ArrowDownSLine','ArrowLeftSLine','ArrowRightSLine','ArrowLeftLine','ArrowRightLine','CheckFill','CheckboxBlankCircleFill','CloseLine','CloseFill','SearchLine','StarLine','StarFill','StarHalfLine','StarHalfFill','ShoppingBasket2Line','ShoppingBasket2Fill'];
+function Card(){return (
+  <div style={{display:'flex',flexDirection:'column',gap:14}}>
+    <div style={{display:'flex',flexWrap:'wrap',gap:18,alignItems:'center'}}>
+      {NAMES.map(n => (
+        <div key={n} title={n} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,width:60}}>
+          <Icon name={n} size={24} />
+          <span style={{fontFamily:'var(--mb-font-inter)',fontSize:9,color:'var(--pk-ink-muted)',textAlign:'center',lineHeight:1.2,overflowWrap:'anywhere'}}>{n}</span>
+        </div>
+      ))}
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:16}}>
+      <Icon name="CheckFill" size={16} style={{color:'var(--pk-success-line)'}} />
+      <Icon name="SearchLine" size={20} />
+      <Icon name="StarFill" size={22} style={{color:'var(--pk-accent)'}} />
+      <Icon name="CloseLine" size={18} style={{color:'var(--pk-ink-muted)'}} />
+      <span style={{fontFamily:'var(--mb-font-inter)',fontSize:11,color:'var(--pk-ink-muted)'}}>currentColor · 16 / 20 / 22 / 18 px</span>
+    </div>
+  </div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

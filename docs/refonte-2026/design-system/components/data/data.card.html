@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="980x400" name="Data" subtitle="KpiTile, QueueRow, BayCard, DataTable" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { KpiTile, QueueRow, BayCard, DataTable, Button } = NS;
+const rows=[{client:'Nadia Belkacem',moto:'Yamaha MT-125',last:'mai 2024',spend:'168 €',due:'oui',tone:'flagged'},{client:'Théo Lemaire',moto:'Honda CB650R',last:'juin 2024',spend:'312 €',due:'oui'},{client:'Sarah Amrani',moto:'Kawasaki Z650',last:'juillet 2024',spend:'204 €',due:'bientôt'}];
+function Card(){return (
+<div className="col">
+  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+    <KpiTile label="Ponts occupés" value="5" unit="/6" ratio={0.83} note="1 libre maintenant" />
+    <KpiTile label="Interventions" value="4" note="3 mécaniciens au travail" />
+    <KpiTile label="Charge du jour" value="6 h 20" ratio={0.61} note="3 h 50 pointé · 61 %" />
+    <KpiTile label="À traiter" value="7" tone="error" note="dont 4 critiques" />
+  </div>
+  <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+    <div style={{flex:'1 1 380px',background:'var(--pk-surface)',border:'1px solid var(--pk-border)',borderRadius:'var(--pk-radius-card)',overflow:'hidden'}}>
+      <QueueRow icon="ri-draft-line" level="critical" count={3} title="Devis en attente de validation client" detail="Le plus ancien : 6 jours · seuil 3 jours" />
+      <QueueRow icon="ri-hammer-line" level="watch" count={2} title="Travaux complémentaires à valider" detail="2 clients à rappeler · moto immobilisée" />
+      <QueueRow icon="ri-key-2-line" count={2} title="Restitutions à préparer aujourd'hui" detail="Facture et signature à finaliser" />
+    </div>
+    <div style={{flex:'0 0 250px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+      <BayCard name="Pont 1" vehicle="MT-09 · EX-421-QR" customer="L. Renard" note="2 RDV restants" />
+      <BayCard name="Pont 3" state="free" note="3 RDV restants" />
+    </div>
+  </div>
+  <DataTable
+    columns={[{key:'client',header:'Client',width:'1.3fr',strong:true},{key:'moto',header:'Moto',width:'1.2fr',quiet:true},{key:'last',header:'Dernier passage',width:'120px',quiet:true},{key:'spend',header:'Dépensé',width:'90px',align:'right',strong:true},{key:'due',header:'Entretien dû',width:'100px',align:'right'}]}
+    rows={rows}
+    footer={<><span style={{fontSize:13,color:'var(--pk-ink-muted)'}}>59 autres clients</span><div style={{flex:1}} /><Button variant="secondary" size="small">Exporter en CSV</Button><Button variant="primary" tone="accent" size="small">Créer une campagne</Button></>} />
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>
