@@ -1242,16 +1242,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .rdv-block:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 
 /* RDV block status colors */
-.rdv-status-en_attente { box-shadow: inset 0 0 0 2px rgba(148,163,184,.25); background: var(--surface-3); }
-.rdv-status-reserve { box-shadow: inset 0 0 0 2px rgba(217,101,0,.35); background: var(--warning-soft); }
-.rdv-status-confirme { box-shadow: inset 0 0 0 2px rgba(74,141,183,.35); background: var(--info-soft); }
-.rdv-status-reception { box-shadow: inset 0 0 0 2px rgba(217,101,0,.4); background: var(--warning-soft); }
-.rdv-status-en_cours { box-shadow: inset 0 0 0 2px rgba(23,149,0,.4); background: var(--success-soft); }
-.rdv-status-termine { box-shadow: inset 0 0 0 2px rgba(23,149,0,.4); background: var(--success-soft); }
-.rdv-status-restitue { box-shadow: inset 0 0 0 2px rgba(23,149,0,.45); background: var(--success-soft); }
-.rdv-status-facture { box-shadow: inset 0 0 0 2px rgba(74,141,183,.4); background: var(--info-soft); }
-.rdv-status-paye { box-shadow: inset 0 0 0 2px rgba(23,149,0,.45); background: var(--success-soft); }
-.rdv-status-annule { box-shadow: inset 0 0 0 2px rgba(215,3,33,.4); background: var(--error-soft); opacity: .8; }
+/* Statut d'un bloc de planning — TRIO du design system : une surface, un filet
+   et une encre, employés ensemble. Ces dix règles dessinaient auparavant leur
+   anneau en `rgba()` littéral, à des opacités toutes différentes (.25, .35,
+   .4, .45) : l'intensité variait d'un statut à l'autre sans que rien ne le
+   justifie, et aucune ne suivait le thème sombre.
+   Le filet garde la forme d'une ombre intérieure et non d'une bordure : une
+   bordure changerait la taille du bloc et décalerait la grille d'une heure. */
+.rdv-status-en_attente { box-shadow: inset 0 0 0 2px var(--pk-border-control); background: var(--pk-neutral-surface); color: var(--pk-ink-quiet); }
+.rdv-status-reserve    { box-shadow: inset 0 0 0 2px var(--pk-warning-line);  background: var(--pk-warning-surface); color: var(--pk-warning-ink); }
+.rdv-status-confirme   { box-shadow: inset 0 0 0 2px var(--pk-info-line);     background: var(--pk-info-surface);    color: var(--pk-info-ink); }
+.rdv-status-reception  { box-shadow: inset 0 0 0 2px var(--pk-warning-line);  background: var(--pk-warning-surface); color: var(--pk-warning-ink); }
+.rdv-status-en_cours   { box-shadow: inset 0 0 0 2px var(--pk-success-line);  background: var(--pk-success-surface); color: var(--pk-success-ink); }
+.rdv-status-termine    { box-shadow: inset 0 0 0 2px var(--pk-success-line);  background: var(--pk-success-surface); color: var(--pk-success-ink); }
+.rdv-status-restitue   { box-shadow: inset 0 0 0 2px var(--pk-success-line);  background: var(--pk-success-surface); color: var(--pk-success-ink); }
+.rdv-status-facture    { box-shadow: inset 0 0 0 2px var(--pk-info-line);     background: var(--pk-info-surface);    color: var(--pk-info-ink); }
+.rdv-status-paye       { box-shadow: inset 0 0 0 2px var(--pk-success-line);  background: var(--pk-success-surface); color: var(--pk-success-ink); }
+/* Annulé : le seul qui s'efface, parce qu'il reste visible sans appeler l'œil. */
+.rdv-status-annule     { box-shadow: inset 0 0 0 2px var(--pk-error-line);    background: var(--pk-error-surface);   color: var(--pk-error-ink); opacity: .8; }
 
 /* ========================================
    LIVE DOT
