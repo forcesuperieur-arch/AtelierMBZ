@@ -3,44 +3,30 @@
        l'écran et n'intercepte pas les clics ailleurs (décision produit : une
        demande de travaux complémentaires ne doit pas figer toute l'interface,
        même urgente — le staff est alerté mais reste libre d'agir). -->
-  <div v-if="visible" class="fixed bottom-4 right-4 z-50 max-w-sm w-[calc(100%-2rem)] sm:w-full pointer-events-none">
-    <div class="bg-gray-900 border border-orange-500 rounded-xl shadow-2xl w-full p-6 animate-pulse-border pointer-events-auto">
-      <!-- Header -->
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-          :class="severityBg">
-          <span class="text-xl"><AppIcon :name="severityIcon" /></span>
+  <div v-if="visible" class="pk-notif-zone">
+    <div class="pk-notif" :class="severite" role="alert">
+      <div class="pk-notif-head">
+        <span class="pk-notif-glyphe" aria-hidden="true"><AppIcon :name="severityIcon" /></span>
+        <div class="pk-notif-titres">
+          <h3 class="pk-notif-titre">{{ currentNotif?.title }}</h3>
+          <p class="pk-notif-heure">{{ formatTime(currentNotif?.createdAt) }}</p>
         </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-bold text-white">{{ currentNotif?.title }}</h3>
-          <p class="text-xs text-gray-400">{{ formatTime(currentNotif?.createdAt) }}</p>
-        </div>
-        <button @click="dismissAndAcknowledge" class="text-gray-400 hover:text-white">
-          <span class="text-2xl">&times;</span>
+        <button class="pk-notif-fermer" aria-label="Acquitter et fermer" @click="dismissAndAcknowledge">
+          <AppIcon name="i-ri-close-line" />
         </button>
       </div>
 
-      <!-- Message -->
-      <p class="text-gray-200 mb-6">{{ currentNotif?.message }}</p>
+      <p class="pk-notif-message">{{ currentNotif?.message }}</p>
 
-      <!-- Actions -->
-      <div class="flex gap-3">
-        <button
-          @click="navigateToAction"
-          v-if="currentNotif?.actionUrl"
-          class="flex-1 font-semibold py-2 px-4 rounded-lg transition-colors notif-cta-primary">
+      <div class="pk-notif-actions">
+        <button v-if="currentNotif?.actionUrl" class="btn btn-primary" @click="navigateToAction">
           Voir la demande
         </button>
-        <button
-          @click="dismissAndAcknowledge"
-          class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-lg transition-colors">
-          Acquitter
-        </button>
+        <button class="btn btn-ghost" @click="dismissAndAcknowledge">Acquitter</button>
       </div>
 
-      <!-- Queue indicator -->
-      <p v-if="pendingCount > 1" class="text-xs text-gray-500 mt-3 text-center">
-        {{ pendingCount - 1 }} autre(s) notification(s) en attente
+      <p v-if="pendingCount > 1" class="pk-notif-file">
+        {{ pendingCount - 1 }} autre{{ pendingCount > 2 ? 's' : '' }} en attente
       </p>
     </div>
   </div>
@@ -67,11 +53,12 @@ const pendingNotifs = computed(() => {
 
 const pendingCount = computed(() => pendingNotifs.value.length)
 
-const severityBg = computed(() => {
+/** Le trio du design system correspondant à la gravité : surface, filet, encre. */
+const severite = computed(() => {
   switch (currentNotif.value?.severity) {
-    case 'critical': return 'bg-red-600'
-    case 'warning': return 'bg-orange-600'
-    default: return 'bg-blue-600'
+    case 'critical': return 'pk-notif--error'
+    case 'warning': return 'pk-notif--warning'
+    default: return 'pk-notif--info'
   }
 })
 
@@ -126,20 +113,81 @@ watch(pendingNotifs, (val) => {
 </script>
 
 <style scoped>
-@keyframes pulse-border {
-  0%, 100% { border-color: rgb(249 115 22); }
-  50% { border-color: rgb(239 68 68); }
+/* Le design system interdit ce qui clignote : « rien ne clignote, rien ne
+   rebondit, rien n'attend une animation pour être lisible ». La bordure
+   pulsait en boucle toutes les 2 s, sur des couleurs écrites en dur qui plus
+   est. L'urgence se dit maintenant par le trio de statut, le glyphe et le mot —
+   trois porteurs, comme le veut la règle « le sens ne repose jamais sur la
+   couleur seule ». */
+.pk-notif-zone {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
 }
-.animate-pulse-border {
-  animation: pulse-border 2s ease-in-out infinite;
+
+.pk-notif {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--pk-radius-card);
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
+  border-left-width: 4px;
+  color: var(--pk-ink);
 }
-/* CTA primaire au jaune de marque (les autres boutons primaires le sont aussi) ;
-   la bordure d'alerte pulsante reste, elle, orange/rouge pour signaler l'urgence. */
-.notif-cta-primary {
-  background: var(--accent);
-  color: var(--accent-ink);
+
+.pk-notif--error   { border-left-color: var(--pk-error-line); }
+.pk-notif--warning { border-left-color: var(--pk-warning-line); }
+.pk-notif--info    { border-left-color: var(--pk-info-line); }
+
+.pk-notif-head { display: flex; align-items: flex-start; gap: 12px; }
+
+.pk-notif-glyphe {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pk-radius-pill);
+  font-size: 19px;
 }
-.notif-cta-primary:hover {
-  background: var(--accent-hover);
+.pk-notif--error .pk-notif-glyphe   { background: var(--pk-error-surface);   color: var(--pk-error-ink); }
+.pk-notif--warning .pk-notif-glyphe { background: var(--pk-warning-surface); color: var(--pk-warning-ink); }
+.pk-notif--info .pk-notif-glyphe    { background: var(--pk-info-surface);    color: var(--pk-info-ink); }
+
+.pk-notif-titres { flex: 1; min-width: 0; }
+.pk-notif-titre { margin: 0; font-size: 15px; font-weight: 600; }
+.pk-notif-heure { margin: 2px 0 0; font-size: 12px; color: var(--pk-ink-muted); }
+
+.pk-notif-fermer {
+  flex-shrink: 0;
+  min-width: var(--pk-target-desk);
+  min-height: var(--pk-target-desk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--pk-ink-muted);
+  font-size: 20px;
+  cursor: pointer;
 }
+.pk-notif-fermer:hover { color: var(--pk-ink); }
+.pk-notif-fermer:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
+}
+
+.pk-notif-message { margin: 0; font-size: 13px; line-height: 1.5; color: var(--pk-ink-quiet); }
+
+.pk-notif-actions { display: flex; gap: var(--pk-target-gap); }
+.pk-notif-actions .btn { flex: 1; min-height: var(--pk-target-desk); }
+
+.pk-notif-file { margin: 0; font-size: 12px; color: var(--pk-ink-muted); text-align: center; }
 </style>
