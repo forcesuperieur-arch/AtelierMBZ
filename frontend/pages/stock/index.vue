@@ -27,7 +27,7 @@
     <UCard>
       <UTable :data="stockStore.pieces" :columns="columns" :loading="stockStore.loading">
         <template #quantite_stock-cell="{ row }">
-          <span :class="row.original.quantite_stock <= row.original.seuil_alerte ? 'text-red-500 font-bold' : ''">
+          <span :class="row.original.quantite_stock <= row.original.seuil_alerte ? 'pk-rupture font-bold' : ''">
             {{ row.original.quantite_stock }}
           </span>
         </template>
@@ -121,3 +121,9 @@ async function savePiece() {
 
 onMounted(() => stockStore.fetchPieces())
 </script>
+
+<style scoped>
+/* Le rouge de rupture vient du trio d'erreur du design system, pas d'une
+   classe utilitaire littérale qui ne suit aucun thème. */
+.pk-rupture { color: var(--pk-error-ink); }
+</style>
