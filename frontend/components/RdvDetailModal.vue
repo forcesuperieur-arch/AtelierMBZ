@@ -1,63 +1,98 @@
 <template>
-  <AppModal :open="isOpen" @update:open="onOpenChange" size="lg">
-    <template #header>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:16px;font-weight:700;color:var(--content-1);">RDV #{{ rdv?.id }}</span>
-        <StatusBadge v-if="rdv" :status="rdv.status ?? rdv.statut" />
-      </div>
+  <!-- La règle 4 du design system : le poste de travail ne se quitte pas. Le
+       détail d'un rendez-vous s'ouvre en PANNEAU à droite, pas en modale — le
+       planning reste lisible derrière, et on ne perd pas sa place dans la
+       grille pour lire un numéro de téléphone. -->
+  <AppSidePanel
+    :open="isOpen"
+    icon="i-ri-calendar-2-line"
+    :title="titre"
+    :subtitle="sousTitre"
+    @close="close"
+  >
+    <template v-if="rdv">
+      <AppPanelSection label="Le rendez-vous" :aside="formatMinutes(rdv.duree_estimee)">
+        <div class="pk-rdv-quand">{{ heurePlage }}</div>
+        <div class="pk-rdv-ligne">{{ formatDisplayDate(rdv.date_rdv) }}</div>
+        <div v-if="rdv.pont_nom || rdv.mecanicien_nom" class="pk-rdv-ligne">
+          <span v-if="rdv.pont_nom">{{ rdv.pont_nom }}</span>
+          <span v-if="rdv.pont_nom && rdv.mecanicien_nom"> · </span>
+          <span v-if="rdv.mecanicien_nom">{{ rdv.mecanicien_nom }}</span>
+        </div>
+        <div v-if="rdv.type_intervention" class="pk-rdv-chip">{{ rdv.type_intervention }}</div>
+      </AppPanelSection>
+
+      <AppPanelSection v-if="clientName !== 'Client' || rdv.client_telephone" label="Client">
+        <div class="pk-rdv-nom">{{ clientName }}</div>
+        <div v-if="rdv.client_telephone" class="pk-rdv-ligne">
+          <AppIcon name="i-ri-phone-line" /> {{ rdv.client_telephone }}
+        </div>
+        <div v-if="rdv.client_email" class="pk-rdv-ligne">{{ rdv.client_email }}</div>
+      </AppPanelSection>
+
+      <AppPanelSection v-if="rdv.vehicule_info || rdv.vehicule_plaque" label="Moto">
+        <div class="pk-rdv-nom">{{ rdv.vehicule_info || 'Véhicule' }}</div>
+        <div v-if="rdv.vehicule_plaque" class="pk-rdv-ligne">
+          <AppIcon name="i-ri-motorbike-line" /> {{ rdv.vehicule_plaque }}
+        </div>
+      </AppPanelSection>
+
+      <!-- Le motif annoncé porte un filet jaune : c'est ce qu'a dit le client,
+           et c'est la première chose que le mécanicien doit lire. -->
+      <AppPanelSection v-if="motif" label="Motif annoncé">
+        <p class="pk-rdv-motif">{{ motif }}</p>
+      </AppPanelSection>
+
+      <AppPanelSection v-if="rdv.commandes?.length" label="Commandes" :aside="`${rdv.commandes.length}`">
+        <div class="pk-rdv-commandes">
+          <span v-for="cmd in rdv.commandes" :key="cmd" class="pk-rdv-commande">{{ cmd }}</span>
+        </div>
+      </AppPanelSection>
     </template>
-    <div v-if="rdv" style="display:flex;flex-direction:column;gap:16px;font-size:13px;color:var(--content-2);">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div><span style="color:var(--content-3);">Date :</span> {{ formatDisplayDate(rdv.date_rdv) }}</div>
-        <div><span style="color:var(--content-3);">Heure :</span> {{ rdv.heure_debut || '—' }}</div>
-        <div><span style="color:var(--content-3);">Type :</span> {{ rdv.type_intervention || '—' }}</div>
-        <div><span style="color:var(--content-3);">Durée :</span> {{ formatMinutes(rdv.duree_estimee) }}</div>
-      </div>
-      <div v-if="rdv.pont_nom || rdv.mecanicien_nom" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div v-if="rdv.pont_nom"><span style="color:var(--content-3);">Pont :</span> {{ rdv.pont_nom }}</div>
-        <div v-if="rdv.mecanicien_nom"><span style="color:var(--content-3);">Mécano :</span> {{ rdv.mecanicien_nom }}</div>
-      </div>
-      <div v-if="rdv.client_nom || rdv.client_prenom || rdv.client_telephone || rdv.client_email" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
-        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ clientName }}</div>
-        <div v-if="rdv.client_telephone" style="color:var(--content-3);"><AppIcon name="i-ri-phone-line" /> {{ rdv.client_telephone }}</div>
-        <div v-if="rdv.client_email" style="color:var(--content-3);">{{ rdv.client_email }}</div>
-      </div>
-      <div v-if="rdv.vehicule_info || rdv.vehicule_plaque" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
-        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">{{ rdv.vehicule_info || 'Véhicule' }}</div>
-        <div v-if="rdv.vehicule_plaque" style="color:var(--content-3);"><AppIcon name="i-ri-motorbike-line" /> {{ rdv.vehicule_plaque }}</div>
-      </div>
-      <div v-if="rdv.description_probleme || rdv.commentaire" style="padding:12px;background:var(--overlay-soft);border-radius:8px;border:1px solid var(--border-2);">
-        <div style="font-weight:600;color:var(--content-1);margin-bottom:6px;">Description</div>
-        <div style="color:var(--content-3);white-space:pre-wrap;">{{ rdv.description_probleme || rdv.commentaire }}</div>
-      </div>
-      <div v-if="rdv.commandes?.length" style="display:flex;flex-wrap:wrap;gap:4px;">
-        <span v-for="cmd in rdv.commandes" :key="cmd" style="font-size:10px;color:var(--accent-content);background:var(--accent-soft);padding:2px 8px;border-radius:4px;border:1px solid var(--accent);">
-          #{{ cmd }}
-        </span>
-      </div>
-    </div>
+
     <template #footer>
-      <div style="display:flex;justify-content:flex-end;gap:10px;">
-        <button class="btn btn-ghost" @click="close">Fermer</button>
-      </div>
+      <button class="btn btn-ghost" @click="close">Fermer le panneau</button>
     </template>
-  </AppModal>
+  </AppSidePanel>
 </template>
 
 <script setup lang="ts">
+/**
+ * Détail d'un rendez-vous — maquette 36a, passée de la modale au panneau.
+ *
+ * Le composant garde son nom et son composable : il est ouvert depuis quatre
+ * écrans (planning, Ponts & Méca, poste mécanicien, fiche client), et le
+ * renommer aurait fait diverger ces appels sans rien apporter.
+ */
 const { isOpen, rdvData: rdv, close } = useRdvDetailModal()
-
-// `isOpen` est une ref readonly du composable : on ne peut PAS y écrire via
-// v-model (no-op silencieux en prod). On relaie donc la fermeture (Échap / clic
-// sur le fond / croix) vers close(), seule source de vérité de l'état.
-function onOpenChange(value: boolean) {
-  if (!value) close()
-}
 
 const clientName = computed(() => {
   if (!rdv.value) return 'Client'
   return [rdv.value.client_prenom, rdv.value.client_nom].filter(Boolean).join(' ') || 'Client'
 })
+
+const titre = computed(() => (rdv.value ? `RDV #${rdv.value.id}` : 'Rendez-vous'))
+
+/** Véhicule · immat · client, sur une ligne — le sous-titre du contrat SidePanel. */
+const sousTitre = computed(() => {
+  if (!rdv.value) return ''
+  return [rdv.value.vehicule_info, rdv.value.vehicule_plaque, clientName.value !== 'Client' ? clientName.value : '']
+    .filter(Boolean)
+    .join(' · ')
+})
+
+const heurePlage = computed(() => {
+  const r = rdv.value
+  if (!r?.heure_debut) return '—'
+  const debut = String(r.heure_debut).slice(0, 5)
+  const duree = Number(r.duree_estimee ?? 0)
+  if (!duree) return debut
+  const [h, m] = debut.split(':').map(Number)
+  const fin = new Date(2000, 0, 1, h, m + duree)
+  return `${debut} → ${String(fin.getHours()).padStart(2, '0')}:${String(fin.getMinutes()).padStart(2, '0')}`
+})
+
+const motif = computed(() => rdv.value?.description_probleme || rdv.value?.commentaire || '')
 
 function formatDisplayDate(d: string | undefined) {
   if (!d) return '—'
@@ -68,3 +103,50 @@ function formatDisplayDate(d: string | undefined) {
   }
 }
 </script>
+
+<style scoped>
+.pk-rdv-quand {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.pk-rdv-ligne {
+  font-size: 13px;
+  color: var(--pk-ink-quiet);
+}
+
+.pk-rdv-nom {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pk-ink);
+}
+
+.pk-rdv-chip {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--pk-border);
+  font-size: 12px;
+}
+
+.pk-rdv-motif {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--pk-surface-raised);
+  border-left: 3px solid var(--pk-accent);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.pk-rdv-commandes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pk-rdv-commande {
+  padding: 3px 9px;
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-pill);
+  font-size: 12px;
+  color: var(--pk-ink-quiet);
+}
+</style>
