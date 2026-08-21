@@ -144,7 +144,6 @@ onMounted(() => {
   font-family: inherit;
   font-size: 15px;
   margin-bottom: 12px;
-  outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .login-form input:focus {
@@ -180,8 +179,7 @@ onMounted(() => {
   font-family: inherit;
   font-size: 14px;
   margin-bottom: 10px;
-  outline: none;
-}
+  }
 
 .dev-sso-name-grid {
   display: grid;

@@ -608,7 +608,6 @@ async function submitSignature() {
   min-height: 80px;
 }
 .litige-textarea:focus {
-  outline: none;
   border-color: var(--error);
 }
 .litige-textarea::placeholder {

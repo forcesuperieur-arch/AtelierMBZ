@@ -12,6 +12,20 @@
    Synchronisée depuis le projet Claude Design « Paddock Design System ». */
 @import "./paddock-app.css";
 
+/* FOCUS — règle 45c du design system : anneau 2 px décalé de 2 px, noir sur
+   clair et jaune sur sombre, jamais supprimé. Le design system porte le thème
+   atelier sur `.pk-workshop`, le portail bascule sur `[data-theme='dark']` :
+   ce pont fait correspondre les deux, sans quoi l'anneau serait noir sur noir. */
+:root[data-theme='dark'] {
+  --pk-focus-ring: var(--mb-accent);
+}
+
+:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
+}
+
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -141,8 +155,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent-graphic) !important;
   box-shadow: 0 0 0 3px rgba(241,171,0,0.12);
-  outline: none;
-}
+  }
 
 /* ── Badges de statut : capsule condensée à point lumineux ─────────── */
 .rdv-status {

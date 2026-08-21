@@ -126,7 +126,6 @@ async function handleLogin() {
   border-radius: 9px;
   color: var(--content-1);
   font-size: 14px;
-  outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .login-field input:focus {

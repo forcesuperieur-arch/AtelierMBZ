@@ -168,10 +168,17 @@
   --radius-pill: 999px;
 
   /* Mouvement (mb/core/motion) */
-  --ease: cubic-bezier(.2, .7, .2, 1);
-  --dur-fast: 120ms;
-  --dur-base: 200ms;
-  --dur-slow: 320ms;
+  /* MOUVEMENT — délégué au design system Paddock (`paddock-app.css`).
+     Le design system n'admet que TROIS valeurs : 120 ms pour l'état d'un
+     contrôle, 180 ms pour un panneau qui entre ou une ligne qui se déplie,
+     0 ms pour la grille du planning, un tri ou la saisie d'un chiffre. Ces
+     alias-ci restent pour les feuilles déjà écrites, mais ils ne portent
+     plus de valeur propre — sans quoi l'échelle se remettrait à diverger.
+     `--dur-slow` n'a pas d'équivalent : la quatrième valeur n'existe pas. */
+  --ease: var(--pk-easing);
+  --dur-fast: var(--pk-duration-state);
+  --dur-base: var(--pk-duration-panel);
+  --dur-slow: var(--pk-duration-panel);
 
   /* Épaisseurs de trait */
   --bw: 1px;
@@ -397,7 +404,9 @@
   --shadow-lg: var(--elevation-3);
   --shadow-glow: none;   /* le halo jaune n'existe pas au DS */
 
-  --transition: var(--dur-base) var(--ease);
+  /* Consommé par des CONTRÔLES (champs, tuiles, boutons) : c'est donc la
+     durée d'état du design system, pas celle d'un panneau. */
+  --transition: var(--pk-duration-state) var(--pk-easing);
 
 }
 

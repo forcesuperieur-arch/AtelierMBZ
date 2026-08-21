@@ -326,7 +326,6 @@ async function submitAdd() {
   color: var(--content-1);
   font-family: inherit;
   font-size: 14px;
-  outline: none;
   resize: vertical;
 }
 .moto-field input:focus,

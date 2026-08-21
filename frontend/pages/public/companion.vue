@@ -1206,8 +1206,7 @@ onUnmounted(() => {
   background: var(--overlay-soft);
   color: var(--content-1);
   font-size: 13px;
-  outline: none;
-}
+  }
 .companion-input:focus {
   border-color: var(--accent-graphic);
 }

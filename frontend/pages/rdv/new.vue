@@ -19,7 +19,7 @@
           <select
             v-if="canSelectAtelier"
             v-model.number="selectedAtelierId"
-            style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;"
+            style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;"
           >
             <option v-for="atelier in atelierOptions" :key="atelier.id" :value="atelier.id">{{ atelier.nom }}</option>
           </select>
@@ -34,7 +34,7 @@
           v-model="clientSearch"
           type="text"
           placeholder="Nom, prénom, téléphone ou email..."
-          style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;"
+          style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;"
           @input="searchClients"
         />
         <div style="font-size:11px;color:var(--content-3);margin-top:4px;">Tapez au moins 2 caractères pour rechercher un client existant.</div>
@@ -78,7 +78,7 @@
             v-model="vehiculeSearch"
             type="text"
             placeholder="Ex: AB-123-CD ou VIN"
-            style="flex:1;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;"
+            style="flex:1;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;"
             @blur="vehiculeSearch = normalizeVehiculeQuery(vehiculeSearch)"
             @keydown.enter.prevent="searchVehicule"
           />
@@ -100,33 +100,33 @@
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <div style="position:relative;">
               <div class="form-label" style="margin-bottom:4px;">MARQUE</div>
-              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
+              <input v-model="form.vehicule_marque" type="text" placeholder="Ex: KAWASAKI" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" @input="onMarqueInput" @blur="deferHideMarqueSuggestions" />
               <div v-if="marqueSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--dark3);border:1px solid var(--border-2);border-radius:8px;max-height:150px;overflow-y:auto;">
                 <div v-for="s in marqueSuggestions" :key="s" @mousedown.prevent="selectMarque(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--content-2);border-bottom:1px solid var(--border-2);">{{ s }}</div>
               </div>
             </div>
             <div style="position:relative;">
               <div class="form-label" style="margin-bottom:4px;">MODÈLE</div>
-              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
+              <input v-model="form.vehicule_modele" type="text" placeholder="Ex: Z900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" @input="onModeleInput" @blur="deferHideModeleSuggestions" />
               <div v-if="modeleSuggestions.length" style="position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--dark3);border:1px solid var(--border-2);border-radius:8px;max-height:150px;overflow-y:auto;">
                 <div v-for="s in modeleSuggestions" :key="s.id || s.modele || s" @mousedown.prevent="selectModele(s)" style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--content-2);border-bottom:1px solid var(--border-2);">{{ typeof s === 'string' ? s : [s.modele, s.categorie_nom, s.cylindree_display || s.cylindree].filter(Boolean).join(' • ') }}</div>
               </div>
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">PLAQUE</div>
-              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" @blur="normalizePlateField" />
+              <input v-model="form.vehicule_plaque" type="text" placeholder="AB-123-CD" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" @blur="normalizePlateField" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">ANNÉE</div>
-              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.vehicule_annee" type="number" placeholder="2024" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">CYLINDRÉE</div>
-              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.vehicule_cylindree" type="number" placeholder="900" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">TYPE MOTO</div>
-              <select v-model="form.vehicule_type" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;">
+              <select v-model="form.vehicule_type" style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;">
                 <option value="">— Choisir —</option>
                 <option v-for="t in motoTypes" :key="t" :value="t">{{ t }}</option>
               </select>
@@ -333,19 +333,19 @@
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
             <div>
               <div class="form-label" style="margin-bottom:4px;">PRÉNOM</div>
-              <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_prenom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">NOM</div>
-              <input v-model="form.client_nom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_nom" type="text" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">TÉLÉPHONE</div>
-              <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_telephone" type="tel" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
             <div>
               <div class="form-label" style="margin-bottom:4px;">EMAIL</div>
-              <input v-model="form.client_email" type="email" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;" />
+              <input v-model="form.client_email" type="email" required style="width:100%;padding:8px 12px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;" />
             </div>
           </div>
         </div>
@@ -353,7 +353,7 @@
         <!-- Remarques -->
         <div style="margin-top:16px;">
           <div class="form-label" style="margin-bottom:6px;">REMARQUES</div>
-          <textarea v-model="form.description_probleme" rows="3" placeholder="Notes ou description du problème..." style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+          <textarea v-model="form.description_probleme" rows="3" placeholder="Notes ou description du problème..." style="width:100%;padding:10px 14px;background:var(--dark3);border:1px solid var(--border-2);border-radius:var(--radius-sm);color:var(--content-1);font-size:14px;font-family:inherit;resize:vertical;"></textarea>
         </div>
 
         <!-- Origine du RDV (KPI pilote) -->

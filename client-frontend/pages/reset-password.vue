@@ -135,8 +135,7 @@ async function handleSubmit() {
   border-radius: 8px;
   color: var(--content-1);
   font-size: 14px;
-  outline: none;
-}
+  }
 .login-field input:focus {
   border-color: var(--accent-graphic);
 }

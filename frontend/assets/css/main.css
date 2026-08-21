@@ -17,6 +17,25 @@
 @import "./paddock-app.css";
 
 /* ==================================================================
+   FOCUS — la règle 45c du design system, appliquée globalement.
+   « Anneau 2 px décalé de 2 px : noir sur clair, jaune sur sombre.
+     Jamais supprimé. »
+   Le design system porte le thème atelier sur la classe `.pk-workshop` ;
+   l'application, elle, bascule sur `[data-theme='dark']`. Ce pont fait
+   correspondre les deux, faute de quoi l'anneau resterait noir sur un
+   fond noir — c'est-à-dire invisible.
+   ================================================================== */
+:root[data-theme='dark'] {
+  --pk-focus-ring: var(--mb-accent);
+}
+
+:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
+}
+
+
+/* ==================================================================
    PADDOCK — feuille applicative
    Les tokens (couleurs, échelles, thèmes clair/sombre, palette de
    data-visualisation) vivent dans `tokens.css`. Cette feuille ne contient
@@ -225,7 +244,6 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.015em; }
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
-  outline: none;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 
@@ -295,7 +313,6 @@ textarea.form-control {
   padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
-  outline: none;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 
