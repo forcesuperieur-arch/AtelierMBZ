@@ -49,6 +49,10 @@ export function useAuth() {
     } finally {
       store.clearUser()
       useAtelierStore().clearModules()
+      // La visite d'atelier d'un SRC ne survit pas à la déconnexion : sans cela,
+      // le cookie resterait posé et la connexion suivante sauterait le cockpit
+      // pour atterrir dans l'atelier de la session précédente.
+      useCockpitOrigin().value = null
       navigateTo('/login')
     }
   }

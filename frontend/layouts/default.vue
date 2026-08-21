@@ -532,8 +532,8 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   align-items: center;
   gap: 12px;
   padding: 10px 24px;
-  background: #f1ab00;
-  color: #000;
+  background: var(--mb-accent);
+  color: var(--mb-black);
 }
 .cockpit-visit-icon { font-size: 18px; flex-shrink: 0; }
 .cockpit-visit-text { font-size: 13px; font-weight: 600; }
@@ -545,14 +545,14 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   padding: 0 13px;
   border: none;
   border-radius: 999px;
-  background: #000;
-  color: #f1ab00;
+  background: var(--mb-black);
+  color: var(--mb-accent);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
-.cockpit-visit-back:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+.cockpit-visit-back:focus-visible { outline: 2px solid var(--mb-black); outline-offset: 2px; }
 
 .sidebar-spacer { flex: 1; }
 

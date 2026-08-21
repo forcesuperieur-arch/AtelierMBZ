@@ -97,7 +97,9 @@ test.describe('Refonte — l\'étage SRC (lot 2)', () => {
 
     const nomAtelier = (await premierAtelier.innerText()).trim();
     await premierAtelier.click();
-    await page.waitForURL(/\/$|\/\?/, { timeout: 20_000 });
+    // Le SRC atterrit sur le planning, pas sur Stat : le back lui refuse le
+    // pilotage (403 assertStatsAccess), écart assumé avec la maquette 52a.
+    await page.waitForURL(/\/planning/, { timeout: 20_000 });
 
     const bandeau = page.locator('.cockpit-visit-banner');
     await expect(bandeau).toBeVisible();
@@ -107,5 +109,33 @@ test.describe('Refonte — l\'étage SRC (lot 2)', () => {
     await page.locator('.cockpit-visit-back').click();
     await page.waitForURL(/\/cockpit/, { timeout: 20_000 });
     await expect(page.locator('.cockpit-visit-banner')).toHaveCount(0);
+  });
+
+  test('un SRC authentifié n\'est jamais renvoyé vers la page de connexion', async ({ page }) => {
+    test.skip(!(await loginAsSrc(page)), 'Compte SRC de démo absent (app:seed --demo)');
+
+    const premierAtelier = page.locator('[data-testid="cockpit-atelier"]').first();
+    const perimetreVide = await premierAtelier
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => false)
+      .catch(() => true);
+    test.skip(perimetreVide, 'Aucun atelier dans le périmètre du compte SRC de démo');
+
+    await premierAtelier.click();
+    await page.waitForURL(/\/planning/, { timeout: 20_000 });
+
+    // Le back refuse Stat au SRC (403 assertStatsAccess) : la maquette 52a le
+    // montre pourtant sur Stat. L'écart est assumé — mais en aucun cas
+    // l'utilisateur ne doit se retrouver sur /login, il est authentifié.
+    expect(page.url()).not.toMatch(/\/login/);
+    await expect(page.locator('.cockpit-visit-banner')).toBeVisible();
+
+    // Et une visite ne survit pas à la déconnexion.
+    await page.locator('nav.cockpit-nav, .cockpit-visit-banner').first().waitFor();
+    await page.goto(appUrl('/cockpit'));
+    await page.locator('button.cockpit-link-button', { hasText: 'Déconnexion' }).click();
+    await page.waitForURL(/\/login/, { timeout: 20_000 });
+    const cookies = await page.context().cookies();
+    expect(cookies.find(c => c.name === 'src_cockpit_origin')?.value || '').toBe('');
   });
 });

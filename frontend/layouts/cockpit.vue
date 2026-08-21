@@ -139,8 +139,8 @@ onMounted(loadAteliers)
 .cockpit-nav {
   width: 224px;
   flex-shrink: 0;
-  background: #000;
-  color: #f6f6f6;
+  background: var(--mb-black);
+  color: var(--mb-grey-200);
   display: flex;
   flex-direction: column;
   padding: 12px 0;
@@ -152,13 +152,13 @@ onMounted(loadAteliers)
   gap: 10px;
   margin: 0 12px 16px;
   padding: 8px 10px;
-  border: 1px solid #2f2f2f;
+  border: 1px solid var(--mb-grey-900);
   border-radius: 8px;
 }
 .cockpit-brand-logo { width: 32px; height: 32px; display: block; flex: none; }
 .cockpit-brand-text { display: flex; flex-direction: column; min-width: 0; }
 .cockpit-brand-name { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; }
-.cockpit-brand-sub { font-size: 11px; color: #a5a5a5; }
+.cockpit-brand-sub { font-size: 11px; color: var(--mb-grey-600); }
 
 .cockpit-group {
   padding: 14px 20px 6px;
@@ -166,7 +166,7 @@ onMounted(loadAteliers)
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #6f6e6e;
+  color: var(--mb-grey-700);
 }
 .cockpit-group:first-of-type { padding-top: 0; }
 
@@ -188,26 +188,26 @@ onMounted(loadAteliers)
   cursor: pointer;
   width: calc(100% - 16px);
 }
-.cockpit-link:hover { background: #1f1f1f; }
-.cockpit-link:focus-visible { outline: 2px solid #f1ab00; outline-offset: 2px; }
+.cockpit-link:hover { background: var(--mb-grey-900); }
+.cockpit-link:focus-visible { outline: 2px solid var(--mb-accent); outline-offset: 2px; }
 .cockpit-link:disabled { opacity: 0.5; cursor: progress; }
 .cockpit-link.is-active {
-  background: #f1ab00;
-  color: #000;
+  background: var(--mb-accent);
+  color: var(--mb-black);
   font-weight: 600;
 }
-.cockpit-link-icon { font-size: 17px; color: #a5a5a5; flex-shrink: 0; }
-.cockpit-link.is-active .cockpit-link-icon { color: #000; }
-.cockpit-link-go { margin-left: auto; font-size: 15px; color: #6f6e6e; }
+.cockpit-link-icon { font-size: 17px; color: var(--mb-grey-600); flex-shrink: 0; }
+.cockpit-link.is-active .cockpit-link-icon { color: var(--mb-black); }
+.cockpit-link-go { margin-left: auto; font-size: 15px; color: var(--mb-grey-700); }
 
 .cockpit-spacer { flex: 1; }
 .cockpit-note {
   margin: 0 12px 12px;
   padding: 12px;
-  border: 1px solid #2f2f2f;
+  border: 1px solid var(--mb-grey-900);
   font-size: 12px;
   line-height: 1.45;
-  color: #a5a5a5;
+  color: var(--mb-grey-600);
 }
 
 .cockpit-main {

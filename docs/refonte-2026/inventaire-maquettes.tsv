@@ -1,0 +1,131 @@
+53a	Landing client — 390 × 844
+53b	Mot de passe oublié — client uniquement
+53c	Conditions générales — le gabarit de 50c
+52a	Version A — le cockpit est un étage
+52b	Version B — le cockpit est la page d'accueil du SRC
+51a	Entre les maquettes — qui fait foi
+51b	Le code livré contre les règles — relu dans le dépôt
+51c	Deux décisions à prendre, pas des corrections
+50a	Prise de rendez-vous en ligne — 390 × 844
+50b	Suivi par lien — une seule question
+50c	Mentions légales et confidentialité — lisibles
+50d	Les états du front client
+49a	Poste mécanicien — les trois écrans secondaires, 1024 × 768
+49b	Cockpit SRC — comparer, puis entrer dans un atelier
+49c	Les trois états
+48a	Concepteur de modèle — l'aperçu est la vérité
+48b	Fournisseurs SMS et e-mail — est-ce que ça part
+48c	Les trois états de ces deux écrans
+47a	Affichage mural — 1920 × 1080, aucune interaction
+47b	État des lieux photo — entrée et sortie côte à côte
+47c	Les trois états, à l'échelle du mur
+46a	Couverture, surface par surface
+45a	Les sept règles
+45b	Le thème sombre a un rôle
+45c	Tactile, focus, mouvement
+44a	Première configuration
+44b	Import d'un fichier de tarifs
+44c	Feuille d'atelier · A4 imprimé
+43a	Stat · Explorer
+43b	Où mène chaque tuile
+42a	Versions d'un OR
+42b	Deux mécaniciens sur un OR
+42c	18 h 30 · la journée déborde
+42d	Vue réseau · direction
+41a	Retour sous garantie
+41b	Prise en charge assurance
+41c	Véhicule de prêt
+40a	Front métier · SSO
+40b	Front client · connexion
+39a	Passage à la facturation externe
+39b	Modules coupés · la nav et Stat
+38a	Arrivée sans rendez-vous
+38b	Restitution sans le client
+37a	Catalogue des prestations
+37b	Ponts & Méca · configuration incluse
+36a	Détail d'un RDV · panneau
+36b	Annuler ou reporter
+35a	Liste des devis · relances en masse
+35b	Devis refusé
+34a	Recherche globale · ⌘K
+34b	Centre de notifications
+34c	Bascule d'atelier · session Direction
+33a	Stat · Période
+33b	Stat · Analyse
+32a	Ma journée
+32b	Intervention en cours · pointage
+32c	Rapport de fin
+31a	Carte grise relue automatiquement
+31b	Série guidée de prises de vue
+31c	Défauts chiffrés et offre
+30a	Accueil
+30b	Détail d'un passage
+30c	Une de ses motos
+30d	Profil et consentements
+29a	Premier jour · aucun client
+29b	Filtre sans résultat
+29c	Chargement d'une liste
+29d	Le serveur ne répond pas
+29e	Réseau coupé · bandeau global
+29f	Saisie refusée
+29g	Action hors de vos droits
+29h	Rien à traiter · bonne nouvelle
+28a	Bibliothèque de clauses
+27a	Configuration générale
+26a	Journal d'audit
+25a	Devis en cours de composition
+24a	Dossier moto
+23a	Fiche client
+22a	Rendez-vous confirmé
+22b	Moto prise en charge
+22c	Travail supplémentaire à valider
+22d	Moto prête à récupérer
+22e	Relance de devis
+22f	Relance d'impayé
+21a	Devis à signer
+21b	Facture
+21c	Rappel de rendez-vous
+20a	Notifications — page complète
+19a	Réglage d'un message — avec son rendu réel
+19b	Les six messages du parcours
+18a	Ordre de réparation
+18b	État des lieux
+18c	Facture
+17a	Modèle de document — édition et aperçu
+16a	Utilisateurs et accès
+15a	Disponibilité de l'équipe — poser une absence sur la semaine
+14a	Horaires et fermetures — avec l'impact
+13a	Dépôt accepté
+13b	Dépôt refusé — la raison, pas un curseur barré
+13c	Confirmation — seulement quand il y a une conséquence
+12a	Arrivée — ce qui reste à faire
+12b	Photos — série guidée
+12c	Carte grise — relecture de l'OCR
+11a	Accueil — la moto d'abord
+11b	Prise de RDV — une page qui défile
+11c	Thème sombre — même écran, mêmes repères
+10a	Planning + panneau de réception
+10b	Planning + panneau de restitution
+9a	Restitution — l'écran qui manque côté atelier
+9b	Ce que je ne peux pas trancher depuis le front
+8a	Carte cible — 43 écrans internes → 27
+7a	En atelier — l'immobilisation comme colonne principale
+7b	Travaux complémentaires — l'attente se compte en heures
+6a	Prise de RDV — un seul écran au lieu de quatre étapes
+6b	Administration — catalogue des prestations
+5a	Cockpit SRC — lecture du dossier
+5b	Portail client — hors périmètre
+4a	Dossier moto — l'écran de renouveau
+4b	VO — l'argent immobilisé et les documents manquants
+4c	Suivi Live — écran mural de l'atelier
+3a	Devis — la relance devient l'action principale
+3b	Factures — impayés en tête
+3c	Stock — le seuil devient lisible d'un coup d'œil
+3d	Espace mécanicien — tablette d'atelier
+2a	Planning — grille ponts × heures
+2b	Réception du matin — check-in
+2c	Ponts & Méca — pilotage des ponts
+2d	Clients — liste dense
+1a	Rail d'icônes — la donnée prend tout l'écran
+1b	Barre haute par domaines — thème sombre atelier
+1c	Sidebar sectionnée + colonne « À traiter » permanente

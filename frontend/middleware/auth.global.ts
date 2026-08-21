@@ -39,17 +39,32 @@ export default defineNuxtRouteMiddleware(async (to) => {
    * droit d'en voir le Stat, et le bandeau jaune lui rappelle d'où il vient.
    */
   const isServiceClient = roles.includes('ROLE_SERVICE_CLIENT')
-  if (to.path === '/' && isServiceClient && !useCockpitOrigin().value) {
+  const visiteDepuisCockpit = Boolean(useCockpitOrigin().value)
+  if (to.path === '/' && isServiceClient && !visiteDepuisCockpit) {
     return navigateTo('/cockpit')
   }
 
   if (to.path === '/' && !auth.hasStatsAccess()) {
+    /**
+     * Un SRC entré dans un atelier depuis le cockpit atterrit sur le PLANNING,
+     * pas sur Stat — et c'est un écart assumé avec la maquette 52a.
+     *
+     * 52a montre le Stat de l'atelier visité, entrée de nav active à l'appui.
+     * Le back le refuse : `assertStatsAccess()` (AnalyticsController et
+     * StatistiquesController) n'ouvre le pilotage qu'au super admin, au
+     * responsable d'atelier et au responsable de magasin. Ce garde est
+     * antérieur à la création du rôle SRC : ce n'est pas un oubli, et le
+     * contourner ouvrirait 19 points d'appel analytics à un profil de suivi
+     * client. Mesuré : le SRC lit en revanche sans aucun refus les rendez-vous,
+     * les ponts et la configuration — donc le planning s'affiche entier.
+     */
     const fallbackPath = [
       ['planning', '/planning'],
       ['workshop', '/workshop'],
       ['rdv', '/rdv/new'],
       ['mecanicien', '/mecanicien'],
-    ].find(([section]) => auth.hasSection(section))?.[1] || '/login'
+    ].find(([section]) => auth.hasSection(section))?.[1]
+      || (isServiceClient ? (visiteDepuisCockpit ? '/planning' : '/cockpit') : '/login')
 
     if (process.client) {
       useToast().add({
