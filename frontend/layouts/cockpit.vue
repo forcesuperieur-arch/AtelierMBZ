@@ -29,6 +29,7 @@
           v-for="atelier in ateliers"
           :key="atelier.id"
           class="cockpit-link cockpit-link-button"
+          data-testid="cockpit-atelier"
           :disabled="entering === atelier.id"
           @click="enterAtelier(atelier)"
         >

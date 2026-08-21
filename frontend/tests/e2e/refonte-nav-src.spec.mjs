@@ -86,9 +86,14 @@ test.describe('Refonte — l\'étage SRC (lot 2)', () => {
   test('ouvrir un atelier pose le bandeau de retour, et le retour le retire', async ({ page }) => {
     test.skip(!(await loginAsSrc(page)), 'Compte SRC de démo absent (app:seed --demo)');
 
-    const ateliers = page.locator('nav.cockpit-nav button.cockpit-link-button', { hasText: /^(?!Déconnexion).+/ });
-    const premierAtelier = ateliers.first();
-    test.skip(await ateliers.count() === 0, 'Aucun atelier dans le périmètre du compte SRC de démo');
+    // La liste des ateliers arrive par un appel réseau : on l'attend au lieu de
+    // compter tout de suite, sinon le test se saute sur une simple course.
+    const premierAtelier = page.locator('[data-testid="cockpit-atelier"]').first();
+    const perimetreVide = await premierAtelier
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => false)
+      .catch(() => true);
+    test.skip(perimetreVide, 'Aucun atelier dans le périmètre du compte SRC de démo');
 
     const nomAtelier = (await premierAtelier.innerText()).trim();
     await premierAtelier.click();
