@@ -169,15 +169,31 @@ watch([filtre, origine], ([valeurFiltre, valeurOrigine]) => {
 
 const stats = computed(() => voStore.stats)
 
-/** Clé d'un véhicule en remise en état, tous parcours confondus. */
-const enRemiseEnEtat = computed(() => new Set(
-  (voStore.refurbishmentQueue || [])
-    .filter((r: any) => !r.isClosed)
-    .map((r: any) => `${r.sourceType === 'depot' ? 'depot' : 'purchase'}-${r.sourceId}`),
-))
+/** Une campagne de remise en état ouverte, quel que soit le parcours. */
+function estEnRemiseEnEtat(item: any): boolean {
+  return Boolean(item.refurbishment_status) && String(item.refurbishment_status) !== 'cloturee'
+}
 
 function formatKm(km: number): string {
   return `${new Intl.NumberFormat('fr-FR').format(km)} km`
+}
+
+/**
+ * Ancienneté de stock, en jours.
+ *
+ * L'API ne calcule `jours_stock` que pour un rachat, depuis sa date d'achat.
+ * Un dépôt n'a que la date de début de mandat — qui est précisément le moment
+ * où la moto est entrée en stock. Sans ce repli, tous les dépôts afficheraient
+ * « 0 j » et tomberaient en bas d'un tri qui doit justement mettre l'ancienneté
+ * en tête.
+ */
+function ancienneteDeStock(item: any): number {
+  const fourni = Number(item.jours_stock ?? Number.NaN)
+  if (Number.isFinite(fourni)) return fourni
+
+  const entree = Date.parse(String(item.created_at ?? ''))
+  if (!Number.isFinite(entree)) return 0
+  return Math.max(0, Math.floor((Date.now() - entree) / 86_400_000))
 }
 
 /**
@@ -198,8 +214,12 @@ function decrireBlocage(item: any): { texte: string; action: string; bloquant: b
       bloquant: true,
     }
   }
-  if (enRemiseEnEtat.value.has(`${item.source}-${item.id}`)) {
-    return { texte: 'Remise en état en cours', action: 'Ouvrir', bloquant: true }
+  if (estEnRemiseEnEtat(item)) {
+    return {
+      texte: item.refurbishment_blocking_sale ? 'Remise en état · bloque la vente' : 'Remise en état en cours',
+      action: 'Ouvrir',
+      bloquant: Boolean(item.refurbishment_blocking_sale),
+    }
   }
   if (item.source === 'depot' && Number(item.jours_restants ?? 999) <= 7) {
     return { texte: `Mandat à prolonger · ${item.jours_restants} j`, action: 'Renouveler', bloquant: false }
@@ -215,7 +235,7 @@ function decrireBlocage(item: any): { texte: string; action: string; bloquant: b
 
 const lignes = computed(() => (voStore.stock || []).map((item: any) => ({
   ...item,
-  anciennete: Number(item.source === 'depot' ? item.jours_stock ?? 0 : item.jours_stock ?? 0),
+  anciennete: ancienneteDeStock(item),
   lien: item.source === 'depot' ? `/vo/depots/${item.id}` : `/vo/rachats/${item.id}`,
   blocage: decrireBlocage(item),
 })).sort((a: any, b: any) => b.anciennete - a.anciennete))
@@ -223,7 +243,7 @@ const lignes = computed(() => (voStore.stock || []).map((item: any) => ({
 function correspondAuFiltre(item: any): boolean {
   const statut = String(item.status || '')
   if (filtre.value === 'all') return true
-  if (filtre.value === 'remise') return enRemiseEnEtat.value.has(`${item.source}-${item.id}`)
+  if (filtre.value === 'remise') return estEnRemiseEnEtat(item)
   if (filtre.value === 'reserve') return statut === 'reserve'
   if (filtre.value === 'vendu') return statut === 'vendu'
   return statut !== 'vendu'
@@ -241,7 +261,7 @@ const lignesFiltrees = computed(() => {
 
 const chips = computed(() => [
   { value: 'stock', label: 'En stock', count: lignes.value.filter((i: any) => String(i.status) !== 'vendu').length },
-  { value: 'remise', label: 'Remise en état', count: lignes.value.filter((i: any) => enRemiseEnEtat.value.has(`${i.source}-${i.id}`)).length },
+  { value: 'remise', label: 'Remise en état', count: lignes.value.filter((i: any) => estEnRemiseEnEtat(i)).length },
   { value: 'reserve', label: 'Réservés', count: lignes.value.filter((i: any) => String(i.status) === 'reserve').length },
   { value: 'vendu', label: 'Vendus', count: lignes.value.filter((i: any) => String(i.status) === 'vendu').length },
 ])
@@ -268,8 +288,6 @@ onMounted(async () => {
   await Promise.all([
     voStore.fetchStats(),
     voStore.fetchStock(),
-    voStore.fetchAlerts(),
-    voStore.fetchRefurbishmentQueue(),
   ])
 })
 </script>

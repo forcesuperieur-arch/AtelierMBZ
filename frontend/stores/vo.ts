@@ -211,6 +211,8 @@ interface VOStockItem {
   jours_restants?: number
   mandat_expire?: boolean
   missing_docs?: string[]
+  refurbishment_status?: string | null
+  refurbishment_blocking_sale?: boolean
   can_sell?: boolean
   created_at: string
 }
