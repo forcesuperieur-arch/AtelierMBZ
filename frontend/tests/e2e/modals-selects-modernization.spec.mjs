@@ -95,7 +95,7 @@ test.describe('US-2 — SelectMenu dropdown above modal overlay', () => {
   });
 
   test('absences — type dropdown inside modal', async ({ page }) => {
-    await page.goto('/absences');
+    await page.goto('/workshop?tab=absences');
     await page.waitForLoadState('networkidle');
 
     const addBtn = page.locator('button:has-text("Nouvelle"), button:has-text("Ajouter")').first();
@@ -253,11 +253,11 @@ test.describe('US-5 — Modernized pages load successfully', () => {
 
   const pages = [
     { path: '/admin/users',    text: /utilisateur|user/i },
-    { path: '/admin/ponts',    text: /pont|atelier/i },
+    { path: '/workshop?tab=ponts', text: /pont|atelier/i },
     { path: '/admin/prestations', text: /prestation|tarif/i },
     { path: '/admin/roles', text: /rôle|profil/i },
     { path: '/facturation',    text: /factur/i },
-    { path: '/absences',       text: /absence|congé/i },
+    { path: '/workshop?tab=absences', text: /absence|congé/i },
     { path: '/motos',          text: /moto|catalogue/i },
   ];
 

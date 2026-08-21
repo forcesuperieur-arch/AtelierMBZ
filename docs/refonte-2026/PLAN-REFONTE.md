@@ -101,11 +101,22 @@ plutôt que supprimées — les deux tests de la liste RDV vérifient maintenant
 même comportement depuis le planning.
 
 ### Lot 4 — Les fusions (tour 8a)
-- `workshop.vue` + `admin/ponts.vue` → un écran Ponts & Méca (2c) ; l'onglet Absences
-  en lecture seule fusionne avec Admin › Absences (15a).
-- Les huit pages VO → **une liste + une fiche** (4b) ; l'origine rachat/dépôt est un champ.
-- `motos.vue` + `clients/[id].vue` + `devis/[id].vue` → **une entrée, trois vues** :
-  la fusion vaut pour la navigation, pas pour les écrans (arbitrage 51a).
+
+**Ponts & Méca ✅** — `admin/ponts.vue` et `admin/absences.vue` sont supprimés, leurs
+deux onglets quittent l'administration.
+- La **carte du pont** portait déjà son état et son mécanicien rattaché : elle porte
+  maintenant sa fiche complète (créer, renommer, type, capacité, archiver). Activer un
+  pont et lui affecter quelqu'un est du pilotage quotidien, pas du paramétrage annuel.
+- L'onglet **Absences**, jusqu'ici en lecture seule, porte la saisie : l'absence se
+  déclare là où le manque se constate, et la charge des ponts en tient compte (15a).
+- Les commandes d'écriture ne s'affichent qu'aux profils d'administration — le serveur
+  le vérifie déjà ; l'interface évite le bouton qui échoue.
+
+**VO** — les huit pages → une liste + une fiche (4b) ; l'origine rachat/dépôt est un champ.
+
+**Dossier moto** — `motos.vue` + `clients/[id].vue` + `devis/[id].vue` : **une entrée,
+trois vues**. La fusion vaut pour la navigation, pas pour les écrans (arbitrage 51a) —
+elle est donc acquise depuis le lot 1, où « Fiches moto » a quitté la barre.
 
 ### Lot 5 — Le poste de travail (règle 4 · tours 10a, 36a)
 Réception, restitution et détail RDV s'ouvrent en **panneau à droite du planning**,

@@ -78,7 +78,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: php bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=256M -vv
+    command: php -d memory_limit=512M bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=256M -vv
     healthcheck:
       # unhealthy si des messages sont en file d'échec (alerte visible dans docker compose ps)
       test: ["CMD-SHELL", "php bin/console app:worker-health"]
@@ -88,6 +88,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-atelier}:${POSTGRES_PASSWORD:-atelier}@db:5432/${POSTGRES_DB:-atelier_moto}?serverVersion=15&charset=utf8
       APP_ENV: ${APP_ENV:-dev}
+      # Worker longue durée : le debug Symfony fait fuir la mémoire (backtraces SQL Doctrine jamais purgées)
+      APP_DEBUG: 0
       APP_SECRET: ${APP_SECRET:?APP_SECRET must be set in .env or environment}
       MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
       MAILER_FROM: ${MAILER_FROM:-noreply@paddock.fr}

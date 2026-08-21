@@ -162,7 +162,7 @@ test.describe('Lot 2 — Front flows', () => {
     await loginAsAdmin(page);
   });
 
-  test('Admin ponts: assigning same mechanic to two ponts shows error', async ({ page }) => {
+  test('Ponts & Méca : rattacher le même mécanicien à deux ponts est refusé', async ({ page }) => {
     const suffix = Date.now();
 
     // 1. Create mechanic
@@ -192,14 +192,14 @@ test.describe('Lot 2 — Front flows', () => {
     expect(p2Res.status).toBe(201);
     const p2Id = p2Res.data.id;
 
-    // 4. Navigate to admin/ponts
-    await page.goto(appUrl('/admin/ponts'));
+    // 4. La configuration du pont a rejoint sa carte (fusion 8a).
+    await page.goto(appUrl('/workshop?tab=ponts'));
     await page.waitForLoadState('networkidle');
 
-    // 5. Open edit modal for pont 2
-    const p2Row = page.locator('tr', { hasText: `Pont 2 E2E ${suffix}` }).first();
-    await p2Row.scrollIntoViewIfNeeded();
-    await p2Row.locator('button', { hasText: /Modifier/i }).click();
+    // 5. Ouvrir la fiche du pont 2
+    const p2Card = page.locator('.pont-card', { hasText: `Pont 2 E2E ${suffix}` }).first();
+    await p2Card.scrollIntoViewIfNeeded();
+    await p2Card.locator('button', { hasText: /Modifier la fiche/i }).click();
 
     // 6. Select the same mechanic in the modal
     const modal = page.locator('.app-modal-overlay').last();

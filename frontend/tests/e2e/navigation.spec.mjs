@@ -20,9 +20,8 @@ test.describe('Navigation Smoke Tests', () => {
     { path: '/admin', name: 'Admin', text: /admin|configuration/i },
     { path: '/admin/users', name: 'Admin Utilisateurs', text: /utilisateur/i },
     { path: '/admin/config', name: 'Admin Config', text: /config/i },
-    { path: '/admin/ponts', name: 'Admin Ponts', text: /pont/i },
     { path: '/admin/prestations', name: 'Admin Prestations', text: /prestation/i },
-    { path: '/admin/absences', name: 'Admin Absences', text: /absence/i },
+    { path: '/workshop?tab=absences', name: 'Absences', text: /absence/i },
     { path: '/admin/audit', name: 'Admin Audit', text: /audit|log/i },
   ];
 

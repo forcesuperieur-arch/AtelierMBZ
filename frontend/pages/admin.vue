@@ -52,8 +52,6 @@ interface OngletAdmin {
 const TOUS_LES_ONGLETS: OngletAdmin[] = [
   { cle: 'config', to: '/admin/config', icone: 'i-ri-settings-3-line', label: 'Configuration' },
   { cle: 'users', to: '/admin/users', icone: 'i-ri-group-line', label: 'Utilisateurs' },
-  { cle: 'ponts', to: '/admin/ponts', icone: 'i-ri-tools-line', label: 'Ponts & mécanos' },
-  { cle: 'absences', to: '/admin/absences', icone: 'i-ri-calendar-line', label: 'Absences' },
   { cle: 'prestations', to: '/admin/prestations', icone: 'i-ri-clipboard-line', label: 'Prestations' },
   { cle: 'notifications', to: '/admin/notifications/providers', icone: 'i-ri-broadcast-line', label: 'Notifications' },
   { cle: 'clauses', to: '/admin/clauses-legales', icone: 'i-ri-scales-3-line', label: 'Clauses légales' },

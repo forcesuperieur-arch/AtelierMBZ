@@ -324,7 +324,7 @@ test.describe('10. Administration', () => {
   });
 
   test('admin ponts page loads', async ({ page }) => {
-    await expectPageLoads(page, '/admin/ponts', /pont|atelier|capacité|mécanicien|type/i);
+    await expectPageLoads(page, '/workshop?tab=ponts', /pont|atelier|capacité|mécanicien|type/i);
   });
 
   test('admin prestations page loads', async ({ page }) => {
@@ -336,7 +336,7 @@ test.describe('10. Administration', () => {
   });
 
   test('admin absences page loads', async ({ page }) => {
-    await expectPageLoads(page, '/admin/absences', /absence|congé|mécanicien|date|motif/i);
+    await expectPageLoads(page, '/workshop?tab=absences', /absence|congé|mécanicien|date|motif/i);
   });
 
   test('admin ateliers page loads', async ({ page }) => {
@@ -493,7 +493,7 @@ test.describe('13. Design System & Non-Régression', () => {
   test('Modal footer standardization across admin pages', async ({ page }) => {
     const pagesToCheck = [
       { path: '/admin/users', trigger: /Nouvel utilisateur|Ajouter/ },
-      { path: '/admin/ponts', trigger: /Nouveau|Ajouter/ },
+      { path: '/workshop?tab=ponts', trigger: /Nouveau|Ajouter/ },
       { path: '/admin/prestations', trigger: /Nouveau|Ajouter/ },
     ];
     for (const { path, trigger } of pagesToCheck) {
@@ -510,7 +510,7 @@ test.describe('13. Design System & Non-Régression', () => {
 
   test('USelectMenu v3 syntax — no empty string values', async ({ page }) => {
     // This is a code-level check; we validate by ensuring pages with selects load without 500
-    const pagesWithSelects = ['/motos', '/facturation', '/admin/absences', '/admin/roles', '/public/booking'];
+    const pagesWithSelects = ['/motos', '/facturation', '/workshop?tab=absences', '/admin/roles', '/public/booking'];
     for (const path of pagesWithSelects) {
       const response = await page.goto(path);
       expect(response?.status()).toBe(200);

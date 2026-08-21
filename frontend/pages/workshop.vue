@@ -60,8 +60,11 @@
       <!-- PONTS TAB -->
       <div v-if="activeTab === 'ponts'">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-          <p style="margin:0;color:var(--content-3);font-size:13px;">Ici tu actives ou désactives un pont et tu changes le mécanicien rattaché sans passer par l’admin.</p>
-          <NuxtLink to="/planning" style="color:var(--accent-content);font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
+          <p style="margin:0;color:var(--content-3);font-size:13px;">Le pont se configure ici, sur sa carte : état, mécanicien rattaché, et sa fiche.</p>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <NuxtLink to="/planning" style="color:var(--accent-content);font-size:12px;font-weight:700;text-decoration:none;">Voir le planning →</NuxtLink>
+            <button v-if="peutConfigurerPonts" class="btn btn-primary" style="padding:6px 12px;min-height:34px;" @click="ouvrirFichePont(null)">+ Nouveau pont</button>
+          </div>
         </div>
 
         <div v-if="enrichedPonts.length" class="pont-grid">
@@ -104,7 +107,16 @@
                   </select>
                 </div>
 
-                <div style="display:flex;justify-content:flex-end;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <div v-if="peutConfigurerPonts" style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-ghost" style="padding:5px 10px;min-height:32px;font-size:12px;" @click="ouvrirFichePont(pont)">
+                      <AppIcon name="i-ri-pencil-line" /> Modifier la fiche
+                    </button>
+                    <button class="btn btn-ghost" style="padding:5px 10px;min-height:32px;font-size:12px;color:var(--error-content);" :disabled="pontSettingSaving[pont.id]" @click="archiverPont(pont)">
+                      <AppIcon name="i-ri-archive-line" /> Archiver
+                    </button>
+                  </div>
+                  <div v-else />
                   <button class="btn btn-primary" style="padding:6px 12px;min-height:34px;" :disabled="pontSettingSaving[pont.id]" @click="savePontSettings(pont)">
                     {{ pontSettingSaving[pont.id] ? 'Enregistrement…' : 'Enregistrer l’affectation' }}
                   </button>
@@ -250,8 +262,28 @@
 
       <!-- ABSENCES TAB -->
       <div v-if="activeTab === 'absences'">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <p style="margin:0;color:var(--content-3);font-size:13px;">L'absence se saisit ici, là où le manque se constate — la charge des ponts en tient compte immédiatement.</p>
+          <button v-if="peutConfigurerPonts" class="btn btn-primary" style="padding:6px 12px;min-height:34px;" @click="ouvrirFicheAbsence(null)">+ Nouvelle absence</button>
+        </div>
+
         <UCard>
-          <UTable v-if="absences.length" :data="absences" :columns="absenceCols" />
+          <UTable v-if="absences.length" :data="absences" :columns="absenceCols">
+            <template #motif-cell="{ row }">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span :style="{ display:'inline-block', padding:'2px 10px', borderRadius:'12px', fontSize:'12px', fontWeight:600, color: motifAbsence(row.original).color, background: motifAbsence(row.original).bg }">
+                  {{ motifAbsence(row.original).label }}
+                </span>
+                <span v-if="detailMotifAbsence(row.original)" style="color:var(--content-3);font-size:12px;">{{ detailMotifAbsence(row.original) }}</span>
+              </div>
+            </template>
+            <template #actions-cell="{ row }">
+              <div v-if="peutConfigurerPonts" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button style="color:var(--accent-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="ouvrirFicheAbsence(row.original)"><AppIcon name="i-ri-pencil-line" /> Modifier</button>
+                <button style="color:var(--error-content);font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;" @click="supprimerAbsence(row.original)"><AppIcon name="i-ri-close-line" /> Supprimer</button>
+              </div>
+            </template>
+          </UTable>
           <AppEmptyState
             v-else
             icon="i-ri-calendar-line"
@@ -261,11 +293,130 @@
         </UCard>
       </div>
     </template>
+
+    <!-- Fiche d'un pont — venue d'Administration › Ponts (fusion 8a).
+         Activer un pont et lui rattacher un mécanicien est du pilotage
+         quotidien : la carte porte son état, elle porte donc sa fiche. -->
+    <AppModal v-model:open="fichePontOuverte" size="lg">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;">{{ fichePontId ? 'Modifier' : 'Nouveau' }} pont</span>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer" @click="fichePontOuverte = false"><AppIcon name="i-ri-close-line" /></button>
+            </div>
+          </template>
+          <form style="display:flex;flex-direction:column;gap:12px;" @submit.prevent="enregistrerFichePont">
+            <div class="form-group">
+              <label class="form-label" for="pont-nom">Nom *</label>
+              <input id="pont-nom" v-model="fichePont.nom" class="form-input" required placeholder="Ex : Pont A" />
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+              <div class="form-group">
+                <label class="form-label" for="pont-type">Type de pont</label>
+                <select id="pont-type" v-model="fichePont.type_pont" class="form-input">
+                  <option value="moto">Moto</option>
+                  <option value="diagnostic">Diagnostic</option>
+                  <option value="lavage">Lavage</option>
+                  <option value="livraison">Livraison</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pont-capacite">Capacité (kg)</label>
+                <input id="pont-capacite" v-model.number="fichePont.capacite_kg" type="number" min="100" step="10" class="form-input" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pont-description">Description</label>
+              <input id="pont-description" v-model="fichePont.description" class="form-input" placeholder="Ex : pont principal atelier rapide" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pont-meca">Mécanicien rattaché</label>
+              <select id="pont-meca" v-model="fichePont.mecanicien_id" class="form-input">
+                <option :value="null">Aucun</option>
+                <option v-for="m in activeMecaniciens" :key="`fiche-meca-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="pont-actif" v-model="fichePont.est_actif" type="checkbox" />
+              <label for="pont-actif" style="font-size:13px;color:var(--content-3);">Pont actif</label>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+              <button type="button" class="btn btn-ghost" @click="fichePontOuverte = false">Annuler</button>
+              <button type="submit" class="btn btn-primary" :disabled="fichePontSaving">{{ fichePontSaving ? 'Enregistrement…' : fichePontId ? 'Modifier' : 'Créer' }}</button>
+            </div>
+          </form>
+        </UCard>
+      </template>
+    </AppModal>
+
+    <!-- Absence d'un mécanicien — venue d'Administration › Absences (15a).
+         La saisie se fait là où on constate le manque, sur l'écran des ponts. -->
+    <AppModal v-model:open="ficheAbsenceOuverte" size="lg">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;">{{ ficheAbsenceId ? 'Modifier' : 'Nouvelle' }} absence</span>
+              <button style="background:none;border:none;color:var(--content-3);font-size:18px;cursor:pointer;" aria-label="Fermer" @click="ficheAbsenceOuverte = false"><AppIcon name="i-ri-close-line" /></button>
+            </div>
+          </template>
+          <form style="display:flex;flex-direction:column;gap:12px;" @submit.prevent="enregistrerFicheAbsence">
+            <div class="form-group">
+              <label class="form-label" for="abs-meca">Mécanicien *</label>
+              <select id="abs-meca" v-model="ficheAbsence.mecanicien_id" class="form-input" required>
+                <option :value="null">Choisir…</option>
+                <option v-for="m in activeMecaniciens" :key="`abs-meca-${m.id}`" :value="m.id">{{ m.prenom }} {{ m.nom }}</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+              <div class="form-group">
+                <label class="form-label" for="abs-debut">Date début *</label>
+                <input id="abs-debut" v-model="ficheAbsence.date_debut" type="date" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="abs-fin">Date fin *</label>
+                <input id="abs-fin" v-model="ficheAbsence.date_fin" type="date" class="form-input" required />
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+              <div class="form-group">
+                <label class="form-label" for="abs-hd">Heure début</label>
+                <input id="abs-hd" v-model="ficheAbsence.heure_debut" type="time" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="abs-hf">Heure fin</label>
+                <input id="abs-hf" v-model="ficheAbsence.heure_fin" type="time" class="form-input" />
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--content-3);margin:-4px 0 0;">Heures vides = absence sur la journée entière. Renseigner les deux = seule cette plage bloque le mécanicien (par exemple un rendez-vous médical le matin).</p>
+            <div class="form-group">
+              <label class="form-label" for="abs-type">Type de motif</label>
+              <select id="abs-type" v-model="ficheAbsence.type_motif" class="form-input">
+                <option value="conge">Congé</option>
+                <option value="maladie">Maladie</option>
+                <option value="formation">Formation</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="abs-motif">Détail du motif</label>
+              <input id="abs-motif" v-model="ficheAbsence.motif" class="form-input" placeholder="Précisions optionnelles…" />
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+              <button type="button" class="btn btn-ghost" @click="ficheAbsenceOuverte = false">Annuler</button>
+              <button type="submit" class="btn btn-primary" :disabled="ficheAbsenceSaving">{{ ficheAbsenceSaving ? 'Enregistrement…' : ficheAbsenceId ? 'Modifier' : 'Créer' }}</button>
+            </div>
+          </form>
+        </UCard>
+      </template>
+    </AppModal>
   </div>
 </template>
 
 <script setup lang="ts">
 const api = useApi()
+const auth = useAuth()
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()
@@ -292,6 +443,7 @@ const absenceCols = [
   { key: 'date_debut', label: 'Début' },
   { key: 'date_fin', label: 'Fin' },
   { key: 'motif', label: 'Motif' },
+  { key: 'actions', label: '' },
 ]
 
 function isActiveFlag(value: any): boolean {
@@ -393,6 +545,222 @@ async function savePontSettings(pont: any) {
     toast.add({ title: 'Mise à jour impossible', description: e?.message || 'Vérifie les droits admin de l’atelier.', color: 'error' })
   } finally {
     pontSettingSaving[pont.id] = false
+  }
+}
+
+/**
+ * Fiche d'un pont — reprise d'Administration › Ponts (fusion 8a).
+ *
+ * Créer, renommer ou archiver un pont reste réservé à l'administration : le
+ * serveur le vérifie, l'interface n'affiche donc les commandes qu'à qui peut
+ * les utiliser, plutôt que de laisser un bouton qui échouera.
+ */
+const peutConfigurerPonts = computed(() => {
+  const roles = auth.user.value?.roles ?? []
+  const role = String(auth.user.value?.role || '')
+  return role === 'admin' || role === 'super_admin' || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')
+})
+
+const fichePontOuverte = ref(false)
+const fichePontId = ref<number | null>(null)
+const fichePontSaving = ref(false)
+const fichePont = reactive({
+  nom: '',
+  description: '',
+  mecanicien_id: null as number | null,
+  est_actif: true,
+  type_pont: 'moto',
+  capacite_kg: 500,
+})
+
+function ouvrirFichePont(pont: any | null) {
+  fichePontId.value = pont?.id ?? null
+  Object.assign(fichePont, {
+    nom: pont?.nom ?? '',
+    description: pont?.description ?? '',
+    mecanicien_id: asId(pont?.mecanicien?.id ?? pont?.mecanicien_id),
+    est_actif: pont ? isActiveFlag(pont.is_active ?? pont.est_actif) : true,
+    type_pont: pont?.type_pont || 'moto',
+    capacite_kg: Number(pont?.capacite_kg || 500),
+  })
+  fichePontOuverte.value = true
+}
+
+async function enregistrerFichePont() {
+  fichePontSaving.value = true
+  try {
+    const mecanicienId = asId(fichePont.mecanicien_id)
+    const payload = {
+      nom: fichePont.nom,
+      description: fichePont.description,
+      type_pont: fichePont.type_pont,
+      capacite_kg: Number(fichePont.capacite_kg || 500),
+      est_actif: fichePont.est_actif,
+      is_active: fichePont.est_actif ? 1 : 0,
+      mecanicien: mecanicienId ? `/api/mecaniciens/${mecanicienId}` : null,
+    }
+
+    if (fichePontId.value) await api.patch(`/ponts/${fichePontId.value}`, payload)
+    else await api.post('/ponts', payload)
+
+    fichePontOuverte.value = false
+    toast.add({ title: fichePontId.value ? 'Pont modifié' : 'Pont créé', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({
+      title: fichePontId.value ? 'Modification impossible' : 'Création impossible',
+      description: e?.message || 'Le serveur a refusé la fiche du pont ; rien n’a été enregistré.',
+      color: 'error',
+    })
+  } finally {
+    fichePontSaving.value = false
+  }
+}
+
+async function archiverPont(pont: any) {
+  if (!pont?.id) return
+  if (!confirm(`Archiver le pont ${pont.nom} ? Les rendez-vous passés le gardent en historique.`)) return
+
+  pontSettingSaving[pont.id] = true
+  try {
+    await api.del(`/ponts/${pont.id}`)
+    toast.add({ title: 'Pont archivé', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({
+      title: 'Archivage impossible',
+      description: e?.message || 'Le serveur a refusé l’archivage ; le pont reste en service.',
+      color: 'error',
+    })
+  } finally {
+    pontSettingSaving[pont.id] = false
+  }
+}
+
+/**
+ * Absences — reprises d'Administration › Absences (fusion 15a).
+ *
+ * Le motif est stocké en un seul champ « type — détail » côté API : on le
+ * décompose pour l'affichage et on le recompose à l'enregistrement, comme le
+ * faisait l'écran d'administration.
+ */
+const MOTIFS_ABSENCE: Record<string, { label: string; color: string; bg: string }> = {
+  conge: { label: 'Congé', color: 'var(--info-content)', bg: 'var(--info-soft)' },
+  maladie: { label: 'Maladie', color: 'var(--error-content)', bg: 'var(--error-soft)' },
+  formation: { label: 'Formation', color: 'var(--info-content)', bg: 'var(--info-soft)' },
+  autre: { label: 'Autre', color: 'var(--content-3)', bg: 'var(--surface-3)' },
+}
+
+function decomposerMotif(absence: any): { type: string; detail: string } {
+  const brut = String(absence?.motif ?? '')
+  const parts = brut.split(' — ')
+  const type = parts[0] in MOTIFS_ABSENCE ? parts[0] : 'autre'
+  const detail = parts[0] in MOTIFS_ABSENCE ? parts.slice(1).join(' — ') : brut
+  return { type, detail }
+}
+
+function motifAbsence(absence: any) {
+  return MOTIFS_ABSENCE[decomposerMotif(absence).type] ?? MOTIFS_ABSENCE.autre
+}
+
+function detailMotifAbsence(absence: any): string {
+  return decomposerMotif(absence).detail
+}
+
+// Extrait HH:MM de n'importe quel format d'heure renvoyé par l'API.
+function versHeureMinute(value: any): string {
+  const m = String(value ?? '').match(/(\d{2}:\d{2})/)
+  return m ? m[1] : ''
+}
+
+const ficheAbsenceOuverte = ref(false)
+const ficheAbsenceId = ref<number | null>(null)
+const ficheAbsenceSaving = ref(false)
+const ficheAbsence = reactive({
+  mecanicien_id: null as number | null,
+  date_debut: '',
+  date_fin: '',
+  heure_debut: '',
+  heure_fin: '',
+  type_motif: 'conge',
+  motif: '',
+})
+
+function ouvrirFicheAbsence(absence: any | null) {
+  const { type, detail } = absence ? decomposerMotif(absence) : { type: 'conge', detail: '' }
+  ficheAbsenceId.value = absence?.id ?? null
+  Object.assign(ficheAbsence, {
+    mecanicien_id: asId(absence?.mecanicien?.id ?? absence?.mecanicien_id),
+    date_debut: String(absence?.date_debut ?? absence?.dateDebut ?? '').slice(0, 10),
+    date_fin: String(absence?.date_fin ?? absence?.dateFin ?? '').slice(0, 10),
+    heure_debut: versHeureMinute(absence?.heure_debut ?? absence?.heureDebut),
+    heure_fin: versHeureMinute(absence?.heure_fin ?? absence?.heureFin),
+    type_motif: type,
+    motif: detail,
+  })
+  ficheAbsenceOuverte.value = true
+}
+
+function construirePayloadAbsence() {
+  if (!ficheAbsence.mecanicien_id) throw new Error('Le mécanicien est requis.')
+
+  // Absence partielle : les deux heures ensemble, ou aucune (= journée entière).
+  const hd = ficheAbsence.heure_debut || null
+  const hf = ficheAbsence.heure_fin || null
+  if ((hd && !hf) || (!hd && hf)) {
+    throw new Error('Renseigne les deux heures, début et fin — ou laisse-les vides pour une absence sur la journée entière.')
+  }
+  if (hd && hf && hf <= hd) throw new Error('L’heure de fin doit être après l’heure de début.')
+
+  return {
+    mecanicien: `/api/mecaniciens/${ficheAbsence.mecanicien_id}`,
+    mecanicien_id: ficheAbsence.mecanicien_id,
+    date_debut: ficheAbsence.date_debut,
+    date_fin: ficheAbsence.date_fin,
+    dateDebut: ficheAbsence.date_debut,
+    dateFin: ficheAbsence.date_fin,
+    heureDebut: hd,
+    heureFin: hf,
+    motif: [ficheAbsence.type_motif, ficheAbsence.motif].filter(Boolean).join(' — '),
+  }
+}
+
+async function enregistrerFicheAbsence() {
+  ficheAbsenceSaving.value = true
+  try {
+    const payload = construirePayloadAbsence()
+
+    if (ficheAbsenceId.value) await api.patch(`/absences/${ficheAbsenceId.value}`, payload)
+    else await api.post('/absences', payload)
+
+    ficheAbsenceOuverte.value = false
+    toast.add({ title: ficheAbsenceId.value ? 'Absence modifiée' : 'Absence créée', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({
+      title: ficheAbsenceId.value ? 'Modification impossible' : 'Création impossible',
+      description: e?.message || 'Le serveur a refusé l’absence ; rien n’a été enregistré.',
+      color: 'error',
+    })
+  } finally {
+    ficheAbsenceSaving.value = false
+  }
+}
+
+async function supprimerAbsence(absence: any) {
+  if (!absence?.id) return
+  if (!confirm('Supprimer cette absence ? Le mécanicien redevient disponible sur la période.')) return
+
+  try {
+    await api.del(`/absences/${absence.id}`)
+    toast.add({ title: 'Absence supprimée', color: 'success' })
+    await loadWorkshop()
+  } catch (e: any) {
+    toast.add({
+      title: 'Suppression impossible',
+      description: e?.message || 'Le serveur a refusé la suppression ; l’absence reste enregistrée.',
+      color: 'error',
+    })
   }
 }
 
