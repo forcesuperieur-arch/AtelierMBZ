@@ -1,59 +1,88 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="stat-head">
-        <div>
-          <div class="page-title">Stat</div>
-          <div class="page-sub">{{ ongletCourant.sousTitre }}</div>
-        </div>
-        <div class="stat-head-actions">
-          <div class="export">
-            <button
-              type="button"
-              class="btn btn-ghost export-btn"
-              :aria-expanded="menuExport"
-              @click="menuExport = !menuExport"
-            >
-              Exporter
+    <!-- En-tête de page du design system : un titre, une ligne qui dit à quoi
+         la page répond, et le jeu d'onglets à droite. Le filet jaune est le
+         SEUL ornement admis ici — pas d'icône, pas de carte, pas de dégradé. -->
+    <header class="page-header stat-head">
+      <div class="stat-identite">
+        <h1 class="page-title stat-titre">Stat</h1>
+        <p class="stat-sous-titre">{{ ongletCourant.sousTitre }}</p>
+      </div>
+
+      <div class="stat-outils">
+        <!-- Une seule barre d'onglets, une seule barre de filtres. Chaque onglet
+             répond à UNE question ; on ne mélange plus le direct et l'analyse. -->
+        <nav
+          class="stat-onglets"
+          role="tablist"
+          aria-label="Vues de Stat"
+          data-testid="stat-onglets"
+        >
+          <button
+            v-for="onglet in ONGLETS"
+            :id="`stat-onglet-${onglet.key}`"
+            :key="onglet.key"
+            type="button"
+            role="tab"
+            class="stat-onglet"
+            :class="{ 'stat-onglet--on': tab === onglet.key }"
+            :aria-selected="tab === onglet.key"
+            :aria-controls="PANNEAU_ID"
+            :data-testid="`stat-onglet-${onglet.key}`"
+            @click="changerOnglet(onglet.key)"
+          >
+            {{ onglet.label }}
+            <span
+              v-if="onglet.key === 'atelier' && store.aTraiter.total"
+              class="stat-onglet-compte"
+              data-testid="stat-onglet-atelier-compte"
+            >{{ store.aTraiter.total }}</span>
+          </button>
+        </nav>
+
+        <!-- Échap referme le menu sans perdre le clavier : le focus est resté
+             sur le bouton qui l'a ouvert. Un menu qui ne se ferme qu'à la
+             souris piège celui qui navigue au clavier. -->
+        <div class="stat-export" @keydown.esc="menuExport = false">
+          <AppButton
+            variant="ghost"
+            class="stat-export-btn"
+            aria-haspopup="menu"
+            :aria-expanded="menuExport"
+            data-testid="stat-export"
+            @click="menuExport = !menuExport"
+          >
+            Exporter
+          </AppButton>
+          <div v-if="menuExport" class="stat-export-menu" role="menu">
+            <button type="button" role="menuitem" class="stat-export-item" @click="exporter('pdf')">
+              Exporter en PDF · rapport visuel
             </button>
-            <div v-if="menuExport" class="export-menu">
-              <button type="button" class="export-item" @click="exporter('pdf')">PDF — rapport visuel</button>
-              <button type="button" class="export-item" @click="exporter('excel')">Excel — données brutes</button>
-            </div>
+            <button type="button" role="menuitem" class="stat-export-item" @click="exporter('excel')">
+              Exporter en Excel · données brutes
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- Une seule barre d'onglets, une seule barre de filtres. Chaque onglet
-           répond à UNE question ; on ne mélange plus le direct et l'analyse. -->
-      <nav class="tabs" role="tablist" aria-label="Vues du tableau de bord">
-        <button
-          v-for="onglet in ONGLETS"
-          :key="onglet.key"
-          type="button"
-          role="tab"
-          class="tab-btn"
-          :class="{ 'tab-btn--on': tab === onglet.key }"
-          :aria-selected="tab === onglet.key"
-          @click="changerOnglet(onglet.key)"
-        >
-          {{ onglet.label }}
-          <span v-if="onglet.key === 'atelier' && store.aTraiter.total" class="tab-badge">{{ store.aTraiter.total }}</span>
-        </button>
-      </nav>
-    </div>
+    </header>
 
     <!-- La barre de période ne s'affiche que pour les onglets qu'elle pilote :
          elle n'a aucun sens sur une vue temps réel. -->
-    <UCard v-if="tab !== 'atelier'" class="periode-card">
+    <section
+      v-if="tab !== 'atelier'"
+      class="periode-carte"
+      aria-label="Période analysée"
+      data-testid="stat-periode"
+    >
       <div class="periode">
-        <div class="periode-presets">
+        <div class="periode-raccourcis" role="group" aria-label="Raccourcis de période">
           <button
             v-for="preset in PRESETS"
             :key="preset.key"
             type="button"
-            class="preset"
-            :class="{ 'preset--on': store.periode.preset === preset.key }"
+            class="periode-pilule"
+            :class="{ 'periode-pilule--on': store.periode.preset === preset.key }"
+            :aria-pressed="store.periode.preset === preset.key"
             @click="choisirPreset(preset.key)"
           >
             {{ preset.label }}
@@ -65,17 +94,25 @@
           <span class="periode-sep" aria-hidden="true">→</span>
           <label class="sr-only" for="periode-to">Fin de période</label>
           <input id="periode-to" v-model="store.periode.to" type="date" class="periode-input" >
-          <button type="button" class="btn btn-primary periode-go" @click="appliquerDates">Appliquer</button>
+          <AppButton variant="primary" class="periode-appliquer" @click="appliquerDates">
+            Appliquer la période
+          </AppButton>
         </div>
       </div>
       <p class="periode-note">
-        Comparé automatiquement à la période précédente de même durée.
+        Chaque mesure est comparée à la période précédente, de même durée.
       </p>
-    </UCard>
+    </section>
 
     <!-- Pendant un rechargement, on garde l'affichage précédent en retrait
          plutôt que de faire clignoter un squelette. -->
-    <div class="tab-zone" :class="{ 'tab-zone--loading': chargementCourant && ongletDejaCharge }">
+    <div
+      :id="PANNEAU_ID"
+      class="tab-zone"
+      role="tabpanel"
+      :aria-labelledby="`stat-onglet-${tab}`"
+      :class="{ 'tab-zone--loading': chargementCourant && ongletDejaCharge }"
+    >
       <AppLoadingState v-if="!ongletDejaCharge && !erreurCourante" />
       <DashboardTabAtelier v-else-if="tab === 'atelier'" />
       <DashboardTabPeriode v-else-if="tab === 'periode'" />
@@ -105,11 +142,16 @@ const auth = useAuthStore()
 
 type TabKey = 'atelier' | 'periode' | 'analyse' | 'explorer'
 
+/**
+ * Les sous-titres nomment ce que l'onglet montre ; ils ne s'adressent à
+ * personne et n'annoncent aucun classement de personnes — la règle 6 réserve
+ * l'écart vendu / pointé aux prestations, jamais aux mécaniciens.
+ */
 const ONGLETS: Array<{ key: TabKey, label: string, sousTitre: string }> = [
   { key: 'atelier', label: 'Atelier', sousTitre: "L'état de l'atelier maintenant et ce qu'il y a à traiter." },
   { key: 'periode', label: 'Période', sousTitre: "L'activité sur une période, comparée à la précédente." },
-  { key: 'analyse', label: 'Analyse', sousTitre: 'Ce qui explique les chiffres : mécaniciens, délais, prestations.' },
-  { key: 'explorer', label: 'Explorer', sousTitre: 'Analyse libre : croise les axes, clique pour filtrer, descends aux rendez-vous.' },
+  { key: 'analyse', label: 'Analyse', sousTitre: 'Ce qui explique les chiffres : délais, prestations, marges.' },
+  { key: 'explorer', label: 'Explorer', sousTitre: 'Analyse libre : les axes se croisent, le résultat descend jusqu\'aux rendez-vous.' },
 ]
 
 const PRESETS = [
@@ -120,6 +162,9 @@ const PRESETS = [
 ]
 
 const STORAGE_KEY = 'paddock:stat-onglet'
+
+/** Cible des onglets : un `tablist` sans `tabpanel` ne s'annonce pas. */
+const PANNEAU_ID = 'stat-panneau'
 
 /**
  * Onglet d'arrivée selon le rôle : un responsable d'atelier ouvre la page pour
@@ -185,17 +230,20 @@ async function exporter(format: 'pdf' | 'excel') {
     if (store.periode.to) params.set('to', store.periode.to)
     const url = `/api/analytics/export/${format}${params.toString() ? `?${params.toString()}` : ''}`
     const response = await fetch(url, { credentials: 'include' })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    // `messageErreur` nomme la cause à partir du code HTTP ; un Error dont le
+    // message vaut « HTTP 500 » le court-circuiterait et afficherait ce
+    // libellé tel quel au comptoir. On laisse donc le message vide.
+    if (!response.ok) throw Object.assign(new Error(''), { statusCode: response.status })
     const blob = await response.blob()
     const lien = document.createElement('a')
     lien.href = URL.createObjectURL(blob)
     lien.download = `stat_${store.periode.from || ''}_${store.periode.to || ''}.${format === 'pdf' ? 'pdf' : 'xlsx'}`
     lien.click()
     URL.revokeObjectURL(lien.href)
-  } catch {
+  } catch (erreur) {
     useToast().add({
       title: 'Export impossible',
-      description: 'Le rapport n\'a pas pu être généré. Réessaie dans un instant.',
+      description: messageErreur(erreur, "le rapport de la période n'a pas été produit"),
       color: 'error',
     })
   }
@@ -213,126 +261,186 @@ onUnmounted(() => store.stopAutoRefresh())
 </script>
 
 <style scoped>
-.stat-head {
+/* ── En-tête ─────────────────────────────────────────────────────────────
+   `.page-header` de la feuille globale centre ses enfants ; ici le bloc de
+   gauche porte deux lignes et le jeu d'onglets une seule, l'alignement se
+   fait donc sur la ligne de base du bas. */
+.stat-head { align-items: flex-end; }
+.stat-identite { flex: 1 1 320px; min-width: 0; }
+
+/* Le design system n'accorde au titre de page qu'un filet jaune de 4 px. La
+   feuille globale en dessine un de 3 px, en dégradé et biseauté, hérité de
+   l'ancienne charte : on le ramène à la valeur du système sans toucher à la
+   feuille, qui sert toutes les autres pages. */
+.stat-titre { margin: 0; color: var(--pk-ink); }
+.stat-titre::after {
+  height: 4px;
+  background: var(--pk-accent);
+  clip-path: none;
+}
+
+.stat-sous-titre {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--pk-ink-quiet);
+}
+
+.stat-outils {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--pk-target-gap);
 }
-.stat-head-actions { display: flex; align-items: center; gap: 8px; }
 
-.export { position: relative; }
-.export-btn { font-size: 12px; padding: 7px 14px; }
-.export-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 6px;
-  padding: 6px;
-  min-width: 210px;
-  border-radius: var(--radius);
-  background: var(--dark3);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-lg);
-  z-index: 50;
-}
-.export-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink-body);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.export-item:hover { background: var(--overlay-hover); color: var(--ink); }
+/* ── Onglets en pilules ─────────────────────────────────────────────────── */
+.stat-onglets { display: flex; flex-wrap: wrap; gap: 4px; }
 
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-top: 16px;
-  border-bottom: 1px solid var(--glass-border);
-}
-.tab-btn {
-  position: relative;
+.stat-onglet {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 16px;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  gap: 8px;
+  min-height: var(--pk-target-desk);
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--pk-radius-pill);
   background: transparent;
-  color: var(--ink-muted);
+  color: var(--pk-ink-quiet);
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  /* Graisse constante d'un onglet à l'autre : signaler l'actif par le poids
+     déplacerait la largeur de toute la série à chaque clic. L'état se dit par
+     l'aplat et la couleur — c'est la règle du design system. */
+  font-weight: 600;
   cursor: pointer;
-  transition: color var(--transition), border-color var(--transition);
+  transition:
+    background var(--pk-duration-state) var(--pk-easing),
+    border-color var(--pk-duration-state) var(--pk-easing),
+    color var(--pk-duration-state) var(--pk-easing);
 }
-.tab-btn:hover { color: var(--ink-body); }
-.tab-btn--on { color: var(--accent-content); border-bottom-color: var(--accent-graphic); }
-.tab-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
-.tab-badge {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--status-warn-soft);
-  color: var(--warning-content);
+.stat-onglet:hover { background: var(--pk-neutral-surface); color: var(--pk-ink); }
+.stat-onglet--on,
+.stat-onglet--on:hover {
+  background: var(--pk-ink);
+  border-color: var(--pk-ink);
+  color: var(--pk-surface-raised);
 }
 
-.periode-card { margin-bottom: 16px; }
+/* Compteur de la file à traiter. Neutre et non coloré : c'est un nombre, pas
+   un statut — la gravité se lit dans la file elle-même, pas sur l'onglet. */
+.stat-onglet-compte {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--pk-radius-pill);
+  background: var(--pk-ink);
+  color: var(--pk-surface-raised);
+  font-size: 11px;
+  font-weight: 700;
+}
+.stat-onglet--on .stat-onglet-compte {
+  background: var(--pk-surface-raised);
+  color: var(--pk-ink);
+}
+
+/* ── Export ─────────────────────────────────────────────────────────────── */
+.stat-export { position: relative; }
+.stat-export-btn { min-height: var(--pk-target-desk); }
+
+.stat-export-menu {
+  position: absolute;
+  top: calc(100% + var(--pk-target-gap));
+  right: 0;
+  z-index: 50;
+  min-width: 268px;
+  padding: 6px;
+  /* Surface levée + filet : le design system sépare par la bordure et le
+     changement de fond, jamais par une ombre portée. */
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
+  background: var(--pk-surface-raised);
+}
+.stat-export-item {
+  display: block;
+  width: 100%;
+  min-height: var(--pk-target-desk);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--pk-radius-card);
+  background: transparent;
+  color: var(--pk-ink);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--pk-duration-state) var(--pk-easing);
+}
+.stat-export-item:hover { background: var(--pk-neutral-surface); }
+
+/* ── Barre de période ───────────────────────────────────────────────────── */
+.periode-carte {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
+  background: var(--pk-surface);
+}
 .periode {
   /* Groupés à gauche : en space-between sur un grand écran, les raccourcis et
      les dates se retrouvaient aux deux extrémités avec un trou au milieu. */
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px 28px;
+  /* Un raccourci recadre la période, « Appliquer la période » valide une
+     saisie manuelle : deux effets opposés, donc l'écart minimal du système. */
+  gap: var(--pk-target-gap) 28px;
 }
-.periode-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.preset {
-  min-height: 34px;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--glass-border);
-  background: var(--overlay-soft);
-  color: var(--ink-body);
+.periode-raccourcis { display: flex; flex-wrap: wrap; gap: var(--pk-target-gap); }
+
+.periode-pilule {
+  min-height: var(--pk-target-desk);
+  padding: 0 16px;
+  border: 1px solid var(--pk-border-control);
+  border-radius: var(--pk-radius-pill);
+  background: transparent;
+  color: var(--pk-ink);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    background var(--pk-duration-state) var(--pk-easing),
+    border-color var(--pk-duration-state) var(--pk-easing),
+    color var(--pk-duration-state) var(--pk-easing);
 }
-.preset:hover { border-color: var(--border-hover); }
-.preset--on {
-  border-color: var(--accent-graphic);
-  background: var(--accent-soft);
-  color: var(--accent-content);
+.periode-pilule:hover { border-color: var(--pk-border-strong); }
+/* Pilule retenue = aplat plein, comme la FilterPill du planning. */
+.periode-pilule--on,
+.periode-pilule--on:hover {
+  background: var(--pk-ink);
+  border-color: var(--pk-ink);
+  color: var(--pk-surface-raised);
 }
-.periode-dates { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+.periode-dates { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pk-target-gap); }
 .periode-input {
   /* La feuille globale impose `width: 100%` à tous les inputs de `.content` ;
      dans une rangée flex, c'est la base flex qui tranche — sans elle, les deux
      champs de date passent à la ligne chacun sur sa propre rangée. */
   flex: 0 0 170px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--glass-border);
-  background: var(--overlay-soft);
-  color: var(--ink-body);
-  font-family: inherit;
-  font-size: 13px;
+  /* La même règle globale pose `min-height: 40px` avec une spécificité qu'une
+     feuille de page ne bat pas ; `height` n'y figure pas, c'est donc par elle
+     qu'on atteint la cible de bureau de 44 px sans toucher à `main.css`. */
+  height: var(--pk-target-desk);
 }
-.periode-sep { color: var(--ink-muted); }
-.periode-go { font-size: 12px; padding: 7px 14px; }
-.periode-note { margin: 10px 0 0; font-size: 12px; color: var(--ink-muted); }
+.periode-sep { color: var(--pk-ink-muted); }
+.periode-appliquer { min-height: var(--pk-target-desk); }
+.periode-note { margin: 12px 0 0; font-size: 12px; color: var(--pk-ink-muted); }
 
-.tab-zone { transition: opacity var(--transition); }
+/* ── Zone d'onglet ──────────────────────────────────────────────────────── */
+.tab-zone { transition: opacity var(--pk-duration-state) var(--pk-easing); }
 .tab-zone--loading { opacity: 0.55; }
 
 .sr-only {

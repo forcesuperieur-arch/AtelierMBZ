@@ -1,86 +1,154 @@
 <template>
-  <div data-testid="reception-page">
-    <div class="page-header reception-header">
-      <div>
-        <div class="page-title">Réception du matin</div>
-        <div class="page-sub">{{ todayLabel }} — check-in / état des lieux d'entrée</div>
-      </div>
-      <div class="reception-kpis">
-        <div class="stat-card reception-kpi">
-          <div class="reception-kpi-label">RDV DU JOUR</div>
-          <div class="reception-kpi-value" style="color:var(--content-1);">{{ kpis.total }}</div>
-        </div>
-        <div class="stat-card reception-kpi">
-          <div class="reception-kpi-label">CHECK-INS SIGNÉS</div>
-          <div class="reception-kpi-value" style="color:var(--success-content);">{{ kpis.signes }}</div>
-        </div>
-        <div class="stat-card reception-kpi">
-          <div class="reception-kpi-label">RESTANTS</div>
-          <div class="reception-kpi-value" style="color:var(--accent-content);">{{ kpis.restants }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="loading" class="reception-loading">Chargement…</div>
-
-    <div v-else-if="loadError" class="reception-error">
-      <p>{{ loadError }}</p>
-      <button class="btn btn-ghost" type="button" @click="loadData()">Réessayer</button>
-    </div>
-
-    <UCard v-else>
-      <template #header>
-        <span style="font-size:15px;font-weight:700;color:var(--content-1);"><AppIcon name="i-ri-inbox-line" /> Motos attendues aujourd'hui ({{ receptionRdvs.length }})</span>
-      </template>
-
-      <div v-if="!receptionRdvs.length" class="reception-empty">
-        Aucun rendez-vous à réceptionner aujourd'hui.
+  <div data-testid="reception-page" class="rc">
+    <!-- Titre, bande de course jaune, puis la bande de mesures : la maquette 2b
+         met les trois chiffres du matin AU-DESSUS de la liste, jamais dedans. -->
+    <header class="rc-tete">
+      <div class="rc-tete-titres">
+        <h1 class="rc-titre">Réception du matin</h1>
+        <span class="rc-filet-course" aria-hidden="true" />
+        <p class="rc-sous-titre">{{ todayLabel }} — check-in et état des lieux d'entrée.</p>
       </div>
 
-      <div v-else class="reception-list">
-        <div
-          v-for="rdv in receptionRdvs"
+      <div class="rc-mesures">
+        <div class="rc-mesure">
+          <span class="rc-mesure-label">RDV du jour</span>
+          <span class="rc-mesure-valeur">{{ kpis.total }}</span>
+        </div>
+        <div class="rc-mesure">
+          <span class="rc-mesure-label">Check-ins signés</span>
+          <span class="rc-mesure-valeur rc-mesure-valeur--fait">{{ kpis.signes }}</span>
+        </div>
+        <div class="rc-mesure">
+          <span class="rc-mesure-label">Restants</span>
+          <span class="rc-mesure-valeur rc-mesure-valeur--reste">{{ kpis.restants }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 29c : la forme de la liste est déjà là, la page ne saute pas à
+         l'arrivée des rendez-vous. -->
+    <AppLoadingState
+      v-if="loading"
+      title="Lecture des motos attendues aujourd'hui"
+      :colonnes="4"
+      :lignes="5"
+    />
+
+    <AppErrorState
+      v-else-if="loadError"
+      title="La liste des motos attendues n'a pas pu être lue"
+      :description="loadError"
+      consequence="Aucun check-in n'a été perdu : les brouillons déjà enregistrés sont intacts."
+      action-label="Relire la liste du jour"
+      @retry="loadData()"
+    />
+
+    <!-- 29a : ne pas dire « c'est vide », dire par où la moto arrive ici. -->
+    <AppEmptyState
+      v-else-if="!receptionRdvs.length"
+      icon="i-ri-inbox-line"
+      title="Aucune moto attendue aujourd'hui"
+      description="Les motos attendues viennent des rendez-vous posés au planning : un rendez-vous confirmé apparaît sur cette liste le matin de sa date."
+      action-label="Relire la liste du jour"
+      @action="loadData()"
+    />
+
+    <section v-else class="rc-cadre">
+      <div class="rc-cadre-tete">
+        <AppIcon name="i-ri-inbox-line" class="rc-cadre-glyphe" aria-hidden="true" />
+        <span class="rc-cadre-titre">Motos attendues aujourd'hui</span>
+        <span class="rc-compteur">{{ receptionRdvs.length }}</span>
+        <div class="rc-cadre-espace" />
+        <!-- Règle 3 : un chiffre mène quelque part. Chaque pastille est
+             chiffrée ET filtre la liste, au lieu de compter dans le vide. -->
+        <button
+          v-for="f in filtres"
+          :key="f.cle"
+          type="button"
+          class="rc-pastille-filtre"
+          :class="{ 'est-choisi': filtre === f.cle }"
+          :aria-pressed="filtre === f.cle"
+          :data-testid="`reception-filtre-${f.cle}`"
+          @click="filtre = f.cle"
+        >{{ f.libelle }} · {{ f.nombre }}</button>
+      </div>
+
+      <!-- 29b : la donnée existe, c'est le filtre qui la cache. On dit combien
+           reparaîtrait en le retirant. -->
+      <AppFilterEmptyState
+        v-if="!rdvsAffiches.length"
+        class="rc-filtre-vide"
+        title="Aucune moto dans cette vue"
+        :nombre-filtres="1"
+        :suggestion="suggestionFiltre"
+        @retirer="filtre = 'toutes'"
+        @effacer="filtre = 'toutes'"
+      />
+
+      <ol v-else class="rc-lignes">
+        <li
+          v-for="rdv in rdvsAffiches"
           :key="rdv.id"
-          class="reception-card"
+          class="rc-ligne"
+          :class="{ 'est-a-faire': !estSigne(rdv.id) }"
           data-testid="reception-rdv-card"
         >
-          <div class="reception-card-heure">{{ rdv.heure_debut || '—' }}</div>
-          <div class="reception-card-infos">
-            <p class="reception-card-client">{{ rdv.client_nom || 'Client inconnu' }}</p>
-            <p class="reception-card-vehicule">
-              {{ rdv.vehicule_info || 'Véhicule non renseigné' }}
-              <span v-if="rdv.vehicule_plaque" class="reception-card-plaque">{{ rdv.vehicule_plaque }}</span>
+          <!-- L'heure en ancre à gauche : c'est par elle que le comptoir lit
+               sa matinée, pas par le nom du client. -->
+          <div class="rc-heure">
+            <span class="rc-heure-valeur">{{ rdv.heure_debut || '—' }}</span>
+            <span v-if="dureeLisible(rdv)" class="rc-heure-duree">{{ dureeLisible(rdv) }}</span>
+          </div>
+          <span class="rc-separateur" aria-hidden="true" />
+
+          <div class="rc-identite">
+            <p class="rc-client">{{ rdv.client_nom || 'Client inconnu' }}</p>
+            <p class="rc-moto">
+              {{ rdv.vehicule_info || 'Moto non renseignée' }}
+              <span v-if="rdv.vehicule_plaque" class="rc-immat">{{ rdv.vehicule_plaque }}</span>
             </p>
-            <p v-if="rdv.type_intervention" class="reception-card-type">{{ rdv.type_intervention }}</p>
+            <p v-if="rdv.type_intervention" class="rc-travaux">{{ rdv.type_intervention }}</p>
           </div>
-          <div class="reception-card-badges">
+
+          <div class="rc-marques">
+            <!-- Pointillé = anomalie, jamais un statut normal : la moto arrive
+                 sans pont ni mécanicien, quelqu'un doit trancher avant midi. -->
+            <span v-if="sansAffectation(rdv)" class="rc-pastille rc-pastille--pointille">
+              <AppIcon name="i-ri-tools-line" aria-hidden="true" />Sans affectation
+            </span>
             <StatusBadge :status="rdv.status" />
-            <span class="edl-badge" :style="edlBadgeStyle(rdv.id)" data-testid="edl-badge">{{ edlBadgeLabel(rdv.id) }}</span>
+            <span
+              class="rc-pastille"
+              :class="classeEdl(rdv.id)"
+              data-testid="edl-badge"
+            >{{ edlBadgeLabel(rdv.id) }}</span>
           </div>
-          <div class="reception-card-actions">
+
+          <div class="rc-actions">
             <button
               v-if="edlByRdv[rdv.id]?.signe && edlByRdv[rdv.id]?.pdf_disponible"
-              class="btn btn-ghost reception-btn"
+              class="btn rc-action"
               type="button"
               data-testid="btn-edl-pdf"
               @click="openEdlPdf(edlByRdv[rdv.id])"
-            ><AppIcon name="i-ri-file-text-line" /> PDF</button>
+            ><AppIcon name="i-ri-file-text-line" /> PDF de l'EDL</button>
             <button
-              class="btn btn-ghost reception-btn"
+              class="btn rc-action"
               type="button"
               data-testid="btn-edl-panneau"
               @click="ouvrirEtatDesLieux(rdv)"
             ><AppIcon name="i-ri-camera-line" /> État des lieux</button>
             <button
-              class="btn btn-primary reception-btn"
+              class="btn rc-action"
+              :class="estSigne(rdv.id) ? 'btn-secondary' : 'btn-primary'"
               type="button"
               data-testid="btn-checkin"
               @click="openCheckin(rdv)"
             >{{ checkinButtonLabel(rdv.id) }}</button>
           </div>
-        </div>
-      </div>
-    </UCard>
+        </li>
+      </ol>
+    </section>
 
     <!-- État des lieux photo (47b) : les deux séries côte à côte, entrée et
          sortie dans le même ordre — c'est la comparaison qui fait preuve. Le
@@ -94,170 +162,182 @@
       @close="edlPanneauOuvert = false"
     />
 
-    <!-- ===== Panneau check-in ===== -->
-    <AppModal v-model:open="checkinOpen" size="lg">
-      <template #header>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:var(--content-1);" class="modal-title"><AppIcon name="i-ri-inbox-line" /> Check-in — état des lieux d'entrée</div>
-          <div v-if="checkinRdv" style="font-size:12px;color:var(--content-3);margin-top:2px;">
-            {{ checkinRdv.heure_debut }} · {{ checkinRdv.client_nom }} · {{ checkinRdv.vehicule_info }}
-            <span v-if="checkinRdv.vehicule_plaque"> ({{ checkinRdv.vehicule_plaque }})</span>
-          </div>
-        </div>
-      </template>
-
-      <template #content>
-        <div v-if="checkinRdv" class="checkin-body">
-          <!-- État signé : lecture seule -->
-          <div v-if="isSigned" class="checkin-signed" data-testid="checkin-signed">
-            <div style="font-size:32px;"><AppIcon name="i-ri-checkbox-circle-line" /></div>
-            <p style="color:var(--success-content);font-weight:700;font-size:15px;">État des lieux signé</p>
-            <p v-if="currentEdl?.signed_at" style="font-size:12px;color:var(--content-3);">
-              Signé le {{ formatDateTime(currentEdl.signed_at) }}<span v-if="currentEdl?.signed_by"> — accueilli par {{ currentEdl.signed_by }}</span>
-            </p>
-            <div class="checkin-signed-recap">
-              <div><span class="checkin-recap-label">Kilométrage :</span> {{ currentEdl?.kilometrage ?? '—' }} km</div>
-              <div><span class="checkin-recap-label">Carburant :</span> {{ fuelLabel(currentEdl?.niveau_carburant) }}</div>
-              <div><span class="checkin-recap-label">Photos d'entrée :</span> {{ photosCount }}</div>
-              <div v-if="currentEdl?.observations" style="grid-column:1/-1;"><span class="checkin-recap-label">Observations :</span> {{ currentEdl.observations }}</div>
-            </div>
-            <div class="checkin-signed-actions">
-              <button
-                v-if="currentEdl?.pdf_disponible"
-                class="btn btn-ghost reception-btn"
-                type="button"
-                data-testid="btn-edl-pdf-modal"
-                @click="openEdlPdf(currentEdl)"
-              ><AppIcon name="i-ri-file-text-line" /> Voir le PDF</button>
-              <button
-                v-if="checkinRdv.status === 'confirme'"
-                class="btn btn-primary reception-btn"
-                type="button"
-                data-testid="btn-passer-reception"
-                :disabled="transitioning"
-                @click="passerEnReception(checkinRdv)"
-              ><AppIcon v-if="!(transitioning)" name="i-ri-motorbike-line" />{{ transitioning ? 'Transition…' : 'Passer en réception' }}</button>
-            </div>
-          </div>
-
-          <!-- Saisie -->
-          <template v-else>
-            <div class="form-group">
-              <label class="form-label" for="checkin-km">Kilométrage compteur <span style="color:var(--error-content);">*</span></label>
-              <input
-                id="checkin-km"
-                v-model.number="form.kilometrage"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                class="form-input checkin-km-input"
-                placeholder="ex : 24350"
-                data-testid="checkin-km"
-                :disabled="hydrating"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Niveau de carburant <span style="color:var(--error-content);">*</span></label>
-              <div class="fuel-gauge" role="radiogroup" aria-label="Niveau de carburant">
-                <button
-                  v-for="(level, idx) in FUEL_LEVELS"
-                  :key="level.value"
-                  type="button"
-                  class="fuel-segment"
-                  :class="{ 'is-selected': form.niveau_carburant === level.value, 'is-filled': isFuelFilled(idx) }"
-                  role="radio"
-                  :aria-checked="form.niveau_carburant === level.value"
-                  :data-testid="`fuel-segment-${level.value}`"
-                  :disabled="hydrating"
-                  @click="form.niveau_carburant = level.value"
-                >
-                  <span class="fuel-segment-bar" />
-                  <span class="fuel-segment-label">{{ level.label }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="checkin-obs">Observations (rayures, chocs, accessoires…)</label>
-              <textarea
-                id="checkin-obs"
-                v-model="form.observations"
-                class="form-input"
-                rows="3"
-                placeholder="État général du véhicule à l'arrivée…"
-                data-testid="checkin-observations"
-                :disabled="hydrating"
-              />
-            </div>
-
-            <!-- Photos -->
-            <div class="form-group">
-              <div class="checkin-photos-header">
-                <label class="form-label" style="margin-bottom:0;">Photos d'entrée</label>
-                <span class="checkin-photos-count" :style="{ color: photosCount >= PHOTOS_MIN ? 'var(--success-content)' : 'var(--warning-content)' }" data-testid="checkin-photos-count">
-                  {{ photosCount }}/{{ PHOTOS_MIN }} photos minimum
-                </span>
-              </div>
-              <label class="checkin-photo-btn">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                  style="display:none;"
-                  data-testid="checkin-photo-input"
-                  :disabled="uploadingPhotos || hydrating"
-                  @change="onPhotosSelected"
-                />
-                <span><AppIcon :name="uploadingPhotos ? 'i-ri-hourglass-line' : 'i-ri-camera-line'" /> {{ uploadingPhotos ? 'Envoi en cours…' : 'Prendre / ajouter des photos' }}</span>
-              </label>
-              <div v-if="sessionPhotos.length" class="checkin-photo-grid">
-                <img
-                  v-for="photo in sessionPhotos"
-                  :key="photo.id"
-                  :src="photo.url"
-                  :alt="photo.filename"
-                  class="checkin-photo-thumb"
-                  @click="openPhotoInTab(photo.url)"
-                />
-              </div>
-              <p v-if="photosCount > sessionPhotos.length" class="checkin-photos-hint">
-                {{ photosCount - sessionPhotos.length }} photo{{ photosCount - sessionPhotos.length > 1 ? 's' : '' }} déjà enregistrée{{ photosCount - sessionPhotos.length > 1 ? 's' : '' }} sur ce RDV.
+    <!-- ===== Check-in — panneau de travail (règle 4) =====
+         La file du matin reste lisible derrière : le comptoir garde sous les
+         yeux qui attend pendant qu'il saisit le relevé de la moto présente. -->
+    <AppSidePanel
+      :open="checkinOpen"
+      icon="i-ri-inbox-line"
+      :title="titreCheckin"
+      :subtitle="sousTitreCheckin"
+      @close="checkinOpen = false"
+    >
+      <template v-if="checkinRdv">
+        <!-- Document signé : plus rien ne se saisit, tout se relit. -->
+        <template v-if="isSigned">
+          <AppPanelSection label="État des lieux" :aside="currentEdl?.signed_at ? formatDateTime(currentEdl.signed_at) : ''">
+            <div class="rc-fige" data-testid="checkin-signed">
+              <AppIcon name="i-ri-checkbox-circle-line" class="rc-fige-glyphe" aria-hidden="true" />
+              <p class="rc-fige-texte">
+                Signé<span v-if="currentEdl?.signed_by"> par {{ currentEdl.signed_by }}</span>.
+                Le document est figé : ni le relevé ni les photos d'entrée ne bougeront plus.
               </p>
-              <p class="checkin-photos-hint">La suppression de photos n'est pas disponible — reprenez une photo si besoin.</p>
+            </div>
+          </AppPanelSection>
+
+          <AppPanelSection label="Relevés d'entrée">
+            <div class="rc-releve"><span>Compteur</span><strong>{{ formatKm(currentEdl?.kilometrage) }}</strong></div>
+            <div class="rc-releve"><span>Carburant</span><strong>{{ fuelLabel(currentEdl?.niveau_carburant) }}</strong></div>
+            <div class="rc-releve"><span>Photos d'entrée</span><strong>{{ photosCount }}</strong></div>
+          </AppPanelSection>
+
+          <AppPanelSection v-if="currentEdl?.observations" label="Réserves notées à l'entrée">
+            <p class="rc-reserve">{{ currentEdl.observations }}</p>
+            <p class="rc-note">Reprises telles quelles sur l'OR et sur le bon de sortie.</p>
+          </AppPanelSection>
+        </template>
+
+        <!-- Saisie -->
+        <template v-else>
+          <AppPanelSection label="Relevés d'entrée">
+            <label class="rc-champ-label" for="checkin-km">Kilométrage au compteur</label>
+            <input
+              id="checkin-km"
+              v-model.number="form.kilometrage"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              class="form-input rc-km"
+              placeholder="ex : 24350"
+              data-testid="checkin-km"
+              :disabled="hydrating"
+            />
+            <p class="rc-aide">Le relevé d'arrivée sert de référence à la restitution : sans lui, l'écart de kilomètres ne se prouve pas.</p>
+
+            <span class="rc-champ-label rc-champ-label--espace" id="checkin-carburant-label">Niveau de carburant</span>
+            <div class="rc-jauge" role="radiogroup" aria-labelledby="checkin-carburant-label">
+              <button
+                v-for="(level, idx) in FUEL_LEVELS"
+                :key="level.value"
+                type="button"
+                class="rc-jauge-cran"
+                :class="{ 'est-choisi': form.niveau_carburant === level.value, 'est-rempli': isFuelFilled(idx) }"
+                role="radio"
+                :aria-checked="form.niveau_carburant === level.value"
+                :data-testid="`fuel-segment-${level.value}`"
+                :disabled="hydrating"
+                @click="form.niveau_carburant = level.value"
+              >
+                <span class="rc-jauge-barre" />
+                <span class="rc-jauge-label">{{ level.label }}</span>
+              </button>
+            </div>
+          </AppPanelSection>
+
+          <AppPanelSection label="Réserves constatées à l'arrivée">
+            <label class="sr-only" for="checkin-obs">Réserves constatées à l'arrivée</label>
+            <textarea
+              id="checkin-obs"
+              v-model="form.observations"
+              class="form-input rc-observations"
+              rows="3"
+              placeholder="Rayure carter droit, chocs de jante, top-case laissé sur la moto…"
+              data-testid="checkin-observations"
+              :disabled="hydrating"
+            />
+            <p class="rc-aide">Ce qui est écrit ici est repris tel quel sur l'OR et sur le bon de sortie.</p>
+          </AppPanelSection>
+
+          <AppPanelSection label="Photos d'entrée">
+            <p
+              class="rc-compte-photos"
+              :class="{ 'est-court': photosCount < PHOTOS_MIN }"
+              data-testid="checkin-photos-count"
+            >{{ photosCount }} sur {{ PHOTOS_MIN }} minimum</p>
+            <label class="rc-prise-photo">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                class="sr-only"
+                data-testid="checkin-photo-input"
+                :disabled="uploadingPhotos || hydrating"
+                @change="onPhotosSelected"
+              />
+              <span>
+                <AppIcon :name="uploadingPhotos ? 'i-ri-hourglass-line' : 'i-ri-camera-line'" />
+                {{ uploadingPhotos ? 'Envoi des clichés…' : 'Prendre les photos de la moto' }}
+              </span>
+            </label>
+
+            <div v-if="sessionPhotos.length" class="rc-cliches">
+              <img
+                v-for="photo in sessionPhotos"
+                :key="photo.id"
+                :src="photo.url"
+                :alt="photo.filename"
+                class="rc-cliche"
+                @click="openPhotoInTab(photo.url)"
+              />
             </div>
 
-            <div v-if="draftError" class="checkin-alert checkin-alert-error" data-testid="checkin-error">{{ draftError }}</div>
-            <div v-else-if="draftSavedAt" class="checkin-alert checkin-alert-ok"><AppIcon name="i-ri-save-line" /> Brouillon enregistré à {{ draftSavedAt }}</div>
-          </template>
-        </div>
+            <p v-if="photosCount > sessionPhotos.length" class="rc-aide">
+              {{ photosCount - sessionPhotos.length }} cliché{{ photosCount - sessionPhotos.length > 1 ? 's' : '' }} déjà enregistré{{ photosCount - sessionPhotos.length > 1 ? 's' : '' }} sur ce rendez-vous.
+            </p>
+            <p class="rc-aide">Une photo ne se supprime pas : reprenez le cliché, l'ancien reste au dossier.</p>
+          </AppPanelSection>
+
+          <AppPanelSection v-if="draftError || draftSavedAt">
+            <div v-if="draftError" data-testid="checkin-error"><AppFieldError :message="draftError" /></div>
+            <p v-else class="rc-brouillon"><AppIcon name="i-ri-save-line" /> Brouillon enregistré à {{ draftSavedAt }}</p>
+          </AppPanelSection>
+        </template>
       </template>
 
       <template #footer>
-        <div class="checkin-footer">
-          <button class="btn btn-ghost reception-btn" type="button" :disabled="hydrating" @click="checkinOpen = false">Fermer</button>
-          <template v-if="checkinRdv && !isSigned">
-            <button
-              class="btn btn-ghost reception-btn"
-              type="button"
-              :disabled="savingDraft || hydrating"
-              data-testid="btn-save-draft"
-              @click="saveDraft(true)"
-            ><AppIcon v-if="!(savingDraft)" name="i-ri-save-line" />{{ savingDraft ? 'Sauvegarde…' : 'Enregistrer le brouillon' }}</button>
-            <button
-              class="btn btn-primary reception-btn"
-              type="button"
-              :disabled="!canSign || savingDraft || hydrating"
-              :title="canSign ? '' : 'Kilométrage, carburant et 4 photos minimum requis'"
-              data-testid="btn-faire-signer"
-              @click="openSignature"
-            ><AppIcon name="i-ri-quill-pen-line" /> Faire signer le client</button>
-          </template>
-        </div>
+        <template v-if="checkinRdv && !isSigned">
+          <!-- Règle 5 : dire ce qui manque et ce que ça empêche, plutôt que de
+               cacher la raison derrière l'infobulle d'un bouton grisé. -->
+          <p v-if="manqueAvantSignature" class="rc-blocage">{{ manqueAvantSignature }}</p>
+          <button
+            class="btn btn-primary rc-action"
+            type="button"
+            :disabled="!canSign || savingDraft || hydrating"
+            data-testid="btn-faire-signer"
+            @click="openSignature"
+          ><AppIcon name="i-ri-quill-pen-line" /> Faire signer le client</button>
+          <button
+            class="btn rc-action"
+            type="button"
+            :disabled="savingDraft || hydrating"
+            data-testid="btn-save-draft"
+            @click="saveDraft(true)"
+          ><AppIcon v-if="!savingDraft" name="i-ri-save-line" />{{ savingDraft ? 'Enregistrement…' : 'Enregistrer le brouillon' }}</button>
+        </template>
+
+        <template v-else-if="checkinRdv">
+          <button
+            v-if="currentEdl?.pdf_disponible"
+            class="btn rc-action"
+            type="button"
+            data-testid="btn-edl-pdf-modal"
+            @click="openEdlPdf(currentEdl)"
+          ><AppIcon name="i-ri-file-text-line" /> Imprimer l'état des lieux</button>
+          <button
+            v-if="checkinRdv.status === 'confirme'"
+            class="btn btn-primary rc-action"
+            type="button"
+            data-testid="btn-passer-reception"
+            :disabled="transitioning"
+            @click="passerEnReception(checkinRdv)"
+          ><AppIcon v-if="!transitioning" name="i-ri-motorbike-line" />{{ transitioning ? 'Réception en cours…' : libelleReception(checkinRdv) }}</button>
+        </template>
+
+        <button class="btn btn-ghost rc-action" type="button" :disabled="hydrating" @click="checkinOpen = false">Fermer le panneau</button>
       </template>
-    </AppModal>
+    </AppSidePanel>
 
     <!-- ===== Signature client ===== -->
     <SignatureModal
@@ -286,6 +366,9 @@ const PHOTOS_MIN = 4
 const DRAFT_DEBOUNCE_MS = 900
 const RECEPTION_STATUTS = ['confirme', 'reception']
 
+/** Espace insécable : « 1 h 20 », « 28 412 km » ne se coupent jamais en bout de ligne. */
+const INSECABLE = '\u00A0'
+
 const FUEL_LEVELS = [
   { value: 'vide', label: 'Vide' },
   { value: 'quart', label: '1/4' },
@@ -312,6 +395,9 @@ const edlPanneauOuvert = ref(false)
 const edlPanneauRdv = ref<any>(null)
 
 function ouvrirEtatDesLieux(rdv: any) {
+  // Deux panneaux occupent la même bande à droite : ouvrir l'un ferme l'autre,
+  // sinon ils se superposent et la ligne d'origine se perd.
+  checkinOpen.value = false
   edlPanneauRdv.value = rdv
   edlPanneauOuvert.value = true
 }
@@ -337,9 +423,10 @@ let draftTimer: ReturnType<typeof setTimeout> | null = null
 // Jeton de génération : toute réponse d'hydratation d'une ouverture précédente est jetée
 let openSeq = 0
 
-const todayLabel = computed(() =>
-  new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-)
+const todayLabel = computed(() => {
+  const jour = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  return jour.charAt(0).toUpperCase() + jour.slice(1)
+})
 
 const receptionRdvs = computed(() =>
   rdvStore.rdvs
@@ -354,6 +441,27 @@ const kpis = computed(() => {
   return { total, signes, restants: total - signes }
 })
 
+/** Vue de la liste. « toutes » par défaut : au chargement, rien n'est masqué. */
+const filtre = ref<'toutes' | 'a_receptionner' | 'signes'>('toutes')
+
+const filtres = computed(() => [
+  { cle: 'toutes' as const, libelle: 'Toutes', nombre: kpis.value.total },
+  { cle: 'a_receptionner' as const, libelle: 'À réceptionner', nombre: kpis.value.restants },
+  { cle: 'signes' as const, libelle: 'Signés', nombre: kpis.value.signes },
+])
+
+const rdvsAffiches = computed(() => {
+  if (filtre.value === 'a_receptionner') return receptionRdvs.value.filter((r: any) => !edlByRdv[r.id]?.signe)
+  if (filtre.value === 'signes') return receptionRdvs.value.filter((r: any) => edlByRdv[r.id]?.signe)
+  return receptionRdvs.value
+})
+
+const suggestionFiltre = computed(() => {
+  const actif = filtres.value.find((f) => f.cle === filtre.value)
+  if (!actif || filtre.value === 'toutes') return null
+  return { filtre: actif.libelle, nombre: kpis.value.total, objet: kpis.value.total > 1 ? 'motos attendues' : 'moto attendue' }
+})
+
 const currentEdl = computed(() => (checkinRdv.value ? edlByRdv[checkinRdv.value.id] : null))
 const isSigned = computed(() => Boolean(currentEdl.value?.signe))
 const photosCount = computed(() => Number(currentEdl.value?.photos_entree_count ?? 0))
@@ -365,6 +473,32 @@ const canSaveDraft = computed(() =>
   Boolean(checkinRdv.value) && !isSigned.value && hasValidKm.value && Boolean(form.niveau_carburant)
 )
 const canSign = computed(() => canSaveDraft.value && photosCount.value >= PHOTOS_MIN)
+
+const titreCheckin = computed(() => `Check-in · ${checkinRdv.value?.client_nom || 'moto attendue'}`)
+const sousTitreCheckin = computed(() =>
+  [checkinRdv.value?.heure_debut, checkinRdv.value?.vehicule_info, checkinRdv.value?.vehicule_plaque]
+    .filter(Boolean)
+    .join(' · ')
+)
+
+/**
+ * Ce qui manque encore, et ce que ça empêche. Écrit à l'écran plutôt que
+ * caché dans l'infobulle d'un bouton grisé : une action essentielle ne se
+ * découvre pas au survol.
+ */
+const manqueAvantSignature = computed(() => {
+  if (!checkinRdv.value || isSigned.value) return ''
+  const manques: string[] = []
+  if (!hasValidKm.value) manques.push('le kilométrage au compteur')
+  if (!form.niveau_carburant) manques.push('le niveau de carburant')
+  const clichesManquants = Math.max(0, PHOTOS_MIN - photosCount.value)
+  if (clichesManquants) manques.push(`${clichesManquants} photo${clichesManquants > 1 ? 's' : ''} d'entrée`)
+  if (!manques.length) return ''
+  const liste = manques.length > 1
+    ? `${manques.slice(0, -1).join(', ')} et ${manques[manques.length - 1]}`
+    : manques[0]
+  return `Il manque ${liste}. Sans ça, le client ne peut pas signer l'état des lieux, et la moto ne peut pas passer en réception.`
+})
 
 function frError(e: any): string {
   const code = e?.data?.code
@@ -394,25 +528,56 @@ function formatDateTime(value: string): string {
     : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function edlBadgeLabel(rdvId: number): string {
-  const edl = edlByRdv[rdvId]
-  if (edl?.signe) return 'Signé'
-  if (edl?.exists) return 'Saisie en cours'
-  return 'À faire'
+/** 28 412 km — groupes de milliers et unité collés par des insécables. */
+function formatKm(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
+  return `${value.toLocaleString('fr-FR').replace(/[\u202F\u2009\u00A0 ]/g, INSECABLE)}${INSECABLE}km`
 }
 
-function edlBadgeStyle(rdvId: number): Record<string, string> {
+/** Durée vendue du créneau, en écriture d'atelier : 1 h 30, 45 min. */
+function dureeLisible(rdv: any): string {
+  const minutes = Number(rdv?.temps_estime ?? rdv?.duree_estimee ?? 0)
+  if (!Number.isFinite(minutes) || minutes <= 0) return ''
+  const heures = Math.floor(minutes / 60)
+  const reste = minutes % 60
+  if (!heures) return `${reste}${INSECABLE}min`
+  return reste
+    ? `${heures}${INSECABLE}h${INSECABLE}${String(reste).padStart(2, '0')}`
+    : `${heures}${INSECABLE}h`
+}
+
+function estSigne(rdvId: number): boolean {
+  return Boolean(edlByRdv[rdvId]?.signe)
+}
+
+/** Ni pont ni mécanicien : la moto arrive sans place où la mettre. */
+function sansAffectation(rdv: any): boolean {
+  return !rdv?.pont_nom && !rdv?.mecanicien_nom
+}
+
+function libelleReception(rdv: any): string {
+  return rdv?.pont_nom ? `Réceptionner la moto · ${rdv.pont_nom}` : 'Réceptionner la moto'
+}
+
+function edlBadgeLabel(rdvId: number): string {
   const edl = edlByRdv[rdvId]
-  if (edl?.signe) return { background: 'var(--success-soft)', color: 'var(--success-content)' }
-  if (edl?.exists) return { background: 'var(--warning-soft)', color: 'var(--warning-content)' }
-  return { background: 'var(--surface-3)', color: 'var(--content-2)' }
+  if (edl?.signe) return 'Check-in signé'
+  if (edl?.exists) return 'EDL · Saisie en cours'
+  return 'EDL · À faire'
+}
+
+function classeEdl(rdvId: number): string {
+  const edl = edlByRdv[rdvId]
+  if (edl?.signe) return 'rc-pastille--fait'
+  if (edl?.exists) return 'rc-pastille--encours'
+  return 'rc-pastille--neutre'
 }
 
 function checkinButtonLabel(rdvId: number): string {
   const edl = edlByRdv[rdvId]
-  if (edl?.signe) return 'Voir le check-in'
+  if (edl?.signe) return 'Revoir le check-in'
   if (edl?.exists) return 'Reprendre le check-in'
-  return 'Check-in'
+  return 'Démarrer le check-in'
 }
 
 async function refreshEdl(rdvId: number) {
@@ -431,7 +596,7 @@ async function loadData(showSpinner = true) {
     await rdvStore.fetchRdvs({ date: todayLocalISO() })
     await Promise.all(receptionRdvs.value.map((r: any) => refreshEdl(r.id)))
   } catch (e: any) {
-    loadError.value = e?.message || 'Chargement des rendez-vous impossible.'
+    loadError.value = messageErreur(e, "la liste des motos attendues n'a pas pu être lue")
   } finally {
     loading.value = false
   }
@@ -440,6 +605,8 @@ async function loadData(showSpinner = true) {
 async function openCheckin(rdv: any) {
   const seq = ++openSeq
   hydrating.value = true
+  // Un seul panneau à la fois dans la bande de droite.
+  edlPanneauOuvert.value = false
   checkinRdv.value = rdv
   sessionPhotos.value = []
   draftError.value = ''
@@ -517,7 +684,7 @@ watch(
   }
 )
 
-// Flush du débounce en attente : à la fermeture de la modale (ou au démontage),
+// Flush du débounce en attente : à la fermeture du panneau (ou au démontage),
 // une saisie valide non signée est poussée immédiatement au lieu d'être perdue.
 function flushPendingDraft() {
   if (!draftTimer) return
@@ -534,7 +701,7 @@ async function onPhotosSelected(event: Event) {
   if (!files.length || !checkinRdv.value) return
 
   // rdvId capturé UNE FOIS avant la boucle : chaque upload part sur CE RDV,
-  // même si le staff ferme la modale ou ouvre une autre fiche pendant l'envoi.
+  // même si le staff ferme le panneau ou ouvre une autre fiche pendant l'envoi.
   const rdvId: number = checkinRdv.value.id
   uploadingPhotos.value = true
   let uploaded = 0
@@ -558,7 +725,7 @@ async function onPhotosSelected(event: Event) {
       ]
     }
   } catch (e: any) {
-    toast.add({ title: 'Erreur photo', description: frError(e), color: 'error' })
+    toast.add({ title: "Cliché non enregistré", description: frError(e), color: 'error' })
   } finally {
     uploadingPhotos.value = false
     input.value = ''
@@ -605,7 +772,7 @@ async function openEdlPdf(edl: any) {
   try {
     await openPdf(`/etat-des-lieux/${edl.id}/pdf`)
   } catch (e: any) {
-    toast.add({ title: 'PDF indisponible', description: e?.message || 'Ouverture du PDF impossible.', color: 'error' })
+    toast.add({ title: 'PDF indisponible', description: messageErreur(e, "le PDF de l'état des lieux n'a pas été ouvert"), color: 'error' })
   }
 }
 
@@ -617,7 +784,7 @@ async function passerEnReception(rdv: any) {
     checkinOpen.value = false
     await loadData(false)
   } catch (e: any) {
-    toast.add({ title: 'Transition impossible', description: frError(e), color: 'error' })
+    toast.add({ title: 'Réception impossible', description: frError(e), color: 'error' })
   } finally {
     transitioning.value = false
   }
@@ -640,295 +807,422 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.reception-header {
+.rc {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--pk-ink);
+}
+
+/* === Tête de page === */
+.rc-tete {
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
-.reception-kpis {
+.rc-tete-titres {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rc-titre {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--pk-ink);
+}
+/* La bande de course du design system : 44 × 4, jaune franc, sans dégradé. */
+.rc-filet-course {
+  width: 44px;
+  height: 4px;
+  background: var(--pk-accent);
+}
+.rc-sous-titre {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--pk-ink-quiet);
+}
+
+.rc-mesures {
+  display: flex;
+  gap: 12px;
   flex-wrap: wrap;
 }
-.reception-kpi {
-  padding: 8px 14px;
-  min-width: auto;
+.rc-mesure {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 130px;
+  padding: 10px 18px;
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
 }
-.reception-kpi-label {
-  font-size: 10px;
-  color: var(--content-3);
+/* Le seul endroit, avec les mots de statut, où les CAPITALES sont admises. */
+.rc-mesure-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-ink-muted);
 }
-.reception-kpi-value {
-  font-size: 18px;
+.rc-mesure-valeur {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.rc-mesure-valeur--fait { color: var(--pk-success-ink); }
+.rc-mesure-valeur--reste { color: var(--pk-link); }
+
+/* === Cadre de la liste === */
+.rc-cadre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
+  overflow: hidden;
+}
+.rc-cadre-tete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pk-border);
+  flex-wrap: wrap;
+}
+.rc-cadre-glyphe { font-size: 17px; }
+.rc-cadre-titre { font-size: 15px; font-weight: 600; }
+.rc-cadre-espace { flex: 1; }
+.rc-compteur {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--pk-radius-pill);
+  background: var(--pk-ink);
+  color: var(--pk-surface);
+  font-size: 11px;
   font-weight: 700;
 }
 
-.reception-loading {
-  display: flex;
-  justify-content: center;
-  padding: 48px;
-  color: var(--content-3);
+/* Pastille de filtre : l'état choisi se signale par l'APLAT, jamais par une
+   graisse plus lourde qui déplacerait la largeur du libellé. */
+.rc-pastille-filtre {
+  min-height: var(--pk-target-desk);
+  padding: 5px 11px;
+  border: 1px solid var(--pk-border-control);
+  border-radius: var(--pk-radius-pill);
+  background: transparent;
+  color: var(--pk-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--pk-duration-state) var(--pk-easing),
+    color var(--pk-duration-state) var(--pk-easing),
+    border-color var(--pk-duration-state) var(--pk-easing);
 }
-.reception-error {
-  padding: 24px;
-  border-radius: 12px;
-  background: var(--error-soft);
-  border: 1px solid var(--error);
-  color: var(--error-content);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+.rc-pastille-filtre:hover { background: var(--pk-neutral-surface); }
+.rc-pastille-filtre.est-choisi {
+  background: var(--pk-ink);
+  border-color: var(--pk-ink);
+  color: var(--pk-surface);
+  font-weight: 600;
 }
-.reception-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--content-3);
-  font-size: 13px;
+.rc-pastille-filtre:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
 }
 
-.reception-list {
+.rc-filtre-vide { margin: 16px; }
+
+/* === Lignes === */
+.rc-lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
-.reception-card {
+.rc-ligne {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-2);
-  background: var(--overlay-soft);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pk-border-quiet);
+  background: var(--pk-surface-raised);
   flex-wrap: wrap;
 }
-.reception-card-heure {
+.rc-ligne:last-child { border-bottom: none; }
+/* Le filet jaune à gauche désigne ce qui reste à faire : la ligne déjà signée
+   n'a pas de filet et prend le fond soulevé, elle se lit sans se travailler. */
+.rc-ligne.est-a-faire {
+  border-left: 3px solid var(--pk-accent);
+  background: transparent;
+}
+
+.rc-heure {
+  width: 58px;
+  flex: none;
+  text-align: center;
+}
+.rc-heure-valeur {
+  display: block;
   font-size: 18px;
-  font-weight: 800;
-  color: var(--accent-content);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  min-width: 58px;
 }
-.reception-card-infos {
-  flex: 1;
-  min-width: 180px;
+.rc-heure-duree {
+  display: block;
+  font-size: 11px;
+  color: var(--pk-ink-muted);
 }
-.reception-card-client {
-  font-weight: 600;
-  color: var(--content-1);
-  font-size: 14px;
+.rc-separateur {
+  width: 1px;
+  height: 40px;
+  flex: none;
+  background: var(--pk-border-quiet);
 }
-.reception-card-vehicule {
-  font-size: 12px;
-  color: var(--content-3);
-  margin-top: 2px;
-}
-.reception-card-plaque {
+
+.rc-identite { flex: 1; min-width: 180px; }
+.rc-client { margin: 0; font-size: 14px; font-weight: 600; }
+.rc-moto { margin: 0; font-size: 13px; color: var(--pk-ink-quiet); }
+.rc-travaux { margin: 0; font-size: 12px; color: var(--pk-ink-muted); }
+/* L'immat se lit comme une plaque : encadrée, resserrée, jamais colorée. */
+.rc-immat {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--overlay-hover);
-  color: var(--content-2);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-.reception-card-type {
+  border: 1px solid var(--pk-border-control);
+  border-radius: var(--pk-radius-block);
   font-size: 11px;
-  color: var(--content-3);
-  margin-top: 2px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pk-ink);
 }
-.reception-card-badges {
+
+.rc-marques {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   flex-wrap: wrap;
 }
-.edl-badge {
+.rc-pastille {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11px;
+  border: 1px solid transparent;
+  border-radius: var(--pk-radius-pill);
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
-.reception-card-actions {
+.rc-pastille--neutre { background: var(--pk-neutral-surface); color: var(--pk-ink-quiet); }
+.rc-pastille--encours {
+  background: var(--pk-warning-surface);
+  border-color: var(--pk-warning-line);
+  color: var(--pk-warning-ink);
+}
+.rc-pastille--fait {
+  background: var(--pk-success-surface);
+  border-color: var(--pk-success-line);
+  color: var(--pk-success-ink);
+}
+/* Pointillé = anomalie, réservé à ça. */
+.rc-pastille--pointille {
+  border: 1px dashed var(--pk-border-control);
+  color: var(--pk-ink-quiet);
+}
+
+.rc-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   flex-wrap: wrap;
 }
-.reception-btn {
-  min-height: 44px;
+.rc-action {
+  min-height: var(--pk-target-desk);
   padding: 10px 16px;
   font-size: 13px;
 }
 
-/* === Panneau check-in === */
-.checkin-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.checkin-km-input {
-  font-size: 18px;
+/* === Panneau de check-in === */
+.rc-champ-label {
+  display: block;
+  font-size: 11px;
   font-weight: 700;
-  min-height: 48px;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-ink-muted);
+}
+.rc-champ-label--espace { margin-top: 6px; }
+
+.rc-aide {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pk-ink-quiet);
 }
 
-.fuel-gauge {
-  display: flex;
-  gap: 6px;
+/* Le compteur est le chiffre le plus recopié du comptoir : cible d'atelier,
+   chiffres tabulaires, taille lisible à bout de bras. */
+.rc-km {
+  min-height: var(--pk-target-workshop);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.fuel-segment {
+.rc-observations { min-height: 96px; }
+
+.rc-jauge { display: flex; gap: 6px; }
+.rc-jauge-cran {
   flex: 1;
-  min-height: 56px;
+  min-height: var(--pk-target-workshop);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 8px 4px;
-  border-radius: 8px;
-  border: 1px solid var(--border-2);
-  background: var(--overlay-soft);
-  color: var(--content-3);
-  font-family: inherit;
+  border: 1px solid var(--pk-border-control);
+  border-radius: var(--pk-radius-tile);
+  background: var(--pk-surface-raised);
+  color: var(--pk-ink-quiet);
+  font: inherit;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--pk-duration-state) var(--pk-easing),
+    border-color var(--pk-duration-state) var(--pk-easing),
+    color var(--pk-duration-state) var(--pk-easing);
 }
-.fuel-segment-bar {
+.rc-jauge-barre {
   display: block;
   width: 100%;
   height: 8px;
-  border-radius: 4px;
-  background: var(--overlay-hover);
+  border-radius: var(--pk-radius-block);
+  background: var(--pk-neutral-surface);
 }
-.fuel-segment.is-filled .fuel-segment-bar {
-  background: var(--accent-soft);
+.rc-jauge-cran.est-rempli .rc-jauge-barre { background: var(--pk-accent-soft); }
+.rc-jauge-cran.est-choisi {
+  border-color: var(--pk-border-strong);
+  background: var(--pk-accent-soft);
+  color: var(--pk-accent-ink);
 }
-.fuel-segment.is-selected {
-  border-color: var(--accent-graphic);
-  background: var(--accent-soft);
-  color: var(--accent-content);
+.rc-jauge-cran.est-choisi .rc-jauge-barre { background: var(--pk-accent); }
+.rc-jauge-cran:disabled { cursor: not-allowed; opacity: 0.55; }
+.rc-jauge-cran:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
 }
-.fuel-segment.is-selected .fuel-segment-bar {
-  background: var(--accent);
-}
-.fuel-segment-label {
-  font-size: 12px;
-  font-weight: 700;
-}
+/* L'état choisi passe par la couleur et la bordure, jamais par la graisse. */
+.rc-jauge-label { font-size: 12px; font-weight: 600; }
 
-.checkin-photos-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.checkin-photos-count {
+/* Le compte reste une phrase de statut, pas un compteur décoratif : sous le
+   minimum il prend l'encre d'avertissement, au-dessus celle du fait acquis. */
+.rc-compte-photos {
+  margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--pk-success-ink);
 }
-.checkin-photo-btn {
+.rc-compte-photos.est-court { color: var(--pk-warning-ink); }
+
+.rc-prise-photo {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
-  border-radius: 10px;
-  border: 1px dashed var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-content);
+  min-height: var(--pk-target-workshop);
+  border: 1px dashed var(--pk-accent);
+  border-radius: var(--pk-radius-tile);
+  background: var(--pk-accent-soft);
+  color: var(--pk-accent-ink);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--pk-duration-state) var(--pk-easing);
 }
-.checkin-photo-btn:hover {
-  background: var(--accent-soft);
+/* Le champ de fichier est masqué : sans cet anneau, l'appui clavier sur la
+   zone de prise de vue ne se verrait nulle part. */
+.rc-prise-photo:focus-within {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
 }
-.checkin-photo-grid {
+
+.rc-cliches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 8px;
-  margin-top: 10px;
+  gap: var(--pk-target-gap);
 }
-.checkin-photo-thumb {
+.rc-cliche {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--border-2);
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-tile);
   cursor: zoom-in;
 }
-.checkin-photos-hint {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--content-3);
-}
 
-.checkin-alert {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-.checkin-alert-error {
-  background: var(--error-soft);
-  border: 1px solid var(--error);
-  color: var(--error-content);
-}
-.checkin-alert-ok {
-  background: var(--success-soft);
-  border: 1px solid var(--success);
-  color: var(--success-content);
-}
-
-.checkin-signed {
-  text-align: center;
-  padding: 20px 12px;
-  border-radius: 12px;
-  background: var(--success-soft);
-  border: 1px solid var(--success);
+.rc-brouillon {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
   align-items: center;
-}
-.checkin-signed-recap {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px;
-  width: 100%;
-  margin-top: 8px;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--overlay-soft);
-  font-size: 13px;
-  color: var(--content-2);
-  text-align: left;
-}
-.checkin-recap-label {
-  color: var(--content-3);
-}
-.checkin-signed-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 8px;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--pk-success-ink);
 }
 
-.checkin-footer {
+.rc-fige {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-  width: 100%;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--pk-success-line);
+  border-radius: var(--pk-radius-tile);
+  background: var(--pk-success-surface);
+}
+.rc-fige-glyphe { font-size: 20px; flex-shrink: 0; color: var(--pk-success-line); }
+.rc-fige-texte { margin: 0; font-size: 13px; line-height: 1.45; color: var(--pk-success-ink); }
+
+.rc-releve {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--pk-ink-quiet);
+}
+.rc-releve strong { color: var(--pk-ink); font-variant-numeric: tabular-nums; }
+
+.rc-reserve { margin: 0; font-size: 13px; line-height: 1.5; }
+.rc-note { margin: 0; font-size: 12px; color: var(--pk-ink-muted); }
+
+.rc-blocage {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pk-warning-ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .rc-separateur { display: none; }
+  .rc-actions { width: 100%; }
 }
 </style>

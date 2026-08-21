@@ -3,75 +3,101 @@
     <div class="meca-header">
       <div class="meca-header-id">
         <div class="meca-avatar">{{ initials }}</div>
-        <div>
-          <div class="meca-page-title">Espace Mécanicien</div>
-          <div class="meca-date">{{ todayLabel }}</div>
+        <div class="meca-header-texts">
+          <div class="meca-page-title">Poste mécanicien</div>
+          <div class="meca-date">
+            {{ todayLabel }}<span v-if="pontsDuJour"> · {{ pontsDuJour }}</span><span v-if="tempsPointeJour"> · {{ dureeAtelier(tempsPointeJour) }} pointées</span>
+          </div>
         </div>
       </div>
+      <!-- L'heure en grand : au poste on la lit de loin, debout, pour savoir
+           ce qui tient encore avant la pause. Format d'interface 08:30. -->
+      <div class="meca-clock" aria-hidden="true">{{ heureCourante }}</div>
       <div class="meca-kpis">
         <div class="meca-kpi">
           <span class="meca-kpi-label">En cours</span>
-          <span class="meca-kpi-value" style="color:var(--warning-content);">{{ kpis.enCours }}</span>
+          <span class="meca-kpi-value meca-kpi-value-warning">{{ kpis.enCours }}</span>
         </div>
         <div class="meca-kpi">
-          <span class="meca-kpi-label">À faire</span>
+          <span class="meca-kpi-label">À prendre</span>
           <span class="meca-kpi-value">{{ kpis.aFaire }}</span>
         </div>
         <div class="meca-kpi">
           <span class="meca-kpi-label">Terminés</span>
-          <span class="meca-kpi-value" style="color:var(--success-content);">{{ kpis.termines }}</span>
+          <span class="meca-kpi-value meca-kpi-value-success">{{ kpis.termines }}</span>
         </div>
         <div class="meca-kpi">
-          <span class="meca-kpi-label">Journée</span>
-          <span class="meca-kpi-value" style="color:var(--accent-content);">{{ kpis.pctDone }}%</span>
+          <span class="meca-kpi-label">Avancement</span>
+          <span class="meca-kpi-value meca-kpi-value-accent">{{ kpis.pctDone }} %</span>
         </div>
       </div>
     </div>
 
-    <div v-if="loading" class="meca-loading">Chargement...</div>
+    <AppLoadingState
+      v-if="loading"
+      title="Feuille du jour en cours de chargement"
+      :colonnes="3"
+      :lignes="3"
+    />
 
-    <div v-else-if="loadError" class="meca-error-panel">
-      <div class="meca-error-panel-head"><AppIcon name="i-ri-error-warning-line" /> Chargement impossible</div>
-      <p>{{ loadError }}</p>
-      <AppButton variant="primary" class="meca-btn-lg" label="Réessayer" @click="reload" />
-    </div>
+    <AppErrorState
+      v-else-if="loadError"
+      title="Feuille du jour introuvable"
+      :description="loadError"
+      consequence="Aucun pointage n'est perdu : ce qui a déjà été envoyé reste enregistré côté atelier."
+      action-label="Recharger la feuille du jour"
+      data-testid="meca-erreur-chargement"
+      @retry="reload"
+    />
 
     <div v-else>
       <div v-if="absenceToday" class="meca-banner meca-banner-error">
-        <div class="meca-banner-head"><AppIcon name="i-ri-error-warning-line" /> Absence aujourd'hui</div>
+        <div class="meca-banner-head"><AppIcon name="i-ri-calendar-close-line" /> Absence posée sur la journée</div>
         <p>{{ absenceToday.motif }}</p>
       </div>
 
       <div v-if="priorityAction" class="meca-banner meca-banner-accent">
-        <div class="meca-banner-head"><AppIcon name="i-ri-flashlight-line" /> Prochaine action</div>
+        <div class="meca-banner-head"><AppIcon name="i-ri-flashlight-line" /> Le geste suivant</div>
         <p>{{ priorityAction }}</p>
       </div>
 
-      <div v-if="!offlineQueue.isOnline.value" class="meca-banner meca-banner-error">
-        <div class="meca-banner-head"><AppIcon name="i-ri-wifi-off-line" /> Hors connexion</div>
-        <p>Les actions en cours seront renvoyées automatiquement au retour du réseau.</p>
-      </div>
-      <div v-else-if="offlineQueue.pending.value.length" class="meca-banner meca-banner-accent">
-        <div class="meca-banner-head"><AppIcon name="i-ri-refresh-line" /> Synchronisation en cours</div>
-        <p>{{ offlineQueue.pending.value.length }} sauvegarde(s) en attente d'envoi.</p>
+      <!-- 29e : le bandeau dit d'abord ce qui MARCHE ENCORE. Hors réseau, le
+           contrôle, l'essai et les notes se saisissent et partent tout seuls ;
+           ce sont les transitions et la signature qui attendent. -->
+      <AppOfflineBanner
+        :hors-ligne="!offlineQueue.isOnline.value"
+        :depuis="dureeHorsLigne"
+        actions-possibles="cocher le contrôle, saisir l'essai routier et les notes : tout repart au retour du réseau"
+        :en-attente="offlineQueue.pending.value.length"
+        detail-attente="Contrôle atelier, notes et rapport"
+        indisponible="Démarrer, mettre en pause, terminer, valider l'essai routier, signer le rapport"
+      />
+      <div v-if="offlineQueue.isOnline.value && offlineQueue.pending.value.length" class="meca-banner meca-banner-accent">
+        <div class="meca-banner-head"><AppIcon name="i-ri-refresh-line" /> Envoi des saisies en attente</div>
+        <p>{{ offlineQueue.pending.value.length }} sauvegarde{{ offlineQueue.pending.value.length > 1 ? 's' : '' }} repart{{ offlineQueue.pending.value.length > 1 ? 'ent' : '' }} vers le serveur. Rien n'est à ressaisir.</p>
       </div>
 
       <div v-if="lastFailedAction" class="meca-banner meca-banner-error">
-        <div class="meca-banner-head"><AppIcon name="i-ri-error-warning-line" /> Action non envoyée</div>
-        <p>« {{ lastFailedAction.label }} » n'a pas atteint le serveur.</p>
-        <AppButton variant="primary" class="meca-btn-lg" icon="i-ri-refresh-line" label="Réessayer" @click="retryLastFailedAction" />
+        <div class="meca-banner-head"><AppIcon name="i-ri-error-warning-line" /> Action restée au poste</div>
+        <p>« {{ lastFailedAction.label }} » n'a pas atteint le serveur. Rien n'a changé côté atelier.</p>
+        <AppButton
+          variant="primary" class="meca-btn-lg" icon="i-ri-refresh-line"
+          :label="`Renvoyer · ${lastFailedAction.label}`"
+          data-testid="meca-renvoyer"
+          @click="retryLastFailedAction"
+        />
       </div>
 
       <div class="meca-tabs" role="tablist">
-        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'cours' }" role="tab" @click="activeTab = 'cours'">
+        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'cours' }" role="tab" :aria-selected="activeTab === 'cours'" data-testid="meca-onglet-cours" @click="activeTab = 'cours'">
           <AppIcon name="i-ri-tools-line" /> En cours
           <span v-if="activeRdv" class="meca-tab-dot" />
         </button>
-        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'faire' }" role="tab" @click="activeTab = 'faire'">
-          <AppIcon name="i-ri-clipboard-line" /> À faire
+        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'faire' }" role="tab" :aria-selected="activeTab === 'faire'" data-testid="meca-onglet-faire" @click="activeTab = 'faire'">
+          <AppIcon name="i-ri-clipboard-line" /> À prendre
           <span class="meca-tab-count">{{ todoRdvs.length }}</span>
         </button>
-        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'termines' }" role="tab" @click="activeTab = 'termines'">
+        <button type="button" class="meca-tab" :class="{ 'is-active': activeTab === 'termines' }" role="tab" :aria-selected="activeTab === 'termines'" data-testid="meca-onglet-termines" @click="activeTab = 'termines'">
           <AppIcon name="i-ri-checkbox-circle-line" /> Terminés
           <span class="meca-tab-count">{{ doneRdvs.length }}</span>
         </button>
@@ -79,19 +105,24 @@
 
       <!-- ONGLET : Intervention en cours -->
       <div v-show="activeTab === 'cours'">
-        <div v-if="!activeRdv" class="meca-empty">
-          Aucune intervention en cours. Démarrez un rendez-vous depuis l'onglet « À faire ».
-        </div>
+        <AppEmptyState
+          v-if="!activeRdv"
+          icon="i-ri-tools-line"
+          title="Aucune intervention en cours"
+          description="Une intervention démarre depuis « À prendre », sur un rendez-vous déjà réceptionné au comptoir."
+          :action-label="todoRdvs.length ? `Voir les travaux à prendre · ${todoRdvs.length}` : ''"
+          @action="activeTab = 'faire'"
+        />
 
         <div v-else class="meca-card meca-active-card">
           <div class="meca-active-head">
             <span class="meca-active-title"><AppIcon name="i-ri-tools-line" /> Intervention en cours</span>
             <div class="meca-active-head-links">
               <a v-if="activeRdv.client_telephone" :href="`tel:${activeRdv.client_telephone}`" class="meca-call-link">
-                <AppIcon name="i-ri-phone-line" /> Appeler
+                <AppIcon name="i-ri-phone-line" /> Appeler le client
               </a>
               <button v-if="activeRdv.vehicule_id" type="button" class="meca-call-link" @click="showHistorique = true">
-                <AppIcon name="i-ri-history-line" /> Historique moto
+                <AppIcon name="i-ri-history-line" /> Passages précédents de la moto
               </button>
             </div>
           </div>
@@ -105,24 +136,25 @@
           <div class="meca-action-row">
             <AppButton
               v-if="activeRdv.statut === 'en_cours'"
-              variant="secondary" class="meca-btn-lg" icon="i-ri-pause-line" label="Pause"
-              :loading="pausing" @click="pauseWork"
+              variant="secondary" class="meca-btn-lg" icon="i-ri-pause-line" label="Mettre en pause"
+              :loading="pausing" data-testid="meca-pause" @click="pauseWork"
             />
             <AppButton
               v-if="activeRdv.statut === 'en_pause'"
-              variant="secondary" class="meca-btn-lg" icon="i-ri-play-line" label="Reprendre"
-              :loading="resuming" @click="resumeWork"
+              variant="secondary" class="meca-btn-lg" icon="i-ri-play-line" label="Reprendre les travaux"
+              :loading="resuming" data-testid="meca-reprendre" @click="resumeWork"
             />
             <AppButton
-              variant="primary" class="meca-btn-lg meca-btn-finish" icon="i-ri-checkbox-circle-line" label="Terminer"
-              :loading="finishing" :disabled="!essaiRoutierValide" @click="finishWork"
+              variant="primary" class="meca-btn-lg meca-btn-finish" icon="i-ri-checkbox-circle-line"
+              label="Terminer et ouvrir le rapport"
+              :loading="finishing" :disabled="!essaiRoutierValide" data-testid="meca-terminer" @click="finishWork"
             />
           </div>
 
           <div class="meca-info-grid">
             <div><span class="meca-info-label">Client</span> {{ activeRdv.client_nom }}</div>
-            <div><span class="meca-info-label">Véhicule</span> {{ activeRdv.vehicule_info }}</div>
-            <div><span class="meca-info-label">Type</span> {{ activeRdv.type_intervention }}</div>
+            <div><span class="meca-info-label">Moto</span> {{ activeRdv.vehicule_info }}</div>
+            <div><span class="meca-info-label">Prestation</span> {{ activeRdv.type_intervention }}</div>
             <div><span class="meca-info-label">Pont</span> {{ activeRdv.pont_nom }}</div>
           </div>
 
@@ -136,12 +168,12 @@
             class="meca-reception"
           >
             <div class="meca-reception-head">
-              <span><AppIcon name="i-ri-inbox-line" /> Contexte réception</span>
-              <span class="meca-badge" :class="activeRdv.or_signe ? 'meca-badge-success' : 'meca-badge-error'">{{ activeRdv.or_signe ? 'OR signé' : 'OR à vérifier' }}</span>
+              <span><AppIcon name="i-ri-inbox-line" /> Ce que dit la réception</span>
+              <span class="meca-badge" :class="activeRdv.or_signe ? 'meca-badge-success' : 'meca-badge-error'">{{ activeRdv.or_signe ? 'OR signé' : 'OR non signé' }}</span>
             </div>
             <div class="meca-reception-grid">
-              <div v-if="activeRdv.vehicule_plaque"><span class="meca-info-label">Plaque</span> {{ activeRdv.vehicule_plaque }}</div>
-              <div v-if="activeRdv.km_reception !== null"><span class="meca-info-label">Km réception</span> {{ activeRdv.km_reception }}</div>
+              <div v-if="activeRdv.vehicule_plaque"><span class="meca-info-label">Immat</span> {{ activeRdv.vehicule_plaque }}</div>
+              <div v-if="activeRdv.km_reception !== null"><span class="meca-info-label">Compteur à l'entrée</span> {{ kilometrage(activeRdv.km_reception) }}</div>
               <div v-if="receptionPriority"><span class="meca-info-label">Priorité</span> {{ receptionPriority }}</div>
               <div v-if="receptionFuelLevel"><span class="meca-info-label">Carburant</span> {{ receptionFuelLevel }}</div>
             </div>
@@ -155,32 +187,34 @@
 
           <div v-if="activeRdv.temps_estime" class="meca-chrono">
             <div class="meca-chrono-row">
-              <span class="meca-info-label">Chrono</span>
+              <span class="meca-info-label">Pointage en cours</span>
               <span class="meca-chrono-value" :class="progressPct > 100 ? 'is-late' : ''">{{ chronoDisplay }}</span>
             </div>
             <div class="meca-chrono-row meca-chrono-row-sm">
-              <span>Progression</span>
-              <span :class="progressPct > 100 ? 'is-late' : ''">{{ progressPct }}%</span>
+              <span>Avancement sur le temps vendu</span>
+              <span :class="progressPct > 100 ? 'is-late' : ''">{{ progressPct }} %</span>
             </div>
             <div class="meca-progress-bar">
               <div class="meca-progress-fill" :class="progressPct > 100 ? 'is-late' : ''" :style="{ width: Math.min(progressPct, 100) + '%' }"></div>
             </div>
             <div class="meca-chrono-row meca-chrono-row-sm">
-              <span>{{ elapsedMin }}min écoulées</span>
-              <span>{{ formatMinutes(activeRdv.temps_estime) }} estimées</span>
+              <span>{{ dureeAtelier(elapsedMin) }} pointées</span>
+              <span>{{ dureeAtelier(activeRdv.temps_estime) }} vendues</span>
             </div>
+            <!-- Règle 6 : l'écart vendu / pointé se lit ici pour la prestation en
+                 cours, jamais pour juger celui qui la fait. -->
             <div v-if="progressPct > 100" class="meca-late-warning">
-              <AppIcon name="i-ri-error-warning-line" /> Dépassement +{{ elapsedMin - activeRdv.temps_estime }}min — intervention en retard
+              <AppIcon name="i-ri-error-warning-line" /> {{ dureeAtelier(elapsedMin - activeRdv.temps_estime) }} au-delà du temps vendu. Le forfait se recale par prestation, pas par mécanicien.
             </div>
           </div>
 
           <SectionAccordion
-            title="Checkup Express"
+            title="Contrôle atelier"
             icon="i-ri-checkbox-circle-line"
-            :badge="`${checkupDone}/${checkupItems.length} vérifiés`"
+            :badge="`${checkupDone}/${checkupItems.length} points`"
             v-model="sections.checkup"
           >
-            <p class="meca-section-hint">Le rapport est enregistré dans le dossier atelier.</p>
+            <p class="meca-section-hint">Un point coché part dans le dossier atelier de la moto, et se retrouve sur le rapport remis au client.</p>
             <CheckpointGrid :items="checkupItems" :values="checkup" @toggle="cycleCheckup" />
             <CheckpointPhotoPanel
               :items="checkupItems" :values="checkup" :photos-by-key="checkupPhotos"
@@ -188,28 +222,28 @@
               @remove-photo="(key: string, id: number) => removeCheckpointPhoto('checkup', key, id)"
             />
             <div class="meca-section-actions">
-              <AppButton variant="secondary" class="meca-btn-lg" icon="i-ri-save-line" label="Sauvegarder" :loading="persistingCheckup" @click="persistWorkshopReport()" />
+              <AppButton variant="secondary" class="meca-btn-lg" icon="i-ri-save-line" label="Enregistrer le contrôle" :loading="persistingCheckup" data-testid="meca-enregistrer-controle" @click="persistWorkshopReport()" />
             </div>
           </SectionAccordion>
 
           <SectionAccordion
-            title="Essai routier atelier"
+            title="Essai routier"
             icon="i-ri-motorbike-line"
             :badge="`${essaiFilledCount}/${essaiPoints.length} points`"
             v-model="sections.essai"
           >
             <div class="meca-form-grid">
               <div class="meca-field">
-                <label>Km départ</label>
-                <input v-model.number="essaiForm.kmDebut" type="number" class="form-input meca-input-lg" />
+                <label>Compteur au départ</label>
+                <input v-model.number="essaiForm.kmDebut" type="number" inputmode="numeric" class="form-input meca-input-lg" />
               </div>
               <div class="meca-field">
-                <label>Km retour</label>
-                <input v-model.number="essaiForm.kmFin" type="number" class="form-input meca-input-lg" />
+                <label>Compteur au retour</label>
+                <input v-model.number="essaiForm.kmFin" type="number" inputmode="numeric" class="form-input meca-input-lg" />
               </div>
               <div class="meca-field">
-                <label>Durée (min)</label>
-                <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input meca-input-lg" />
+                <label>Durée de l'essai, en minutes</label>
+                <input v-model.number="essaiForm.dureeMinutes" type="number" inputmode="numeric" class="form-input meca-input-lg" />
               </div>
             </div>
             <CheckpointGrid :items="essaiPoints" :values="essaiForm.pointsControle" @toggle="cycleEssaiPoint" />
@@ -219,15 +253,16 @@
               @remove-photo="(key: string, id: number) => removeCheckpointPhoto('essai_routier', key, id)"
             />
             <div v-if="essaiHasNok" class="meca-field meca-field-mt">
-              <label>Actions correctives</label>
-              <textarea v-model="essaiForm.actionsCorrectives" class="form-input meca-input-lg" rows="2" placeholder="Décrire les corrections effectuées…" />
+              <label>Corrections faites après l'essai</label>
+              <textarea v-model="essaiForm.actionsCorrectives" class="form-input meca-input-lg" rows="2" placeholder="Ce qui a été repris sur la moto après le tour d'essai" />
             </div>
             <div class="meca-section-actions meca-section-actions-split">
-              <span class="meca-section-hint">Minimum requis : km départ/retour, durée et 5 points renseignés.</span>
+              <span class="meca-section-hint">Sans les deux compteurs, la durée et 5 points renseignés, l'essai ne peut pas être validé — et sans essai validé, l'intervention ne peut pas être terminée.</span>
               <AppButton
                 variant="primary" class="meca-btn-lg" icon="i-ri-motorbike-line"
-                :label="savingRoadTest ? 'Validation…' : (essaiRoutierValide ? 'Essai validé' : 'Valider l’essai')"
+                :label="savingRoadTest ? 'Validation en cours…' : (essaiRoutierValide ? 'Essai routier validé' : 'Valider l’essai routier')"
                 :disabled="savingRoadTest || essaiRoutierValide || !canValidateRoadTest"
+                data-testid="meca-valider-essai"
                 @click="saveActiveRoadTest"
               />
             </div>
@@ -245,57 +280,80 @@
                 <span class="meca-badge" :style="demandeBadgeStyle(demande)">{{ demandeStatutLabel(demande.statut) }}</span>
               </div>
             </div>
-            <div v-else class="meca-section-hint">Aucune demande complémentaire signalée.</div>
+            <div v-else class="meca-section-hint">Rien de signalé sur cet OR. Un travail non prévu se déclare ici : le comptoir demande l'accord du client avant que la moto reparte.</div>
 
             <AppButton
               variant="secondary" class="meca-btn-lg meca-btn-report"
-              :label="showNewDemande ? 'Annuler' : '+ Signaler un problème'"
+              :icon="showNewDemande ? 'i-ri-close-line' : 'i-ri-hammer-line'"
+              :label="showNewDemande ? 'Abandonner la déclaration' : 'Déclarer un travail supplémentaire'"
+              data-testid="meca-declarer-travaux"
               @click="showNewDemande = !showNewDemande"
             />
             <div v-if="showNewDemande" class="meca-demande-form">
-              <textarea v-model="newDemande.description" class="form-input meca-input-lg" rows="2" placeholder="Description du problème…" />
+              <textarea v-model="newDemande.description" class="form-input meca-input-lg" rows="2" placeholder="Ce qui a été constaté sur la moto, et ce que ça demande" />
               <div class="meca-form-grid">
-                <input v-model.number="newDemande.prix_estime" type="number" class="form-input meca-input-lg" placeholder="Coût estimé (€)" />
-                <input v-model.number="newDemande.temps_estime" type="number" class="form-input meca-input-lg" placeholder="Temps estimé (min)" />
+                <div class="meca-field">
+                  <label>Coût estimé, en euros</label>
+                  <input v-model.number="newDemande.prix_estime" type="number" inputmode="decimal" class="form-input meca-input-lg" />
+                </div>
+                <div class="meca-field">
+                  <label>Temps estimé, en minutes</label>
+                  <input v-model.number="newDemande.temps_estime" type="number" inputmode="numeric" class="form-input meca-input-lg" />
+                </div>
               </div>
               <div class="meca-field-inline">
                 <label>Urgence</label>
                 <select v-model="newDemande.urgence" class="form-input meca-input-lg">
-                  <option value="normal">Normal</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="normal">La moto peut attendre l'accord</option>
+                  <option value="urgent">La moto ne doit pas repartir sans</option>
                 </select>
               </div>
               <AppButton
                 variant="primary" class="meca-btn-lg meca-btn-block"
-                :label="submittingDemande ? 'Envoi…' : 'Envoyer pour validation'"
+                :label="submittingDemande ? 'Envoi en cours…' : 'Envoyer au comptoir pour accord client'"
                 :disabled="submittingDemande || !newDemande.description.trim()"
+                data-testid="meca-envoyer-travaux"
                 @click="submitDemande"
               />
             </div>
           </SectionAccordion>
 
-          <SectionAccordion title="Notes intervention" icon="i-ri-file-text-line" v-model="sections.notes">
-            <textarea v-model="interventionNotes" class="form-input meca-input-lg" rows="3" placeholder="Notes techniques, observations…" />
+          <SectionAccordion title="Notes d’intervention" icon="i-ri-file-text-line" v-model="sections.notes">
+            <textarea v-model="interventionNotes" class="form-input meca-input-lg" rows="3" placeholder="Ce qu'il faut savoir la prochaine fois : pièce montée, jeu relevé, écrou à recontrôler" />
             <div class="meca-section-actions">
-              <AppButton variant="secondary" class="meca-btn-lg" :label="savingNotes ? 'Sauvegarde…' : 'Sauvegarder'" :disabled="savingNotes" @click="saveInterventionNotes" />
+              <AppButton variant="secondary" class="meca-btn-lg" icon="i-ri-save-line" :label="savingNotes ? 'Enregistrement en cours…' : 'Enregistrer les notes'" :disabled="savingNotes" data-testid="meca-enregistrer-notes" @click="saveInterventionNotes" />
             </div>
           </SectionAccordion>
         </div>
       </div>
 
-      <!-- ONGLET : À faire -->
+      <!-- ONGLET : à prendre -->
       <div v-show="activeTab === 'faire'" class="meca-card">
-        <div v-if="!todoRdvs.length" class="meca-empty">Toutes les interventions sont terminées</div>
+        <AppNothingToDo
+          v-if="!todoRdvs.length"
+          title="Plus rien à prendre aujourd’hui"
+          description="Tous les rendez-vous de la feuille du jour sont démarrés ou terminés."
+        />
         <div v-else class="meca-todo-list">
           <div v-for="rdv in todoRdvs" :key="rdv.id" class="meca-todo-row">
-            <div>
-              <p class="meca-todo-name">{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }}</p>
-              <p class="meca-todo-sub">{{ rdv.vehicule_info }} — {{ rdv.type_intervention }}</p>
-              <p v-if="rdv.temps_estime" class="meca-todo-sub"><AppIcon name="i-ri-timer-line" /> {{ formatMinutes(rdv.temps_estime) }}</p>
+            <div class="meca-todo-texts">
+              <p class="meca-todo-name">{{ rdv.heure_debut?.slice(0, 5) }} · {{ rdv.client_nom }}</p>
+              <p class="meca-todo-sub">{{ rdv.vehicule_info }} · {{ rdv.type_intervention }}</p>
+              <p v-if="rdv.temps_estime" class="meca-todo-sub"><AppIcon name="i-ri-timer-line" /> {{ dureeAtelier(rdv.temps_estime) }} vendues<span v-if="rdv.pont_nom"> · {{ rdv.pont_nom }}</span></p>
             </div>
             <div class="meca-todo-actions">
               <StatusBadge :status="rdv.status" />
-              <AppButton v-if="rdv.status === 'reception'" variant="primary" class="meca-btn-lg" icon="i-ri-tools-line" label="Démarrer" @click="startWork(rdv.id)" />
+              <!-- Seul un rendez-vous réceptionné se démarre : tant que la moto
+                   n'est pas entrée, il n'y a rien à pointer. Les autres lignes
+                   restent visibles, sans bouton, plutôt qu'avec un bouton mort. -->
+              <AppButton
+                v-if="rdv.status === 'reception'"
+                variant="primary" class="meca-btn-lg" icon="i-ri-tools-line"
+                :label="libelleDemarrer(rdv)"
+                data-testid="meca-demarrer"
+                @click="startWork(rdv.id)"
+              />
+              <span v-else class="meca-todo-attente">Démarrable dès que la moto est réceptionnée au comptoir</span>
             </div>
           </div>
         </div>
@@ -303,17 +361,22 @@
 
       <!-- ONGLET : Terminés -->
       <div v-show="activeTab === 'termines'" class="meca-card">
-        <div v-if="!doneRdvs.length" class="meca-empty">Aucune intervention terminée aujourd'hui.</div>
+        <AppEmptyState
+          v-if="!doneRdvs.length"
+          icon="i-ri-checkbox-circle-line"
+          title="Aucune intervention terminée aujourd’hui"
+          description="Une intervention rejoint cette liste au moment où elle est terminée au poste, avec son rapport à compléter."
+        />
         <div v-else class="meca-done-list">
           <div v-for="rdv in doneRdvs" :key="rdv.id" class="meca-done-row" :class="{ 'is-past': rdv.status !== 'termine' }">
             <div class="meca-done-info">
               <span class="meca-done-check"><AppIcon name="i-ri-checkbox-circle-line" /></span>
-              <span>{{ rdv.heure_debut?.slice(0, 5) }} — {{ rdv.client_nom }} · {{ rdv.type_intervention }}</span>
+              <span>{{ rdv.heure_debut?.slice(0, 5) }} · {{ rdv.client_nom }} · {{ rdv.type_intervention }}</span>
               <span v-if="rdv.status === 'termine'" class="meca-badge meca-badge-warning">Rapport à compléter</span>
             </div>
             <div class="meca-done-actions">
-              <AppButton v-if="rdv.status === 'termine'" variant="secondary" class="meca-btn-lg" icon="i-ri-clipboard-line" label="Rapport" @click="openRapport(rdv.id)" />
-              <button class="meca-link-btn" @click="openRdvDetail(rdv)">Voir →</button>
+              <AppButton v-if="rdv.status === 'termine'" variant="secondary" class="meca-btn-lg" icon="i-ri-clipboard-line" label="Compléter et signer le rapport" data-testid="meca-ouvrir-rapport" @click="openRapport(rdv.id)" />
+              <button class="meca-link-btn" @click="openRdvDetail(rdv)">Ouvrir le rendez-vous</button>
             </div>
           </div>
         </div>
@@ -322,56 +385,66 @@
 
     <!-- Rapport d'intervention panel -->
     <div v-if="rapportRdvId" class="meca-modal-overlay" @click.self="closeRapport">
-      <div class="meca-modal">
+      <div class="meca-modal" role="dialog" aria-modal="true" aria-labelledby="meca-modal-titre">
         <div class="meca-modal-head">
-          <h2><AppIcon name="i-ri-clipboard-line" /> Rapport d'intervention</h2>
+          <h2 id="meca-modal-titre"><AppIcon name="i-ri-clipboard-line" /> Rapport d'intervention</h2>
           <button aria-label="Fermer le rapport" class="meca-modal-close" @click="closeRapport"><AppIcon name="i-ri-close-line" /></button>
         </div>
 
-        <div v-if="rapportLoading" class="meca-loading">Chargement…</div>
-        <div v-else-if="rapportError" class="meca-error-panel">{{ rapportError }}</div>
+        <AppLoadingState v-if="rapportLoading" title="Rapport en cours de chargement" compact :colonnes="2" :lignes="4" />
+        <AppErrorState
+          v-else-if="rapportError"
+          title="Rapport introuvable"
+          :description="rapportError"
+          consequence="L'intervention reste terminée : seul le rapport n'a pas pu être ouvert."
+          action-label="Réessayer d’ouvrir le rapport"
+          @retry="rapportRdvId && openRapport(rapportRdvId)"
+        />
 
         <div v-else-if="rapport">
           <div v-if="rapport.is_signed_by_both" class="meca-signed-panel">
             <div class="meca-signed-icon"><AppIcon name="i-ri-checkbox-circle-line" /></div>
-            <p>Rapport signé par les deux parties</p>
-            <a :href="`${apiBase.replace('/api', '')}/api/rapport/${rapport.id}/pdf`" target="_blank" class="meca-pdf-link">
-              <AppIcon name="i-ri-file-text-line" /> Télécharger PDF
+            <p>Rapport signé par l'atelier et par le client</p>
+            <a :href="`${apiBase.replace('/api', '')}/api/rapport/${rapport.id}/pdf`" target="_blank" class="btn btn-primary meca-btn-lg meca-pdf-link">
+              <AppIcon name="i-ri-file-text-line" /> Télécharger le rapport en PDF
             </a>
           </div>
 
           <div v-else class="meca-rapport-form">
             <div class="meca-field">
-              <label>Travaux réalisés <span class="meca-required">*</span></label>
-              <textarea v-model="rapportForm.travauxRealises" class="form-input meca-input-lg" rows="4" placeholder="Décrire précisément les travaux effectués…" :disabled="!!rapport.signature_mecanicien" />
+              <label>Travaux réalisés</label>
+              <p class="meca-field-why">Sans ce texte, le client repart sans savoir ce qui a été fait sur sa moto.</p>
+              <textarea v-model="rapportForm.travauxRealises" class="form-input meca-input-lg" rows="4" placeholder="Pièces déposées, réglages, valeurs relevées" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <div class="meca-field">
-              <label>Alertes importantes</label>
-              <textarea v-model="rapportForm.alertes" class="form-input meca-input-lg" rows="2" placeholder="Points à surveiller, anomalies, recommandations urgentes…" :disabled="!!rapport.signature_mecanicien" />
+              <label>Réserves à signaler</label>
+              <p class="meca-field-why">Ce qui a été vu mais pas traité : la restitution le reprend à voix haute.</p>
+              <textarea v-model="rapportForm.alertes" class="form-input meca-input-lg" rows="2" placeholder="Un point par ligne" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <div class="meca-field">
-              <label>Recommandations prochaine visite <span class="meca-required">*</span></label>
-              <textarea v-model="rapportForm.recommandations" class="form-input meca-input-lg" rows="2" placeholder="Prochaine révision, pièces à prévoir…" :disabled="!!rapport.signature_mecanicien" />
+              <label>À prévoir au prochain passage</label>
+              <p class="meca-field-why">Sans ça, la prochaine prise de rendez-vous repart de zéro.</p>
+              <textarea v-model="rapportForm.recommandations" class="form-input meca-input-lg" rows="2" placeholder="Prochaine révision, pièces à commander" :disabled="!!rapport.signature_mecanicien" />
             </div>
 
             <div class="meca-form-grid">
               <div class="meca-field">
-                <label>Km restitution</label>
-                <input v-model.number="rapportForm.kilometrageRestitution" type="number" class="form-input meca-input-lg" placeholder="ex: 24500" :disabled="!!rapport.signature_mecanicien" />
+                <label>Compteur à la sortie, en kilomètres</label>
+                <input v-model.number="rapportForm.kilometrageRestitution" type="number" inputmode="numeric" class="form-input meca-input-lg" placeholder="24500" :disabled="!!rapport.signature_mecanicien" />
               </div>
             </div>
 
             <div class="meca-panel-box">
               <label class="meca-checkbox-label">
                 <input type="checkbox" :checked="rapportForm.vidangePrevue" :disabled="!!rapport.signature_mecanicien" @change="toggleVidangePrevue" />
-                Prochaine vidange à prévoir
+                Poser la prochaine vidange
               </label>
               <div v-if="rapportForm.vidangePrevue" class="meca-form-grid meca-form-grid-mt">
                 <div class="meca-field">
-                  <label>Vers (km)</label>
-                  <input v-model.number="rapportForm.prochaineRevisionKm" type="number" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
+                  <label>Vers, en kilomètres</label>
+                  <input v-model.number="rapportForm.prochaineRevisionKm" type="number" inputmode="numeric" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
                 </div>
                 <div class="meca-field">
                   <label>Ou avant le</label>
@@ -381,7 +454,7 @@
             </div>
 
             <div class="meca-panel-box meca-panel-box-info">
-              <div class="meca-panel-box-title"><AppIcon name="i-ri-tools-line" /> Entretien des fluides recommandé</div>
+              <div class="meca-panel-box-title"><AppIcon name="i-ri-tools-line" /> Périodicité des fluides</div>
               <div>Huile moteur — <strong>tous les ans</strong></div>
               <div>Liquide de frein — <strong>tous les 2 ans</strong></div>
               <div>Liquide de refroidissement — <strong>tous les 3 ans</strong></div>
@@ -391,16 +464,16 @@
               <div class="meca-panel-box-title"><AppIcon name="i-ri-motorbike-line" /> Essai routier</div>
               <div class="meca-form-grid">
                 <div class="meca-field">
-                  <label>Km départ</label>
-                  <input v-model.number="essaiForm.kmDebut" type="number" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
+                  <label>Compteur au départ</label>
+                  <input v-model.number="essaiForm.kmDebut" type="number" inputmode="numeric" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
                 </div>
                 <div class="meca-field">
-                  <label>Km retour</label>
-                  <input v-model.number="essaiForm.kmFin" type="number" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
+                  <label>Compteur au retour</label>
+                  <input v-model.number="essaiForm.kmFin" type="number" inputmode="numeric" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
                 </div>
                 <div class="meca-field">
-                  <label>Durée (min)</label>
-                  <input v-model.number="essaiForm.dureeMinutes" type="number" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
+                  <label>Durée de l'essai, en minutes</label>
+                  <input v-model.number="essaiForm.dureeMinutes" type="number" inputmode="numeric" class="form-input meca-input-lg" :disabled="!!rapport.signature_mecanicien" />
                 </div>
               </div>
               <CheckpointGrid :items="essaiPoints" :values="essaiForm.pointsControle" :disabled="!!rapport.signature_mecanicien" @toggle="cycleEssaiPoint" />
@@ -411,41 +484,43 @@
                 @remove-photo="(key: string, id: number) => removeCheckpointPhoto('essai_routier', key, id)"
               />
               <div v-if="essaiHasNok" class="meca-field meca-field-mt">
-                <label>Actions correctives</label>
-                <textarea v-model="essaiForm.actionsCorrectives" class="form-input meca-input-lg" rows="2" placeholder="Décrire les corrections effectuées…" :disabled="!!rapport.signature_mecanicien" />
+                <label>Corrections faites après l'essai</label>
+                <textarea v-model="essaiForm.actionsCorrectives" class="form-input meca-input-lg" rows="2" placeholder="Ce qui a été repris sur la moto après le tour d'essai" :disabled="!!rapport.signature_mecanicien" />
               </div>
             </div>
 
             <AppButton
               v-if="!rapport.signature_mecanicien"
-              variant="primary" class="meca-btn-lg meca-btn-block"
-              :label="rapportSaving ? 'Enregistrement…' : 'Enregistrer le rapport'"
+              variant="primary" class="meca-btn-lg meca-btn-block" icon="i-ri-save-line"
+              :label="rapportSaving ? 'Enregistrement en cours…' : 'Enregistrer le rapport'"
               :disabled="rapportSaving"
+              data-testid="meca-enregistrer-rapport"
               @click="saveRapport"
             />
 
             <div v-if="!rapport.signature_mecanicien" class="meca-sign-block">
-              <p class="meca-sign-title"><AppIcon name="i-ri-quill-pen-line" /> Signature mécanicien</p>
-              <p class="meca-section-hint">En signant, vous certifiez que les travaux sont réalisés et l'essai routier effectué.</p>
+              <p class="meca-sign-title"><AppIcon name="i-ri-quill-pen-line" /> Signature de l'atelier</p>
+              <p class="meca-section-hint">La signature engage l'atelier sur les travaux décrits et sur l'essai routier effectué. Le client signe à son tour à la restitution.</p>
               <canvas
                 ref="sigRapportCanvas"
                 class="meca-sign-canvas"
                 @pointerdown="startRapportDraw" @pointermove="drawRapport" @pointerup="endRapportDraw" @pointerleave="endRapportDraw"
               ></canvas>
               <div class="meca-sign-actions">
-                <AppButton variant="secondary" class="meca-btn-lg" icon="i-ri-eraser-line" label="Effacer" @click="clearRapportSig" />
+                <AppButton variant="secondary" class="meca-btn-lg" icon="i-ri-eraser-line" label="Effacer le tracé" @click="clearRapportSig" />
                 <AppButton
                   variant="primary" class="meca-btn-lg meca-btn-sign"
-                  :label="rapportSigning ? 'Signature…' : 'Signer le rapport'"
+                  :label="rapportSigning ? 'Signature en cours…' : 'Signer et clore le rapport'"
                   :disabled="!rapportSigDrawn || rapportSigning"
+                  data-testid="meca-signer-rapport"
                   @click="signRapport"
                 />
               </div>
-              <div v-if="rapportSignError" class="meca-error-panel">{{ rapportSignError }}</div>
+              <AppFieldError v-if="rapportSignError" :message="rapportSignError" />
             </div>
 
             <div v-else class="meca-signed-inline">
-              <AppIcon name="i-ri-checkbox-circle-line" /> Rapport signé par le mécanicien — en attente de signature client lors de la restitution.
+              <AppIcon name="i-ri-checkbox-circle-line" /> Rapport signé par l'atelier. Le client signe à la restitution, la moto peut sortir dès qu'il l'a fait.
             </div>
           </div>
         </div>
@@ -458,24 +533,26 @@
       <div class="meca-sticky-bar-inner">
         <AppButton
           v-if="activeRdv.statut === 'en_cours'"
-          variant="secondary" class="meca-btn-lg" icon="i-ri-pause-line" label="Pause"
-          :loading="pausing" @click="pauseWork"
+          variant="secondary" class="meca-btn-lg" icon="i-ri-pause-line" label="Mettre en pause"
+          :loading="pausing" data-testid="meca-pause-barre" @click="pauseWork"
         />
         <AppButton
           v-if="activeRdv.statut === 'en_pause'"
-          variant="secondary" class="meca-btn-lg" icon="i-ri-play-line" label="Reprendre"
-          :loading="resuming" @click="resumeWork"
+          variant="secondary" class="meca-btn-lg" icon="i-ri-play-line" label="Reprendre les travaux"
+          :loading="resuming" data-testid="meca-reprendre-barre" @click="resumeWork"
         />
         <AppButton
           v-if="!essaiRoutierValide"
           variant="primary" class="meca-btn-lg" icon="i-ri-motorbike-line"
-          :label="savingRoadTest ? 'Validation…' : 'Valider l’essai'"
+          :label="savingRoadTest ? 'Validation en cours…' : 'Valider l’essai routier'"
           :disabled="savingRoadTest || !canValidateRoadTest"
+          data-testid="meca-valider-essai-barre"
           @click="saveActiveRoadTest"
         />
         <AppButton
-          variant="primary" class="meca-btn-lg meca-btn-finish" icon="i-ri-checkbox-circle-line" label="Terminer"
-          :loading="finishing" :disabled="!essaiRoutierValide" @click="finishWork"
+          variant="primary" class="meca-btn-lg meca-btn-finish" icon="i-ri-checkbox-circle-line"
+          label="Terminer et ouvrir le rapport"
+          :loading="finishing" :disabled="!essaiRoutierValide" data-testid="meca-terminer-barre" @click="finishWork"
         />
       </div>
     </div>
@@ -485,7 +562,11 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'kiosk' })
+// Thème sombre imposé (tour 45b) : au poste, le sombre ne désigne pas une
+// préférence mais un LIEU — un écran debout, dans l'atelier, sous néon ou en
+// plein jour. C'est le seul écran du front avec l'affichage mural à le faire ;
+// `@nuxtjs/color-mode` rend la main au reste de l'application en sortant d'ici.
+definePageMeta({ layout: 'kiosk', colorMode: 'dark' })
 
 const api = useApi()
 const config = useRuntimeConfig()
@@ -508,6 +589,33 @@ const interventionNotes = ref('')
 const now = ref(Date.now())
 let chronoTimer: ReturnType<typeof setInterval> | null = null
 
+// --- Écriture des nombres, à la française ---
+// `formatMinutes` rend « 01:40 », qui se lit comme une heure d'horloge et non
+// comme une durée. Au poste on annonce « 1 h 40 » ; l'espace est insécable
+// pour que la valeur ne se coupe jamais en fin de ligne.
+const INSECABLE = ' '
+
+function dureeAtelier(minutes: number | string | null | undefined): string {
+  const total = Math.max(0, Math.round(Number(minutes ?? 0)))
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  if (!h) return `${m}${INSECABLE}min`
+  return `${h}${INSECABLE}h${INSECABLE}${String(m).padStart(2, '0')}`
+}
+
+function kilometrage(km: number | string | null | undefined): string {
+  const valeur = Number(km ?? 0)
+  if (!Number.isFinite(valeur)) return ''
+  return `${valeur.toLocaleString('fr-FR')}${INSECABLE}km`
+}
+
+// Heure d'interface en 08:30, adossée au même battement que le chrono : pas de
+// second minuteur pour la même seconde.
+const heureCourante = computed(() => {
+  const d = new Date(now.value)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+})
+
 // --- Navigation par onglets ---
 const activeTab = ref<'cours' | 'faire' | 'termines'>('cours')
 const showHistorique = ref(false)
@@ -527,6 +635,20 @@ function clearFailedAction(label: string) {
 function retryLastFailedAction() {
   lastFailedAction.value?.retry()
 }
+
+// 29e : le bandeau hors ligne doit dire DEPUIS QUAND. La file en mémoire ne
+// retient pas cet instant — on l'horodate ici, au moment où le réseau tombe.
+const horsLigneDepuis = ref<number | null>(null)
+
+watch(() => offlineQueue.isOnline.value, (enLigne) => {
+  horsLigneDepuis.value = enLigne ? null : Date.now()
+}, { immediate: true })
+
+const dureeHorsLigne = computed(() => {
+  if (!horsLigneDepuis.value) return 'quelques instants'
+  const minutes = Math.floor((now.value - horsLigneDepuis.value) / 60000)
+  return minutes < 1 ? 'moins d’une minute' : dureeAtelier(minutes)
+})
 
 // --- Sections repliables de l'intervention active ---
 const sections = reactive({
@@ -700,14 +822,14 @@ async function openRapport(rdvId: number) {
     const rdvData = myRdvs.value.find(r => r.id === rdvId)
     const orId = rdvData?.or_id
     if (!orId) {
-      rapportError.value = 'Aucun ordre de réparation trouvé pour ce RDV'
+      rapportError.value = "La réception n'a pas encore créé l'ordre de réparation de ce rendez-vous. Le rapport s'ouvrira dès que l'OR existe."
       return
     }
     rapport.value = await api.get(`/mecanicien/me/rapport/${orId}`)
     fillRapportForm(rapport.value)
     await loadCheckpointPhotos(rdvId)
   } catch (e: any) {
-    rapportError.value = e.message || 'Impossible de charger le rapport'
+    rapportError.value = messageErreur(e, "le rapport n'a pas pu être ouvert")
   } finally {
     rapportLoading.value = false
   }
@@ -740,7 +862,7 @@ async function saveRapport(): Promise<boolean> {
     )
 
     if (outcome.queued) {
-      toast.add({ title: 'Hors connexion', description: 'Le rapport sera enregistré automatiquement au retour du réseau.', color: 'warning' })
+      toast.add({ title: 'Rapport gardé au poste', description: 'Le réseau est coupé : le rapport repart tout seul dès qu’il revient. La signature, elle, attend le réseau.', color: 'warning' })
       return false
     }
 
@@ -748,7 +870,7 @@ async function saveRapport(): Promise<boolean> {
     toast.add({ title: 'Rapport enregistré', color: 'success' })
     return true
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+    toast.add({ title: 'Rapport non enregistré', description: messageErreur(e, "le rapport n'a pas été enregistré"), color: 'error' })
     return false
   } finally {
     rapportSaving.value = false
@@ -762,20 +884,20 @@ async function signRapport() {
   try {
     const saved = await saveRapport()
     if (!saved) {
-      rapportSignError.value = "Le rapport n'a pas pu être enregistré (connexion). Réessayez avant de signer."
+      rapportSignError.value = "Le serveur n'a pas répondu : le rapport n'est pas enregistré, donc rien n'est signé. Réessayez l'enregistrement avant de signer."
       return
     }
     const sig = sigRapportCanvas.value.toDataURL('image/png')
     const updated = await api.post(`/mecanicien/me/sign/${rapport.value.id}`, { signature: sig })
     rapport.value = updated
     await fetchMyRdvs()
-    toast.add({ title: 'Intervention signée', color: 'success' })
+    toast.add({ title: 'Rapport signé par l’atelier', color: 'success' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Signer le rapport', signRapport)
-      rapportSignError.value = 'Connexion perdue pendant la signature. Réessayez dès que la connexion revient.'
+      rapportSignError.value = 'La connexion est tombée pendant la signature : le rapport n’est pas signé et la moto ne peut pas être restituée. Le tracé reste à l’écran, il suffit de resigner au retour du réseau.'
     } else {
-      rapportSignError.value = e.message || 'Erreur lors de la signature'
+      rapportSignError.value = messageErreur(e, "le rapport n'a pas été signé")
     }
   } finally {
     rapportSigning.value = false
@@ -798,7 +920,11 @@ function drawRapport(e: PointerEvent) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width)
   const y = (e.clientY - rect.top) * (canvas.height / rect.height)
   ctx.beginPath(); ctx.moveTo(sigLastX, sigLastY); ctx.lineTo(x, y)
-  ctx.strokeStyle = 'var(--surface-2)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke()
+  // Un canvas ne résout pas `var()` : la valeur littérale était ignorée et le
+  // tracé retombait silencieusement sur le noir par défaut. On lit la couleur
+  // calculée du pavé, où la feuille a déjà résolu le token.
+  ctx.strokeStyle = getComputedStyle(canvas).color
+  ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke()
   sigDrawnDistance += Math.hypot(x - sigLastX, y - sigLastY)
   sigLastX = x; sigLastY = y
   if (sigDrawnDistance >= MIN_SIG_DISTANCE) rapportSigDrawn.value = true
@@ -886,7 +1012,7 @@ async function uploadCheckpointPhoto(source: 'checkup' | 'essai_routier', key: s
     if (!target[key]) target[key] = []
     target[key].push({ id: result.id, url: `/api/photos/file/${result.filename}` })
   } catch (e: any) {
-    toast.add({ title: 'Erreur photo', description: e.message, color: 'error' })
+    toast.add({ title: 'Photo non jointe', description: messageErreur(e, "la photo n'a pas été jointe au point de contrôle"), color: 'error' })
   }
 }
 
@@ -896,7 +1022,7 @@ async function removeCheckpointPhoto(source: 'checkup' | 'essai_routier', key: s
     await api.del(`/photos/${photoId}`)
     if (target[key]) target[key] = target[key].filter(p => p.id !== photoId)
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+    toast.add({ title: 'Photo toujours au dossier', description: messageErreur(e, "la photo n'a pas été retirée du point de contrôle"), color: 'error' })
   }
 }
 
@@ -941,12 +1067,46 @@ const kpis = computed(() => ({
   pctDone: myRdvs.value.length ? Math.round(doneRdvs.value.length / myRdvs.value.length * 100) : 0,
 }))
 
+// Les ponts de la journée, énumérés comme on les dit à l'oral : « Pont 2 et 5 ».
+const pontsDuJour = computed(() => {
+  const noms = [...new Set(myRdvs.value.map((r: any) => r.pont_nom).filter(Boolean))] as string[]
+  if (!noms.length) return ''
+  if (noms.length === 1) return noms[0]
+  return `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}`
+})
+
+// Total pointé du jour : la somme des temps déjà effectifs, plus le temps qui
+// tourne sur l'intervention en cours. Affiché seulement s'il y a quelque chose
+// à afficher — un « 0 h 00 » en tête d'écran n'apprend rien.
+const tempsPointeJour = computed(() => {
+  const cumul = myRdvs.value.reduce((total: number, rdv: any) => {
+    if (rdv.id === activeRdv.value?.id) return total
+    return total + Number(rdv.temps_effectif_minutes ?? 0)
+  }, 0)
+  return cumul + (activeRdv.value ? elapsedMin.value : 0)
+})
+
+// Le bouton dit le résultat en entier, et le point médian sépare l'action de
+// sa donnée : « Démarrer · Pont 2 ».
+function libelleDemarrer(rdv: any): string {
+  return rdv?.pont_nom ? `Démarrer · ${rdv.pont_nom}` : 'Démarrer les travaux'
+}
+
 const priorityAction = computed(() => {
   const receptions = todoRdvs.value.filter(r => r.status === 'reception')
-  if (receptions.length) return `Démarrer : ${receptions[0].client_nom} — ${receptions[0].vehicule_info}`
-  if (activeRdv.value && progressPct.value > 100) return `Intervention en cours en retard — terminer rapidement`
-  if (activeRdv.value && !essaiRoutierValide.value) return 'Valider l’essai routier avant clôture'
-  if (todoRdvs.value.length) return `Prochain RDV à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} — ${todoRdvs.value[0].client_nom}`
+  if (receptions.length) {
+    const pont = receptions[0].pont_nom ? ` sur le ${String(receptions[0].pont_nom).toLowerCase()}` : ''
+    return `La ${receptions[0].vehicule_info} de ${receptions[0].client_nom} est réceptionnée : les travaux peuvent démarrer${pont}.`
+  }
+  if (activeRdv.value && progressPct.value > 100) {
+    return `Le temps vendu est dépassé de ${dureeAtelier(elapsedMin.value - activeRdv.value.temps_estime)}. Le comptoir n'est pas prévenu tant que rien n'est signalé.`
+  }
+  if (activeRdv.value && !essaiRoutierValide.value) {
+    return 'L’essai routier reste à valider : sans lui, l’intervention ne peut pas être terminée.'
+  }
+  if (todoRdvs.value.length) {
+    return `Prochaine moto attendue à ${todoRdvs.value[0].heure_debut?.slice(0, 5)} : ${todoRdvs.value[0].vehicule_info} de ${todoRdvs.value[0].client_nom}.`
+  }
   return null
 })
 
@@ -1018,7 +1178,7 @@ async function persistWorkshopReport(showToast = true): Promise<boolean> {
   try {
     const orId = activeOrId.value
     if (!orId) {
-      toast.add({ title: 'OR introuvable', description: "L'ordre de réparation n'a pas encore été créé par la réception.", color: 'warning' })
+      toast.add({ title: 'Aucun OR sur ce rendez-vous', description: "La réception n'a pas encore créé l'ordre de réparation : le contrôle n'a nulle part où s'enregistrer. Il reste à l'écran en attendant.", color: 'warning' })
       return false
     }
 
@@ -1033,7 +1193,7 @@ async function persistWorkshopReport(showToast = true): Promise<boolean> {
     )
 
     if (outcome.queued) {
-      toast.add({ title: 'Hors connexion', description: 'La sauvegarde sera renvoyée automatiquement au retour du réseau.', color: 'warning' })
+      toast.add({ title: 'Saisie gardée au poste', description: 'Le réseau est coupé : le contrôle et les notes repartent tout seuls dès qu’il revient. Rien à ressaisir.', color: 'warning' })
       return false
     }
 
@@ -1046,11 +1206,11 @@ async function persistWorkshopReport(showToast = true): Promise<boolean> {
       : rdv)
 
     if (showToast) {
-      toast.add({ title: 'Rapport atelier sauvegardé', color: 'success' })
+      toast.add({ title: 'Contrôle atelier enregistré', color: 'success' })
     }
     return true
   } catch (e: any) {
-    toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+    toast.add({ title: 'Contrôle non enregistré', description: messageErreur(e, "le contrôle et les notes n'ont pas été enregistrés"), color: 'error' })
     return false
   } finally {
     persistingCheckup.value = false
@@ -1062,7 +1222,7 @@ async function saveActiveRoadTest() {
   if (!canValidateRoadTest.value) {
     toast.add({
       title: 'Essai routier incomplet',
-      description: 'Renseignez km départ/retour, durée et au moins 5 points avant validation.',
+      description: "Il manque les deux compteurs, la durée ou 5 points de contrôle. Sans essai validé, l'intervention ne peut pas être terminée.",
       color: 'warning',
     })
     return
@@ -1083,13 +1243,13 @@ async function saveActiveRoadTest() {
     })
     await fetchMyRdvs()
     clearFailedAction('Valider l’essai routier')
-    toast.add({ title: result?.valide ? 'Essai routier validé' : 'Essai routier enregistré', color: 'success' })
+    toast.add({ title: result?.valide ? 'Essai routier validé' : 'Essai routier enregistré', description: result?.valide ? 'L’intervention peut être terminée.' : undefined, color: 'success' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Valider l’essai routier', saveActiveRoadTest)
-      toast.add({ title: 'Connexion perdue', description: 'L’essai routier n’a pas été envoyé. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Essai routier resté au poste', description: 'Le serveur n’a pas répondu : l’essai n’est pas validé, l’intervention reste ouverte. Le bandeau « Action restée au poste » le renvoie.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur essai routier', description: e.message, color: 'error' })
+      toast.add({ title: 'Essai routier non validé', description: messageErreur(e, 'l’essai routier n’a pas été enregistré'), color: 'error' })
     }
   } finally {
     savingRoadTest.value = false
@@ -1102,13 +1262,13 @@ async function startWork(id: number) {
     await fetchMyRdvs()
     activeTab.value = 'cours'
     clearFailedAction('Démarrer')
-    toast.add({ title: 'Travaux démarrés', color: 'success' })
+    toast.add({ title: 'Travaux démarrés · pointage lancé', color: 'success' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Démarrer', () => startWork(id))
-      toast.add({ title: 'Connexion perdue', description: 'Le démarrage n’a pas été envoyé. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Démarrage resté au poste', description: 'Le serveur n’a pas répondu : le pointage n’a pas commencé, le rendez-vous reste à prendre.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+      toast.add({ title: 'Travaux non démarrés', description: messageErreur(e, 'les travaux n’ont pas démarré'), color: 'error' })
     }
   }
 }
@@ -1120,13 +1280,13 @@ async function pauseWork() {
     await rdvStore.transitionRdv(activeRdv.value.id, 'pause_travail')
     await fetchMyRdvs()
     clearFailedAction('Mettre en pause')
-    toast.add({ title: 'Intervention mise en pause', color: 'warning' })
+    toast.add({ title: 'Pointage en pause', color: 'warning' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Mettre en pause', pauseWork)
-      toast.add({ title: 'Connexion perdue', description: 'La mise en pause n’a pas été envoyée. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Pause restée au poste', description: 'Le serveur n’a pas répondu : le pointage continue de courir.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+      toast.add({ title: 'Intervention toujours en cours', description: messageErreur(e, 'l’intervention n’a pas été mise en pause'), color: 'error' })
     }
   } finally {
     pausing.value = false
@@ -1140,13 +1300,13 @@ async function resumeWork() {
     await rdvStore.transitionRdv(activeRdv.value.id, 'reprendre_travail')
     await fetchMyRdvs()
     clearFailedAction('Reprendre')
-    toast.add({ title: 'Intervention reprise', color: 'success' })
+    toast.add({ title: 'Pointage repris', color: 'success' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Reprendre', resumeWork)
-      toast.add({ title: 'Connexion perdue', description: 'La reprise n’a pas été envoyée. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Reprise restée au poste', description: 'Le serveur n’a pas répondu : le pointage est toujours en pause.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+      toast.add({ title: 'Intervention toujours en pause', description: messageErreur(e, 'l’intervention n’a pas repris'), color: 'error' })
     }
   } finally {
     resuming.value = false
@@ -1156,11 +1316,11 @@ async function resumeWork() {
 async function finishWork() {
   if (!activeRdv.value) return
   if (!checkupDone.value && !interventionNotes.value.trim()) {
-    toast.add({ title: 'Rapport atelier requis', description: 'Ajoutez au moins un point de contrôle ou une note avant de terminer.', color: 'warning' })
+    toast.add({ title: 'Rien de consigné sur l’intervention', description: 'Il faut au moins un point de contrôle coché ou une note : sans trace, la restitution n’a rien à dire au client.', color: 'warning' })
     return
   }
   if (!essaiRoutierValide.value) {
-    toast.add({ title: 'Essai routier obligatoire', description: 'Validez l’essai routier dans le bloc atelier avant de terminer.', color: 'warning' })
+    toast.add({ title: 'Essai routier à valider d’abord', description: 'La moto ne peut pas être annoncée prête tant que l’essai n’est pas validé. Il se renseigne dans le bloc « Essai routier ».', color: 'warning' })
     return
   }
   finishing.value = true
@@ -1170,14 +1330,14 @@ async function finishWork() {
     await rdvStore.transitionRdv(terminatedId, 'terminer')
     await fetchMyRdvs()
     clearFailedAction('Terminer')
-    toast.add({ title: 'Intervention terminée', color: 'success' })
+    toast.add({ title: 'Intervention terminée · rapport à signer', color: 'success' })
     openRapport(terminatedId)
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Terminer', finishWork)
-      toast.add({ title: 'Connexion perdue', description: 'La clôture n’a pas été envoyée. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Clôture restée au poste', description: 'Le serveur n’a pas répondu : l’intervention reste ouverte et le pointage continue.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+      toast.add({ title: 'Intervention non terminée', description: messageErreur(e, 'l’intervention n’a pas été terminée'), color: 'error' })
     }
   } finally {
     finishing.value = false
@@ -1195,12 +1355,14 @@ function demandeStatutLabel(statut: string): string {
 }
 
 function demandeBadgeStyle(demande: any): Record<string, string> {
+  // Trio de statut du design system : la surface et l'encre vont ensemble, et
+  // basculent seules avec le thème d'atelier.
   const colors: Record<string, { bg: string; color: string }> = {
-    en_attente: { bg: 'var(--surface-3)', color: 'var(--content-3)' },
-    en_attente_validation: { bg: 'var(--warning-soft)', color: 'var(--warning-content)' },
-    en_attente_decision_client: { bg: 'var(--info-soft)', color: 'var(--info-content)' },
-    accepte: { bg: 'var(--success-soft)', color: 'var(--success-content)' },
-    refuse: { bg: 'var(--error-soft)', color: 'var(--error-content)' },
+    en_attente: { bg: 'var(--pk-neutral-surface)', color: 'var(--pk-ink-quiet)' },
+    en_attente_validation: { bg: 'var(--pk-warning-surface)', color: 'var(--pk-warning-ink)' },
+    en_attente_decision_client: { bg: 'var(--pk-info-surface)', color: 'var(--pk-info-ink)' },
+    accepte: { bg: 'var(--pk-success-surface)', color: 'var(--pk-success-ink)' },
+    refuse: { bg: 'var(--pk-error-surface)', color: 'var(--pk-error-ink)' },
   }
   const c = colors[demande.statut] ?? colors.en_attente
   return { background: c.bg, color: c.color }
@@ -1224,13 +1386,13 @@ async function submitDemande() {
     showNewDemande.value = false
     await fetchMyRdvs()
     clearFailedAction('Envoyer la demande complémentaire')
-    toast.add({ title: 'Demande envoyée', description: 'La réception va valider et contacter le client.', color: 'success' })
+    toast.add({ title: 'Travail supplémentaire envoyé au comptoir', description: 'Le comptoir le chiffre et demande l’accord du client. Rien n’est engagé tant que la réponse n’est pas là.', color: 'success' })
   } catch (e: any) {
     if (offlineQueue.isNetworkError(e)) {
       offerRetry('Envoyer la demande complémentaire', submitDemande)
-      toast.add({ title: 'Connexion perdue', description: 'La demande n’a pas été envoyée. Réessayez dès que la connexion revient.', color: 'error' })
+      toast.add({ title: 'Déclaration restée au poste', description: 'Le serveur n’a pas répondu : le comptoir n’a rien reçu, le client n’a pas été sollicité.', color: 'error' })
     } else {
-      toast.add({ title: 'Erreur', description: e.message, color: 'error' })
+      toast.add({ title: 'Travail supplémentaire non transmis', description: messageErreur(e, 'la demande n’est pas partie au comptoir'), color: 'error' })
     }
   } finally {
     submittingDemande.value = false
@@ -1243,7 +1405,7 @@ async function saveInterventionNotes() {
   try {
     const saved = await persistWorkshopReport(false)
     if (saved) {
-      toast.add({ title: 'Notes sauvegardées', color: 'success' })
+      toast.add({ title: 'Notes enregistrées', color: 'success' })
     }
   } finally {
     savingNotes.value = false
@@ -1301,30 +1463,48 @@ async function reload() {
     applySavedWorkshopReport()
   } catch (e: any) {
     loadError.value = e?.data?.error === 'MECANICIEN_NOT_LINKED'
-      ? "Votre compte n'est pas relié à un profil mécanicien. Contactez un administrateur."
-      : (e?.data?.error || e?.message || "Impossible de charger vos rendez-vous. Vérifiez la connexion puis réessayez.")
+      ? "Ce compte n'est relié à aucun profil mécanicien : aucun rendez-vous ne peut lui être rattaché. Le lien se fait dans Administration › Utilisateurs."
+      : messageErreur(e, "la feuille du jour n'a pas pu être chargée")
     myRdvs.value = []
   } finally {
     loading.value = false
   }
 }
 
+// 45c : « Échap ferme le panneau. » Le poste est tactile, mais un clavier reste
+// branché sur certains postes, et l'unique croix de fermeture est en haut à
+// droite d'une modale qui descend sous la ligne de flottaison.
+function fermerAuClavier(evenement: KeyboardEvent) {
+  if (evenement.key === 'Escape' && rapportRdvId.value) closeRapport()
+}
+
 onMounted(async () => {
   await reload()
   chronoTimer = setInterval(() => { now.value = Date.now() }, 1000)
   chargerIntervalleVidange()
+  window.addEventListener('keydown', fermerAuClavier)
 })
 
 onUnmounted(() => {
   if (chronoTimer) clearInterval(chronoTimer)
+  window.removeEventListener('keydown', fermerAuClavier)
 })
 </script>
 
 <style scoped>
 /* ==========================================================================
-   Espace Mécanicien — mode kiosque tactile (iPad)
-   Cibles ≥44px, typographie agrandie, navigation par onglets + sections
-   repliables pour limiter le scroll sur un écran d'atelier.
+   Poste mécanicien — l'écran qui vit dans l'atelier
+   --------------------------------------------------------------------------
+   Sombre par lieu et non par préférence (45b) : le thème est imposé par
+   `definePageMeta({ colorMode: 'dark' })` plus haut, la couche `--pk-*` bascule
+   avec lui sur ses valeurs d'atelier.
+
+   Tout ce qui se touche fait `--pk-target-workshop` (56 px) : on le vise
+   debout, gants aux mains, sur un iPad posé sur le plan de travail. Deux
+   cibles aux effets opposés — mettre en pause / terminer, effacer / signer —
+   gardent au moins `--pk-target-gap` entre elles. Aucune action essentielle
+   n'est derrière un survol, un appui long ou un glissement : le survol
+   n'existe pas au doigt, et l'appui long est déjà pris par le système.
    ========================================================================== */
 
 .meca-header {
@@ -1340,20 +1520,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+}
+
+.meca-header-texts {
+  min-width: 0;
 }
 
 .meca-avatar {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--info-soft);
-  border: 2px solid var(--info);
+  background: var(--pk-info-surface);
+  border: 2px solid var(--pk-info-line);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 19px;
-  color: var(--info-content);
+  color: var(--pk-info-ink);
   flex-shrink: 0;
 }
 
@@ -1361,13 +1546,26 @@ onUnmounted(() => {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
-  color: var(--content-1);
+  color: var(--pk-ink);
 }
 
 .meca-date {
   font-size: 14px;
-  color: var(--content-3);
-  text-transform: capitalize;
+  color: var(--pk-ink-quiet);
+}
+
+/* Seule la date porte une majuscule d'origine (« lundi »), pas le reste de la
+   ligne : la capitalisation ne doit pas remonter sur les ponts ni sur l'heure. */
+.meca-date::first-letter {
+  text-transform: uppercase;
+}
+
+.meca-clock {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--pk-accent-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .meca-kpis {
@@ -1381,64 +1579,50 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   padding: 8px 16px;
-  border-radius: 12px;
-  background: var(--surface-1);
-  border: 1px solid var(--border-2);
+  border-radius: var(--pk-radius-card);
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
   min-width: 84px;
 }
 
+/* Surtitre du design system : 11 px, 700, 0,08 em, capitales. C'est le seul
+   endroit où les capitales sont permises, avec les mots de statut. */
 .meca-kpi-label {
   font-size: 11px;
-  color: var(--content-3);
+  color: var(--pk-ink-muted);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .meca-kpi-value {
   font-size: 22px;
   font-weight: 800;
-  color: var(--content-1);
+  color: var(--pk-ink);
   font-variant-numeric: tabular-nums;
 }
 
-.meca-loading {
-  display: flex;
-  justify-content: center;
-  padding: 48px;
-  color: var(--content-3);
-  font-size: 15px;
-}
-
-.meca-error-panel {
-  margin: 24px 0;
-  padding: 18px;
-  border-radius: 12px;
-  background: var(--error-soft);
-  border: 1px solid var(--error);
-  text-align: center;
-  color: var(--error-content);
-  font-size: 14px;
-}
-
-.meca-error-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 16px;
-  font-weight: 600;
-}
+.meca-kpi-value-warning { color: var(--pk-warning-ink); }
+.meca-kpi-value-success { color: var(--pk-success-ink); }
+.meca-kpi-value-accent { color: var(--pk-accent-ink); }
 
 .meca-banner {
   margin-bottom: 16px;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--pk-radius-card);
 }
 
-.meca-banner-error { background: var(--error-soft); border: 1px solid var(--error); }
-.meca-banner-accent { background: var(--accent-soft); border: 1px solid var(--accent); }
+/* Trio de statut : surface + filet + encre s'emploient ensemble, jamais l'un
+   sans les autres — sinon le bandeau perd son contour en thème sombre. */
+.meca-banner-error {
+  background: var(--pk-error-surface);
+  border: 1px solid var(--pk-error-line);
+}
+
+.meca-banner-accent {
+  background: var(--pk-accent-soft);
+  border: 1px solid var(--pk-accent);
+}
 
 .meca-banner-head {
   display: flex;
@@ -1448,15 +1632,16 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 700;
 }
-.meca-banner-error .meca-banner-head { color: var(--error-content); }
-.meca-banner-accent .meca-banner-head { color: var(--accent-content); }
-.meca-banner p { font-size: 14px; color: var(--content-2); }
+
+.meca-banner-error .meca-banner-head { color: var(--pk-error-ink); }
+.meca-banner-accent .meca-banner-head { color: var(--pk-accent-ink); }
+.meca-banner p { font-size: 14px; color: var(--pk-ink-quiet); line-height: 1.45; }
 .meca-banner .meca-btn-lg { margin-top: 10px; }
 
 /* === Onglets === */
 .meca-tabs {
   display: flex;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   margin-bottom: 18px;
   overflow-x: auto;
 }
@@ -1465,60 +1650,62 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 18px;
-  border-radius: 12px;
-  border: 1px solid var(--border-2);
-  background: var(--surface-1);
-  color: var(--content-2);
+  min-height: var(--pk-target-workshop);
+  padding: 0 20px;
+  border-radius: var(--pk-radius-card);
+  border: 1px solid var(--pk-border-control);
+  background: var(--pk-surface);
+  color: var(--pk-ink-quiet);
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  transition: background var(--pk-duration-state) var(--pk-easing),
+    border-color var(--pk-duration-state) var(--pk-easing),
+    color var(--pk-duration-state) var(--pk-easing);
 }
 
 .meca-tab.is-active {
-  background: var(--accent-soft);
-  border-color: var(--accent-graphic);
-  color: var(--accent-content);
+  background: var(--pk-accent-soft);
+  border-color: var(--pk-accent);
+  color: var(--pk-accent-ink);
 }
 
 .meca-tab-count {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--overlay-hover);
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--pk-radius-pill);
+  background: var(--pk-neutral-surface);
+  color: var(--pk-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .meca-tab-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--warning);
-}
-
-.meca-empty {
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--content-3);
-  font-size: 15px;
+  background: var(--pk-warning-line);
 }
 
 .meca-card {
-  background: var(--surface-1);
-  border: 1px solid var(--border-2);
-  border-radius: 16px;
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
   padding: 20px;
 }
 
+/* L'intervention en cours est la seule chose qui bouge dans l'atelier : elle
+   porte le filet accent, comme le bloc pointé du planning mural. */
 .meca-active-card {
-  border-color: var(--warning);
+  background: var(--pk-surface-raised);
+  border-width: 2px;
+  border-color: var(--pk-accent);
 }
 
 .meca-active-head {
@@ -1536,12 +1723,12 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 17px;
   font-weight: 700;
-  color: var(--warning-content);
+  color: var(--pk-ink);
 }
 
 .meca-active-head-links {
   display: flex;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   flex-wrap: wrap;
 }
 
@@ -1549,22 +1736,23 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 10px;
-  background: var(--overlay-soft);
-  color: var(--content-2);
-  border: none;
+  min-height: var(--pk-target-workshop);
+  padding: 0 18px;
+  border-radius: var(--pk-radius-card);
+  background: transparent;
+  color: var(--pk-ink);
+  border: 1px solid var(--pk-border-control);
   font-family: inherit;
   cursor: pointer;
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
+  transition: background var(--pk-duration-state) var(--pk-easing);
 }
 
 .meca-badge-row {
   display: flex;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   flex-wrap: wrap;
   margin-bottom: 14px;
 }
@@ -1574,19 +1762,21 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--pk-radius-pill);
   font-size: 13px;
   font-weight: 700;
 }
 
-.meca-badge-neutral { background: var(--surface-3); color: var(--content-3); }
-.meca-badge-success { background: var(--success-soft); color: var(--success-content); }
-.meca-badge-warning { background: var(--warning-soft); color: var(--warning-content); }
-.meca-badge-error { background: var(--error-soft); color: var(--error-content); }
+.meca-badge-neutral { background: var(--pk-neutral-surface); color: var(--pk-ink-quiet); }
+.meca-badge-success { background: var(--pk-success-surface); color: var(--pk-success-ink); }
+.meca-badge-warning { background: var(--pk-warning-surface); color: var(--pk-warning-ink); }
+.meca-badge-error { background: var(--pk-error-surface); color: var(--pk-error-ink); }
 
+/* « Terminer » est poussé à l'autre bout de la rangée : le geste qui clôt ne
+   doit pas se trouver sous le pouce qui vise « Mettre en pause ». */
 .meca-action-row {
   display: flex;
-  gap: 10px;
+  gap: calc(var(--pk-target-gap) * 2);
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
@@ -1599,33 +1789,33 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
-  font-size: 14px;
-  color: var(--content-2);
+  font-size: 15px;
+  color: var(--pk-ink);
   margin-bottom: 8px;
 }
 
 .meca-info-label {
-  color: var(--content-3);
-  font-size: 12px;
+  color: var(--pk-ink-muted);
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   display: block;
   margin-bottom: 2px;
 }
 
 .meca-motif {
   margin-top: 12px;
-  font-size: 14px;
+  font-size: 15px;
 }
-.meca-motif p { color: var(--content-2); margin-top: 2px; }
+.meca-motif p { color: var(--pk-ink-quiet); margin-top: 2px; line-height: 1.45; }
 
 .meca-reception {
   margin-top: 16px;
   padding: 14px;
-  border-radius: 12px;
-  background: var(--info-soft);
-  border: 1px solid var(--info);
+  border-radius: var(--pk-radius-card);
+  background: var(--pk-info-surface);
+  border: 1px solid var(--pk-info-line);
 }
 
 .meca-reception-head {
@@ -1637,91 +1827,98 @@ onUnmounted(() => {
   margin-bottom: 10px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--info-content);
+  color: var(--pk-info-ink);
 }
 
 .meca-reception-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
-  font-size: 13px;
-  color: var(--content-2);
+  font-size: 14px;
+  color: var(--pk-ink);
 }
 
 .meca-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--pk-target-gap);
   margin-top: 12px;
 }
 
 .meca-chip {
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--pk-radius-pill);
   font-size: 12px;
-  background: var(--overlay-hover);
-  color: var(--content-2);
+  background: var(--pk-neutral-surface);
+  color: var(--pk-ink);
 }
 
 .meca-reception-obs {
   margin-top: 12px;
-  font-size: 13px;
-  color: var(--content-2);
+  font-size: 14px;
+  color: var(--pk-ink-quiet);
 }
 
 .meca-chrono {
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-2);
+  border-top: 1px solid var(--pk-border-quiet);
 }
 
 .meca-chrono-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   font-size: 13px;
-  color: var(--content-3);
+  color: var(--pk-ink-quiet);
   margin-bottom: 6px;
 }
 
 .meca-chrono-row-sm { font-size: 12px; }
 
 .meca-chrono-value {
-  font-family: monospace;
-  font-size: 22px;
+  font-family: ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+  font-size: 26px;
   font-weight: 700;
-  color: var(--accent-content);
+  color: var(--pk-accent-ink);
+  font-variant-numeric: tabular-nums;
 }
-.meca-chrono-value.is-late, .meca-chrono-row-sm .is-late { color: var(--error-content); }
+.meca-chrono-value.is-late, .meca-chrono-row-sm .is-late { color: var(--pk-error-ink); }
 
 .meca-progress-bar {
-  background: var(--surface-2);
-  border-radius: 8px;
+  background: var(--pk-neutral-surface);
+  border-radius: var(--pk-radius-block);
   height: 12px;
   overflow: hidden;
 }
 
+/* La jauge se déplace d'un cran par seconde : elle glisse sur la durée d'un
+   état, pas sur une seconde entière — le design system proscrit ce qui
+   clignote comme ce qui rampe. */
 .meca-progress-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 8px;
-  transition: width 1s ease;
+  background: var(--pk-accent);
+  border-radius: var(--pk-radius-block);
+  transition: width var(--pk-duration-state) var(--pk-easing);
 }
-.meca-progress-fill.is-late { background: var(--error); }
+.meca-progress-fill.is-late { background: var(--pk-error-line); }
 
 .meca-late-warning {
   margin-top: 10px;
   padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--error-soft);
-  border: 1px solid var(--error);
+  border-radius: var(--pk-radius-tile);
+  background: var(--pk-error-surface);
+  border: 1px solid var(--pk-error-line);
   font-size: 13px;
-  color: var(--error-content);
+  line-height: 1.45;
+  color: var(--pk-error-ink);
 }
 
 .meca-section-hint {
   font-size: 13px;
-  color: var(--content-3);
+  line-height: 1.45;
+  color: var(--pk-ink-quiet);
   margin-bottom: 10px;
 }
 
@@ -1740,10 +1937,14 @@ onUnmounted(() => {
   gap: 12px;
   flex-wrap: wrap;
 }
+.meca-section-actions-split .meca-section-hint {
+  margin-bottom: 0;
+  flex: 1 1 260px;
+}
 
 .meca-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
@@ -1752,10 +1953,19 @@ onUnmounted(() => {
 
 .meca-field label {
   font-size: 12px;
-  color: var(--content-3);
-  font-weight: 600;
+  color: var(--pk-ink-muted);
+  font-weight: 700;
   display: block;
   margin-bottom: 4px;
+}
+
+/* La conséquence, pas la catégorie : « sans ça, le client repart sans savoir »
+   plutôt que « champ obligatoire ». */
+.meca-field-why {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pk-ink-quiet);
+  margin: 0 0 6px;
 }
 
 .meca-field-mt { margin-top: 10px; }
@@ -1765,13 +1975,27 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
-.meca-field-inline label { font-size: 13px; color: var(--content-3); white-space: nowrap; }
-.meca-field-inline select { max-width: 200px; }
+.meca-field-inline label { font-size: 13px; color: var(--pk-ink-muted); white-space: nowrap; }
+.meca-field-inline select { max-width: 320px; }
 
+/* Champ de saisie à la cible d'atelier : on tape dedans avec un gant, ou avec
+   un doigt gras. La règle globale `.form-input` reste la définition visuelle. */
 .meca-input-lg {
-  min-height: 46px;
-  font-size: 15px;
+  min-height: var(--pk-target-workshop);
+  font-size: 16px;
+  border-radius: var(--pk-radius-card);
+  border-color: var(--pk-border-control);
+  /* `background-color` et non le raccourci : `select.form-input` dessine sa
+     flèche en `background-image`, qu'un raccourci effacerait. */
+  background-color: var(--pk-surface-raised);
+  color: var(--pk-ink);
+}
+
+textarea.meca-input-lg {
+  min-height: calc(var(--pk-target-workshop) * 2);
+  padding-top: 12px;
 }
 
 .meca-demande-list {
@@ -1787,11 +2011,11 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--overlay-soft);
-  border: 1px solid var(--border-2);
+  border-radius: var(--pk-radius-tile);
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
   font-size: 14px;
-  color: var(--content-2);
+  color: var(--pk-ink);
 }
 
 .meca-demande-form {
@@ -1815,30 +2039,42 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
   padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-2);
-  background: var(--overlay-soft);
+  border-radius: var(--pk-radius-card);
+  border: 1px solid var(--pk-border);
+  background: var(--pk-surface-raised);
 }
+
+.meca-todo-texts { min-width: 0; }
 
 .meca-todo-name {
   font-weight: 700;
-  color: var(--content-1);
-  font-size: 15px;
+  color: var(--pk-ink);
+  font-size: 16px;
 }
 
 .meca-todo-sub {
   font-size: 13px;
-  color: var(--content-3);
+  color: var(--pk-ink-quiet);
   margin-top: 2px;
 }
 
 .meca-todo-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Règle 7 appliquée à la ligne : pas de bouton grisé. Ce qui n'est pas encore
+   démarrable dit pourquoi, en toutes lettres. */
+.meca-todo-attente {
+  font-size: 12px;
+  color: var(--pk-ink-muted);
+  max-width: 260px;
+  line-height: 1.35;
 }
 
 .meca-done-row {
@@ -1848,8 +2084,8 @@ onUnmounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-2);
+  border-radius: var(--pk-radius-card);
+  border: 1px solid var(--pk-border);
   font-size: 14px;
 }
 .meca-done-row.is-past { opacity: 0.7; }
@@ -1859,21 +2095,22 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  color: var(--content-2);
+  color: var(--pk-ink);
 }
 
-.meca-done-check { color: var(--success-content); font-size: 18px; }
+.meca-done-check { color: var(--pk-success-ink); font-size: 18px; }
 
 .meca-done-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: calc(var(--pk-target-gap) * 2);
+  flex-wrap: wrap;
 }
 
 .meca-link-btn {
-  min-height: 44px;
-  padding: 0 8px;
-  color: var(--accent-content);
+  min-height: var(--pk-target-workshop);
+  padding: 0 12px;
+  color: var(--pk-link);
   font-size: 14px;
   background: none;
   border: none;
@@ -1881,21 +2118,58 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-/* === Boutons tactiles agrandis (surchargent `.btn` de main.css) ===
+/* === Boutons tactiles d'atelier (surchargent `.btn` de main.css) ===
    Le composant `AppButton` rend un unique élément racine : le sélecteur
-   scoped du parent s'applique directement à cette racine, sans `:deep()`. */
+   scoped du parent s'applique directement à cette racine, sans `:deep()`.
+   Angle franc plutôt que pilule : c'est la forme « square » du kit, celle
+   qu'emploie le poste — une pilule de 56 px de haut devient une gélule. */
 .meca-btn-lg {
-  min-height: 48px;
-  padding: 0 20px;
+  min-height: var(--pk-target-workshop);
+  padding: 0 22px;
+  font-size: 16px;
+  border-radius: var(--pk-radius-card);
+}
+
+/* === Cibles des composants partagés, remontées à la taille d'atelier ===
+   `CheckpointGrid`, `CheckpointPhotoPanel`, `SectionAccordion` et les états
+   `App*` sont dessinés pour le bureau (44 à 48 px). Ici on les remonte à 56 px
+   depuis la page plutôt que d'en faire des variantes : c'est le CONTEXTE qui
+   commande la cible, pas le composant. */
+.meca :deep(.checkpoint-btn) {
+  min-height: var(--pk-target-workshop);
+  border-radius: var(--pk-radius-card);
   font-size: 15px;
 }
 
+.meca :deep(.cpp-add),
+.meca :deep(.cpp-thumb-remove) {
+  min-height: var(--pk-target-workshop);
+  min-width: var(--pk-target-workshop);
+}
+
+.meca :deep(.meca-section-head) {
+  min-height: var(--pk-target-workshop);
+}
+
+.meca :deep(.pk-offline) {
+  margin-bottom: 16px;
+  border: 1px solid var(--pk-warning-line);
+  border-radius: var(--pk-radius-card);
+}
+
+.meca :deep(.pk-state-actions .btn),
+.meca :deep(.pk-offline-toggle) {
+  min-height: var(--pk-target-workshop);
+  padding: 0 20px;
+  border-radius: var(--pk-radius-card);
+}
+
 /* === Barre d'action collante ===
-   Terminer/Valider l'essai restent joignables même quand une section
-   repliable (checkup, essai routier…) a été ouverte plus haut dans la carte
+   Terminer / valider l'essai restent joignables même quand une section
+   repliable (contrôle, essai routier…) a été ouverte plus haut dans la carte
    et qu'il faudrait sinon remonter tout en haut pour les atteindre. */
 .meca-sticky-spacer {
-  height: 76px;
+  height: calc(var(--pk-target-workshop) + 28px);
 }
 
 .meca-sticky-bar {
@@ -1904,9 +2178,8 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 40;
-  background: var(--surface-1);
-  border-top: 1px solid var(--border-2);
-  box-shadow: var(--elevation-2);
+  background: var(--pk-surface);
+  border-top: 1px solid var(--pk-border);
   padding: 10px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
@@ -1914,11 +2187,11 @@ onUnmounted(() => {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
-  gap: 10px;
+  gap: calc(var(--pk-target-gap) * 2);
   flex-wrap: wrap;
 }
 
-/* === Modale Rapport === */
+/* === Rapport d'intervention === */
 .meca-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1931,9 +2204,9 @@ onUnmounted(() => {
 .meca-modal {
   max-width: 680px;
   margin: 0 auto;
-  background: var(--surface-1);
-  border: 1px solid var(--border-1);
-  border-radius: 16px;
+  background: var(--pk-surface);
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
   padding: 24px;
 }
 
@@ -1941,6 +2214,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
 }
 .meca-modal-head h2 {
@@ -1949,45 +2223,33 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 19px;
   font-weight: 700;
-  color: var(--content-1);
+  color: var(--pk-ink);
 }
 
 .meca-modal-close {
-  min-width: 44px;
-  min-height: 44px;
-  font-size: 20px;
-  color: var(--content-3);
+  min-width: var(--pk-target-workshop);
+  min-height: var(--pk-target-workshop);
+  font-size: 22px;
+  color: var(--pk-ink-quiet);
   background: none;
-  border: none;
+  border: 1px solid var(--pk-border);
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: var(--pk-radius-card);
+  flex-shrink: 0;
 }
-.meca-modal-close:hover { background: var(--overlay-hover); }
 
 .meca-signed-panel {
-  text-align: center;
-  padding: 28px;
-  background: var(--success-soft);
-  border: 1px solid var(--success);
-  border-radius: 12px;
+  padding: 24px;
+  background: var(--pk-success-surface);
+  border: 1px solid var(--pk-success-line);
+  border-radius: var(--pk-radius-card);
   margin-bottom: 16px;
 }
-.meca-signed-icon { font-size: 36px; margin-bottom: 8px; color: var(--success-content); }
-.meca-signed-panel p { color: var(--success-content); font-weight: 700; font-size: 15px; }
+.meca-signed-icon { font-size: 32px; margin-bottom: 8px; color: var(--pk-success-ink); }
+.meca-signed-panel p { color: var(--pk-success-ink); font-weight: 700; font-size: 15px; }
 
 .meca-pdf-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   margin-top: 14px;
-  min-height: 48px;
-  padding: 0 20px;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .meca-rapport-form {
@@ -1999,26 +2261,30 @@ onUnmounted(() => {
 .meca-rapport-form .meca-field label {
   font-size: 13px;
   font-weight: 700;
+  color: var(--pk-ink);
+  text-transform: none;
+  letter-spacing: normal;
 }
-
-.meca-required { color: var(--error-content); }
 
 .meca-panel-box {
   padding: 16px;
-  border: 1px solid var(--border-2);
-  border-radius: 12px;
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
 }
 
 .meca-panel-box-info {
-  background: var(--info-soft);
-  border-color: var(--info);
+  background: var(--pk-info-surface);
+  border-color: var(--pk-info-line);
   font-size: 13px;
-  color: var(--content-2);
+  line-height: 1.6;
+  color: var(--pk-ink);
 }
 .meca-panel-box-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--info-content);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-info-ink);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -2028,20 +2294,21 @@ onUnmounted(() => {
 .meca-checkbox-label {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 15px;
+  gap: 12px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--content-1);
+  color: var(--pk-ink);
   cursor: pointer;
-  min-height: 44px;
+  min-height: var(--pk-target-workshop);
 }
 .meca-checkbox-label input {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
+  accent-color: var(--pk-accent);
 }
 
 .meca-sign-block {
-  border-top: 1px solid var(--border-2);
+  border-top: 1px solid var(--pk-border-quiet);
   padding-top: 18px;
 }
 .meca-sign-title {
@@ -2050,31 +2317,52 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 15px;
   font-weight: 700;
-  color: var(--content-1);
+  color: var(--pk-ink);
   margin-bottom: 8px;
 }
 
+/* Le pavé de signature est un DOCUMENT, pas une surface d'interface : encre
+   noire sur papier blanc, quel que soit le thème de l'écran. Le PNG produit
+   part tel quel dans le PDF remis au client — une signature claire, prise sur
+   un fond sombre, y serait invisible. `color` est aussi ce que le tracé lit
+   (`getComputedStyle(canvas).color`) : le canvas ne sait pas résoudre `var()`. */
 .meca-sign-canvas {
   width: 100%;
   aspect-ratio: 3/1;
-  border-radius: 10px;
-  background: var(--surface-2);
+  border-radius: var(--pk-radius-tile);
+  border: 1px solid var(--pk-border-control);
+  background: var(--mb-white);
+  color: var(--mb-black);
   touch-action: none;
 }
 
+/* Effacer et signer ont des effets opposés : deux fois l'écart minimal. */
 .meca-sign-actions {
   display: flex;
-  gap: 10px;
+  gap: calc(var(--pk-target-gap) * 2);
   margin-top: 10px;
+  flex-wrap: wrap;
 }
-.meca-btn-sign { flex: 2; }
+.meca-btn-sign { flex: 2 1 220px; }
 
 .meca-signed-inline {
   padding: 14px;
-  background: var(--success-soft);
-  border: 1px solid var(--success);
-  border-radius: 10px;
+  background: var(--pk-success-surface);
+  border: 1px solid var(--pk-success-line);
+  border-radius: var(--pk-radius-tile);
   font-size: 14px;
-  color: var(--success-content);
+  line-height: 1.45;
+  color: var(--pk-success-ink);
+}
+
+/* L'anneau de focus n'est jamais supprimé (45c) : il est déjà posé
+   globalement, on ne le redéclare ici que pour garantir qu'aucune surcharge
+   locale ne le rogne sur les contrôles écrits à la main. */
+.meca-tab:focus-visible,
+.meca-call-link:focus-visible,
+.meca-link-btn:focus-visible,
+.meca-modal-close:focus-visible {
+  outline: var(--pk-focus-width) solid var(--pk-focus-ring);
+  outline-offset: var(--pk-focus-offset);
 }
 </style>
