@@ -1,0 +1,105 @@
+<!-- @dsCard group="Components" viewport="760x1080" name="States" subtitle="EmptyState, FilterEmptyState, LoadingState, ErrorState, OfflineBanner, FieldError, PermissionCallout, NothingToDo" -->
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0}body{background:var(--pk-page);font-family:var(--mb-font-montserrat);color:var(--pk-ink)}#root{padding:16px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.col{display:flex;flex-direction:column;gap:10px}.lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pk-ink-muted)}a{color:var(--pk-link)}a:hover{color:#000}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+(function(){
+const NS = window.PaddockDesignSystem_8059f4;
+
+const { EmptyState, FilterEmptyState, LoadingState, ErrorState, OfflineBanner, FieldError, PermissionCallout, NothingToDo } = NS;
+
+function Card(){return (
+<div className="col" style={{gap:18}}>
+
+  <div className="col">
+    <span className="lbl">29a · premier jour, aucun client</span>
+    <EmptyState
+      icon="ri-group-line"
+      title="Aucun client pour le moment"
+      description="Un client se crée à la prise de rendez-vous, sans passer par ici. Vous pouvez aussi reprendre votre fichier existant."
+      actionLabel="Importer un fichier clients"
+      secondaryLabel="Créer à la main"
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29b · filtre sans résultat</span>
+    <FilterEmptyState
+      title="Aucun devis ne correspond"
+      filterCount={3}
+      suggestion={{ filter: 'Roubaix', count: 4, noun: 'devis critiques' }}
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29c · chargement d'une liste</span>
+    <LoadingState title="Chargement des devis" columns={5} rows={4} />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29d · le serveur ne répond pas</span>
+    <ErrorState
+      title="Le planning n'a pas pu être chargé"
+      description="Le serveur n'a pas répondu."
+      consequence="Vos rendez-vous ne sont pas perdus : rien n'a été modifié."
+      actionLabel="Réessayer"
+      issueLabel="Voir la feuille du jour"
+      code="PLN-503"
+      failedAt="14:52"
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29e · réseau coupé, bandeau global</span>
+    <OfflineBanner
+      offline
+      since="2 min"
+      stillPossible="pointer et à réceptionner"
+      pending={3}
+      pendingDetail="Pointages et 1 réception · signature capturée sur la tablette"
+      unavailable="Envoi de SMS, encaissement, aperçu PDF"
+      defaultOpen
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29f · saisie refusée</span>
+    <FieldError
+      message="Inférieur au dernier relevé connu : 24 180 km en mars 2026. Un compteur ne recule pas."
+      issueLabel="Compteur remplacé"
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29g · action hors de vos droits</span>
+    <PermissionCallout
+      title="Cette remise dépasse votre plafond"
+      description="Vous pouvez accorder jusqu'à 15 %. Au-delà, la validation revient à la direction."
+      requestLabel="Demander à Pascal M."
+      complyLabel="Ramener à 15 %"
+      note="La demande part par notification, avec le motif que vous avez saisi."
+    />
+  </div>
+
+  <div className="col">
+    <span className="lbl">29h · rien à traiter, bonne nouvelle</span>
+    <NothingToDo
+      title="Plus rien en attente"
+      description="Aucun devis sans réponse, aucun travail à valider, aucune pièce sous le seuil."
+      lastHandledAt="14:18"
+      actionLabel="Voir le planning de demain"
+    />
+  </div>
+
+</div>);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+})();
+</script></body></html>

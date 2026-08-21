@@ -10,50 +10,47 @@
  *
  * Icon plus text, never red alone. React only, no other dependency.
  */
-(function () {
-  const NS = (window.PaddockDesignSystem_8059f4 = window.PaddockDesignSystem_8059f4 || {});
 
-  const ROOT = {
-    display: 'flex', alignItems: 'flex-start', gap: 6, margin: 0, textAlign: 'left',
-    fontSize: 13, lineHeight: 1.45, color: 'var(--pk-error-ink)',
-  };
-  const ICON = { fontSize: 15, flexShrink: 0, marginTop: 1, color: 'var(--pk-error-line)' };
+import React from 'react';
 
-  /* The way out is a link inside the sentence, not a fourth button on the form:
-     it belongs to the refused field, and it must not compete with "Valider". */
-  function IssueLink({ onClick, children }) {
-    const [ring, setRing] = React.useState(false);
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        onFocus={(e) => setRing(e.currentTarget.matches(':focus-visible'))}
-        onBlur={() => setRing(false)}
-        style={{
-          display: 'inline', marginLeft: 6, padding: 0, border: 'none', background: 'none',
-          font: 'inherit', fontWeight: 600, color: 'var(--pk-link)',
-          textDecoration: 'underline', cursor: 'pointer',
-          outline: ring ? 'var(--pk-focus-width) solid var(--pk-focus-ring)' : 'none',
-          outlineOffset: 'var(--pk-focus-offset)',
-        }}
-      >
-        {children}
-      </button>
-    );
-  }
+const ROOT = {
+  display: 'flex', alignItems: 'flex-start', gap: 6, margin: 0, textAlign: 'left',
+  fontSize: 13, lineHeight: 1.45, color: 'var(--pk-error-ink)',
+};
+const ICON = { fontSize: 15, flexShrink: 0, marginTop: 1, color: 'var(--pk-error-line)' };
 
-  function FieldError({ message = '', issueLabel = '', onIssue, style, ...rest }) {
-    if (!message) return null;
-    return (
-      <p role="alert" {...rest} style={{ ...ROOT, ...style }}>
-        <i className="ri-error-warning-line" aria-hidden="true" style={ICON} />
-        <span>
-          {message}
-          {issueLabel ? <IssueLink onClick={onIssue}>{issueLabel}</IssueLink> : null}
-        </span>
-      </p>
-    );
-  }
+/* The way out is a link inside the sentence, not a fourth button on the form:
+   it belongs to the refused field, and it must not compete with "Valider". */
+function IssueLink({ onClick, children }) {
+  const [ring, setRing] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onFocus={(e) => setRing(e.currentTarget.matches(':focus-visible'))}
+      onBlur={() => setRing(false)}
+      style={{
+        display: 'inline', marginLeft: 6, padding: 0, border: 'none', background: 'none',
+        font: 'inherit', fontWeight: 600, color: 'var(--pk-link)',
+        textDecoration: 'underline', cursor: 'pointer',
+        outline: ring ? 'var(--pk-focus-width) solid var(--pk-focus-ring)' : 'none',
+        outlineOffset: 'var(--pk-focus-offset)',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
-  NS.FieldError = FieldError;
-})();
+export function FieldError({ message = '', issueLabel = '', onIssue, style, ...rest }) {
+  if (!message) return null;
+  return (
+    <p role="alert" {...rest} style={{ ...ROOT, ...style }}>
+      <i className="ri-error-warning-line" aria-hidden="true" style={ICON} />
+      <span>
+        {message}
+        {issueLabel ? <IssueLink onClick={onIssue}>{issueLabel}</IssueLink> : null}
+      </span>
+    </p>
+  );
+}
