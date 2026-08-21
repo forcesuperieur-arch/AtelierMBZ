@@ -29,6 +29,13 @@ Le logiciel utilisé par le personnel. Recréation des écrans du prototype (`Pa
 | `TeamScreen.jsx` | Disponibilité de l’équipe : charge mécanicien × jour, absence en hachure, RDV laissés sans mécanicien | tour 15 |
 | `ServicesScreen.jsx` | Prestations : catalogue par famille, main d’œuvre, pièces incluses, marge, forfaits mal calibrés | tour 37a |
 | `HandoverScreen.jsx` | Restitution : relecture des travaux, état d’entrée / sortie, facture et encaissement | tour 9a |
+| `PhotoLogScreen.jsx` | État des lieux photo : six angles imposés, entrée et sortie côte à côte, réserves reprises sur l’OR | tour 47b |
+| `TemplateDesignerScreen.jsx` | Concepteur de modèle : blocs à gauche, page A4 recomposée à droite, champs inconnus en creux | tour 48a |
+| `ProvidersScreen.jsx` | Fournisseurs d’envoi : clés, quotas, DKIM, et les messages non aboutis avec ce qui les débloque | tour 48b |
+| `LoginScreens.jsx` | Connexion métier : SSO, choix d’atelier, refus d’accès, session expirée — carte à part | tour 40a |
+| `WallboardScreen.jsx` | Affichage mural 1920 × 1080, aucune interaction, rien sous 20 px — carte à part | tour 47a |
+| `MechScreens.jsx` | Poste mécanicien secondaires : demander une pièce, signaler un blocage, fin de journée — carte à part | tour 49a |
+| `ThirdPartyPanels.jsx` | Cas payés par un tiers : garantie SAV, assurance, véhicule de prêt — carte à part | tour 41 |
 | `PaperDocs.jsx` | Les documents papier à 452 px : OR, état des lieux, facture | tour 18a, 18b, 18c |
 | `BenchScreen.jsx` | Poste mécanicien, thème sombre, cibles 56 px | tour 45b + règles de pointage |
 | `ExplorerScreen.jsx` | Stat › Explorer : facettes cumulées, question en clair, résultat actionnable | tour 43a |
