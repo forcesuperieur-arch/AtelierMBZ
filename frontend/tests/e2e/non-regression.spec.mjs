@@ -101,10 +101,10 @@ test.describe('Non-Regression: LOT 7 — Catalogue Prestations', () => {
     await loginAsAdmin(page);
   });
 
-  test('Tarifs page loads', async ({ page }) => {
-    await page.goto('/tarifs');
+  test('Catalogue des prestations loads', async ({ page }) => {
+    await page.goto('/admin/prestations');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).toContainText(/tarif|prestation|grille/i);
+    await expect(page.locator('body')).toContainText(/tarif|prestation|prix/i);
   });
 
   test('Prestations API returns data', async ({ page }) => {
@@ -158,8 +158,8 @@ test.describe('Non-Regression: Core Navigation', () => {
     await expect(page.locator('body')).toContainText(/rdv|occupation|pont/i);
   });
 
-  test('RDV page loads', async ({ page }) => {
-    await page.goto('/rdv');
+  test('Prise de RDV page loads', async ({ page }) => {
+    await page.goto('/rdv/new');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toContainText(/rendez-vous|rdv/i);
   });

@@ -81,8 +81,24 @@ mécanismes, c'était laisser croire qu'on agit « sur le réseau ».
 
 Recette : [`frontend/tests/e2e/refonte-nav-src.spec.mjs`](../../frontend/tests/e2e/refonte-nav-src.spec.mjs).
 
-### Lot 3 — Les suppressions (tour 8a)
-`tarifs.vue` · `suivi.vue` · `rdv/index.vue` · `admin/index.vue` — la donnée existe ailleurs.
+### Lot 3 — Les suppressions (tour 8a) ✅
+Trois écrans supprimés, un quatrième déjà conforme :
+
+| Écran | Où part la donnée |
+|-------|-------------------|
+| `pages/tarifs.vue` | Administration › Prestations — mêmes lignes, **avec le temps**, qui est ce qui manque quand on annonce un délai au comptoir |
+| `pages/suivi.vue` | Les trois compteurs sont dans Stat, les lignes dans « En atelier » ; le besoin réel derrière cette page était un affichage mural (lot 7) |
+| `pages/rdv/index.vue` | Le planning porte les mêmes RDV avec leur pont et leur durée, et la file du jour est dans Réception |
+| `pages/admin/index.vue` | **Conservé** : le code en avait déjà fait un simple renvoi vers le premier onglet du cadre `admin.vue`, qui *est* la colonne de réglages permanente de 6b. Le supprimer rendrait `/admin` mort (règle 7) |
+
+Deux renvois tiennent les liens anciens : `/rdv` → `/rdv/new` (l'entrée « Prise de
+RDV » est l'écran de saisie, 6a) et `/rdv/{id}` → `/planning` (le détail est un
+panneau du planning, 36a). L'onglet « Temps par type » de Ponts & Méca, qui ne
+portait qu'un renvoi vers la grille supprimée, quitte l'écran.
+
+Six specs Playwright pointaient sur ces écrans : elles sont remises sur la cible
+plutôt que supprimées — les deux tests de la liste RDV vérifient maintenant le
+même comportement depuis le planning.
 
 ### Lot 4 — Les fusions (tour 8a)
 - `workshop.vue` + `admin/ponts.vue` → un écran Ponts & Méca (2c) ; l'onglet Absences

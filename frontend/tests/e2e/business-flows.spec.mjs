@@ -215,7 +215,7 @@ test.describe('Core Business Flows', () => {
     // Test sidebar links
     const sidebarLinks = [
       { text: /planning/i, url: '/planning' },
-      { text: /rdv|rendez/i, url: '/rdv' },
+      { text: /rdv|rendez/i, url: '/rdv/new' },
       { text: /client/i, url: '/clients' },
     ];
 

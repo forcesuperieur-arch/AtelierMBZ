@@ -183,7 +183,7 @@ async function action(type: string) {
     } else if (type === 'convertir') {
       await api.post(`/devis/${id}/convertir`, {})
       toast.add({ title: 'Converti en RDV', color: 'success' })
-      router.push('/rdv')
+      router.push('/planning')
       return
     } else if (type === 'supprimer') {
       await api.del(`/devis/${id}`)

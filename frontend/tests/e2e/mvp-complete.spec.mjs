@@ -104,31 +104,24 @@ test.describe('2. Dashboard', () => {
    ------------------------------------------------------------------ */
 test.describe('3. Rendez-vous', () => {
 
-  test('RDV list page loads', async ({ page }) => {
-    await expectPageLoads(page, '/rdv', /rendez-vous|rdv|dossier|intervention/i);
-  });
-
-  test('RDV new page loads', async ({ page }) => {
+  test('Prise de RDV page loads', async ({ page }) => {
     await expectPageLoads(page, '/rdv/new', /nouveau|rendez-vous|client|véhicule/i);
   });
 
-  test('RDV API returns data', async ({ page }) => {
+  test('/rdv renvoie sur l\'écran de saisie', async ({ page }) => {
     await page.goto('/rdv');
+    await page.waitForURL(/\/rdv\/new/);
+  });
+
+  test('RDV API returns data', async ({ page }) => {
+    await page.goto('/planning');
     await page.waitForLoadState('networkidle');
     await expectApiOk(page, '/api/rendez-vous');
   });
 
-  test('RDV detail page loads if data exists', async ({ page }) => {
-    await page.goto('/rdv');
-    await page.waitForLoadState('networkidle');
-    const firstRowLink = page.locator('a[href^="/rdv/"]').first();
-    if (await firstRowLink.isVisible().catch(() => false)) {
-      await firstRowLink.click();
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('body')).toContainText(/rendez-vous|détail|client|véhicule/i);
-    } else {
-      test.skip(true, 'No RDV rows visible — empty state');
-    }
+  test('une ancienne URL de fiche RDV renvoie sur le planning', async ({ page }) => {
+    await page.goto('/rdv/1');
+    await page.waitForURL(/\/planning/);
   });
 });
 
@@ -206,8 +199,8 @@ test.describe('6. Atelier / Workshop', () => {
     await expectApiOk(page, '/api/ordres-reparation');
   });
 
-  test('suivi page loads', async ({ page }) => {
-    await expectPageLoads(page, '/suivi', /suivi|avancement|statut|intervention/i);
+  test('en atelier page loads', async ({ page }) => {
+    await expectPageLoads(page, '/en-atelier', /atelier|immobilis|moto|intervention/i);
   });
 });
 
@@ -285,12 +278,12 @@ test.describe('9. Catalogue & Tarifs', () => {
     await expectApiOk(page, '/api/motos/modeles');
   });
 
-  test('tarifs page loads', async ({ page }) => {
-    await expectPageLoads(page, '/tarifs', /tarif|grille|prestation|prix|cylindrée/i);
+  test('catalogue des prestations loads', async ({ page }) => {
+    await expectPageLoads(page, '/admin/prestations', /prestation|tarif|prix|temps/i);
   });
 
-  test('tarifs API returns data', async ({ page }) => {
-    await page.goto('/tarifs');
+  test('prestations API returns data', async ({ page }) => {
+    await page.goto('/admin/prestations');
     await page.waitForLoadState('networkidle');
     await expectApiOk(page, '/api/prestations');
   });
@@ -501,7 +494,7 @@ test.describe('13. Design System & Non-Régression', () => {
     const pagesToCheck = [
       { path: '/admin/users', trigger: /Nouvel utilisateur|Ajouter/ },
       { path: '/admin/ponts', trigger: /Nouveau|Ajouter/ },
-      { path: '/tarifs', trigger: /Nouveau|Ajouter/ },
+      { path: '/admin/prestations', trigger: /Nouveau|Ajouter/ },
     ];
     for (const { path, trigger } of pagesToCheck) {
       await page.goto(path);

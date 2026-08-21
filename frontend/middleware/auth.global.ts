@@ -47,7 +47,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const fallbackPath = [
       ['planning', '/planning'],
       ['workshop', '/workshop'],
-      ['rdv', '/rdv'],
+      ['rdv', '/rdv/new'],
       ['mecanicien', '/mecanicien'],
     ].find(([section]) => auth.hasSection(section))?.[1] || '/login'
 
@@ -77,7 +77,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     ['/stock', 'stock'],
     ['/facturation', 'facturation'],
     ['/devis', 'devis'],
-    ['/suivi', 'suivi'],
     ['/motos', 'motos'],
     ['/vo', 'vo'],
   ]
@@ -86,7 +85,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     stock: 'Stock',
     facturation: 'Facturation',
     devis: 'Devis',
-    suivi: 'Suivi live',
     motos: 'Catalogue motos',
     vo: 'Véhicules d\'Occasion',
   }

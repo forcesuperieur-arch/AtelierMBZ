@@ -226,8 +226,8 @@ test.describe('US-4 — Modal footer standardization', () => {
     }
   });
 
-  test('tarifs modal has Cancel and Submit buttons', async ({ page }) => {
-    await page.goto('/tarifs');
+  test('prestations modal has Cancel and Submit buttons', async ({ page }) => {
+    await page.goto('/admin/prestations');
     await page.waitForLoadState('networkidle');
 
     const addBtn = page.locator('button:has-text("Nouveau"), button:has-text("Ajouter")').first();
@@ -256,7 +256,6 @@ test.describe('US-5 — Modernized pages load successfully', () => {
     { path: '/admin/ponts',    text: /pont|atelier/i },
     { path: '/admin/prestations', text: /prestation|tarif/i },
     { path: '/admin/roles', text: /rôle|profil/i },
-    { path: '/tarifs',         text: /tarif|grille/i },
     { path: '/facturation',    text: /factur/i },
     { path: '/absences',       text: /absence|congé/i },
     { path: '/motos',          text: /moto|catalogue/i },

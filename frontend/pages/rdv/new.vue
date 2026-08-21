@@ -1,8 +1,8 @@
-x<template>
+<template>
   <div>
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:12px;">
-        <NuxtLink to="/rdv" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour aux rendez-vous"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
+        <NuxtLink to="/planning" style="color:var(--content-3);text-decoration:none;font-size:18px;" aria-label="Retour au planning"><AppIcon name="i-ri-arrow-left-line" /></NuxtLink>
         <div>
           <div class="page-title">Prise de RDV</div>
           <div class="page-sub">Parcours intégré (identique public) + recherche client interne</div>
@@ -1103,7 +1103,8 @@ async function confirmRdv() {
     }
     const rdv = await rdvStore.createRdv(payload)
     toast.add({ title: 'RDV créé avec succès', color: 'success' })
-    navigateTo('/rdv')
+    // Le RDV créé se voit sur sa case : on rend la main au poste de travail.
+    navigateTo('/planning')
   } catch (e: any) {
     toast.add({ title: 'Erreur', description: e.message, color: 'error' })
   } finally {

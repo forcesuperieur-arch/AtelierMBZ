@@ -173,7 +173,7 @@ onBeforeUnmount(() => {
 
 const sectionNames: Record<string, string> = {
   '/': 'Stat',
-  '/rdv': 'Rendez-vous',
+  '/rdv': 'Prise de RDV',
   '/planning': 'Planning',
   '/reception': 'Réception',
   '/clients': 'Clients',
@@ -182,8 +182,6 @@ const sectionNames: Record<string, string> = {
   '/facturation': 'Facturation',
   '/stock': 'Stock',
   '/motos': 'Catalogue',
-  '/suivi': 'Suivi Live',
-  '/tarifs': 'Tarifs',
   '/mecanicien': 'Espace Mécanicien',
   '/admin': 'Administration',
   '/vo': 'Véhicules d\'Occasion',
@@ -219,7 +217,7 @@ const menuGroups = computed(() => {
     {
       label: 'Atelier',
       items: [
-        { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
+        { to: '/rdv/new', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
         { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
         { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
         { to: '/en-atelier', icon: 'i-ri-hourglass-line', label: 'En atelier', section: 'planning' },

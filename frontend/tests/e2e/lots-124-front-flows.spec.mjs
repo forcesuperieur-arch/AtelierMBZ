@@ -90,7 +90,7 @@ test.describe('Lot 1 — Front flows', () => {
     await apiDelete(page, `/prestations/${prestaId}`);
   });
 
-  test('RDV list: clicking detail opens modal instead of navigating to /rdv/[id]', async ({ page }) => {
+  test('Planning : ouvrir un RDV reste sur le planning, sans naviguer vers /rdv/[id]', async ({ page }) => {
     const suffix = Date.now();
 
     const rdvRes = await apiPost(page, '/rendez-vous', {
@@ -104,19 +104,18 @@ test.describe('Lot 1 — Front flows', () => {
     expect(rdvRes.status).toBe(201);
     const rdvId = rdvRes.data.id;
 
-    await page.goto(appUrl('/rdv'));
+    // La liste `/rdv` est supprimée (8a) : le planning porte les mêmes RDV, et
+    // le détail s'y ouvre sans quitter le poste de travail (règle 4).
+    await page.goto(appUrl('/planning'));
     await page.waitForLoadState('networkidle');
 
-    // Click "Détail →" on the RDV card we created
-    const rdvCard = page.locator('.rdv-card', { hasText: `Test ${suffix} Modal` }).first();
-    const detailBtn = rdvCard.locator('button', { hasText: 'Détail →' }).first();
-    await expect(detailBtn).toBeVisible();
-    await detailBtn.click();
+    const bloc = page.locator('.rdv-block', { hasText: `Test ${suffix}` }).first();
+    await expect(bloc).toBeVisible();
+    await bloc.click();
 
-    // Modal must open with RDV number
     await expect(page.locator('body')).toContainText(`RDV #${rdvId}`);
 
-    // URL must NOT contain /rdv/[id]
+    // On n'a pas quitté le planning pour une page de fiche.
     expect(page.url()).not.toMatch(/\/rdv\/\d+/);
 
     // Cleanup
@@ -273,7 +272,7 @@ test.describe('Lot 4 — Front flows', () => {
     await loginAsAdmin(page);
   });
 
-  test('RDV list: command numbers appear as tags on cards', async ({ page }) => {
+  test('Planning : les numéros de commande apparaissent en étiquettes sur le RDV ouvert', async ({ page }) => {
     const suffix = Date.now();
 
     // 1. Create RDV
@@ -294,9 +293,14 @@ test.describe('Lot 4 — Front flows', () => {
     });
     expect(cmdRes.status).toBe(200);
 
-    // 3. Navigate to RDV list
-    await page.goto(appUrl('/rdv'));
+    // 3. Ouvrir le RDV depuis le planning : la liste `/rdv` est supprimée (8a),
+    //    et les étiquettes se lisent dans le panneau du RDV.
+    await page.goto(appUrl('/planning'));
     await page.waitForLoadState('networkidle');
+
+    const bloc = page.locator('.rdv-block', { hasText: `Test ${suffix}` }).first();
+    await expect(bloc).toBeVisible();
+    await bloc.click();
 
     // 4. Tags must be visible
     await expect(page.locator('body')).toContainText('CMD-E2E-001');

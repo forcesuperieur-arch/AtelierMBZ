@@ -54,7 +54,6 @@
       <div class="tabs">
         <button class="tab" :class="{ active: activeTab === 'ponts' }" @click="activeTab = 'ponts'"><AppIcon name="i-ri-tools-line" /> Ponts</button>
         <button class="tab" :class="{ active: activeTab === 'mecas' }" @click="activeTab = 'mecas'"><AppIcon name="i-ri-user-line" /> Mécaniciens</button>
-        <button class="tab" :class="{ active: activeTab === 'temps' }" @click="activeTab = 'temps'"><AppIcon name="i-ri-timer-line" /> Temps par type</button>
         <button class="tab" :class="{ active: activeTab === 'absences' }" @click="activeTab = 'absences'"><AppIcon name="i-ri-calendar-line" /> Absences</button>
       </div>
 
@@ -249,16 +248,6 @@
         />
       </div>
 
-      <!-- TEMPS TAB -->
-      <div v-if="activeTab === 'temps'">
-        <UCard>
-          <div style="color:var(--content-3);padding:16px;text-align:center;">
-            Les temps par type d'intervention sont affichés dans la section Tarifs.
-            <NuxtLink to="/tarifs" style="color:var(--accent-content);font-weight:600;text-decoration:none;margin-left:6px;">Voir Tarifs →</NuxtLink>
-          </div>
-        </UCard>
-      </div>
-
       <!-- ABSENCES TAB -->
       <div v-if="activeTab === 'absences'">
         <UCard>
@@ -284,7 +273,10 @@ const { open: openRdvDetail } = useRdvDetailModal()
 const loading = ref(true)
 const refreshing = ref(false)
 const errorMessage = ref('')
-const validTabs = ['ponts', 'mecas', 'temps', 'absences']
+// L'onglet « Temps par type » ne portait qu'un renvoi vers la grille tarifaire,
+// elle-même supprimée (8a) : les temps se lisent et se règlent dans
+// Administration › Prestations, au même endroit que les prix.
+const validTabs = ['ponts', 'mecas', 'absences']
 const activeTab = ref('ponts')
 const ponts = ref<any[]>([])
 const mecaniciens = ref<any[]>([])
