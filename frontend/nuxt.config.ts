@@ -67,7 +67,13 @@ export default defineNuxtConfig({
   // explicitement le repli réseau, de sorte qu'une icône absente se voie au
   // build plutôt qu'en production.
   //
-  // La collection est fournie par `@iconify-json/ri`, en devDependency.
+  // La collection est fournie par `@iconify-json/ri`, en DEPENDENCY de
+  // production et non en devDependency : le conteneur tourne avec
+  // `NODE_ENV=production` et rejoue `npm install` à chaque démarrage, ce qui
+  // omet les devDependencies (npm 10). La collection disparaissait donc dès
+  // que le volume node_modules était recréé, et le build partait sans une
+  // seule icône — sans erreur, puisque `fallbackToApi: false` se contente
+  // d'interdire le repli réseau.
   icon: {
     clientBundle: { scan: true, sizeLimitKb: 512 },
     serverBundle: false,

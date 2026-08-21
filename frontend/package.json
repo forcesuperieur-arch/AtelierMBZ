@@ -12,6 +12,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@iconify-json/ri": "^1.2.10",
     "@nuxt/ui": "^3.0.0",
     "@pinia/nuxt": "^0.9.0",
     "chart.js": "^4.5.1",
@@ -23,7 +24,6 @@
     "vue-chartjs": "^5.3.3"
   },
   "devDependencies": {
-    "@iconify-json/ri": "^1.2.10",
     "@nuxt/eslint": "^1.0.0",
     "@playwright/test": "^1.59.1",
     "@types/qrcode": "^1.5.6",
