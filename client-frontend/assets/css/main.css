@@ -7,6 +7,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Inter:wght@400;500;600&display=swap');
 @import "./tokens.css";
+/* Couche applicative Paddock (--pk-*) : géométrie du shell, trios de statut,
+   cibles tactiles, anneau de focus, durées de mouvement et thème atelier.
+   Synchronisée depuis le projet Claude Design « Paddock Design System ». */
+@import "./paddock-app.css";
 
 *, *::before, *::after {
   box-sizing: border-box;

@@ -1,0 +1,140 @@
+/* Paddock — couche applicative de tokens.
+ *
+ * Source : projet Claude Design « Paddock Design System », `tokens/paddock-app.css`.
+ * Récupéré tel quel, commentaires d'origine compris.
+ *
+ * Paddock n'invente ni couleur ni typographie : il applique les fondations
+ * Motoblouz (design system « Gazoline »), qui vivent dans `tokens.css`. Ce
+ * fichier ajoute ce qu'un logiciel d'atelier réclame et qu'un design system
+ * d'e-commerce ne porte pas : un canevas de travail, une encre plus douce que
+ * le noir pur pour des écrans lus toute la journée, des surfaces de statut
+ * teintées pour les blocs de planning, la géométrie du shell, les trois durées
+ * de mouvement, les cibles tactiles, l'anneau de focus — et un thème sombre qui
+ * veut dire « cet écran vit dans l'atelier », pas « cet utilisateur préfère le
+ * sombre ».
+ *
+ * NE PAS MODIFIER À LA MAIN. Toute évolution se fait dans le projet Claude
+ * Design, puis se resynchronise ici.
+ */
+
+:root {
+  /* ---- Encre ---- */
+  --pk-ink: #1a1a1a;             /* encre de corps — plus douce que #000 sur écrans denses */
+  --pk-ink-quiet: #5e5e5e;       /* ligne secondaire sous un titre, valeurs de cellule */
+  --pk-ink-muted: #6f6e6e;       /* surtitres, en-têtes de colonne, indications désactivées */
+  --pk-ink-on-dark: #f6f6f6;
+  --pk-ink-on-dark-quiet: #a5a5a5;
+  --pk-link: #7d5600;            /* action textuelle en ligne sur clair — AA sur blanc */
+
+  /* ---- Surfaces (clair / bureau) ---- */
+  --pk-canvas: #ececec;          /* le canevas de l'app, derrière les panneaux */
+  --pk-page: #f6f6f6;            /* fond de page du front client */
+  --pk-surface: #fbfbfb;         /* rail, en-tête, cartes, panneaux */
+  --pk-surface-raised: #ffffff;  /* ligne d'en-tête de tableau, ligne zébrée, tuile dans une carte */
+
+  /* ---- Filets ---- */
+  --pk-border: #d4d4d4;          /* bord de carte et de panneau */
+  --pk-border-quiet: #ececec;    /* séparateur de ligne dans une carte */
+  --pk-border-control: #6f6e6e;  /* champ, contrôle secondaire, contrôle segmenté */
+  --pk-border-strong: #000000;   /* champ focalisé, tuile sélectionnée */
+
+  /* ---- Accent ---- */
+  --pk-accent: #f1ab00;          /* jaune Motoblouz — inchangé dans les deux thèmes */
+  --pk-accent-soft: #fff6e0;     /* surface d'attention (atelier) */
+  --pk-accent-soft-alt: #fff5d9; /* surface d'attention (front client) */
+  --pk-accent-ink: #8a4100;      /* texte sur --pk-accent-soft */
+  --pk-accent-ink-deep: #4a3000; /* texte sur --pk-accent-soft-alt */
+
+  /* ---- Statuts : surface + filet + encre, toujours employés en trio ---- */
+  --pk-success-surface: #eafbe7;
+  --pk-success-line: #179500;
+  --pk-success-ink: #0f5c00;
+  --pk-warning-surface: #fff6e0;
+  --pk-warning-line: #d96500;
+  --pk-warning-ink: #8a4100;
+  --pk-warning-ink-soft: #a04b00; /* réserve en ligne dans une rangée neutre */
+  --pk-error-surface: #ffecef;
+  --pk-error-line: #d70321;
+  --pk-error-ink: #b00219;
+  --pk-info-surface: #eaf4ff;
+  --pk-info-line: #4a8db7;
+  --pk-info-ink: #1a4a66;
+  --pk-neutral-surface: #ececec;
+
+  /* ---- Rayons — anguleux par défaut ---- */
+  --pk-radius-block: 4px;   /* bloc de planning */
+  --pk-radius-tile: 6px;    /* tuile de pont, emplacement photo */
+  --pk-radius-card: 8px;    /* carte, contrôle, contrôle segmenté */
+  --pk-radius-pill: 999px;  /* pilule de filtre, action principale, compteur */
+
+  /* ---- Géométrie du shell ---- */
+  --pk-rail-width: 64px;
+  --pk-rail-item: 44px;
+  --pk-header-height: 52px;
+  --pk-panel-width: 456px;
+  --pk-domain-nav-height: 44px;
+
+  /* ---- Cibles tactiles ---- */
+  --pk-target-desk: 44px;      /* écrans de bureau, souris et clavier */
+  --pk-target-workshop: 56px;  /* écrans d'atelier — gants compris */
+  --pk-target-gap: 8px;        /* écart minimal entre deux cibles aux effets opposés */
+
+  /* ---- Mouvement — trois valeurs, pas quatre ---- */
+  --pk-duration-state: 120ms;  /* survol, appui, bascule */
+  --pk-duration-panel: 180ms;  /* panneau entrant par la droite, ligne qui se déplie */
+  --pk-duration-none: 0ms;     /* changement de jour du planning, tri, saisie d'un chiffre */
+  --pk-easing: ease;
+
+  /* ---- Focus ---- */
+  --pk-focus-ring: #000000;
+  --pk-focus-width: 2px;
+  --pk-focus-offset: 2px;
+}
+
+/* ================= Thème atelier (sombre) =================
+   Pas une préférence : il marque les écrans qui vivent dans l'atelier —
+   debout, sous néon ou en plein jour. Pointage au poste, tablette de
+   réception, planning mural. Les écrans du bureau (devis, factures, clients,
+   Stat, réglages) restent clairs. */
+.pk-workshop {
+  --pk-ink: #f6f6f6;
+  --pk-ink-quiet: #a5a5a5;
+  --pk-ink-muted: #a5a5a5;
+  --pk-link: #f1ab00;
+
+  --pk-canvas: #141414;
+  --pk-page: #141414;
+  --pk-surface: #1c1c1c;
+  --pk-surface-raised: #1f1f1f;
+
+  --pk-border: #2f2f2f;
+  --pk-border-quiet: #333333;
+  --pk-border-control: #4a4a4a;
+  --pk-border-strong: #f6f6f6;
+
+  --pk-accent-soft: #2a2000;
+  --pk-accent-ink: #f1ab00;
+
+  --pk-success-surface: #12240f;
+  --pk-success-line: #4dbb3a;
+  --pk-success-ink: #4dbb3a;
+  --pk-warning-surface: #2a1c00;
+  --pk-warning-line: #f59e4b;
+  --pk-warning-ink: #f59e4b;
+  --pk-error-surface: #2b0008;
+  --pk-error-line: #ff5470;
+  --pk-error-ink: #ff5470;
+  --pk-info-surface: #0f2231;
+  --pk-info-line: #72b3d6;
+  --pk-info-ink: #9ccae3;
+  --pk-neutral-surface: #2f2f2f;
+
+  --pk-focus-ring: #f1ab00;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --pk-duration-state: 0.01ms;
+    --pk-duration-panel: 0.01ms;
+  }
+}

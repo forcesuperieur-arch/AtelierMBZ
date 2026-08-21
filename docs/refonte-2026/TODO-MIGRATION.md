@@ -42,6 +42,19 @@ reprise de l'application, sur les deux fronts et une partie du back.
 
 ## Lot A — Socle design system
 
+> **Mise à jour du 21 août, après-coup.** Un design system Paddock existe désormais dans
+> Claude Design — voir [`DESIGN-SYSTEM-PADDOCK.md`](DESIGN-SYSTEM-PADDOCK.md). Sa couche
+> `tokens/paddock-app.css` est **déjà reprise** dans les deux fronts : 52 tokens `--pk-*`,
+> qui livrent d'un coup l'anneau de focus, les trois durées de mouvement, les cibles
+> tactiles, la géométrie du shell, les trios de statut et le thème `.pk-workshop`.
+> Plusieurs tâches ci-dessous — notamment « créer les tokens d'anneau de focus »,
+> « aligner l'échelle sombre » et « publier la table de correspondance » — sont donc
+> **caduques ou réduites** : la valeur ne se décide plus, elle se consomme. Ce qui reste
+> est le travail de remplacement dans les feuilles existantes, et lui n'a pas bougé.
+> Le design system fournit en outre **18 contrats de composants** et **20 écrans de kit
+> atelier** : à lire avant d'écrire chaque composant Vue, ils portent les valeurs réelles.
+
+
 *Traduire les maquettes en tokens et poser tactile, focus et mouvement. En premier : tout le reste s'habille dessus.*
 
 **25 tâches · ordre de grandeur 36 j·h**
