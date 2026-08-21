@@ -1,0 +1,61 @@
+/* Motoblouz — Motion tokens (durations + easing curves)
+   Sixth token family, same naming model as the others: --mb-<family>-<cran>.
+
+   The scale is derived from the durations actually shipping in the design
+   system and in the Motoblouz product page, not from a theoretical ramp:
+     120ms  state feedback (hover / press / focus) — Button, Chip, Checkbox,
+            RadioButton, Input, Search, Select, SizePicker, IconButton, Link,
+            Header  → --mb-duration-fast
+     140ms  Select chevron, Toggle track            → normalised to base
+     160ms  SliderIndicator                         → --mb-duration-base
+     200ms  ProgressBar                             → --mb-duration-slow
+   Three crans only. Anything outside them is a bug, not a new cran.
+
+   Easing: the whole system used the single CSS keyword `ease`. It is kept as
+   the standard curve so no existing rendering changes; the two asymmetric
+   curves are additive, for entering / leaving elements (sheets, popovers). */
+
+:root {
+  /* ---- Durations ---- */
+  /* state feedback: wash, border, focus, colour */
+  --mb-duration-fast: 120ms; /* @kind other */
+  /* an element changes state or position */
+  --mb-duration-base: 160ms; /* @kind other */
+  /* travel over distance: progress, reveal */
+  --mb-duration-slow: 200ms; /* @kind other */
+
+  /* ---- Easing curves ---- */
+  /* default curve — legacy-identical */
+  --mb-easing-standard: ease; /* @kind other */
+  /* appears / expands */
+  --mb-easing-enter: cubic-bezier(0, 0, 0.2, 1); /* @kind other */
+  /* disappears / collapses */
+  --mb-easing-exit: cubic-bezier(0.4, 0, 1, 1); /* @kind other */
+
+  /* ---- Ready-made shorthands (duration + curve) ---- */
+  --mb-transition-fast: var(--mb-duration-fast) var(--mb-easing-standard);
+  --mb-transition-base: var(--mb-duration-base) var(--mb-easing-standard);
+  --mb-transition-slow: var(--mb-duration-slow) var(--mb-easing-standard);
+}
+
+/* ---- prefers-reduced-motion, handled at design-system level ----
+   Consumers do NOT redeclare this. Two layers:
+   1. the tokens collapse, so every component and every consumer built on them
+      stops animating at once;
+   2. a safety net for the durations still written in hard by consumers that
+      have not migrated yet. Kept to animation/transition properties only —
+      no layout, no colour, nothing else is touched.
+   0.01ms rather than 0 so transitionend / animationend still fire. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mb-duration-fast: 0.01ms; /* @kind other */
+    --mb-duration-base: 0.01ms; /* @kind other */
+    --mb-duration-slow: 0.01ms; /* @kind other */
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

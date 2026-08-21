@@ -1,14 +1,5 @@
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-title">Cockpit SRC</div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn" :class="tab === 'recherche' ? 'btn-primary' : 'btn-ghost'" @click="tab = 'recherche'">Recherche</button>
-      <button class="btn" :class="tab === 'file' ? 'btn-primary' : 'btn-ghost'" @click="tab = 'file'; loadFileTravail()">File de travail</button>
-    </div>
-
     <template v-if="tab === 'recherche'">
     <UCard style="margin-bottom:16px;">
       <div style="display:flex;gap:8px;align-items:center;">
@@ -182,9 +173,17 @@
 </template>
 
 <script setup lang="ts">
-const api = useApi()
+definePageMeta({ layout: 'cockpit' })
 
-const tab = ref<'recherche' | 'file'>('recherche')
+const api = useApi()
+const route = useRoute()
+
+/**
+ * La vue affichée est portée par l'URL, parce que c'est la nav noire de l'étage
+ * SRC qui la choisit désormais (52a) — plus une paire de boutons dans la page.
+ * Un lien partagé rouvre donc la même vue.
+ */
+const tab = computed<'recherche' | 'file'>(() => (String(route.query.vue || '') === 'file' ? 'file' : 'recherche'))
 
 const query = ref('')
 const results = ref<any[]>([])
@@ -239,6 +238,10 @@ async function loadFileTravail() {
   }
   await loadReclamations()
 }
+
+// La file se charge à l'entrée dans la vue, d'où qu'on vienne : nav de l'étage,
+// lien partagé ou retour arrière du navigateur.
+watch(tab, (vue) => { if (vue === 'file') loadFileTravail() }, { immediate: true })
 
 async function loadReclamations() {
   try {

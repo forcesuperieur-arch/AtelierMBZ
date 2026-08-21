@@ -21,17 +21,28 @@
         <span class="sidebar-logo-text">{{ atelierName }}</span>
       </button>
 
-      <SidebarLink
-        v-for="item in menuItems"
-        :key="item.to"
-        :to="item.to"
-        :icon="item.icon"
-        :label="item.label"
-        :section="item.section"
-        :badge-count="item.to === '/planning' ? notifUnreadCount : undefined"
-      />
+      <template v-for="group in menuGroups" :key="group.label">
+        <div class="sidebar-group-label">{{ group.label }}</div>
+        <SidebarLink
+          v-for="item in group.items"
+          :key="item.to"
+          :to="item.to"
+          :icon="item.icon"
+          :label="item.label"
+          :section="item.section"
+          :badge-count="item.to === '/planning' ? notifUnreadCount : undefined"
+        />
+      </template>
 
       <div class="sidebar-spacer" />
+
+      <SidebarLink
+        v-if="adminItem"
+        :to="adminItem.to"
+        :icon="adminItem.icon"
+        :label="adminItem.label"
+        :section="adminItem.section"
+      />
 
       <div v-if="auth.hasSection('mecanicien')" class="meca-avatar" @click="navigateTo('/mecanicien')">
         {{ auth.user.value?.prenom?.charAt(0) || 'U' }}
@@ -44,6 +55,15 @@
 
     <!-- MAIN -->
     <div class="main-area">
+      <!-- Bandeau de visite SRC (52a) : tant qu'un profil SRC est « chez » un
+           atelier ouvert depuis le cockpit, l'écran dit d'où il vient. -->
+      <div v-if="cockpitOrigin" class="cockpit-visit-banner">
+        <AppIcon name="i-ri-arrow-left-line" class="cockpit-visit-icon" />
+        <span class="cockpit-visit-text">Vous êtes dans l'atelier de {{ cockpitOrigin }} · ouvert depuis le cockpit</span>
+        <div class="cockpit-visit-spacer" />
+        <button class="cockpit-visit-back" @click="backToCockpit()">Revenir au cockpit</button>
+      </div>
+
       <!-- TOPBAR -->
       <header class="topbar">
         <button class="topbar-menu-btn" aria-label="Afficher ou masquer le menu" @click="appStore.toggleSidebar()"><AppIcon name="i-ri-menu-line" /></button>
@@ -58,7 +78,7 @@
         <span class="topbar-title">{{ currentSection }}</span>
         <div class="topbar-spacer" />
         <div v-if="canSwitchAtelierContext" class="topbar-atelier-switch">
-          <span class="atelier-switch-badge" :title="isSuperAdmin ? 'Super admin — vue multi-ateliers' : 'Superviseur de comptes'">{{ isSuperAdmin ? 'SA' : 'SC' }}</span>
+          <span class="atelier-switch-badge" title="Super admin — vue multi-ateliers">SA</span>
           <select v-model="activeAtelierChoice" class="atelier-switch-select" @change="onSwitchAtelier">
             <option v-for="a in ateliersList" :key="a.id" :value="a.id">{{ a.nom }}</option>
           </select>
@@ -177,30 +197,70 @@ const currentSection = computed(() => {
   return sectionNames[base] || 'Paddock'
 })
 
-const menuItems = computed(() => {
-  const items = [
-    { to: '/', icon: 'i-ri-bar-chart-2-line', label: 'Stat', section: 'dashboard' },
-    { to: '/cockpit', icon: 'i-ri-radar-line', label: 'Cockpit SRC', section: 'cockpit' },
-    { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
-    { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
-    { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
-    { to: '/en-atelier', icon: 'i-ri-hourglass-line', label: 'En atelier', section: 'planning' },
-    { to: '/workshop', icon: 'i-ri-tools-line', label: 'Ponts & Méca', section: 'workshop' },
-    { to: '/demandes-travaux-supp', icon: 'i-ri-hammer-line', label: 'Travaux complémentaires', section: 'workshop' },
-    { to: '/suivi', icon: 'i-ri-eye-line', label: 'Suivi Live', section: 'suivi' },
-    { to: '/clients', icon: 'i-ri-group-line', label: 'Clients', section: 'clients' },
-    { to: '/motos', icon: 'i-ri-motorbike-line', label: 'Fiches moto', section: 'motos' },
-    { to: '/devis', icon: 'i-ri-draft-line', label: 'Devis', section: 'devis' },
-    { to: '/facturation', icon: 'i-ri-bank-card-line', label: 'Factures', section: 'facturation' },
-    { to: '/stock', icon: 'i-ri-archive-line', label: 'Stock', section: 'stock' },
-    { to: '/vo', icon: 'i-ri-price-tag-3-line', label: 'VO', section: 'vo' },
-    { to: '/admin', icon: 'i-ri-settings-3-line', label: 'Administration', section: 'admin' },
+/**
+ * Navigation cible de la refonte 2026 — 11 entrées, groupées (maquette 52a).
+ *
+ * Cinq entrées ont quitté la barre par décision de conception, pas par oubli :
+ *  - « Suivi Live » est supprimé (8a) : ses trois compteurs sont dans Stat et
+ *    ses lignes dans « En atelier » ; le besoin réel était un affichage mural.
+ *  - « Fiches moto » est fusionné dans le dossier moto (4a).
+ *  - « Factures » et « Stock » sont hors périmètre (39a) — et la règle 7 veut
+ *    qu'un module coupé quitte la nav plutôt que d'y rester grisé ou mort.
+ *  - « Cockpit SRC » est un étage à part (52a), avec sa nav propre.
+ */
+const menuGroups = computed(() => {
+  const groups = [
+    {
+      label: 'Pilotage',
+      items: [
+        { to: '/', icon: 'i-ri-bar-chart-2-line', label: 'Stat', section: 'dashboard' },
+      ],
+    },
+    {
+      label: 'Atelier',
+      items: [
+        { to: '/rdv', icon: 'i-ri-calendar-line', label: 'Prise de RDV', section: 'rdv' },
+        { to: '/planning', icon: 'i-ri-calendar-2-line', label: 'Planning', section: 'planning' },
+        { to: '/reception', icon: 'i-ri-inbox-line', label: 'Réception', section: 'planning' },
+        { to: '/en-atelier', icon: 'i-ri-hourglass-line', label: 'En atelier', section: 'planning' },
+        { to: '/workshop', icon: 'i-ri-tools-line', label: 'Ponts & Méca', section: 'workshop' },
+        { to: '/demandes-travaux-supp', icon: 'i-ri-hammer-line', label: 'Travaux compl.', section: 'workshop' },
+      ],
+    },
+    {
+      label: 'Commerce',
+      items: [
+        { to: '/devis', icon: 'i-ri-draft-line', label: 'Devis', section: 'devis' },
+        { to: '/clients', icon: 'i-ri-group-line', label: 'Clients', section: 'clients' },
+        // Le guidon reprend l'icône laissée par « Fiches moto » (52a).
+        { to: '/vo', icon: 'i-ri-motorbike-line', label: 'VO', section: 'vo' },
+      ],
+    },
   ]
-  return items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess()))
+
+  return groups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(i => auth.hasSection(i.section) && (i.section !== 'dashboard' || auth.hasStatsAccess())),
+    }))
+    .filter(group => group.items.length > 0)
 })
+
+// Administration se pose en bas de barre, après l'espace élastique (52a).
+const adminItem = computed(() => (
+  auth.hasSection('admin')
+    ? { to: '/admin', icon: 'i-ri-settings-3-line', label: 'Administration', section: 'admin' }
+    : null
+))
 
 const api = useApi()
 const toast = useToast()
+const cockpitOrigin = useCockpitOrigin()
+
+function backToCockpit() {
+  cockpitOrigin.value = null
+  return navigateTo('/cockpit')
+}
 const activeAtelierCookie = useCookie<string | null>('active_atelier_id', { default: () => null })
 const currentNotificationAtelierId = computed(() => {
   const cookieValue = Number(activeAtelierCookie.value ?? 0)
@@ -210,8 +270,13 @@ const currentNotificationAtelierId = computed(() => {
   return Number.isFinite(userValue) && userValue > 0 ? userValue : null
 })
 const isSuperAdmin = computed(() => (auth.user.value?.roles || []).includes('ROLE_SUPER_ADMIN'))
-const isServiceClient = computed(() => (auth.user.value?.roles || []).includes('ROLE_SERVICE_CLIENT'))
-const canSwitchAtelierContext = computed(() => isSuperAdmin.value || isServiceClient.value)
+/**
+ * Le sélecteur d'atelier de la barre du haut ne concerne plus que le super
+ * admin. Le profil SRC change d'atelier en l'ouvrant depuis le cockpit (52a) :
+ * garder les deux mécanismes, c'était laisser croire qu'on agit « sur le
+ * réseau » alors que chaque écran est celui d'un seul atelier.
+ */
+const canSwitchAtelierContext = computed(() => isSuperAdmin.value)
 
 function normalizeAtelierChoice(value: any): string {
   const normalized = String(value ?? '').trim()
@@ -429,6 +494,67 @@ watch([activeAtelierCookie, userDefaultAtelierChoice, canSwitchAtelierContext], 
   font-weight: 800;
   line-height: 1.2;
 }
+
+/* === Groupes de navigation (52a) ===
+   Le libellé de groupe n'est pas décoratif : il sépare le pilotage, le travail
+   d'atelier et le commerce, qui ne s'ouvrent pas au même moment de la journée.
+   Barre repliée, le libellé disparaît et un filet le remplace — sinon les onze
+   icônes se lisent comme une seule liste. */
+.sidebar-group-label {
+  padding: 14px 20px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--content-3);
+  white-space: nowrap;
+}
+.sidebar-group-label:first-of-type {
+  padding-top: 0;
+}
+
+@media (min-width: 1024px) {
+  .sidebar.is-collapsed .sidebar-group-label {
+    padding: 10px 0 9px;
+    margin: 0 18px;
+    font-size: 0;
+    border-top: 1px solid var(--border-2);
+  }
+  .sidebar.is-collapsed .sidebar-group-label:first-of-type {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+}
+
+/* === Bandeau de visite SRC (52a) === */
+.cockpit-visit-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #f1ab00;
+  color: #000;
+}
+.cockpit-visit-icon { font-size: 18px; flex-shrink: 0; }
+.cockpit-visit-text { font-size: 13px; font-weight: 600; }
+.cockpit-visit-spacer { flex: 1; }
+.cockpit-visit-back {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 13px;
+  border: none;
+  border-radius: 999px;
+  background: #000;
+  color: #f1ab00;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cockpit-visit-back:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
 
 .sidebar-spacer { flex: 1; }
 

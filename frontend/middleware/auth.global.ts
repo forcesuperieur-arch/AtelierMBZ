@@ -32,13 +32,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/')
   }
 
+  /**
+   * Un compte de rôle SRC atterrit sur le cockpit réseau, pas sur le Stat d'un
+   * atelier (52a) : le cockpit est un étage à part. L'exception est la visite
+   * en cours — quand il a « ouvert » un atelier depuis le cockpit, il a le
+   * droit d'en voir le Stat, et le bandeau jaune lui rappelle d'où il vient.
+   */
+  const isServiceClient = roles.includes('ROLE_SERVICE_CLIENT')
+  if (to.path === '/' && isServiceClient && !useCockpitOrigin().value) {
+    return navigateTo('/cockpit')
+  }
+
   if (to.path === '/' && !auth.hasStatsAccess()) {
     const fallbackPath = [
       ['planning', '/planning'],
       ['workshop', '/workshop'],
       ['rdv', '/rdv'],
       ['mecanicien', '/mecanicien'],
-      ['suivi', '/suivi'],
     ].find(([section]) => auth.hasSection(section))?.[1] || '/login'
 
     if (process.client) {

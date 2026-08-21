@@ -1,0 +1,22 @@
+/* Motoblouz — Border radius tokens
+   Core scale (px) + semantic aliases. */
+
+:root {
+  /* ---- Core radius scale (px) ---- */
+  --mb-radius-0: 0px;
+  --mb-radius-100: 2px;
+  --mb-radius-200: 4px;
+  --mb-radius-300: 8px;
+  --mb-radius-400: 12px;
+  --mb-radius-500: 16px;
+  --mb-radius-600: 20px;
+  --mb-radius-700: 24px;
+  --mb-radius-800: 32px;
+  --mb-radius-full: 999px;
+
+  /* ---- Semantic radius ---- */
+  --mb-border-radius-none: var(--mb-radius-0);  /* 0 */
+  --mb-border-radius-m: var(--mb-radius-300);   /* 8 */
+  --mb-border-radius-l: var(--mb-radius-700);   /* 24 */
+  --mb-border-radius-full: var(--mb-radius-full);
+}

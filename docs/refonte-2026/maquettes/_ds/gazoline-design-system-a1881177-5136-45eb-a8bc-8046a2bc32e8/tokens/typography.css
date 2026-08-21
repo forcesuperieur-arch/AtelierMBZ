@@ -1,0 +1,81 @@
+/* Motoblouz — Typography tokens
+   Primary typeface: Montserrat. Inter is defined as an alternate/system UI face. */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Inter:wght@100..900&display=swap');
+
+:root {
+  /* ---- Font families ---- */
+  --mb-font-montserrat: 'Montserrat', system-ui, sans-serif;
+  --mb-font-inter: 'Inter', system-ui, sans-serif;
+  --mb-font-base: var(--mb-font-montserrat);
+
+  /* ---- Core font-size scale (rem, base 16px — grows with text-only zoom, WCAG 1.4.4) ---- */
+  --mb-font-size-050: 0.6875rem; /* 11 */
+  --mb-font-size-100: 0.75rem;   /* 12 */
+  --mb-font-size-150: 0.875rem;  /* 14 */
+  --mb-font-size-200: 1rem;      /* 16 */
+  --mb-font-size-250: 1.125rem;  /* 18 */
+  --mb-font-size-300: 1.25rem;   /* 20 */
+  --mb-font-size-350: 1.375rem;  /* 22 */
+  --mb-font-size-400: 1.5rem;    /* 24 */
+  --mb-font-size-500: 1.75rem;   /* 28 */
+  --mb-font-size-600: 2rem;      /* 32 */
+  --mb-font-size-625: 2.25rem;   /* 36 */
+  --mb-font-size-650: 2.5rem;    /* 40 */
+  --mb-font-size-700: 3.5rem;    /* 56 */
+
+  /* ---- Core font weights ---- */
+  --mb-fw-thin: 100; /* @kind font */
+  --mb-fw-extra-light: 200; /* @kind font */
+  --mb-fw-light: 300; /* @kind font */
+  --mb-fw-regular: 400; /* @kind font */
+  --mb-fw-medium: 500; /* @kind font */
+  --mb-fw-semi-bold: 600; /* @kind font */
+  --mb-fw-bold: 700; /* @kind font */
+  --mb-fw-extra-bold: 800; /* @kind font */
+  --mb-fw-black: 900; /* @kind font */
+
+  --mb-lineheight-tight: 1.15; /* @kind other */
+  --mb-lineheight-snug: 1.25; /* @kind other */ /* titres 4/5/6 multi-lignes */
+  --mb-lineheight-solid: 1; /* @kind other */ /* rare — texte aligné sur une icône */
+  --mb-lineheight-control: 1.2; /* @kind other */ /* UI mono-ligne : boutons, champs, libellés, chips */
+  --mb-lineheight-body: 1.5; /* @kind other */ /* paragraphes, contenu d'accordéon */
+
+  /* ================= Type styles — Large screen (desktop) ================= */
+  /* Each style: family / weight / size */
+  --mb-ls-display-size: var(--mb-font-size-700);      /* 56 */
+  --mb-ls-title-1-size: var(--mb-font-size-650);      /* 40 */
+  --mb-ls-title-2-size: var(--mb-font-size-600);      /* 32 */
+  --mb-ls-title-3-size: var(--mb-font-size-500);      /* 28 */
+  --mb-ls-title-4-size: var(--mb-font-size-400);      /* 24 */
+  --mb-ls-title-5-size: var(--mb-font-size-300);      /* 20 */
+  --mb-ls-title-6-size: var(--mb-font-size-250);      /* 18 */
+  --mb-ls-body-large-size: var(--mb-font-size-200);   /* 16 */
+  --mb-ls-body-small-size: var(--mb-font-size-150);   /* 14 */
+  --mb-ls-caption-size: var(--mb-font-size-100);      /* 12 */
+
+  /* ================= Type styles — Mobile ================= */
+  --mb-mob-display-size: var(--mb-font-size-650);     /* 40 */
+  --mb-mob-title-1-size: var(--mb-font-size-625);     /* 36 */
+  --mb-mob-title-2-size: var(--mb-font-size-500);     /* 28 */
+  --mb-mob-title-3-size: var(--mb-font-size-400);     /* 24 */
+  --mb-mob-title-4-size: var(--mb-font-size-350);     /* 22 */
+  --mb-mob-title-5-size: var(--mb-font-size-300);     /* 20 */
+  --mb-mob-title-6-size: var(--mb-font-size-250);     /* 18 */
+}
+
+/* ---- Utility type-style classes (desktop scale) ---- */
+.mb-type-display { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-display-size); line-height: var(--mb-lineheight-tight); }
+.mb-type-title-1 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-1-size); line-height: var(--mb-lineheight-tight); }
+.mb-type-title-2 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-2-size); line-height: var(--mb-lineheight-tight); }
+.mb-type-title-3 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-3-size); line-height: var(--mb-lineheight-tight); }
+.mb-type-title-4 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-4-size); line-height: var(--mb-lineheight-snug); }
+.mb-type-title-5 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-5-size); line-height: var(--mb-lineheight-snug); }
+.mb-type-title-6 { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-title-6-size); line-height: var(--mb-lineheight-snug); }
+.mb-type-body-large { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-regular); font-size: var(--mb-ls-body-large-size); line-height: 1.5; }
+.mb-type-body-large-bold { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-bold); font-size: var(--mb-ls-body-large-size); line-height: 1.5; }
+.mb-type-body-small { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-regular); font-size: var(--mb-ls-body-small-size); line-height: 1.5; }
+.mb-type-body-small-bold { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-bold); font-size: var(--mb-ls-body-small-size); line-height: 1.5; }
+.mb-type-overline { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-body-small-size); line-height: 1.4; text-transform: uppercase; letter-spacing: 0.08em; }
+.mb-type-caption { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-medium); font-size: var(--mb-ls-caption-size); line-height: 1.4; }
+.mb-type-caption-bold { font-family: var(--mb-font-montserrat); font-weight: var(--mb-fw-bold); font-size: var(--mb-ls-caption-size); line-height: 1.4; }
