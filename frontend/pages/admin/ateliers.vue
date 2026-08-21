@@ -332,7 +332,7 @@ async function saveAtelier() {
   } catch (e: any) {
     toast.add({
       title: 'Action impossible',
-      description: e?.message || 'Erreur inconnue',
+      description: messageErreur(e, "l'atelier n'a pas été enregistré"),
       color: 'error',
     })
   } finally {
@@ -360,7 +360,7 @@ async function switchAtelier(atelier: any, redirectToConfig = false) {
   } catch (e: any) {
     toast.add({
       title: 'Impossible de changer de contexte',
-      description: e?.message || 'Erreur inconnue',
+      description: messageErreur(e, "l'atelier n'a pas été enregistré"),
       color: 'error',
     })
   }

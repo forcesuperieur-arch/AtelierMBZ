@@ -1,61 +1,78 @@
 <template>
-  <div class="app-state app-state-loading" :class="{ compact }">
-    <div class="spinner" aria-hidden="true"></div>
-    <div class="app-state-title">{{ title }}</div>
-    <div v-if="description" class="app-state-description">{{ description }}</div>
+  <div class="pk-skeleton" role="status" :aria-label="title">
+    <!-- 29c : « la forme du tableau est déjà là : la page ne saute pas à
+         l'arrivée des données. » On dessine donc la STRUCTURE attendue, pas un
+         disque qui tourne au milieu du vide. -->
+    <div v-if="!compact" class="pk-skeleton-head">
+      <span v-for="c in colonnes" :key="`h-${c}`" class="pk-skeleton-cell pk-skeleton-cell--head" />
+    </div>
+    <div v-for="l in lignes" :key="`l-${l}`" class="pk-skeleton-row">
+      <span v-for="c in colonnes" :key="`c-${l}-${c}`" class="pk-skeleton-cell" />
+    </div>
+    <span class="sr-only">{{ title }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Chargement d'une liste — maquette 29c.
+ *
+ * Le design system interdit ce qui clignote et ce qui rebondit : un spinner
+ * n'apprend rien et déplace la mise en page à l'arrivée des données. Le
+ * squelette, lui, réserve exactement la place que le tableau prendra.
+ *
+ * `title` et `description` restent acceptés — 28 appels les passent — mais
+ * seul `title` sert encore, comme étiquette pour les lecteurs d'écran.
+ */
 defineProps({
   title: { type: String, default: 'Chargement en cours' },
-  description: { type: String, default: 'Les données sont en cours de récupération.' },
+  description: { type: String, default: '' },
   compact: { type: Boolean, default: false },
+  /** Nombre de colonnes du tableau attendu. */
+  colonnes: { type: Number, default: 5 },
+  /** Nombre de lignes à réserver. */
+  lignes: { type: Number, default: 6 },
 })
 </script>
 
 <style scoped>
-.app-state {
+.pk-skeleton {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 220px;
-  padding: 28px;
-  border-radius: 16px;
-  background: var(--overlay-soft);
-  border: 1px solid var(--border-2);
-  text-align: center;
+  gap: 1px;
+  border: 1px solid var(--pk-border);
+  border-radius: var(--pk-radius-card);
+  overflow: hidden;
+  background: var(--pk-border-quiet);
 }
 
-.app-state.compact {
-  min-height: 120px;
+.pk-skeleton-head,
+.pk-skeleton-row {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--pk-surface);
 }
 
-.spinner {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 3px solid var(--border-1);
-  border-top-color: var(--accent-graphic);
-  animation: spin 0.85s linear infinite;
+.pk-skeleton-head { background: var(--pk-surface-raised); }
+
+.pk-skeleton-cell {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--pk-radius-block);
+  background: var(--pk-neutral-surface);
 }
 
-.app-state-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--content-1);
-}
+.pk-skeleton-cell--head { height: 8px; max-width: 90px; }
+.pk-skeleton-cell:first-child { flex: 1.6; }
+.pk-skeleton-cell:last-child { flex: 0.6; }
 
-.app-state-description {
-  max-width: 440px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--content-3);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 </style>

@@ -1697,7 +1697,7 @@ async function confirmMove() {
     toast.add({ title: 'RDV déplacé', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
-    toast.add({ title: 'Déplacement impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Déplacement impossible', description: messageErreur(e, "le rendez-vous n'a pas été déplacé"), color: 'error' })
   } finally {
     pendingMove.value = null
   }
@@ -1766,7 +1766,7 @@ async function submitQuickCreate() {
     await refreshPlanning()
     if (created?.id) await onSelectRdv(created)
   } catch (e: any) {
-    toast.add({ title: 'Création impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Création impossible', description: messageErreur(e, "le rendez-vous n'a pas été créé"), color: 'error' })
   } finally {
     quickSubmitting.value = false
   }
@@ -1834,7 +1834,7 @@ async function saveRdvChanges() {
     toast.add({ title: 'RDV mis à jour', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
-    toast.add({ title: 'Modification impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Modification impossible', description: messageErreur(e, "le rendez-vous n'a pas été modifié"), color: 'error' })
   } finally {
     editSaving.value = false
   }
@@ -1855,7 +1855,7 @@ async function accepterAnnulation() {
     showRdvModal.value = false
     await refreshPlanning()
   } catch (e: any) {
-    toast.add({ title: 'Annulation impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Annulation impossible', description: messageErreur(e, "le rendez-vous reste au planning"), color: 'error' })
   } finally {
     annulationActionLoading.value = ''
   }
@@ -1869,7 +1869,7 @@ async function refuserAnnulation() {
     selectedRdv.value = { ...selectedRdv.value, annulation_demandee_at: null }
     toast.add({ title: 'Demande refusée', description: 'Pensez à prévenir le client.', color: 'warning' })
   } catch (e: any) {
-    toast.add({ title: 'Action impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Action impossible', description: messageErreur(e, "le rendez-vous n'a pas changé d'état"), color: 'error' })
   } finally {
     annulationActionLoading.value = ''
   }
@@ -1897,7 +1897,7 @@ async function applyTransition(name: string) {
     toast.add({ title: 'Transition effectuée', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
-    toast.add({ title: 'Transition impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Transition impossible', description: messageErreur(e, "le rendez-vous reste dans son état actuel"), color: 'error' })
   } finally {
     transitioning.value = ''
   }
@@ -1916,7 +1916,7 @@ async function deleteSelectedRdv() {
     toast.add({ title: 'RDV supprimé', color: 'success' })
     await refreshPlanning()
   } catch (e: any) {
-    toast.add({ title: 'Suppression impossible', description: e?.message || 'Erreur inconnue', color: 'error' })
+    toast.add({ title: 'Suppression impossible', description: messageErreur(e, "le rendez-vous est toujours au planning"), color: 'error' })
   } finally {
     deleting.value = false
   }

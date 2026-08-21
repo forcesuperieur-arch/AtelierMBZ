@@ -349,7 +349,7 @@ function frError(e: any): string {
       : `Photos d'entrée insuffisantes (minimum ${PHOTOS_MIN}).`
   }
   if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
-  return e?.data?.error || e?.message || 'Une erreur est survenue.'
+  return messageErreur(e, "la réception n'a pas été enregistrée")
 }
 
 function fuelLabel(value: string | null | undefined): string {
