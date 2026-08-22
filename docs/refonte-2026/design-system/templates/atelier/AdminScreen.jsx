@@ -10,7 +10,9 @@ const ADM_GROUPS = [
   { label: 'Personnes', items: [{ id: 'users', icon: 'ri-user-settings-line', name: 'Utilisateurs et accès' }] },
   { label: 'Documents', items: [
     { id: 'docs', icon: 'ri-file-text-line', name: 'Modèles de documents' },
+    { id: 'designer', icon: 'ri-layout-4-line', name: 'Concepteur de modèle' },
     { id: 'notifications', icon: 'ri-notification-3-line', name: 'Notifications' },
+    { id: 'providers', icon: 'ri-send-plane-line', name: 'Fournisseurs d’envoi' },
   ] },
   { label: 'Système', items: [
     { id: 'config', icon: 'ri-settings-3-line', name: 'Configuration' },
@@ -30,7 +32,8 @@ const ADM_META = {
   services: { icon: 'ri-error-warning-line', text: '2 forfaits mal calibrés', alert: true },
   bays: { icon: 'ri-tools-line', text: '6 ponts · 1 en maintenance' },
 };
-const ADM_BUILT = ['config', 'users', 'notifications', 'audit', 'docs', 'hours', 'team', 'services'];
+const ADM_BUILT = ['config', 'users', 'notifications', 'audit', 'docs', 'hours', 'team', 'services', 'designer', 'providers'];
+const ADM_OWN_HEADER = ['designer', 'providers'];
 
 function AdminScreen({ page, onPage, onExit, logo }) {
   const meta = ADM_META[page] || ADM_META.config;
@@ -65,7 +68,7 @@ function AdminScreen({ page, onPage, onExit, logo }) {
       </nav>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <header style={{ height: 52, flexShrink: 0, background: 'var(--pk-surface)', borderBottom: '1px solid var(--pk-border)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px' }}>
+        {ADM_OWN_HEADER.indexOf(page) !== -1 ? null : <header style={{ height: 52, flexShrink: 0, background: 'var(--pk-surface)', borderBottom: '1px solid var(--pk-border)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px' }}>
           <span style={{ fontSize: 13, color: 'var(--pk-ink-muted)' }}>Administration</span>
           <i className="ri-arrow-right-s-line" style={{ fontSize: 16, color: '#a5a5a5' }} />
           <span style={{ fontSize: 15, fontWeight: 600 }}>{ADM_TITLES[page]}</span>
@@ -73,7 +76,7 @@ function AdminScreen({ page, onPage, onExit, logo }) {
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: meta.alert ? 600 : 400, color: meta.alert ? 'var(--pk-error-ink)' : 'var(--pk-ink-muted)', whiteSpace: 'nowrap' }}><i className={meta.icon} style={{ fontSize: 15 }} />{meta.text}</span>
           {page === 'services' ? <span style={{ minHeight: 34, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'var(--pk-accent)', color: '#000', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>Nouvelle prestation</span> : null}
           <div style={{ width: 32, height: 32, borderRadius: 'var(--pk-radius-pill)', background: 'var(--pk-info-line)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>JD</div>
-        </header>
+        </header>}
 
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           {page === 'config' ? <window.ConfigScreen /> : null}
@@ -84,6 +87,8 @@ function AdminScreen({ page, onPage, onExit, logo }) {
           {page === 'hours' ? <window.HoursScreen /> : null}
           {page === 'team' ? <window.TeamScreen /> : null}
           {page === 'services' ? <window.ServicesScreen /> : null}
+          {page === 'designer' ? <window.TemplateDesignerScreen logoStacked="../../assets/paddock-logo-stacked.svg" /> : null}
+          {page === 'providers' ? <window.ProvidersScreen /> : null}
         </div>
       </div>
     </div>

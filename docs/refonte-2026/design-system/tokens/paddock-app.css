@@ -1,0 +1,127 @@
+/* Paddock — application layer tokens.
+   Paddock invents no colour and no typeface: it applies the Motoblouz
+   Gazoline foundations. What lives here is what a workshop software needs
+   and the e-commerce design system does not carry: a working canvas, an
+   ink softer than pure black for long reading sessions, tinted status
+   surfaces for planning blocks, and a dark theme that means "this screen
+   lives in the workshop" rather than "this user prefers dark".
+   Every value below is the literal value used in the Paddock redesign. */
+
+:root {
+  /* ---- Ink ---- */
+  --pk-ink: #1a1a1a;            /* body ink — softer than #000 for dense screens */
+  --pk-ink-quiet: #5e5e5e;      /* secondary line under a title, cell values */
+  --pk-ink-muted: #6f6e6e;      /* overlines, column headers, disabled hints */
+  --pk-ink-on-dark: #f6f6f6;
+  --pk-ink-on-dark-quiet: #a5a5a5;
+  --pk-link: #7d5600;           /* inline text action on light — AA on white */
+
+  /* ---- Surfaces (light / office) ---- */
+  --pk-canvas: #ececec;         /* the app canvas, behind panels */
+  --pk-page: #f6f6f6;           /* client-front page background */
+  --pk-surface: #fbfbfb;        /* rail, header, cards, panels */
+  --pk-surface-raised: #ffffff;  /* table header row, striped row, tile inside a card */
+
+  /* ---- Lines ---- */
+  --pk-border: #d4d4d4;         /* card and panel edge */
+  --pk-border-quiet: #ececec;   /* row separator inside a card */
+  --pk-border-control: #6f6e6e; /* input, secondary control, segmented control */
+  --pk-border-strong: #000000;  /* focused field, selected tile */
+
+  /* ---- Accent ---- */
+  --pk-accent: #f1ab00;         /* Motoblouz yellow — unchanged in both themes */
+  --pk-accent-soft: #fff6e0;    /* attention surface (workshop) */
+  --pk-accent-soft-alt: #fff5d9; /* attention surface (client front) */
+  --pk-accent-ink: #8a4100;     /* text on --pk-accent-soft */
+  --pk-accent-ink-deep: #4a3000; /* text on --pk-accent-soft-alt */
+
+  /* ---- Status surfaces: tint + line + ink, always used as a trio ---- */
+  --pk-success-surface: #eafbe7;
+  --pk-success-line: #179500;
+  --pk-success-ink: #0f5c00;
+  --pk-warning-surface: #fff6e0;
+  --pk-warning-line: #d96500;
+  --pk-warning-ink: #8a4100;
+  --pk-warning-ink-soft: #a04b00;  /* inline caveat inside a neutral row */
+  --pk-error-surface: #ffecef;
+  --pk-error-line: #d70321;
+  --pk-error-ink: #b00219;
+  --pk-info-surface: #eaf4ff;
+  --pk-info-line: #4a8db7;
+  --pk-info-ink: #1a4a66;
+  --pk-neutral-surface: #ececec;
+
+  /* ---- Radii — angular by default ---- */
+  --pk-radius-block: 4px;   /* planning block */
+  --pk-radius-tile: 6px;    /* bay tile, photo slot */
+  --pk-radius-card: 8px;    /* card, control, segmented control */
+  --pk-radius-pill: 999px;  /* filter pill, primary action, counter */
+
+  /* ---- Shell geometry ---- */
+  --pk-rail-width: 64px;
+  --pk-rail-item: 44px;
+  --pk-header-height: 52px;
+  --pk-panel-width: 456px;
+  --pk-domain-nav-height: 44px;
+
+  /* ---- Touch targets ---- */
+  --pk-target-desk: 44px;      /* mouse-and-keyboard office screens */
+  --pk-target-workshop: 56px;  /* workshop screens — gloves included */
+  --pk-target-gap: 8px;        /* minimum gap between two opposite-effect targets */
+
+  /* ---- Motion — three values, no others ---- */
+  --pk-duration-state: 120ms; /* @kind other */ /* hover, press, toggle */
+  --pk-duration-panel: 180ms; /* @kind other */ /* right panel entering, row unfolding */
+  --pk-duration-none: 0ms; /* @kind other */ /* planning day change, sort, number entry */
+  --pk-easing: ease; /* @kind other */
+
+  /* ---- Focus ---- */
+  --pk-focus-ring: #000000;
+  --pk-focus-width: 2px;
+  --pk-focus-offset: 2px;
+}
+
+/* ================= Workshop theme (dark) =================
+   Not a preference: it marks the screens that live in the workshop —
+   standing, under neon or in daylight. Bench clock-in, reception tablet,
+   wall planning. Office screens (quotes, invoices, clients, Stat,
+   settings) stay light. */
+.pk-workshop {
+  --pk-ink: #f6f6f6;
+  --pk-ink-quiet: #a5a5a5;
+  --pk-ink-muted: #a5a5a5;
+  --pk-link: #f1ab00;
+
+  --pk-canvas: #141414;
+  --pk-page: #141414;
+  --pk-surface: #1c1c1c;
+  --pk-surface-raised: #1f1f1f;
+
+  --pk-border: #2f2f2f;
+  --pk-border-quiet: #333333;
+  --pk-border-control: #4a4a4a;
+  --pk-border-strong: #f6f6f6;
+
+  --pk-accent-soft: #2a2000;
+  --pk-accent-ink: #f1ab00;
+
+  --pk-success-surface: #12240f;
+  --pk-success-line: #4dbb3a;
+  --pk-success-ink: #4dbb3a;
+  --pk-warning-surface: #2a1c00;
+  --pk-warning-line: #f59e4b;
+  --pk-warning-ink: #f59e4b;
+  --pk-error-surface: #2b0008;
+  --pk-error-line: #ff5470;
+  --pk-error-ink: #ff5470;
+  --pk-info-surface: #0f2231;
+  --pk-info-line: #72b3d6;
+  --pk-info-ink: #9ccae3;
+  --pk-neutral-surface: #2f2f2f;
+
+  --pk-focus-ring: #f1ab00;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --pk-duration-state: 0.01ms; /* @kind other */ --pk-duration-panel: 0.01ms; /* @kind other */ }
+}
