@@ -1,0 +1,159 @@
+/* Motoblouz — Color tokens
+   Core palette + semantic aliases (light default, .theme-dark scope) */
+
+:root {
+  /* ---- Core: Yellow (brand accent) ---- */
+  --mb-yellow-100: #fbe6b3;
+  --mb-yellow-200: #f9dd99;
+  --mb-yellow-300: #f7cd66;
+  --mb-yellow-400: #f4bc33;
+  --mb-yellow-500: #f1ab00;
+  --mb-yellow-600: #d99a00;
+  --mb-yellow-700: #c18900;
+  --mb-yellow-800: #a97800;
+  --mb-yellow-900: #916700;
+
+  /* ---- Core: Grey ---- */
+  --mb-grey-100: #fbfbfb;
+  --mb-grey-200: #f6f6f6;
+  --mb-grey-300: #ececec;
+  --mb-grey-400: #d4d4d4;
+  --mb-grey-500: #bdbdbd;
+  --mb-grey-600: #a5a5a5;
+  --mb-grey-700: #6f6e6e;
+  --mb-grey-800: #5e5e5e;
+  --mb-grey-900: #2f2f2f;
+
+  /* ---- Core: Neutrals ---- */
+  --mb-white: #ffffff;
+  --mb-black: #000000;
+
+  /* ---- Core: Red (error) ---- */
+  --mb-red-050: #feeced;
+  --mb-red-100: #fec9cb;
+  --mb-red-200: #fd9297;
+  --mb-red-300: #fd7278;
+  --mb-red-400: #d70321;
+  --mb-red-500: #ab0009;
+  --mb-red-600: #870007;
+  --mb-red-700: #5a0005;
+
+  /* ---- Core: Green (success) ---- */
+  --mb-green-050: #eaf5e1;
+  --mb-green-100: #cde9b9;
+  --mb-green-200: #a7d98a;
+  --mb-green-300: #5bb736;
+  --mb-green-400: #179500;
+  --mb-green-500: #106b00;
+  --mb-green-600: #0b4c00;
+  --mb-green-700: #062e00;
+
+  /* ---- Core: Orange (warning) ---- */
+  --mb-orange-300: #f59e4b;
+  --mb-orange-400: #f37004;
+  --mb-orange-500: #d35f00;
+  --mb-orange-700: #b85400;
+
+  /* ---- Core: Blue (info) ---- */
+  --mb-blue-050: #E5F1F7;
+  --mb-blue-100: #C6E0EF;
+  --mb-blue-200: #9CCAE3;
+  --mb-blue-300: #72B3D6;
+  --mb-blue-400: #4A8DB7;
+  --mb-blue-500: #3B7094;
+  --mb-blue-600: #2D5573;
+  --mb-blue-700: #203C53;
+
+  /* ================= Semantic — Light (default) ================= */
+  --mb-bg-main: var(--mb-white);
+
+  --mb-container-neutral: var(--mb-white);
+  --mb-container-quiet: var(--mb-grey-300);
+  --mb-container-brand: var(--mb-black);
+  --mb-container-catchy: var(--mb-black);
+  --mb-container-accent: var(--mb-yellow-500);
+  --mb-container-error: var(--mb-red-400);
+  --mb-container-success: var(--mb-green-400);
+  --mb-container-warning: var(--mb-orange-500);  /* pastille warning — 3.88:1 sur blanc (graphique ≥3) */
+  --mb-container-overlay: #00000099;
+  --mb-container-on-overlay: var(--mb-white);
+
+  --mb-content-neutral: var(--mb-black);
+  --mb-content-quiet: var(--mb-grey-700);        /* ~4.7:1 on white — NE PAS poser sur --mb-container-quiet (gris clair) */
+  --mb-content-accent: var(--mb-yellow-500);     /* décoratif + texte sur fond SOMBRE uniquement (échoue AA sur fond clair) */
+  --mb-content-accent-strong: var(--mb-yellow-900); /* texte accent sur fond CLAIR — AA (#916700, 5.07:1) */
+  --mb-content-success: var(--mb-green-500);     /* texte succès sur fond clair — AA (#106b00, 6.72:1) */
+  --mb-content-success-strong: var(--mb-green-600); /* succès renforcé — AA (#0b4c00, 10.25:1) */
+  --mb-content-warning: var(--mb-orange-700);    /* texte warning sur fond clair — AA (#b85400, 4.88:1) */
+  --mb-content-error: var(--mb-red-400);
+  --mb-content-disabled: var(--mb-grey-700);     /* texte désactivé — reste lisible (~4.7:1) au lieu d'opacity 0.35 */
+  --mb-content-on-brand-neutral: var(--mb-white);
+  --mb-content-on-brand-accent: var(--mb-yellow-500);
+  --mb-content-on-catchy-neutral: var(--mb-white);
+  --mb-content-on-catchy-accent: var(--mb-yellow-500);  /* jaune sur surface catchy (noir en clair) */
+  --mb-content-on-accent: var(--mb-black);       /* texte/icône sur aplat accent (jaune) — 10.57:1 */
+  --mb-content-on-error: var(--mb-white);        /* texte/icône sur aplat error (rouge) — 5.35:1 */
+
+  --mb-container-disabled: var(--mb-grey-300); /* fond de contrôle désactivé */
+
+  --mb-border-main: var(--mb-grey-400);
+  --mb-border-quiet: var(--mb-grey-800);
+  --mb-border-control: var(--mb-grey-700);       /* bordure de contrôle (checkbox, secondary) — ≥3:1 sur blanc (WCAG 1.4.11) */
+  --mb-border-inverse: var(--mb-white);
+  --mb-border-catchy: var(--mb-black);
+  --mb-border-error: var(--mb-red-400);
+  --mb-border-success: var(--mb-green-400);
+
+  --mb-overlay-neutral: var(--mb-white);
+
+  /* ---- Focus (WCAG 2.4.7) — anneau marque (noir en clair), :focus-visible only ---- */
+  --mb-focus-ring-color: var(--mb-black);        /* noir — contraste ≥3:1 sur toutes surfaces claires (offset 2px sur fond blanc) */
+  --mb-focus-ring: 0 0 0 3px var(--mb-focus-ring-color); /* box-shadow prêt à l'emploi */
+}
+
+/* ================= Semantic — Dark ================= */
+.theme-dark {
+  --mb-bg-main: var(--mb-black);
+
+  --mb-container-neutral: var(--mb-black);
+  --mb-container-quiet: var(--mb-grey-800);
+  --mb-container-brand: var(--mb-black);
+  --mb-container-catchy: var(--mb-white);
+  --mb-container-accent: var(--mb-yellow-500);
+  --mb-container-error: var(--mb-red-400);
+  --mb-container-success: var(--mb-green-400);
+  --mb-container-warning: var(--mb-orange-400);  /* pastille warning sur fond sombre */
+  --mb-container-overlay: #00000099;
+  --mb-container-on-overlay: var(--mb-grey-900);
+
+  --mb-content-neutral: var(--mb-white);
+  --mb-content-quiet: var(--mb-grey-500);
+  --mb-content-accent: var(--mb-yellow-500);
+  --mb-content-accent-strong: var(--mb-yellow-500); /* sur fond sombre, l'accent vif passe déjà */
+  --mb-content-success: var(--mb-green-300);     /* succès lisible sur fond sombre */
+  --mb-content-success-strong: var(--mb-green-300);
+  --mb-content-warning: var(--mb-orange-300);    /* warning lisible sur fond sombre */
+  --mb-content-error: var(--mb-red-300);         /* rouge lisible sur fond sombre (red-400 échoue à 3.92:1) */
+  --mb-content-disabled: var(--mb-grey-600);
+  --mb-content-on-brand-neutral: var(--mb-white);
+  --mb-content-on-brand-accent: var(--mb-yellow-500);
+  --mb-content-on-catchy-neutral: var(--mb-black);
+  --mb-content-on-catchy-accent: var(--mb-yellow-900); /* surface catchy = blanc en sombre → jaune foncé (5.07:1) */
+  --mb-content-on-accent: var(--mb-black);       /* aplat accent jaune — identique aux 2 thèmes */
+  --mb-content-on-error: var(--mb-white);
+
+  --mb-container-disabled: var(--mb-grey-800);
+
+  --mb-border-main: var(--mb-grey-600);
+  --mb-border-quiet: var(--mb-grey-800);
+  --mb-border-control: var(--mb-grey-500);
+  --mb-border-inverse: var(--mb-black);
+  --mb-border-catchy: var(--mb-white);
+  --mb-border-error: var(--mb-red-400);
+  --mb-border-success: var(--mb-green-400);
+
+  --mb-overlay-neutral: var(--mb-grey-800);
+
+  --mb-focus-ring-color: var(--mb-white);        /* blanc en sombre — le noir ne ressortirait pas sur fond noir */
+  --mb-focus-ring: 0 0 0 3px var(--mb-focus-ring-color);
+}

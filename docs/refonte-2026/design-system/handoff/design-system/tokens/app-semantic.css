@@ -1,0 +1,500 @@
+/* ==========================================================================
+   Motoblouz Design System — couche de tokens de l'application Paddock
+   --------------------------------------------------------------------------
+   SOURCE DE VÉRITÉ. Une copie synchronisée existe dans
+   `client-frontend/assets/css/tokens.css` : les deux fronts Nuxt sont des
+   projets séparés, montés séparément dans Docker, un fichier partagé hors
+   de leur arborescence ne serait pas visible du conteneur. Toute
+   modification ici doit être reportée là-bas (voir `scripts/design/sync-tokens.mjs`).
+
+   Trois étages, à ne pas mélanger :
+     1. `--mb-*`  : valeurs de marque Motoblouz, reprises telles quelles du
+                    design system (couleurs brutes, échelles). On ne les
+                    redéfinit JAMAIS par thème — une couleur de marque ne
+                    change pas parce que l'utilisateur passe en sombre.
+     2. sémantique : `--surface-*`, `--content-*`, `--border-*`, `--accent*`,
+                    `--success/--warning/--error/--info`. C'est CE que consomme
+                    l'application, et c'est ce qui bascule entre clair et sombre.
+     3. alias legacy : `--dark*`, `--orange*`, `--gray*`… conservés pour que les
+                    1 500 lignes de `main.css` et les composants existants
+                    basculent sans être réécrits.
+
+   Écarts assumés par rapport au DS Motoblouz, et pourquoi :
+     - Bordures en thème sombre : le DS pose `border-main: #A5A5A5`. Sur les
+       ~600 bordures d'un ERP dense (tableaux, panneaux, cartes de pont) ce
+       gris franc transforme l'écran en filaire. On garde le ton du DS pour les
+       bordures PORTEUSES (`--border-1`) et on ajoute un cran discret
+       (`--border-2`) pour les séparations de masse.
+     - Jaune en TEXTE sur fond clair : `#F1AB00` sur blanc ne fait que 2:1,
+       inutilisable pour du texte. `--accent-content` descend donc à
+       `--mb-yellow-900` en thème clair (5:1). Le jaune de REMPLISSAGE reste
+       le `#F1AB00` de marque, avec du noir dessus comme le prescrit le DS.
+     - Vert/rouge/bleu sémantiques : les valeurs de marque servent en thème
+       clair ; en sombre on remonte d'un cran dans l'échelle officielle
+       (green-300, red-300, blue-300) pour rester au-dessus de 4,5:1.
+       Les valeurs restent celles du DS, seul le cran change.
+   ========================================================================== */
+
+:root {
+  /* ======================================================================
+     1. MARQUE — valeurs Motoblouz, invariantes par thème
+     ====================================================================== */
+
+  /* Tons de marque */
+  --mb-accent: #F1AB00;       /* le jaune Motoblouz */
+  --mb-accent-deep: #CF8103;  /* survol / appui sur aplat jaune */
+  --mb-brand: #D70321;        /* rouge de marque, aussi couleur d'erreur */
+  --mb-neutral: #000000;
+  --mb-white: #FFFFFF;
+
+  /* Gris officiels (mb/core/color/grey) */
+  --mb-grey-100: #FBFBFB;
+  --mb-grey-200: #F6F6F6;
+  --mb-grey-300: #ECECEC;
+  --mb-grey-400: #D4D4D4;
+  --mb-grey-500: #BDBDBD;
+  --mb-grey-600: #A5A5A5;
+  --mb-grey-700: #6F6E6E;
+  --mb-grey-800: #5E5E5E;
+  --mb-grey-900: #2F2F2F;
+  --mb-black: #000000;
+
+  /* Jaune (mb/core/color/yellow) */
+  --mb-yellow-100: #FBE6B3;
+  --mb-yellow-200: #F9DD99;
+  --mb-yellow-300: #F7CD66;
+  --mb-yellow-400: #F4BC33;
+  --mb-yellow-500: #F1AB00;
+  --mb-yellow-600: #D99A00;
+  --mb-yellow-700: #C18900;
+  --mb-yellow-800: #A97800;
+  --mb-yellow-900: #916700;
+  /* Cran ajouté à l'échelle du DS, qui s'arrête à 900. Il prolonge sa propre
+     arithmétique (−24 en rouge, −17 en vert d'un cran à l'autre) et n'existe
+     que pour le JAUNE DE TEXTE en thème clair : depuis que le fond de page
+     descend à #ECECEC, le 900 n'y fait plus que 4,29:1. Ne pas l'employer
+     comme aplat, c'est un ton d'encre. */
+  --mb-yellow-950: #7D5600;
+
+  /* Rouge (mb/core/color/red) */
+  --mb-red-050: #FEECED;
+  --mb-red-100: #FEC9CB;
+  --mb-red-200: #FD9297;
+  --mb-red-300: #FD7278;
+  --mb-red-400: #D70321;
+  --mb-red-500: #AB0009;
+  --mb-red-600: #870007;
+  --mb-red-700: #5A0005;
+
+  /* Vert (mb/core/color/green) */
+  --mb-green-050: #EAF5E1;
+  --mb-green-100: #CDE9B9;
+  --mb-green-200: #A7D98A;
+  --mb-green-300: #5BB736;
+  --mb-green-400: #179500;
+  --mb-green-500: #106B00;
+  --mb-green-600: #0B4C00;
+  --mb-green-700: #062E00;
+
+  /* Bleu (mb/core/color/blue) */
+  --mb-blue-050: #E5F1F7;
+  --mb-blue-100: #C6E0EF;
+  --mb-blue-200: #9CCAE3;
+  --mb-blue-300: #72B3D6;
+  --mb-blue-400: #4A8DB7;
+  --mb-blue-500: #3B7094;
+  --mb-blue-600: #2D5573;
+  --mb-blue-700: #203C53;
+
+  /* ======================================================================
+     ÉCHELLES — communes aux deux thèmes
+     ====================================================================== */
+
+  /* Familles typographiques. Montserrat pour l'affichage et l'UI, Inter
+     pour les zones denses (tableaux, formulaires touffus), comme le DS.
+
+     Les polices d'emoji restent en fin de pile, mais plus pour l'interface :
+     celle-ci est passée aux icônes tracées (`<AppIcon>`, RemixIcon), comme le
+     demande le DS. Elles couvrent désormais les DONNÉES SAISIES — le nom d'un
+     client, une note d'atelier peuvent contenir un emoji, et sans ces recours
+     il s'afficherait en carré vide (« tofu »). Ne les retirez pas : n'écrivez
+     simplement plus d'emoji dans les gabarits, ce que le contrôle
+     `check-icons.mjs` fait respecter. */
+  --font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol';
+  --font-display: 'Montserrat', system-ui, -apple-system, 'Segoe UI', var(--font-emoji), sans-serif;
+  --font-ui: 'Montserrat', system-ui, -apple-system, 'Segoe UI', var(--font-emoji), sans-serif;
+  --font-dense: 'Inter', system-ui, -apple-system, 'Segoe UI', var(--font-emoji), sans-serif;
+
+  /* Échelle de corps (mb/core/font-size) */
+  --fs-050: 11px;
+  --fs-100: 12px;
+  --fs-150: 14px;
+  --fs-200: 16px;
+  --fs-250: 18px;
+  --fs-300: 20px;
+  --fs-350: 22px;
+  --fs-400: 24px;
+  --fs-500: 28px;
+  --fs-600: 32px;
+  --fs-625: 36px;
+  --fs-650: 40px;
+  --fs-700: 56px;
+
+  /* Graisses (mb/core/font-weight) */
+  --w-regular: 400; /* @kind font */
+  --w-medium: 500; /* @kind font */
+  --w-semi: 600; /* @kind font */
+  --w-bold: 700; /* @kind font */
+  --w-extrabold: 800; /* @kind font */
+
+  /* Espacement sémantique (mb/semantic/spacing) */
+  --space-2xs: 4px;
+  --space-xs: 6px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-5xl: 40px;
+  --space-6xl: 48px;
+  --space-7xl: 64px;
+
+  /* Rayons (mb/semantic/border-radius). Le DS met tout l'interactif en
+     pilule ; `--radius-m/--radius-l` servent aux conteneurs. */
+  --radius-none: 0px;
+  --radius-m: 8px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  /* Mouvement (mb/core/motion) */
+  /* MOUVEMENT — délégué au design system Paddock (`paddock-app.css`).
+     Le design system n'admet que TROIS valeurs : 120 ms pour l'état d'un
+     contrôle, 180 ms pour un panneau qui entre ou une ligne qui se déplie,
+     0 ms pour la grille du planning, un tri ou la saisie d'un chiffre. Ces
+     alias-ci restent pour les feuilles déjà écrites, mais ils ne portent
+     plus de valeur propre — sans quoi l'échelle se remettrait à diverger.
+     `--dur-slow` n'a pas d'équivalent : la quatrième valeur n'existe pas. */
+  --ease: var(--pk-easing);
+  --dur-fast: var(--pk-duration-state);
+  --dur-base: var(--pk-duration-panel);
+  --dur-slow: var(--pk-duration-panel);
+
+  /* Épaisseurs de trait */
+  --bw: 1px;
+  --bw-2: 2px;
+}
+
+/* ==========================================================================
+   2. SÉMANTIQUE — THÈME CLAIR (défaut du design system Motoblouz)
+   `:root` porte le clair pour que tout contexte sans `data-theme` soit valide.
+   ========================================================================== */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces, du fond de page au plus élevé.
+
+     Le fond de page est le token le PLUS FONCÉ de l'échelle claire, et les
+     panneaux se posent dessus. C'est l'inverse d'une progression 0 → 3, et
+     c'est voulu : un fond de page et des cartes tous deux en blanc pur ne
+     laissaient aucun relief, l'écran entier devenait un seul aplat à
+     luminance maximale — c'est ce qui fatiguait l'œil sur une journée.
+
+     #ECECEC est le « container quiet » du DS, et la valeur la plus foncée
+     qui tienne : un cran plus bas (#E7E7E7), le jaune de texte tombe à
+     4,39:1. Les panneaux ne sont pas en blanc pur non plus, pour la même
+     raison de confort — ils occupent l'essentiel de l'écran. */
+  --surface-0: var(--mb-grey-300);   /* fond de page (le plus foncé) */
+  --surface-1: var(--mb-grey-100);   /* panneau, carte */
+  --surface-2: var(--mb-grey-200);   /* zone en retrait, en-tête de tableau */
+  --surface-3: var(--mb-grey-300);   /* survol, ligne zébrée, puce */
+  --surface-inverse: var(--mb-black);
+
+  /* Contenus.
+     Le DS pose #6F6E6E en texte secondaire et #A4A4A4 en désactivé. On
+     descend d'un cran (grey-800 / grey-700) car Paddock utilise ces tons pour
+     des LIBELLÉS de formulaire, pas pour du décor : #A5A5A5 sur blanc ne fait
+     que 2,5:1. Le gris clair du DS reste disponible en `--content-disabled`,
+     que la WCAG dispense de contraste. */
+  /* Quasi-noir plutôt que noir pur : #000000 sur une surface claire donne
+     21:1, le contraste le plus élevé qui existe, et c'est précisément ce que
+     l'œil supporte mal en lecture prolongée (halo autour des lettres). Le
+     ton reste très au-dessus du seuil et garde un cran net au-dessus de
+     `--content-2`. Valeur hors échelle de marque, comme le `#141414` du
+     thème sombre : elle se situe entre `--mb-black` et `--mb-grey-900`. */
+  --content-1: #1A1A1A;              /* titres, valeurs */
+  --content-2: var(--mb-grey-900);   /* corps de texte secondaire */
+  --content-3: var(--mb-grey-800);   /* libellés, métadonnées */
+  --content-disabled: var(--mb-grey-600);
+  --content-inverse: var(--mb-white);
+
+  /* Bordures */
+  --border-1: var(--mb-grey-400);    /* séparation porteuse (carte, encadré) */
+  --border-2: var(--mb-grey-300);    /* filet discret, ligne de tableau */
+  --border-control: var(--mb-grey-700); /* limite de champ / bouton : doit tenir 3:1 */
+  --border-strong: var(--mb-black);  /* mise en avant, focus */
+
+  /* Accent */
+  --accent: var(--mb-accent);
+  --accent-hover: #D79B00;
+  --accent-active: #B78500;
+  --accent-ink: var(--mb-black);           /* texte posé SUR un aplat jaune */
+  --accent-content: var(--mb-yellow-950);  /* jaune utilisé COMME texte */
+  --accent-graphic: var(--mb-yellow-800);  /* puce, série de graphique, jauge */
+  --accent-soft: rgba(241, 171, 0, 0.10);  /* fond teinté — allégé pour que --accent-content tienne 4,5:1 dessus */
+
+  /* Sémantique d'état. `--warning` est descendu de #F37004 (2,95:1 sur blanc,
+     sous le seuil des éléments graphiques) à la même teinte assombrie. */
+  --success: var(--mb-green-400);
+  --success-content: var(--mb-green-500);
+  --success-soft: var(--mb-green-050);
+  --warning: #D96500;
+  --warning-content: #A34B00;
+  --warning-soft: #FDF0E4;
+  --error: var(--mb-red-400);
+  --error-content: var(--mb-red-500);
+  --error-soft: var(--mb-red-050);
+  --info: var(--mb-blue-400);
+  --info-content: var(--mb-blue-500);
+  --info-soft: var(--mb-blue-050);
+
+  /* Encre à poser SUR un aplat d'état (pastille de compteur, badge de statut).
+     Elle ne suit pas `--content-1` : sur un aplat, l'encre dépend de la
+     LUMINOSITÉ DE L'APLAT, pas du thème. En clair les aplats sont foncés, sauf
+     le vert, l'ambre et le bleu qui restent assez clairs pour du noir. */
+  --on-success: var(--mb-black);
+  --on-warning: var(--mb-black);
+  --on-error: var(--mb-white);
+  --on-info: var(--mb-black);
+
+  /* Voiles et élévation. Le DS est presque sans ombre : on garde des
+     élévations très basses, réservées aux surfaces flottantes. */
+  --scrim: rgba(0, 0, 0, 0.5);
+  --overlay-soft: rgba(0, 0, 0, 0.04);
+  --overlay-hover: rgba(0, 0, 0, 0.06);
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --elevation-2: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --elevation-3: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* ==========================================================================
+   3. SÉMANTIQUE — THÈME SOMBRE (mb/semantic/dark)
+   Le DS pose le fond à #000. Pour un ERP consulté toute la journée on
+   conserve ce noir en fond de page et on monte les conteneurs sur l'échelle
+   de gris officielle (grey-900 / grey-800) plutôt que d'inventer un
+   graphite hors palette.
+   ========================================================================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-0: var(--mb-black);
+  --surface-1: #141414;              /* entre black et grey-900, panneau */
+  --surface-2: var(--mb-grey-900);   /* #2F2F2F */
+  --surface-3: #333333;              /* survol — assombri pour que --content-3 tienne 4,5:1 dessus */
+  --surface-inverse: var(--mb-white);
+
+  --content-1: var(--mb-white);
+  --content-2: var(--mb-grey-500);   /* #BDBDBD — DS content-quiet sombre */
+  --content-3: var(--mb-grey-600);   /* #A5A5A5 */
+  --content-disabled: var(--mb-grey-800);
+  --content-inverse: var(--mb-black);
+
+  --border-1: var(--mb-grey-800);    /* #5E5E5E, séparation porteuse lisible */
+  --border-2: rgba(255, 255, 255, 0.10); /* filet de masse, cf. en-tête */
+  --border-control: var(--mb-grey-500);
+  --border-strong: var(--mb-white);
+
+  --accent: var(--mb-accent);
+  --accent-hover: var(--mb-yellow-400);
+  --accent-active: var(--mb-yellow-600);
+  --accent-ink: var(--mb-black);
+  --accent-content: var(--mb-accent);     /* 10,6:1 sur noir, tient en texte */
+  --accent-graphic: var(--mb-accent);
+  --accent-soft: rgba(241, 171, 0, 0.14);
+
+  /* On remonte d'un cran dans les échelles officielles : les valeurs 400
+     (#179500, #D70321, #4A8DB7) passent sous 4,5:1 en petit texte sur noir. */
+  --success: var(--mb-green-300);
+  --success-content: var(--mb-green-200);
+  --success-soft: rgba(91, 183, 54, 0.14);
+  --warning: #F37004;
+  --warning-content: #F4A24F;
+  --warning-soft: rgba(243, 112, 4, 0.14);
+  --error: var(--mb-red-300);
+  --error-content: var(--mb-red-200);
+  --error-soft: rgba(253, 114, 120, 0.14);
+  --info: var(--mb-blue-300);
+  --info-content: var(--mb-blue-200);
+  --info-soft: rgba(114, 179, 214, 0.14);
+
+  /* Les aplats d'état sont ici les crans CLAIRS de l'échelle : l'encre passe
+     donc au noir. C'était le défaut relevé au contrôle — une pastille de
+     compteur en blanc sur un rouge clair ne faisait que 2,7:1. */
+  --on-success: var(--mb-black);
+  --on-warning: var(--mb-black);
+  --on-error: var(--mb-black);
+  --on-info: var(--mb-black);
+
+  --scrim: rgba(0, 0, 0, 0.65);
+  --overlay-soft: rgba(255, 255, 255, 0.03);
+  --overlay-hover: rgba(255, 255, 255, 0.06);
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --elevation-2: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --elevation-3: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* ==========================================================================
+   4. ALIAS LEGACY
+   Les noms historiques de Paddock pointent vers la sémantique. C'est ce qui
+   permet aux feuilles et composants existants de basculer clair/sombre sans
+   être réécrits ligne par ligne.
+   ========================================================================== */
+:root {
+  /* Surfaces */
+  --dark: var(--surface-0);
+  --dark2: var(--surface-1);
+  --dark3: var(--surface-2);
+  --dark4: var(--surface-3);
+
+  /* Accent — `--orange` est un nom historique, la valeur est le jaune de marque */
+  --orange: var(--accent);
+  --orange2: var(--accent-hover);
+  --orange-ink: var(--accent-ink);
+
+  /* Textes */
+  --ink: var(--content-1);
+  --ink-body: var(--content-2);
+  --ink-muted: var(--content-3);
+  --gray: var(--content-3);
+  --gray2: var(--content-2);
+
+  /* Bordures et « verre » (le DS exclut le glassmorphism : ces alias
+     retombent sur des surfaces et bordures franches) */
+  --border-color: var(--border-2);
+  --border-hover: var(--border-1);
+  --glass-bg: var(--overlay-soft);
+  --glass-border: var(--border-2);
+
+  /* Sémantique historique */
+  --green: var(--success);
+  --amber: var(--warning);
+  --red: var(--error);
+  --blue: var(--info);
+  --purple: var(--mb-blue-300);   /* le violet n'existe pas au DS → bleu info */
+  --teal: var(--mb-green-300);
+
+  --status-good: var(--success);
+  --status-warn: var(--warning);
+  --status-crit: var(--error);
+  --status-good-soft: var(--success-soft);
+  --status-warn-soft: var(--warning-soft);
+  --status-crit-soft: var(--error-soft);
+
+  /* Rayons historiques → échelle du DS. Les conteneurs prennent 8px,
+     l'interactif passe en pilule au niveau des composants. */
+  --radius-sm: var(--radius-m);
+  --radius: var(--radius-m);
+  --radius-lg: var(--radius-m);
+  --radius-xl: var(--radius-l);
+
+  /* Ombres historiques → élévations basses du DS */
+  --shadow-sm: var(--elevation-1);
+  --shadow: var(--elevation-2);
+  --shadow-lg: var(--elevation-3);
+  --shadow-glow: none;   /* le halo jaune n'existe pas au DS */
+
+  /* Consommé par des CONTRÔLES (champs, tuiles, boutons) : c'est donc la
+     durée d'état du design system, pas celle d'un panneau. */
+  --transition: var(--pk-duration-state) var(--pk-easing);
+
+}
+
+/* ==========================================================================
+   5. DATA-VISUALISATION
+   --------------------------------------------------------------------------
+   Cette palette N'EST PAS dérivée de la palette de marque, et c'est
+   volontaire. Elle vient du travail fait pour la refonte de la page Stat :
+   bande de clarté OKLCH 0,48–0,67, chroma ≥ 0,10, séparation daltonisme
+   ΔE 14,2 (protan/deutan), vision normale ΔE 15,9, contraste ≥ 3:1. Une
+   dérivation naïve de la palette Motoblouz remettrait du rouge et du vert
+   côte à côte — le pire couple en deutéranopie — et perdrait cette
+   validation. On la conserve donc telle quelle, en l'étendant au thème clair.
+
+   Le jaune de marque #F1AB00 est HORS de cette bande (trop clair, il éblouit
+   en grande surface) : il reste l'accent d'interface et le trait d'une courbe
+   unique ; `--viz-1` prend le relais dès qu'il y a des aplats.
+   ========================================================================== */
+
+/* Palette catégorielle — identité de série. Ordre FIXE, attribué de --viz-1
+   vers --viz-5, jamais recyclé au-delà : la 6e série se replie sur
+   `--viz-other` (« Autre »). */
+:root,
+:root[data-theme='light'] {
+  /* Teintes identiques au thème sombre, assombries juste ce qu'il faut pour
+     tenir 3:1 sur blanc (un aplat de série est un élément graphique porteur
+     de sens au sens de la WCAG 1.4.11). */
+  --viz-1: #8A7000;
+  --viz-2: #2F6FC4;
+  --viz-3: #0B7A70;
+  --viz-4: #6D3BD1;
+  --viz-5: #A8457A;
+  --viz-other: #5A6673;
+  /* Remplissage d'aire de la série 3 : les onglets du tableau de bord en
+     posent un translucide. Il doit suivre le thème comme la série elle-même. */
+  --viz-3-soft: rgba(11, 122, 112, 0.12);
+
+  /* Rampe ordinale — une seule teinte, pour ce qui a un ordre naturel
+     (étapes d'un flux, paliers). Sur fond clair elle va du clair au sombre :
+     ce qui doit être distinguable, c'est un pas de son VOISIN, pas du fond. */
+  --ramp-1: var(--mb-yellow-300);
+  --ramp-2: var(--mb-yellow-500);
+  --ramp-3: var(--mb-yellow-700);
+  --ramp-4: var(--mb-yellow-800);
+  --ramp-5: var(--mb-yellow-900);
+
+  --viz-grid: var(--border-2);
+  --viz-surface: var(--surface-1);
+}
+
+:root[data-theme='dark'] {
+  /* Valeurs d'origine, validées sur fond sombre. */
+  --viz-1: #B08F00;
+  --viz-2: #4A8FE7;
+  --viz-3: #0D9488;
+  --viz-4: #8B5CF6;
+  --viz-5: #C4608F;
+  --viz-other: #64748B;
+  --viz-3-soft: rgba(13, 148, 136, 0.12);
+
+  /* 5 pas maximum : au 6e, le pas le plus sombre passe sous 2:1 et disparaît
+     du fond. */
+  --ramp-1: #FFF0B3;
+  --ramp-2: #F1AB00;
+  --ramp-3: #C9A400;
+  --ramp-4: #997D00;
+  --ramp-5: #6E5A00;
+
+  --viz-grid: var(--border-2);
+  --viz-surface: var(--surface-1);
+}
+
+/* Le portail client utilise le préfixe `--pad-*` : on le fait pointer ici
+   pour que les deux applications partagent réellement le même système. */
+:root {
+  --pad-yellow: var(--accent);
+  --pad-yellow-soft: var(--accent-soft);
+  --pad-bg: var(--surface-0);
+  --pad-surface: var(--surface-1);
+  --pad-surface-2: var(--surface-2);
+  --pad-border: var(--border-2);
+  --pad-border-strong: var(--border-1);
+  --pad-text: var(--content-1);
+  --pad-text-dim: var(--content-2);
+  --pad-text-faint: var(--content-3);
+  --pad-font-display: var(--font-display);
+  --pad-font-body: var(--font-ui);
+  --pad-radius: var(--radius-m);
+  --pad-shadow: var(--elevation-2);
+  --pad-ease: var(--ease);
+}

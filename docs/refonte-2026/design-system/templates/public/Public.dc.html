@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Front public sans compte" description="Landing, prise de rendez-vous en ligne, suivi par lien, mot de passe oublié, mentions et CGV." -->
+<helmet><script src="./boot.js"></script><style>html,body{margin:0;background:#ececec}body{font-family:var(--mb-font-montserrat);padding:20px}a{color:var(--pk-link)}a:hover{color:#000}button{font-family:inherit}</style></helmet>
+<x-import component-from-global-scope="PaddockPublicApp" layout="{{ layout }}" start-screen="{{ startScreen }}" logo="{{ logo }}" hint-size="430px,940px"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:960},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;un écran&quot;,&quot;rangée&quot;],&quot;default&quot;:&quot;un écran&quot;,&quot;tsType&quot;:&quot;'un écran' | 'rangée'&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;landing&quot;,&quot;booking&quot;,&quot;track&quot;,&quot;ready&quot;,&quot;reset&quot;,&quot;legal&quot;,&quot;terms&quot;],&quot;default&quot;:&quot;landing&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;logo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-horizontal.svg&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return {
+      layout: p.layout ?? 'un écran',
+      startScreen: p.startScreen ?? 'landing',
+      logo: p.logo ?? '../../assets/paddock-logo-horizontal.svg',
+    };
+  }
+}
+</script>
+</body>
+</html>

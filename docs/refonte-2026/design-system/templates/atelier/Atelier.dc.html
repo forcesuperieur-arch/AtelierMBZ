@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Front atelier" description="L'app Paddock utilisée par le personnel : rail, en-tête, colonne de file et 26 écrans câblés." -->
+<helmet><script src="./boot.js"></script><style>html,body{margin:0;background:#ececec}body{font-family:var(--mb-font-montserrat)}a{color:var(--pk-link)}a:hover{color:#000}button{font-family:inherit}</style></helmet>
+<x-import component-from-global-scope="PaddockAtelierApp" theme="{{ theme }}" workshop-name="{{ workshopName }}" logo="{{ logo }}" rail-collapsed="{{ railCollapsed }}" density="{{ density }}" start-screen="{{ startScreen }}" hint-size="1440px,900px"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;sombre&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;'clair' | 'sombre'&quot;,&quot;section&quot;:&quot;Apparence&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;compacte&quot;,&quot;normale&quot;,&quot;large&quot;],&quot;default&quot;:&quot;normale&quot;,&quot;tsType&quot;:&quot;'compacte' | 'normale' | 'large'&quot;,&quot;section&quot;:&quot;Apparence&quot;},&quot;workshopName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Atelier Principal&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Atelier&quot;},&quot;logo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-favicon.svg&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Atelier&quot;},&quot;railCollapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;stat&quot;,&quot;planning&quot;,&quot;reception&quot;,&quot;bays&quot;,&quot;clients&quot;,&quot;client&quot;,&quot;motos&quot;,&quot;explorer&quot;,&quot;bench&quot;,&quot;periode&quot;,&quot;analyse&quot;,&quot;devis&quot;,&quot;devis-composer&quot;,&quot;factures&quot;,&quot;stock&quot;,&quot;admin&quot;,&quot;rdv&quot;,&quot;restitution&quot;,&quot;etat&quot;],&quot;default&quot;:&quot;stat&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return {
+      theme: p.theme ?? 'clair',
+      workshopName: p.workshopName ?? 'Atelier Principal',
+      logo: p.logo ?? '../../assets/paddock-logo-favicon.svg',
+      railCollapsed: p.railCollapsed ?? true,
+      density: p.density ?? 'normale',
+      startScreen: p.startScreen ?? 'stat',
+    };
+  }
+}
+</script>
+</body>
+</html>

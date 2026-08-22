@@ -1,0 +1,15 @@
+/* Paddock Design System — global entry point.
+   Consumers link this single file. Import lines only.
+   Layer 1: Motoblouz Gazoline foundations (inherited verbatim).
+   Layer 2: Paddock application layer. */
+
+@import './fonts/fonts.css';
+@import './tokens/mb-colors.css';
+@import './tokens/mb-typography.css';
+@import './tokens/mb-spacing.css';
+@import './tokens/mb-sizing.css';
+@import './tokens/mb-radius.css';
+@import './tokens/mb-motion.css';
+@import './tokens/mb-interactions.css';
+@import './tokens/paddock-app.css';
+@import './tokens/app-semantic.css';

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Cockpit SRC" description="L'étage réseau : cinq ateliers comparés en lecture seule, et l'atelier ouvert depuis le cockpit." -->
+<helmet><script src="./boot.js"></script><style>html,body{margin:0;background:#ececec}body{font-family:var(--mb-font-montserrat)}a{color:var(--pk-link)}a:hover{color:#000}button{font-family:inherit}</style></helmet>
+<x-import component-from-global-scope="CockpitApp" logo="{{ logo }}" hint-size="1440px,900px"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;logo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-favicon.svg&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return { logo: p.logo ?? '../../assets/paddock-logo-favicon.svg' };
+  }
+}
+</script>
+</body>
+</html>

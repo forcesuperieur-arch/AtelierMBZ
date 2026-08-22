@@ -1,0 +1,43 @@
+/* Motoblouz — Sizing tokens
+   Core scale (px) + semantic t-shirt aliases. Used for icon sizes, control heights, avatars. */
+
+:root {
+  /* ---- Core sizing scale (px) ---- */
+  --mb-size-0: 0px;
+  --mb-size-050: 1px;
+  --mb-size-100: 2px;
+  --mb-size-150: 4px;
+  --mb-size-200: 8px;
+  --mb-size-250: 12px;
+  --mb-size-300: 16px;
+  --mb-size-325: 20px;
+  --mb-size-350: 24px;
+  --mb-size-400: 32px;
+  --mb-size-450: 40px;
+  --mb-size-475: 44px;
+  --mb-size-500: 48px;
+  --mb-size-520: 56px;
+  --mb-size-550: 64px;
+  --mb-size-600: 80px;
+  --mb-size-650: 96px;
+  --mb-size-700: 128px;
+
+  /* ---- Semantic sizing (t-shirt) ---- */
+  --mb-sizing-none: var(--mb-size-0);
+  --mb-sizing-4xs: var(--mb-size-050);   /* 1 */
+  --mb-sizing-3xs: var(--mb-size-100);   /* 2 */
+  --mb-sizing-2xs: var(--mb-size-150);   /* 4 */
+  --mb-sizing-xs: var(--mb-size-200);    /* 8 */
+  --mb-sizing-s: var(--mb-size-250);     /* 12 */
+  --mb-sizing-m: var(--mb-size-300);     /* 16 */
+  --mb-sizing-l: var(--mb-size-325);     /* 20 */
+  --mb-sizing-xl: var(--mb-size-350);    /* 24 */
+  --mb-sizing-2xl: var(--mb-size-400);   /* 32 */
+  --mb-sizing-3xl: var(--mb-size-450);   /* 40 */
+  --mb-sizing-4xl: var(--mb-size-500);   /* 48 */
+  --mb-sizing-5xl: var(--mb-size-520);   /* 56 */
+  --mb-sizing-6xl: var(--mb-size-550);   /* 64 */
+  --mb-sizing-7xl: var(--mb-size-600);   /* 80 */
+  --mb-sizing-8xl: var(--mb-size-650);   /* 96 */
+  --mb-sizing-9xl: var(--mb-size-700);   /* 128 */
+}

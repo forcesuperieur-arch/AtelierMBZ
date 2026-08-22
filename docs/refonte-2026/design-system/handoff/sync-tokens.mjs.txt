@@ -1,0 +1,97 @@
+#!/usr/bin/env node
+/**
+ * Propage les jetons du design system Paddock vers les deux fronts Nuxt.
+ *
+ * SENS DE CIRCULATION — la source de vérité est `design-system/`, produit par
+ * le projet Claude Design « Paddock Design System ». Les fichiers écrits par ce
+ * script sont des COPIES GÉNÉRÉES : ne les éditez pas à la main, l'écart serait
+ * écrasé à la prochaine propagation (et signalé avant par `--check`).
+ *
+ * Les deux applications Nuxt sont des projets séparés, montées séparément dans
+ * Docker : un fichier partagé hors de leur arborescence ne serait pas visible
+ * du conteneur. D'où la copie plutôt que le lien.
+ *
+ *   node scripts/design/sync-tokens.mjs           # propage
+ *   node scripts/design/sync-tokens.mjs --check   # échoue si une copie a dérivé
+ *
+ * Le mode --check est fait pour le CI.
+ */
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const DS = join(ROOT, 'design-system')
+const CHECK = process.argv.includes('--check')
+
+/* Les feuilles de jetons. `app-semantic.css` porte la couche que consomment les
+   applications ; `paddock-app.css` la couche Paddock ; les `mb-*` les
+   fondations de marque. Les deux fronts reçoivent le même jeu. */
+const SHEETS = [
+  ['tokens/app-semantic.css', 'assets/css/tokens.css'],
+  ['tokens/paddock-app.css', 'assets/css/paddock-app.css'],
+]
+const FRONTS = ['frontend', 'client-frontend']
+
+const drift = []
+let written = 0
+
+function propagate(sourceAbs, targetAbs, label) {
+  if (!existsSync(sourceAbs)) {
+    console.error(`Source absente : ${label}. Le paquet design-system/ est-il bien déposé ?`)
+    process.exit(2)
+  }
+  const source = readFileSync(sourceAbs, 'utf8')
+  const current = existsSync(targetAbs) ? readFileSync(targetAbs, 'utf8') : null
+  if (current === source) return
+  if (CHECK) { drift.push(label); return }
+  mkdirSync(dirname(targetAbs), { recursive: true })
+  writeFileSync(targetAbs, source)
+  written++
+  console.log(`→ ${label}`)
+}
+
+for (const front of FRONTS) {
+  for (const [from, to] of SHEETS) {
+    propagate(join(DS, from), join(ROOT, front, to), `${front}/${to}`)
+  }
+}
+
+/* Polices et logos : copiés dans le `public/` de chaque front. Les binaires ne
+   se comparent pas au texte, on compare leur taille et leur date. */
+function propagateBinaries(fromDir, toDir, label) {
+  if (!existsSync(fromDir)) return
+  for (const name of readdirSync(fromDir)) {
+    if (name.startsWith('.') || name.endsWith('.css')) continue
+    const src = join(fromDir, name)
+    const dest = join(toDir, name)
+    const same = existsSync(dest) && readFileSync(src).equals(readFileSync(dest))
+    if (same) continue
+    if (CHECK) { drift.push(`${label}/${name}`); continue }
+    mkdirSync(toDir, { recursive: true })
+    copyFileSync(src, dest)
+    written++
+    console.log(`→ ${label}/${name}`)
+  }
+}
+
+for (const front of FRONTS) {
+  propagateBinaries(join(DS, 'fonts'), join(ROOT, front, 'public', 'fonts'), `${front}/public/fonts`)
+  propagateBinaries(join(DS, 'assets'), join(ROOT, front, 'public', 'branding'), `${front}/public/branding`)
+}
+
+if (CHECK) {
+  if (drift.length === 0) {
+    console.log('Les jetons et les fichiers de marque sont à jour.')
+    process.exit(0)
+  }
+  console.error(
+    'Ces fichiers ont dérivé du design system :\n' +
+    drift.map((d) => `  - ${d}`).join('\n') +
+    '\n\nUne valeur de design se change dans le projet Claude Design, jamais ici.' +
+    '\nPour reprendre la version du design system : node scripts/design/sync-tokens.mjs',
+  )
+  process.exit(1)
+}
+
+console.log(written === 0 ? 'Rien à propager, tout est à jour.' : `${written} fichier(s) propagé(s).`)

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Portail client" description="L'espace client Paddock refondu : ce qu'il y a à faire d'abord, devis à valider ligne par ligne, suivi, messagerie avec l'atelier, carnet d'entretien, documents." -->
+<helmet><script src="./boot.js"></script><style>html,body{margin:0;min-height:100%;background:var(--surface-0)}body{font-family:var(--mb-font-montserrat)}a{color:var(--accent-content)}a:hover{color:var(--content-1)}button,input{font-family:inherit}</style></helmet>
+<x-import component-from-global-scope="PaddockClientPortal" hint-size="100%,900px"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1100,&quot;height&quot;:900},&quot;version&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;refonte&quot;,&quot;code actuel&quot;],&quot;default&quot;:&quot;refonte&quot;,&quot;tsType&quot;:&quot;'refonte' | 'code actuel'&quot;,&quot;section&quot;:&quot;Comparaison&quot;},&quot;width&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;téléphone&quot;,&quot;grand écran&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;accueil&quot;,&quot;devis&quot;,&quot;suivi&quot;,&quot;messages&quot;,&quot;moto&quot;,&quot;documents&quot;],&quot;default&quot;:&quot;accueil&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;normale&quot;,&quot;vide&quot;,&quot;chargement&quot;,&quot;erreur&quot;,&quot;hors-ligne&quot;],&quot;default&quot;:&quot;normale&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;États&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;sombre&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;'clair' | 'sombre'&quot;},&quot;logoFondClair&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-stacked-light.svg&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;logoFondSombre&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-stacked.svg&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    /* Les écrans sont montés par x-import depuis le scope global : ils ne
+       reçoivent pas les props du DC. On publie donc les valeurs de démonstration
+       sur window, et l'app s'y abonne. */
+    const d = {
+      version: p.version ?? 'refonte',
+      width: p.width ?? 'auto',
+      startScreen: p.startScreen ?? 'accueil',
+      state: p.state ?? 'normale',
+      theme: p.theme ?? 'clair',
+      logoFondClair: p.logoFondClair ?? '../../assets/paddock-logo-stacked-light.svg',
+      logoFondSombre: p.logoFondSombre ?? '../../assets/paddock-logo-stacked.svg',
+    };
+    const cle = JSON.stringify(d);
+    if (this._cle !== cle) {
+      this._cle = cle;
+      window.__pkPortal = d;
+      window.__pkClientState = d.state;
+      document.dispatchEvent(new CustomEvent('pk-portal-props', { detail: d }));
+      document.dispatchEvent(new CustomEvent('pk-client-state', { detail: d.state }));
+    }
+    return {};
+  }
+}
+</script>
+</body>
+</html>

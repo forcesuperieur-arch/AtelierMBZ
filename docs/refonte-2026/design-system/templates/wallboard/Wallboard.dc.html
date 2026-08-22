@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Affichage mural" description="L'écran fixé au-dessus du comptoir : ce qui sort, les ponts, l'attente de réponse. Rien sous 20 px, aucune interaction." -->
+<helmet><script src="./boot.js"></script><style>html,body{margin:0;background:#141414}a{color:var(--pk-link)}a:hover{color:#fff}</style></helmet>
+<x-import component-from-global-scope="WallboardScreen" logo="{{ logo }}" hint-size="1920px,1080px"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1080},&quot;logo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;../../assets/paddock-logo-favicon.svg&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return { logo: p.logo ?? '../../assets/paddock-logo-favicon.svg' };
+  }
+}
+</script>
+</body>
+</html>
